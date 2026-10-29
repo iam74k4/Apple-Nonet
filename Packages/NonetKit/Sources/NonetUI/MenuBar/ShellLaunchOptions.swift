@@ -1,0 +1,71 @@
+// 担当: ui-shell
+// App の起動引数。テストできるように NonetUI に置く（--self-check 以外は App が DEBUG ビルドでだけ使う）
+import Foundation
+
+public struct ShellLaunchOptions: Equatable, Sendable {
+    /// --self-check: 画面を出さずに動作の確認結果を JSON で出して終わる（すべてのビルド）
+    public var selfCheck = false
+    /// --config-dir <dir>: 設定の置き場所（試用の記録もメモリだけに置く）
+    public var configDirectory: URL?
+    /// --show-settings [profiles|general|license|about]
+    public var settingsTab: SettingsTab?
+    /// --show-onboarding
+    public var showOnboarding = false
+    /// --preview-hud: 最初のページの HUD を出したままにする
+    public var previewHUD = false
+    /// --preview-toast: トーストを繰り返し出す
+    public var previewToast = false
+    /// --preview-result: 結果のパネルを出す
+    public var previewResult = false
+    /// --simulate-expired-trial: 20日前に試用を始めたことにする（保存はしない）
+    public var simulateExpiredTrial = false
+    /// --snapshot <dir>: 表示中のウィンドウを何度か PNG に書き出して終わる（画面の収録の許可が無くても見た目を確かめられる）
+    public var snapshotDirectory: URL?
+
+    public init() {}
+
+    /// 先頭（実行ファイルのパス）は読まない。知らない引数（Xcode が渡す -NSDocumentRevisionsDebugMode など）は無視する
+    public static func parse(_ arguments: [String]) -> ShellLaunchOptions {
+        var options = ShellLaunchOptions()
+        var index = 1
+        while index < arguments.count {
+            let argument = arguments[index]
+            let next = index + 1 < arguments.count ? arguments[index + 1] : nil
+            switch argument {
+            case "--self-check":
+                options.selfCheck = true
+            case "--config-dir":
+                if let next, !next.hasPrefix("--") {
+                    options.configDirectory = URL(fileURLWithPath: (next as NSString).expandingTildeInPath, isDirectory: true)
+                    index += 1
+                }
+            case "--show-settings":
+                if let next, let tab = SettingsTab(rawValue: next) {
+                    options.settingsTab = tab
+                    index += 1
+                } else {
+                    options.settingsTab = .profiles
+                }
+            case "--show-onboarding":
+                options.showOnboarding = true
+            case "--preview-hud":
+                options.previewHUD = true
+            case "--preview-toast":
+                options.previewToast = true
+            case "--preview-result":
+                options.previewResult = true
+            case "--simulate-expired-trial":
+                options.simulateExpiredTrial = true
+            case "--snapshot":
+                if let next, !next.hasPrefix("--") {
+                    options.snapshotDirectory = URL(fileURLWithPath: (next as NSString).expandingTildeInPath, isDirectory: true)
+                    index += 1
+                }
+            default:
+                break
+            }
+            index += 1
+        }
+        return options
+    }
+}

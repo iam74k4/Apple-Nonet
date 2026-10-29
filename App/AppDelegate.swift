@@ -6,6 +6,7 @@ import NonetUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let options: ShellLaunchOptions
     private var services: NonetServices?
     private var controller: NonetController?
     private var license: LicenseManager?
@@ -13,16 +14,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBar: MenuBarController?
     private var settingsWindow: SettingsWindowController?
     private var onboardingWindow: OnboardingWindowController?
+    private var licenseRefreshObservers: [(NotificationCenter, NSObjectProtocol)] = []
     private let updater = UpdaterController()
+    #if DEBUG
+    private var preview: DebugPreview?
+    #endif
+
+    init(options: ShellLaunchOptions) {
+        self.options = options
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let services = NonetServices.live()
         let hud = HUDWindowController()
-        let verifier = AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) }
-        let license = LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage())
+        let license = makeLicenseManager()
         let controller = NonetController(
             services: services,
-            store: ConfigurationStore(directory: ConfigurationStore.defaultDirectory),
+            store: ConfigurationStore(directory: configurationDirectory),
             hud: hud,
             license: license
         )
@@ -32,13 +41,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.controller = controller
 
         let checkForUpdates: (() -> Void)? = updater.isAvailable ? { [weak self] in self?.updater.checkForUpdates() } : nil
-        menuBar = MenuBarController(
+        let menuBar = MenuBarController(
             controller: controller,
             license: license,
             onOpenSettings: { [weak self] tab in self?.showSettings(tab: tab) },
             onOpenOnboarding: { [weak self] in self?.showOnboarding() },
             onCheckForUpdates: checkForUpdates
         )
+        menuBar.onRequestAccessibility = { [weak self] in
+            guard let permissions = self?.services?.permissions else { return }
+            permissions.requestAccessibility()
+            permissions.openAccessibilitySettings()
+        }
+        self.menuBar = menuBar
         settingsWindow = SettingsWindowController(
             controller: controller,
             license: license,
@@ -47,20 +62,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onCheckForUpdates: checkForUpdates
         )
 
+        observeLicenseRefreshTriggers()
         controller.start()
         if controller.isFirstLaunch {
             showOnboarding()
         }
+        #if DEBUG
+        applyDebugOptions()
+        #endif
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        for (center, observer) in licenseRefreshObservers {
+            center.removeObserver(observer)
+        }
+        licenseRefreshObservers = []
         controller?.stop()
     }
 
-    /// Dock やアプリの再オープンで設定を開く
+    /// アプリをもう一度開いたら設定を開く
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings(tab: .profiles)
         return false
+    }
+
+    private var configurationDirectory: URL {
+        #if DEBUG
+        if let directory = options.configDirectory {
+            return directory
+        }
+        #endif
+        return ConfigurationStore.defaultDirectory
+    }
+
+    private func makeLicenseManager() -> LicenseManager {
+        let verifier = AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) }
+        #if DEBUG
+        if options.simulateExpiredTrial {
+            return DebugPreview.expiredTrialLicense(verifier: verifier)
+        }
+        // 設定の置き場所を分けたときは、試用の記録も本物（UserDefaults）に書かない
+        if options.configDirectory != nil {
+            return DebugPreview.temporaryLicense(verifier: verifier)
+        }
+        #endif
+        return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage())
+    }
+
+    /// 試用の残り日数の表示は refresh() でしか変わらないので、日付や時計が変わりうるときに呼ぶ
+    private func observeLicenseRefreshTriggers() {
+        let refresh: @Sendable (Notification) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated { self?.license?.refresh() }
+        }
+        let workspace = NSWorkspace.shared.notificationCenter
+        let center = NotificationCenter.default
+        licenseRefreshObservers = [
+            (workspace, workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: refresh)),
+            (center, center.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main, using: refresh)),
+            (center, center.addObserver(forName: .NSSystemClockDidChange, object: nil, queue: .main, using: refresh)),
+        ]
     }
 
     private func showSettings(tab: SettingsTab) {
@@ -68,11 +128,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showOnboarding() {
+        if let onboardingWindow {
+            onboardingWindow.show()
+            return
+        }
         guard let controller, let services else { return }
         let window = OnboardingWindowController(controller: controller, services: services) { [weak self] in
             self?.onboardingWindow = nil
         }
+        window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }
         onboardingWindow = window
         window.show()
     }
+
+    #if DEBUG
+    /// 見た目の確認用の起動引数（一覧は App/DebugPreview.swift）
+    private func applyDebugOptions() {
+        guard let controller, let hud, let license, let services else { return }
+        if let tab = options.settingsTab {
+            showSettings(tab: tab)
+        }
+        if options.showOnboarding {
+            showOnboarding()
+        }
+        let preview = DebugPreview(controller: controller, hud: hud, license: license, services: services)
+        if options.previewHUD {
+            preview.showHUD()
+        }
+        if options.previewToast {
+            preview.startToasts()
+        }
+        if options.previewResult {
+            preview.showResult()
+        }
+        if let directory = options.snapshotDirectory {
+            preview.snapshotWindowsAndQuit(to: directory)
+        }
+        self.preview = preview
+    }
+    #endif
 }

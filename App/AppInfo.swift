@@ -27,6 +27,16 @@ enum AppInfo {
         string("CFBundleShortVersionString") ?? "?"
     }
 
+    static var build: String? {
+        string("CFBundleVersion")
+    }
+
+    /// 「1.0.0 (1)」
+    static var fullVersion: String {
+        guard let build, build != version else { return version }
+        return "\(version) (\(build))"
+    }
+
     private static func string(_ key: String) -> String? {
         guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespaces)
