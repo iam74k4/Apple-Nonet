@@ -72,8 +72,19 @@ test_test_sh_runs_every_stage_in_order() {
     "swift build (in NonetKit)" \
     "swift test (in NonetKit)" \
     "xcodegen generate --spec $REPO/project.yml" \
-    "xcodebuild build -project $REPO/Nonet.xcodeproj -scheme Nonet -configuration Debug -destination generic/platform=macOS -derivedDataPath $REPO/build/TestDerivedData -quiet CODE_SIGNING_ALLOWED=NO"
+    "xcodebuild build -project $REPO/Nonet.xcodeproj -scheme Nonet -configuration Debug -destination generic/platform=macOS -derivedDataPath $REPO/build/TestDerivedData -quiet CODE_SIGNING_ALLOWED=NO" \
+    "Nonet --self-check"
   assert_contains "$OUT" "すべて通りました"
+}
+
+test_test_sh_fails_when_the_self_check_fails() {
+  use_fakes
+  make_fake_repo
+  export FAKE_SELF_CHECK_STATUS=1
+  run "$REPO/scripts/test.sh"
+  assert_failed
+  assert_called "Nonet --self-check"
+  assert_not_contains "$OUT" "すべて通りました"
 }
 
 test_test_sh_stops_at_the_first_failure() {

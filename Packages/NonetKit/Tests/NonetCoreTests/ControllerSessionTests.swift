@@ -47,7 +47,7 @@ import Testing
 
         #expect(h.performer.actions == [F.docs.action])
         #expect(h.performer.calls.first?.frontmostApp == F.notesApp)
-        #expect(h.controller.lastExecution?.profileName == "グローバル")
+        #expect(h.controller.lastExecution?.profileName == ModelFixtures.globalName)
         #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 8))
     }
 
@@ -251,7 +251,7 @@ import Testing
         h.touch(1, x: 0.4, y: 0.5)
         h.touch(2, x: 0.5, y: 0.5)
         #expect(h.hud.current?.pageIndex == 2)
-        #expect(h.hud.current?.title == "グローバル")
+        #expect(h.hud.current?.title == ModelFixtures.globalName)
         h.lift(1)
         h.lift(2)
 
@@ -262,7 +262,7 @@ import Testing
 
         #expect(h.performer.actions == [F.docs.action])
         // 記録はプロファイル内での位置
-        #expect(h.controller.lastExecution?.profileName == "グローバル")
+        #expect(h.controller.lastExecution?.profileName == ModelFixtures.globalName)
         #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 8))
     }
 
@@ -299,7 +299,7 @@ import Testing
         // 新しいセッションは押したときの前面アプリ（メモ → グローバル）を使い、残っていた指は速押しにしない
         h.lift()
         h.advance(0.3)
-        #expect(h.hud.current?.title == "グローバル")
+        #expect(h.hud.current?.title == ModelFixtures.globalName)
         h.releaseTrigger()
         await h.settle()
         #expect(h.performer.calls.isEmpty)

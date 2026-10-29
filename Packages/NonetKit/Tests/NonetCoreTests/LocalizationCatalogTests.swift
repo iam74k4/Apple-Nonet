@@ -10,6 +10,7 @@ struct LocalizationCatalogTests {
         "Packages/NonetKit/Sources/NonetPlatform/Resources/Localizable.xcstrings",
         "Packages/NonetKit/Sources/NonetUI/Resources/Localizable.xcstrings",
         "App/Localizable.xcstrings",
+        "App/InfoPlist.xcstrings",
     ]
 
     static var repositoryRoot: URL {

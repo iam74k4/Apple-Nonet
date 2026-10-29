@@ -59,6 +59,16 @@ targets:
         NonetSupportURL: $(NONET_SUPPORT_URL)
         NonetPrivacyURL: $(NONET_PRIVACY_URL)
         NonetLicensePublicKey: $(NONET_LICENSE_PUBLIC_KEY)
+        # 設定画面の中のドラッグ（マスの入れ替えなど）と、プロファイルの書き出しファイル
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.iam74k4.nonet.settings-drag
+            UTTypeDescription: Nonet Settings Item
+            UTTypeConformsTo: [public.data]
+          - UTTypeIdentifier: com.iam74k4.nonet.profile
+            UTTypeDescription: Nonet Profile
+            UTTypeConformsTo: [public.json]
+            UTTypeTagSpecification:
+              public.filename-extension: [nonetprofile]
     entitlements:
       path: App/Nonet.entitlements
       properties:

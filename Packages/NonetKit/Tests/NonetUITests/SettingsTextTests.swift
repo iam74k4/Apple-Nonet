@@ -63,9 +63,9 @@ import Testing
     }
 
     @Test func fileErrorsUseTheStoreDescription() {
-        #expect(SettingsText.fileError(ConfigurationStoreError.notAProfileDocument, reading: true) == "Nonet のプロファイルのファイルではありません")
-        #expect(SettingsText.fileError(CocoaError(.fileReadNoPermission), reading: true) == "ファイルを読み込めませんでした")
-        #expect(SettingsText.fileError(CocoaError(.fileWriteNoPermission), reading: false) == "ファイルを書き出せませんでした")
+        #expect(SettingsText.fileError(ConfigurationStoreError.notAProfileDocument, reading: true) == L10n.core("Nonet のプロファイルのファイルではありません"))
+        #expect(SettingsText.fileError(CocoaError(.fileReadNoPermission), reading: true) == L10n.ui("ファイルを読み込めませんでした"))
+        #expect(SettingsText.fileError(CocoaError(.fileWriteNoPermission), reading: false) == L10n.ui("ファイルを書き出せませんでした"))
     }
 
     @Test func entitlementSummaries() {

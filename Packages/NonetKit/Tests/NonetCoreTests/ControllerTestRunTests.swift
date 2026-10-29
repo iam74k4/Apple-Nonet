@@ -124,7 +124,7 @@ import Testing
         #expect(h.performer.actions == [.launchApp(LaunchAppAction(app: F.notes, hideIfFrontmost: false)), paste.action])
         #expect(h.performer.calls.last?.frontmostApp == F.notesApp)
         #expect(record.succeeded)
-        #expect(record.profileName == "グローバル")
+        #expect(record.profileName == ModelFixtures.globalName)
     }
 
     @Test func aGlobalKeystrokeCellIsRefusedWhenThereIsNoAppToSendTo() async throws {
@@ -163,7 +163,7 @@ import Testing
 
         #expect(h.performer.actions == [F.docs.action])
         #expect(h.performer.calls.first?.frontmostApp == F.notesApp)
-        #expect(record.profileName == "グローバル")
+        #expect(record.profileName == ModelFixtures.globalName)
         #expect(record.address == CellAddress(page: 0, index: 8))
         #expect(record.succeeded)
     }

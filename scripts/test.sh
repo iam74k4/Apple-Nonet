@@ -3,6 +3,7 @@
 #   1. scripts/ とサイト・ドキュメントのテスト（scripts/tests/run.sh）
 #   2. NonetKit の swift build と swift test
 #   3. アプリのビルド（署名なし、Apple シリコンと Intel の両方。DerivedData は build/TestDerivedData）
+#   4. ビルドしたアプリの自己診断（--self-check: 画面を出さずに、プリセット・設定の保存・MultitouchSupport を確かめる）
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,7 +13,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 case "${1:-}" in
   -h | --help)
-    sed -n '2,5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit 0
     ;;
 esac
@@ -41,5 +42,9 @@ xcodebuild build \
   -derivedDataPath "$ROOT/build/TestDerivedData" \
   -quiet \
   CODE_SIGNING_ALLOWED=NO
+
+step "アプリの自己診断（--self-check）"
+"$ROOT/build/TestDerivedData/Build/Products/Debug/Nonet.app/Contents/MacOS/Nonet" --self-check
+echo
 
 step "すべて通りました"

@@ -339,6 +339,7 @@ struct ShellOnboardingTests {
         #expect(configuration.appProfile(forBundleID: ShellFixtures.safari) != nil)
         #expect(configuration.profiles.count == edited.profiles.count + 1)
         // 保存された設定にも残っている
+        harness.flushSaves()
         let saved = try #require(try ConfigurationStore(directory: harness.directory).load())
         try Self.expectEditsSurvived(saved, edited: edited, customID: customID)
     }

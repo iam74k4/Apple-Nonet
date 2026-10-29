@@ -100,16 +100,40 @@ final class ShellFakeLoginItem: LoginItemControlling {
 
 @MainActor
 final class ShellFakeTask: ScheduledTask {
+    let deadline: TimeInterval
+    let action: @MainActor () -> Void
     private(set) var isCancelled = false
+
+    init(deadline: TimeInterval, action: @escaping @MainActor () -> Void) {
+        self.deadline = deadline
+        self.action = action
+    }
+
     func cancel() { isCancelled = true }
 }
 
-/// 時間は進まない（セッションのタイマーは動かさない）
+/// 時間は advance(by:) で進めたときだけ進む（セッションのタイマーは動かさない）
 @MainActor
 final class ShellFakeScheduler: Scheduler {
     var now: TimeInterval = 1000
+    private var tasks: [ShellFakeTask] = []
+
     func schedule(after delay: TimeInterval, _ action: @escaping @MainActor () -> Void) -> any ScheduledTask {
-        ShellFakeTask()
+        let task = ShellFakeTask(deadline: now + delay, action: action)
+        tasks.append(task)
+        return task
+    }
+
+    /// 時計を進め、期限が来たものを期限の順に動かす
+    func advance(by interval: TimeInterval) {
+        let end = now + interval
+        while let next = tasks.filter({ !$0.isCancelled && $0.deadline <= end }).min(by: { $0.deadline < $1.deadline }) {
+            tasks.removeAll { $0 === next }
+            now = max(now, next.deadline)
+            next.action()
+        }
+        tasks.removeAll(where: \.isCancelled)
+        now = end
     }
 }
 
@@ -145,6 +169,7 @@ final class ShellControllerHarness {
     let permissions: ShellFakePermissions
     let installedApps: ShellFakeInstalledApps
     let license: LicenseManager
+    let scheduler = ShellFakeScheduler()
     let directory: URL
 
     init(installed: Set<String> = [], accessibilityGranted: Bool = true, isJIS: Bool = true) {
@@ -162,7 +187,7 @@ final class ShellControllerHarness {
             shortcuts: ShellFakeShortcuts(),
             ai: ShellFakeAI(),
             loginItem: ShellFakeLoginItem(),
-            scheduler: ShellFakeScheduler(),
+            scheduler: scheduler,
             isJISKeyboard: isJIS
         )
         directory = FileManager.default.temporaryDirectory
@@ -179,6 +204,11 @@ final class ShellControllerHarness {
 
     deinit {
         try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// コントローラーがまとめて書く保存を、保存の間隔（0.5 秒）だけ時計を進めて書かせる
+    func flushSaves() {
+        scheduler.advance(by: 0.5)
     }
 }
 

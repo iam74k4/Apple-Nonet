@@ -412,17 +412,17 @@ import Testing
         h.start()
         #expect(h.controller.activeProfileName == "Safari")
         h.frontmost.activate(F.notesApp)
-        #expect(h.controller.activeProfileName == "グローバル")
+        #expect(h.controller.activeProfileName == ModelFixtures.globalName)
         h.frontmost.activate(nil)
-        #expect(h.controller.activeProfileName == "グローバル")
+        #expect(h.controller.activeProfileName == ModelFixtures.globalName)
         h.frontmost.activate(F.safariApp)
         #expect(h.controller.activeProfileName == "Safari")
 
         h.controller.update { $0.settings.autoSwitchProfiles = false }
-        #expect(h.controller.activeProfileName == "グローバル")
+        #expect(h.controller.activeProfileName == ModelFixtures.globalName)
         h.controller.update { $0.settings.autoSwitchProfiles = true }
         let safariID = try h.profileID(F.safari)
         h.controller.update { $0.updateProfile(id: safariID) { $0.isEnabled = false } }
-        #expect(h.controller.activeProfileName == "グローバル")
+        #expect(h.controller.activeProfileName == ModelFixtures.globalName)
     }
 }

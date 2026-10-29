@@ -115,11 +115,11 @@ enum SettingsMenuSamples {
         let browser = SettingsMenuBrowser(menus: menus)
         browser.select(SettingsMenuSamples.figma)
         await browser.waitUntilLoaded()
-        #expect(browser.state == .failed(message: "アクセシビリティの許可が必要です", needsPermission: true))
+        #expect(browser.state == .failed(message: NonetError.permissionDenied("アクセシビリティ").localizedDescription, needsPermission: true))
         menus.error = .appNotFound("Figma")
         browser.reload()
         await browser.waitUntilLoaded()
-        #expect(browser.state == .failed(message: "Figma が見つかりません", needsPermission: false))
+        #expect(browser.state == .failed(message: NonetError.appNotFound("Figma").localizedDescription, needsPermission: false))
         #expect(browser.sections.isEmpty)
     }
 

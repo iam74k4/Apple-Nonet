@@ -26,7 +26,7 @@ import Testing
 
         let beyond = ControllerPresentation.hudModel(pages: pages, page: 9, highlightedCell: 12, hint: "", banner: nil)
         #expect(beyond.pageIndex == 2)
-        #expect(beyond.title == "グローバル")
+        #expect(beyond.title == ModelFixtures.globalName)
         #expect(beyond.highlightedIndex == nil)
         #expect(ControllerPresentation.hudModel(pages: pages, page: -1, highlightedCell: -1, hint: "", banner: nil).pageIndex == 0)
     }
@@ -67,18 +67,18 @@ import Testing
 
     @Test func theSessionResolvesPagesForTheFrontmostApp() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
-        #expect(session.pages.map(\.profileName) == ["Safari", "Safari", "グローバル"])
+        #expect(session.pages.map(\.profileName) == ["Safari", "Safari", ModelFixtures.globalName])
         #expect(session.engineConfiguration == SessionConfiguration(hudDelay: 0.3, fireMode: .onTriggerRelease, pageCount: 3))
 
         let other = ControllerSession(configuration: F.configuration(), frontmostApp: nil)
-        #expect(other.pages.map(\.profileName) == ["グローバル"])
+        #expect(other.pages.map(\.profileName) == [ModelFixtures.globalName])
     }
 
     @Test func targetsUseTheAddressInsideTheProfile() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
         #expect(session.target(page: 0, cell: 2) == ControllerTarget(cell: F.closeTab, profileName: "Safari", address: CellAddress(page: 0, index: 2)))
         #expect(session.target(page: 1, cell: 0)?.address == CellAddress(page: 1, index: 0))
-        #expect(session.target(page: 2, cell: 8) == ControllerTarget(cell: F.docs, profileName: "グローバル", address: CellAddress(page: 0, index: 8)))
+        #expect(session.target(page: 2, cell: 8) == ControllerTarget(cell: F.docs, profileName: ModelFixtures.globalName, address: CellAddress(page: 0, index: 8)))
         // 空きマスと範囲外
         #expect(session.target(page: 0, cell: 1) == nil)
         #expect(session.target(page: 3, cell: 0) == nil)

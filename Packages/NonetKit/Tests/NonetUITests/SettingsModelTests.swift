@@ -26,7 +26,7 @@ import Testing
         #expect(h.model.selectedProfile.id == xcode.id)
         #expect(h.model.pageIndex == 0)
         #expect(h.model.selectedIndex == 0)
-        #expect(h.model.selectedCell?.title == "ビルド")
+        #expect(h.model.selectedCell?.title == L10n.core("ビルド"))
         h.model.selectProfile(nil)
         #expect(h.model.selectedProfile.isGlobal)
     }
@@ -90,7 +90,7 @@ import Testing
         h.model.duplicateCell(at: 0)
         #expect(h.model.pageIndex == 1)
         #expect(h.model.selectedIndex == 0)
-        #expect(h.model.selectedCell?.title == "ビルド")
+        #expect(h.model.selectedCell?.title == L10n.core("ビルド"))
     }
 
     @Test func droppingACellSwapsAndFollowsIt() throws {
@@ -445,7 +445,7 @@ import Testing
         h.model.updateAction(ofCell: id, as: ScriptAction.self) { $0.source = "echo hi" }
         #expect(h.model.cell(id: id)?.action == .script(ScriptAction(source: "echo hi", runMode: .terminal)))
         // 自動で付いた名前は中身に合わせる
-        #expect(h.model.cell(id: id)?.title == "ターミナル")
+        #expect(h.model.cell(id: id)?.title == L10n.core("ターミナル"))
     }
 
     @Test func updatesOfAnotherKindAreIgnored() throws {
@@ -720,7 +720,7 @@ import Testing
         #expect(h.safariProfile?.isEnabled == true)
         h.model.moveProfiles(fromOffsets: IndexSet(integer: 1), toOffset: 0)
         #expect(h.model.appProfiles.map(\.name) == ["Safari", "Xcode"])
-        #expect(try h.saved()?.profiles.map(\.name) == ["グローバル", "Safari", "Xcode"])
+        #expect(try h.saved()?.profiles.map(\.name) == [L10n.globalName, "Safari", "Xcode"])
     }
 }
 
@@ -965,19 +965,19 @@ import Testing
         let notAProfile = h.temporaryFile("other.nonetprofile")
         try Data("{\"hello\": 1}".utf8).write(to: notAProfile)
         h.model.importProfiles(from: notAProfile)
-        #expect(h.model.fileMessage == SettingsMessage(text: "Nonet のプロファイルのファイルではありません", isError: true))
+        #expect(h.model.fileMessage == SettingsMessage(text: L10n.core("Nonet のプロファイルのファイルではありません"), isError: true))
         h.model.importProfiles(from: h.temporaryFile("missing.nonetprofile"))
-        #expect(h.model.fileMessage == SettingsMessage(text: "ファイルを読み込めませんでした", isError: true))
+        #expect(h.model.fileMessage == SettingsMessage(text: L10n.ui("ファイルを読み込めませんでした"), isError: true))
         #expect(h.controller.configuration == before)
     }
 
     @Test func exportErrorsAreExplained() throws {
         let h = try SettingsHarness()
         h.model.exportProfiles([], to: h.temporaryFile("empty.nonetprofile"))
-        #expect(h.model.fileMessage == SettingsMessage(text: "プロファイルが入っていません", isError: true))
+        #expect(h.model.fileMessage == SettingsMessage(text: L10n.core("プロファイルが入っていません"), isError: true))
         let unwritable = h.temporaryFile("no/such/folder/x.nonetprofile")
         h.model.exportProfiles(h.controller.configuration.profiles, to: unwritable)
-        #expect(h.model.fileMessage == SettingsMessage(text: "ファイルを書き出せませんでした", isError: true))
+        #expect(h.model.fileMessage == SettingsMessage(text: L10n.ui("ファイルを書き出せませんでした"), isError: true))
     }
 }
 
@@ -1058,7 +1058,7 @@ import Testing
         await h.model.runTest(cellID: cell.id)
         let record = try #require(h.model.testRun(for: cell.id)?.record)
         #expect(!record.succeeded)
-        #expect(SettingsText.testResult(record) == "Safari が見つかりません")
+        #expect(SettingsText.testResult(record) == NonetError.appNotFound("Safari").localizedDescription)
     }
 
     @Test func unknownCellsAreIgnored() async throws {

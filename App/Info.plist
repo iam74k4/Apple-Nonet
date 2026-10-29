@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ja</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Nonet</string>
 	<key>CFBundleExecutable</key>
@@ -49,5 +49,35 @@
 	<string>$(NONET_APPCAST_URL)</string>
 	<key>SUPublicEDKey</key>
 	<string>$(NONET_SPARKLE_PUBLIC_KEY)</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Nonet Settings Item</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.iam74k4.nonet.settings-drag</string>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Nonet Profile</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.iam74k4.nonet.profile</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>nonetprofile</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

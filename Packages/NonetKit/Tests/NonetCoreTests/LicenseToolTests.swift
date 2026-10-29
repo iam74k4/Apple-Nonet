@@ -156,7 +156,9 @@ private final class FakeToolEnvironment {
 
     @Test func keygenSkipsPublicKeysThatXcconfigWouldTruncate() throws {
         #expect(Self.slashedPublicKey.contains("//"))
-        let good = LicenseSigner.generateKeyPair()
+        // 本物の鍵も約1%は「//」を含む。それを「良い鍵」にすると3つ目の鍵を求められてしまう
+        var good = LicenseSigner.generateKeyPair()
+        while good.publicKeyBase64.contains("//") { good = LicenseSigner.generateKeyPair() }
         var candidates = [
             (privateKeyBase64: LicenseTestFixtures.otherKeys.privateKeyBase64, publicKeyBase64: Self.slashedPublicKey),
             good,

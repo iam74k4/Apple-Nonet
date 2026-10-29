@@ -128,14 +128,40 @@ final class SettingsFakeLoginItem: LoginItemControlling {
 
 @MainActor
 final class SettingsFakeTask: ScheduledTask {
-    func cancel() {}
+    let deadline: TimeInterval
+    let action: @MainActor () -> Void
+    private(set) var isCancelled = false
+
+    init(deadline: TimeInterval, action: @escaping @MainActor () -> Void) {
+        self.deadline = deadline
+        self.action = action
+    }
+
+    func cancel() { isCancelled = true }
 }
 
+/// 時間は advance(by:) で進めたときだけ進む
 @MainActor
 final class SettingsFakeScheduler: Scheduler {
     var now: TimeInterval = 0
+    private var tasks: [SettingsFakeTask] = []
+
     func schedule(after delay: TimeInterval, _ action: @escaping @MainActor () -> Void) -> any ScheduledTask {
-        SettingsFakeTask()
+        let task = SettingsFakeTask(deadline: now + delay, action: action)
+        tasks.append(task)
+        return task
+    }
+
+    /// 時計を進め、期限が来たものを期限の順に動かす（その間に頼まれたものも、期限内なら動かす）
+    func advance(by interval: TimeInterval) {
+        let end = now + interval
+        while let next = tasks.filter({ !$0.isCancelled && $0.deadline <= end }).min(by: { $0.deadline < $1.deadline }) {
+            tasks.removeAll { $0 === next }
+            now = max(now, next.deadline)
+            next.action()
+        }
+        tasks.removeAll(where: \.isCancelled)
+        now = end
     }
 }
 
@@ -214,6 +240,7 @@ final class SettingsHarness {
     let loginItem = SettingsFakeLoginItem()
     let licenseStorage = SettingsFakeLicenseStorage()
     let files = SettingsFakeFiles()
+    let scheduler = SettingsFakeScheduler()
     let services: NonetServices
     let license: LicenseManager
     let controller: NonetController
@@ -243,7 +270,7 @@ final class SettingsHarness {
             shortcuts: shortcuts,
             ai: ai,
             loginItem: loginItem,
-            scheduler: SettingsFakeScheduler(),
+            scheduler: scheduler,
             isJISKeyboard: isJISKeyboard
         )
         let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
@@ -270,9 +297,15 @@ final class SettingsHarness {
         controller.configuration.profiles.first { $0.app?.bundleID == SettingsFixtures.safari.bundleID }
     }
 
-    /// 保存されたファイルから読み直した設定
+    /// 保存されたファイルから読み直した設定。コントローラーはまとめて書くので、待っている保存を先に書かせる
     func saved() throws -> NonetConfiguration? {
-        try store.load()
+        flushSaves()
+        return try store.load()
+    }
+
+    /// 保存をまとめる間隔（0.5 秒）だけ時計を進める
+    func flushSaves() {
+        scheduler.advance(by: 0.5)
     }
 
     func temporaryFile(_ name: String) -> URL {
