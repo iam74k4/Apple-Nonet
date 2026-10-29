@@ -1,0 +1,426 @@
+// 担当: platform-input
+// クラス名・public init・protocol への準拠は契約（NonetServices.live() が使う）
+import AppKit
+import ApplicationServices
+import NonetCore
+
+/// イベントタップでトリガーキーを検出し、セッション中はポインタ系のイベントを止める。
+/// タップはキーボード用とポインタ用に分ける。ポインタ用は抑止中とその後片付けの間だけ有効にして、
+/// ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない
+/// （メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
+@MainActor
+public final class EventTapKeyboardMonitor: KeyboardMonitor {
+    public var trigger: TriggerKey = .rightCommand
+    public var passTriggerToApps = true
+    public var cursorLock: CursorLockMethod = .automatic
+    public var isSuppressingPointer = false {
+        didSet {
+            guard isSuppressingPointer != oldValue else { return }
+            isSuppressingPointer ? beginSuppression() : endSuppression()
+        }
+    }
+    public var onEvent: ((KeyboardEvent) -> Void)?
+
+    public var isRunning: Bool { keyboardTap != nil }
+
+    /// トリガーを押している間、取りこぼしが無いか物理的な状態を確かめる間隔
+    static let watchdogInterval: TimeInterval = 0.3
+    /// 抑止の後でポインタのタップを残している間、もう届かないものを片付ける間隔
+    static let sweepInterval: TimeInterval = 0.5
+
+    private var detector = TriggerDetector()
+    private var suppressor = PointerSuppressor()
+    /// 抑止を始めたときの方式と、カーソルの位置
+    private var activePlan: CursorLockPlan?
+    private var anchor: CGPoint?
+    /// 動いている間ずっと有効
+    private var keyboardTap: EventTapConnection?
+    /// 抑止中と、捨てた押下の離す・スクロールの続きを待っている間だけ有効
+    private var pointerTap: EventTapConnection?
+    /// ポインタのタップを有効にしているか（タップが無いときも、有効にしたいかを覚えておく）
+    private(set) var isPointerTapEnabled = false
+    private var watchdog: Timer?
+    private var sweeper: Timer?
+    private let cursor: any CursorControlling
+    private let association: CursorAssociationGuard
+    private let physicalFlags: () -> CGEventFlags
+    private let physicalButton: (Int64) -> Bool
+    private let isAccessibilityTrusted: () -> Bool
+    private let ownProcessID: Int64
+
+    public convenience init() {
+        self.init(
+            cursor: SystemCursorControl(),
+            physicalFlags: { CGEventSource.flagsState(.hidSystemState) },
+            physicalButton: { number in
+                guard let raw = UInt32(exactly: number), let button = CGMouseButton(rawValue: raw) else { return false }
+                return CGEventSource.buttonState(.hidSystemState, button: button)
+            },
+            isAccessibilityTrusted: { AXIsProcessTrusted() },
+            ownProcessID: Int64(getpid())
+        )
+    }
+
+    init(
+        cursor: any CursorControlling,
+        physicalFlags: @escaping () -> CGEventFlags,
+        physicalButton: @escaping (Int64) -> Bool,
+        isAccessibilityTrusted: @escaping () -> Bool,
+        ownProcessID: Int64
+    ) {
+        self.cursor = cursor
+        association = CursorAssociationGuard(cursor: cursor)
+        self.physicalFlags = physicalFlags
+        self.physicalButton = physicalButton
+        self.isAccessibilityTrusted = isAccessibilityTrusted
+        self.ownProcessID = ownProcessID
+    }
+
+    public func start() throws {
+        guard !isRunning else { return }
+        guard isAccessibilityTrusted() else {
+            throw NonetError.permissionDenied(InputText.accessibility)
+        }
+        // 片方だけでは使えない（ポインタを止められないと、タップがそのままクリックになる）。作れなければ両方とも外す
+        guard let keyboardTap = EventTapConnection(box: EventTapBox(monitor: self, role: .keyboard), events: EventTapMask.keyboard, enabled: true),
+              let pointerTap = EventTapConnection(box: EventTapBox(monitor: self, role: .pointer), events: EventTapMask.pointer, enabled: false)
+        else {
+            inputLogger.error("イベントタップを作れない")
+            throw NonetError.permissionDenied(InputText.accessibility)
+        }
+        self.keyboardTap = keyboardTap
+        self.pointerTap = pointerTap
+        detector.reset()
+        suppressor = PointerSuppressor()
+        isPointerTapEnabled = false
+        updatePointerTap()
+        inputLogger.info("イベントタップを開始（キーボード: \(keyboardTap.levelName, privacy: .public)、ポインタ: \(pointerTap.levelName, privacy: .public)）")
+    }
+
+    public func stop() {
+        keyboardTap?.invalidate()
+        keyboardTap = nil
+        pointerTap?.invalidate()
+        pointerTap = nil
+        stopWatchdog()
+        detector.reset()
+        suppressor = PointerSuppressor()
+        isSuppressingPointer = false
+        updatePointerTap()
+        association.restore()
+    }
+
+    // MARK: イベント
+
+    /// イベントタップのコールバック（メインスレッド）。false なら前面アプリに渡さない。
+    /// すべての入力がここを通るので、ログを書かず、すぐ戻る
+    func handle(type: CGEventType, event: CGEvent, from role: EventTapRole) -> Bool {
+        switch type {
+        case .tapDisabledByTimeout, .tapDisabledByUserInput:
+            tapWasDisabled(role, type: type)
+            return true
+        case .flagsChanged, .keyDown:
+            // キー入力のアクションが HID の位置に送ったキーは、トリガーを押したまま実行しても中断にしない
+            if isOwnEvent(event) { return true }
+            if type == .keyDown { return apply(detector.keyDown()) }
+            let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+            return apply(detector.flagsChanged(keyCode: keyCode, flags: event.flags, trigger: trigger, passTrigger: passTriggerToApps))
+        default:
+            return handlePointer(type: type.rawValue, event: event)
+        }
+    }
+
+    private func isOwnEvent(_ event: CGEvent) -> Bool {
+        OwnEventFilter.isOwn(
+            sourcePID: event.getIntegerValueField(.eventSourceUnixProcessID),
+            userData: event.getIntegerValueField(.eventSourceUserData),
+            ownPID: ownProcessID
+        )
+    }
+
+    private func tapWasDisabled(_ role: EventTapRole, type: CGEventType) {
+        switch role {
+        case .keyboard:
+            keyboardTap?.setEnabled(true)
+            inputLogger.notice("キーボードのイベントタップが無効にされたので有効にし直した（\(type.rawValue)）")
+            // 無効だった間の離すイベントを取りこぼしたかもしれない
+            reconcileTrigger(tapWasDisabled: true)
+        case .pointer:
+            suppressor.eventsMayHaveBeenMissed()
+            // 有効にしておくはずのときだけ有効にし直す
+            if isPointerTapEnabled { pointerTap?.setEnabled(true) }
+            inputLogger.notice("ポインタのイベントタップが無効にされた（\(type.rawValue)）")
+            updatePointerTap()
+        }
+    }
+
+    private func handlePointer(type: UInt32, event: CGEvent) -> Bool {
+        guard PointerEventKind.isPointer(type) else { return true }
+        var info = PointerEventInfo(type: type)
+        if PointerEventKind.needsButtonNumber(type) {
+            info.buttonNumber = event.getIntegerValueField(.mouseEventButtonNumber)
+        } else if type == PointerEventKind.scrollWheel {
+            info.scrollPhase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
+            info.momentumPhase = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+        }
+        let decision = suppressor.decide(info, suppressing: isSuppressingPointer, dropsMoves: activePlan?.dropsMoves ?? false)
+        updatePointerTap()
+        switch decision {
+        case .pass:
+            return true
+        case .passAsMove:
+            event.type = .mouseMoved
+            return true
+        case .drop:
+            if activePlan?.warpsBack == true, PointerEventKind.isMove(type) {
+                holdCursorAtAnchor()
+            }
+            return false
+        }
+    }
+
+    private func apply(_ output: TriggerDetector.Output) -> Bool {
+        if let event = output.event { emit(event) }
+        return output.pass
+    }
+
+    private func emit(_ event: KeyboardEvent) {
+        switch event {
+        case .triggerDown: startWatchdog()
+        case .triggerUp: stopWatchdog()
+        case .interrupted: break
+        }
+        onEvent?(event)
+    }
+
+    /// 物理的にはトリガーが離れているのに押したままだと思っていたら、離したことにする
+    func reconcileTrigger(tapWasDisabled: Bool = false) {
+        if let event = detector.reconcile(physicalFlags: physicalFlags(), tapWasDisabled: tapWasDisabled) {
+            inputLogger.notice("トリガーを離すイベントを取りこぼしたので、離したことにした")
+            emit(event)
+        }
+    }
+
+    private func startWatchdog() {
+        watchdog?.invalidate()
+        watchdog = repeatingTimer(interval: Self.watchdogInterval) { $0.reconcileTrigger() }
+    }
+
+    private func stopWatchdog() {
+        watchdog?.invalidate()
+        watchdog = nil
+    }
+
+    // MARK: ポインタのタップ
+
+    /// ポインタのタップは、抑止中と、捨てた押下の離す・スクロールの続きを待っている間だけ有効にする。
+    /// 判断を変えうること（抑止の開始・終了、ポインタのイベント、片付け）の後に毎回呼ぶ
+    private func updatePointerTap() {
+        let wanted = suppressor.needsEvents(suppressing: isSuppressingPointer)
+        if wanted != isPointerTapEnabled {
+            isPointerTapEnabled = wanted
+            pointerTap?.setEnabled(wanted)
+        }
+        if wanted, !isSuppressingPointer {
+            startSweeper()
+        } else {
+            stopSweeper()
+        }
+    }
+
+    /// 抑止が終わった後、もう届かない離すイベントやスクロールの続きを待つのをやめる
+    func sweepPointerState() {
+        suppressor.sweep(isPhysicallyPressed: physicalButton)
+        updatePointerTap()
+    }
+
+    var isSweeping: Bool { sweeper != nil }
+
+    private func startSweeper() {
+        guard sweeper == nil else { return }
+        sweeper = repeatingTimer(interval: Self.sweepInterval) { $0.sweepPointerState() }
+    }
+
+    private func stopSweeper() {
+        sweeper?.invalidate()
+        sweeper = nil
+    }
+
+    /// メニューを開いている間も動くように common モードに置く。モニタが解放されたら止まる
+    private func repeatingTimer(interval: TimeInterval, action: @escaping @MainActor (EventTapKeyboardMonitor) -> Void) -> Timer {
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] timer in
+            MainActor.assumeIsolated {
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                action(self)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        return timer
+    }
+
+    // MARK: カーソル
+
+    private func beginSuppression() {
+        let plan = CursorLockPlan(cursorLock)
+        activePlan = plan
+        anchor = cursor.location
+        if plan.decouples { association.decouple() }
+        updatePointerTap()
+    }
+
+    private func endSuppression() {
+        if activePlan?.warpsBack == true { holdCursorAtAnchor() }
+        association.restore()
+        activePlan = nil
+        anchor = nil
+        updatePointerTap()
+    }
+
+    private func holdCursorAtAnchor() {
+        guard let anchor, let current = cursor.location, CursorLockPlan.needsWarp(from: anchor, to: current) else { return }
+        cursor.warp(to: anchor)
+    }
+}
+
+// MARK: - カーソルの操作
+
+protocol CursorControlling: AnyObject {
+    /// グローバル座標（左上が原点）
+    var location: CGPoint? { get }
+    func warp(to point: CGPoint)
+    func setAssociated(_ associated: Bool)
+}
+
+final class SystemCursorControl: CursorControlling {
+    var location: CGPoint? { CGEvent(source: nil)?.location }
+
+    func warp(to point: CGPoint) {
+        CGWarpMouseCursorPosition(point)
+        // ワープの直後はしばらく移動が止まる。結び付け直すと止まらない（automatic でしかワープしないので、切り離しは使っていない）
+        CGAssociateMouseAndMouseCursorPosition(1)
+    }
+
+    func setAssociated(_ associated: Bool) {
+        let result = CGAssociateMouseAndMouseCursorPosition(associated ? 1 : 0)
+        if result != .success {
+            inputLogger.error("カーソルの結び付けを変えられない（CGError \(result.rawValue)）")
+        }
+    }
+}
+
+/// カーソルの切り離しを必ず元に戻すための持ち主。解放されるときにも戻す
+final class CursorAssociationGuard {
+    private let cursor: any CursorControlling
+    private(set) var isDecoupled = false
+
+    init(cursor: any CursorControlling) {
+        self.cursor = cursor
+    }
+
+    func decouple() {
+        guard !isDecoupled else { return }
+        cursor.setAssociated(false)
+        isDecoupled = true
+    }
+
+    func restore() {
+        guard isDecoupled else { return }
+        cursor.setAssociated(true)
+        isDecoupled = false
+    }
+
+    deinit {
+        restore()
+    }
+}
+
+// MARK: - イベントタップ
+
+/// どちらのタップのコールバックか（tapDisabled* を見分ける）
+enum EventTapRole {
+    case keyboard
+    case pointer
+}
+
+/// コールバックからモニタを引くための箱。タップが持ち、モニタは弱参照
+final class EventTapBox {
+    weak var monitor: EventTapKeyboardMonitor?
+    let role: EventTapRole
+
+    init(monitor: EventTapKeyboardMonitor, role: EventTapRole) {
+        self.monitor = monitor
+        self.role = role
+    }
+}
+
+/// CGEventTap と run loop source の持ち主。解放されるときに必ず外す
+final class EventTapConnection {
+    private let tap: CFMachPort
+    private let source: CFRunLoopSource
+    private let box: Unmanaged<EventTapBox>
+    private var isValid = true
+    let levelName: String
+
+    /// HID レベルで作れなければセッションレベルで作る。どちらも作れなければ nil。
+    /// enabled が false なら、無効のまま run loop に置く（setEnabled で有効にする）
+    init?(box: EventTapBox, events: CGEventMask, enabled: Bool) {
+        let retained = Unmanaged.passRetained(box)
+        let levels: [(CGEventTapLocation, String)] = [(.cghidEventTap, "HID"), (.cgSessionEventTap, "セッション")]
+        for (location, name) in levels {
+            guard let tap = CGEvent.tapCreate(
+                tap: location,
+                place: .headInsertEventTap,
+                options: .defaultTap,
+                eventsOfInterest: events,
+                callback: eventTapCallback,
+                userInfo: retained.toOpaque()
+            ) else { continue }
+            // 作った直後は有効。run loop に置くまでの間にイベントを待たせないよう、先に決める
+            CGEvent.tapEnable(tap: tap, enable: enabled)
+            guard let source = CFMachPortCreateRunLoopSource(nil, tap, 0) else {
+                CFMachPortInvalidate(tap)
+                continue
+            }
+            // メニューを開いている間（イベントトラッキング中）も動くように common モードに置く
+            CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+            self.tap = tap
+            self.source = source
+            self.box = retained
+            levelName = name
+            return
+        }
+        retained.release()
+        return nil
+    }
+
+    func setEnabled(_ enabled: Bool) {
+        guard isValid else { return }
+        CGEvent.tapEnable(tap: tap, enable: enabled)
+    }
+
+    func invalidate() {
+        guard isValid else { return }
+        isValid = false
+        CGEvent.tapEnable(tap: tap, enable: false)
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        CFMachPortInvalidate(tap)
+        box.release()
+    }
+
+    deinit {
+        invalidate()
+    }
+}
+
+/// メインの run loop に置いたタップのコールバックなので、メインスレッドで呼ばれる
+private func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, userInfo: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
+    guard let userInfo else { return Unmanaged.passUnretained(event) }
+    let box = Unmanaged<EventTapBox>.fromOpaque(userInfo).takeUnretainedValue()
+    let pass = MainActor.assumeIsolated {
+        box.monitor?.handle(type: type, event: event, from: box.role) ?? true
+    }
+    return pass ? Unmanaged.passUnretained(event) : nil
+}

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 // MultitouchSupport.framework（非公開）の接触点。レイアウトは 96 バイトで、
-// MiddleClick や OpenMultitouchSupport などが使っている定義と同じ。
+// MiddleClick や OpenMultitouchSupport などが使っている定義と同じ（macOS 26.6 / M4 で確認済み）。
 typedef struct {
     float x;
     float y;
@@ -35,25 +35,36 @@ typedef struct {
     float zDensity;
 } CMTTouch;
 
-// deviceIndex は cmt_device_count() の添字。見つからなければ -1。
-typedef void (*CMTFrameHandler)(int32_t deviceIndex, const CMTTouch *touches, int32_t count, double timestamp);
+typedef struct {
+    // MTDeviceGetDeviceID。IOKit の "Multitouch ID" と同じ値で、抜き差ししても変わらない
+    uint64_t deviceID;
+    int32_t familyID;
+    bool builtIn;
+    // 単位は 0.01mm。取れなければ 0
+    int32_t surfaceWidth;
+    int32_t surfaceHeight;
+} CMTDeviceInfo;
 
-// フレームワークを読み込み、デバイス一覧を作る。失敗したら err に理由を書いて false。
+// MultitouchSupport のスレッドで呼ばれる。touches は呼び出しの間だけ有効。
+typedef void (*CMTFrameHandler)(void *context, uint64_t deviceID, const CMTTouch *touches, int32_t count, double timestamp);
+
+// フレームワークを読み込む。何度呼んでもよい。失敗したら err に理由を書いて false。
 bool cmt_load(char *err, int32_t errlen);
 
-int32_t cmt_device_count(void);
-bool cmt_device_is_builtin(int32_t index);
-int32_t cmt_device_family_id(int32_t index);
-uint64_t cmt_device_id(int32_t index);
-// 単位は 0.01mm
-bool cmt_device_surface_size(int32_t index, int32_t *width, int32_t *height);
+// いまつながっているデバイスを調べる（開始はしない）。out には capacity 台まで書き、戻り値は全体の台数。
+// 読み込む前なら -1。
+int32_t cmt_list_devices(CMTDeviceInfo *out, int32_t capacity);
 
-// 全デバイスの接触フレームを handler に流す。handler は MultitouchSupport のスレッドで呼ばれる。
-void cmt_start(CMTFrameHandler handler);
+// デバイスの一覧を作り直し、deviceIDs にあるデバイスだけを開始して handler にフレームを流す。
+// 動いていれば先に止める。開始できたデバイスの ID を startedIDs（idCount 個まで）に書き、その数を返す。
+// cmt_start / cmt_stop は同じスレッド（メインスレッド）から呼ぶ。
+int32_t cmt_start(const uint64_t *deviceIDs, int32_t idCount, CMTFrameHandler handler, void *context, uint64_t *startedIDs);
+
+// コールバックを外してデバイスを止める。戻った後は handler も context も使われない。
 void cmt_stop(void);
 
-// 触覚（Force Touch のアクチュエータ）。戻り値は IOReturn（0 で成功）、アクチュエータが無ければ -1。
-int32_t cmt_actuator_open(int32_t deviceIndex);
+// 触覚（Force Touch のアクチュエータ）。戻り値は IOReturn（0 で成功）、使えなければ -1。メインスレッドから呼ぶ。
+int32_t cmt_actuator_open(uint64_t deviceID);
 int32_t cmt_actuator_actuate(int32_t actuationID, uint32_t unknown1, float unknown2, float unknown3);
 void cmt_actuator_close(void);
 
