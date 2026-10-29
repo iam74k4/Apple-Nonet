@@ -15,6 +15,7 @@ extension NonetServices {
             permissions: SystemPermissions(),
             installedApps: WorkspaceInstalledApps(),
             shortcuts: ShortcutsCLI(),
+            ai: OnDeviceAIAvailability(),
             loginItem: SMAppServiceLoginItem(),
             scheduler: MainRunLoopScheduler(),
             isJISKeyboard: KeyboardLayout.isJIS

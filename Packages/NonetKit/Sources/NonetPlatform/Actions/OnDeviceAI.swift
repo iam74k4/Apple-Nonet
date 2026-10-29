@@ -5,6 +5,21 @@ import NonetCore
 import FoundationModels
 #endif
 
+/// 設定画面で AI のマスに「この Mac では使えない」理由を出すため
+@MainActor
+public final class OnDeviceAIAvailability: AIAvailabilityProviding {
+    public init() {}
+
+    public var unavailableReason: String? {
+        do {
+            try OnDeviceAI.checkAvailability()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+}
+
 /// 端末内の言語モデル（FoundationModels、macOS 26 以降）で選択中のテキストを処理する
 enum OnDeviceAI {
     /// モデルへの指示。画面には出ないので英語のまま（日本語の文には日本語で答える）

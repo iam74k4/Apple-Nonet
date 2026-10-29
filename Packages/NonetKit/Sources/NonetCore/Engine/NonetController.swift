@@ -41,6 +41,8 @@ public struct ExecutionRecord: Equatable, Sendable {
 
 /// Nonet の本体。トリガー → 速押し / HUD → 実行 の流れを動かし、設定を持つ。
 /// 仕様は docs/architecture.md の「操作の仕様」
+///
+/// 暫定実装（統合担当）: 設定の読み書きと権限の状態だけ動く。セッションは engine-controller が実装する
 @MainActor
 @Observable
 public final class NonetController {
@@ -55,37 +57,125 @@ public final class NonetController {
     public var isRecordingKeys = false
     /// 保存された設定が無かった（初回起動）
     public private(set) var isFirstLaunch = false
+    /// 利用者に知らせたい問題（設定ファイルが壊れていた・保存できない など）。設定画面とメニューに出す
+    public private(set) var notice: String?
+
+    @ObservationIgnored private let services: NonetServices
+    @ObservationIgnored private let store: ConfigurationStore
+    @ObservationIgnored private let hud: any HUDPresenting
+    @ObservationIgnored private let license: LicenseManager
 
     public init(services: NonetServices, store: ConfigurationStore, hud: any HUDPresenting, license: LicenseManager) {
-        fatalError("未実装: engine")
+        self.services = services
+        self.store = store
+        self.hud = hud
+        self.license = license
+        configuration = NonetConfiguration(profiles: []).validated()
     }
 
     /// 設定を読み、監視を始める。権限が無ければ status で知らせ、許可されたら自動で動き出す
     public func start() {
-        fatalError("未実装: engine")
+        loadConfiguration()
+        refreshPermissions()
     }
 
     public func stop() {
-        fatalError("未実装: engine")
+        status = .stopped
     }
 
     /// 設定を変えて保存し、すぐに反映する
     public func update(_ transform: (inout NonetConfiguration) -> Void) {
-        fatalError("未実装: engine")
+        var changed = configuration
+        transform(&changed)
+        replaceConfiguration(changed)
     }
 
     public func replaceConfiguration(_ configuration: NonetConfiguration) {
-        fatalError("未実装: engine")
+        self.configuration = configuration.validated()
+        save()
+        refreshPermissions()
     }
 
     /// 設定画面の「テスト実行」。アプリのプロファイルなら、そのアプリを前面に出してから実行する
     @discardableResult
     public func testRun(_ cell: Cell, profileID: UUID) async -> ExecutionRecord {
-        fatalError("未実装: engine")
+        let profile = configuration.profile(id: profileID)
+        var record = ExecutionRecord(
+            cellTitle: cell.title,
+            profileName: profile?.name ?? "",
+            address: address(of: cell, in: profile),
+            succeeded: true,
+            message: nil,
+            wasFastTap: false,
+            date: Date()
+        )
+        do {
+            try await services.performer.perform(cell.action, context: ActionContext(frontmostApp: services.frontmostApp.current))
+        } catch {
+            record.succeeded = false
+            record.message = error.localizedDescription
+        }
+        lastExecution = record
+        return record
     }
 
     /// 権限の状態を確かめ直す（設定画面や初回起動から呼ぶ）
     public func refreshPermissions() {
-        fatalError("未実装: engine")
+        if !configuration.settings.isEnabled {
+            status = .disabled
+        } else if !services.permissions.isAccessibilityGranted {
+            status = .needsAccessibility
+        } else {
+            status = .running
+        }
+    }
+
+    public func dismissNotice() {
+        notice = nil
+    }
+
+    private func loadConfiguration() {
+        do {
+            if let loaded = try store.load() {
+                configuration = loaded
+                return
+            }
+            isFirstLaunch = true
+        } catch {
+            notice = error.localizedDescription
+        }
+        configuration = Self.initialConfiguration(services: services)
+        save()
+    }
+
+    private func save() {
+        do {
+            try store.save(configuration)
+        } catch {
+            notice = error.localizedDescription
+        }
+    }
+
+    private func address(of cell: Cell, in profile: Profile?) -> CellAddress {
+        guard let profile else { return CellAddress(page: 0, index: 0) }
+        for (pageIndex, page) in profile.pages.enumerated() {
+            if let index = page.cells.firstIndex(where: { $0?.id == cell.id }) {
+                return CellAddress(page: pageIndex, index: index)
+            }
+        }
+        return CellAddress(page: 0, index: 0)
+    }
+
+    /// インストール済みのアプリから作る最初の設定
+    static func initialConfiguration(services: NonetServices) -> NonetConfiguration {
+        let installedLaunchers = PresetLibrary.launcherCandidates
+            .map(\.bundleID)
+            .filter { services.installedApps.isInstalled(bundleID: $0) }
+        let presets = PresetLibrary.apps.filter { services.installedApps.isInstalled(bundleID: $0.app.bundleID) }
+        return .initial(
+            trigger: .defaultKey(isJIS: services.isJISKeyboard),
+            appPresets: presets,
+            installedBundleIDs: Set(installedLaunchers)
+        )
     }
 }

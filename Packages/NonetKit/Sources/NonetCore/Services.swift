@@ -182,6 +182,12 @@ public protocol ShortcutsProviding: AnyObject {
 }
 
 @MainActor
+public protocol AIAvailabilityProviding: AnyObject {
+    /// AI アクションを今使えない理由（表示できる文）。使えるなら nil
+    var unavailableReason: String? { get }
+}
+
+@MainActor
 public protocol LoginItemControlling: AnyObject {
     var isEnabled: Bool { get }
     func setEnabled(_ enabled: Bool) throws
@@ -229,6 +235,7 @@ public struct NonetServices {
     public var permissions: any PermissionsProviding
     public var installedApps: any InstalledAppsProviding
     public var shortcuts: any ShortcutsProviding
+    public var ai: any AIAvailabilityProviding
     public var loginItem: any LoginItemControlling
     public var scheduler: any Scheduler
     /// 物理キーボードが JIS 配列か（トリガーの既定値を決める）
@@ -244,6 +251,7 @@ public struct NonetServices {
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
         shortcuts: any ShortcutsProviding,
+        ai: any AIAvailabilityProviding,
         loginItem: any LoginItemControlling,
         scheduler: any Scheduler,
         isJISKeyboard: Bool
@@ -257,6 +265,7 @@ public struct NonetServices {
         self.permissions = permissions
         self.installedApps = installedApps
         self.shortcuts = shortcuts
+        self.ai = ai
         self.loginItem = loginItem
         self.scheduler = scheduler
         self.isJISKeyboard = isJISKeyboard
