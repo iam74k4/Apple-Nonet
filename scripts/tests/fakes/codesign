@@ -1,0 +1,38 @@
+#!/bin/bash
+# テスト用の偽の codesign。
+#   FAKE_CODESIGN_VERIFY_STATUS    --verify の終了コード
+#   FAKE_CODESIGN_DETAILS          -dvv で出す内容（既定は Developer ID・hardened runtime・タイムスタンプつき）
+#   FAKE_CODESIGN_NESTED_DETAILS   Frameworks の中のファイルに -dvv したときの内容
+#   FAKE_CODESIGN_SIGN_STATUS      署名の終了コード
+set -euo pipefail
+printf 'codesign %s\n' "$*" >>"${FAKE_LOG:?}"
+
+target="${*: -1}"
+team="${FAKE_TEAM:-TESTTEAM01}"
+default_details="Executable=$target
+Identifier=com.iam74k4.Nonet
+Format=app bundle with Mach-O universal (x86_64 arm64)
+CodeDirectory v=20500 size=1234 flags=0x10000(runtime) hashes=28+7 location=embedded
+Signature size=9000
+Authority=Developer ID Application: Test Developer ($team)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=Oct 30, 2026 at 10:00:00
+Info.plist entries=20
+TeamIdentifier=$team"
+
+case " $* " in
+  *" --verify "*)
+    exit "${FAKE_CODESIGN_VERIFY_STATUS:-0}"
+    ;;
+  *" -dvv "* | *" -d "* | *" --display "*)
+    if [[ "$target" == */Frameworks/* && -n "${FAKE_CODESIGN_NESTED_DETAILS:-}" ]]; then
+      printf '%b\n' "$FAKE_CODESIGN_NESTED_DETAILS" >&2
+    else
+      printf '%b\n' "${FAKE_CODESIGN_DETAILS:-$default_details}" >&2
+    fi
+    ;;
+  *)
+    exit "${FAKE_CODESIGN_SIGN_STATUS:-0}"
+    ;;
+esac

@@ -1,0 +1,13 @@
+#!/bin/bash
+# テスト用の偽の spctl。
+#   FAKE_SPCTL_STATUS  0 以外なら rejected
+set -euo pipefail
+printf 'spctl %s\n' "$*" >>"${FAKE_LOG:?}"
+
+target="${*: -1}"
+if [[ "${FAKE_SPCTL_STATUS:-0}" == 0 ]]; then
+  printf '%s: accepted\nsource=Notarized Developer ID\n' "$target" >&2
+else
+  printf '%s: rejected\nsource=Unnotarized Developer ID\n' "$target" >&2
+  exit "$FAKE_SPCTL_STATUS"
+fi

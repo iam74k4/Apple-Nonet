@@ -1,0 +1,10 @@
+#!/bin/bash
+# テスト用の偽の swift。引数と実行したフォルダを記録する。
+#   FAKE_SWIFT_BUILD_STATUS / FAKE_SWIFT_TEST_STATUS  swift build / swift test の終了コード
+set -euo pipefail
+printf 'swift %s (in %s)\n' "$*" "$(basename "$PWD")" >>"${FAKE_LOG:?}"
+
+case "${1:-}" in
+  build) exit "${FAKE_SWIFT_BUILD_STATUS:-0}" ;;
+  test) exit "${FAKE_SWIFT_TEST_STATUS:-0}" ;;
+esac

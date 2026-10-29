@@ -1,0 +1,91 @@
+#!/bin/bash
+# テスト用の偽の xcodebuild。引数を FAKE_LOG に記録し、解決・アーカイブ・書き出し・ビルドの成果物を最小限の形で作る。
+#   FAKE_XCODEBUILD_STATUS        0 以外ならすべての呼び出しで失敗する
+#   FAKE_XCODEBUILD_FAIL_ACTION   この操作（resolve / archive / export / build）だけ失敗する
+#   FAKE_PLIST_*                  作る Info.plist の販売用の値
+#   FAKE_NESTED_MACHO             1 なら Sparkle.framework に Mach-O の実行ファイルを入れる
+#   FAKE_NO_SPARKLE_ARTIFACTS     1 ならパッケージの解決で Sparkle のツールを置かない
+set -euo pipefail
+printf 'xcodebuild %s\n' "$*" >>"${FAKE_LOG:?}"
+
+action="" derived="" archive="" export_path="" options="" version="1.0" build="1"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    archive | build) action="$1" ;;
+    -resolvePackageDependencies) action=resolve ;;
+    -exportArchive) action=export ;;
+    -version)
+      printf 'Xcode 27.1\nBuild version 27A0000\n'
+      exit 0
+      ;;
+    -derivedDataPath) derived="$2" && shift ;;
+    -archivePath) archive="$2" && shift ;;
+    -exportPath) export_path="$2" && shift ;;
+    -exportOptionsPlist) options="$2" && shift ;;
+    MARKETING_VERSION=*) version="${1#*=}" ;;
+    CURRENT_PROJECT_VERSION=*) build="${1#*=}" ;;
+  esac
+  shift
+done
+
+if [[ "${FAKE_XCODEBUILD_STATUS:-0}" != 0 || "${FAKE_XCODEBUILD_FAIL_ACTION:-}" == "$action" ]]; then
+  printf 'error: 偽の xcodebuild が %s で失敗しました\n** FAILED **\n' "$action" >&2
+  exit "${FAKE_XCODEBUILD_STATUS:-65}"
+fi
+
+write_app() {
+  local app="$1"
+  mkdir -p "$app/Contents/MacOS"
+  printf '#!/bin/sh\n' >"$app/Contents/MacOS/Nonet"
+  chmod +x "$app/Contents/MacOS/Nonet"
+  cat >"$app/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.iam74k4.Nonet</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$version</string>
+	<key>CFBundleVersion</key>
+	<string>$build</string>
+	<key>SUFeedURL</key>
+	<string>${FAKE_PLIST_FEED:-}</string>
+	<key>SUPublicEDKey</key>
+	<string>${FAKE_PLIST_ED_KEY:-}</string>
+	<key>NonetPurchaseURL</key>
+	<string>${FAKE_PLIST_PURCHASE:-}</string>
+	<key>NonetLicensePublicKey</key>
+	<string>${FAKE_PLIST_LICENSE_KEY:-}</string>
+</dict>
+</plist>
+EOF
+  if [[ -n "${FAKE_NESTED_MACHO:-}" ]]; then
+    mkdir -p "$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+    cp /usr/bin/true "$app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+  fi
+}
+
+case "$action" in
+  resolve)
+    mkdir -p "${derived:?}/SourcePackages/artifacts"
+    if [[ -z "${FAKE_NO_SPARKLE_ARTIFACTS:-}" ]]; then
+      bin="$derived/SourcePackages/artifacts/sparkle/Sparkle/bin"
+      mkdir -p "$bin"
+      cp "$(dirname "$0")/sparkle/generate_appcast" "$(dirname "$0")/sparkle/generate_keys" "$bin/"
+    fi
+    ;;
+  archive)
+    write_app "${archive:?}/Products/Applications/Nonet.app"
+    ;;
+  export)
+    printf 'export method=%s team=%s\n' \
+      "$(plutil -extract method raw -o - "${options:?}")" \
+      "$(plutil -extract teamID raw -o - "$options")" >>"$FAKE_LOG"
+    mkdir -p "${export_path:?}"
+    cp -R "${archive:?}/Products/Applications/Nonet.app" "$export_path/"
+    ;;
+  build)
+    write_app "${derived:?}/Build/Products/Debug/Nonet.app"
+    ;;
+esac
