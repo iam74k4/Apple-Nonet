@@ -1,0 +1,10 @@
+Nonet.xcodeproj/
+build/
+DerivedData/
+.DS_Store
+*.xcuserstate
+Packages/NonetKit/.build/
+Packages/NonetKit/.swiftpm/
+# ライセンスの秘密鍵は絶対にコミットしない
+*.private-key
+secrets/

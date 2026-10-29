@@ -1,0 +1,253 @@
+// 契約（変更は統合担当だけ）。macOS に触れる部分はすべてこの protocol の向こう側に置き、
+// NonetController を偽物の実装でテストできるようにする。実装は NonetPlatform、HUD は NonetUI。
+import Foundation
+
+// MARK: - トラックパッド
+
+/// トラックパッド上の1本の指。座標は 0〜1 で、x は左が 0、y は手前が 0
+public struct TouchPoint: Equatable, Sendable {
+    public var id: Int
+    public var x: Double
+    public var y: Double
+    /// false は近接・離れかけなど、触れていない状態
+    public var isTouching: Bool
+
+    public init(id: Int, x: Double, y: Double, isTouching: Bool = true) {
+        self.id = id
+        self.x = x
+        self.y = y
+        self.isTouching = isTouching
+    }
+}
+
+public struct TouchFrame: Equatable, Sendable {
+    /// Scheduler.now と同じ時計の秒
+    public var timestamp: TimeInterval
+    public var points: [TouchPoint]
+
+    public init(timestamp: TimeInterval, points: [TouchPoint]) {
+        self.timestamp = timestamp
+        self.points = points
+    }
+
+    public var touching: [TouchPoint] { points.filter(\.isTouching) }
+}
+
+@MainActor
+public protocol TouchSource: AnyObject {
+    /// マルチタッチのトラックパッドがあるか
+    var isAvailable: Bool { get }
+    /// メインスレッドで呼ばれる
+    var onFrame: ((TouchFrame) -> Void)? { get set }
+    func start() throws
+    func stop()
+}
+
+// MARK: - キーボードとポインタ
+
+public enum KeyboardEvent: Equatable, Sendable {
+    case triggerDown
+    case triggerUp
+    /// トリガーを押している間に、ほかのキーや修飾キーが押された（そのキーは前面アプリに渡す）
+    case interrupted
+}
+
+@MainActor
+public protocol KeyboardMonitor: AnyObject {
+    var trigger: TriggerKey { get set }
+    /// false ならトリガーキーのイベントを前面アプリに渡さない
+    var passTriggerToApps: Bool { get set }
+    var cursorLock: CursorLockMethod { get set }
+    /// true の間、ポインタの移動・クリック・スクロール・ジェスチャーを前面アプリに渡さない。
+    /// 捨てた「押す」に対応する「離す」は、false に戻した後でも捨てる
+    var isSuppressingPointer: Bool { get set }
+    /// メインスレッドで呼ばれる
+    var onEvent: ((KeyboardEvent) -> Void)? { get set }
+    var isRunning: Bool { get }
+    /// アクセシビリティの許可が無ければ NonetError.permissionDenied
+    func start() throws
+    func stop()
+}
+
+// MARK: - 触覚
+
+public enum HapticEvent: Equatable, Sendable {
+    /// 指がマスの境界をまたいだ
+    case boundary
+    case pageChange
+    case execute
+}
+
+@MainActor
+public protocol HapticPlayer: AnyObject {
+    func play(_ event: HapticEvent, strength: HapticStrength)
+}
+
+// MARK: - アクションの実行
+
+public struct RunningAppInfo: Equatable, Sendable {
+    public var app: AppReference
+    public var processID: Int32
+
+    public init(app: AppReference, processID: Int32) {
+        self.app = app
+        self.processID = processID
+    }
+}
+
+public struct ActionContext: Sendable {
+    /// トリガーを押したときに前面にあったアプリ
+    public var frontmostApp: RunningAppInfo?
+
+    public init(frontmostApp: RunningAppInfo?) {
+        self.frontmostApp = frontmostApp
+    }
+}
+
+@MainActor
+public protocol ActionPerforming: AnyObject {
+    /// 失敗したら NonetError（表示できる説明つき）を投げる
+    func perform(_ action: Action, context: ActionContext) async throws
+}
+
+@MainActor
+public protocol FrontmostAppObserving: AnyObject {
+    var current: RunningAppInfo? { get }
+    /// メインスレッドで呼ばれる
+    var onChange: ((RunningAppInfo?) -> Void)? { get set }
+    func start()
+    func stop()
+}
+
+// MARK: - 設定画面で使うもの
+
+/// メニュー項目。区切り線は含めない
+public struct MenuItemNode: Identifiable, Equatable, Sendable {
+    public var title: String
+    /// メニューバーからのタイトルの並び
+    public var path: [String]
+    public var keyEquivalent: KeySequence?
+    public var isEnabled: Bool
+    public var children: [MenuItemNode]
+
+    public init(title: String, path: [String], keyEquivalent: KeySequence? = nil, isEnabled: Bool = true, children: [MenuItemNode] = []) {
+        self.title = title
+        self.path = path
+        self.keyEquivalent = keyEquivalent
+        self.isEnabled = isEnabled
+        self.children = children
+    }
+
+    public var id: String { path.joined(separator: "\u{1F}") }
+}
+
+@MainActor
+public protocol MenuReading: AnyObject {
+    /// メニューバーを持つ起動中のアプリ
+    func runningApps() -> [RunningAppInfo]
+    /// アクセシビリティの許可が必要。Apple メニューは含めない
+    func menuItems(for app: RunningAppInfo) throws -> [MenuItemNode]
+}
+
+@MainActor
+public protocol PermissionsProviding: AnyObject {
+    var isAccessibilityGranted: Bool { get }
+    /// システムの許可ダイアログを出す
+    func requestAccessibility()
+    func openAccessibilitySettings()
+    /// パスワード入力中など、キーの監視ができない状態
+    var isSecureInputActive: Bool { get }
+}
+
+@MainActor
+public protocol InstalledAppsProviding: AnyObject {
+    /// /Applications などにあるアプリ（名前順）
+    func installedApps() -> [AppReference]
+    func isInstalled(bundleID: String) -> Bool
+}
+
+@MainActor
+public protocol ShortcutsProviding: AnyObject {
+    /// ショートカット.app にあるショートカットの名前
+    func shortcutNames() async -> [String]
+}
+
+@MainActor
+public protocol LoginItemControlling: AnyObject {
+    var isEnabled: Bool { get }
+    func setEnabled(_ enabled: Bool) throws
+}
+
+// MARK: - 時間
+
+@MainActor
+public protocol ScheduledTask: AnyObject {
+    func cancel()
+}
+
+@MainActor
+public protocol Scheduler: AnyObject {
+    /// 単調増加の秒
+    var now: TimeInterval { get }
+    @discardableResult
+    func schedule(after delay: TimeInterval, _ action: @escaping @MainActor () -> Void) -> any ScheduledTask
+}
+
+// MARK: - HUD
+
+@MainActor
+public protocol HUDPresenting: AnyObject {
+    func show(_ model: HUDModel, position: HUDPosition)
+    /// 表示中の HUD を更新する（ハイライトやページ）
+    func update(_ model: HUDModel)
+    func hide()
+    func showToast(_ toast: ToastModel)
+}
+
+// MARK: - まとめ
+
+/// NonetController が使うサービス一式。本物は NonetServices.live()（NonetPlatform）
+@MainActor
+public struct NonetServices {
+    public var touchSource: any TouchSource
+    public var keyboard: any KeyboardMonitor
+    public var haptics: any HapticPlayer
+    public var performer: any ActionPerforming
+    public var frontmostApp: any FrontmostAppObserving
+    public var menus: any MenuReading
+    public var permissions: any PermissionsProviding
+    public var installedApps: any InstalledAppsProviding
+    public var shortcuts: any ShortcutsProviding
+    public var loginItem: any LoginItemControlling
+    public var scheduler: any Scheduler
+    /// 物理キーボードが JIS 配列か（トリガーの既定値を決める）
+    public var isJISKeyboard: Bool
+
+    public init(
+        touchSource: any TouchSource,
+        keyboard: any KeyboardMonitor,
+        haptics: any HapticPlayer,
+        performer: any ActionPerforming,
+        frontmostApp: any FrontmostAppObserving,
+        menus: any MenuReading,
+        permissions: any PermissionsProviding,
+        installedApps: any InstalledAppsProviding,
+        shortcuts: any ShortcutsProviding,
+        loginItem: any LoginItemControlling,
+        scheduler: any Scheduler,
+        isJISKeyboard: Bool
+    ) {
+        self.touchSource = touchSource
+        self.keyboard = keyboard
+        self.haptics = haptics
+        self.performer = performer
+        self.frontmostApp = frontmostApp
+        self.menus = menus
+        self.permissions = permissions
+        self.installedApps = installedApps
+        self.shortcuts = shortcuts
+        self.loginItem = loginItem
+        self.scheduler = scheduler
+        self.isJISKeyboard = isJISKeyboard
+    }
+}
