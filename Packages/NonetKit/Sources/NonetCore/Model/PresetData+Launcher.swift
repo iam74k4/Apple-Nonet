@@ -6,10 +6,13 @@ import Foundation
 struct LauncherEntry: Sendable {
     var app: AppReference
     var title: String
+    /// このアプリが入っていれば、この候補は並べない（同じアプリの新旧で2マス使わないため）
+    var supersededBy: String?
 
-    init(_ app: AppReference, title: String? = nil) {
+    init(_ app: AppReference, title: String? = nil, supersededBy: AppReference? = nil) {
         self.app = app
         self.title = title ?? app.name
+        self.supersededBy = supersededBy?.bundleID
     }
 }
 
@@ -26,6 +29,8 @@ extension PresetData {
             LauncherEntry(KnownApp.chrome, title: "Chrome"),
             LauncherEntry(KnownApp.claude),
             LauncherEntry(KnownApp.chatGPT),
+            // 新しい ChatGPT が無いときだけ、同じ位置に以前のアプリを並べる
+            LauncherEntry(KnownApp.chatGPTClassic, title: "ChatGPT", supersededBy: KnownApp.chatGPT),
             LauncherEntry(KnownApp.slack),
             LauncherEntry(KnownApp.notion),
             LauncherEntry(KnownApp.figma),
@@ -57,5 +62,14 @@ extension PresetData {
             LauncherEntry(KnownApp.faceTime),
             LauncherEntry(KnownApp.appStore),
         ]
+    }
+
+    /// 入っている候補を優先順に返す。新旧の両方が入っていれば新しい方だけ。bundleID の大文字・小文字は区別しない
+    static func installedLauncherEntries(_ installedBundleIDs: Set<String>) -> [LauncherEntry] {
+        let installed = Set(installedBundleIDs.map { $0.lowercased() })
+        func isInstalled(_ bundleID: String) -> Bool { installed.contains(bundleID.lowercased()) }
+        return launcherEntries.filter { entry in
+            isInstalled(entry.app.bundleID) && !(entry.supersededBy.map(isInstalled) ?? false)
+        }
     }
 }

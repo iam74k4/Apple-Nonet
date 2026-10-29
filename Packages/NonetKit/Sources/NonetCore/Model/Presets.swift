@@ -57,17 +57,16 @@ public enum PresetLibrary {
         apps.first { $0.app.bundleID.caseInsensitiveCompare(bundleID) == .orderedSame }
     }
 
-    /// グローバル（ランチャー）に並べるアプリの候補。優先順
+    /// グローバル（ランチャー）に並べるアプリの候補。優先順。
+    /// 同じアプリの新旧（ChatGPT と ChatGPT Classic）はどちらも候補に含む。インストール済みかはこの全部で調べる
     public static var launcherCandidates: [AppReference] {
         PresetData.launcherEntries.map(\.app)
     }
 
     /// インストール済みの候補を優先順に9個ずつ並べたグローバルのプロファイル（最大 Profile.maxPages ページ）。
-    /// 1つも無ければ空の1ページ
+    /// 同じアプリの新旧が両方入っていれば新しい方だけ。1つも無ければ空の1ページ
     public static func makeGlobalProfile(installedBundleIDs: Set<String>) -> Profile {
-        let installed = Set(installedBundleIDs.map { $0.lowercased() })
-        let cells = PresetData.launcherEntries
-            .filter { installed.contains($0.app.bundleID.lowercased()) }
+        let cells = PresetData.installedLauncherEntries(installedBundleIDs)
             .prefix(Page.cellCount * Profile.maxPages)
             .map { entry in
                 Cell(

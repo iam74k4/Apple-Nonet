@@ -344,6 +344,40 @@ import Testing
         }
     }
 
+    @Test func cursorNeverSendsLineCommentKey() throws {
+        let actions = try Self.actions(of: "com.todesktop.230313mzl4w4u92")
+        // Cursor の ⌘/ と ⌥⌘/ がモデルを切り替えるのはチャットの入力欄にフォーカスがあるときだけ。
+        // エディタにフォーカスがあると ⌘/ は Toggle Line Comment になり、ユーザーのコードをコメントアウトしてしまう
+        for action in actions {
+            guard case .keystroke(let sequence) = action else { continue }
+            #expect(!sequence.chords.contains { $0.key == .character("/") }, "\(action)")
+        }
+        #expect(!actions.contains(.keystroke(.key("/", .command))))
+        // 代わりにフォーカスに関係なく効くサイドバーの切り替え
+        #expect(actions.contains(.keystroke(.key("b", .command))))
+    }
+
+    /// 会議や通話を始める・抜ける・終えるキー。押し間違えると取り返しがつかないので、どのプリセットにも入れない
+    static let callTogglingKeys: [(bundleID: String, keys: KeySequence, reason: String)] = [
+        ("com.tinyspeck.slackmacgap", .key("h", [.shift, .command]), "ハドルの開始・参加・退出・終了"),
+        ("com.microsoft.teams2", .key("h", [.shift, .command]), "通話の終了"),
+        ("us.zoom.xos", .key("w", .command), "モックの「退出」。macOS では会議のウインドウを閉じる操作になる"),
+    ]
+
+    @Test func noCallTogglingKeys() throws {
+        for (bundleID, keys, reason) in Self.callTogglingKeys {
+            #expect(try !Self.actions(of: bundleID).contains(.keystroke(keys)), "\(bundleID): \(reason)")
+        }
+    }
+
+    @Test func slackReplacesHuddleWithNextUnread() throws {
+        let actions = try Self.actions(of: "com.tinyspeck.slackmacgap")
+        // Mac の一覧の「次の未読チャンネルや DM に移動する」（⌥⇧↓）
+        #expect(actions.contains(.keystroke(.special(.downArrow, [.option, .shift]))))
+        let slack = try Self.preset("com.tinyspeck.slackmacgap")
+        #expect(!slack.summary.contains("ハドル"))
+    }
+
     @Test func browsersCopyLink() throws {
         let addressBarCopy = Action.keystroke(.sequence(.key("l", .command), .key("c", .command)))
         #expect(try Self.actions(of: "com.apple.Safari").contains(addressBarCopy))

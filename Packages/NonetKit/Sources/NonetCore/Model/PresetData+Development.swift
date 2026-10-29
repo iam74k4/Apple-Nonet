@@ -58,10 +58,13 @@ extension PresetData {
 
     /// 出典:
     /// - Cursor 独自: https://cursor.com/docs/reference/keyboard-shortcuts
-    ///   （⇧⌘P コマンド・⌘I サイドパネル・⌘E エージェントのレイアウト・⇧⌘L 選択範囲をチャットへ・⌘/ モデルの切り替え）
-    /// - 同じページに「VS Code のキー割り当てが土台」とあるので、⌘P・⇧⌘F・⌃⇧G は VS Code の既定に従う:
+    ///   （⇧⌘P コマンド・⌘I サイドパネル・⌘E エージェントのレイアウト・⇧⌘L 選択範囲をチャットへ）
+    /// - 同じページに「VS Code のキー割り当てが土台」とあるので、⌘P・⇧⌘F・⌘B・⌃⇧G は VS Code の既定に従う:
     ///   https://code.visualstudio.com/docs/reference/default-keybindings
-    /// ⌘/ は Cursor ではコメントではなくモデルの切り替えになっている
+    /// - ⌘B（Toggle Primary Side Bar）は Cursor 3.21.16 の workbench.desktop.main.js でも、
+    ///   エディタのフォーカスに関係なく効く割り当て（when: !isAuxiliaryWindowFocusedContext）なのを確かめた
+    /// 外したもの: ⌘/ のモデル切り替え。モデルが切り替わるのはチャットの入力欄にフォーカスがあるときだけで、
+    /// エディタにフォーカスがあると VS Code の Toggle Line Comment（editor.action.commentLine）になり、コードを書き換えてしまう
     static var cursor: AppPreset {
         PresetBuilder.preset(
             KnownApp.cursor,
@@ -74,7 +77,7 @@ extension PresetData {
                 PresetBuilder.claudeCode(),
                 PresetBuilder.key("エージェント表示", "rectangle.split.3x1", .key("e", .command)),
                 PresetBuilder.key("チャットに追加", "text.badge.plus", .key("l", [.shift, .command])),
-                PresetBuilder.key("モデル切替", "cpu", .key("/", .command)),
+                PresetBuilder.key("サイドバー", "sidebar.left", .key("b", .command)),
                 PresetBuilder.key("ソース管理", "arrow.triangle.branch", .key("g", [.control, .shift])),
             ],
             summary: { "AIチャット、エージェント、Claude Code など\($0)個" }

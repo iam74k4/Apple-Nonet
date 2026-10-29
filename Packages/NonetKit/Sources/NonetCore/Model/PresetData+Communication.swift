@@ -28,6 +28,8 @@ extension PresetData {
 
     /// 出典: https://slack.com/help/articles/201374536-Slack-keyboard-shortcuts （Mac の欄）
     /// 会話の切り替え ⌘K は Mac の欄に載っていないので使わない。
+    /// ハドル ⇧⌘H は「開始・参加・退出・終了」を1つのキーで切り替えるので入れない（Teams の ⇧⌘H と同じ理由）。
+    /// 押し間違えると通話から抜けたり、マイクをオンにしてチャンネルにハドルを始めたりしてしまう。canvas では検索と置換にもなる。
     /// 中央: 読んでいるメッセージを選んで訳すことが多いので翻訳
     static var slack: AppPreset {
         PresetBuilder.preset(
@@ -42,10 +44,10 @@ extension PresetData {
                 PresetBuilder.key("アクティビティ", "bell", .key("m", [.shift, .command])),
                 PresetBuilder.key("DM", "bubble.left", .key("k", [.shift, .command])),
                 PresetBuilder.key("ステータス", "face.smiling", .key("y", [.shift, .command])),
-                // ハドルミーティングの開始・参加・退出を切り替える
-                PresetBuilder.key("ハドル", "headphones", .key("h", [.shift, .command])),
+                // 次の未読のチャンネルか DM へ移る。押し間違えても移動するだけ
+                PresetBuilder.key("次の未読", "arrow.down.circle", .special(.downArrow, [.option, .shift])),
             ],
-            summary: { "スレッド、翻訳、ハドルなど\($0)個" }
+            summary: { "スレッド、翻訳、未読など\($0)個" }
         )
     }
 

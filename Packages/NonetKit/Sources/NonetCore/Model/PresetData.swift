@@ -105,6 +105,10 @@ enum KnownApp {
     static var claude: AppReference { AppReference(bundleID: "com.anthropic.claudefordesktop", name: "Claude") }
     /// 2026年7月に Codex と統合された ChatGPT。以前の com.openai.chat は「ChatGPT Classic」になった
     static var chatGPT: AppReference { AppReference(bundleID: "com.openai.codex", name: "ChatGPT") }
+    /// 以前の ChatGPT。今も更新が続き、新しいアプリと並べて入れておける。新しいアプリは別の大きなダウンロードなので、
+    /// こちらだけの Mac も多い（https://help.openai.com/en/articles/20001276 、
+    /// formulae.brew.sh/api/cask/chatgpt-classic.json の「ChatGPT Classic.app」）
+    static var chatGPTClassic: AppReference { AppReference(bundleID: "com.openai.chat", name: "ChatGPT Classic") }
     static var slack: AppReference { AppReference(bundleID: "com.tinyspeck.slackmacgap", name: "Slack") }
     static var notion: AppReference { AppReference(bundleID: "notion.id", name: "Notion") }
     static var figma: AppReference { AppReference(bundleID: "com.figma.Desktop", name: "Figma") }
