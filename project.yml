@@ -44,7 +44,8 @@ targets:
         CFBundleDisplayName: Nonet
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDevelopmentRegion: ja
+        # 文言の元は日本語だが、日本語でも英語でもない言語の利用者には英語を出す
+        CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [ja, en]
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         LSUIElement: true
