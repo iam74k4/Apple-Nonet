@@ -86,8 +86,9 @@ import Testing
         // 送ると、いま前面にある設定ウィンドウに届く
         #expect(h.performer.actions == [activateSafari])
         #expect(!record.succeeded)
-        #expect(record.message == "Safari が前面になりませんでした")
-        #expect(h.hud.toasts == [ToastModel(title: cell.title, detail: "Safari が前面になりませんでした", icon: cell.icon, style: .failure)])
+        let message = ModelFixtures.text("\("Safari") が前面になりませんでした")
+        #expect(record.message == message)
+        #expect(h.hud.toasts == [ToastModel(title: cell.title, detail: message, icon: cell.icon, style: .failure)])
         #expect(h.controller.lastExecution == record)
     }
 

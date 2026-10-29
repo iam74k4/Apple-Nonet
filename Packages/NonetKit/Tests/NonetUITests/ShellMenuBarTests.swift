@@ -33,16 +33,16 @@ enum ShellMenuState {
 @MainActor
 struct ShellMenuBarTests {
     @Test("状態の文", arguments: [
-        (ShellMenuState.make(profile: "Xcode"), "Xcode のプロファイル"),
-        (ShellMenuState.make(profile: "グローバル", global: true), "グローバルのプロファイル"),
-        (ShellMenuState.make(), "動作中"),
-        (ShellMenuState.make(profile: ""), "動作中"),
-        (ShellMenuState.make(.disabled, enabled: false), "Nonet は無効です"),
-        (ShellMenuState.make(.needsAccessibility, enabled: false), "Nonet は無効です"),
-        (ShellMenuState.make(.needsAccessibility), "アクセシビリティの許可が必要です"),
-        (ShellMenuState.make(.noTrackpad), "トラックパッドが見つかりません"),
-        (ShellMenuState.make(.secureInputActive), "パスワード入力中は使えません"),
-        (ShellMenuState.make(.stopped), "停止しています"),
+        (ShellMenuState.make(profile: "Xcode"), L10n.ui("\("Xcode") のプロファイル")),
+        (ShellMenuState.make(profile: "グローバル", global: true), L10n.ui("グローバルのプロファイル")),
+        (ShellMenuState.make(), L10n.ui("動作中")),
+        (ShellMenuState.make(profile: ""), L10n.ui("動作中")),
+        (ShellMenuState.make(.disabled, enabled: false), L10n.ui("Nonet は無効です")),
+        (ShellMenuState.make(.needsAccessibility, enabled: false), L10n.ui("Nonet は無効です")),
+        (ShellMenuState.make(.needsAccessibility), L10n.ui("アクセシビリティの許可が必要です")),
+        (ShellMenuState.make(.noTrackpad), L10n.ui("トラックパッドが見つかりません")),
+        (ShellMenuState.make(.secureInputActive), L10n.ui("パスワード入力中は使えません")),
+        (ShellMenuState.make(.stopped), L10n.ui("停止しています")),
     ])
     func statusText(state: MenuBarState, expected: String) {
         #expect(MenuBarModel.statusText(for: state) == expected)
@@ -68,17 +68,17 @@ struct ShellMenuBarTests {
 
     @Test("ライセンスの行")
     func licenseText() {
-        #expect(MenuBarModel.licenseText(for: .trial(daysLeft: 3)) == "試用期間: 残り 3 日")
-        #expect(MenuBarModel.licenseText(for: .expired) == "試用期間が終了しました")
+        #expect(MenuBarModel.licenseText(for: .trial(daysLeft: 3)) == L10n.ui("試用期間: 残り \(3) 日"))
+        #expect(MenuBarModel.licenseText(for: .expired) == L10n.ui("試用期間が終了しました"))
         let info = LicenseInfo(licenseID: "1", licensee: "山田", email: nil, issuedAt: Date(timeIntervalSince1970: 0))
-        #expect(MenuBarModel.licenseText(for: .licensed(info)) == "登録済み")
+        #expect(MenuBarModel.licenseText(for: .licensed(info)) == L10n.ui("登録済み"))
     }
 
     @Test("メニューの並び（普段）。アップデートの確認が無ければ出さない")
     func entries() {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(profile: "Xcode"))
         #expect(entries == [
-            .status("Xcode のプロファイル", .normal),
+            .status(L10n.ui("\("Xcode") のプロファイル"), .normal),
             .separator,
             .toggleEnabled(isOn: true),
             .separator,
@@ -86,7 +86,7 @@ struct ShellMenuBarTests {
             .editProfiles,
             .showOnboarding,
             .separator,
-            .license("試用期間: 残り 12 日"),
+            .license(L10n.ui("試用期間: 残り \(12) 日")),
             .separator,
             .quit,
         ])
@@ -95,7 +95,7 @@ struct ShellMenuBarTests {
     @Test("アップデートの確認はライセンスの次")
     func updatesEntry() throws {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(updates: true))
-        let license = try #require(entries.firstIndex(of: .license("試用期間: 残り 12 日")))
+        let license = try #require(entries.firstIndex(of: .license(L10n.ui("試用期間: 残り \(12) 日"))))
         #expect(entries[license + 1] == .checkForUpdates)
     }
 
@@ -110,7 +110,7 @@ struct ShellMenuBarTests {
     func noticeEntries() {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(.running, notice: "設定ファイルが壊れていたので退避しました"))
         #expect(Array(entries.prefix(3)) == [
-            .status("動作中", .attention),
+            .status(L10n.ui("動作中"), .attention),
             .notice("設定ファイルが壊れていたので退避しました"),
             .dismissNotice,
         ])
@@ -124,12 +124,12 @@ struct ShellMenuBarTests {
 
     @Test("項目の文言は利用ガイドと同じ")
     func titles() {
-        #expect(MenuBarEntry.toggleEnabled(isOn: true).title == "Nonet を有効にする")
-        #expect(MenuBarEntry.openSettings.title == "設定…")
-        #expect(MenuBarEntry.editProfiles.title == "プロファイルを編集…")
-        #expect(MenuBarEntry.showOnboarding.title == "初回の案内をもう一度")
-        #expect(MenuBarEntry.checkForUpdates.title == "アップデートを確認")
-        #expect(MenuBarEntry.quit.title == "終了")
+        #expect(MenuBarEntry.toggleEnabled(isOn: true).title == L10n.ui("Nonet を有効にする"))
+        #expect(MenuBarEntry.openSettings.title == L10n.ui("設定…"))
+        #expect(MenuBarEntry.editProfiles.title == L10n.ui("プロファイルを編集…"))
+        #expect(MenuBarEntry.showOnboarding.title == L10n.ui("初回の案内をもう一度"))
+        #expect(MenuBarEntry.checkForUpdates.title == L10n.ui("アップデートを確認"))
+        #expect(MenuBarEntry.quit.title == L10n.ui("終了"))
     }
 
     @Test("NonetController と LicenseManager から状態を集める")
@@ -224,11 +224,11 @@ struct ShellMenuBarTests {
 
     @Test("トリガーキーの呼び方と練習の案内")
     func triggerText() {
-        #expect(ShellText.triggerName(.rightCommand) == "右⌘")
-        #expect(ShellText.triggerName(.rightOption) == "右⌥")
-        #expect(ShellText.triggerName(.rightShift) == "右⇧")
-        #expect(ShellText.triggerName(.function) == "fn")
-        #expect(ShellText.practiceInstruction(.rightCommand) == "右⌘を押しながら、トラックパッドの右上をタップ")
+        #expect(ShellText.triggerName(.rightCommand) == L10n.ui("右⌘"))
+        #expect(ShellText.triggerName(.rightOption) == L10n.ui("右⌥"))
+        #expect(ShellText.triggerName(.rightShift) == L10n.ui("右⇧"))
+        #expect(ShellText.triggerName(.function) == L10n.ui("fn"))
+        #expect(ShellText.practiceInstruction(.rightCommand) == L10n.ui("\(L10n.ui("右⌘"))を押しながら、トラックパッドの右上をタップ"))
     }
 
     static func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {

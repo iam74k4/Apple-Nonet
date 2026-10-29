@@ -30,46 +30,54 @@ struct ShellHUDTests {
 
     @Test("マスの位置の呼び方")
     func positionNames() {
-        #expect((0..<9).map(HUDAnnouncement.positionName) == ["左上", "上", "右上", "左", "中央", "右", "左下", "下", "右下"])
+        #expect((0..<9).map(HUDAnnouncement.positionName) == [
+            L10n.ui("左上"), L10n.ui("上"), L10n.ui("右上"),
+            L10n.ui("左"), L10n.ui("中央"), L10n.ui("右"),
+            L10n.ui("左下"), L10n.ui("下"), L10n.ui("右下"),
+        ])
         #expect(HUDAnnouncement.positionName(9).isEmpty)
     }
 
     @Test("読み上げ: マスの名前・キー・位置。空きマスは空きマス")
     func cellDescription() {
         let model = Self.model()
-        #expect(HUDAnnouncement.cellDescription(model.cells[0], index: 0) == "ビルド、⌘B、左上")
-        #expect(HUDAnnouncement.cellDescription(model.cells[1], index: 1) == "テスト、上")
-        #expect(HUDAnnouncement.cellDescription(nil, index: 2) == "空きマス、右上")
+        // マスの名前とキーはテストのデータ。区切りの「、」を含む文と位置の呼び方はカタログから引く
+        #expect(HUDAnnouncement.cellDescription(model.cells[0], index: 0) == L10n.ui("\("ビルド")、\("⌘B")、\(L10n.ui("左上"))"))
+        #expect(HUDAnnouncement.cellDescription(model.cells[1], index: 1) == L10n.ui("\("テスト")、\(L10n.ui("上"))"))
+        #expect(HUDAnnouncement.cellDescription(nil, index: 2) == L10n.ui("空きマス、\(L10n.ui("右上"))"))
     }
 
     @Test("読み上げ: 最初はプロファイル名とハイライト中のマス")
     func firstAnnouncement() {
-        #expect(HUDAnnouncement.announcement(from: nil, to: Self.model()) == "Xcode、Claude Code、中央")
+        let center = L10n.ui("\("Claude Code")、\(L10n.ui("中央"))")
+        #expect(HUDAnnouncement.announcement(from: nil, to: Self.model()) == ["Xcode", center].joined(separator: L10n.ui("、")))
         #expect(HUDAnnouncement.announcement(from: nil, to: Self.model(highlighted: nil)) == "Xcode")
-        #expect(HUDAnnouncement.announcement(from: nil, to: Self.model(highlighted: nil, pageCount: 2)) == "Xcode、2 ページ中 1 ページ目")
+        #expect(HUDAnnouncement.announcement(from: nil, to: Self.model(highlighted: nil, pageCount: 2)) == L10n.ui("\("Xcode")、\(L10n.ui("\(2) ページ中 \(1) ページ目"))"))
     }
 
     @Test("読み上げ: ハイライトが変わったときだけ。指が離れたら読まない")
     func highlightChanges() {
         let center = Self.model(highlighted: 4)
         #expect(HUDAnnouncement.announcement(from: center, to: center) == nil)
-        #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 8)) == "スクショ、⇧⌘4、右下")
+        #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 8)) == L10n.ui("\("スクショ")、\("⇧⌘4")、\(L10n.ui("右下"))"))
         #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: nil)) == nil)
-        #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 5)) == "空きマス、右")
+        #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 5)) == L10n.ui("空きマス、\(L10n.ui("右"))"))
     }
 
     @Test("読み上げ: ページが変わったらページから読み直す")
     func pageChanges() {
         let first = Self.model(highlighted: 4, pageIndex: 0, pageCount: 3)
         let second = Self.model(highlighted: 4, pageIndex: 1, pageCount: 3, title: "グローバル")
-        #expect(HUDAnnouncement.announcement(from: first, to: second) == "グローバル、3 ページ中 2 ページ目、Claude Code、中央")
+        let page = L10n.ui("\("グローバル")、\(L10n.ui("\(3) ページ中 \(2) ページ目"))")
+        let cell = L10n.ui("\("Claude Code")、\(L10n.ui("中央"))")
+        #expect(HUDAnnouncement.announcement(from: first, to: second) == [page, cell].joined(separator: L10n.ui("、")))
     }
 
     @Test("ハイライトの番号が範囲外なら読まない")
     func outOfRangeHighlight() {
         #expect(HUDAnnouncement.highlighted(in: Self.model(highlighted: 12)) == nil)
         let short = HUDModel(title: "A", pageIndex: 0, pageCount: 1, cells: [], highlightedIndex: 3, hint: "")
-        #expect(HUDAnnouncement.highlighted(in: short) == "空きマス、左")
+        #expect(HUDAnnouncement.highlighted(in: short) == L10n.ui("空きマス、\(L10n.ui("左"))"))
     }
 
     @Test("トーストの表示時間: 成功と案内は一瞬、失敗は長め", arguments: [
@@ -90,7 +98,7 @@ struct ShellHUDTests {
 
     @Test("トーストの読み上げ")
     func toastAnnouncement() {
-        #expect(HUDAccessibility.toastAnnouncement(title: "ビルド", detail: "⌘B") == "ビルド、⌘B")
+        #expect(HUDAccessibility.toastAnnouncement(title: "ビルド", detail: "⌘B") == L10n.ui("\("ビルド")、\("⌘B")"))
         #expect(HUDAccessibility.toastAnnouncement(title: "ビルド", detail: nil) == "ビルド")
         #expect(HUDAccessibility.toastAnnouncement(title: "ビルド", detail: "") == "ビルド")
     }

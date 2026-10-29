@@ -206,7 +206,7 @@ import Testing
         let host = Host(inspector(h))
         defer { host.close() }
         try await host.settle()
-        try host.type("翻訳", intoFieldWithPlaceholder: "ショートカットの名前")
+        try host.type("翻訳", intoFieldWithPlaceholder: L10n.ui("ショートカットの名前"))
         h.model.updateAction(ofCell: id, as: ShortcutAction.self) { $0.passSelectedText = true }
         try await host.settle(700)
         h.model.pendingEdits.flushAll()

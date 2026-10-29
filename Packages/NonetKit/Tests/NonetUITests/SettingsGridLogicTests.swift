@@ -73,24 +73,26 @@ import UniformTypeIdentifiers
     }
 
     @Test func namesAndAccessibilityLabels() {
-        #expect(SettingsGrid.cellName(4) == "マス 5（中央）")
-        #expect(SettingsGrid.positionName(0) == "左上")
-        #expect(SettingsGrid.positionName(8) == "右下")
-        #expect(SettingsGrid.accessibilityLabel(index: 2, cell: nil) == "3番目のマス（右上）：空き")
+        #expect(SettingsGrid.cellName(4) == L10n.ui("マス \(5)（\(L10n.ui("中央"))）"))
+        #expect(SettingsGrid.positionName(0) == L10n.ui("左上"))
+        #expect(SettingsGrid.positionName(8) == L10n.ui("右下"))
+        let topRight = L10n.ui("\(3)番目のマス（\(L10n.ui("右上"))）")
+        #expect(SettingsGrid.accessibilityLabel(index: 2, cell: nil) == L10n.ui("\(topRight)：空き"))
         let cell = SettingsFixtures.key("ビルド", .key("b", .command))
-        #expect(SettingsGrid.accessibilityLabel(index: 0, cell: cell) == "1番目のマス（左上）：ビルド、⌘B")
+        let topLeft = L10n.ui("\(1)番目のマス（\(L10n.ui("左上"))）")
+        #expect(SettingsGrid.accessibilityLabel(index: 0, cell: cell) == L10n.ui("\(topLeft)：\("ビルド")、\("⌘B")"))
     }
 
     @Test func untitledAndIncompleteCellsShowUsefulText() {
         let empty = Cell(title: "  ", icon: .symbol("keyboard"), action: .keystroke(KeySequence([])))
-        #expect(SettingsGrid.displayTitle(for: empty) == "キー入力")
-        #expect(SettingsGrid.subtitle(for: empty) == "未設定")
+        #expect(SettingsGrid.displayTitle(for: empty) == L10n.ui("キー入力"))
+        #expect(SettingsGrid.subtitle(for: empty) == L10n.ui("未設定"))
         let shortcut = Cell(title: "", icon: .symbol("bolt"), action: .shortcut(ShortcutAction(name: "マイクを切る")))
         #expect(SettingsGrid.displayTitle(for: shortcut) == "マイクを切る")
         // 名前と同じ説明は出さず、種類の名前にする
-        #expect(SettingsGrid.subtitle(for: shortcut) == "ショートカット")
+        #expect(SettingsGrid.subtitle(for: shortcut) == L10n.ui("ショートカット"))
         let app = SettingsFixtures.launch(SettingsFixtures.safari)
-        #expect(SettingsGrid.subtitle(for: app) == "アプリ起動")
+        #expect(SettingsGrid.subtitle(for: app) == L10n.ui("アプリ起動"))
         var renamed = app
         renamed.title = "ブラウザ"
         #expect(SettingsGrid.subtitle(for: renamed) == "Safari")
@@ -102,7 +104,7 @@ import UniformTypeIdentifiers
         #expect(SettingsGrid.subtitle(for: withKey) == "⇧A")
         let withoutKey = Cell(title: "整列", icon: .symbol("filemenu.and.selection"),
                               action: .menuItem(MenuItemAction(path: ["オブジェクト", "整列"])))
-        #expect(SettingsGrid.subtitle(for: withoutKey) == "メニュー項目")
+        #expect(SettingsGrid.subtitle(for: withoutKey) == L10n.ui("メニュー項目"))
     }
 
     @Test func dragPayloadRoundTrips() {

@@ -120,7 +120,7 @@ enum SettingsText {
         }
         targets += plan.replacedNames
         var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
-        lines += targets.prefix(importConfirmationNameLimit).map { "・\($0)" }
+        lines += targets.prefix(importConfirmationNameLimit).map { String(localized: "・\($0)", bundle: .module) }
         let rest = targets.count - importConfirmationNameLimit
         if rest > 0 {
             lines.append(String(localized: "ほか\(rest)個", bundle: .module))

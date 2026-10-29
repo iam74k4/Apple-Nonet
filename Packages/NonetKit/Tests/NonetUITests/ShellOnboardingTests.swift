@@ -70,7 +70,7 @@ struct ShellOnboardingTests {
         model.skipSelection()
         #expect(model.step == .practice)
         #expect(model.practiceBlocker == .needsAccessibility)
-        #expect(model.practiceBlocker?.message == "アクセシビリティが許可されていないため、まだ試せません")
+        #expect(model.practiceBlocker?.message == L10n.ui("アクセシビリティが許可されていないため、まだ試せません"))
         harness.permissions.isAccessibilityGranted = true
         model.pollPermission()
         #expect(model.step == .practice)
@@ -588,7 +588,7 @@ struct ShellOnboardingTests {
         let (model, harness) = Self.make()
         harness.controller.update { $0.settings.trigger = .rightOption }
         #expect(model.trigger == .rightOption)
-        #expect(ShellText.practiceInstruction(model.trigger) == "右⌥を押しながら、トラックパッドの右上をタップ")
+        #expect(ShellText.practiceInstruction(model.trigger) == L10n.ui("\(L10n.ui("右⌥"))を押しながら、トラックパッドの右上をタップ"))
     }
 
     @Test("右上（どのページでも）を押したら成功。練習を始めた後の記録だけを数える")
@@ -668,7 +668,7 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
         harness.controller.update { $0.settings.isEnabled = false }
         #expect(model.practiceBlocker == .disabled)
-        #expect(model.practiceBlocker?.message == "Nonet が無効になっています。有効にすると試せます")
+        #expect(model.practiceBlocker?.message == L10n.ui("Nonet が無効になっています。有効にすると試せます"))
         #expect(!harness.controller.configuration.settings.isEnabled)
         model.enableNonet()
         #expect(harness.controller.configuration.settings.isEnabled)
@@ -684,9 +684,9 @@ struct ShellOnboardingTests {
         #expect(!model.isAccessibilityGranted)
         let disabled = try #require(model.practiceBlocker)
         #expect(disabled == .disabled)
-        #expect(disabled.message == "Nonet が無効になっています。有効にすると試せます")
+        #expect(disabled.message == L10n.ui("Nonet が無効になっています。有効にすると試せます"))
         #expect(disabled.remedy == .enableNonet)
-        #expect(disabled.remedy?.title == "有効にする")
+        #expect(disabled.remedy?.title == L10n.ui("有効にする"))
 
         model.resolve(.enableNonet)
         #expect(harness.controller.configuration.settings.isEnabled)
@@ -694,7 +694,7 @@ struct ShellOnboardingTests {
         let needsAccessibility = model.practiceBlocker
         #expect(needsAccessibility == .needsAccessibility)
         #expect(needsAccessibility?.remedy == .openAccessibilitySettings)
-        #expect(needsAccessibility?.remedy?.title == "システム設定を開く")
+        #expect(needsAccessibility?.remedy?.title == L10n.ui("システム設定を開く"))
 
         model.resolve(.openAccessibilitySettings)
         #expect(harness.permissions.requestCount == 1)

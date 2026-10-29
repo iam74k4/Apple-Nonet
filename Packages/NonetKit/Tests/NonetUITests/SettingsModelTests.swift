@@ -833,9 +833,9 @@ import Testing
         #expect(restored.pages[0].cells.compactMap { $0?.title } == xcode.pages[0].cells.compactMap { $0?.title })
         let message = try #require(h.model.fileMessage)
         #expect(!message.isError)
-        #expect(message.text.contains("1個のプロファイルを追加しました。"))
+        #expect(message.text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
         // Xcode のプリセットにはスクリプトのマスがある
-        #expect(message.text.contains("スクリプトを含むマスがあります"))
+        #expect(message.text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")))
     }
 
     @Test func importingReplacesTheSameAppAfterConfirmation() throws {
@@ -847,8 +847,8 @@ import Testing
         let confirmation = try #require(h.model.confirmation)
         h.model.confirm(confirmation)
         let text = try #require(h.model.fileMessage?.text)
-        #expect(text.contains("2個のプロファイルを同じアプリのものと置き換えました。"))
-        #expect(text.contains("グローバルのページを置き換えました。"))
+        #expect(text.contains(L10n.ui("\(2)個のプロファイルを同じアプリのものと置き換えました。")))
+        #expect(text.contains(L10n.ui("グローバルのページを置き換えました。")))
         #expect(h.model.appProfiles.count == 2)
     }
 
@@ -885,10 +885,10 @@ import Testing
         #expect(h.model.fileMessage == nil)
 
         let message = SettingsText.importConfirmation(plan)
-        #expect(message.contains("・グローバルのページ"))
-        #expect(message.contains("・自分の Xcode"))
-        #expect(message.contains("・Safari"))
-        #expect(message.contains("ほかに1個のプロファイルを新しく追加します。"))
+        #expect(message.contains(L10n.ui("・\(L10n.ui("グローバルのページ"))")))
+        #expect(message.contains(L10n.ui("・\("自分の Xcode")")))
+        #expect(message.contains(L10n.ui("・\("Safari")")))
+        #expect(message.contains(L10n.ui("ほかに\(1)個のプロファイルを新しく追加します。")))
 
         // キャンセルすれば何も変わらない
         h.model.confirmation = nil
@@ -913,8 +913,11 @@ import Testing
         #expect(h.controller.configuration.globalProfile == before.globalProfile)
         #expect(h.xcodeProfile == before.profiles.first { $0.app?.bundleID == SettingsFixtures.xcode.bundleID })
         let text = try #require(h.model.fileMessage?.text)
-        #expect(text.contains("1個のプロファイルを追加しました。"))
-        #expect(!text.contains("置き換え"))
+        #expect(text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
+        // 置き換えを伝える行は無い（置き換わりうるのはグローバルと Xcode・Safari）
+        let replacementLines = [L10n.ui("グローバルのページを置き換えました。")]
+            + (1...2).map { L10n.ui("\($0)個のプロファイルを同じアプリのものと置き換えました。") }
+        #expect(!replacementLines.contains { text.contains($0) })
         #expect(try h.saved()?.profiles.count == 4)
     }
 
@@ -946,8 +949,9 @@ import Testing
         #expect(plan.replacedNames.count == 8)
         #expect(!plan.addsProfiles)
         let lines = SettingsText.importConfirmation(plan).split(separator: "\n")
-        #expect(lines.filter { $0.hasPrefix("・") }.count == SettingsText.importConfirmationNameLimit)
-        #expect(lines.last == "ほか2個")
+        let nameLines = plan.replacedNames.map { L10n.ui("・\($0)") }
+        #expect(lines.filter { nameLines.contains(String($0)) }.count == SettingsText.importConfirmationNameLimit)
+        #expect(lines.last.map(String.init) == L10n.ui("ほか\(2)個"))
     }
 
     @Test func cancellingThePanelsDoesNothing() async throws {

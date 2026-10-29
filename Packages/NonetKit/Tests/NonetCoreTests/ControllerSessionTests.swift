@@ -129,7 +129,8 @@ import Testing
             nil, nil, nil,
             HUDCell(title: F.reader.title, icon: F.reader.icon),
         ]
-        let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: "⌥を離して実行")
+        let hint = ModelFixtures.text("\("⌥")を離して実行")
+        let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: hint)
         #expect(h.hud.shown == [ControllerFakeHUD.Shown(model: shown, position: .nearCursor)])
         #expect(detail(F.newTab)?.isEmpty == false)
 
@@ -138,7 +139,7 @@ import Testing
         h.advance(0.1)
         h.touch(on: 8)
         #expect(h.hud.updates.map(\.highlightedIndex) == [4, 8])
-        #expect(h.hud.updates.last == HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: 8, hint: "⌥を離して実行"))
+        #expect(h.hud.updates.last == HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: 8, hint: hint))
         #expect(h.haptics.events == [.boundary])
 
         h.advance(0.3)
@@ -179,7 +180,7 @@ import Testing
         h.start()
         h.pressTrigger()
         h.advance(0.3)
-        #expect(h.hud.current?.hint == "指を離して実行")
+        #expect(h.hud.current?.hint == ModelFixtures.text("指を離して実行"))
         h.touch(on: 0)
         h.advance(0.4)
         h.lift()
@@ -393,7 +394,7 @@ import Testing
         h.start()
         h.pressTrigger()
         h.advance(0.3)
-        #expect(h.hud.current?.banner == "試用期間が終了しました")
+        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました"))
         h.touch(on: 4)
         h.advance(0.4)
         h.releaseTrigger()
@@ -438,7 +439,7 @@ import Testing
         h.controller.isPracticeMode = true
         h.pressTrigger()
         h.advance(0.3)
-        #expect(h.hud.current?.hint == "練習中 · ⌥を離して実行")
+        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("\("⌥")を離して実行"))"))
         h.releaseTrigger()
         h.fastTap(2)
         await h.settle()

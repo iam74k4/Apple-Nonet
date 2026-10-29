@@ -92,7 +92,7 @@ import Testing
         #expect(!SettingsCellEditing.isIncomplete(.openURL(URLAction(url: "example.com"))))
         #expect(SettingsCellEditing.isIncomplete(.launchApp(LaunchAppAction(app: AppReference(bundleID: " ", name: "x")))))
         #expect(!SettingsCellEditing.isIncomplete(.menuItem(MenuItemAction(path: ["編集", "コピー"]))))
-        #expect(SettingsCellEditing.automaticTitle(for: .ai(AIAction(prompt: ""))) == "AI")
+        #expect(SettingsCellEditing.automaticTitle(for: .ai(AIAction(prompt: ""))) == L10n.ui("AI"))
         #expect(SettingsCellEditing.automaticTitle(for: .openURL(URLAction(url: "https://www.example.com/a"))) == "example.com")
     }
 
@@ -126,7 +126,7 @@ import Testing
 
     @Test func messages() {
         #expect(SettingsURLCheck("https://example.com").message == nil)
-        #expect(SettingsURLCheck("example.com").message == "開くときに https:// を補います")
+        #expect(SettingsURLCheck("example.com").message == L10n.ui("開くときに \("https"):// を補います"))
         #expect(SettingsURLCheck("exa mple").isProblem)
         #expect(SettingsURLCheck("~/a").message != nil)
     }

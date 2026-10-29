@@ -47,11 +47,12 @@ import Testing
     }
 
     @Test func hintsFollowTheFireModeTriggerAndPracticeMode() {
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == "⌘を離して実行")
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == "fnを離して実行")
-        #expect(ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: false) == "指を離して実行")
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightOption, isPracticeMode: true) == "練習中 · ⌥を離して実行")
-        #expect(ControllerPresentation.trialEndedBanner == "試用期間が終了しました")
+        // キーの記号は文の外から差し込む（記号は言語で変わらない）
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("\("⌘")を離して実行"))
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == ModelFixtures.text("\("fn")を離して実行"))
+        #expect(ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("指を離して実行"))
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightOption, isPracticeMode: true) == ModelFixtures.text("練習中 · \(ModelFixtures.text("\("⌥")を離して実行"))"))
+        #expect(ControllerPresentation.trialEndedBanner == ModelFixtures.text("試用期間が終了しました"))
     }
 
     @Test func toastsAndResultsCarryTheCell() {
@@ -90,8 +91,8 @@ import Testing
         let settings = F.settings { $0.fireMode = .onFingerLift }
         let session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
         let model = session.hudModel(page: 0, highlightedCell: 4, isPracticeMode: false, isTrialEnded: true)
-        #expect(model.hint == "指を離して実行")
-        #expect(model.banner == "試用期間が終了しました")
+        #expect(model.hint == ModelFixtures.text("指を離して実行"))
+        #expect(model.banner == ModelFixtures.text("試用期間が終了しました"))
         #expect(model.highlightedIndex == 4)
         #expect(session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: true, isTrialEnded: false).banner == nil)
     }

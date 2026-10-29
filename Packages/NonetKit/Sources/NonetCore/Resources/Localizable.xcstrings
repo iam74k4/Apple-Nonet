@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
+    "%@ が前面になりませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't bring %@ to the front."
+          }
+        }
+      }
+    },
     "%@ が見つかりません" : {
       "localizations" : {
         "en" : {
@@ -11,12 +21,32 @@
         }
       }
     },
+    "%@。Nonet を終了するまで、設定の変更は保存されません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Changes you make before you quit Nonet won't be saved."
+          }
+        }
+      }
+    },
     "%@の許可が必要です" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ permission required."
+          }
+        }
+      }
+    },
+    "%@を離して実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release %@ to run"
           }
         }
       }
@@ -1203,6 +1233,16 @@
         }
       }
     },
+    "指を離して実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift your finger to run"
+          }
+        }
+      }
+    },
     "挙手" : {
       "localizations" : {
         "en" : {
@@ -1497,6 +1537,16 @@
         }
       }
     },
+    "練習中 · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Practice · %@"
+          }
+        }
+      }
+    },
     "翻訳" : {
       "localizations" : {
         "en" : {
@@ -1617,6 +1667,16 @@
         }
       }
     },
+    "試用期間が終了しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended"
+          }
+        }
+      }
+    },
     "試用期間が終了しました。ライセンスを入力してください" : {
       "localizations" : {
         "en" : {
@@ -1665,6 +1725,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no app to send this to. Switch to the app you want to use, then try again."
           }
         }
       }

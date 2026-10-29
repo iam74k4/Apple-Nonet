@@ -97,7 +97,7 @@
 | カーソルの固定方法（詳細） | Pointer lock method (Advanced) | Options: "Automatic" / "Discard Movement" / "Detach Pointer" / "Off". |
 | ログイン時に起動 | Open at login | Apple's wording (Dock menu and Login Items). Sentence case because it is a checkbox. |
 | ログイン項目 | Login Items | System Settings › General › Login Items on macOS 14; the pane is "Login Items & Extensions" on macOS 15 and later. |
-| プロファイルの書き出し / 読み込み | Export Profiles… / Import Profiles… | "a .nonetprofile file". |
+| プロファイルの書き出し / 読み込み | Export or import profiles | Setting label in General, next to the push buttons "Export…" and "Import…". The save and open panels are titled "Export Profiles" and "Import Profiles". The file is "a .nonetprofile file". |
 | ライセンス | License | Settings pane and menu item. US spelling, never "licence". |
 | 情報 | About | Settings pane. |
 | 利用ガイド | User Guide | |
@@ -139,3 +139,33 @@
 | 〜など%lld個（プリセットの説明） | %lld buttons, including … | "%lld buttons, including Build, Test and Claude Code". Use plural variants. |
 | プリセットのボタン名 | the target app's own English wording | Take preset names from the target app's English menus (Xcode "Build", "Test"; Zoom "Mute"). |
 | 「」 / … / 〜 / 秒 | “ ” / … (U+2026) / – (en dash) / s | Curly quotes, the single ellipsis character, an en dash for ranges, and a space before units: "0.15–0.8 s", "60 s". Spell out "seconds" in running prose. Menu paths: "Nonet › Settings…". |
+| 打鍵 | keystroke | "Adds Esc as a keystroke". The action type is still "Keystrokes". |
+| 表記で入力 / キーの表記 | Type keys as text / Keys as text | Placeholder and label of the field where keys are typed as text, like ⌘L → ⌘C. Apple style avoids "e.g.". |
+| 決定（入力欄の横のボタン） / 使う（アイコンの文字） | Apply / Use | Buttons that confirm a typed value. |
+| 送るキー / 開くアプリ / 開く URL / 実行するスクリプト / 実行するショートカット / 押すメニュー項目 | Keys to send / App to open / URL to open / Script to run / Shortcut to run / Menu item to choose | Inspector field labels, sentence case. |
+| 未設定 / なし（メニューを順にたどって押します） | Not set / None (Nonet opens the menus to choose it) | Values shown when a button or a menu item has nothing set. |
+| 登録済み | Registered | License status title and menu bar line. The detail line is "Registered to %@". |
+| 登録を解除 / 登録を解除… / この Mac での登録を外す | Unregister / Unregister… / Unregister this Mac | Opposite of Register. Never "Deactivate". Alert title: "Unregister this Mac?". Result: "Your license was removed from this Mac." |
+| 発行日 / ライセンス ID / 買い切りのライセンス | Issued / License ID / One-time purchase | License pane labels. |
+| 元に戻せません | You can't undo this action. | Apple's wording in confirmation alerts. |
+| 許可を求める / もう一度確かめる | Request Permission / Check Again | Buttons in the Settings status banner. |
+| トリガーと HUD / 知らせ / 詳細 / 起動 / 書き出しと読み込み / 状態 | Trigger & HUD / Feedback / Advanced / Startup / Export & Import / Status | Settings section headers, Title Case. |
+| 新しいプロファイルだけ追加 / 置き換えて読み込む | Add New Profiles Only / Replace and Import | Buttons in the import confirmation alert. |
+| 既定（サイドバーのバッジ） | Default | Only the badge next to the Global profile. The profile itself is always named "Global". |
+| プリセットあり / 追加済み / 設定済み | Preset / Added / Added | Badges in app lists. 設定済み（無効） is "Added, disabled". |
+| 記号 / アプリ / 文字（アイコンの種類） | Symbol / App / Text | Icon picker segments. The アプリ key is shared with the Profiles sidebar header and the Menu Item editor's row label, so the segment says "App", not "App Icon". The sidebar header would read better as "Apps" if it got its own key. |
+| 左上 / 上 / 右上 / 左 / 中央 / 右 / 左下 / 下 / 右下 | top left / top / top right / left / center / right / bottom left / bottom / bottom right | Button positions, lowercase. Used inside "Button %lld (%@)" and VoiceOver labels. In fixed text where the position comes before a noun, hyphenate it ("the top-right corner"). |
+| マス %lld（%@） | Button %lld (%@) | Inspector heading and VoiceOver label, e.g. "Button 3 (top right)". An empty one is "%@: empty" in Settings and "Empty button, %@" in the HUD. |
+| アクションを追加 / 空いているマスに入れる / このマスを空にする / 既定のアイコンに戻す | Add Action / Add to Empty Button / Clear This Button / Restore Default Icon | Commands, Title Case. |
+| アプリを選ぶ…（1つ選ぶ） / 一覧に無いアプリを選ぶ… | Choose App… / Choose Another App… | Singular wherever one app is picked. The bare key アプリを選ぶ is the onboarding step "Choose Apps", but code also uses it for the Pick from Menus app pop-up's placeholder and for the app open panel's title. Those should get their own key, translated "Choose App". |
+| 一覧を読み直す / 読み直す / 読み込む / メニューを読み込む / もう一度読む | Reload List / Reload / Load / Load Menus / Try Again | Shortcut list, Pick from Menus panel and their retry buttons. |
+| 「ボタン名」を押す（文中で操作を指す） | click <label> | In UI text, name controls by their label without quotes: "Click Add Profile to…", "click Register", "Click Next to continue". |
+| 動作中 / 停止しています / パスワード入力中は使えません | Running / Stopped / Unavailable while entering a password | Menu bar status line. |
+| この知らせを消す / アクセシビリティを許可… | Dismiss Notice / Allow Accessibility Access… | Menu bar menu items. |
+| Nonet（無効） / Nonet（確認が必要） | Nonet (disabled) / Nonet (needs attention) | Menu bar icon tooltip and VoiceOver. |
+| あとで許可する / 準備ができました / できました！ | Not Now / You're all set / Well done | Onboarding. No exclamation marks. |
+| 練習中 · %@ / 指を離して実行 | Practice · %@ / Lift your finger to run | HUD hints. Finger Lift uses the second hint; Key Release uses "Release ⌘ to run". |
+| スクリプトで使える環境変数 / スクリプトに渡す環境変数 | Environment variables for scripts / Environment variables passed to scripts | Help button label and popover heading in the Script editor. |
+| ほか%lld個 | And %lld more | End of a list in the import confirmation. Use plural variants. |
+| ' （アポストロフィ） | ' | Use the straight apostrophe in contractions ("Can't", "doesn't"), as the existing catalogs do. Quoted names use curly quotes: Delete the “%@” profile? Code examples keep straight quotes. |
+| ・（箇条書きの頭） | • | Bullet for list lines in alerts: "• %@". |

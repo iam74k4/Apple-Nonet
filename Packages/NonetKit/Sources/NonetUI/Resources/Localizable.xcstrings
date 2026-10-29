@@ -1,7 +1,4150 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
-
+    "%@ が前面にあるときに使う9マス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nine buttons used when %@ is in front"
+          }
+        }
+      }
+    },
+    "%@ のプロファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ profile"
+          }
+        }
+      }
+    },
+    "%@ のページ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, page %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ のページ %2$lld"
+          }
+        }
+      }
+    },
+    "%@ のメニュー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Menus"
+          }
+        }
+      }
+    },
+    "%@、%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@、%2$@"
+          }
+        }
+      }
+    },
+    "%@、%@、%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@、%2$@、%3$@"
+          }
+        }
+      }
+    },
+    "%@を押しながら、トラックパッドの右上をタップ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold %@ and tap the top-right corner of the trackpad"
+          }
+        }
+      }
+    },
+    "%@秒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ s"
+          }
+        }
+      }
+    },
+    "%@：%@、%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: %@, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@：%2$@、%3$@"
+          }
+        }
+      }
+    },
+    "%@：空き" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: empty"
+          }
+        }
+      }
+    },
+    "%lld ページ中 %lld ページ目" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %2$lld of %1$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld ページ中 %2$lld ページ目"
+          }
+        }
+      }
+    },
+    "%lld個のアプリのプロファイルを追加します" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nonet will add %lld app profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Nonet will add %lld app profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルを「%@」に書き出しました。" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld profile to “%@”."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Exported %lld profiles to “%@”."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld個のプロファイルを「%2$@」に書き出しました。"
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルを同じアプリのものと置き換えました。" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Replaced %lld existing profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Replaced %lld existing profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルを追加しました。" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Added %lld profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個は重なっていたか読めなかったため、読み込みませんでした。" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Skipped %lld duplicate or unreadable profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Skipped %lld duplicate or unreadable profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個中%lld個を選択中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld of %1$lld selected"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld個中%2$lld個を選択中"
+          }
+        }
+      }
+    },
+    "%lld番目のマス（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Button %lld (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld番目のマス（%2$@）"
+          }
+        }
+      }
+    },
+    "1〜2文字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 characters"
+          }
+        }
+      }
+    },
+    "1〜2文字（3文字目からは切ります）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 characters. Extra characters are cut off."
+          }
+        }
+      }
+    },
+    "2本指で左右にスワイプ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe left or right with two fingers"
+          }
+        }
+      }
+    },
+    "AI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        }
+      }
+    },
+    "AI と文章" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI & Writing"
+          }
+        }
+      }
+    },
+    "Esc を加える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Esc"
+          }
+        }
+      }
+    },
+    "Esc キーを打鍵として加えます（Esc を押すと記録をやめるため）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds Esc as a keystroke, since pressing Esc cancels recording"
+          }
+        }
+      }
+    },
+    "HUD が出るまでの時間" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD delay"
+          }
+        }
+      }
+    },
+    "HUD で選んだマスを、トリガーキーを離したときに実行します。速押しはどちらでもその場で実行します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs the button you choose in the HUD when you release the trigger key. Quick taps always run right away."
+          }
+        }
+      }
+    },
+    "HUD で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs the button you choose in the HUD when you lift your finger. To cancel, keep your finger down and press left ⇧."
+          }
+        }
+      }
+    },
+    "HUD の位置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD position"
+          }
+        }
+      }
+    },
+    "HUD を出さずに実行したとき、実行したマスを画面の下に一瞬表示します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When a button runs without the HUD, Nonet briefly shows it at the bottom of the screen."
+          }
+        }
+      }
+    },
+    "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JIS keyboards have no right ⌥. Choose right ⌘, right ⇧ or fn."
+          }
+        }
+      }
+    },
+    "Mac にあるアプリから、9マスを用意しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nine buttons for the apps on your Mac"
+          }
+        }
+      }
+    },
+    "Mac にログインしたときに Nonet を起動します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens Nonet when you log in to your Mac."
+          }
+        }
+      }
+    },
+    "MacBook の内蔵トラックパッドか Magic Trackpad が必要です。Magic Trackpad をつないでも反応しないときは、Nonet を終了して起動し直してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. If your Magic Trackpad doesn't respond after you connect it, quit and reopen Nonet."
+          }
+        }
+      }
+    },
+    "NONET_PROJECT_DIR と同じ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same as NONET_PROJECT_DIR"
+          }
+        }
+      }
+    },
+    "Nonet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet"
+          }
+        }
+      }
+    },
+    "Nonet が無効になっています。有効にすると試せます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is disabled. Enable it to practice."
+          }
+        }
+      }
+    },
+    "Nonet のプロファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet Profiles"
+          }
+        }
+      }
+    },
+    "Nonet は無効です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is disabled"
+          }
+        }
+      }
+    },
+    "Nonet は無効になっています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is disabled"
+          }
+        }
+      }
+    },
+    "Nonet へようこそ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Nonet"
+          }
+        }
+      }
+    },
+    "Nonet を有効にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Nonet"
+          }
+        }
+      }
+    },
+    "Nonet（無効）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet (disabled)"
+          }
+        }
+      }
+    },
+    "Nonet（確認が必要）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet (needs attention)"
+          }
+        }
+      }
+    },
+    "URL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL"
+          }
+        }
+      }
+    },
+    "URL の形が正しくありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The URL isn't valid."
+          }
+        }
+      }
+    },
+    "fn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fn"
+          }
+        }
+      }
+    },
+    "fn（地球儀）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fn"
+          }
+        }
+      }
+    },
+    "macOS では、ほかのアプリを使っている間のキーボードやポインタを扱うのにこの許可が要ります。Nonet は次のことにだけ使います。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:"
+          }
+        }
+      }
+    },
+    "、" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", "
+          }
+        }
+      }
+    },
+    "「%@」というショートカットは見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find the shortcut “%@”."
+          }
+        }
+      }
+    },
+    "「%@」に合う項目はありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No items match “%@”."
+          }
+        }
+      }
+    },
+    "「%@」のプロファイルを削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the “%@” profile?"
+          }
+        }
+      }
+    },
+    "「%@」を読み込みますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import “%@”?"
+          }
+        }
+      }
+    },
+    "「システム設定を開く」を押し、プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click Open System Settings, then turn on Nonet in Privacy & Security › Accessibility."
+          }
+        }
+      }
+    },
+    "「プロファイルを追加」で、アプリごとの9マスを作れます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click Add Profile to give an app its own nine buttons."
+          }
+        }
+      }
+    },
+    "あとで設定する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Up Later"
+          }
+        }
+      }
+    },
+    "あとで許可する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Now"
+          }
+        }
+      }
+    },
+    "いまのは「%@」のマスです。右上をタップしてみてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That was the %@ button. Try the top-right corner."
+          }
+        }
+      }
+    },
+    "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your license will be removed from this Mac. Keep a copy of your license key so you can register again."
+          }
+        }
+      }
+    },
+    "この Mac での登録を外す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unregister this Mac"
+          }
+        }
+      }
+    },
+    "このアプリのアイコンを使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This App's Icon"
+          }
+        }
+      }
+    },
+    "このアプリは選べません（bundle ID がありません）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can't choose this app because it has no bundle ID."
+          }
+        }
+      }
+    },
+    "このプロファイルの9マスはすべて消えます。元に戻せません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All buttons in this profile will be deleted. You can't undo this action."
+          }
+        }
+      }
+    },
+    "このプロファイルを使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this profile"
+          }
+        }
+      }
+    },
+    "このプロファイルを書き出す…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export This Profile…"
+          }
+        }
+      }
+    },
+    "このページのマスはすべて消えます。元に戻せません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All buttons on this page will be deleted. You can't undo this action."
+          }
+        }
+      }
+    },
+    "このページを削除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this page"
+          }
+        }
+      }
+    },
+    "このページを削除…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete This Page…"
+          }
+        }
+      }
+    },
+    "このマスは空いています。アクションの種類を選んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This button is empty. Choose an action type."
+          }
+        }
+      }
+    },
+    "このマスをテスト実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test This Button"
+          }
+        }
+      }
+    },
+    "このマスを空にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear This Button"
+          }
+        }
+      }
+    },
+    "この案内は、メニューバーの Nonet ›「初回の案内をもう一度」でまた見られます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To see this guide again, choose Nonet › Show Welcome Guide in the menu bar."
+          }
+        }
+      }
+    },
+    "この知らせを消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss Notice"
+          }
+        }
+      }
+    },
+    "これより早いタップは、HUD を出さずにその場で実行します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taps faster than this run right away, without the HUD."
+          }
+        }
+      }
+    },
+    "すぐにタップすると、その場で実行されます。迷ったら指を置いたまま止めると、9マスの一覧（HUD）が出ます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap right away and the button runs instantly. Not sure? Rest your finger and the HUD shows all nine buttons."
+          }
+        }
+      }
+    },
+    "すべてのプロファイルを .%@ のファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックします" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exports all profiles to a .%@ file. To export one profile, Control-click it in the profile list."
+          }
+        }
+      }
+    },
+    "すべて外す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect All"
+          }
+        }
+      }
+    },
+    "すべて選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
+          }
+        }
+      }
+    },
+    "できました！" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Well done"
+          }
+        }
+      }
+    },
+    "なし（メニューを順にたどって押します）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None (Nonet opens the menus to choose it)"
+          }
+        }
+      }
+    },
+    "ほか%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "And %lld more"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "And %lld more"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ほかに%lld個のプロファイルを新しく追加します。" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importing also adds %lld new profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Importing also adds %lld new profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください（スクリプトはあなたの権限で動きます）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When you import profiles from someone else, always check their scripts. Scripts run with your permissions."
+          }
+        }
+      }
+    },
+    "もう一度押すと隠れるので、アプリの切り替えのように使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the button again to hide the app, so you can switch to it and back."
+          }
+        }
+      }
+    },
+    "もう一度確かめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Again"
+          }
+        }
+      }
+    },
+    "もう一度読む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "やめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "よく使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Common"
+          }
+        }
+      }
+    },
+    "アイコンの文字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon text"
+          }
+        }
+      }
+    },
+    "アイコンの種類" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Icon type"
+          }
+        }
+      }
+    },
+    "アイコンを変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change icon"
+          }
+        }
+      }
+    },
+    "アクションの種類" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action type"
+          }
+        }
+      }
+    },
+    "アクションを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Action"
+          }
+        }
+      }
+    },
+    "アクセシビリティ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility"
+          }
+        }
+      }
+    },
+    "アクセシビリティが許可されていないため、まだ試せません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet needs Accessibility permission before you can practice."
+          }
+        }
+      }
+    },
+    "アクセシビリティの許可" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility permission"
+          }
+        }
+      }
+    },
+    "アクセシビリティの許可が必要です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility permission required"
+          }
+        }
+      }
+    },
+    "アクセシビリティを許可…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Accessibility Access…"
+          }
+        }
+      }
+    },
+    "アップデートを確認" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates…"
+          }
+        }
+      }
+    },
+    "アプリ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
+          }
+        }
+      }
+    },
+    "アプリのアイコンは、アプリ起動のマスか、アプリのプロファイルで使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App icons are available for Open App buttons and in app profiles."
+          }
+        }
+      }
+    },
+    "アプリのプロファイルでは、そのアプリを前面に出してから実行します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In an app profile, Nonet brings the app to the front, then runs the button."
+          }
+        }
+      }
+    },
+    "アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにします" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global pages follow the app's pages, so you can reach them with a two-finger swipe."
+          }
+        }
+      }
+    },
+    "アプリを検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search apps"
+          }
+        }
+      }
+    },
+    "アプリを選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Apps"
+          }
+        }
+      }
+    },
+    "アプリを選ぶ…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose App…"
+          }
+        }
+      }
+    },
+    "アプリを選ぶと、そのアプリが前面にあるときの9マスを作ります。プリセットのあるアプリは、最初から中身が入ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an app to create nine buttons for when it's in front. Apps with a preset start with their buttons filled in."
+          }
+        }
+      }
+    },
+    "アプリ起動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open App"
+          }
+        }
+      }
+    },
+    "インスペクタに戻る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the inspector"
+          }
+        }
+      }
+    },
+    "オフ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        }
+      }
+    },
+    "オフにすると、いつもグローバルのプロファイルを使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, Nonet always uses the Global profile."
+          }
+        }
+      }
+    },
+    "オフにすると、トリガーキーそのものを前面のアプリやほかのツールに渡しません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, the trigger key itself doesn't reach the front app or other tools."
+          }
+        }
+      }
+    },
+    "オフにするとトリガーキーに反応しません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, Nonet ignores the trigger key."
+          }
+        }
+      }
+    },
+    "カーソルとトラックパッドの動きを切り離します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detaches the pointer from trackpad movement."
+          }
+        }
+      }
+    },
+    "カーソルのあるディスプレイに出ます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appears on the display with the pointer."
+          }
+        }
+      }
+    },
+    "カーソルの固定方法（詳細）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer lock method (Advanced)"
+          }
+        }
+      }
+    },
+    "カーソルの移動イベントを捨てるだけです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only discards pointer movement events."
+          }
+        }
+      }
+    },
+    "カーソルの近く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Near Pointer"
+          }
+        }
+      }
+    },
+    "カーソルは指に合わせて動きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pointer moves with your finger."
+          }
+        }
+      }
+    },
+    "カーソルを切り離す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detach Pointer"
+          }
+        }
+      }
+    },
+    "キャンセル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "キー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keys"
+          }
+        }
+      }
+    },
+    "キーの表記" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keys as text"
+          }
+        }
+      }
+    },
+    "キーの表記を読み取れませんでした（例: ⌘B、⇧⌘4、⌘L → ⌘C）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the keys. Type them like ⌘B, ⇧⌘4 or ⌘L → ⌘C."
+          }
+        }
+      }
+    },
+    "キーを押したまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the key and swipe with two fingers to change pages. Each app can have up to three pages."
+          }
+        }
+      }
+    },
+    "キーを押したまま指を置いて止めると、9マスの一覧（HUD）が出ます。慣れたら、すぐにタップするだけで実行できます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the key and rest your finger to see all nine buttons in the HUD. Once you know the layout, just tap right away to run a button."
+          }
+        }
+      }
+    },
+    "キーを押している間だけ、トラックパッドが9つのボタンになる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold a key and your trackpad turns into nine buttons"
+          }
+        }
+      }
+    },
+    "キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンになります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold a key and your trackpad turns into nine buttons that change with each app."
+          }
+        }
+      }
+    },
+    "キーを押してください…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type Shortcut…"
+          }
+        }
+      }
+    },
+    "キーを離したとき" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key Release"
+          }
+        }
+      }
+    },
+    "キー入力" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keystrokes"
+          }
+        }
+      }
+    },
+    "クリックして記録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record Shortcut"
+          }
+        }
+      }
+    },
+    "クリップボードにコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy to Clipboard"
+          }
+        }
+      }
+    },
+    "グローバルには、Mac にあるよく使うアプリを並べたランチャーを用意します。アプリのプロファイルは、あとから設定で追加できます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Global profile starts with a launcher of popular apps from your Mac. You can add app profiles later in Settings."
+          }
+        }
+      }
+    },
+    "グローバルには、よく使うアプリを並べたランチャーを用意します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Global profile starts with a launcher of popular apps."
+          }
+        }
+      }
+    },
+    "グローバルのプロファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global profile"
+          }
+        }
+      }
+    },
+    "グローバルのページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global pages"
+          }
+        }
+      }
+    },
+    "グローバルのページをつなげる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Global pages after app pages"
+          }
+        }
+      }
+    },
+    "グローバルのページを置き換えました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced the Global pages."
+          }
+        }
+      }
+    },
+    "コピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        }
+      }
+    },
+    "コピーしました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        }
+      }
+    },
+    "サードパーティのソフトウェア" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-Party Software"
+          }
+        }
+      }
+    },
+    "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。許可されると自動で動き出します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. Nonet starts working once you allow it."
+          }
+        }
+      }
+    },
+    "システム設定を開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        }
+      }
+    },
+    "ショートカット" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut"
+          }
+        }
+      }
+    },
+    "ショートカットがありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Shortcuts"
+          }
+        }
+      }
+    },
+    "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find any shortcuts. Create one in the Shortcuts app, then reload the list."
+          }
+        }
+      }
+    },
+    "ショートカットの一覧から選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a shortcut"
+          }
+        }
+      }
+    },
+    "ショートカットの一覧をまだ読み込んでいません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your shortcuts aren't loaded yet."
+          }
+        }
+      }
+    },
+    "ショートカットの一覧を読み直しています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reloading shortcuts"
+          }
+        }
+      }
+    },
+    "ショートカットの一覧を読み込んでいます…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading shortcuts…"
+          }
+        }
+      }
+    },
+    "ショートカットの名前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut name"
+          }
+        }
+      }
+    },
+    "スキップ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "スクリプト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script"
+          }
+        }
+      }
+    },
+    "スクリプトで使える環境変数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variables for scripts"
+          }
+        }
+      }
+    },
+    "スクリプトに渡す環境変数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environment variables passed to scripts"
+          }
+        }
+      }
+    },
+    "スクリプトを含むマスがあります。実行する前に中身を確かめてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some buttons contain scripts. Check what they do before you run them."
+          }
+        }
+      }
+    },
+    "タップを待っています…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for a tap…"
+          }
+        }
+      }
+    },
+    "ターミナルで実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Terminal"
+          }
+        }
+      }
+    },
+    "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs in a new Terminal window. Use it for interactive commands like claude."
+          }
+        }
+      }
+    },
+    "ダブルクリックで空いているマスに入れます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-click to add it to an empty button."
+          }
+        }
+      }
+    },
+    "ダブルクリックで選びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-click an app to choose it."
+          }
+        }
+      }
+    },
+    "トラックパッドが見つからないため、試せません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find a trackpad to practice with."
+          }
+        }
+      }
+    },
+    "トラックパッドが見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find a trackpad"
+          }
+        }
+      }
+    },
+    "トラックパッドの図。右上のマスが目標です" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trackpad diagram. The target is the top-right button."
+          }
+        }
+      }
+    },
+    "トリガーと HUD" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger & HUD"
+          }
+        }
+      }
+    },
+    "トリガーキー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger key"
+          }
+        }
+      }
+    },
+    "トリガーキーが押された・離されたことを知る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detect when you press and release the trigger key"
+          }
+        }
+      }
+    },
+    "トリガーキーを前面のアプリに渡す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass the trigger key to the front app"
+          }
+        }
+      }
+    },
+    "トリガーキーを押している間、カーソルの移動とクリックを前面のアプリに渡さない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep pointer movement and clicks from reaching the front app while you hold the trigger key"
+          }
+        }
+      }
+    },
+    "トリガーキーを押しても反応しません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressing the trigger key does nothing."
+          }
+        }
+      }
+    },
+    "バージョン %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@"
+          }
+        }
+      }
+    },
+    "バージョン %@（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "バージョン %1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "パスワードの入力中は動きません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet doesn't work while you enter a password"
+          }
+        }
+      }
+    },
+    "パスワードの入力中は試せません。パスワード欄から離れてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can't practice while entering a password. Leave the password field first."
+          }
+        }
+      }
+    },
+    "パスワード入力中は使えません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable while entering a password"
+          }
+        }
+      }
+    },
+    "パスワード欄から離れるか、ターミナル › セキュアキーボード入力 をオフにしてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave the password field, or turn off Terminal › Secure Keyboard Entry."
+          }
+        }
+      }
+    },
+    "ファイルやフォルダとして開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens as a file or folder."
+          }
+        }
+      }
+    },
+    "ファイルを書き出せませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't export the file."
+          }
+        }
+      }
+    },
+    "ファイルを読み込めませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't import the file."
+          }
+        }
+      }
+    },
+    "ブラウザで表示中のページ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL of the current page in Safari, Google Chrome, Arc, Microsoft Edge or Brave"
+          }
+        }
+      }
+    },
+    "ブラウザの URL を初めて読むときや、ターミナルで初めて実行するときは、macOS が「オートメーション」の許可を求めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first time a script reads the browser's URL or runs in Terminal, macOS asks for Automation permission."
+          }
+        }
+      }
+    },
+    "プライバシー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "プリセットあり" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preset"
+          }
+        }
+      }
+    },
+    "プリセットのあるアプリは見つかりませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps with presets found"
+          }
+        }
+      }
+    },
+    "プロファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiles"
+          }
+        }
+      }
+    },
+    "プロファイルの書き出し" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Profiles"
+          }
+        }
+      }
+    },
+    "プロファイルの書き出し / 読み込み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export or import profiles"
+          }
+        }
+      }
+    },
+    "プロファイルの無いアプリで使う9マス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nine buttons used in apps without a profile"
+          }
+        }
+      }
+    },
+    "プロファイルの読み込み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Profiles"
+          }
+        }
+      }
+    },
+    "プロファイルを編集…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Profiles…"
+          }
+        }
+      }
+    },
+    "プロファイルを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Profile…"
+          }
+        }
+      }
+    },
+    "ページ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld"
+          }
+        }
+      }
+    },
+    "ページ %lld を削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete page %lld?"
+          }
+        }
+      }
+    },
+    "ページを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add page"
+          }
+        }
+      }
+    },
+    "マス %lld（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Button %lld (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "マス %1$lld（%2$@）"
+          }
+        }
+      }
+    },
+    "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The trackpad ticks when your finger crosses into another button, the page changes or a button runs."
+          }
+        }
+      }
+    },
+    "マスを選ぶと、ここで設定できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a button to edit it here."
+          }
+        }
+      }
+    },
+    "マスを選んで右側で設定。ドラッグで入れ替え、Delete で空にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a button to edit it on the right. Drag to swap, or press Delete to clear."
+          }
+        }
+      }
+    },
+    "マルチタッチのトラックパッドが見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find a multi-touch trackpad"
+          }
+        }
+      }
+    },
+    "メディアと連絡" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media & Communication"
+          }
+        }
+      }
+    },
+    "メニューから割り当て" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick from Menus"
+          }
+        }
+      }
+    },
+    "メニューから選ぶ…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick from Menus…"
+          }
+        }
+      }
+    },
+    "メニューの項目は「メニューから割り当て」でも入れられます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can also use Pick from Menus to add menu items."
+          }
+        }
+      }
+    },
+    "メニューをまだ読み込んでいません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The menus aren't loaded yet."
+          }
+        }
+      }
+    },
+    "メニューを検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search menus"
+          }
+        }
+      }
+    },
+    "メニューを読み込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load Menus"
+          }
+        }
+      }
+    },
+    "メニューを読み込んでいます…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading menus…"
+          }
+        }
+      }
+    },
+    "メニューを読むアプリを選んでください。対象のアプリは起動しておきます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an app to read its menus. The app must be running."
+          }
+        }
+      }
+    },
+    "メニューを読めるアプリが起動していません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps with menus are running."
+          }
+        }
+      }
+    },
+    "メニューバーの 3×3 のアイコンから、設定を開いたり、Nonet を有効・無効にしたりできます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click the 3×3 icon in the menu bar to open Settings or to enable or disable Nonet."
+          }
+        }
+      }
+    },
+    "メニューバーのアイコン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu bar icon"
+          }
+        }
+      }
+    },
+    "メニュー項目" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu Item"
+          }
+        }
+      }
+    },
+    "ライセンス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License"
+          }
+        }
+      }
+    },
+    "ライセンス ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License ID"
+          }
+        }
+      }
+    },
+    "ライセンスの登録を解除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unregister this Mac?"
+          }
+        }
+      }
+    },
+    "ライセンスキー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License Key"
+          }
+        }
+      }
+    },
+    "ライセンスキーを登録すると、また使えるようになります。設定はそのまま残っています。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register a license key to use Nonet again. Your settings are still here."
+          }
+        }
+      }
+    },
+    "ログイン時に起動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open at login"
+          }
+        }
+      }
+    },
+    "ログイン時に起動しないように設定できませんでした（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't stop Nonet from opening at login. %@"
+          }
+        }
+      }
+    },
+    "ログイン時に起動するように設定できませんでした（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't set Nonet to open at login. %@"
+          }
+        }
+      }
+    },
+    "・%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %@"
+          }
+        }
+      }
+    },
+    "一般" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        }
+      }
+    },
+    "一覧に無いアプリを選ぶ…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Another App…"
+          }
+        }
+      }
+    },
+    "一覧をまだ読み込んでいません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Loaded Yet"
+          }
+        }
+      }
+    },
+    "一覧を読み直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload List"
+          }
+        }
+      }
+    },
+    "上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "top"
+          }
+        }
+      }
+    },
+    "下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottom"
+          }
+        }
+      }
+    },
+    "中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        }
+      }
+    },
+    "中央" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "center"
+          }
+        }
+      }
+    },
+    "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The working directory is the project folder, or your home folder if there isn't one. Scripts run in a login shell (zsh -l), so ~/.zprofile is read but ~/.zshrc isn't."
+          }
+        }
+      }
+    },
+    "使いながら覚えられるように、こつを3つだけ。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Three quick tips to learn as you go."
+          }
+        }
+      }
+    },
+    "使う" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use"
+          }
+        }
+      }
+    },
+    "使うものを選ぶだけ。中身はあとから自由に変えられます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just choose the apps you use. You can change any button later."
+          }
+        }
+      }
+    },
+    "停止しています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped"
+          }
+        }
+      }
+    },
+    "入力した文字の内容は記録も送信もしません。設定は Mac の中だけに保存します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet never records or sends what you type. Your settings are stored only on your Mac."
+          }
+        }
+      }
+    },
+    "初回の案内をもう一度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Welcome Guide"
+          }
+        }
+      }
+    },
+    "別の Mac に移すときなどに使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this when you move your license to another Mac."
+          }
+        }
+      }
+    },
+    "利用ガイド" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "User Guide"
+          }
+        }
+      }
+    },
+    "制限時間" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout"
+          }
+        }
+      }
+    },
+    "削除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "削除…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete…"
+          }
+        }
+      }
+    },
+    "前面のときは隠す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide if already in front"
+          }
+        }
+      }
+    },
+    "前面のアプリ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Front app"
+          }
+        }
+      }
+    },
+    "前面のアプリで切り替える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch profiles with the front app"
+          }
+        }
+      }
+    },
+    "前面のアプリの bundle ID" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle ID of the front app"
+          }
+        }
+      }
+    },
+    "前面のアプリの名前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name of the front app"
+          }
+        }
+      }
+    },
+    "前面のウィンドウで開いている書類" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document open in the front window"
+          }
+        }
+      }
+    },
+    "割り当てられるメニュー項目がありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app has no menu items to assign."
+          }
+        }
+      }
+    },
+    "動作中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running"
+          }
+        }
+      }
+    },
+    "右" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right"
+          }
+        }
+      }
+    },
+    "右⇧" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⇧"
+          }
+        }
+      }
+    },
+    "右⇧（Shift）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right Shift (⇧)"
+          }
+        }
+      }
+    },
+    "右⌘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌘"
+          }
+        }
+      }
+    },
+    "右⌘（Command）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right Command (⌘)"
+          }
+        }
+      }
+    },
+    "右⌥" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌥"
+          }
+        }
+      }
+    },
+    "右⌥（Option）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right Option (⌥)"
+          }
+        }
+      }
+    },
+    "右の一覧から選ぶか、名前を入力してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a shortcut from the list on the right, or type its name."
+          }
+        }
+      }
+    },
+    "右上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "top right"
+          }
+        }
+      }
+    },
+    "右上のマスを押せました。実際に使うときは、ここで実行されます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You tapped the top-right button. Normally, it would run now."
+          }
+        }
+      }
+    },
+    "右下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottom right"
+          }
+        }
+      }
+    },
+    "右側のキーだけに反応します。左の⌘や⌥はいつもどおり使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet responds only to the right-side key. Left ⌘ and ⌥ work as usual."
+          }
+        }
+      }
+    },
+    "固定しない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        }
+      }
+    },
+    "変数は \"$NONET_SELECTED_TEXT\" のように \" で囲んでください。無いかもしれない変数は ${PROJECT_DIR:-$HOME} のように既定値を付けると安全です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put variables in double quotes, like \"$NONET_SELECTED_TEXT\". If a variable might not be set, give it a default, like ${PROJECT_DIR:-$HOME}."
+          }
+        }
+      }
+    },
+    "完了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "実行したときの前面のアプリの情報です。値が無いものは設定されません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These describe the front app when the script runs. Variables without a value aren't set."
+          }
+        }
+      }
+    },
+    "実行しています…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running…"
+          }
+        }
+      }
+    },
+    "実行しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ran successfully."
+          }
+        }
+      }
+    },
+    "実行するショートカット" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shortcut to run"
+          }
+        }
+      }
+    },
+    "実行するスクリプト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script to run"
+          }
+        }
+      }
+    },
+    "実行するスクリプト（zsh）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script to run (zsh)"
+          }
+        }
+      }
+    },
+    "実行できませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't run this button."
+          }
+        }
+      }
+    },
+    "実行のタイミング" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run on"
+          }
+        }
+      }
+    },
+    "実行の仕方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        }
+      }
+    },
+    "実行を知らせる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a notice when a button runs"
+          }
+        }
+      }
+    },
+    "対象のアプリが起動している必要があります。メニューの名前は macOS の言語で変わるので、言語を変えたら割り当て直してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app must be running. Menu names depend on the macOS language, so reassign the item if you change the language."
+          }
+        }
+      }
+    },
+    "左" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "left"
+          }
+        }
+      }
+    },
+    "左上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "top left"
+          }
+        }
+      }
+    },
+    "左下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottom left"
+          }
+        }
+      }
+    },
+    "弱" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        }
+      }
+    },
+    "強" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strong"
+          }
+        }
+      }
+    },
+    "情報" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "戻る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "押すとキーの記録を始めます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts recording keys."
+          }
+        }
+      }
+    },
+    "押すメニュー項目" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu item to choose"
+          }
+        }
+      }
+    },
+    "指を離したとき" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finger Lift"
+          }
+        }
+      }
+    },
+    "指示文" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt"
+          }
+        }
+      }
+    },
+    "文字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        }
+      }
+    },
+    "新しいプロファイルだけ追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add New Profiles Only"
+          }
+        }
+      }
+    },
+    "既定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default"
+          }
+        }
+      }
+    },
+    "既定のアイコンに戻す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default Icon"
+          }
+        }
+      }
+    },
+    "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens in the default app. App URLs like obsidian:// work too."
+          }
+        }
+      }
+    },
+    "書き出しと読み込み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export & Import"
+          }
+        }
+      }
+    },
+    "書き出し・読み込み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export & Import"
+          }
+        }
+      }
+    },
+    "書き出し・読み込みに失敗しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export or import failed"
+          }
+        }
+      }
+    },
+    "書き出す…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export…"
+          }
+        }
+      }
+    },
+    "書類から決めたプロジェクトのフォルダ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project folder that contains the document"
+          }
+        }
+      }
+    },
+    "最後のキーを消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete last key"
+          }
+        }
+      }
+    },
+    "有効にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable"
+          }
+        }
+      }
+    },
+    "未設定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not set"
+          }
+        }
+      }
+    },
+    "未選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not selected"
+          }
+        }
+      }
+    },
+    "次の設定が、ファイルの中身で置き換わります。元に戻せません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importing replaces the following with the contents of the file. You can't undo this action."
+          }
+        }
+      }
+    },
+    "次へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        }
+      }
+    },
+    "次へ：試してみる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next: Try It Out"
+          }
+        }
+      }
+    },
+    "決定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        }
+      }
+    },
+    "準備ができました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're all set"
+          }
+        }
+      }
+    },
+    "無効" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
+          }
+        }
+      }
+    },
+    "無効にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable"
+          }
+        }
+      }
+    },
+    "無効になっています。%@ でもグローバルを使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This profile is disabled, so %@ uses the Global profile."
+          }
+        }
+      }
+    },
+    "状態" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
+    },
+    "画面と操作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows & Navigation"
+          }
+        }
+      }
+    },
+    "画面に表示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Result"
+          }
+        }
+      }
+    },
+    "画面の中央" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Center of Screen"
+          }
+        }
+      }
+    },
+    "発行日" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issued"
+          }
+        }
+      }
+    },
+    "登録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register"
+          }
+        }
+      }
+    },
+    "登録しました。ご購入ありがとうございます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered. Thank you for your purchase."
+          }
+        }
+      }
+    },
+    "登録を解除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unregister"
+          }
+        }
+      }
+    },
+    "登録を解除…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unregister…"
+          }
+        }
+      }
+    },
+    "登録を解除しました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your license was removed from this Mac."
+          }
+        }
+      }
+    },
+    "登録済み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered"
+          }
+        }
+      }
+    },
+    "登録者: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered to %@"
+          }
+        }
+      }
+    },
+    "登録者: %@（%@）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registered to %@ (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "登録者: %1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "知らせ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedback"
+          }
+        }
+      }
+    },
+    "秒" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "s"
+          }
+        }
+      }
+    },
+    "移動を捨て、ずれたら元の位置に戻します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discards movement and moves the pointer back if it drifts."
+          }
+        }
+      }
+    },
+    "移動を捨てる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard Movement"
+          }
+        }
+      }
+    },
+    "空いているマスがありません。マスを空けるか、ページを追加してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no empty buttons. Clear a button or add a page."
+          }
+        }
+      }
+    },
+    "空いているマスに入れる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Empty Button"
+          }
+        }
+      }
+    },
+    "空きマス、%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty button, %@"
+          }
+        }
+      }
+    },
+    "終わるまで待ち、失敗したらエラーの最後を表示します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waits for the script to finish and shows the last lines of standard error if it fails."
+          }
+        }
+      }
+    },
+    "終了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Nonet"
+          }
+        }
+      }
+    },
+    "結果" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Result"
+          }
+        }
+      }
+    },
+    "結果の出し方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output"
+          }
+        }
+      }
+    },
+    "続けて押すと連続キーになります（4つまで）。Return や Tab もそのまま記録します。「完了」か、ほかの場所をクリックすると決まります。Esc で記録をやめます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press more keys to record a sequence of up to four. Return and Tab are recorded too. Click Done or anywhere else to finish, or press Esc to cancel."
+          }
+        }
+      }
+    },
+    "続けて押すキーは4つまでです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sequence can have up to four keys."
+          }
+        }
+      }
+    },
+    "編集" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editing"
+          }
+        }
+      }
+    },
+    "練習中は、マスを押しても何も実行されません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing runs in practice mode."
+          }
+        }
+      }
+    },
+    "置き換えて読み込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace and Import"
+          }
+        }
+      }
+    },
+    "自動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
+          }
+        }
+      }
+    },
+    "表示名" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
+    "表記で入力（例: ⌘L → ⌘C）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type keys as text, like ⌘L → ⌘C"
+          }
+        }
+      }
+    },
+    "裏で実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Background"
+          }
+        }
+      }
+    },
+    "複製" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate"
+          }
+        }
+      }
+    },
+    "見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results"
+          }
+        }
+      }
+    },
+    "触覚" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptic feedback"
+          }
+        }
+      }
+    },
+    "記号" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Symbol"
+          }
+        }
+      }
+    },
+    "記号を検索（英語）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search symbols"
+          }
+        }
+      }
+    },
+    "記録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record"
+          }
+        }
+      }
+    },
+    "記録中です。キーを押してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording. Press the keys to send."
+          }
+        }
+      }
+    },
+    "設定…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings…"
+          }
+        }
+      }
+    },
+    "設定したキー入力を送る・メニュー項目を押す・選択中のテキストを読む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send the keystrokes you set up, choose menu items and read selected text"
+          }
+        }
+      }
+    },
+    "設定を開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        }
+      }
+    },
+    "設定済み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added"
+          }
+        }
+      }
+    },
+    "設定済み（無効）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added, disabled"
+          }
+        }
+      }
+    },
+    "許可されています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed"
+          }
+        }
+      }
+    },
+    "許可されています。次へ進んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet has permission. Click Next to continue."
+          }
+        }
+      }
+    },
+    "許可すると、自動で次へ進みます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once you allow Nonet, the guide moves on automatically."
+          }
+        }
+      }
+    },
+    "許可を待っています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for permission"
+          }
+        }
+      }
+    },
+    "許可を求める" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Permission"
+          }
+        }
+      }
+    },
+    "試してみる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try It Out"
+          }
+        }
+      }
+    },
+    "試用期間: 残り %lld 日" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left in your trial"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left in your trial"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "試用期間が終了しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended"
+          }
+        }
+      }
+    },
+    "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、ずっと使えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every feature is available during the trial. Buy Nonet and register a license key to keep using it."
+          }
+        }
+      }
+    },
+    "試用期間中（残り %lld 日）" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left in your trial"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left in your trial"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "詳細" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "読み直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload"
+          }
+        }
+      }
+    },
+    "読み込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load"
+          }
+        }
+      }
+    },
+    "読み込む…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import…"
+          }
+        }
+      }
+    },
+    "読み込めるプロファイルがありませんでした。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No profiles could be imported."
+          }
+        }
+      }
+    },
+    "読み込んでいます…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        }
+      }
+    },
+    "買い切りのライセンス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-time purchase"
+          }
+        }
+      }
+    },
+    "購入する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy Nonet"
+          }
+        }
+      }
+    },
+    "購入すると、ライセンスキーがメールで届きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your license key arrives by email after purchase."
+          }
+        }
+      }
+    },
+    "購入時のメールに書かれたライセンスキーを貼り付けて「登録」を押します。キーはこの Mac の中で確かめるので、ネットワークもアカウントも要りません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the license key from your purchase email and click Register. Nonet checks the key on this Mac, so you don't need a network connection or an account."
+          }
+        }
+      }
+    },
+    "起動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startup"
+          }
+        }
+      }
+    },
+    "起動中のアプリのメニューを読み取ります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reads the menus of a running app."
+          }
+        }
+      }
+    },
+    "迷ったら、指を止める" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not sure? Rest your finger"
+          }
+        }
+      }
+    },
+    "追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        }
+      }
+    },
+    "追加するアプリはありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No apps to add"
+          }
+        }
+      }
+    },
+    "追加済み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added"
+          }
+        }
+      }
+    },
+    "送るキー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keys to send"
+          }
+        }
+      }
+    },
+    "選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose"
+          }
+        }
+      }
+    },
+    "選んだアプリのプロファイルを追加します。設定済みのアプリはそのまま残ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet adds profiles for the apps you choose. Existing profiles stay as they are."
+          }
+        }
+      }
+    },
+    "選択してコピーすることもできます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can also select and copy text."
+          }
+        }
+      }
+    },
+    "選択中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        }
+      }
+    },
+    "選択中のテキスト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected text"
+          }
+        }
+      }
+    },
+    "選択中のテキストと指示文を、Mac の中の言語モデル（Apple Intelligence）に渡します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends the selected text and the prompt to the on-device language model (Apple Intelligence)."
+          }
+        }
+      }
+    },
+    "選択中のテキストを、ショートカットへの入力として渡します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passes the selected text to the shortcut as input."
+          }
+        }
+      }
+    },
+    "選択中のテキストを渡す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass selected text as input"
+          }
+        }
+      }
+    },
+    "選択範囲を置き換える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace Selection"
+          }
+        }
+      }
+    },
+    "閉じる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
+    "開く URL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL to open"
+          }
+        }
+      }
+    },
+    "開くときに %@:// を補います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens with %@:// added."
+          }
+        }
+      }
+    },
+    "開くアプリ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App to open"
+          }
+        }
+      }
+    },
+    "開発" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Development"
+          }
+        }
+      }
+    },
+    "項目を空いているマスへドラッグするか、ダブルクリックで入れます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag an item onto an empty button, or double-click to add it."
+          }
+        }
+      }
+    }
   },
   "version" : "1.0"
 }
