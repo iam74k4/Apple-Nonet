@@ -1,0 +1,32 @@
+#!/bin/bash
+# テスト用の偽の Sparkle generate_appcast。フォルダの中身を記録し、
+# 既存の appcast.xml の項目と、偽の DMG に書かれたビルド番号から appcast.xml を作り直す。
+#   FAKE_APPCAST_SKIP_ITEM  1 なら新しい DMG の項目を作らない（失敗の再現）
+set -euo pipefail
+shopt -s nullglob
+printf 'generate_appcast %s\n' "$*" >>"${FAKE_LOG:?}"
+
+dir="${*: -1}"
+printf 'generate_appcast files: %s\n' "$(cd "$dir" && printf '%s ' *)" >>"$FAKE_LOG"
+
+builds() {
+  if [[ -f "$dir/appcast.xml" ]]; then
+    grep -oE '<sparkle:version>[0-9]+' "$dir/appcast.xml" | grep -oE '[0-9]+' || true
+  fi
+  if [[ -z "${FAKE_APPCAST_SKIP_ITEM:-}" ]]; then
+    local dmg
+    for dmg in "$dir"/*.dmg; do
+      sed -nE 's/.*build=([0-9]+).*/\1/p' "$dmg"
+    done
+  fi
+}
+
+versions="$(builds | sort -nu)"
+{
+  printf '<?xml version="1.0" encoding="utf-8"?>\n'
+  printf '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n<title>Nonet</title>\n'
+  for v in $versions; do
+    printf '<item><sparkle:version>%s</sparkle:version></item>\n' "$v"
+  done
+  printf '</channel>\n</rss>\n'
+} >"$dir/appcast.xml"

@@ -1,0 +1,53 @@
+# プッシュとプルリクエストで scripts/test.sh（スクリプトのテスト・swift build / swift test・署名なしのアプリのビルド）を動かす。
+# このプロジェクトは Swift 6 のツールを含む Xcode が要る（Package.swift は swift-tools-version: 6.0、設計は Xcode 27 / Swift 6.4）。
+# そのため、ランナーに入っている Xcode のうち、いちばん新しいものを選ぶ。
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test
+    # 新しい Xcode は新しい macOS のイメージにしか入らない。ラベルが無くなったら macos-latest などに変える
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select the newest Xcode
+        run: |
+          newest=""
+          newest_version=""
+          echo "Installed Xcode:"
+          for app in /Applications/Xcode*.app; do
+            version="$(defaults read "$app/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)"
+            [ -n "$version" ] || continue
+            echo "  $version  $app"
+            if [ -z "$newest_version" ] || [ "$(printf '%s\n%s\n' "$newest_version" "$version" | sort -V | tail -n 1)" = "$version" ]; then
+              newest="$app"
+              newest_version="$version"
+            fi
+          done
+          if [ -z "$newest" ]; then
+            echo "::error::Xcode が見つかりません"
+            exit 1
+          fi
+          echo "Selected: $newest ($newest_version)"
+          sudo xcode-select --switch "$newest/Contents/Developer"
+          xcodebuild -version
+          swift --version
+
+      - name: Install tools
+        run: brew install xcodegen shellcheck
+
+      - name: Test
+        run: scripts/test.sh

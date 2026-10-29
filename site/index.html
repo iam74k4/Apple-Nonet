@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonet — トラックパッドが、アプリごとの9つのボタンに</title>
+<meta name="description" content="キーを押している間だけ、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。迷ったときだけ HUD が出る。14日間無料、買い切り、アカウント登録不要。">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nonet — Stream Deckは、もう手元にある。">
+<meta property="og:description" content="いつものトラックパッドが、アプリごとに変わる9つのボタンに。追加のデバイスも、ショートカットの暗記もいりません。">
+<meta property="og:locale" content="ja_JP">
+<!-- TODO: 公開するドメインが決まったら、canonical・hreflang・og:url・og:image を絶対 URL で入れる -->
+<link rel="alternate" hreflang="ja" href="./">
+<link rel="alternate" hreflang="en" href="en/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M11 18h2"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 5h16v14H4z M7 9l3 3-3 3 M12 15h5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5L18 18 M18 6l-2.5 2.5 M8.5 15.5L6 18"/></symbol>
+  <symbol id="i-commit" viewBox="0 0 24 24"><path d="M3 12h6 M15 12h6 M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
+  <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">本文へ移動</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="ページ内の移動">
+      <ul>
+        <li><a href="#how">使い方</a></li>
+        <li><a href="#features">機能</a></li>
+        <li><a href="#pricing">価格</a></li>
+        <li><a href="#faq">よくある質問</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="en/" hreflang="en" lang="en">English</a>
+      <!-- TODO: ダウンロードの URL（公証済みの DMG の公開場所）。ページ内のほかの「試す」ボタンも同じ -->
+      <a class="btn btn-small" href="https://TODO.invalid/download">ダウンロード</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow" lang="en">Trackpad macro pad for Mac</p>
+        <h1><span class="nowrap">Stream Deckは、</span><span class="nowrap">もう手元にある。</span></h1>
+        <p class="lead">いつものトラックパッドが、アプリごとに変わる9つのボタンに。追加のデバイスも、ショートカットの暗記もいりません。</p>
+        <div class="cta">
+          <a class="btn" href="https://TODO.invalid/download">14日間無料で試す</a>
+          <a class="btn btn-secondary" href="#how">使い方を見る</a>
+        </div>
+        <div class="fine-list">
+          <p class="fine">買い切り ・ アカウント登録不要 ・ 設定データは Mac の中だけ</p>
+          <p class="fine">macOS 14 以降 ・ マルチタッチのトラックパッドが必要</p>
+        </div>
+      </div>
+
+      <figure class="demo" data-demo
+        data-caption-hud="迷ったら、指を置いて止まる。HUD を見ながら選んで、キーを離すと実行。"
+        data-caption-tap="慣れたら、押してすぐタップ。HUD を出さずにその場で実行。"
+        data-label-pause="動きを止める"
+        data-label-play="動かす">
+        <div class="demo-stage" aria-hidden="true">
+          <div class="screen">
+            <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
+            <div class="hud">
+              <div class="hud-head"><span class="hud-title">Xcode</span><span>⌘を離して実行</span></div>
+              <div class="hud-grid">
+                <div class="cell" data-cell data-label="ビルド"><svg class="icon"><use href="#i-play"/></svg>ビルド</div>
+                <div class="cell" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg>テスト</div>
+                <div class="cell" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg>シミュレータ</div>
+                <div class="cell" data-cell data-label="ターミナル"><svg class="icon"><use href="#i-terminal"/></svg>ターミナル</div>
+                <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
+                <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
+                <div class="cell" data-cell data-label="ミュート"><svg class="icon"><use href="#i-micoff"/></svg>ミュート</div>
+                <div class="cell" data-cell data-label="スクショ"><svg class="icon"><use href="#i-capture"/></svg>スクショ</div>
+              </div>
+            </div>
+            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>ビルド</span></div>
+          </div>
+          <div class="controls">
+            <div class="key">右⌘</div>
+            <div class="trackpad">
+              <svg class="trackpad-lines" viewBox="0 0 208 130" preserveAspectRatio="none"><path d="M69.3 0V130 M138.7 0V130 M0 43.3H208 M0 86.7H208" vector-effect="non-scaling-stroke"/></svg>
+              <span class="ripple"></span>
+              <span class="finger"></span>
+            </div>
+          </div>
+        </div>
+        <figcaption data-demo-caption>右⌘を押している間、トラックパッドが9つのボタンになる。迷ったときだけ HUD が出る。</figcaption>
+        <button class="demo-toggle" type="button" data-demo-toggle hidden>動きを止める</button>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="promises-title">
+    <div class="wrap">
+      <h2 id="promises-title" class="visually-hidden">3つの約束</h2>
+      <ol class="promises">
+        <li>
+          <span class="num">01</span>
+          <h3>買わなくていい</h3>
+          <p>追加のデバイスは不要。MacBook のトラックパッドが、そのままボタンになる。</p>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <h3>覚えなくていい</h3>
+          <p>押す前に9マスが見える。迷ったときだけ出るから、慣れても邪魔にならない。</p>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <h3>設定しなくていい</h3>
+          <p>Mac にあるアプリを見つけて、最初から9マスを用意。メニューから選ぶだけで追加できる。</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="how-title">迷ったときだけ、HUDが出る</h2>
+        <p>キーを押してから指を置くまでの時間で、表示を切り替える。慣れた人の速さと、初めての人の安心を両立する。トラックパッドを縦横3つずつに分け、指を置いた位置でマスが決まる。</p>
+      </div>
+      <div class="flows">
+        <div class="flow">
+          <h3>慣れたら：見ないで実行</h3>
+          <ol class="steps">
+            <li class="step"><b>右⌘を押す</b><span>トリガーキー</span></li>
+            <li class="step"><b>すぐ指でタップ</b><span>0.3秒以内</span></li>
+            <li class="step is-goal"><b>その場で実行</b><span>HUD なしで最速</span></li>
+          </ol>
+        </div>
+        <div class="flow">
+          <h3>迷ったら：見て確かめる</h3>
+          <ol class="steps">
+            <li class="step"><b>右⌘を押す</b><span>トリガーキー</span></li>
+            <li class="step"><b>指を置いて止まる</b><span>どのマスだっけ？</span></li>
+            <li class="step is-hud"><b>HUD が出る</b><span>見ながらマスを選ぶ</span></li>
+            <li class="step is-goal"><b>⌘を離して実行</b><span>選んだマスが動く</span></li>
+          </ol>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>キーを押したままなら、何度でも続けてタップできる</li>
+        <li>やめるときは、指を先に離してからキーを離す。何も実行しない</li>
+        <li>押している間はカーソルが止まり、クリックも前面のアプリに届かない</li>
+        <li>HUD が出るまでの時間は設定で変えられる（0.15〜0.8秒）</li>
+        <li>2本指で左右にスワイプすると、次のページの9マスへ</li>
+        <li>トリガーキーは JIS 配列なら右⌘、それ以外は右⌥。右⇧・fn も選べる</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="features-title">アプリが変われば、9マスも変わる</h2>
+        <p>前面のアプリに合わせて、いちばん使う9つを。設定はプリセットとメニューから選ぶだけ。</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="ink" x="38" y="6" width="58" height="20" rx="10"/>
+            <text x="67" y="20" text-anchor="middle" class="label" style="fill: var(--bg)">Xcode</text>
+            <rect class="faint" x="101" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="130" y="20" text-anchor="middle" class="label-muted">Safari</text>
+            <rect class="faint" x="164" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="193" y="20" text-anchor="middle" class="label-muted">Zoom</text>
+            <rect class="panel" x="70" y="34" width="120" height="82" rx="11"/>
+            <rect class="tile" x="78" y="42" width="32" height="20" rx="5"/><rect class="tile" x="114" y="42" width="32" height="20" rx="5"/><rect class="tile" x="150" y="42" width="32" height="20" rx="5"/>
+            <rect class="tile" x="78" y="65" width="32" height="20" rx="5"/><rect class="tile-on" x="114" y="65" width="32" height="20" rx="5"/><rect class="tile" x="150" y="65" width="32" height="20" rx="5"/>
+            <rect class="tile" x="78" y="88" width="32" height="20" rx="5"/><rect class="tile" x="114" y="88" width="32" height="20" rx="5"/><rect class="tile" x="150" y="88" width="32" height="20" rx="5"/>
+          </svg>
+          <h3>アプリごとのプロファイル</h3>
+          <p>Xcode ではビルドとテスト、Zoom ではミュートと画面共有。前面のアプリに合わせて9マスが自動で切り替わる。よく使うアプリには、最初から9マスを用意している。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="10" y="8" width="138" height="104" rx="10"/>
+            <rect class="faint" x="20" y="17" width="118" height="18" rx="9"/>
+            <text x="32" y="30" class="label-muted">メニューを検索</text>
+            <text x="28" y="54" class="label-muted">コピー</text>
+            <rect class="ink" x="18" y="62" width="122" height="20" rx="5"/>
+            <text x="28" y="76" class="label" style="fill: var(--bg)">自動レイアウトを追加</text>
+            <text x="28" y="100" class="label-muted">グループ化</text>
+            <rect class="panel" x="176" y="26" width="72" height="72" rx="9"/>
+            <rect class="tile" x="183" y="33" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="33" width="17" height="17" rx="4"/><rect class="tile" x="224" y="33" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="53.5" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="53.5" width="17" height="17" rx="4"/><rect class="tile-on" x="224" y="53.5" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="74" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="74" width="17" height="17" rx="4"/><rect class="tile" x="224" y="74" width="17" height="17" rx="4"/>
+            <path class="stroke" d="M146 72 C 172 72, 196 80, 226 64 M216 62 L226 64 L222 73"/>
+          </svg>
+          <h3>メニューから選ぶだけ</h3>
+          <p>起動中のアプリのメニューを読み取って一覧に。探して、空いたマスへドラッグすれば割り当て完了。ショートカットを調べなくていい。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <circle class="ink" cx="116" cy="48" r="10"/>
+            <circle class="ink" cx="144" cy="48" r="10"/>
+            <path class="stroke" d="M168 82 L92 82 M102 74 L92 82 L102 90"/>
+            <circle class="ink" cx="118" cy="106" r="3"/>
+            <circle class="ring" cx="130" cy="106" r="2.5"/>
+            <circle class="ring" cx="142" cy="106" r="2.5"/>
+          </svg>
+          <h3>9マス×3ページ、ランチャーにも</h3>
+          <p>2本指で左右にスワイプしてページを切り替え。最大27個まで置ける。最初のページは Mac にあるアプリを並べたランチャー。Launchpad の代わりにも。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <path class="dashed" d="M87 4 V116 M173 4 V116 M4 40 H256 M4 80 H256"/>
+            <circle class="faint" cx="173" cy="60" r="27"/>
+            <circle class="ring" cx="173" cy="60" r="18"/>
+            <circle class="ink" cx="173" cy="60" r="10"/>
+          </svg>
+          <h3>境界で「コツッ」と振動</h3>
+          <p>指がマスをまたぐたびに、トラックパッドが軽く反応する。画面を見なくても、いまどのマスにいるかわかる。強さは設定で選べる。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="panel" x="10" y="8" width="240" height="104" rx="10"/>
+            <circle cx="24" cy="21" r="3.5" class="tile"/><circle cx="36" cy="21" r="3.5" class="tile"/><circle cx="48" cy="21" r="3.5" class="tile"/>
+            <text x="24" y="54" class="label-hud">$ cd $PROJECT_DIR &amp;&amp; claude</text>
+            <text x="24" y="78" class="label-hud" style="fill: var(--hud-fg)">$NONET_SELECTED_TEXT</text>
+            <text x="24" y="98" class="label-hud" style="fill: var(--hud-fg)">$NONET_BROWSER_URL</text>
+          </svg>
+          <h3>スクリプトと AI</h3>
+          <p>zsh のスクリプトに、前面のアプリ・開いている書類・プロジェクトのフォルダ・選択中のテキストを環境変数で渡せる。macOS 26 では、選んだテキストを Mac の中の Apple Intelligence で要約したり書き換えたり。</p>
+        </article>
+        <article class="feature">
+          <ul class="chips" aria-label="アクションの種類">
+            <li>キー入力</li>
+            <li>アプリを開く</li>
+            <li>URL</li>
+            <li>スクリプト</li>
+            <li>ショートカット</li>
+            <li>メニュー項目</li>
+            <li>AI</li>
+          </ul>
+          <h3>7種類のアクション</h3>
+          <p>⌘B のようなキーも、⌘L → ⌘C のような続けて押すキーも、押して記録するだけ。JIS 配列でも ⌘[ などがそのまま届く。ショートカット.app のショートカットも呼び出せる。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap pricing">
+      <div class="section-head">
+        <h2 id="pricing-title">価格</h2>
+        <p>まず14日間、すべての機能を無料で。気に入ったら一度だけ購入。サブスクリプションはありません。</p>
+        <p>試用期間が終わっても設定はそのまま残ります。ライセンスキーを入れれば、すぐに元どおり使えます。</p>
+      </div>
+      <div class="price-card">
+        <p class="price-trial">14日間 無料で試せる</p>
+        <div class="price">
+          <!-- TODO: 価格を決めて「¥TODO」を置き換える（en/index.html も） -->
+          <span class="price-amount"><span class="todo">¥TODO</span></span>
+          <span class="price-note">税込・買い切り</span>
+        </div>
+        <ul class="checks">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>すべての機能が使える</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>月額の支払いはなし。一度の購入で使い続けられる</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>アカウント登録は不要。ライセンスキーはオフラインで確認</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>設定データは Mac の中だけ</li>
+        </ul>
+        <div class="cta">
+          <!-- TODO: 購入ページの URL（Config/Nonet.xcconfig の NONET_PURCHASE_URL と同じ） -->
+          <a class="btn" href="https://TODO.invalid/buy">購入する</a>
+          <a class="btn btn-secondary" href="https://TODO.invalid/download">無料で試す</a>
+        </div>
+        <p class="fine">お支払いと領収書は販売サービス（<span class="todo">TODO: 販売サービス名</span>）が扱います。購入後、ライセンスキーをメールでお届けします。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="faq-title">よくある質問</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>どんな権限が必要ですか？</summary>
+          <div class="answer">
+            <p>「アクセシビリティ」の許可が必要です（システム設定 › プライバシーとセキュリティ）。トリガーキーの検出、押している間のカーソルとクリックの抑止、キー入力の送出、メニュー項目の操作に使います。指の位置を読むのに許可は要りません。</p>
+            <p>スクリプトでブラウザの URL を使うときや、ターミナルでコマンドを実行するときは、macOS が初回に「オートメーション」の確認を出します。</p>
+          </div>
+        </details>
+        <details>
+          <summary>入力した内容や使い方が送られることはありますか？</summary>
+          <div class="answer">
+            <p>ありません。キー入力の中身は記録も送信もしません。設定は Mac の中（<code>~/Library/Application Support/Nonet</code>）だけに保存し、アカウントもありません。ネットワークを使うのは、アップデートの確認と購入ページを開くときだけです。</p>
+            <p>詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+          </div>
+        </details>
+        <details>
+          <summary>JIS キーボードでも使えますか？</summary>
+          <div class="answer">
+            <p>使えます。JIS 配列には右⌥が無いので、既定のトリガーキーは右⌘です。右⇧や fn にも変えられます。</p>
+            <p>⌘英かな や Karabiner-Elements などで右⌘の単押しを使っている場合はぶつかることがあるので、トリガーキーを変えてください。</p>
+          </div>
+        </details>
+        <details>
+          <summary>動作環境は？</summary>
+          <div class="answer">
+            <p>macOS 14 Sonoma 以降と、マルチタッチのトラックパッド（MacBook の内蔵トラックパッド、または Magic Trackpad）が必要です。Apple シリコンと Intel のどちらの Mac でも動きます。</p>
+            <p>AI のアクションは、macOS 26 以降で Apple Intelligence が使える Mac だけで動きます。</p>
+          </div>
+        </details>
+        <details>
+          <summary>マウスだけの Mac でも使えますか？</summary>
+          <div class="answer">
+            <p>使えません。指を置いた位置でマスを選ぶので、トラックパッドが必要です。Mac mini や Mac Studio でも、Magic Trackpad をつなげば使えます。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Mac App Store で買えないのはなぜですか？</summary>
+          <div class="answer">
+            <p>ほかのアプリを使っている間も指の位置を読むために、macOS の公開されていない仕組みを使っています。App Store ではこれが認められないため、このサイトで直接販売しています。アプリは Apple の Developer ID で署名し、Apple の公証（ノータライズ）を受けています。</p>
+          </div>
+        </details>
+        <details>
+          <summary>試用期間が終わるとどうなりますか？</summary>
+          <div class="answer">
+            <p>HUD に「試用期間が終了しました」と表示され、マスを押しても実行されなくなります。設定はそのまま残るので、ライセンスキーを入れればすぐに元どおり使えます。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Stream Deck とは何が違いますか？</summary>
+          <div class="answer">
+            <p>Stream Deck は、Elgato の液晶つきのキーが並んだ専用のデバイスです。Nonet はソフトウェアで、MacBook のトラックパッドをボタンとして使います。追加の機器は要りませんが、押した感触のあるキーやキーごとの画面はなく、トリガーキーを押している間だけボタンになります。</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section closing" aria-labelledby="closing-title">
+    <div class="wrap">
+      <h2 id="closing-title">トラックパッドに、9つのボタンを。</h2>
+      <p class="fine">14日間、すべての機能を無料で試せます。</p>
+      <div class="cta">
+        <a class="btn" href="https://TODO.invalid/download">14日間無料で試す</a>
+        <a class="btn btn-secondary" href="https://TODO.invalid/buy">購入する</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+        <!-- TODO: 問い合わせ先のメールアドレス。販売事業者が自分なら「特定商取引法に基づく表記」のページも足す -->
+        <li><a href="mailto:support@TODO.invalid">お問い合わせ</a></li>
+        <li><a href="en/" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Stream Deck は Corsair Memory, Inc. の商標です。Nonet は Elgato および Corsair とは関係がなく、両社から承認や支援を受けたものではありません。</p>
+      <p>Apple、Mac、MacBook、macOS、Magic Trackpad、Apple Intelligence、Launchpad、Xcode、Safari は Apple Inc. の商標です。そのほかの製品名は各社の商標です。</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

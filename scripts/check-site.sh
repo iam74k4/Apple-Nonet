@@ -1,0 +1,136 @@
+#!/bin/bash
+# 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記。
+# --strict を付けると、TODO（価格・URL などの仮の値）が残っていても失敗にする。公開の前に使う。
+# 使い方: scripts/check-site.sh [--strict] [サイトのフォルダ（既定: site）]
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+
+STRICT=0
+SITE="$ROOT/site"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      sed -n '2,4p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    --strict) STRICT=1 ;;
+    -*) die "知らないオプションです: $1" ;;
+    *) SITE="$(cd "$1" && pwd)" ;;
+  esac
+  shift
+done
+[[ -d "$SITE" ]] || die "サイトのフォルダがありません: $SITE"
+
+PROBLEMS=0
+
+problem() {
+  printf '  - %s\n' "$*" >&2
+  PROBLEMS=$((PROBLEMS + 1))
+}
+
+# href / src の行き先が存在するか。#id はその id があるか
+check_reference() {
+  local file="$1" rel="$2" url="$3" path frag="" target
+  case "$url" in
+    http://* | https://* | mailto:* | tel:* | data:*) return 0 ;;
+    "") problem "$rel: 空のリンクがあります" && return 0 ;;
+    javascript:*) problem "$rel: javascript: のリンクは使わない（$url）" && return 0 ;;
+  esac
+  path="${url%%#*}"
+  [[ "$url" != *#* ]] || frag="${url#*#}"
+  path="${path%%\?*}"
+  if [[ -z "$path" ]]; then
+    target="$file"
+  else
+    target="$(dirname "$file")/$path"
+    [[ ! -d "$target" ]] || target="${target%/}/index.html"
+    if [[ ! -f "$target" ]]; then
+      problem "$rel: リンク先がありません: $url"
+      return 0
+    fi
+  fi
+  if [[ -n "$frag" ]] && ! grep -qF "id=\"$frag\"" "$target"; then
+    problem "$rel: リンク先の #$frag がありません（$url）"
+  fi
+  return 0
+}
+
+check_html() {
+  local file="$1" rel lang expected_lang count url tag
+  rel="${file#"$SITE/"}"
+
+  head -n 1 "$file" | grep -qi '^<!doctype html>$' || problem "$rel: 1 行目が <!doctype html> ではありません"
+  lang="$(sed -nE 's/.*<html[^>]* lang="([a-zA-Z-]+)".*/\1/p' "$file" | head -n 1)"
+  case "$rel" in
+    en/*) expected_lang=en ;;
+    *) expected_lang=ja ;;
+  esac
+  [[ "$lang" == "$expected_lang" ]] || problem "$rel: <html lang> が「$expected_lang」ではありません（いまは「$lang」）"
+  grep -qi '<meta charset="utf-8">' "$file" || problem "$rel: <meta charset=\"utf-8\"> がありません"
+  grep -q '<meta name="viewport" content="width=device-width' "$file" || problem "$rel: viewport の指定がありません"
+  grep -qE '<title>[^<]+</title>' "$file" || problem "$rel: <title> がありません"
+  grep -qE '<meta name="description" content="[^"]+">' "$file" || problem "$rel: <meta name=\"description\"> がありません"
+  grep -q '<main' "$file" || problem "$rel: <main> がありません"
+  count="$(grep -oE '<h1[ >]' "$file" | wc -l | tr -d ' ' || true)"
+  [[ "$count" == 1 ]] || problem "$rel: <h1> は 1 つにしてください（いまは $count）"
+
+  while IFS= read -r tag; do
+    [[ "$tag" == *" alt="* ]] || problem "$rel: alt の無い画像があります: $tag"
+  done < <(grep -oE '<img [^>]*>' "$file" || true)
+
+  # プライバシーの約束のため、外部のスクリプト・スタイル・フォントを読み込まない
+  if grep -qE '<script[^>]* src="(https?:)?//' "$file"; then
+    problem "$rel: 外部のスクリプトを読み込んでいます"
+  fi
+  if grep -E '<link[^>]*>' "$file" | grep -E 'rel="(stylesheet|preconnect|preload)"' | grep -qE 'href="(https?:)?//'; then
+    problem "$rel: 外部のスタイルやフォントを読み込んでいます"
+  fi
+
+  while IFS= read -r url; do
+    check_reference "$file" "$rel" "$url"
+  done < <(grep -oE '(href|src)="[^"]*"' "$file" | sed -E 's/^(href|src)="//; s/"$//' || true)
+
+  if [[ "$(basename "$file")" == index.html ]]; then
+    if ! grep -q 'Stream Deck' "$file" || ! grep -q 'Corsair Memory' "$file"; then
+      problem "$rel: Stream Deck の商標の表記（Corsair Memory, Inc.）がありません"
+    fi
+    grep -qE 'href="privacy\.html"' "$file" || problem "$rel: プライバシーポリシーへのリンクがありません"
+  fi
+}
+
+check_css() {
+  local file="$1" rel="${1#"$SITE/"}"
+  if grep -nE '@import|url\((["'\'']?)(https?:)?//' "$file" >/dev/null; then
+    problem "$rel: 外部のファイルを読み込んでいます（@import や url(https://…)）"
+  fi
+}
+
+html_files="$(find "$SITE" -type f -name '*.html' | sort)"
+[[ -n "$html_files" ]] || die "$SITE に HTML がありません"
+while IFS= read -r file; do
+  check_html "$file"
+done <<<"$html_files"
+while IFS= read -r file; do
+  [[ -z "$file" ]] || check_css "$file"
+done < <(find "$SITE" -type f -name '*.css' | sort)
+
+# 公開前に埋める仮の値。TODO の印と、届かない .invalid のドメイン
+todos="$(grep -rnE 'TODO|\.invalid' "$SITE" | sed "s|^$SITE/||" || true)"
+if [[ -n "$todos" ]]; then
+  if [[ "$STRICT" == 1 ]]; then
+    while IFS= read -r line; do
+      problem "仮の値が残っています: $(trim "$line")"
+    done <<<"$todos"
+  else
+    info "公開前に埋めるところ（--strict で失敗にする）: $(printf '%s\n' "$todos" | wc -l | tr -d ' ') か所"
+  fi
+fi
+
+if [[ "$PROBLEMS" != 0 ]]; then
+  die "サイトに $PROBLEMS 件の問題があります（$SITE）"
+fi
+info "サイトに問題はありません（$SITE）"

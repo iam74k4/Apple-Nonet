@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonet — Your trackpad, as nine buttons for every app</title>
+<meta name="description" content="Hold a key and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. A HUD appears only when you hesitate. 14-day free trial, one-time purchase, no account.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nonet — Your trackpad is already a macro pad">
+<meta property="og:description" content="Your trackpad becomes nine buttons that change with every app. No extra device, no shortcuts to memorize.">
+<meta property="og:locale" content="en_US">
+<!-- TODO: once the domain is decided, add canonical, hreflang, og:url and og:image as absolute URLs -->
+<link rel="alternate" hreflang="ja" href="../">
+<link rel="alternate" hreflang="en" href="./">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M11 18h2"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 5h16v14H4z M7 9l3 3-3 3 M12 15h5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5L18 18 M18 6l-2.5 2.5 M8.5 15.5L6 18"/></symbol>
+  <symbol id="i-commit" viewBox="0 0 24 24"><path d="M3 12h6 M15 12h6 M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
+  <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="On this page">
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="../" hreflang="ja" lang="ja">日本語</a>
+      <!-- TODO: download URL (where the notarized DMG is published). Used by every "Try" button on this page -->
+      <a class="btn btn-small" href="https://TODO.invalid/download">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Trackpad macro pad for Mac</p>
+        <h1>Your trackpad is already a macro pad.</h1>
+        <p class="lead">Hold a key and your MacBook trackpad turns into nine buttons that change with the app you are using. No extra device like a Stream Deck, and no shortcuts to memorize.</p>
+        <div class="cta">
+          <a class="btn" href="https://TODO.invalid/download">Try free for 14 days</a>
+          <a class="btn btn-secondary" href="#how">See how it works</a>
+        </div>
+        <div class="fine-list">
+          <p class="fine">One-time purchase · No account · Your settings stay on your Mac</p>
+          <p class="fine">macOS 14 or later · Requires a multi-touch trackpad</p>
+        </div>
+      </div>
+
+      <figure class="demo" data-demo
+        data-caption-hud="Not sure? Rest your finger and the HUD appears. Slide to a button and release the key to run it."
+        data-caption-tap="Once you know the layout, press and tap. It runs right away, no HUD."
+        data-label-pause="Pause animation"
+        data-label-play="Play animation">
+        <div class="demo-stage" aria-hidden="true">
+          <div class="screen">
+            <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
+            <div class="hud">
+              <div class="hud-head"><span class="hud-title">Xcode</span><span>Release ⌥ to run</span></div>
+              <div class="hud-grid">
+                <div class="cell" data-cell data-label="Build"><svg class="icon"><use href="#i-play"/></svg>Build</div>
+                <div class="cell" data-cell data-label="Test"><svg class="icon"><use href="#i-check"/></svg>Test</div>
+                <div class="cell" data-cell data-label="Simulator"><svg class="icon"><use href="#i-phone"/></svg>Simulator</div>
+                <div class="cell" data-cell data-label="Terminal"><svg class="icon"><use href="#i-terminal"/></svg>Terminal</div>
+                <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
+                <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
+                <div class="cell" data-cell data-label="Mute"><svg class="icon"><use href="#i-micoff"/></svg>Mute</div>
+                <div class="cell" data-cell data-label="Screenshot"><svg class="icon"><use href="#i-capture"/></svg>Screenshot</div>
+              </div>
+            </div>
+            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>Build</span></div>
+          </div>
+          <div class="controls">
+            <div class="key">Right ⌥</div>
+            <div class="trackpad">
+              <svg class="trackpad-lines" viewBox="0 0 208 130" preserveAspectRatio="none"><path d="M69.3 0V130 M138.7 0V130 M0 43.3H208 M0 86.7H208" vector-effect="non-scaling-stroke"/></svg>
+              <span class="ripple"></span>
+              <span class="finger"></span>
+            </div>
+          </div>
+        </div>
+        <figcaption data-demo-caption>While you hold right ⌥, your trackpad is nine buttons. The HUD shows up only when you hesitate.</figcaption>
+        <button class="demo-toggle" type="button" data-demo-toggle hidden>Pause animation</button>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="promises-title">
+    <div class="wrap">
+      <h2 id="promises-title" class="visually-hidden">Three promises</h2>
+      <ol class="promises">
+        <li>
+          <span class="num">01</span>
+          <h3>Nothing to buy</h3>
+          <p>No extra device. The trackpad on your MacBook becomes the buttons.</p>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <h3>Nothing to memorize</h3>
+          <p>See all nine buttons before you press. The HUD appears only when you hesitate, so it never gets in the way once you know the layout.</p>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <h3>Nothing to set up</h3>
+          <p>Nonet finds the apps on your Mac and fills in nine buttons from the start. Add more by picking from the app's menus.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="how-title">The HUD shows up only when you hesitate</h2>
+        <p>What you see depends on how quickly you touch the trackpad after pressing the key: speed for people who know their layout, reassurance for people who are still learning. The trackpad is split into a 3×3 grid, and the button is chosen by where your finger rests.</p>
+      </div>
+      <div class="flows">
+        <div class="flow">
+          <h3>When you know it: run without looking</h3>
+          <ol class="steps">
+            <li class="step"><b>Hold right ⌥</b><span>The trigger key</span></li>
+            <li class="step"><b>Tap right away</b><span>Within 0.3 s</span></li>
+            <li class="step is-goal"><b>It runs</b><span>No HUD, fastest</span></li>
+          </ol>
+        </div>
+        <div class="flow">
+          <h3>When you are not sure: look first</h3>
+          <ol class="steps">
+            <li class="step"><b>Hold right ⌥</b><span>The trigger key</span></li>
+            <li class="step"><b>Rest your finger</b><span>Which one was it?</span></li>
+            <li class="step is-hud"><b>The HUD appears</b><span>Slide to a button</span></li>
+            <li class="step is-goal"><b>Release ⌥</b><span>The button runs</span></li>
+          </ol>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>Keep holding the key to tap as many buttons as you like</li>
+        <li>To cancel, lift your finger before releasing the key. Nothing runs</li>
+        <li>While you hold the key the pointer stays put and clicks never reach the app</li>
+        <li>Change how long it waits before showing the HUD (0.15–0.8 s)</li>
+        <li>Swipe left or right with two fingers for the next page of nine</li>
+        <li>The trigger is right ⌥ by default (right ⌘ on JIS keyboards). Right ⇧ and fn work too</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="features-title">Switch apps, and the nine buttons switch too</h2>
+        <p>The nine things you use most in whatever app is in front. Set it up with presets and by picking from menus.</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="ink" x="38" y="6" width="58" height="20" rx="10"/>
+            <text x="67" y="20" text-anchor="middle" class="label" style="fill: var(--bg)">Xcode</text>
+            <rect class="faint" x="101" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="130" y="20" text-anchor="middle" class="label-muted">Safari</text>
+            <rect class="faint" x="164" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="193" y="20" text-anchor="middle" class="label-muted">Zoom</text>
+            <rect class="panel" x="70" y="34" width="120" height="82" rx="11"/>
+            <rect class="tile" x="78" y="42" width="32" height="20" rx="5"/><rect class="tile" x="114" y="42" width="32" height="20" rx="5"/><rect class="tile" x="150" y="42" width="32" height="20" rx="5"/>
+            <rect class="tile" x="78" y="65" width="32" height="20" rx="5"/><rect class="tile-on" x="114" y="65" width="32" height="20" rx="5"/><rect class="tile" x="150" y="65" width="32" height="20" rx="5"/>
+            <rect class="tile" x="78" y="88" width="32" height="20" rx="5"/><rect class="tile" x="114" y="88" width="32" height="20" rx="5"/><rect class="tile" x="150" y="88" width="32" height="20" rx="5"/>
+          </svg>
+          <h3>A profile for each app</h3>
+          <p>Build and test in Xcode, mute and share your screen in Zoom. The nine buttons follow the app in front, and popular apps come with a ready-made layout.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="10" y="8" width="138" height="104" rx="10"/>
+            <rect class="faint" x="20" y="17" width="118" height="18" rx="9"/>
+            <text x="32" y="30" class="label-muted">Search menus</text>
+            <text x="28" y="54" class="label-muted">Copy</text>
+            <rect class="ink" x="18" y="62" width="122" height="20" rx="5"/>
+            <text x="28" y="76" class="label" style="fill: var(--bg)">Add Auto Layout</text>
+            <text x="28" y="100" class="label-muted">Group Selection</text>
+            <rect class="panel" x="176" y="26" width="72" height="72" rx="9"/>
+            <rect class="tile" x="183" y="33" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="33" width="17" height="17" rx="4"/><rect class="tile" x="224" y="33" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="53.5" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="53.5" width="17" height="17" rx="4"/><rect class="tile-on" x="224" y="53.5" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="74" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="74" width="17" height="17" rx="4"/><rect class="tile" x="224" y="74" width="17" height="17" rx="4"/>
+            <path class="stroke" d="M146 72 C 172 72, 196 80, 226 64 M216 62 L226 64 L222 73"/>
+          </svg>
+          <h3>Pick from the menus</h3>
+          <p>Nonet reads the menus of a running app into a searchable list. Find the command and drag it onto an empty button. No need to look up shortcuts.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <circle class="ink" cx="116" cy="48" r="10"/>
+            <circle class="ink" cx="144" cy="48" r="10"/>
+            <path class="stroke" d="M168 82 L92 82 M102 74 L92 82 L102 90"/>
+            <circle class="ink" cx="118" cy="106" r="3"/>
+            <circle class="ring" cx="130" cy="106" r="2.5"/>
+            <circle class="ring" cx="142" cy="106" r="2.5"/>
+          </svg>
+          <h3>Three pages of nine, and a launcher</h3>
+          <p>Swipe with two fingers to change pages, for up to 27 buttons. The first page is a launcher filled with apps from your Mac, a handy stand-in for Launchpad.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <path class="dashed" d="M87 4 V116 M173 4 V116 M4 40 H256 M4 80 H256"/>
+            <circle class="faint" cx="173" cy="60" r="27"/>
+            <circle class="ring" cx="173" cy="60" r="18"/>
+            <circle class="ink" cx="173" cy="60" r="10"/>
+          </svg>
+          <h3>A tick at every edge</h3>
+          <p>The trackpad gives a light tap each time your finger crosses into another button, so you know where you are without looking. Choose how strong it feels.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="panel" x="10" y="8" width="240" height="104" rx="10"/>
+            <circle cx="24" cy="21" r="3.5" class="tile"/><circle cx="36" cy="21" r="3.5" class="tile"/><circle cx="48" cy="21" r="3.5" class="tile"/>
+            <text x="24" y="54" class="label-hud">$ cd $PROJECT_DIR &amp;&amp; claude</text>
+            <text x="24" y="78" class="label-hud" style="fill: var(--hud-fg)">$NONET_SELECTED_TEXT</text>
+            <text x="24" y="98" class="label-hud" style="fill: var(--hud-fg)">$NONET_BROWSER_URL</text>
+          </svg>
+          <h3>Scripts and AI</h3>
+          <p>zsh scripts receive the front app, the open document, its project folder and the selected text as environment variables. On macOS 26, summarize or rewrite selected text with Apple Intelligence, right on your Mac.</p>
+        </article>
+        <article class="feature">
+          <ul class="chips" aria-label="Action types">
+            <li>Keystrokes</li>
+            <li>Open app</li>
+            <li>URL</li>
+            <li>Script</li>
+            <li>Shortcut</li>
+            <li>Menu item</li>
+            <li>AI</li>
+          </ul>
+          <h3>Seven kinds of actions</h3>
+          <p>Record a shortcut like ⌘B, or a sequence like ⌘L then ⌘C, just by pressing it. Keys arrive correctly on any keyboard layout, and you can run anything from the Shortcuts app.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap pricing">
+      <div class="section-head">
+        <h2 id="pricing-title">Pricing</h2>
+        <p>Use every feature free for 14 days. If you like it, buy it once. There is no subscription.</p>
+        <p>When the trial ends your settings stay put. Enter a license key and everything works again right away.</p>
+      </div>
+      <div class="price-card">
+        <p class="price-trial">14-day free trial</p>
+        <div class="price">
+          <!-- TODO: set the price and replace "TODO" (also in ../index.html) -->
+          <span class="price-amount"><span class="todo">$TODO</span></span>
+          <span class="price-note">one-time purchase</span>
+        </div>
+        <ul class="checks">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>Every feature included</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>No monthly fee. Buy once, keep using it</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>No account. License keys are checked offline</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>Your settings never leave your Mac</li>
+        </ul>
+        <div class="cta">
+          <!-- TODO: purchase page URL (same as NONET_PURCHASE_URL in Config/Nonet.xcconfig) -->
+          <a class="btn" href="https://TODO.invalid/buy">Buy Nonet</a>
+          <a class="btn btn-secondary" href="https://TODO.invalid/download">Try it free</a>
+        </div>
+        <p class="fine">Payment and receipts are handled by <span class="todo">TODO: store name</span>. Your license key arrives by email after purchase.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="faq-title">FAQ</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Which permissions does Nonet need?</summary>
+          <div class="answer">
+            <p>Accessibility (System Settings › Privacy &amp; Security). Nonet uses it to detect the trigger key, to hold the pointer and clicks while you press it, to send keystrokes and to choose menu items. Reading finger positions needs no permission.</p>
+            <p>If a script uses the browser's URL or runs in Terminal, macOS asks once for Automation permission.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Does Nonet send what I type or how I use it?</summary>
+          <div class="answer">
+            <p>No. Nonet never records or sends what you type. Settings are stored only on your Mac (<code>~/Library/Application Support/Nonet</code>) and there is no account. The network is used only to check for updates and to open the purchase page.</p>
+            <p>See the <a href="privacy.html">privacy policy</a> for details.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Does it work with Japanese (JIS) keyboards?</summary>
+          <div class="answer">
+            <p>Yes. JIS keyboards have no right ⌥, so the default trigger there is right ⌘. You can also choose right ⇧ or fn.</p>
+            <p>If a tool such as Karabiner-Elements already uses a single press of right ⌘, pick a different trigger to avoid conflicts.</p>
+          </div>
+        </details>
+        <details>
+          <summary>What are the requirements?</summary>
+          <div class="answer">
+            <p>macOS 14 Sonoma or later and a multi-touch trackpad: the built-in trackpad of a MacBook or a Magic Trackpad. Both Apple silicon and Intel Macs are supported.</p>
+            <p>AI actions need macOS 26 or later on a Mac that supports Apple Intelligence.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Can I use it with a mouse only?</summary>
+          <div class="answer">
+            <p>No. Buttons are chosen by where your finger rests, so you need a trackpad. A Mac mini or Mac Studio works with a Magic Trackpad.</p>
+          </div>
+        </details>
+        <details>
+          <summary>Why isn't it on the Mac App Store?</summary>
+          <div class="answer">
+            <p>To read finger positions while you use other apps, Nonet relies on a part of macOS that is not public. The App Store does not allow that, so Nonet is sold directly from this site. The app is signed with an Apple Developer ID and notarized by Apple.</p>
+          </div>
+        </details>
+        <details>
+          <summary>What happens when the trial ends?</summary>
+          <div class="answer">
+            <p>The HUD shows "Your trial has ended" and buttons no longer run. Your settings are kept, so entering a license key brings everything back immediately.</p>
+          </div>
+        </details>
+        <details>
+          <summary>How is this different from a Stream Deck?</summary>
+          <div class="answer">
+            <p>Stream Deck is a dedicated device from Elgato with a grid of keys that each have their own display. Nonet is software that uses your MacBook trackpad as the buttons. You need no extra hardware, but there are no physical keys or per-key screens, and the buttons exist only while you hold the trigger key.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section closing" aria-labelledby="closing-title">
+    <div class="wrap">
+      <h2 id="closing-title">Nine buttons, right on your trackpad.</h2>
+      <p class="fine">Try every feature free for 14 days.</p>
+      <div class="cta">
+        <a class="btn" href="https://TODO.invalid/download">Try free for 14 days</a>
+        <a class="btn btn-secondary" href="https://TODO.invalid/buy">Buy Nonet</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <!-- TODO: support email address -->
+        <li><a href="mailto:support@TODO.invalid">Contact</a></li>
+        <li><a href="../" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Stream Deck is a trademark of Corsair Memory, Inc. Nonet is not affiliated with, endorsed by, or sponsored by Elgato or Corsair.</p>
+      <p>Apple, Mac, MacBook, macOS, Magic Trackpad, Apple Intelligence, Launchpad, Xcode and Safari are trademarks of Apple Inc. Other product names are trademarks of their respective owners.</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

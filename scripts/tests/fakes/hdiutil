@@ -1,0 +1,23 @@
+#!/bin/bash
+# テスト用の偽の hdiutil。create では中身の一覧を記録し、ビルド番号入りの偽の DMG を作る
+set -euo pipefail
+printf 'hdiutil %s\n' "$*" >>"${FAKE_LOG:?}"
+
+case "${1:-}" in
+  create)
+    out="${*: -1}"
+    src=""
+    while [[ $# -gt 0 ]]; do
+      [[ "$1" != -srcfolder ]] || src="$2"
+      shift
+    done
+    printf 'hdiutil srcfolder: %s\n' "$(cd "${src:?}" && printf '%s ' *)" >>"$FAKE_LOG"
+    if [[ -L "$src/Applications" ]]; then
+      printf 'hdiutil applications-link: %s\n' "$(readlink "$src/Applications")" >>"$FAKE_LOG"
+    fi
+    build="$(plutil -extract CFBundleVersion raw -o - "$src/Nonet.app/Contents/Info.plist")"
+    printf 'fake dmg build=%s\n' "$build" >"$out"
+    ;;
+  verify) ;;
+  *) exit 1 ;;
+esac

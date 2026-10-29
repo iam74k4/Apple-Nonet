@@ -1,0 +1,23 @@
+#!/bin/bash
+# テスト用の偽の security。find-identity だけに答える。
+#   FAKE_IDENTITIES  find-identity で出す行（未設定なら Apple Development と Developer ID の2つ。空文字なら無し）
+set -euo pipefail
+printf 'security %s\n' "$*" >>"${FAKE_LOG:?}"
+
+team="${FAKE_TEAM:-TESTTEAM01}"
+case "${1:-}" in
+  find-identity)
+    if [[ -n "${FAKE_IDENTITIES+set}" ]]; then
+      identities="$FAKE_IDENTITIES"
+    else
+      identities="  1) 1111111111111111111111111111111111111111 \"Apple Development: Test Developer (ABCDE12345)\"
+  2) 2222222222222222222222222222222222222222 \"Developer ID Application: Test Developer ($team)\""
+    fi
+    [[ -z "$identities" ]] || printf '%b\n' "$identities"
+    printf '     %s valid identities found\n' "$(printf '%b' "$identities" | grep -c '"' || true)"
+    ;;
+  *)
+    printf '偽の security: %s には答えません\n' "${1:-}" >&2
+    exit 1
+    ;;
+esac

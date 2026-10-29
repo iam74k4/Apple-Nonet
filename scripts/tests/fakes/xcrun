@@ -1,0 +1,42 @@
+#!/bin/bash
+# テスト用の偽の xcrun。notarytool と stapler だけに答える。
+#   FAKE_NOTARY_STATUS           submit の結果（既定 Accepted。Invalid などで失敗を再現）
+#   FAKE_NOTARY_HISTORY_STATUS   history（プロファイルの確認）の終了コード
+#   FAKE_STAPLER_STATUS          stapler の終了コード
+set -euo pipefail
+printf 'xcrun %s\n' "$*" >>"${FAKE_LOG:?}"
+
+tool="${1:-}"
+shift || true
+case "$tool" in
+  notarytool)
+    case "${1:-}" in
+      history) exit "${FAKE_NOTARY_HISTORY_STATUS:-0}" ;;
+      submit)
+        cat <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>id</key>
+	<string>00000000-1111-2222-3333-444444444444</string>
+	<key>message</key>
+	<string>Processing complete</string>
+	<key>status</key>
+	<string>${FAKE_NOTARY_STATUS:-Accepted}</string>
+</dict>
+</plist>
+EOF
+        ;;
+      log) printf '{"issues": [{"message": "偽の公証ログ: The signature does not include a secure timestamp."}]}\n' ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  stapler)
+    exit "${FAKE_STAPLER_STATUS:-0}"
+    ;;
+  *)
+    printf '偽の xcrun: %s には答えません\n' "$tool" >&2
+    exit 1
+    ;;
+esac

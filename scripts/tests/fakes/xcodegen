@@ -1,0 +1,4 @@
+#!/bin/bash
+# テスト用の偽の xcodegen。引数を記録するだけ
+set -euo pipefail
+printf 'xcodegen %s\n' "$*" >>"${FAKE_LOG:?}"
