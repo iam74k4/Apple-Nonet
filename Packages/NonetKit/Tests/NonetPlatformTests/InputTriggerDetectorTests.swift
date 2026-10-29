@@ -175,49 +175,85 @@ extension TriggerKey {
 
     @Test func reconcileReleasesWhenPhysicallyUp() {
         var detector = TriggerDetector()
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == nil)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == nil)
         _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: true)
-        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags) == nil)
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: false) == nil)
         #expect(detector.isHeld)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == .triggerUp)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
         #expect(!detector.isHeld)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == nil)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: true) == nil)
         // 遅れて届いた離すイベントは、もう押していないので何も出さずに渡す
         #expect(detector.flagsChanged(keyCode: 54, flags: inputFlags(), trigger: .rightCommand, passTrigger: true) == .passThrough)
+    }
+
+    @Test func reconcileAfterTapDisabledKeepsAPassedTriggerThatIsStillPressed() {
+        var detector = TriggerDetector()
+        _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: true)
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: true) == nil)
+        #expect(detector.isHeld)
     }
 
     @Test func reconcileWithSwallowedPairKeepsDroppingTheLateUp() {
         var detector = TriggerDetector()
         _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false)
-        // 最初の確認で押されて見える → 物理的な状態は信頼できる
-        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags) == nil)
-        #expect(detector.swallowedStateIsReliable == true)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == .triggerUp)
+        // 押されて見える → 捨てた押下も物理的な状態に反映される
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: false) == nil)
+        #expect(detector.swallowedStateIsReliable)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
         // 対になる離すイベントが遅れて届いたら捨てる
         #expect(detector.flagsChanged(keyCode: 54, flags: inputFlags(), trigger: .rightCommand, passTrigger: false) == Output(event: nil, pass: false))
         // その後は普通に動く
         #expect(detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: true) == Output(event: .triggerDown, pass: true))
     }
 
-    @Test func swallowedPairIsNotReconciledWhenHIDStateDoesNotReflectIt() {
+    @Test func swallowedPairIsNotReconciledByWatchdogTicksUntilHIDStateIsKnownToReflectIt() {
         var detector = TriggerDetector()
         _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false)
-        // 押している最中なのに離れて見える → 捨てた押下は反映されないとみなす
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == nil)
-        #expect(detector.swallowedStateIsReliable == false)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == nil)
+        // 離れて見えても、反映されないからかもしれない。終えず、反映されないとも決めない
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == nil)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == nil)
+        #expect(!detector.swallowedStateIsReliable)
         #expect(detector.isHeld)
+        // 後の確認で押されて見えたら、反映されると分かる
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: false) == nil)
+        #expect(detector.swallowedStateIsReliable)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
+        // 渡している押下は、最初から確かめる
         _ = detector.flagsChanged(keyCode: 54, flags: inputFlags(), trigger: .rightCommand, passTrigger: false)
-        // 渡している押下は、引き続き確かめる
         _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: true)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == .triggerUp)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
+    }
+
+    @Test func swallowedPairEndsWhenTheTapWasDisabledBeforeHIDStateIsKnown() {
+        var detector = TriggerDetector()
+        _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false)
+        // 起動して最初のセッションで、メインスレッドが詰まっている間に離した（離すイベントは届かない）
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == nil)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: true) == .triggerUp)
+        #expect(!detector.isHeld)
+        // 離れて見えたことからは「反映されない」と決めない
+        #expect(!detector.swallowedStateIsReliable)
+        // 次の押下は新しいセッションになる
+        #expect(detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false) == Output(event: .triggerDown, pass: false))
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: false) == nil)
+        #expect(detector.swallowedStateIsReliable)
+        // 反映されると分かった後は、見張りの確認でも終える
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
+    }
+
+    @Test func tapDisabledWhileASwallowedTriggerIsStillPressedKeepsTheHold() {
+        var detector = TriggerDetector()
+        _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false)
+        #expect(detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: true) == nil)
+        #expect(detector.isHeld)
+        #expect(detector.swallowedStateIsReliable)
     }
 
     @Test func newPressClearsALingeringSwallowedRelease() {
         var detector = TriggerDetector()
         _ = detector.flagsChanged(keyCode: 54, flags: TriggerKey.rightCommand.pressedFlags, trigger: .rightCommand, passTrigger: false)
-        _ = detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags)
-        #expect(detector.reconcile(physicalFlags: inputFlags()) == .triggerUp)
+        _ = detector.reconcile(physicalFlags: TriggerKey.rightCommand.pressedFlags, tapWasDisabled: false)
+        #expect(detector.reconcile(physicalFlags: inputFlags(), tapWasDisabled: false) == .triggerUp)
         // 離すイベントは届かないまま、シフトと一緒に右⌘を押す（トリガーではない）
         let withShift = inputFlags([.maskCommand, .maskShift], device: DeviceModifierMask.rightCommand | DeviceModifierMask.leftShift)
         #expect(detector.flagsChanged(keyCode: 54, flags: withShift, trigger: .rightCommand, passTrigger: false) == .passThrough)

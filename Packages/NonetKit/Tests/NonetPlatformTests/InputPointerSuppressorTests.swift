@@ -151,6 +151,79 @@ import Testing
         }
     }
 
+    // MARK: タップを残す間と片付け
+
+    @Test func needsEventsWhileSuppressingOrWaitingForUpsAndScrollTails() {
+        var suppressor = PointerSuppressor()
+        #expect(!suppressor.needsEvents(suppressing: false))
+        #expect(suppressor.needsEvents(suppressing: true))
+        _ = suppressor.decide(event(Kind.otherMouseDown, button: 4), suppressing: true, dropsMoves: true)
+        #expect(suppressor.isTracking)
+        #expect(suppressor.needsEvents(suppressing: false))
+        _ = suppressor.decide(event(Kind.otherMouseUp, button: 4), suppressing: false, dropsMoves: false)
+        #expect(!suppressor.needsEvents(suppressing: false))
+        _ = suppressor.decide(scroll(phase: 2, momentum: 0), suppressing: true, dropsMoves: true)
+        #expect(suppressor.needsEvents(suppressing: false))
+        _ = suppressor.decide(scroll(phase: 0, momentum: 3), suppressing: false, dropsMoves: false)
+        #expect(!suppressor.needsEvents(suppressing: false))
+        // 渡した押下は待たない
+        _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: false, dropsMoves: false)
+        #expect(!suppressor.needsEvents(suppressing: false))
+    }
+
+    @Test func sweepKeepsDroppedButtonsUnlessUpsMayHaveBeenMissed() {
+        var suppressor = PointerSuppressor()
+        _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(suppressor.droppedButtons == [0])
+    }
+
+    @Test func sweepForgetsReleasedButtonsAfterEventsWereMissed() {
+        var suppressor = PointerSuppressor()
+        _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
+        _ = suppressor.decide(event(Kind.otherMouseDown, button: 3), suppressing: true, dropsMoves: true)
+        suppressor.eventsMayHaveBeenMissed()
+        #expect(suppressor.buttonsWithPossiblyMissedUp == [0, 3])
+        // 無効にされた後で押したボタンの離すは取りこぼしていない
+        _ = suppressor.decide(event(Kind.rightMouseDown), suppressing: true, dropsMoves: true)
+        suppressor.sweep(isPhysicallyPressed: { $0 == 3 })
+        #expect(suppressor.droppedButtons == [1, 3])
+        #expect(suppressor.buttonsWithPossiblyMissedUp.isEmpty)
+        // まだ押していたボタンの離すは、あとで届けばいつもどおり捨てる
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(suppressor.droppedButtons == [1, 3])
+        #expect(suppressor.decide(event(Kind.otherMouseUp, button: 3), suppressing: false, dropsMoves: false) == .drop)
+    }
+
+    @Test func anUpOrDownClearsThePossiblyMissedMark() {
+        var suppressor = PointerSuppressor()
+        _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
+        suppressor.eventsMayHaveBeenMissed()
+        #expect(suppressor.decide(event(Kind.leftMouseUp), suppressing: true, dropsMoves: true) == .drop)
+        #expect(suppressor.buttonsWithPossiblyMissedUp.isEmpty)
+        _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(suppressor.droppedButtons == [0])
+    }
+
+    @Test func sweepEndsAScrollTailOnlyAfterAQuietInterval() {
+        var suppressor = PointerSuppressor()
+        _ = suppressor.decide(scroll(phase: 2, momentum: 0), suppressing: true, dropsMoves: true)
+        // 抑止中に届いたスクロールがあるので、最初の片付けでは終えない
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(suppressor.isDroppingScrollTail)
+        // 慣性が続いている間は終えない
+        #expect(suppressor.decide(scroll(phase: 0, momentum: 2), suppressing: false, dropsMoves: false) == .drop)
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(suppressor.isDroppingScrollTail)
+        // 1回分の間、1つも届かなかった
+        suppressor.sweep(isPhysicallyPressed: { _ in false })
+        #expect(!suppressor.isDroppingScrollTail)
+        #expect(!suppressor.isTracking)
+        #expect(suppressor.decide(scroll(phase: 2, momentum: 0), suppressing: false, dropsMoves: false) == .pass)
+    }
+
     @Test func cursorLockPlans() {
         #expect(CursorLockPlan(.automatic) == CursorLockPlan(dropsMoves: true, warpsBack: true, decouples: false))
         #expect(CursorLockPlan(.dropEvents) == CursorLockPlan(dropsMoves: true, warpsBack: false, decouples: false))

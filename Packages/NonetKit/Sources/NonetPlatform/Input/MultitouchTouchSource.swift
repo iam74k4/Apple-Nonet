@@ -17,9 +17,9 @@ public final class MultitouchTouchSource: TouchSource {
     private var wakeObservation: NotificationObservation?
     private var pendingRestart: DispatchWorkItem?
     private var runningDeviceIDs: [UInt64] = []
-    private var lastDeliveredTouching = false
+    private var planner = MultitouchRestartPlanner()
 
-    /// 抜き差しやスリープ復帰の後、デバイスが使えるようになるまで待つ秒数
+    /// 抜き差しやスリープ復帰の後、デバイスが使えるようになるまで待つ秒数。指が離れるのを待つ間は、この間隔で確かめ直す
     static let restartDelay: TimeInterval = 1
 
     public init() {}
@@ -33,6 +33,7 @@ public final class MultitouchTouchSource: TouchSource {
         guard !isRunning else { return }
         try MultitouchLibrary.load()
         isRunning = true
+        planner.reset()
         let pipeline = TouchPipeline { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { self?.drainFrames() }
@@ -41,16 +42,16 @@ public final class MultitouchTouchSource: TouchSource {
         connection = MultitouchConnection(pipeline: pipeline)
 
         let watcher = MultitouchDeviceWatcher { [weak self] in
-            self?.scheduleRestart(reason: "抜き差し")
+            self?.scheduleRestart(.hotPlug)
         }
         if !watcher.start() {
             inputLogger.error("トラックパッドの抜き差しを監視できない（開始時の一覧だけを使う）")
         }
         self.watcher = watcher
         wakeObservation = NotificationObservation(center: NSWorkspace.shared.notificationCenter, name: NSWorkspace.didWakeNotification) { [weak self] _ in
-            self?.scheduleRestart(reason: "スリープからの復帰")
+            self?.scheduleRestart(.wake)
         }
-        restartDevices(reason: "開始", alwaysLog: true)
+        restartDevices(.start, devices: MultitouchLibrary.devices(), liftFirst: false)
     }
 
     public func stop() {
@@ -64,36 +65,50 @@ public final class MultitouchTouchSource: TouchSource {
         connection?.stop()
         connection = nil
         runningDeviceIDs = []
-        lastDeliveredTouching = false
+        planner.reset()
         inputLogger.info("トラックパッドの読み取りを止めた")
     }
 
-    private func scheduleRestart(reason: String) {
+    private func scheduleRestart(_ reason: MultitouchRestartPlanner.Reason) {
         guard isRunning else { return }
+        planner.request(reason)
         pendingRestart?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated { self?.restartDevices(reason: reason) }
+            MainActor.assumeIsolated { self?.restartWhenReady() }
         }
         pendingRestart = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.restartDelay, execute: work)
     }
 
-    /// デバイスの一覧を作り直して開始し直す
-    private func restartDevices(reason: String, alwaysLog: Bool = false) {
-        guard isRunning, let connection else { return }
+    private func restartWhenReady() {
+        guard isRunning else { return }
         pendingRestart = nil
+        let reason = planner.pendingReason ?? .hotPlug
+        let devices = MultitouchLibrary.devices()
+        switch planner.decide(connectedDevices: Set(devices.map(\.id)), now: ProcessInfo.processInfo.systemUptime) {
+        case .waitForLift:
+            inputLogger.debug("指が触れているので、トラックパッドの開始し直しを待つ")
+            scheduleRestart(reason)
+        case .restart(let liftFirst):
+            restartDevices(reason, devices: devices, liftFirst: liftFirst)
+        }
+    }
+
+    /// デバイスの一覧を作り直して開始し直す
+    private func restartDevices(_ reason: MultitouchRestartPlanner.Reason, devices: [MultitouchDeviceInfo], liftFirst: Bool) {
+        guard isRunning, let connection else { return }
         connection.stop()
         connection.pipeline.reset()
-        // 指が触れたまま止めたなら、離れたことにする（エンジンが指を置いたままだと思い込まないように）
-        if lastDeliveredTouching {
-            deliver(TouchFrame(timestamp: ProcessInfo.processInfo.systemUptime, points: []))
+        // 触れていた指のフレームはもう来ないので、離れたことにする（エンジンが指を置いたままだと思い込まないように）
+        if liftFirst {
+            deliver(TouchFrame(timestamp: ProcessInfo.processInfo.systemUptime, points: []), from: nil)
             guard isRunning else { return }
         }
-        let usable = MultitouchDeviceInfo.usable(MultitouchLibrary.devices())
+        let usable = MultitouchDeviceInfo.usable(devices)
         let started = connection.start(deviceIDs: usable.map(\.id))
-        if alwaysLog || started != runningDeviceIDs {
+        if reason == .start || started != runningDeviceIDs {
             let summary = usable.map { "\($0.isBuiltIn ? "内蔵" : "外付け") family=\($0.familyID)" }.joined(separator: ", ")
-            inputLogger.info("トラックパッド（\(reason, privacy: .public)）: \(started.count) 台を開始 [\(summary, privacy: .public)]")
+            inputLogger.info("トラックパッド（\(reason.logName, privacy: .public)）: \(started.count) 台を開始 [\(summary, privacy: .public)]")
         }
         runningDeviceIDs = started
         // 抜かれたデバイスで触覚を鳴らそうとしないように
@@ -108,12 +123,12 @@ public final class MultitouchTouchSource: TouchSource {
         if let device { MultitouchActivity.lastTouchedDeviceID = device }
         for frame in frames {
             guard isRunning else { return }
-            deliver(frame)
+            deliver(frame, from: device)
         }
     }
 
-    private func deliver(_ frame: TouchFrame) {
-        lastDeliveredTouching = !frame.touching.isEmpty
+    private func deliver(_ frame: TouchFrame, from device: UInt64?) {
+        planner.delivered(frame, from: device)
         onFrame?(frame)
     }
 }

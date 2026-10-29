@@ -192,3 +192,77 @@ final class TouchPipeline: @unchecked Sendable {
         }
     }
 }
+
+/// デバイスを開始し直す時機を決める。開始し直すと、触れていた指はフレームが途切れて離れたように見える。
+/// 指が触れている間の抜き差し（Magic Mouse の再接続など、触れているデバイスとは関係ないことが多い）では、
+/// 指が離れるまで待つ。触れているデバイスが無くなった・止まったときと、スリープからの復帰では、
+/// すぐに開始し直して、先に指が離れたことにする（エンジンが指を置いたままだと思い込まないように）
+struct MultitouchRestartPlanner: Sendable {
+    enum Reason: Equatable, Sendable {
+        case start
+        case hotPlug
+        case wake
+
+        /// 指が触れていても待たずに開始し直す
+        var isUnconditional: Bool { self != .hotPlug }
+
+        var logName: String {
+            switch self {
+            case .start: "開始"
+            case .hotPlug: "抜き差し"
+            case .wake: "スリープからの復帰"
+            }
+        }
+    }
+
+    enum Decision: Equatable, Sendable {
+        /// liftFirst: 指が離れたことにするフレームを先に渡す
+        case restart(liftFirst: Bool)
+        /// 指が離れてから、もう一度確かめる
+        case waitForLift
+    }
+
+    /// これだけフレームが来なければ、触れていたデバイスは止まったものとみなす
+    let staleInterval: TimeInterval
+    /// 予約している開始し直しの理由
+    private(set) var pendingReason: Reason?
+    /// 最後に渡したフレームで指が触れていた
+    private(set) var isTouching = false
+    /// 最後にフレームを渡したデバイス
+    private(set) var activeDevice: UInt64?
+    private var lastFrameTime: TimeInterval = 0
+
+    init(staleInterval: TimeInterval = 0.5) {
+        self.staleInterval = staleInterval
+    }
+
+    /// 開始し直しを頼む。待っている理由と重なったら、待たずに開始し直す方を残す
+    @discardableResult
+    mutating func request(_ reason: Reason) -> Reason {
+        let merged = pendingReason.map { $0.isUnconditional ? $0 : reason } ?? reason
+        pendingReason = merged
+        return merged
+    }
+
+    /// エンジンにフレームを渡した。device が nil なら（作ったフレーム）デバイスは変えない
+    mutating func delivered(_ frame: TouchFrame, from device: UInt64?) {
+        isTouching = !frame.touching.isEmpty
+        if let device { activeDevice = device }
+        lastFrameTime = frame.timestamp
+    }
+
+    /// 予約した時刻になった。connectedDevices はいまつながっているデバイスの ID
+    mutating func decide(connectedDevices: Set<UInt64>, now: TimeInterval) -> Decision {
+        let reason = pendingReason ?? .hotPlug
+        if isTouching, !reason.isUnconditional, let activeDevice, connectedDevices.contains(activeDevice),
+           now - lastFrameTime <= staleInterval {
+            return .waitForLift
+        }
+        pendingReason = nil
+        return .restart(liftFirst: isTouching)
+    }
+
+    mutating func reset() {
+        self = MultitouchRestartPlanner(staleInterval: staleInterval)
+    }
+}

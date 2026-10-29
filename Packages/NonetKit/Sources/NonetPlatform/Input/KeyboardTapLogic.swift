@@ -92,9 +92,10 @@ struct TriggerDetector {
     private(set) var isInterrupted = false
     /// 押すイベントを捨てたトリガー。対になる離すイベントも捨てる
     private(set) var swallowedTrigger: TriggerKey?
-    /// 捨てた押下が物理的な状態（hidSystemState）に反映されるか。最初に確かめたときに決める（実機では未確認）
-    private(set) var swallowedStateIsReliable: Bool?
-    private var checksThisHold = 0
+    /// 捨てた押下が物理的な状態（hidSystemState）に反映されると確かめられた（実機では未確認）。
+    /// 捨てて押している最中に押されて見えたら true にする。離れて見えたことからは決めない
+    /// （その確認は、離すイベントを取りこぼした直後のことが多い）
+    private(set) var swallowedStateIsReliable = false
 
     var isHeld: Bool { heldTrigger != nil }
 
@@ -123,7 +124,6 @@ struct TriggerDetector {
         }
         heldTrigger = trigger
         isInterrupted = false
-        checksThisHold = 0
         swallowedTrigger = passTrigger ? nil : trigger
         return Output(event: .triggerDown, pass: passTrigger)
     }
@@ -132,18 +132,16 @@ struct TriggerDetector {
         isHeld ? interrupt() : .passThrough
     }
 
-    /// 物理的な状態と食い違っていたら（離すイベントを取りこぼしたら）離したことにする
-    mutating func reconcile(physicalFlags: CGEventFlags) -> KeyboardEvent? {
+    /// 物理的な状態と食い違っていたら（離すイベントを取りこぼしたら）離したことにする。
+    /// tapWasDisabled: タップが無効にされていた直後（その間のイベントを取りこぼしたかもしれない）
+    mutating func reconcile(physicalFlags: CGEventFlags, tapWasDisabled: Bool) -> KeyboardEvent? {
         guard let held = heldTrigger else { return nil }
         let pressed = held.isPressed(in: physicalFlags)
-        let isFirstCheck = checksThisHold == 0
-        checksThisHold += 1
         if swallowedTrigger == held {
-            if swallowedStateIsReliable == nil, isFirstCheck {
-                // 押している最中なのに離れて見えるなら、捨てた押下は物理的な状態に反映されない
-                swallowedStateIsReliable = pressed
-            }
-            guard swallowedStateIsReliable == true else { return nil }
+            if pressed { swallowedStateIsReliable = true }
+            // 反映されると分かるまでは、離れて見えても信じない。ただしタップが無効にされていたなら、
+            // 離すイベントを取りこぼした見込みが高いので終える（押したままだと思い込むより安全）
+            guard swallowedStateIsReliable || tapWasDisabled else { return nil }
         }
         guard !pressed else { return nil }
         // 捨てた押下の対になる離すイベントが後から届いたら捨てられるよう、swallowedTrigger は残す
@@ -165,7 +163,34 @@ struct TriggerDetector {
     private mutating func endHold() {
         heldTrigger = nil
         isInterrupted = false
-        checksThisHold = 0
+    }
+}
+
+/// Nonet 自身が送ったイベント（キー入力のアクションなど）。HID の位置に送るのでタップを通るが、
+/// ユーザーが押したキーとして数えない
+enum OwnEventFilter {
+    /// Nonet が送るイベントの kCGEventSourceUserData（"Nonet" の ASCII）。
+    /// platform-actions の SyntheticKeyEvent.userData と同じ値にする
+    static let userData: Int64 = 0x4E_6F_6E_65_74
+
+    static func isOwn(sourcePID: Int64, userData: Int64, ownPID: Int64) -> Bool {
+        sourcePID == ownPID || userData == Self.userData
+    }
+}
+
+/// タップごとに受け取るイベント。tapDisabled* はマスクに関係なく届く
+enum EventTapMask {
+    /// 動いている間ずっと受け取る
+    static let keyboard = mask(of: [CGEventType.keyDown.rawValue, CGEventType.flagsChanged.rawValue])
+    /// 抑止中とその後片付けの間だけ受け取る
+    static let pointer = mask(of: PointerEventKind.all)
+
+    static func mask(of types: some Sequence<UInt32>) -> CGEventMask {
+        types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << CGEventMask($1)) }
+    }
+
+    static func contains(_ mask: CGEventMask, _ type: UInt32) -> Bool {
+        mask & (CGEventMask(1) << CGEventMask(type)) != 0
     }
 }
 
@@ -255,14 +280,26 @@ struct PointerSuppressor {
     private(set) var droppedButtons: Set<Int64> = []
     /// 抑止中に始まったスクロールの続き（慣性を含む）を捨てている
     private(set) var isDroppingScrollTail = false
+    /// タップが無効にされていた間に、離すイベントを取りこぼしたかもしれない捨てたボタン
+    private(set) var buttonsWithPossiblyMissedUp: Set<Int64> = []
+    /// 前回の sweep から、スクロールのイベントが届いた
+    private var sawScrollSinceSweep = false
+
+    /// 抑止が終わっても、捨てた押下の離す・スクロールの続きを待っている
+    var isTracking: Bool { !droppedButtons.isEmpty || isDroppingScrollTail }
+
+    /// ポインタ系のイベントを見ている必要があるか（ポインタのタップを有効にしておくか）
+    func needsEvents(suppressing: Bool) -> Bool { suppressing || isTracking }
 
     mutating func decide(_ event: PointerEventInfo, suppressing: Bool, dropsMoves: Bool) -> Decision {
         let type = event.type
         if let button = PointerEventKind.upButton(type, buttonNumber: event.buttonNumber) {
+            buttonsWithPossiblyMissedUp.remove(button)
             // 押すイベントを渡したボタンの離すは、抑止中でも渡す（アプリのドラッグが終わらなくならないように）
             return droppedButtons.remove(button) == nil ? .pass : .drop
         }
         if let button = PointerEventKind.downButton(type, buttonNumber: event.buttonNumber) {
+            buttonsWithPossiblyMissedUp.remove(button)
             guard suppressing else {
                 // 新しい押下。離すを取りこぼして残っていても、前の対は終わっている
                 droppedButtons.remove(button)
@@ -284,7 +321,29 @@ struct PointerSuppressor {
         return suppressing && PointerEventKind.gestures.contains(type) ? .drop : .pass
     }
 
+    /// ポインタのタップが無効にされた。その間の離すイベントは届いていないかもしれない
+    mutating func eventsMayHaveBeenMissed() {
+        buttonsWithPossiblyMissedUp.formUnion(droppedButtons)
+    }
+
+    /// 抑止が終わった後、ポインタのタップを残している間に定期的に呼ぶ。もう届かないものを待つのをやめる。
+    /// - 離すイベントを取りこぼしたかもしれないボタンは、物理的に離れていれば忘れる
+    /// - 前回の sweep から1つも届いていないスクロールの続きは、終わったものとする
+    ///   （慣性の無いスクロールは終わりの印が来ないので、次のスクロールまで待ち続けてしまう）
+    mutating func sweep(isPhysicallyPressed: (Int64) -> Bool) {
+        for button in buttonsWithPossiblyMissedUp where !isPhysicallyPressed(button) {
+            droppedButtons.remove(button)
+        }
+        // まだ押されているボタンの離すは、有効なタップに届く
+        buttonsWithPossiblyMissedUp = []
+        if !sawScrollSinceSweep {
+            isDroppingScrollTail = false
+        }
+        sawScrollSinceSweep = false
+    }
+
     private mutating func decideScroll(_ event: PointerEventInfo, suppressing: Bool) -> Decision {
+        sawScrollSinceSweep = true
         if suppressing {
             isDroppingScrollTail = true
             return .drop
