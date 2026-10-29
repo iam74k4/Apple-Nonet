@@ -15,7 +15,7 @@
 
 ```
 project.yml                 XcodeGen（Nonet.xcodeproj は生成物でコミットしない）
-Config/Nonet.xcconfig       販売用の値（購入 URL・公開鍵・appcast）
+Config/Nonet.xcconfig       販売用の値（購入・サポート・プライバシーの URL、公開鍵、appcast）
 App/                        アプリ本体。組み立てだけ（AppDelegate・Sparkle）
 Packages/NonetKit/          それ以外すべて（swift build / swift test で動く）
   Sources/
@@ -90,12 +90,22 @@ site/                       販売ページ（静的）
 
 ポインタの抑止（`KeyboardMonitor.isSuppressingPointer`）はセッション開始から終了まで。セッション中に押したクリックの「離す」も、終了後に捨てる。
 
+実装で決めた細部（SessionEngine）:
+- 一度でも2本以上触れたタッチは、ハイライトも境界の触覚も出さない（9 により実行しないため）
+- トリガーを離した時点で、置いて `hudDelay` 未満の指が残っていれば、その指が離れるまで（最長 `hudDelay`）セッションを続ける。離れれば速押しとして実行する
+- トリガーより前から置いていた指は速押しにならない。このため `NonetController` はセッション外のタッチのフレームもすべてエンジンに渡す
+- 2本指を左へ動かすと次のページ（Launchpad と同じ向き）
+- `onFingerLift` で、指を置いたままトリガーを離したらキャンセル
+- `execute` の触覚はエンジンではなく `NonetController` が鳴らす（空きマス・ライセンス切れでは鳴らさない）
+- Nonet 自身が送ったキー（`SyntheticKeyEvent.userData` の印付き）は 10 の「ほかのキー」に数えない。速押しの連続実行（6）でキー入力のアクションを使えるようにするため
+- `triggerDown` を受けたら、`NonetController` は同じ呼び出しの中で `isSuppressingPointer = true` にする（直後のポインタイベントを取りこぼさない）。`passTriggerToApps` が false のときはモニターがトリガーキーを常に飲み込むので、Nonet が無効の間はキーボードモニターを止める
+
 ## 6. 機能の仕様
 
 ### プロファイルとページ
 - グローバルが必ず1つ（先頭）。アプリのプロファイルは bundleID ごとに1つまで。各プロファイル 1〜3 ページ
 - `resolvedPages(frontmostBundleID:)`: `autoSwitchProfiles` が true で、そのアプリの有効なプロファイルがあれば、そのページ。`appendGlobalPages` なら後ろにグローバルのページをつなげる。プロファイルが無ければグローバルのページだけ
-- グローバルの初期値はランチャー: `PresetLibrary.launcherCandidates` のうちインストール済みのアプリを最大9個（起動アクション、アイコンはアプリ）。macOS 26 で Launchpad が無くなったので、その代わりになる
+- グローバルの初期値はランチャー: `PresetLibrary.launcherCandidates` のうちインストール済みのアプリを候補の順に最大3ページ（27個）（起動アクション、アイコンはアプリ）。macOS 26 で Launchpad が無くなったので、その代わりになる。Arc は 2026-12-22 に動かなくなるため、候補には Dia を入れている（Arc のアプリ用プリセットは残す）
 
 ### アクション
 | 種類 | 動き |
@@ -106,9 +116,11 @@ site/                       販売ページ（静的）
 | スクリプト | `/bin/zsh -l -c`。`ScriptEnvironment` の環境変数を渡し、作業フォルダはプロジェクトのフォルダ（無ければホーム）。background は制限時間で打ち切り、失敗したら標準エラーの末尾をトーストに出す。terminal はターミナルの新しいウィンドウで実行（一時的な .command ファイルを開く） |
 | ショートカット | `/usr/bin/shortcuts run <名前>`。`passSelectedText` なら選択中のテキストを入力に渡す |
 | メニュー項目 | 対象アプリが前面で `keyEquivalent` があればキーを送る。無ければアクセシビリティ API でメニューをパスどおりにたどって押す |
-| AI | macOS 26 以降で Apple Intelligence が使えるときだけ。選択中のテキストと指示文を端末内の言語モデル（FoundationModels）に渡し、出力先に従う。使えなければ `NonetError.unavailable` |
+| AI | macOS 26 以降で Apple Intelligence が使えるときだけ。選択中のテキストと指示文を端末内の言語モデル（FoundationModels）に渡し、出力先に従う。使えなければ `NonetError.unavailable`。「結果を表示」は `ActionPerforming.performReturningOutput` が文字列を返し、`NonetController` が `HUDPresenting.showResult` で結果のパネルに出す（コピーと閉じるがある） |
 
 選択中のテキストはアクセシビリティ API（`kAXSelectedTextAttribute`）で取り、取れなければ ⌘C でクリップボード経由（クリップボードは元に戻す）。書類の場所は前面ウィンドウの `kAXDocumentAttribute`、ブラウザの URL は Safari / Chrome / Arc / Edge / Brave に AppleScript で聞く。
+
+スクリプトには種類にかかわらず同じ文脈を渡す。前面がブラウザなら URL を聞き（初回はオートメーションの確認が出る）、アクセシビリティで選択テキストを読めなければ ⌘C を送る。
 
 ### 権限
 - アクセシビリティ: イベントタップ（トリガーの検出・ポインタの抑止）、キー送出、メニュー操作、選択テキストの取得に必要
@@ -120,11 +132,12 @@ site/                       販売ページ（静的）
 - サイドバー: グローバル・アプリのプロファイル（アイコン付き、並べ替え・削除・無効化）・「プロファイルを追加」（インストール済みアプリから選ぶ。プリセットがあれば中身を入れる）
 - 中央: ページの切り替え（最大3）と 3×3 のグリッド。クリックで選択、ドラッグで入れ替え、Delete で空に、右クリックで複製・削除・テスト実行
 - 右: インスペクタ。表示名・アイコン（SF Symbols の候補・アプリ・文字）・アクションの種類と中身。キー入力は記録欄（押したキーをそのまま記録）。アプリは一覧から選ぶ。ショートカットは名前の一覧から選ぶ
-- メニューから割り当て: 起動中アプリのメニューを読み、検索して、空きマスへドラッグ（またはダブルクリック）
+- メニューから割り当て: 起動中アプリのメニューを読み（`MenuReading.menuItems(for:)` は async で、読むのはメインスレッドの外）、検索して、空きマスへドラッグ（またはダブルクリック）
 - 「このマスをテスト実行」
-- 全体の設定: 有効化・トリガーキー（JIS で右⌥を選ぶと警告）・実行タイミング・HUD の待ち時間・HUD の位置・触覚・グローバルのページをつなげる・トリガーキーを前面アプリに渡す・実行を知らせる・カーソルの固定方法（詳細）・ログイン時に起動・プロファイルの書き出し / 読み込み
+- 全体の設定: 有効化・トリガーキー（JIS で右⌥を選ぶと警告）・実行タイミング・HUD の待ち時間・HUD の位置・触覚・グローバルのページをつなげる・トリガーキーを前面アプリに渡す・実行を知らせる・カーソルの固定方法（詳細）・ログイン時に起動・プロファイルの書き出し / 読み込み（`ConfigurationStore.importDocument(from:)` → `NonetConfiguration.importProfiles(_:)`。結果の件数 `ImportResult` を知らせる）
+- 文言は docs/user-guide.md の項目名と合わせる
 - ライセンス: 状態（試用の残り日数 / 登録者）・キーの入力・購入ページ
-- 情報: バージョン・アップデートの確認・利用ガイド・プライバシー
+- 情報: バージョン・アップデートの確認・利用ガイド・プライバシー（URL は `AppLinks`。Info.plist の `NonetSupportURL`・`NonetPrivacyURL`。未設定ならリンクを出さない）
 
 ### 初回起動（ui-shell）
 1. ようこそ＋アクセシビリティの許可（許可されたら自動で次へ）
@@ -139,12 +152,14 @@ site/                       販売ページ（静的）
 ### HUD（ui-shell）
 - モックどおり: 黒い角丸のパネルに 3×3、ハイライトは白地に黒。上にプロファイル名と案内（「⌘を離して実行」）、ページが複数なら点で位置を示す
 - 前面アプリからフォーカスを奪わない非アクティブなパネル。全 Space・フルスクリーンの上にも出す。表示先はカーソルのあるディスプレイ
-- トーストは画面下部に 0.8 秒
+- トーストは画面下部に 0.8 秒（失敗は少し長く）
+- 結果のパネル（`showResult`）: AI の結果など。文を選択でき、「コピー」「閉じる」と Esc で閉じる。前面アプリのフォーカスは奪わない
 
 ### ライセンス（keys-license）
 - 試用は初回起動から14日。残り日数は日付の切り上げ
 - キーは `base64url(JSON).base64url(署名)`。JSON は `LicenseInfo`。公開鍵は Info.plist の `NonetLicensePublicKey`
 - `nonet-license keygen` で鍵を作り、秘密鍵はリポジトリの外に置く
+- 試用は使った時間を数える（時計を戻しても増えない）。`canExecuteActions` はいつでも正しいが、表示用の `entitlement` は `refresh()` でしか変わらない。`NonetController` はセッション開始時、ui-shell はメニューを開いたとき・スリープ解除・日付の変化・時計の変更で `refresh()` を呼ぶ
 
 ## 7. 実機で確かめられていないこと
 

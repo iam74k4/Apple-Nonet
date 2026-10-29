@@ -116,6 +116,8 @@ test_config_problems_lists_every_empty_value() {
   problems="$(config_problems "$file")"
   assert_contains "$problems" "NONET_APPCAST_URL が空です"
   assert_contains "$problems" "NONET_PURCHASE_URL が空です"
+  assert_contains "$problems" "NONET_SUPPORT_URL が空です"
+  assert_contains "$problems" "NONET_PRIVACY_URL が空です"
   assert_contains "$problems" "NONET_SPARKLE_PUBLIC_KEY が空です"
   assert_contains "$problems" "NONET_LICENSE_PUBLIC_KEY が空です"
 }

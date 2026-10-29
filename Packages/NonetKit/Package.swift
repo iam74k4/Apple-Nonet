@@ -27,11 +27,13 @@ let package = Package(
         .target(
             name: "NonetPlatform",
             dependencies: ["NonetCore", "CMultitouch"],
+            resources: [.process("Resources")],
             swiftSettings: [.swiftLanguageMode(.v5)],
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("ApplicationServices"),
                 .linkedFramework("Carbon"),
+                .linkedFramework("IOKit"),
                 .linkedFramework("ServiceManagement"),
             ]
         ),

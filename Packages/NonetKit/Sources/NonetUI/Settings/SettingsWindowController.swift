@@ -12,15 +12,31 @@ public enum SettingsTab: String, CaseIterable, Sendable {
     case about
 }
 
+/// 販売サイトのページ。Info.plist の値（未設定なら nil で、そのリンクは出さない）
+public struct AppLinks: Equatable, Sendable {
+    /// 購入ページ
+    public var purchase: URL?
+    /// 利用ガイドとサポート
+    public var support: URL?
+    /// プライバシーポリシー
+    public var privacy: URL?
+
+    public init(purchase: URL? = nil, support: URL? = nil, privacy: URL? = nil) {
+        self.purchase = purchase
+        self.support = support
+        self.privacy = privacy
+    }
+}
+
 /// 設定ウィンドウ
 @MainActor
 public final class SettingsWindowController {
-    /// purchaseURL: 購入ページ。onCheckForUpdates: アップデートの確認（無ければボタンを出さない）
+    /// onCheckForUpdates: アップデートの確認（無ければボタンを出さない）
     public init(
         controller: NonetController,
         license: LicenseManager,
         services: NonetServices,
-        purchaseURL: URL?,
+        links: AppLinks,
         onCheckForUpdates: (() -> Void)?
     ) {}
 

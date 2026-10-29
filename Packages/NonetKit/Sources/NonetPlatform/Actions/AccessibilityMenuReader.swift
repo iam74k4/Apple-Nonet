@@ -67,11 +67,15 @@ public final class AccessibilityMenuReader: MenuReading {
         )
     }
 
-    public func menuItems(for app: RunningAppInfo) throws -> [MenuItemNode] {
+    public func menuItems(for app: RunningAppInfo) async throws -> [MenuItemNode] {
         guard AXIsProcessTrusted() else { throw NonetError.permissionDenied(ActionText.accessibility) }
         let name = app.app.name.isEmpty ? app.app.bundleID : app.app.name
+        let pid = app.processID
         do {
-            return try MenuTreeBuilder.build(AXMenuTree(pid: app.processID))
+            // 遅いアプリでは数秒かかる。メインスレッドはキーのイベントタップも動かしているので塞がない
+            return try await Task.detached(priority: .userInitiated) {
+                try MenuTreeBuilder.build(AXMenuTree(pid: pid))
+            }.value
         } catch let error as AXCallError {
             ActionLog.logger.error("メニューを読めませんでした: AXError \(error.code.rawValue)")
             throw error.nonetError(appName: name)

@@ -59,6 +59,20 @@ public struct ToastModel: Equatable, Sendable {
     }
 }
 
+/// AI の「結果を表示」などで出す文。利用者が読み、コピーして閉じる
+public struct ResultModel: Equatable, Sendable {
+    /// マスの名前
+    public var title: String
+    public var text: String
+    public var icon: CellIcon?
+
+    public init(title: String, text: String, icon: CellIcon? = nil) {
+        self.title = title
+        self.text = text
+        self.icon = icon
+    }
+}
+
 /// 利用者に見せられる失敗。errorDescription はローカライズ済みの文
 public enum NonetError: Error, Equatable, LocalizedError, Sendable {
     /// 必要な権限が無い。値は権限の名前

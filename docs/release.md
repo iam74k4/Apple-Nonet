@@ -92,14 +92,18 @@ swift run nonet-license verify --public "<公開鍵>" "<発行したキー>"
 
 ### 1.6 Config/Nonet.xcconfig
 
-販売用の4つの値を入れてコミットする（公開鍵と URL なので、公開されても問題ない）。
+販売用の6つの値を入れてコミットする（公開鍵と URL なので、公開されても問題ない）。
 
 ```
 NONET_APPCAST_URL = https:/$()/nonet.example.com/updates/appcast.xml
 NONET_SPARKLE_PUBLIC_KEY = <generate_keys の公開鍵>
 NONET_PURCHASE_URL = https:/$()/nonet.example.com/buy
+NONET_SUPPORT_URL = https:/$()/nonet.example.com/guide
+NONET_PRIVACY_URL = https:/$()/nonet.example.com/privacy.html
 NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 ```
+
+`NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブのリンクになる。
 
 **xcconfig では `//` から後ろがコメントになる**。URL は `https:/$()/…` と書く（`$()` は空文字に展開される）。`https://…` と書くと `https:` で切れ、アップデートの確認も購入ページも動かない。`scripts/release.sh` はこの間違いを見つけて止まる。
 
@@ -278,7 +282,7 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 **鍵とアカウント**
 - [ ] Developer ID Application 証明書（`.p12`）・Sparkle の秘密鍵・ライセンスの秘密鍵を、それぞれ2か所にバックアップした
 - [ ] どの秘密鍵もリポジトリに入っていない（`git log -p | grep -i private` などで確かめる）
-- [ ] `Config/Nonet.xcconfig` の4つの値を入れ、コミットした
+- [ ] `Config/Nonet.xcconfig` の6つの値を入れ、コミットした
 
 **アプリ**
 - [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプは [architecture.md](architecture.md) §7 の未確認の点

@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller: controller,
             license: license,
             services: services,
-            purchaseURL: AppInfo.purchaseURL,
+            links: AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL),
             onCheckForUpdates: checkForUpdates
         )
 

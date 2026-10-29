@@ -6,6 +6,14 @@ enum AppInfo {
         string("NonetPurchaseURL").flatMap(URL.init(string:))
     }
 
+    static var supportURL: URL? {
+        string("NonetSupportURL").flatMap(URL.init(string:))
+    }
+
+    static var privacyURL: URL? {
+        string("NonetPrivacyURL").flatMap(URL.init(string:))
+    }
+
     static var licensePublicKey: String? {
         string("NonetLicensePublicKey")
     }

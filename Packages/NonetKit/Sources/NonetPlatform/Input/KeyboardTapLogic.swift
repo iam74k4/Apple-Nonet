@@ -169,9 +169,8 @@ struct TriggerDetector {
 /// Nonet 自身が送ったイベント（キー入力のアクションなど）。HID の位置に送るのでタップを通るが、
 /// ユーザーが押したキーとして数えない
 enum OwnEventFilter {
-    /// Nonet が送るイベントの kCGEventSourceUserData（"Nonet" の ASCII）。
-    /// platform-actions の SyntheticKeyEvent.userData と同じ値にする
-    static let userData: Int64 = 0x4E_6F_6E_65_74
+    /// Nonet が送るイベントの kCGEventSourceUserData（"Nonet" の ASCII）
+    static let userData: Int64 = SyntheticKeyEvent.userData
 
     static func isOwn(sourcePID: Int64, userData: Int64, ownPID: Int64) -> Bool {
         sourcePID == ownPID || userData == Self.userData

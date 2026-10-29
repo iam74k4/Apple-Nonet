@@ -55,6 +55,8 @@ targets:
         SUPublicEDKey: $(NONET_SPARKLE_PUBLIC_KEY)
         SUEnableAutomaticChecks: true
         NonetPurchaseURL: $(NONET_PURCHASE_URL)
+        NonetSupportURL: $(NONET_SUPPORT_URL)
+        NonetPrivacyURL: $(NONET_PRIVACY_URL)
         NonetLicensePublicKey: $(NONET_LICENSE_PUBLIC_KEY)
     entitlements:
       path: App/Nonet.entitlements

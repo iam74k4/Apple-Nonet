@@ -108,6 +108,15 @@ public struct ActionContext: Sendable {
 public protocol ActionPerforming: AnyObject {
     /// 失敗したら NonetError（表示できる説明つき）を投げる
     func perform(_ action: Action, context: ActionContext) async throws
+    /// perform と同じだが、AI の「結果を表示」の文字列をクリップボードに入れずに返す。ほかのアクションは nil
+    func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String?
+}
+
+extension ActionPerforming {
+    public func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
+        try await perform(action, context: context)
+        return nil
+    }
 }
 
 @MainActor
@@ -145,8 +154,8 @@ public struct MenuItemNode: Identifiable, Equatable, Sendable {
 public protocol MenuReading: AnyObject {
     /// メニューバーを持つ起動中のアプリ
     func runningApps() -> [RunningAppInfo]
-    /// アクセシビリティの許可が必要。Apple メニューは含めない
-    func menuItems(for app: RunningAppInfo) throws -> [MenuItemNode]
+    /// アクセシビリティの許可が必要。Apple メニューは含めない。読むのはメインスレッドの外
+    func menuItems(for app: RunningAppInfo) async throws -> [MenuItemNode]
 }
 
 @MainActor
@@ -202,6 +211,8 @@ public protocol HUDPresenting: AnyObject {
     func update(_ model: HUDModel)
     func hide()
     func showToast(_ toast: ToastModel)
+    /// AI の結果など、読んでコピーできる文を出す（閉じるまで残る）
+    func showResult(_ result: ResultModel)
 }
 
 // MARK: - まとめ

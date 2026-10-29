@@ -77,7 +77,7 @@ config_problems() {
     printf '%s がありません\n' "$file"
     return 0
   fi
-  for key in NONET_APPCAST_URL NONET_PURCHASE_URL; do
+  for key in NONET_APPCAST_URL NONET_PURCHASE_URL NONET_SUPPORT_URL NONET_PRIVACY_URL; do
     value="$(xcconfig_value "$file" "$key")"
     if [[ -z "$value" ]]; then
       printf '%s が空です\n' "$key"

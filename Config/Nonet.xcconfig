@@ -5,5 +5,9 @@ NONET_APPCAST_URL =
 NONET_SPARKLE_PUBLIC_KEY =
 // 購入ページの URL
 NONET_PURCHASE_URL =
+// 利用ガイド・サポートのページの URL（設定の「情報」から開く）
+NONET_SUPPORT_URL =
+// プライバシーポリシーの URL
+NONET_PRIVACY_URL =
 // ライセンスキー検証用の Ed25519 公開鍵（nonet-license keygen の出力）
 NONET_LICENSE_PUBLIC_KEY =

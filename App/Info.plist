@@ -37,8 +37,12 @@
 	<string>© 2026 Takanari Okazaki</string>
 	<key>NonetLicensePublicKey</key>
 	<string>$(NONET_LICENSE_PUBLIC_KEY)</string>
+	<key>NonetPrivacyURL</key>
+	<string>$(NONET_PRIVACY_URL)</string>
 	<key>NonetPurchaseURL</key>
 	<string>$(NONET_PURCHASE_URL)</string>
+	<key>NonetSupportURL</key>
+	<string>$(NONET_SUPPORT_URL)</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>

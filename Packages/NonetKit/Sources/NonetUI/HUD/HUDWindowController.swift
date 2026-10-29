@@ -15,4 +15,6 @@ public final class HUDWindowController: HUDPresenting {
     public func hide() {}
 
     public func showToast(_ toast: ToastModel) {}
+
+    public func showResult(_ result: ResultModel) {}
 }

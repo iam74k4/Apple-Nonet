@@ -3,13 +3,9 @@ import Foundation
 import os
 
 extension Bundle {
-    /// Actions の文言を引く場所。NonetPlatform にリソースが追加されれば .module、それまではアプリ本体
+    /// Actions の文言を引く場所
     static var nonetActions: Bundle {
-        #if SWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE
         .module
-        #else
-        .main
-        #endif
     }
 }
 
