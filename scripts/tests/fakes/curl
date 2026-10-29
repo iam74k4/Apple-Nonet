@@ -1,17 +1,39 @@
 #!/bin/bash
-# テスト用の偽の curl。ネットワークには出ない。
-#   FAKE_CURL_BODY    このファイルを -o の先にコピーして成功する
-#   FAKE_CURL_STATUS  終了コード（既定 22 = HTTP のエラー。公開中の appcast がまだ無い状態）
+# テスト用の偽の curl。ネットワークには出ない。本物と同じく、HTTP のエラーでも -f が無ければ終了コードは 0 で、
+# -o の先にはエラーのページが入り、-w の %{http_code} に状態コードが出る。
+#   FAKE_CURL_BODY       状態コードが 200 のとき、このファイルを -o の先にコピーする
+#   FAKE_CURL_HTTP_CODE  状態コード（既定: FAKE_CURL_BODY があれば 200、無ければ 404 = 公開中の appcast がまだ無い）
+#   FAKE_CURL_STATUS     0 以外なら、つながらなかったとしてこの終了コードで終わる（状態コードは 000）
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${FAKE_LOG:?}"
 
-out=""
+out="" write_out="" fail=0
 while [[ $# -gt 0 ]]; do
-  [[ "$1" != -o ]] || out="$2"
+  case "$1" in
+    -o) out="$2" && shift ;;
+    -w) write_out="$2" && shift ;;
+    -f | --fail | -[a-zA-Z]*f*) fail=1 ;;
+  esac
   shift
 done
-if [[ -n "${FAKE_CURL_BODY:-}" ]]; then
-  cp "$FAKE_CURL_BODY" "${out:?}"
-  exit 0
+
+status="${FAKE_CURL_STATUS:-0}"
+if [[ "$status" != 0 ]]; then
+  code=000
+else
+  if [[ -n "${FAKE_CURL_BODY:-}" ]]; then
+    code="${FAKE_CURL_HTTP_CODE:-200}"
+  else
+    code="${FAKE_CURL_HTTP_CODE:-404}"
+  fi
+  if [[ "$code" -ge 400 && "$fail" == 1 ]]; then
+    status=22
+  elif [[ "$code" == 200 && -n "${FAKE_CURL_BODY:-}" ]]; then
+    cp "$FAKE_CURL_BODY" "${out:?}"
+  else
+    printf '<html><body>%s</body></html>\n' "$code" >"${out:?}"
+  fi
 fi
-exit "${FAKE_CURL_STATUS:-22}"
+pattern='%{http_code}'
+[[ -z "$write_out" ]] || printf '%s' "${write_out//"$pattern"/$code}"
+exit "$status"

@@ -107,7 +107,8 @@ NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 
 HTTPS で静的なファイルを置ける場所なら何でもよい（Cloudflare Pages / R2、GitHub Pages ＋ Releases、Netlify、S3 ＋ CloudFront など）。決めること:
 
-- appcast.xml の URL（`NONET_APPCAST_URL`。一度出したら変えない。変えるときは古い URL からリダイレクトする）
+- appcast.xml の URL（`NONET_APPCAST_URL`。一度出したら変えない。変えるときは古い URL からリダイレクトする）。ファイル名は `appcast.xml` でなくてもよい（手元ではいつも `appcast.xml` として作るので、その URL の名前でアップロードする）
+- 無いファイルには 404 を返す設定にする。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバックなど）だと、スクリプトが公開中の appcast を確かめられずに止まる
 - DMG を置く URL。既定では appcast.xml と同じ場所（例: `https://nonet.example.com/updates/Nonet-1.0.0.dmg`）。別にするなら `NONET_DOWNLOAD_URL_PREFIX` を設定する
 - 販売ページ（`site/`）の置き場所。「ダウンロード」ボタンは最新の DMG を指すので、毎回書き換えるか、最新を指す固定の URL（例: `/download` から最新の DMG へリダイレクト）を用意する
 
@@ -136,6 +137,8 @@ scripts/check-site.sh --strict   # TODO が1つでも残っていれば失敗
 
 `.html`・`.md`・`.txt` のどれかで短く書く（例: `notes/1.2.0.md`）。Sparkle のアップデートの画面に出る。HTML なら `<body>` などを付けない断片にする。
 
+`--notes` に渡したファイルは、リポジトリの中にあってもコミットしていなくてよい（本番の「コミットしていない変更」の確認から、このファイルだけは外す。アプリには入らないため）。残しておくなら、本番の後、タグを付ける前にコミットする。ほかのファイルに変更があれば、これまでどおり本番は止まる。
+
 ### 2.3 試しに通す（dry run）
 
 ```bash
@@ -150,17 +153,23 @@ scripts/release.sh --dry-run 1.2.0 42
 NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.0 42
 ```
 
+**初めてのリリースだけ** `--first-release` を付ける（dry run でも同じ）。公開中の appcast が無い（`NONET_APPCAST_URL` が 404 か 410 を返す）とき、このオプションが無ければスクリプトは止まる。URL の書き間違いや、`NONET_RELEASES_DIR` の appcast.xml が無い状態で、過去の版の項目が消えた appcast を作って公開中のものを上書きしないためである。
+
+```bash
+NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes notes/1.0.0.md 1.0.0 1
+```
+
 スクリプトがすること:
 
-1. 準備の確認（コマンド・Developer ID 証明書・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更）。足りないものをまとめて表示して止まる
+1. 準備の確認（コマンド・Developer ID 証明書・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く）。足りないものをまとめて表示して止まる
 2. XcodeGen でプロジェクトを作り、パッケージを解決する
-3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。手元に appcast.xml が無ければ、公開中のもの（`NONET_APPCAST_URL`）を取ってくる
+3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。手元に appcast.xml が無ければ、公開中のもの（`NONET_APPCAST_URL`）を取ってくる。取れなければ（403・503・ネットワークのエラーなど）止まる。404・410 で新しく作るのは `--first-release` のときだけ
 4. `xcodebuild archive`（Release・Developer ID Application・hardened runtime・`--timestamp`）
 5. `ExportOptions.plist`（`method` は `developer-id`）で書き出す
 6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の実行ファイル（Sparkle の XPC サービスなど）、Info.plist の版と販売用の値
 7. アプリを zip にして `xcrun notarytool submit --wait` で公証し、`stapler staple` してから `spctl -a -vv` で Gatekeeper の評価を確かめる
 8. DMG を作る（ボリューム名 `Nonet`、`/Applications` へのリンクつき）→ 署名 → 公証 → ステープル → `spctl` で確認
-9. DMG とリリースノートを公開用のフォルダ（`NONET_RELEASES_DIR`、既定 `build/releases`）に入れ、`generate_appcast` で appcast.xml を更新する
+9. DMG とリリースノートを公開用のフォルダ（`NONET_RELEASES_DIR`、既定 `build/releases`）に入れ、`generate_appcast` で appcast.xml を更新する（`NONET_APPCAST_URL` のファイル名にかかわらず、手元の名前は `appcast.xml`）
 
 公証が通らなければ、notarytool のログを表示して止まる。作業用のファイルとログは `build/release/<バージョン>/` に残る。
 
@@ -172,7 +181,7 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 | `NONET_SPARKLE_KEY_ACCOUNT` | `ed25519` | Sparkle の秘密鍵のキーチェーンのアカウント名 |
 | `NONET_NOTARY_TIMEOUT` | `1h` | 公証の結果を待つ上限 |
 
-オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--allow-dirty`（コミットしていない変更があっても続ける）、`--help`。
+オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--first-release`（初めてのリリース。公開中の appcast が無ければ新しく作る）、`--allow-dirty`（コミットしていない変更があっても続ける）、`--help`。
 
 `NONET_RELEASES_DIR` には過去の DMG と appcast.xml が貯まる。Sparkle は古い版との差分（`*.delta`）をここで作り、古い項目は `old_updates/` に移す。`build/` は消しても困らないよう、公開中の appcast.xml はスクリプトが取ってくるが、差分を作るには過去の DMG が要るので、バックアップされる場所を指定しておくとよい。
 
@@ -181,7 +190,7 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 順番が大事（appcast が先に出ると、まだ無い DMG を指してしまう）。
 
 1. `Nonet-1.2.0.dmg` と、新しくできた `*.delta` を DMG の置き場所へ
-2. そのあと `appcast.xml` を `NONET_APPCAST_URL` へ（`old_updates/` は上げない）
+2. そのあと `appcast.xml` を `NONET_APPCAST_URL` へ（`old_updates/` は上げない）。URL のファイル名が `appcast.xml` でなければ、その名前で上げる（スクリプトが最後に表示する）
 3. 販売ページの「ダウンロード」が新しい DMG を指すようにする
 
 ### 2.6 確かめる
@@ -204,6 +213,10 @@ git push origin v1.2.0
 | 公証が `Invalid` | スクリプトが出すログを見る。よくあるのは、署名の無い実行ファイル・タイムスタンプが無い・hardened runtime が無い。`xcrun notarytool log <ID> --keychain-profile "$NONET_NOTARY_PROFILE"` でもう一度見られる |
 | `spctl` が `rejected` | 公証とステープルが済んでいるか（`xcrun stapler validate`）。dry run では rejected が正常 |
 | 「ビルド番号は…より大きく」 | 公開済みより大きい番号にする。公開していない試しの項目なら appcast.xml から消す |
+| 「公開中の appcast が見つかりません（HTTP 404）」 | 初めてのリリースなら `--first-release` を付ける。公開済みなら `NONET_APPCAST_URL` が公開中の URL と同じか確かめる。分からなければ、公開中の appcast をダウンロードして `NONET_RELEASES_DIR/appcast.xml` に置く |
+| 「公開中の appcast を取得できませんでした（HTTP 403 など）」 | ホスティングのアクセス制限（ボット対策・権限）や一時的な障害。`curl -I <appcast の URL>` で確かめる。直せなければ、公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置いてからやり直す |
+| 「中身が appcast（RSS）ではありません」 | 無いファイルにも 200 でページを返す設定になっていないか（1.7） |
+| 「コミットしていない変更があります」 | `git status` で確かめる。`--notes` のファイルは数えない |
 | Sparkle の鍵が一致しない | 別の Mac や別のアカウント名で鍵を作っていないか。バックアップから `generate_keys -f` で取り込む |
 | アップデートが見つからない | appcast の `sparkle:version` が今の版より大きいか、appcast と DMG の URL に HTTPS で届くか、`SUPublicEDKey` が鍵と一致しているか |
 
@@ -275,7 +288,8 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] `scripts/test.sh` が通る（CI も緑）
 
 **配布**
-- [ ] `scripts/release.sh --dry-run` が通り、本番も通った
+- [ ] `scripts/release.sh --dry-run --first-release` が通り、本番（`--first-release` 付き）も通った
+- [ ] 無いファイルの URL に 404 が返る（`curl -I <無いファイルの URL>`）
 - [ ] 公開した URL から落とした DMG が、macOS 14 と macOS 26 の両方で警告なく開く
 - [ ] 一つ前の版から Sparkle でアップデートできた（2回目のリリースから）
 - [ ] appcast.xml と DMG に HTTPS で届く

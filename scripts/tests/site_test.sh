@@ -13,6 +13,9 @@ write_fixture_site() {
 <title>テスト</title>
 <meta name="description" content="テスト用のページ">
 <link rel="stylesheet" href="style.css">
+<link rel="canonical" href="https://nonet.test/">
+<link rel="alternate" hreflang="en" href="https://nonet.test/en/">
+<script src="script.js" defer></script>
 </head>
 <body>
 <main id="main">
@@ -25,11 +28,13 @@ write_fixture_site() {
 </html>
 EOF
   sed -e 's/lang="ja"/lang="en"/' -e 's|href="en/"|href="../"|' -e 's|href="style.css"|href="../style.css"|' \
-    -e 's|src="logo.svg"|src="../logo.svg"|' "$SITE/index.html" >"$SITE/en/index.html"
+    -e 's|src="logo.svg"|src="../logo.svg"|' -e 's|src="script.js"|src="../script.js"|' "$SITE/index.html" >"$SITE/en/index.html"
   cp "$SITE/index.html" "$SITE/privacy.html"
   cp "$SITE/en/index.html" "$SITE/en/privacy.html"
-  printf 'body { color: black; }\n' >"$SITE/style.css"
+  printf 'body { color: black; background: url("bg.svg"); }\n' >"$SITE/style.css"
   printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' >"$SITE/logo.svg"
+  cp "$SITE/logo.svg" "$SITE/bg.svg"
+  printf '// コメントの // は URL ではない\nconst a = "x"; // 終わり\n' >"$SITE/script.js"
 }
 
 check_fixture() {
@@ -77,9 +82,60 @@ test_external_resources_are_rejected() {
   printf '@import url("https://fonts.googleapis.com/css2");\n' >>"$SITE/style.css"
   check_fixture
   assert_status 1
-  assert_contains "$OUT" "index.html: 外部のスクリプトを読み込んでいます"
-  assert_contains "$OUT" "en/index.html: 外部のスタイルやフォントを読み込んでいます"
+  assert_contains "$OUT" "index.html: 外部のスクリプトを読み込んでいます（<script> の https://cdn.nonet.test/x.js）"
+  assert_contains "$OUT" "en/index.html: 外部のスタイル・フォント・アイコンなどを読み込んでいます（<link> の https://fonts.googleapis.com/"
   assert_contains "$OUT" "style.css: 外部のファイルを読み込んでいます"
+}
+
+# 1 行の <script src> と <link rel=stylesheet> 以外の書き方でも、外部の読み込みを見逃さない
+test_external_resources_in_other_forms_are_rejected() {
+  write_fixture_site
+  cat >>"$SITE/index.html" <<'EOF'
+<style>@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP");</style>
+<link rel="icon" href="https://cdn.nonet.test/icon.png">
+<img src='https://pixel.nonet.test/p.gif' alt="">
+<iframe
+  title="動画"
+  src="https://www.youtube.com/embed/x"></iframe>
+EOF
+  cat >>"$SITE/en/index.html" <<'EOF'
+<IMG SRC="//cdn.nonet.test/a.png" ALT="a">
+<img src="../logo.svg" srcset="../logo.svg 1x, https://cdn.nonet.test/b.png 2x" alt="b">
+<video poster="https://cdn.nonet.test/poster.jpg"><source src="https://cdn.nonet.test/v.mp4"></video>
+<div style="background: URL( 'https://cdn.nonet.test/bg.png' )"></div>
+EOF
+  cat >"$SITE/bg.svg" <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="https://cdn.nonet.test/i.png"/></svg>
+EOF
+  printf 'fetch("https://analytics.nonet.test/hit");\n' >>"$SITE/script.js"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "index.html: 外部のファイルを読み込んでいます（<style> や style 属性の @import・url(https://…)）"
+  assert_contains "$OUT" "index.html: 外部のスタイル・フォント・アイコンなどを読み込んでいます（<link> の https://cdn.nonet.test/icon.png）"
+  assert_contains "$OUT" "index.html: 外部の画像や埋め込みを読み込んでいます（<img> の https://pixel.nonet.test/p.gif）"
+  assert_contains "$OUT" "index.html: 外部の画像や埋め込みを読み込んでいます（<iframe> の https://www.youtube.com/embed/x）"
+  assert_contains "$OUT" "en/index.html: 外部の画像や埋め込みを読み込んでいます（<img> の //cdn.nonet.test/a.png）"
+  assert_contains "$OUT" "en/index.html: 外部の画像や埋め込みを読み込んでいます（<img> の ../logo.svg 1x, https://cdn.nonet.test/b.png 2x）"
+  assert_contains "$OUT" "en/index.html: 外部の画像や埋め込みを読み込んでいます（<video> の https://cdn.nonet.test/poster.jpg）"
+  assert_contains "$OUT" "en/index.html: 外部の画像や埋め込みを読み込んでいます（<source> の https://cdn.nonet.test/v.mp4）"
+  assert_contains "$OUT" "en/index.html: 外部のファイルを読み込んでいます（<style> や style 属性"
+  assert_contains "$OUT" "bg.svg: 外部の画像や埋め込みを読み込んでいます（<image> の https://cdn.nonet.test/i.png）"
+  assert_contains "$OUT" "script.js: 外部の URL があります"
+}
+
+# リンク・関係を示すだけの <link>・ローカルのファイルは、外部の読み込みではない
+test_links_and_local_resources_are_allowed() {
+  write_fixture_site
+  cat >>"$SITE/index.html" <<'EOF'
+<a
+  href='https://store.nonet.test/buy'>購入</a>
+<link rel="alternate" type="application/rss+xml" href="https://nonet.test/updates/appcast.xml">
+<img src='logo.svg' srcset="logo.svg 1x, bg.svg 2x" alt="ロゴ">
+<div style="background: url('bg.svg')"></div>
+EOF
+  check_fixture
+  assert_status 0
+  assert_contains "$OUT" "サイトに問題はありません"
 }
 
 test_trademark_notice_and_privacy_link_are_required() {

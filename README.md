@@ -47,6 +47,9 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 
 アーカイブ → 書き出し → 署名の確認 → 公証とステープル → DMG（署名・公証・ステープル）→ appcast の更新までを行う。足りないものがあれば、ビルドの前にまとめて知らせて止まる。公開前には `scripts/check-site.sh --strict` で販売ページの仮の値が残っていないかを確かめる。
 
+- 初めてのリリース（まだ appcast を公開していない）ときだけ `--first-release` を付ける。それ以外で公開中の appcast を取れなければ、過去の項目を消さないよう止まる
+- `--notes` のファイルはコミットしていなくてよい（コミットしていない変更の確認から外す）。残すならタグの前にコミットする
+
 ## ドキュメント
 
 - [docs/architecture.md](docs/architecture.md): 設計・担当・共通の決まり・操作と機能の仕様

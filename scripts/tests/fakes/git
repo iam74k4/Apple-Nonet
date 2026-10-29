@@ -2,8 +2,10 @@
 # テスト用の偽の git。作業ツリーかどうかと status --porcelain だけに答える。
 #   FAKE_GIT_STATUS    status --porcelain の出力（空ならきれいな状態）
 #   FAKE_GIT_NOT_REPO  1 なら作業ツリーではない
+#   FAKE_GIT_REAL      1 なら記録だけして本物の git（/usr/bin/git）に任せる
 set -euo pipefail
 printf 'git %s\n' "$*" >>"${FAKE_LOG:?}"
+[[ -z "${FAKE_GIT_REAL:-}" ]] || exec /usr/bin/git "$@"
 
 [[ "${1:-}" != -C ]] || shift 2
 case "${1:-}" in

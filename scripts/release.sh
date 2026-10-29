@@ -19,7 +19,9 @@ usage() {
 オプション:
   --dry-run          公証とステープルをせずに、署名した DMG と appcast の試し版まで作る。
                      公開用のフォルダ（NONET_RELEASES_DIR）には触れない
-  --notes <ファイル>  リリースノート（.html / .md / .txt）。appcast に埋め込まれる
+  --notes <ファイル>  リリースノート（.html / .md / .txt）。appcast に埋め込まれる。
+                     リポジトリの中に置いても、このファイルはコミットしていなくてよい
+  --first-release    初めてのリリース。公開中の appcast が無い（HTTP 404・410）ときに、新しく作ってよいことを示す
   --allow-dirty      コミットしていない変更があっても続ける
   -h, --help         この説明を表示する
 
@@ -33,6 +35,7 @@ usage() {
 できるもの:
   build/release/<バージョン>/   作業用（アーカイブ・書き出した .app・ログ）
   $NONET_RELEASES_DIR/Nonet-<バージョン>.dmg と appcast.xml（--dry-run では作業用フォルダの appcast-preview/）
+  手元の appcast は NONET_APPCAST_URL のファイル名にかかわらず appcast.xml。その URL にアップロードする
 EOF
 }
 
@@ -97,6 +100,11 @@ config_problems() {
   done
 }
 
+# Sparkle の appcast（RSS）らしい中身か。ホスティングによっては、無いファイルにも 200 で index.html を返す
+is_appcast_file() {
+  grep -qE '<rss[[:space:]>]' "$1" 2>/dev/null
+}
+
 # appcast に載っている最大のビルド番号（sparkle:version）。無ければ空文字
 appcast_latest_build() {
   [[ -f "$1" ]] || return 0
@@ -104,6 +112,12 @@ appcast_latest_build() {
     grep -oE '[0-9]+' |
     sort -n |
     tail -n 1 || true
+}
+
+# URL の最後の名前（? と # から後ろは除く）。例: https://x/updates/nonet.xml?v=1 → nonet.xml
+url_file_name() {
+  local path="${1%%[?#]*}"
+  printf '%s' "${path##*/}"
 }
 
 # appcast.xml と同じ場所（末尾は /）
@@ -149,8 +163,24 @@ signature_problems() {
   return 0
 }
 
+# コミットしていない変更（git status --porcelain）。--notes のファイルがリポジトリの中にあれば、それだけは数えない
+# （アプリには入らないので、リリースの後でタグと一緒にコミットすればよい）
+uncommitted_changes() {
+  local root="$1" notes="$2" root_real notes_real
+  local pathspecs=(":(top)")
+  if [[ -n "$notes" && -f "$notes" ]]; then
+    root_real="$(cd "$root" && pwd -P)"
+    notes_real="$(cd "$(dirname "$notes")" && pwd -P)/$(basename "$notes")"
+    if [[ "$notes_real" == "$root_real"/* ]]; then
+      pathspecs+=(":(exclude,literal)${notes_real#"$root_real"/}")
+    fi
+  fi
+  git -C "$root" status --porcelain -- "${pathspecs[@]}" 2>/dev/null || true
+}
+
 parse_args() {
   DRY_RUN=0
+  FIRST_RELEASE=0
   ALLOW_DIRTY=0
   NOTES=""
   VERSION=""
@@ -163,6 +193,7 @@ parse_args() {
         exit 0
         ;;
       --dry-run) DRY_RUN=1 ;;
+      --first-release) FIRST_RELEASE=1 ;;
       --allow-dirty) ALLOW_DIRTY=1 ;;
       --notes)
         [[ $# -ge 2 && -n "$2" ]] || usage_error "--notes にはファイルを指定してください"
@@ -230,7 +261,7 @@ preflight() {
   fi
 
   if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    dirty="$(git -C "$ROOT" status --porcelain 2>/dev/null || true)"
+    dirty="$(uncommitted_changes "$ROOT" "$NOTES")"
     if [[ -n "$dirty" ]]; then
       if [[ "$DRY_RUN" == 1 || "$ALLOW_DIRTY" == 1 ]]; then
         warn "コミットしていない変更があります"
@@ -275,22 +306,45 @@ check_sparkle_key() {
     die "キーチェーンの Sparkle の鍵（公開鍵 $actual）が NONET_SPARKLE_PUBLIC_KEY と違います。このまま出すと、利用者がアップデートを受け取れなくなります"
 }
 
-# appcast.xml が手元に無ければ、公開中のものを取ってくる。404 なら初めてのリリースとして新しく作る
+# appcast.xml が手元に無ければ、公開中のものを取ってくる。
+# 公開中のものを取れないまま新しく作ると、過去の項目が消えた appcast で公開中のものを上書きしてしまう。
+# そのため新しく作るのは「404・410（まだ無い）かつ --first-release」のときだけで、403・503 などでは止まる
 fetch_published_appcast() {
-  local dest="$1" url="$2" status=0
+  local dest="$1" url="$2" first_release="$3" code="" status=0 retry
   [[ ! -f "$dest" ]] || return 0
-  curl -fsSL --max-time 30 -o "$dest.download" "$url" || status=$?
-  if [[ "$status" == 0 ]]; then
-    mv "$dest.download" "$dest"
-    info "公開中の appcast を取り込みました: $url"
-  elif [[ "$status" == 22 ]]; then
-    rm -f "$dest.download"
-    info "公開中の appcast はまだありません。新しく作ります（初めてのリリースなら正常）"
-  else
+  retry="ネットワークやサーバーを確かめるか、公開中の appcast を $dest に置いてからやり直してください"
+  # -f は 400 以上をすべて同じ終了コード（22）にするので使わず、状態コードを受け取る。
+  # curl の失敗は exit で返す（set -E の ERR トラップがコマンド置換の中で鳴らないように）
+  code="$(curl -sSL --max-time 30 -o "$dest.download" -w '%{http_code}' "$url" || exit $?)" || status=$?
+  if [[ "$status" != 0 ]]; then
     rm -f "$dest.download"
     die "公開中の appcast を取得できませんでした（curl の終了コード $status）: $url
-    ネットワークを確かめるか、公開中の appcast.xml を $(dirname "$dest") に置いてからやり直してください"
+    $retry"
   fi
+  case "$code" in
+    200)
+      if ! is_appcast_file "$dest.download"; then
+        rm -f "$dest.download"
+        die "公開中の appcast の中身が appcast（RSS）ではありません: $url
+    サーバーが、無いファイルにも 200 で別のページ（index.html など）を返していないか確かめてください"
+      fi
+      mv "$dest.download" "$dest"
+      info "公開中の appcast を取り込みました: $url"
+      ;;
+    404 | 410)
+      rm -f "$dest.download"
+      [[ "$first_release" == 1 ]] || die "公開中の appcast が見つかりません（HTTP $code）: $url
+    初めてのリリースなら --first-release を付けてください。
+    公開済みなら、NONET_APPCAST_URL が公開中の URL と同じかを確かめるか、公開中の appcast を $dest に置いてからやり直してください
+    （このまま新しく作ると、過去の版の項目が消えた appcast になり、利用者にアップデートが届かなくなります）"
+      info "公開中の appcast はまだありません（HTTP $code）。初めてのリリースとして新しく作ります"
+      ;;
+    *)
+      rm -f "$dest.download"
+      die "公開中の appcast を取得できませんでした（HTTP ${code:-不明}）: $url
+    $retry"
+      ;;
+  esac
 }
 
 write_export_options() {
@@ -452,12 +506,15 @@ main() {
 
   step "Sparkle の鍵とビルド番号を確かめる"
   check_sparkle_key "$SPARKLE_BIN" "$SPARKLE_PUBLIC_KEY"
-  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL"
+  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL" "$FIRST_RELEASE"
   local latest
   latest="$(appcast_latest_build "$appcast_dir/appcast.xml")"
   if [[ -n "$latest" && "$BUILD" -le "$latest" ]]; then
     die "ビルド番号 $BUILD は、appcast に載っている最大の $latest より大きくしてください（Sparkle はビルド番号で新旧を比べます）。
     公開していない試しの項目なら、$appcast_dir/appcast.xml から消してください"
+  fi
+  if [[ "$FIRST_RELEASE" == 1 && -n "$latest" ]]; then
+    warn "--first-release を付けていますが、appcast にはすでにビルド $latest までの項目があります（項目はそのまま引き継ぎます）"
   fi
   info "Sparkle の鍵は一致しています。appcast の最新のビルド: ${latest:-なし}"
 
@@ -520,7 +577,8 @@ main() {
   fi
   local prefix
   prefix="$(download_url_prefix "$APPCAST_URL" "${NONET_DOWNLOAD_URL_PREFIX:-}")"
-  local appcast_args=(--account "$SPARKLE_ACCOUNT" --download-url-prefix "$prefix")
+  # -o が無いと generate_appcast は SUFeedURL の最後の名前（例: nonet.xml）で読み書きするので、手元の名前を決めておく
+  local appcast_args=(--account "$SPARKLE_ACCOUNT" --download-url-prefix "$prefix" -o "$appcast_dir/appcast.xml")
   [[ -z "$NOTES" ]] || appcast_args+=(--embed-release-notes)
   run_logged "$WORK/generate_appcast.log" "$SPARKLE_BIN/generate_appcast" "${appcast_args[@]}" "$appcast_dir"
   grep -q "<sparkle:version>$BUILD</sparkle:version>" "$appcast_dir/appcast.xml" 2>/dev/null ||
@@ -534,9 +592,12 @@ main() {
     info "dry run なので公証していません。この DMG は配らないでください"
     return 0
   fi
+  local feed_name rename=""
+  feed_name="$(url_file_name "$APPCAST_URL")"
+  [[ -z "$feed_name" || "$feed_name" == appcast.xml ]] || rename="（ファイル名を $feed_name にする）"
   info "次にやること（docs/release.md「リリースごとの手順」）:"
   info "  1. Nonet-$VERSION.dmg と新しい *.delta を $prefix にアップロード"
-  info "  2. そのあと appcast.xml を $APPCAST_URL にアップロード"
+  info "  2. そのあと appcast.xml を $APPCAST_URL にアップロード$rename"
   info "  3. git tag -a v$VERSION -m \"Nonet $VERSION\" && git push origin v$VERSION"
 }
 

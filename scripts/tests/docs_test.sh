@@ -37,6 +37,28 @@ test_user_guide_covers_every_script_variable() {
   done
 }
 
+# 「指を離したとき」（ExecutionTiming.onFingerLift）では指を離すと実行されるので、やめ方は実行のタイミングごとに書く
+test_user_guide_cancel_covers_both_execution_timings() {
+  local section
+  section="$(sed -n '/^### やめる/,/^##/p' "$ROOT/docs/user-guide.md")"
+  [[ -n "$section" ]] || fail "docs/user-guide.md に「やめる」の節がありません"
+  assert_contains "$section" "「キーを離したとき」（既定）" "やめる: 既定のタイミングでのやめ方"
+  assert_contains "$section" "「指を離したとき」" "やめる: 指を離したときのやめ方"
+  assert_contains "$section" "左の⇧" "やめる: ほかのキーで中断できること"
+  assert_contains "$section" "空きマス" "やめる: 空きマスで離せば何も起きないこと"
+}
+
+# ドキュメントに書いた release.sh のオプションが、スクリプトにあること
+test_documented_release_options_exist() {
+  local doc option options
+  options="$(sed -n '/^usage()/,/^}/p' "$ROOT/scripts/release.sh" | grep -oE -- '--[a-z-]+' | sort -u)"
+  for doc in README.md docs/release.md; do
+    for option in $(grep -E 'scripts/release\.sh' "$ROOT/$doc" | grep -oE -- '(^|[[:space:]`])--[a-z][a-z-]*' | grep -oE -- '--[a-z-]+' | sort -u); do
+      grep -qx -- "$option" <<<"$options" || fail "$doc: release.sh に無いオプションです: $option"
+    done
+  done
+}
+
 test_release_doc_covers_script_options_and_variables() {
   local name
   for name in $(sed -n '/^usage()/,/^}/p' "$ROOT/scripts/release.sh" | grep -oE 'NONET_[A-Z_]+|--[a-z-]+' | sort -u); do

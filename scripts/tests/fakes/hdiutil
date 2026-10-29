@@ -1,5 +1,5 @@
 #!/bin/bash
-# テスト用の偽の hdiutil。create では中身の一覧を記録し、ビルド番号入りの偽の DMG を作る
+# テスト用の偽の hdiutil。create では中身の一覧を記録し、ビルド番号と SUFeedURL 入りの偽の DMG を作る
 set -euo pipefail
 printf 'hdiutil %s\n' "$*" >>"${FAKE_LOG:?}"
 
@@ -15,8 +15,10 @@ case "${1:-}" in
     if [[ -L "$src/Applications" ]]; then
       printf 'hdiutil applications-link: %s\n' "$(readlink "$src/Applications")" >>"$FAKE_LOG"
     fi
-    build="$(plutil -extract CFBundleVersion raw -o - "$src/Nonet.app/Contents/Info.plist")"
-    printf 'fake dmg build=%s\n' "$build" >"$out"
+    plist="$src/Nonet.app/Contents/Info.plist"
+    build="$(plutil -extract CFBundleVersion raw -o - "$plist")"
+    feed="$(plutil -extract SUFeedURL raw -o - "$plist" 2>/dev/null || true)"
+    printf 'fake dmg build=%s feed=%s\n' "$build" "$feed" >"$out"
     ;;
   verify) ;;
   *) exit 1 ;;

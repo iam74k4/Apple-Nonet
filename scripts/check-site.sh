@@ -32,6 +32,72 @@ problem() {
   PROBLEMS=$((PROBLEMS + 1))
 }
 
+# 外部（http(s):// か //）を指す値か。srcset のように URL を並べた値も見る。値は小文字にしてから渡す
+points_outside() {
+  local re='(^|[[:space:],])(https?:)?//'
+  [[ "$1" =~ $re ]]
+}
+
+# タグの属性の値（引用符は外す）を1行ずつ出す。names は「src|href」のような正規表現
+attribute_values() {
+  local tag="$1" names="$2" pair value
+  while IFS= read -r pair; do
+    value="$(trim "${pair#*=}")"
+    case "$value" in
+      \"*\" | \'*\') value="${value:1:${#value}-2}" ;;
+    esac
+    printf '%s\n' "$value"
+  done < <(LC_ALL=C grep -oE "[[:space:]]($names)[[:space:]]*=[[:space:]]*(\"[^\"]*\"|'[^']*'|[^[:space:]\"'>]+)" <<<"$tag" || true)
+}
+
+# <link> が、ページを開いただけで読み込まれるか。関係を示すだけの rel（alternate・canonical など）は読み込まない
+link_fetches() {
+  local rels token tokens=()
+  rels="$(attribute_values "$1" rel)"
+  read -r -a tokens <<<"$rels" || true
+  # rel が無い・空の <link> は、念のため読み込むものとして扱う
+  [[ ${#tokens[@]} -gt 0 ]] || return 0
+  for token in "${tokens[@]}"; do
+    case "$token" in
+      alternate | canonical | author | license | me | help | bookmark | next | prev) ;;
+      *) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# プライバシーの約束（クッキー・解析・外部のフォントやスクリプトを使わない）のため、
+# 開いただけで外部に取りに行くものが無いかを見る。改行をまたぐタグ・一重引用符・大文字も見るよう、
+# 1 行にまとめて小文字にしてから調べる。<a> のリンクは押すまで読み込まれないので対象外
+check_external_markup() {
+  local file="$1" rel="$2" flat tag name value kind
+  flat="$(LC_ALL=C tr '\n\r\t' '   ' <"$file" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  while IFS= read -r tag; do
+    [[ "$tag" == *//* ]] || continue
+    name="${tag#<}"
+    name="${name%%[[:space:]/>]*}"
+    if [[ "$name" == link ]] && ! link_fetches "$tag"; then
+      continue
+    fi
+    case "$name" in
+      script) kind="スクリプト" ;;
+      link) kind="スタイル・フォント・アイコンなど" ;;
+      *) kind="画像や埋め込み" ;;
+    esac
+    while IFS= read -r value; do
+      if points_outside "$value"; then
+        problem "$rel: 外部の${kind}を読み込んでいます（<$name> の $value）"
+      fi
+    done < <(attribute_values "$tag" 'src|href|xlink:href|data|poster|srcset')
+  done < <(LC_ALL=C grep -oE '<(script|link|img|iframe|frame|video|audio|source|track|embed|object|input|image|use|feimage)([[:space:]/][^>]*)?>' <<<"$flat" || true)
+
+  # <style> と style 属性の中の CSS
+  if LC_ALL=C grep -qE "@import|url\\([[:space:]]*[\"']?(https?:)?//" <<<"$flat"; then
+    problem "$rel: 外部のファイルを読み込んでいます（<style> や style 属性の @import・url(https://…)）"
+  fi
+  return 0
+}
+
 # href / src の行き先が存在するか。#id はその id があるか
 check_reference() {
   local file="$1" rel="$2" url="$3" path frag="" target
@@ -82,17 +148,11 @@ check_html() {
     [[ "$tag" == *" alt="* ]] || problem "$rel: alt の無い画像があります: $tag"
   done < <(grep -oE '<img [^>]*>' "$file" || true)
 
-  # プライバシーの約束のため、外部のスクリプト・スタイル・フォントを読み込まない
-  if grep -qE '<script[^>]* src="(https?:)?//' "$file"; then
-    problem "$rel: 外部のスクリプトを読み込んでいます"
-  fi
-  if grep -E '<link[^>]*>' "$file" | grep -E 'rel="(stylesheet|preconnect|preload)"' | grep -qE 'href="(https?:)?//'; then
-    problem "$rel: 外部のスタイルやフォントを読み込んでいます"
-  fi
+  check_external_markup "$file" "$rel"
 
   while IFS= read -r url; do
     check_reference "$file" "$rel" "$url"
-  done < <(grep -oE '(href|src)="[^"]*"' "$file" | sed -E 's/^(href|src)="//; s/"$//' || true)
+  done < <(grep -oE "(href|src)=(\"[^\"]*\"|'[^']*')" "$file" | sed -E "s/^(href|src)=[\"']//; s/[\"']\$//" || true)
 
   if [[ "$(basename "$file")" == index.html ]]; then
     if ! grep -q 'Stream Deck' "$file" || ! grep -q 'Corsair Memory' "$file"; then
@@ -104,8 +164,16 @@ check_html() {
 
 check_css() {
   local file="$1" rel="${1#"$SITE/"}"
-  if grep -nE '@import|url\((["'\'']?)(https?:)?//' "$file" >/dev/null; then
+  if LC_ALL=C grep -qiE "@import|url\\([[:space:]]*[\"']?(https?:)?//" "$file"; then
     problem "$rel: 外部のファイルを読み込んでいます（@import や url(https://…)）"
+  fi
+}
+
+# スクリプトから外部に通信しない（fetch・画像の差し込みなど）。文字列の中の URL を探す
+check_js() {
+  local file="$1" rel="${1#"$SITE/"}"
+  if LC_ALL=C grep -qiE "[\"'\`](https?:)?//" "$file"; then
+    problem "$rel: 外部の URL があります（スクリプトから外部に通信しない）"
   fi
 }
 
@@ -117,6 +185,12 @@ done <<<"$html_files"
 while IFS= read -r file; do
   [[ -z "$file" ]] || check_css "$file"
 done < <(find "$SITE" -type f -name '*.css' | sort)
+while IFS= read -r file; do
+  [[ -z "$file" ]] || check_external_markup "$file" "${file#"$SITE/"}"
+done < <(find "$SITE" -type f -name '*.svg' | sort)
+while IFS= read -r file; do
+  [[ -z "$file" ]] || check_js "$file"
+done < <(find "$SITE" -type f -name '*.js' | sort)
 
 # 公開前に埋める仮の値。TODO の印と、届かない .invalid のドメイン
 todos="$(grep -rnE 'TODO|\.invalid' "$SITE" | sed "s|^$SITE/||" || true)"
