@@ -1,0 +1,250 @@
+// 担当: ui-shell。見た目の確認用。NONET_RENDER_SHOTS=<フォルダ> のときだけ PNG を書き出す（普段の swift test では動かない）
+import AppKit
+import Foundation
+import NonetCore
+@testable import NonetUI
+import SwiftUI
+import Testing
+
+private let shotsDirectory = ProcessInfo.processInfo.environment["NONET_RENDER_SHOTS"]
+
+@Suite("画面の書き出し（NONET_RENDER_SHOTS）", .enabled(if: shotsDirectory != nil))
+@MainActor
+struct ShellRenderTests {
+    static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
+
+    @Test("HUD")
+    func hud() throws {
+        let xcode = try #require(PresetLibrary.preset(forBundleID: ShellFixtures.xcode))
+        let global = PresetLibrary.makeGlobalProfile(installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID)))
+        let models: [(String, HUDModel)] = [
+            ("hud-xcode", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 4, pageCount: 1)),
+            ("hud-launcher-pages", Self.hudModel(title: "グローバル", page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
+            ("hud-empty-banner", HUDModel(
+                title: "とても長い名前のアプリケーションのプロファイル（テスト用の長いタイトル）",
+                pageIndex: 0,
+                pageCount: 2,
+                cells: [
+                    HUDCell(title: "選択範囲を要約してクリップボードへコピー", icon: .symbol("sparkles"), detail: "⌥⇧⌘⌃K → ⌘C → ⌘V"),
+                    nil, nil, nil, nil, nil, nil, nil,
+                    HUDCell(title: "T", icon: .text("あ"), detail: nil),
+                ],
+                highlightedIndex: 5,
+                hint: "⌘を離して実行",
+                banner: "試用期間が終了しました"
+            )),
+        ]
+        for (name, model) in models {
+            let size = HUDLayout.size(for: model)
+            let margin = HUDLayout.shadowMargin
+            let store = HUDStore()
+            store.model = model
+            try Self.render(
+                HUDRootView(store: store).background(Color(white: 0.82)),
+                size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
+                appearance: .aqua,
+                name: name
+            )
+        }
+    }
+
+    @Test("トースト")
+    func toasts() throws {
+        let toasts: [(String, ToastModel)] = [
+            ("toast-success", ToastModel(title: "ビルド", detail: "⌘B", icon: .symbol("play.fill"), style: .success)),
+            ("toast-info", ToastModel(title: "Nonet を無効にしました", style: .info)),
+            ("toast-app", ToastModel(title: "Safari", icon: .app(bundleID: ShellFixtures.safari), style: .success)),
+            ("toast-failure", ToastModel(
+                title: "スクリプトが失敗しました",
+                detail: "zsh:1: command not found: claude\nPATH を ~/.zprofile に書いてください。ログインシェルなので ~/.zshrc は読まれません",
+                icon: .symbol("terminal"),
+                style: .failure
+            )),
+        ]
+        let measurer = NSHostingController(rootView: HUDToastView(toast: ToastModel(title: "")))
+        for (name, toast) in toasts {
+            measurer.rootView = HUDToastView(toast: toast)
+            let fitting = measurer.sizeThatFits(in: CGSize(width: HUDToastLayout.maxWidth, height: 400))
+            let margin = HUDToastLayout.shadowMargin
+            let store = HUDToastStore()
+            store.toast = toast
+            try Self.render(
+                HUDToastRootView(store: store).background(Color(white: 0.82)),
+                size: CGSize(width: min(ceil(fitting.width), HUDToastLayout.maxWidth) + margin * 2, height: ceil(fitting.height) + margin * 2),
+                appearance: .aqua,
+                name: name
+            )
+        }
+    }
+
+    @Test("結果のパネル")
+    func result() throws {
+        let text = """
+        この記事は、MacBook のトラックパッドを 3×3 のボタンとして使うアイデアを紹介しています。
+
+        ・トリガーキーを押している間だけ、トラックパッドが9つのボタンになる
+        ・慣れたらすぐにタップして実行し、迷ったときだけ HUD で確かめる
+        ・前面のアプリに合わせて9マスが切り替わり、1つのアプリに最大3ページまで置ける
+
+        設定は Mac の中だけに保存され、アカウントも要りません。
+        """
+        let screen = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 875))
+        for (suffix, appearance) in Self.appearances {
+            for (name, body) in [("result", text), ("result-long", String(repeating: text + "\n\n", count: 6))] {
+                let store = HUDResultStore()
+                store.model = ResultModel(title: "ページを要約", text: body, icon: .symbol("sparkles"))
+                let size = HUDResultLayout.panelSize(textHeight: HUDResultLayout.textHeight(of: body), screen: screen)
+                try Self.render(
+                    HUDResultView(store: store, onCopy: {}, onClose: {})
+                        .background(Color(nsColor: .windowBackgroundColor)),
+                    size: size,
+                    appearance: appearance,
+                    name: "\(name)-\(suffix)"
+                )
+            }
+        }
+    }
+
+    @Test("初回起動")
+    func onboarding() throws {
+        let allPresets = Set(PresetLibrary.apps.map(\.app.bundleID) + PresetLibrary.launcherCandidates.map(\.bundleID))
+        for (suffix, appearance) in Self.appearances {
+            // 1. 許可待ち・許可済み
+            let waiting = Self.onboardingModel(installed: allPresets, granted: false)
+            try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-1-welcome-\(suffix)")
+            let granted = Self.onboardingModel(installed: allPresets, granted: true)
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-1-granted-\(suffix)")
+
+            // 2. アプリを選ぶ（多い・もう一度見る・無い）
+            granted.0.next()
+            granted.0.toggle(ShellFixtures.safari)
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-2-apps-\(suffix)")
+            let rerun = Self.onboardingModel(installed: allPresets, granted: true, replacesProfiles: false)
+            rerun.0.next()
+            try Self.renderOnboarding(rerun.0, appearance: appearance, name: "onboarding-2-rerun-\(suffix)")
+            let none = Self.onboardingModel(installed: [], granted: true)
+            none.0.next()
+            try Self.renderOnboarding(none.0, appearance: appearance, name: "onboarding-2-empty-\(suffix)")
+
+            // 3. 試してみる（待ち・違うマス・成功・試せない）
+            granted.0.skipSelection()
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-practice-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: 6, date: Date().addingTimeInterval(60)))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-wrong-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: 2, date: Date().addingTimeInterval(61)))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-success-\(suffix)")
+            waiting.0.next()
+            waiting.0.skipSelection()
+            try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-\(suffix)")
+
+            // 4. 完了
+            granted.0.next()
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-4-done-\(suffix)")
+            granted.0.close()
+            waiting.0.close()
+        }
+    }
+
+    @Test("メニューバーのアイコン")
+    func menuBarIcons() throws {
+        for (suffix, background, tint) in [("light", NSColor(white: 0.93, alpha: 1), NSColor.black), ("dark", NSColor(white: 0.16, alpha: 1), NSColor.white)] {
+            let scale: CGFloat = 8
+            let canvas = MenuBarIconGeometry.canvas
+            let states = MenuBarIconState.allCases
+            let size = CGSize(width: (canvas.width * scale + 24) * CGFloat(states.count) + 24, height: canvas.height * scale + 48)
+            let image = NSImage(size: size, flipped: false) { rect in
+                background.setFill()
+                rect.fill()
+                for (index, state) in states.enumerated() {
+                    let icon = MenuBarIconRenderer.image(for: state)
+                    let tinted = NSImage(size: icon.size, flipped: false) { iconRect in
+                        icon.draw(in: iconRect)
+                        tint.set()
+                        iconRect.fill(using: .sourceAtop)
+                        return true
+                    }
+                    let alpha: CGFloat = state == .disabled ? 0.5 : 1
+                    tinted.draw(
+                        in: CGRect(x: 24 + CGFloat(index) * (canvas.width * scale + 24), y: 24, width: canvas.width * scale, height: canvas.height * scale),
+                        from: .zero,
+                        operation: .sourceOver,
+                        fraction: alpha
+                    )
+                }
+                return true
+            }
+            try Self.write(image, name: "menubar-icons-\(suffix)")
+        }
+    }
+
+    // MARK: - 部品
+
+    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int) -> HUDModel {
+        HUDModel(
+            title: title,
+            pageIndex: pageIndex,
+            pageCount: pageCount,
+            cells: page.cells.map { cell in
+                cell.map { cell in
+                    let detail: String? = if case .keystroke(let keys) = cell.action { keys.displayString } else { nil }
+                    return HUDCell(title: cell.title, icon: cell.icon, detail: detail)
+                }
+            },
+            highlightedIndex: highlighted,
+            hint: "⌘を離して実行"
+        )
+    }
+
+    static func onboardingModel(installed: Set<String>, granted: Bool, replacesProfiles: Bool = true) -> (OnboardingModel, ShellControllerHarness) {
+        let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted)
+        harness.controller.start()
+        let model = OnboardingModel(
+            controller: harness.controller,
+            permissions: harness.permissions,
+            installedApps: harness.installedApps,
+            replacesProfiles: replacesProfiles
+        )
+        return (model, harness)
+    }
+
+    static func renderOnboarding(_ model: OnboardingModel, appearance: NSAppearance.Name, name: String) throws {
+        try render(
+            OnboardingView(model: model, onOpenSettings: {}, onFinish: {})
+                .background(Color(nsColor: .windowBackgroundColor)),
+            size: OnboardingLayout.windowSize,
+            appearance: appearance,
+            name: name
+        )
+    }
+
+    /// 画面に出さないウィンドウに置いて、本物の AppKit の部品で描く
+    static func render<V: View>(_ view: V, size: CGSize, appearance: NSAppearance.Name, name: String) throws {
+        let hosting = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
+        hosting.frame = CGRect(origin: .zero, size: size)
+        let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: appearance)
+        window.contentView = hosting
+        hosting.layoutSubtreeIfNeeded()
+        // SwiftUI の更新（画像の読み込みなど）を流す
+        RunLoop.main.run(until: Date().addingTimeInterval(0.15))
+        hosting.layoutSubtreeIfNeeded()
+        let rep = try #require(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        let data = try #require(rep.representation(using: .png, properties: [:]))
+        try data.write(to: try url(name))
+    }
+
+    static func write(_ image: NSImage, name: String) throws {
+        let tiff = try #require(image.tiffRepresentation)
+        let rep = try #require(NSBitmapImageRep(data: tiff))
+        let data = try #require(rep.representation(using: .png, properties: [:]))
+        try data.write(to: try url(name))
+    }
+
+    static func url(_ name: String) throws -> URL {
+        let directory = URL(fileURLWithPath: try #require(shotsDirectory), isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("\(name).png")
+    }
+}
