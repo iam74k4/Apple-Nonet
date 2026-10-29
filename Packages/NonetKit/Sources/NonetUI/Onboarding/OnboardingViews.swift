@@ -409,7 +409,9 @@ struct OnboardingAppCard: View {
     }
 
     private var accessibilityValue: Text {
-        if choice.isConfigured {
+        if choice.isProfileDisabled {
+            Text("設定済み（無効）", bundle: .module)
+        } else if choice.isConfigured {
             Text("設定済み", bundle: .module)
         } else if choice.isSelected {
             Text("選択中", bundle: .module)
@@ -421,7 +423,8 @@ struct OnboardingAppCard: View {
     @ViewBuilder
     private var checkmark: some View {
         if choice.isConfigured {
-            Text("設定済み", bundle: .module)
+            // 無効のプロファイルも残す（案内では有効に戻さない）ので、そうと分かるように出す
+            (choice.isProfileDisabled ? Text("無効", bundle: .module) : Text("設定済み", bundle: .module))
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
@@ -466,11 +469,9 @@ struct OnboardingPracticeStep: View {
                     .frame(width: 312, height: 204)
                 Group {
                     if let blocker = model.practiceBlocker {
-                        OnboardingNotice(text: blocker) {
-                            if !model.isAccessibilityGranted {
-                                Button { model.requestAccessibility() } label: { Text("システム設定を開く", bundle: .module) }
-                            } else if !model.isNonetEnabled {
-                                Button { model.enableNonet() } label: { Text("有効にする", bundle: .module) }
+                        OnboardingNotice(text: blocker.message) {
+                            if let remedy = blocker.remedy {
+                                Button { model.resolve(remedy) } label: { Text(remedy.title) }
                             }
                         }
                     } else {

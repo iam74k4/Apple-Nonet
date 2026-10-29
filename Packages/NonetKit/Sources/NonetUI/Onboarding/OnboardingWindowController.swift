@@ -9,11 +9,8 @@ public final class OnboardingWindowController {
     /// 完了の画面の「設定を開く」。nil ならボタンを出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
 
-    /// このプロセスで、初回の選択でプロファイルを作り直したか（もう一度見るときは作り直さない）
-    private static var hasReplacedProfiles = false
-
+    let model: OnboardingModel
     private let controller: NonetController
-    private let model: OnboardingModel
     private let onFinish: () -> Void
     private var window: NSWindow?
     private let windowDelegate = OnboardingWindowDelegate()
@@ -22,20 +19,19 @@ public final class OnboardingWindowController {
     private var didFinish = false
 
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
-    public init(controller: NonetController, services: NonetServices, onFinish: @escaping () -> Void) {
+    public convenience init(controller: NonetController, services: NonetServices, onFinish: @escaping () -> Void) {
+        self.init(controller: controller, services: services, history: .shared, onFinish: onFinish)
+    }
+
+    init(controller: NonetController, services: NonetServices, history: OnboardingGuideHistory, onFinish: @escaping () -> Void) {
         self.controller = controller
         self.onFinish = onFinish
         model = OnboardingModel(
             controller: controller,
             permissions: services.permissions,
             installedApps: services.installedApps,
-            replacesProfiles: controller.isFirstLaunch && !Self.hasReplacedProfiles
+            isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
         )
-        model.onSelectionApplied = { [weak model] in
-            if model?.replacesProfiles == true {
-                Self.hasReplacedProfiles = true
-            }
-        }
     }
 
     public func show() {
@@ -48,6 +44,8 @@ public final class OnboardingWindowController {
         }
         NSApplication.shared.activate()
         window.makeKeyAndOrderFront(nil)
+        // アプリが前面にならなかったときはキーにならない（キーになったら通知で知る）
+        model.setWindowKey(window.isKeyWindow)
     }
 
     private func makeWindow() -> NSWindow {
@@ -70,6 +68,7 @@ public final class OnboardingWindowController {
         window.setContentSize(OnboardingLayout.windowSize)
         windowDelegate.onClose = { [weak self] in self?.windowDidClose() }
         windowDelegate.onOcclusionChange = { [weak self] visible in self?.model.setWindowVisible(visible) }
+        windowDelegate.onKeyChange = { [weak self] isKey in self?.model.setWindowKey(isKey) }
         window.delegate = windowDelegate
         return window
     }
@@ -94,7 +93,8 @@ public final class OnboardingWindowController {
         open?(.profiles)
     }
 
-    private func windowDidClose() {
+    /// ウィンドウが閉じたとき（テストからはウィンドウを出さずに呼ぶ）
+    func windowDidClose() {
         permissionTimer?.invalidate()
         permissionTimer = nil
         executionObserver?.cancel()
@@ -108,9 +108,26 @@ public final class OnboardingWindowController {
     }
 }
 
+/// このプロセスで案内を開いたか。
+/// 初回起動の isFirstLaunch はプロセスが終わるまで true のままなので、それだけで決めると、
+/// 閉じた・飛ばした後に開き直した案内が、その間に作ったプロファイルを作り直して消してしまう
+@MainActor
+final class OnboardingGuideHistory {
+    static let shared = OnboardingGuideHistory()
+
+    private(set) var hasBegunGuide = false
+
+    /// 案内を開くときに呼ぶ。プロファイルを作り直してよい（初回起動の案内）のは、最初に開いた案内だけ
+    func beginGuide(isFirstLaunch: Bool) -> Bool {
+        defer { hasBegunGuide = true }
+        return isFirstLaunch && !hasBegunGuide
+    }
+}
+
 private final class OnboardingWindowDelegate: NSObject, NSWindowDelegate {
     var onClose: (@MainActor () -> Void)?
     var onOcclusionChange: (@MainActor (Bool) -> Void)?
+    var onKeyChange: (@MainActor (Bool) -> Void)?
 
     func windowWillClose(_ notification: Notification) {
         MainActor.assumeIsolated { onClose?() }
@@ -122,5 +139,14 @@ private final class OnboardingWindowDelegate: NSObject, NSWindowDelegate {
             guard let window = notification.object as? NSWindow else { return }
             onOcclusionChange?(window.occlusionState.contains(.visible))
         }
+    }
+
+    /// ほかのアプリに切り替えたときもキーでなくなる（一部が見えていても練習モードにしない）
+    func windowDidBecomeKey(_ notification: Notification) {
+        MainActor.assumeIsolated { onKeyChange?(true) }
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        MainActor.assumeIsolated { onKeyChange?(false) }
     }
 }

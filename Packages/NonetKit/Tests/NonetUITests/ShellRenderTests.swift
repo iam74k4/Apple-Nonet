@@ -119,7 +119,16 @@ struct ShellRenderTests {
             granted.0.next()
             granted.0.toggle(ShellFixtures.safari)
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-2-apps-\(suffix)")
-            let rerun = Self.onboardingModel(installed: allPresets, granted: true, replacesProfiles: false)
+            let rerun = Self.onboardingModel(installed: allPresets, granted: true, isFirstLaunchGuide: false)
+            // Xcode は無効にし、Safari は消してある
+            rerun.1.controller.update { configuration in
+                if let xcode = configuration.appProfile(forBundleID: ShellFixtures.xcode)?.id {
+                    configuration.updateProfile(id: xcode) { $0.isEnabled = false }
+                }
+                if let safari = configuration.appProfile(forBundleID: ShellFixtures.safari)?.id {
+                    configuration.removeProfile(id: safari)
+                }
+            }
             rerun.0.next()
             try Self.renderOnboarding(rerun.0, appearance: appearance, name: "onboarding-2-rerun-\(suffix)")
             let none = Self.onboardingModel(installed: [], granted: true)
@@ -136,6 +145,9 @@ struct ShellRenderTests {
             waiting.0.next()
             waiting.0.skipSelection()
             try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-\(suffix)")
+            // 無効で、しかも許可も無い: 先に「有効にする」を出す
+            waiting.1.controller.update { $0.settings.isEnabled = false }
+            try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-disabled-\(suffix)")
 
             // 4. 完了
             granted.0.next()
@@ -195,14 +207,14 @@ struct ShellRenderTests {
         )
     }
 
-    static func onboardingModel(installed: Set<String>, granted: Bool, replacesProfiles: Bool = true) -> (OnboardingModel, ShellControllerHarness) {
+    static func onboardingModel(installed: Set<String>, granted: Bool, isFirstLaunchGuide: Bool = true) -> (OnboardingModel, ShellControllerHarness) {
         let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted)
         harness.controller.start()
         let model = OnboardingModel(
             controller: harness.controller,
             permissions: harness.permissions,
             installedApps: harness.installedApps,
-            replacesProfiles: replacesProfiles
+            isFirstLaunchGuide: isFirstLaunchGuide
         )
         return (model, harness)
     }

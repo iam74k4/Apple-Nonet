@@ -26,8 +26,10 @@ struct OnboardingAppChoice: Identifiable, Equatable {
     var category: String
     var summary: String
     var isSelected: Bool
-    /// もうプロファイルがある（案内をもう一度見ているとき）。そのまま残すので選び直せない
+    /// もうプロファイルがある（無効にしたものも含む。足すだけのとき）。そのまま残すので選び直せない
     var isConfigured: Bool
+    /// あるプロファイルが無効になっている（案内では有効に戻さない）
+    var isProfileDisabled = false
 
     var id: String { app.bundleID }
 }
@@ -39,6 +41,49 @@ enum OnboardingPracticeState: Equatable {
     case succeeded
 }
 
+/// 練習できない理由。文言とボタンを同じ値から選ぶ
+enum OnboardingPracticeBlocker: Equatable {
+    /// Nonet を無効にしている
+    case disabled
+    case needsAccessibility
+    case noTrackpad
+    case secureInput
+
+    var message: String {
+        switch self {
+        case .disabled:
+            String(localized: "Nonet が無効になっています。有効にすると試せます", bundle: .module)
+        case .needsAccessibility:
+            String(localized: "アクセシビリティが許可されていないため、まだ試せません", bundle: .module)
+        case .noTrackpad:
+            String(localized: "トラックパッドが見つからないため、試せません", bundle: .module)
+        case .secureInput:
+            String(localized: "パスワードの入力中は試せません。パスワード欄から離れてください", bundle: .module)
+        }
+    }
+
+    /// その場で直せるならその方法
+    var remedy: OnboardingPracticeRemedy? {
+        switch self {
+        case .disabled: .enableNonet
+        case .needsAccessibility: .openAccessibilitySettings
+        case .noTrackpad, .secureInput: nil
+        }
+    }
+}
+
+enum OnboardingPracticeRemedy: Equatable {
+    case enableNonet
+    case openAccessibilitySettings
+
+    var title: String {
+        switch self {
+        case .enableNonet: String(localized: "有効にする", bundle: .module)
+        case .openAccessibilitySettings: String(localized: "システム設定を開く", bundle: .module)
+        }
+    }
+}
+
 /// 初回起動の流れ。AppKit に触れないので、偽のサービスでテストできる
 @MainActor
 @Observable
@@ -48,15 +93,13 @@ final class OnboardingModel {
 
     private(set) var step: OnboardingStep = .welcome
     private(set) var isAccessibilityGranted: Bool
-    private(set) var choices: [OnboardingAppChoice]
     private(set) var practice: OnboardingPracticeState = .waiting
-    /// ウィンドウが見えているか。隠れている間は練習モードにしない（置き忘れたウィンドウで実行が止まらないように）
+    /// ウィンドウがほかのウィンドウに隠れていない（しまった・画面のロック中も隠れている）
     private(set) var isWindowVisible = true
-    /// 初回起動: 選んだアプリだけのプロファイルで作り直す。もう一度見ているとき: 足りないものを足すだけ
-    let replacesProfiles: Bool
-
-    /// 「次へ」で選んだアプリを反映したとき
-    @ObservationIgnored var onSelectionApplied: (() -> Void)?
+    /// ウィンドウがキーウィンドウ。ほかのアプリを使っている間は false
+    private(set) var isWindowKey = true
+    /// 初回起動の案内として開いた。選んだアプリだけのプロファイルで作り直してよい
+    let isFirstLaunchGuide: Bool
 
     @ObservationIgnored private let controller: NonetController
     @ObservationIgnored private let permissions: any PermissionsProviding
@@ -66,38 +109,56 @@ final class OnboardingModel {
     @ObservationIgnored private var practiceStartedAt: Date?
     /// 練習を始めたときにすでにあった記録（これは数えない）
     @ObservationIgnored private var practiceBaseline: ExecutionRecord?
+    /// 選んでいるアプリ（bundleID）。設定済みのものはここに無くても選ばれている扱い
+    private var selectedIDs: Set<String>
+    /// 案内を開いたとき（作り直した後は作り直したとき）のプロファイル。
+    /// ここから変わっていれば利用者が編集したので、作り直さずに足すだけにする
+    private var profilesSnapshot: [Profile]
 
     init(
         controller: NonetController,
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
-        replacesProfiles: Bool,
+        isFirstLaunchGuide: Bool,
         now: @escaping () -> Date = Date.init
     ) {
         self.controller = controller
         self.permissions = permissions
-        self.replacesProfiles = replacesProfiles
+        self.isFirstLaunchGuide = isFirstLaunchGuide
         self.now = now
         isAccessibilityGranted = permissions.isAccessibilityGranted
         presets = PresetLibrary.apps.filter { installedApps.isInstalled(bundleID: $0.app.bundleID) }
         installedLauncherIDs = Set(
             PresetLibrary.launcherCandidates.map(\.bundleID).filter { installedApps.isInstalled(bundleID: $0) }
         )
-        let configuration = controller.configuration
-        choices = presets.map { preset in
-            let configured = !replacesProfiles && configuration.appProfile(forBundleID: preset.app.bundleID) != nil
-            return OnboardingAppChoice(
-                app: preset.app,
-                category: preset.category,
-                summary: preset.summary,
-                isSelected: true,
-                isConfigured: configured
-            )
-        }
+        selectedIDs = Set(presets.map(\.app.bundleID))
+        profilesSnapshot = controller.configuration.profiles
     }
 
     var trigger: TriggerKey {
         controller.configuration.settings.trigger
+    }
+
+    /// 選んだアプリだけのプロファイルで作り直すか。そうでなければ足りないものを足すだけ。
+    /// 初回の案内でも、開いてからプロファイルが変わっていたら（設定で編集したなど）作り直さない
+    var replacesProfiles: Bool {
+        isFirstLaunchGuide && controller.configuration.profiles == profilesSnapshot
+    }
+
+    var choices: [OnboardingAppChoice] {
+        let replaces = replacesProfiles
+        let profiles = controller.configuration.profiles
+        return presets.map { preset in
+            let existing = replaces ? nil : Self.profile(forBundleID: preset.app.bundleID, in: profiles)
+            return OnboardingAppChoice(
+                app: preset.app,
+                category: preset.category,
+                summary: preset.summary,
+                isSelected: existing != nil || selectedIDs.contains(preset.app.bundleID),
+                isConfigured: existing != nil,
+                isProfileDisabled: existing.map { !$0.isEnabled } ?? false
+            )
+        }
     }
 
     var selectedCount: Int {
@@ -109,25 +170,22 @@ final class OnboardingModel {
         choices.filter { $0.isSelected && !$0.isConfigured }.count
     }
 
-    var isNonetEnabled: Bool {
-        controller.configuration.settings.isEnabled
-    }
-
-    /// 練習できない理由。練習できるなら nil
-    var practiceBlocker: String? {
+    /// 練習できない理由。練習できるなら nil。自分で無効にしているなら、ほかの理由より先に出す
+    var practiceBlocker: OnboardingPracticeBlocker? {
         if !controller.configuration.settings.isEnabled {
-            return String(localized: "Nonet が無効になっています。有効にすると試せます", bundle: .module)
+            return .disabled
         }
         switch controller.status {
-        case .needsAccessibility:
-            return String(localized: "アクセシビリティが許可されていないため、まだ試せません", bundle: .module)
-        case .noTrackpad:
-            return String(localized: "トラックパッドが見つからないため、試せません", bundle: .module)
-        case .secureInputActive:
-            return String(localized: "パスワードの入力中は試せません。パスワード欄から離れてください", bundle: .module)
-        case .running, .disabled, .stopped:
-            return nil
+        case .needsAccessibility: return .needsAccessibility
+        case .noTrackpad: return .noTrackpad
+        case .secureInputActive: return .secureInput
+        case .running, .disabled, .stopped: return nil
         }
+    }
+
+    /// 練習モードにしてよいか。見えていても、ほかのアプリを使っている間は本物を実行する
+    var isWindowAttended: Bool {
+        isWindowVisible && isWindowKey
     }
 
     // MARK: - アクセシビリティ
@@ -180,17 +238,25 @@ final class OnboardingModel {
         controller.update { $0.settings.isEnabled = true }
     }
 
+    func resolve(_ remedy: OnboardingPracticeRemedy) {
+        switch remedy {
+        case .enableNonet: enableNonet()
+        case .openAccessibilitySettings: requestAccessibility()
+        }
+    }
+
     /// ウィンドウが隠れた（ほかのウィンドウの後ろ・しまった）・また見えた
     func setWindowVisible(_ visible: Bool) {
-        guard visible != isWindowVisible else { return }
+        let wasAttended = isWindowAttended
         isWindowVisible = visible
-        guard step == .practice else { return }
-        controller.isPracticeMode = visible
-        if visible {
-            // 隠れている間の実行は本物なので、練習には数えない
-            practiceBaseline = controller.lastExecution
-            practiceStartedAt = now()
-        }
+        attentionChanged(from: wasAttended)
+    }
+
+    /// ウィンドウがキーになった・キーでなくなった（ほかのアプリに切り替えたときも）
+    func setWindowKey(_ isKey: Bool) {
+        let wasAttended = isWindowAttended
+        isWindowKey = isKey
+        attentionChanged(from: wasAttended)
     }
 
     /// ウィンドウを閉じるとき。練習モードは必ず戻す
@@ -202,21 +268,29 @@ final class OnboardingModel {
     // MARK: - アプリを選ぶ
 
     func toggle(_ id: OnboardingAppChoice.ID) {
-        guard let index = choices.firstIndex(where: { $0.id == id }), !choices[index].isConfigured else { return }
-        choices[index].isSelected.toggle()
+        guard let choice = choices.first(where: { $0.id == id }), !choice.isConfigured else { return }
+        if choice.isSelected {
+            selectedIDs.remove(id)
+        } else {
+            selectedIDs.insert(id)
+        }
     }
 
     func setAllSelected(_ selected: Bool) {
-        for index in choices.indices where !choices[index].isConfigured {
-            choices[index].isSelected = selected
+        for choice in choices where !choice.isConfigured {
+            if selected {
+                selectedIDs.insert(choice.id)
+            } else {
+                selectedIDs.remove(choice.id)
+            }
         }
     }
 
     /// 選んだアプリを反映して、試してみるへ。全体の設定（トリガーなど）は変えない
     func applySelection() {
         guard step == .apps else { return }
-        let selectedIDs = Set(choices.filter { $0.isSelected && !$0.isConfigured }.map(\.id))
-        let selected = presets.filter { selectedIDs.contains($0.id) }
+        let addedIDs = Set(choices.filter { $0.isSelected && !$0.isConfigured }.map(\.id))
+        let selected = presets.filter { addedIDs.contains($0.app.bundleID) }
         if replacesProfiles {
             let settings = controller.configuration.settings
             var configuration = NonetConfiguration.initial(
@@ -226,15 +300,17 @@ final class OnboardingModel {
             )
             configuration.settings = settings
             controller.replaceConfiguration(configuration)
+            // 戻って選び直すのはよいが、この後に設定で編集したものは消さない
+            profilesSnapshot = controller.configuration.profiles
+            logger.info("初回の案内で、選んだ \(selected.count) 個のアプリのプロファイルで作り直した")
         } else if !selected.isEmpty {
             controller.update { configuration in
                 for preset in selected {
                     configuration.addAppProfile(for: preset.app, preset: preset)
                 }
             }
+            logger.info("案内で \(selected.count) 個のアプリのプロファイルを足した")
         }
-        logger.info("初回の案内で \(selected.count) 個のアプリのプロファイルを反映した")
-        onSelectionApplied?()
         go(to: .practice)
     }
 
@@ -242,13 +318,24 @@ final class OnboardingModel {
 
     /// controller.lastExecution が変わったら呼ぶ。練習を始めてからの記録だけを数える
     func handleExecution(_ record: ExecutionRecord?) {
-        guard step == .practice, isWindowVisible, let record, let startedAt = practiceStartedAt,
+        guard step == .practice, isWindowAttended, let record, let startedAt = practiceStartedAt,
               record != practiceBaseline, record.date >= startedAt else { return }
         practiceBaseline = record
         if record.address.index == Self.practiceTargetIndex {
             practice = .succeeded
         } else if practice != .succeeded {
             practice = .wrongCell(record.address.index)
+        }
+    }
+
+    private func attentionChanged(from wasAttended: Bool) {
+        let attended = isWindowAttended
+        guard attended != wasAttended, step == .practice else { return }
+        controller.isPracticeMode = attended
+        if attended {
+            // 離れている間の実行は本物なので、練習には数えない
+            practiceBaseline = controller.lastExecution
+            practiceStartedAt = now()
         }
     }
 
@@ -263,7 +350,20 @@ final class OnboardingModel {
             practice = .waiting
             practiceBaseline = controller.lastExecution
             practiceStartedAt = now()
-            controller.isPracticeMode = isWindowVisible
+            controller.isPracticeMode = isWindowAttended
         }
+    }
+
+    /// 有効・無効にかかわらず、そのアプリのプロファイル（NonetConfiguration.addAppProfile と同じ探し方）
+    static func profile(forBundleID bundleID: String, in profiles: [Profile]) -> Profile? {
+        let key = bundleIDKey(bundleID)
+        guard !key.isEmpty else { return nil }
+        return profiles.first { profile in
+            profile.app.map { bundleIDKey($0.bundleID) == key } == true
+        }
+    }
+
+    private static func bundleIDKey(_ bundleID: String) -> String {
+        bundleID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
