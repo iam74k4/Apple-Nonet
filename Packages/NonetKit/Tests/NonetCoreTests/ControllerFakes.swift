@@ -2,6 +2,36 @@
 import Foundation
 @testable import NonetCore
 
+/// 非同期の処理が進むまで待つ（条件が成り立つか、十分に譲るまで）
+@MainActor
+func controllerWaitUntil(_ condition: () -> Bool) async {
+    for _ in 0..<10_000 {
+        if condition() { return }
+        await Task.yield()
+    }
+}
+
+/// 開くまで待たせる（テストで実行を止めておく）
+@MainActor
+final class ControllerFakeLatch {
+    private(set) var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        guard !isOpen else { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        let waiting = waiters
+        waiters.removeAll()
+        for waiter in waiting {
+            waiter.resume()
+        }
+    }
+}
+
 /// 偽物どうしの呼ばれた順番（ポインタの抑止と HUD・実行の前後を確かめる）
 @MainActor
 final class ControllerFakeRecorder {
@@ -273,9 +303,11 @@ final class ControllerFakePerformer: ActionPerforming {
     var output: ((Action) -> String?)?
     /// 呼ばれたときにすること（アプリを前面に出したことにする など）
     var onPerform: ((Action) -> Void)?
-    /// true の間、呼ばれた実行は release() まで終わらない
+    /// true の間、呼ばれた実行は releaseOne() / release(_:) まで終わらない
     var holds = false
-    private var waiting: [CheckedContinuation<Void, Never>] = []
+    /// true を返すアクションだけ止める（holds が false のとき）
+    var holdsAction: ((Action) -> Bool)?
+    private var waiting: [(action: Action, continuation: CheckedContinuation<Void, Never>)] = []
     private(set) var running = 0
     private(set) var maxRunning = 0
     private let recorder: ControllerFakeRecorder
@@ -298,8 +330,8 @@ final class ControllerFakePerformer: ActionPerforming {
         maxRunning = max(maxRunning, running)
         defer { running -= 1 }
         onPerform?(action)
-        if holds {
-            await withCheckedContinuation { waiting.append($0) }
+        if holds || holdsAction?(action) == true {
+            await withCheckedContinuation { waiting.append((action, $0)) }
         }
         finished.append(action)
         if let error = failure?(action) { throw error }
@@ -309,8 +341,17 @@ final class ControllerFakePerformer: ActionPerforming {
     /// 止めている実行を1つ（最初に止めたもの）終わらせる
     func releaseOne() {
         guard !waiting.isEmpty else { return }
-        waiting.removeFirst().resume()
+        waiting.removeFirst().continuation.resume()
     }
+
+    /// action を実行していて止めているもののうち、最初のものを終わらせる
+    func release(_ action: Action) {
+        guard let index = waiting.firstIndex(where: { $0.action == action }) else { return }
+        waiting.remove(at: index).continuation.resume()
+    }
+
+    /// 止めているアクション（止めた順）
+    var waitingActions: [Action] { waiting.map(\.action) }
 }
 
 @MainActor

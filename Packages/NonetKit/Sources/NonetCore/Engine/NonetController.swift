@@ -82,7 +82,7 @@ public final class NonetController {
     @ObservationIgnored private let hud: any HUDPresenting
     @ObservationIgnored private let license: LicenseManager
     @ObservationIgnored private let saver: ControllerConfigurationSaver
-    @ObservationIgnored private let executions = ControllerExecutionQueue()
+    @ObservationIgnored private let executions: ControllerExecutionQueue
     @ObservationIgnored private var engine = SessionEngine()
     /// いまのセッションで使うもの。セッションの外は nil
     @ObservationIgnored private var session: ControllerSession?
@@ -104,6 +104,7 @@ public final class NonetController {
         self.store = store
         self.hud = hud
         self.license = license
+        executions = ControllerExecutionQueue(scheduler: services.scheduler)
         saver = ControllerConfigurationSaver(scheduler: services.scheduler) { [store] configuration in
             try store.save(configuration)
         }
@@ -196,7 +197,8 @@ public final class NonetController {
 
     // MARK: - テスト実行
 
-    /// 設定画面の「テスト実行」。アプリのプロファイルなら、そのアプリを前面に出してから実行する。
+    /// 設定画面の「テスト実行」。実際に使うときと同じアプリに向けて実行する: アプリのプロファイルならそのアプリを、
+    /// グローバルなら設定ウィンドウの前に使っていたアプリを前面に出してから実行する（キーが設定ウィンドウに届かないように）。
     /// 練習モードでも実行する（試用中にマスを試すための機能）が、試用期間が終わっていれば licenseRequired で失敗する
     @discardableResult
     public func testRun(_ cell: Cell, profileID: UUID) async -> ExecutionRecord {
@@ -205,14 +207,19 @@ public final class NonetController {
         guard license.canExecuteActions else {
             return refuseWithoutLicense(target, wasFastTap: false)
         }
-        let app = profile?.app
-        return await executions.enqueue {
-            await self.runTest(target, activating: app)
+        let profileApp = profile?.app
+        return await executions.enqueue { turn in
+            await self.runTest(target, profileApp: profileApp, turn: turn)
         }.value
     }
 
-    private func runTest(_ target: ControllerTarget, activating app: AppReference?) async -> ExecutionRecord {
-        if let app {
+    private func runTest(_ target: ControllerTarget, profileApp: AppReference?, turn: ControllerExecutionTurn) async -> ExecutionRecord {
+        // 前面に出すのに時間が掛かっても、後の実行をいつまでも待たせない
+        turn.pass(after: ControllerExecutionPolicy.holdLimit)
+        let action = target.cell.action
+        // frontmostApp は Nonet を数えないので、設定ウィンドウが前面でも、その前に使っていたアプリを指す
+        let lastApp = ControllerExecutionPolicy.dependsOnFrontmostApp(action) ? services.frontmostApp.current?.app : nil
+        if let app = profileApp ?? lastApp {
             do {
                 let activate = Action.launchApp(LaunchAppAction(app: app, hideIfFrontmost: false))
                 try await services.performer.perform(activate, context: ActionContext(frontmostApp: services.frontmostApp.current))
@@ -221,8 +228,17 @@ public final class NonetController {
                 return fail(target, wasFastTap: false, error: error)
             }
             await waitUntilFrontmost(app)
+            if !isFrontmost(app), ControllerExecutionPolicy.sendsInputToFrontmostApp(action) {
+                // 起動に時間が掛かっている。送ると、いま前面にある Nonet の設定ウィンドウなどに届く
+                let reason = String(localized: "\(app.nameOrBundleID) が前面になりませんでした", bundle: .module)
+                return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
+            }
+        } else if ControllerExecutionPolicy.sendsInputToFrontmostApp(action) {
+            let reason = String(localized: "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください", bundle: .module)
+            return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
         }
-        return await perform(target, context: ActionContext(frontmostApp: services.frontmostApp.current), wasFastTap: false, showsSuccessToast: false)
+        let context = ActionContext(frontmostApp: services.frontmostApp.current)
+        return await perform(target, context: context, turn: turn, wasFastTap: false, showsSuccessToast: false)
     }
 
     /// 前面に来るまで少し待つ。起動に時間がかかるアプリは、前面に来るまで（最長で約2秒）待つ
@@ -274,8 +290,9 @@ public final class NonetController {
 
     private func canBeginSession() -> Bool {
         guard isStarted, !isRecordingKeys else { return false }
-        // セキュア入力は2秒ごとにしか確かめないので、パスワード欄を離れた直後のトリガーのために確かめ直す
-        if status == .secureInputActive {
+        // セキュア入力は2秒ごとにしか確かめないので、トリガーのたびに確かめ直す
+        // （パスワード欄に入った直後に始めないため・離れた直後から使えるようにするため）
+        if status == .secureInputActive || services.permissions.isSecureInputActive {
             refreshServices()
         }
         return status == .running
@@ -393,12 +410,22 @@ public final class NonetController {
         }
         let context = ActionContext(frontmostApp: session.frontmostApp)
         let showsSuccessToast = wasFastTap && session.settings.showExecutionToast
-        executions.enqueue { [weak self] in
-            _ = await self?.perform(target, context: context, wasFastTap: wasFastTap, showsSuccessToast: showsSuccessToast)
+        executions.enqueue { [weak self] turn in
+            _ = await self?.perform(target, context: context, turn: turn, wasFastTap: wasFastTap, showsSuccessToast: showsSuccessToast)
         }
     }
 
-    private func perform(_ target: ControllerTarget, context: ActionContext, wasFastTap: Bool, showsSuccessToast: Bool) async -> ExecutionRecord {
+    /// 前の実行が順番を譲ってから呼ばれる。結果の表示と記録は、順番を譲った後でも終わったときに行う
+    private func perform(
+        _ target: ControllerTarget,
+        context: ActionContext,
+        turn: ControllerExecutionTurn,
+        wasFastTap: Bool,
+        showsSuccessToast: Bool
+    ) async -> ExecutionRecord {
+        // 長く掛かるアクション（裏のスクリプト・ショートカット・AI）は、文脈を読み終えるころに順番を譲る。
+        // 終わるまで待たせると、後のマスが数十秒後に、押したときとは別のアプリへまとめて送られる
+        turn.pass(after: ControllerExecutionPolicy.hold(for: target.cell.action))
         do {
             let output = try await services.performer.performReturningOutput(target.cell.action, context: context)
             if let output {

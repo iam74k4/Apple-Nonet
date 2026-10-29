@@ -178,11 +178,13 @@ import Testing
 
 @MainActor
 @Suite struct ControllerExecutionQueueTests {
+    private let scheduler = ControllerFakeScheduler()
+
     @Test func jobsRunOneAtATimeInOrder() async {
-        let queue = ControllerExecutionQueue()
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
         var log: [String] = []
         for name in ["a", "b", "c"] {
-            queue.enqueue {
+            queue.enqueue { _ in
                 log.append("\(name)>")
                 await Task.yield()
                 await Task.yield()
@@ -194,20 +196,20 @@ import Testing
     }
 
     @Test func enqueueReturnsTheResult() async {
-        let queue = ControllerExecutionQueue()
-        let first = queue.enqueue { 1 }
-        let second = queue.enqueue { "二" }
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let first = queue.enqueue { _ in 1 }
+        let second = queue.enqueue { _ in "二" }
         #expect(await first.value == 1)
         #expect(await second.value == "二")
     }
 
     @Test func waitUntilIdleIncludesJobsAddedWhileWaiting() async {
-        let queue = ControllerExecutionQueue()
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
         var done: [Int] = []
-        queue.enqueue {
+        queue.enqueue { _ in
             await Task.yield()
             done.append(1)
-            queue.enqueue {
+            queue.enqueue { _ in
                 await Task.yield()
                 done.append(2)
             }
@@ -217,6 +219,160 @@ import Testing
     }
 
     @Test func anIdleQueueReturnsAtOnce() async {
-        await ControllerExecutionQueue().waitUntilIdle()
+        await ControllerExecutionQueue(scheduler: scheduler).waitUntilIdle()
+    }
+
+    @Test func aJobThatPassesItsTurnLetsTheNextStartWhileItKeepsRunning() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let latch = ControllerFakeLatch()
+        var log: [String] = []
+        queue.enqueue { turn in
+            log.append("a>")
+            turn.pass()
+            await latch.wait()
+            log.append("<a")
+        }
+        queue.enqueue { _ in
+            log.append("b>")
+            log.append("<b")
+        }
+        await controllerWaitUntil { log.contains("<b") }
+        #expect(log == ["a>", "b>", "<b"])
+
+        // 順番を譲った実行も、終わるまでは「実行中」
+        var isIdle = false
+        let idle = Task {
+            await queue.waitUntilIdle()
+            isIdle = true
+        }
+        await controllerWaitUntil { isIdle }
+        #expect(!isIdle)
+        latch.open()
+        await idle.value
+        #expect(log == ["a>", "b>", "<b", "<a"])
+    }
+
+    @Test func aTurnPassesWhenItsTimeRunsOut() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let latch = ControllerFakeLatch()
+        var started: [String] = []
+        queue.enqueue { turn in
+            started.append("a")
+            turn.pass(after: 1)
+            await latch.wait()
+        }
+        queue.enqueue { _ in
+            started.append("b")
+        }
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a"])
+        scheduler.advance(by: 0.9)
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a"])
+        scheduler.advance(by: 0.1)
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a", "b"])
+        latch.open()
+        await queue.waitUntilIdle()
+    }
+
+    @Test func aLaterDeadlineReplacesTheEarlierOne() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let latch = ControllerFakeLatch()
+        var started: [String] = []
+        queue.enqueue { turn in
+            started.append("a")
+            turn.pass(after: 5)
+            turn.pass(after: 1)
+            await latch.wait()
+        }
+        queue.enqueue { _ in
+            started.append("b")
+        }
+        await controllerWaitUntil { started == ["a"] }
+        scheduler.advance(by: 1)
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a", "b"])
+        #expect(scheduler.pending.isEmpty)
+        latch.open()
+        await queue.waitUntilIdle()
+    }
+
+    @Test func finishingCancelsTheDeadline() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        queue.enqueue { turn in
+            turn.pass(after: 5)
+        }
+        await queue.waitUntilIdle()
+        #expect(scheduler.pending.isEmpty)
+    }
+
+    @Test func jobsStillStartInTheOrderTheyWereAddedWhenTurnsPassEarly() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let latch = ControllerFakeLatch()
+        var started: [String] = []
+        queue.enqueue { turn in
+            started.append("a")
+            turn.pass(after: 2)
+            await latch.wait()
+        }
+        queue.enqueue { turn in
+            started.append("b")
+            turn.pass()
+            await latch.wait()
+        }
+        queue.enqueue { _ in
+            started.append("c")
+        }
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a"])
+        scheduler.advance(by: 2)
+        await controllerWaitUntil { started.count == 3 }
+        #expect(started == ["a", "b", "c"])
+        latch.open()
+        await queue.waitUntilIdle()
+    }
+}
+
+@Suite struct ControllerExecutionPolicyTests {
+    typealias P = ControllerExecutionPolicy
+
+    private let background = Action.script(ScriptAction(source: "make", runMode: .background))
+    private let terminal = Action.script(ScriptAction(source: "claude", runMode: .terminal))
+    private let shortcut = Action.shortcut(ShortcutAction(name: "日記"))
+    private let showResult = Action.ai(AIAction(prompt: "要約して", output: .showResult))
+    private let replace = Action.ai(AIAction(prompt: "直して", output: .replaceSelection))
+    private let copy = Action.ai(AIAction(prompt: "訳して", output: .copyToClipboard))
+    private let keystroke = Action.keystroke(.key("w", [.command]))
+    private let launch = Action.launchApp(LaunchAppAction(app: ControllerFixtures.notes))
+    private let url = Action.openURL(URLAction(url: "https://example.com"))
+    private let menu = Action.menuItem(MenuItemAction(path: ["ファイル", "保存"]))
+
+    @Test func scriptsShortcutsAndAIDoNotHoldLaterExecutionsUntilTheyFinish() {
+        for action in [background, shortcut, showResult, replace, copy] {
+            #expect(P.isLongRunning(action))
+            #expect(P.hold(for: action) == P.longRunningHold)
+        }
+        for action in [terminal, keystroke, launch, url, menu] {
+            #expect(!P.isLongRunning(action))
+            #expect(P.hold(for: action) == P.holdLimit)
+        }
+        #expect(P.longRunningHold < P.holdLimit)
+    }
+
+    @Test func onlyKeysAndPastingGoToTheFrontmostApp() {
+        #expect(P.sendsInputToFrontmostApp(keystroke))
+        #expect(P.sendsInputToFrontmostApp(replace))
+        for action in [background, terminal, shortcut, showResult, copy, launch, url, menu] {
+            #expect(!P.sendsInputToFrontmostApp(action))
+        }
+    }
+
+    @Test func launchingAppsAndOpeningURLsDoNotDependOnTheFrontmostApp() {
+        #expect(!P.dependsOnFrontmostApp(launch))
+        #expect(!P.dependsOnFrontmostApp(url))
+        for action in [background, terminal, shortcut, showResult, replace, copy, keystroke, menu] {
+            #expect(P.dependsOnFrontmostApp(action))
+        }
     }
 }

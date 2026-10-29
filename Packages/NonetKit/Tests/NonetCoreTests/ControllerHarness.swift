@@ -175,10 +175,7 @@ final class ControllerHarness {
 
     /// 非同期の処理が進むまで待つ（条件が成り立つか、十分に譲るまで）
     func waitUntil(_ condition: () -> Bool) async {
-        for _ in 0..<10_000 {
-            if condition() { return }
-            await Task.yield()
-        }
+        await controllerWaitUntil(condition)
     }
 
     // MARK: 調べる

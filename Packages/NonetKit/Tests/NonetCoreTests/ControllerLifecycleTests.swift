@@ -205,6 +205,30 @@ import Testing
         #expect(h.keyboard.isSuppressingPointer)
     }
 
+    @Test func theTriggerNoticesSecureInputThatBeganSinceTheLastPoll() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        // パスワード欄に入ってすぐ（次の確かめ直しより前に）トリガーを押す
+        h.permissions.isSecureInputActive = true
+        h.advance(NonetController.pollInterval / 4)
+        #expect(h.controller.status == .running)
+        h.pressTrigger()
+
+        #expect(h.controller.status == .secureInputActive)
+        #expect(h.keyboard.suppressionAfterEvent == [false])
+        #expect(h.keyboard.suppressionChanges.isEmpty)
+        h.tap(2)
+        h.advance(1)
+        h.touch(on: 0)
+        h.advance(1)
+        h.releaseTrigger()
+        await h.settle()
+        #expect(h.hud.shown.isEmpty)
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+        #expect(h.controller.lastExecution == nil)
+    }
+
     @Test func secureInputDuringASessionEndsIt() throws {
         let h = try ControllerHarness()
         h.start()

@@ -46,23 +46,49 @@ import Testing
         #expect(!h.scheduler.requestedDelays.contains(NonetController.activationRetryInterval))
     }
 
-    @Test func aSlowAppGetsMoreTimeButTheCellRunsAnyway() async throws {
-        let h = try ControllerHarness(frontmost: F.notesApp)
-        h.start()
-        let safariID = try h.profileID(F.safari)
-        let run = Task { await h.controller.testRun(F.newTab, profileID: safariID) }
-
+    /// アプリが前面に来ないまま、待てるだけ待つ
+    private func waitOutTheActivation(_ h: ControllerHarness) async {
         for _ in 0...NonetController.activationRetryCount {
             await h.waitUntil {
                 h.scheduler.hasPending(delay: NonetController.activationDelay) || h.scheduler.hasPending(delay: NonetController.activationRetryInterval)
             }
             h.advance(NonetController.activationDelay)
         }
+    }
+
+    @Test func aSlowAppGetsMoreTimeAndCellsThatSendNoKeysRunAnyway() async throws {
+        let h = try ControllerHarness(frontmost: F.notesApp)
+        h.start()
+        let safariID = try h.profileID(F.safari)
+        let run = Task { await h.controller.testRun(F.reader, profileID: safariID) }
+        await waitOutTheActivation(h)
         let record = await run.value
 
         #expect(h.scheduler.requestedDelays.filter { $0 == NonetController.activationRetryInterval }.count == NonetController.activationRetryCount)
-        #expect(h.performer.actions == [activateSafari, F.newTab.action])
+        #expect(h.performer.actions == [activateSafari, F.reader.action])
         #expect(record.succeeded)
+    }
+
+    nonisolated static let sendsInput: [Cell] = [
+        F.newTab,
+        Cell(title: "直す", icon: .symbol("wand.and.stars"), action: .ai(AIAction(prompt: "直して", output: .replaceSelection))),
+    ]
+
+    @Test(arguments: sendsInput)
+    func keysAreNotSentWhenTheAppDoesNotComeToTheFront(_ cell: Cell) async throws {
+        let h = try ControllerHarness(frontmost: F.notesApp)
+        h.start()
+        let safariID = try h.profileID(F.safari)
+        let run = Task { await h.controller.testRun(cell, profileID: safariID) }
+        await waitOutTheActivation(h)
+        let record = await run.value
+
+        // 送ると、いま前面にある設定ウィンドウに届く
+        #expect(h.performer.actions == [activateSafari])
+        #expect(!record.succeeded)
+        #expect(record.message == "Safari が前面になりませんでした")
+        #expect(h.hud.toasts == [ToastModel(title: cell.title, detail: "Safari が前面になりませんでした", icon: cell.icon, style: .failure)])
+        #expect(h.controller.lastExecution == record)
     }
 
     @Test func itStopsWaitingOnceTheAppIsFrontmost() async throws {
@@ -80,6 +106,54 @@ import Testing
 
         #expect(h.scheduler.requestedDelays.filter { $0 == NonetController.activationRetryInterval }.count == 1)
         #expect(h.performer.calls.last?.frontmostApp == safariAfterLaunch)
+    }
+
+    @Test func aGlobalKeystrokeCellGoesToTheAppUsedBeforeTheSettingsWindow() async throws {
+        let paste = Cell(title: "ペースト", icon: .symbol("doc.on.clipboard"), action: .keystroke(.key("v", [.command])))
+        // frontmostApp は Nonet を数えないので、設定ウィンドウが前面でもメモを指す
+        let h = try ControllerHarness(frontmost: F.notesApp)
+        h.start()
+        let globalID = h.controller.configuration.globalProfile.id
+        let run = Task { await h.controller.testRun(paste, profileID: globalID) }
+
+        await h.waitUntil { h.scheduler.hasPending(delay: NonetController.activationDelay) }
+        #expect(h.performer.actions == [.launchApp(LaunchAppAction(app: F.notes, hideIfFrontmost: false))])
+        h.advance(NonetController.activationDelay)
+        let record = await run.value
+
+        #expect(h.performer.actions == [.launchApp(LaunchAppAction(app: F.notes, hideIfFrontmost: false)), paste.action])
+        #expect(h.performer.calls.last?.frontmostApp == F.notesApp)
+        #expect(record.succeeded)
+        #expect(record.profileName == "グローバル")
+    }
+
+    @Test func aGlobalKeystrokeCellIsRefusedWhenThereIsNoAppToSendTo() async throws {
+        let h = try ControllerHarness(frontmost: nil)
+        h.start()
+        let record = await h.controller.testRun(F.closeTab, profileID: h.controller.configuration.globalProfile.id)
+
+        #expect(h.performer.calls.isEmpty)
+        #expect(!record.succeeded)
+        #expect(h.hud.toasts.map(\.style) == [.failure])
+    }
+
+    @Test func aGlobalCellThatSendsNoKeysRunsWithoutAnApp() async throws {
+        let h = try ControllerHarness(frontmost: nil)
+        h.start()
+        let save = Cell(title: "保存", icon: .symbol("square.and.arrow.down"), action: .menuItem(MenuItemAction(path: ["ファイル", "保存"])))
+        let record = await h.controller.testRun(save, profileID: h.controller.configuration.globalProfile.id)
+        #expect(h.performer.actions == [save.action])
+        #expect(record.succeeded)
+    }
+
+    @Test func aGlobalLaunchCellDoesNotBringTheLastAppBackFirst() async throws {
+        // 戻すと、「前面なら隠す」の起動がそのアプリを隠してしまう
+        let toggleSafari = Cell(title: "Safari", icon: .app(bundleID: F.safari.bundleID), action: .launchApp(LaunchAppAction(app: F.safari, hideIfFrontmost: true)))
+        let h = try ControllerHarness(frontmost: F.safariApp)
+        h.start()
+        let record = await h.controller.testRun(toggleSafari, profileID: h.controller.configuration.globalProfile.id)
+        #expect(h.performer.actions == [toggleSafari.action])
+        #expect(record.succeeded)
     }
 
     @Test func aGlobalCellRunsRightAway() async throws {
