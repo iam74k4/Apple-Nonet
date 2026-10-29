@@ -119,7 +119,7 @@ struct ConfigurationProfileEditingTests {
         let b = ModelFixtures.profile(AppReference(bundleID: "app.B", name: "B"))
         var configuration = NonetConfiguration(profiles: [a, ModelFixtures.globalProfile(), b])
         configuration.moveAppProfiles(fromOffsets: [1], toOffset: 0)
-        #expect(configuration.profiles.map(\.name) == ["グローバル", "B", "A"])
+        #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "B", "A"])
     }
 
     @Test("updateProfile で中身を書き換える")
@@ -336,7 +336,7 @@ struct ConfigurationInitialTests {
 
         #expect(configuration.version == NonetConfiguration.currentVersion)
         #expect(configuration.settings == GlobalSettings(trigger: .rightOption))
-        #expect(configuration.profiles.map(\.name) == ["グローバル", "Xcode", "Figma"])
+        #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Xcode", "Figma"])
         #expect(configuration.globalProfile.modelTitles == launcher.modelTitles)
         #expect(configuration.profiles[1].modelTitles[0][0...1] == ["ビルド", "テスト"])
         #expect(configuration.profiles[2].pages.count == 2)
@@ -367,7 +367,7 @@ struct ConfigurationImportTests {
 
         #expect(result == NonetConfiguration.ImportResult(added: 1, replaced: 1, replacedGlobal: false, skipped: 0))
         #expect(result.appliedCount == 2)
-        #expect(configuration.profiles.map(\.name) == ["グローバル", "Safari", "Xcode", "Figma"])
+        #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Safari", "Xcode", "Figma"])
         let safari = try #require(configuration.profile(id: safariID))
         #expect(safari.modelTitles == importedSafari.modelTitles)
         #expect(!safari.isEnabled)

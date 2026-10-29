@@ -2,118 +2,384 @@
   "sourceLanguage" : "ja",
   "strings" : {
     "%@ が応答しません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn't responding."
+          }
+        }
+      }
     },
     "%@ が起動していません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn't running."
+          }
+        }
+      }
     },
     "%@ のメニューを読めませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the menus of %@."
+          }
+        }
+      }
     },
     "%@ を開けませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open %@."
+          }
+        }
+      }
     },
     "AI から結果が返りませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The AI didn't return a result."
+          }
+        }
+      }
     },
     "AI の処理に失敗しました" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI processing failed."
+          }
+        }
+      }
     },
     "AI アクションには macOS 26 以降が必要です" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI actions require macOS 26 or later."
+          }
+        }
+      }
     },
     "Apple Intelligence がオフになっています。システム設定の「Apple Intelligence と Siri」でオンにしてください" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is turned off. Turn it on in System Settings › Apple Intelligence & Siri."
+          }
+        }
+      }
     },
     "Apple Intelligence の準備がまだ終わっていません。しばらくしてからもう一度お試しください" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence isn't ready yet. Try again later."
+          }
+        }
+      }
     },
     "Apple Intelligence を今は使えません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence isn't available right now."
+          }
+        }
+      }
     },
     "URL が正しくありません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The URL isn't valid."
+          }
+        }
+      }
     },
     "URL を開けませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open the URL."
+          }
+        }
+      }
     },
     "「%@」は今のキー配列では入力できません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't type “%@” with the current keyboard layout."
+          }
+        }
+      }
     },
     "この Mac は Apple Intelligence に対応していないため、AI アクションを使えません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI actions aren't available because this Mac doesn't support Apple Intelligence."
+          }
+        }
+      }
     },
     "このテキストの言語には対応していません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The language of this text isn't supported."
+          }
+        }
+      }
     },
     "このテキストは AI で処理できませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't process this text with AI."
+          }
+        }
+      }
     },
     "アクセシビリティ" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibility"
+          }
+        }
+      }
     },
     "キーを送れませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't send the keystrokes."
+          }
+        }
+      }
     },
     "ショートカット「%@」が失敗しました" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The shortcut “%@” failed."
+          }
+        }
+      }
     },
     "ショートカットに渡すテキストを用意できませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't prepare the text to pass to the shortcut."
+          }
+        }
+      }
     },
     "ショートカットの名前が空です" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The shortcut name is empty."
+          }
+        }
+      }
     },
     "ショートカットを実行できませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't run the shortcut."
+          }
+        }
+      }
     },
     "スクリプトが中断されました（シグナル %d）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script was interrupted (signal %d)."
+          }
+        }
+      }
     },
     "スクリプトが失敗しました（終了コード %d）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Script failed (exit code %d)."
+          }
+        }
+      }
     },
     "スクリプトが空です" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The script is empty."
+          }
+        }
+      }
     },
     "スクリプトを実行できませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't run the script."
+          }
+        }
+      }
     },
     "ターミナルを開けませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open Terminal."
+          }
+        }
+      }
     },
     "ターミナル用のファイルを作れませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the file to run in Terminal."
+          }
+        }
+      }
     },
     "テキストを選択してから実行してください" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text first."
+          }
+        }
+      }
     },
     "トラックパッドの指の位置を読み取れません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't read finger positions from the trackpad."
+          }
+        }
+      }
     },
     "メニュー項目「%@」は今は使えません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The menu item “%@” isn't available right now."
+          }
+        }
+      }
     },
     "メニュー項目が設定されていません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No menu item is set."
+          }
+        }
+      }
     },
     "ログイン時に起動するよう設定できませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't set Nonet to open at login."
+          }
+        }
+      }
     },
     "ログイン時の起動を止められませんでした" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't stop Nonet from opening at login."
+          }
+        }
+      }
     },
     "ログイン項目" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login Items"
+          }
+        }
+      }
     },
     "前面のアプリが変わったため、結果をクリップボードにコピーしました" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The front app changed, so the result was copied to the clipboard instead."
+          }
+        }
+      }
     },
     "前面のアプリが見つかりません" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find the front app."
+          }
+        }
+      }
     },
     "選択したテキストが長すぎます" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected text is too long."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

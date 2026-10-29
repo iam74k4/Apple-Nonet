@@ -63,7 +63,7 @@ struct ConfigurationValidationTests {
         let configuration = NonetConfiguration(profiles: [global, safari, xcode]).validated()
         #expect(configuration.profiles[0].id == global.id)
         #expect(Set(configuration.profiles.map(\.id)).count == 3)
-        #expect(configuration.profiles.map(\.name) == ["グローバル", "Safari", "Xcode"])
+        #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Safari", "Xcode"])
     }
 
     @Test("マスの id が重なれば（プロファイルをまたいでも）、後のものを振り直す")

@@ -59,7 +59,7 @@ struct ConfigurationResolvedPagesTests {
     func pageContents() {
         let configuration = Self.configuration(autoSwitch: true, append: true)
         let pages = configuration.resolvedPages(frontmostBundleID: "com.apple.dt.Xcode")
-        #expect(pages.map(\.profileName) == ["Xcode", "Xcode", "グローバル", "グローバル", "グローバル"])
+        #expect(pages.map(\.profileName) == ["Xcode", "Xcode", ModelFixtures.globalName, ModelFixtures.globalName, ModelFixtures.globalName])
         #expect(pages[0].cells == configuration.profiles[2].pages[0].cells)
         #expect(pages[3].cells == configuration.profiles[0].pages[1].cells)
         #expect(pages.allSatisfy { $0.cells.count == Page.cellCount })
@@ -87,6 +87,6 @@ struct ConfigurationResolvedPagesTests {
         let pages = configuration.resolvedPages(frontmostBundleID: nil)
         #expect(pages.count == 1)
         #expect(pages[0].cells == Page.empty.cells)
-        #expect(pages[0].profileName == "グローバル")
+        #expect(pages[0].profileName == ModelFixtures.globalName)
     }
 }

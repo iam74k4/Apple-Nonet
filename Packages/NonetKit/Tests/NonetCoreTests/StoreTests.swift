@@ -64,7 +64,7 @@ struct StoreFileTests {
             try Data(hand.utf8).write(to: store.fileURL)
             let repaired = try #require(try store.load())
             #expect(repaired.settings.hudDelay == 0.15)
-            #expect(repaired.profiles.map(\.name) == ["グローバル", "A"])
+            #expect(repaired.profiles.map(\.name) == [ModelFixtures.globalName, "A"])
         }
     }
 
@@ -698,7 +698,7 @@ struct StoreProfileDocumentTests {
         var configuration = ModelFixtures.configuration()
         let result = configuration.importProfiles(try ConfigurationStore.importDocument(from: Data(Self.document.utf8)))
         #expect(result == NonetConfiguration.ImportResult(added: 1, replaced: 0, replacedGlobal: true, skipped: 4))
-        #expect(configuration.profiles.map(\.name) == ["グローバル", "Safari", "Xcode", "Figma"])
+        #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Safari", "Xcode", "Figma"])
         #expect(configuration.globalProfile.pages.count == 2)
         #expect(ConfigurationValidationTests.satisfiesInvariants(configuration))
     }
@@ -783,7 +783,7 @@ struct StoreProfileDocumentTests {
         let result = target.importProfiles(try ConfigurationStore.importProfiles(from: data))
 
         #expect(result == NonetConfiguration.ImportResult(added: 2))
-        #expect(target.profiles.map(\.name) == ["グローバル", "Figma", "Safari", "Xcode"])
+        #expect(target.profiles.map(\.name) == [ModelFixtures.globalName, "Figma", "Safari", "Xcode"])
         #expect(ConfigurationValidationTests.satisfiesInvariants(target))
 
         // importDocument(from:) 経由でも同じ

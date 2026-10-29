@@ -143,7 +143,7 @@ struct ActionMenuTitleMatcherTests {
 
     @Test("表示用のパス")
     func displayPath() {
-        #expect(MenuTitleMatcher.displayPath(["編集", "コピー"]) == "編集 > コピー")
+        #expect(MenuTitleMatcher.displayPath(["編集", "コピー"]) == "編集 › コピー")
     }
 }
 

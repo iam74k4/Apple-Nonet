@@ -12,13 +12,13 @@ struct ModelSummaryTests {
             (.launchApp(LaunchAppAction(app: ModelFixtures.xcode)), "Xcode"),
             (.launchApp(LaunchAppAction(app: AppReference(bundleID: "com.example.NoName", name: "  "))), "com.example.NoName"),
             (.openURL(URLAction(url: "https://developer.apple.com/documentation")), "developer.apple.com"),
-            (.script(ScriptAction(source: "make", runMode: .background)), "スクリプト"),
-            (.script(ScriptAction(source: "claude", runMode: .terminal)), "ターミナル"),
+            (.script(ScriptAction(source: "make", runMode: .background)), ModelFixtures.text("スクリプト")),
+            (.script(ScriptAction(source: "claude", runMode: .terminal)), ModelFixtures.text("ターミナル")),
             (.shortcut(ShortcutAction(name: "マイクのミュート")), "マイクのミュート"),
-            (.shortcut(ShortcutAction(name: " ")), "ショートカット"),
+            (.shortcut(ShortcutAction(name: " ")), ModelFixtures.text("ショートカット")),
             (.menuItem(MenuItemAction(path: ["オブジェクト", "自動レイアウトを追加"])), "自動レイアウトを追加"),
             (.menuItem(MenuItemAction(path: ["編集", ""])), "編集"),
-            (.menuItem(MenuItemAction(path: [])), "メニュー項目"),
+            (.menuItem(MenuItemAction(path: [])), ModelFixtures.text("メニュー項目")),
             (.ai(AIAction(prompt: "要約して")), "AI"),
         ]
         for (action, expected) in cases {
@@ -46,7 +46,7 @@ struct ModelSummaryTests {
 
     @Test("グローバルのプロファイルは「グローバル」、アプリはアプリ名")
     func profileNames() {
-        #expect(Profile(kind: .global).name == "グローバル")
+        #expect(Profile(kind: .global).name == ModelFixtures.globalName)
         #expect(Profile(kind: .app(ModelFixtures.figma)).name == "Figma")
         #expect(Profile(kind: .app(AppReference(bundleID: "com.example.x", name: ""))).name == "com.example.x")
     }

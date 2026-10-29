@@ -27,7 +27,7 @@ enum MenuTitleMatcher {
     }
 
     static func displayPath(_ path: [String]) -> String {
-        path.joined(separator: " > ")
+        path.joined(separator: " › ")
     }
 }
 

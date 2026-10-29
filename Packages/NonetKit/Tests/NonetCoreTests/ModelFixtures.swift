@@ -4,6 +4,13 @@ import Foundation
 import Testing
 
 enum ModelFixtures {
+    /// 実行環境の言語で引いた NonetCore の文言。テストが日本語・英語のどちらでも通るように
+    static func text(_ key: String.LocalizationValue) -> String {
+        String(localized: key, bundle: .nonetCore)
+    }
+
+    static var globalName: String { text("グローバル") }
+
     static let safari = AppReference(bundleID: "com.apple.Safari", name: "Safari")
     static let xcode = AppReference(bundleID: "com.apple.dt.Xcode", name: "Xcode")
     static let figma = AppReference(bundleID: "com.figma.Desktop", name: "Figma")
