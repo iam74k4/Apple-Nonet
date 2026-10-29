@@ -45,3 +45,11 @@ func actionElapsedSeconds(_ body: () async throws -> Void) async rethrows -> Dou
     let (seconds, attoseconds) = (ContinuousClock.now - start).components
     return Double(seconds) + Double(attoseconds) / 1e18
 }
+
+/// LMGetKbdType が返すキーボードの種類の例（KBGetLayoutType でそれぞれ ANSI / ISO / JIS）
+enum ActionKeyboardType {
+    static let ansi: UInt32 = 40
+    static let iso: UInt32 = 41
+    static let jis: UInt32 = 42
+    static let all = [ansi, iso, jis]
+}

@@ -80,7 +80,7 @@ struct ActionKeyCodesTests {
     )
 
     private func stroke(_ chord: KeyChord) throws -> KeyStroke {
-        try KeyStrokeResolver.stroke(for: chord) { character, preferCommand in
+        try KeyStrokeResolver.stroke(for: chord, keyboardType: ActionKeyboardType.ansi) { character, preferCommand, _ in
             Self.fakeLayout.match(character, preferCommandTable: preferCommand)
         }
     }
@@ -132,6 +132,106 @@ struct ActionKeyCodesTests {
         let eisu = try stroke(KeyChord(.special(.eisu)))
         #expect(eisu.keyCode == CGKeyCode(kVK_JIS_Eisu))
         #expect(!eisu.flags.contains(.maskCommand))
+    }
+
+    @Test("キーコードはイベントに付けるのと同じキーボードの種類で探し、その種類を持つ")
+    func strokeCarriesKeyboardType() throws {
+        // JIS では ¥ のキーがあり、] は別の位置にある（ABC 配列の実際の並び）
+        let ansi = KeyboardLayoutMap(base: ["]": 0x1E, "\\": 0x2A], shifted: [:], command: [:])
+        let jis = KeyboardLayoutMap(base: ["]": 0x2A, "¥": 0x5D], shifted: [:], command: [:])
+        var askedTypes: [UInt32] = []
+        let resolve = { (chord: KeyChord, keyboardType: UInt32) throws -> KeyStroke in
+            try KeyStrokeResolver.stroke(for: chord, keyboardType: keyboardType) { character, preferCommand, type in
+                askedTypes.append(type)
+                return (type == ActionKeyboardType.jis ? jis : ansi).match(character, preferCommandTable: preferCommand)
+            }
+        }
+
+        let yen = try resolve(KeyChord(.character("¥")), ActionKeyboardType.jis)
+        #expect(yen.keyCode == 0x5D)
+        #expect(yen.keyboardType == ActionKeyboardType.jis)
+        #expect(throws: NonetError.self) { try resolve(KeyChord(.character("¥")), ActionKeyboardType.ansi) }
+
+        let bracketJIS = try resolve(KeyChord(.character("]"), modifiers: .command), ActionKeyboardType.jis)
+        let bracketANSI = try resolve(KeyChord(.character("]"), modifiers: .command), ActionKeyboardType.ansi)
+        #expect(bracketJIS.keyCode == 0x2A)
+        #expect(bracketANSI.keyCode == 0x1E)
+        #expect(bracketANSI.keyboardType == ActionKeyboardType.ansi)
+        #expect(askedTypes == [ActionKeyboardType.jis, ActionKeyboardType.ansi, ActionKeyboardType.jis, ActionKeyboardType.ansi])
+
+        // 文字以外もキーボードの種類を持つ（イベントに付ける）
+        let f5 = try KeyStrokeResolver.stroke(for: KeyChord(.special(.f5)), keyboardType: ActionKeyboardType.iso) { _, _, _ in nil }
+        #expect(f5.keyboardType == ActionKeyboardType.iso)
+    }
+
+    @Test("イベントは起動時ではなく、キーコードを選んだときのキーボードの種類で作る")
+    func eventsUseStrokeKeyboardType() throws {
+        // 起動したときは ANSI の外付けキーボード、今は JIS の内蔵キーボード
+        let source = try #require(CGEventSource(stateID: .privateState))
+        source.keyboardType = CGEventSourceKeyboardType(ActionKeyboardType.ansi)
+        let stroke = KeyStroke(
+            keyCode: CGKeyCode(kVK_JIS_Yen),
+            flags: VirtualKeyTable.flags(for: [.command, .shift]),
+            keyboardType: ActionKeyboardType.jis
+        )
+        let (down, up) = try #require(KeyEventFactory.events(for: stroke, source: source))
+        for event in [down, up] {
+            #expect(event.getIntegerValueField(.keyboardEventKeyboardType) == Int64(ActionKeyboardType.jis))
+            #expect(event.getIntegerValueField(.keyboardEventKeycode) == Int64(kVK_JIS_Yen))
+            #expect(event.flags.contains([.maskCommand, .maskShift]))
+            #expect(!event.flags.contains(.maskAlternate))
+            #expect(SyntheticKeyEvent.isSynthetic(event))
+        }
+        #expect(down.type == .keyDown)
+        #expect(up.type == .keyUp)
+    }
+
+    @Test("イベントに入る文字は、キー配列で探した文字と同じ（ANSI / ISO / JIS を切り替えても）")
+    @MainActor
+    func eventCharactersMatchLookup() throws {
+        guard KeyboardLayoutResolver.isLayoutAvailable else { return }
+        let resolver = KeyboardLayoutResolver()
+        let source = try #require(CGEventSource(stateID: .privateState))
+        // イベントの文字を決めるキー配列が、探すのに使うキー配列と違う環境（入力メソッドの指定など）では確かめられない
+        guard let a = resolver.match("a", preferCommandTable: false, keyboardType: ActionKeyboardType.ansi),
+              Self.characters(of: KeyStroke(keyCode: a.keyCode, flags: [], keyboardType: ActionKeyboardType.ansi), source: source) == "a"
+        else { return }
+
+        var checked = 0
+        for keyboardType in ActionKeyboardType.all {
+            for character in ["]", "[", "\\", "¥", "_", "@", "a", "1"] {
+                guard let match = resolver.match(character, preferCommandTable: false, keyboardType: keyboardType),
+                      !match.needsShift
+                else { continue }
+                // 起動したときの種類は別のもの
+                source.keyboardType = CGEventSourceKeyboardType(keyboardType == ActionKeyboardType.jis ? ActionKeyboardType.ansi : ActionKeyboardType.jis)
+                let stroke = KeyStroke(keyCode: match.keyCode, flags: [], keyboardType: keyboardType)
+                #expect(Self.characters(of: stroke, source: source) == character, "\(character) (\(keyboardType))")
+                checked += 1
+            }
+        }
+        #expect(checked > 0)
+    }
+
+    private static func characters(of stroke: KeyStroke, source: CGEventSource) -> String? {
+        guard let (down, _) = KeyEventFactory.events(for: stroke, source: source) else { return nil }
+        var length = 0
+        var buffer = [UniChar](repeating: 0, count: 8)
+        down.keyboardGetUnicodeString(maxStringLength: buffer.count, actualStringLength: &length, unicodeString: &buffer)
+        return String(utf16CodeUnits: buffer, count: length)
+    }
+
+    @Test("送るキーは、渡したキーボードの種類で決める")
+    @MainActor
+    func keySenderStrokesUseGivenKeyboardType() throws {
+        guard KeyboardLayoutResolver.isLayoutAvailable else { return }
+        let sender = KeySender()
+        for keyboardType in ActionKeyboardType.all {
+            let strokes = try sender.strokes(for: KeySequence([KeyChord(.character("c"), modifiers: .command), KeyChord(.special(.returnKey))]), keyboardType: keyboardType)
+            #expect(strokes.count == 2)
+            #expect(strokes.allSatisfy { $0.keyboardType == keyboardType })
+            #expect(strokes.first?.flags.contains(.maskCommand) == true)
+        }
     }
 
     @Test("Nonet が送るイベントには印が付き、見分けられる")

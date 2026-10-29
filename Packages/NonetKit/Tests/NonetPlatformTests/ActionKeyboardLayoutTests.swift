@@ -84,14 +84,15 @@ struct ActionKeyboardLayoutTests {
         // キー配列を読めない環境（CI の一部など）では確かめられない
         guard KeyboardLayoutResolver.isLayoutAvailable else { return }
         let resolver = KeyboardLayoutResolver()
+        let keyboardType = KeyboardLayoutResolver.currentKeyboardType()
         let characters = "abcdefghijklmnopqrstuvwxyz0123456789".map(String.init)
         var codes = Set<CGKeyCode>()
         for character in characters {
-            let match = resolver.match(character, preferCommandTable: false)
+            let match = resolver.match(character, preferCommandTable: false, keyboardType: keyboardType)
             #expect(match != nil, "\(character)")
             #expect(match?.needsShift == false, "\(character)")
             if let match { codes.insert(match.keyCode) }
-            #expect(resolver.match(character, preferCommandTable: true) != nil, "⌘\(character)")
+            #expect(resolver.match(character, preferCommandTable: true, keyboardType: keyboardType) != nil, "⌘\(character)")
         }
         // 36文字はすべて別のキー
         #expect(codes.count == characters.count)
@@ -103,10 +104,56 @@ struct ActionKeyboardLayoutTests {
     func currentLayoutUppercase() {
         guard KeyboardLayoutResolver.isLayoutAvailable else { return }
         let resolver = KeyboardLayoutResolver()
-        let lower = resolver.match("q", preferCommandTable: false)
-        let upper = resolver.match("Q", preferCommandTable: false)
+        let keyboardType = KeyboardLayoutResolver.currentKeyboardType()
+        let lower = resolver.match("q", preferCommandTable: false, keyboardType: keyboardType)
+        let upper = resolver.match("Q", preferCommandTable: false, keyboardType: keyboardType)
         #expect(lower != nil)
         #expect(upper?.keyCode == lower?.keyCode)
         #expect(upper?.needsShift == false)
+    }
+
+    @Test("テストで使うキーボードの種類の値は ANSI / ISO / JIS")
+    func keyboardTypeFixtures() {
+        #expect(KBGetLayoutType(Int16(ActionKeyboardType.ansi)) == UInt32(kKeyboardANSI))
+        #expect(KBGetLayoutType(Int16(ActionKeyboardType.iso)) == UInt32(kKeyboardISO))
+        #expect(KBGetLayoutType(Int16(ActionKeyboardType.jis)) == UInt32(kKeyboardJIS))
+    }
+
+    @Test("どのキーボードの種類でも、英字と数字は見つかる")
+    @MainActor
+    func lettersOnEveryKeyboardType() {
+        guard KeyboardLayoutResolver.isLayoutAvailable else { return }
+        let resolver = KeyboardLayoutResolver()
+        for keyboardType in ActionKeyboardType.all {
+            for character in "azAZ09".map(String.init) {
+                let match = resolver.match(character, preferCommandTable: true, keyboardType: keyboardType)
+                #expect(match != nil, "\(character) (\(keyboardType))")
+                #expect(match?.needsShift == false, "\(character) (\(keyboardType))")
+            }
+        }
+    }
+
+    @Test("渡したキーボードの種類で探す（ABC / US 配列: ¥ は JIS のときだけ、] は JIS で別のキー）")
+    @MainActor
+    func lookupFollowsGivenKeyboardType() {
+        // ほかのキー配列では文字の並びが違うので確かめられない
+        guard let id = Self.currentLayoutID(), ["com.apple.keylayout.ABC", "com.apple.keylayout.US"].contains(id),
+              TISCopyInputMethodKeyboardLayoutOverride()?.takeRetainedValue() == nil
+        else { return }
+        let resolver = KeyboardLayoutResolver()
+        #expect(resolver.match("¥", preferCommandTable: false, keyboardType: ActionKeyboardType.jis)?.keyCode == CGKeyCode(kVK_JIS_Yen))
+        #expect(resolver.match("¥", preferCommandTable: false, keyboardType: ActionKeyboardType.ansi) == nil)
+        let jisBracket = resolver.match("]", preferCommandTable: false, keyboardType: ActionKeyboardType.jis)
+        let ansiBracket = resolver.match("]", preferCommandTable: false, keyboardType: ActionKeyboardType.ansi)
+        #expect(ansiBracket?.keyCode == CGKeyCode(kVK_ANSI_RightBracket))
+        #expect(jisBracket != nil)
+        #expect(jisBracket?.keyCode != ansiBracket?.keyCode)
+    }
+
+    private static func currentLayoutID() -> String? {
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let pointer = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
+        else { return nil }
+        return Unmanaged<CFString>.fromOpaque(pointer).takeUnretainedValue() as String
     }
 }

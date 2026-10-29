@@ -66,7 +66,7 @@ public final class SystemActionPerformer: ActionPerforming {
 
     private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?) async throws {
         try ScriptRunner.validate(source: script.source)
-        var info = await contextReader.read(.forScript(source: script.source), app: frontmost)
+        var info = await contextReader.read(.forScript, app: frontmost)
         if let text = info.selectedText, text.count > ContextReader.scriptSelectedTextLimit {
             info.selectedText = String(text.prefix(ContextReader.scriptSelectedTextLimit))
         }

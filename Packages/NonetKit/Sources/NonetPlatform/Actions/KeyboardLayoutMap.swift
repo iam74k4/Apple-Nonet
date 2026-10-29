@@ -86,9 +86,15 @@ final class KeyboardLayoutResolver {
         if let observer { DistributedNotificationCenter.default().removeObserver(observer) }
     }
 
-    /// 今のキー配列で探し、無ければ ASCII を打てるキー配列（ABC など）で探す
-    func match(_ character: String, preferCommandTable: Bool) -> KeyboardLayoutMap.Match? {
-        for layout in Self.currentLayouts() {
+    /// 今使っているキーボードの種類（LMGetKbdType）。最後に打たれたキーボードで変わる
+    static func currentKeyboardType() -> UInt32 {
+        UInt32(LMGetKbdType())
+    }
+
+    /// 今のキー配列で探し、無ければ ASCII を打てるキー配列（ABC など）で探す。
+    /// keyboardType は送るイベントに付けるのと同じ値にする（JIS の ¥ や _ のように、種類でキーの文字が変わる）
+    func match(_ character: String, preferCommandTable: Bool, keyboardType: UInt32) -> KeyboardLayoutMap.Match? {
+        for layout in Self.currentLayouts(keyboardType: keyboardType) {
             if let match = map(for: layout).match(character, preferCommandTable: preferCommandTable) {
                 return match
             }
@@ -97,7 +103,7 @@ final class KeyboardLayoutResolver {
     }
 
     /// 今のキー配列が読めるか（テスト用）
-    static var isLayoutAvailable: Bool { !currentLayouts().isEmpty }
+    static var isLayoutAvailable: Bool { !currentLayouts(keyboardType: currentKeyboardType()).isEmpty }
 
     private func map(for layout: KeyboardLayoutData) -> KeyboardLayoutMap {
         let key = "\(layout.id)#\(layout.keyboardType)"
@@ -122,8 +128,7 @@ final class KeyboardLayoutResolver {
 
     /// 入力メソッド（日本語入力など）が指定するキー配列、今のキー配列、ASCII を打てるキー配列の順。
     /// 文字の表（uchr）を持たないものは飛ばす
-    private static func currentLayouts() -> [KeyboardLayoutData] {
-        let keyboardType = UInt32(LMGetKbdType())
+    private static func currentLayouts(keyboardType: UInt32) -> [KeyboardLayoutData] {
         // Copy した参照は1回だけ受け取る（lazy で2度受け取ると解放しすぎる）
         let override = TISCopyInputMethodKeyboardLayoutOverride()?.takeRetainedValue()
         let current = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue()
