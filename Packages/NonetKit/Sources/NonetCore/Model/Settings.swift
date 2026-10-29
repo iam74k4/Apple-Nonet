@@ -99,3 +99,56 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
 
     public static let hudDelayRange: ClosedRange<Double> = 0.15...0.8
 }
+
+// MARK: - Codable
+// 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）
+
+extension GlobalSettings {
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled, trigger, fireMode, hudDelay, hudPosition, autoSwitchProfiles
+        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = GlobalSettings()
+        self.init(
+            isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
+            trigger: container.decodeLossy(TriggerKey.self, forKey: .trigger, default: defaults.trigger),
+            fireMode: container.decodeLossy(FireMode.self, forKey: .fireMode, default: defaults.fireMode),
+            hudDelay: container.decodeLossy(Double.self, forKey: .hudDelay, default: defaults.hudDelay),
+            hudPosition: container.decodeLossy(HUDPosition.self, forKey: .hudPosition, default: defaults.hudPosition),
+            autoSwitchProfiles: container.decodeLossy(Bool.self, forKey: .autoSwitchProfiles, default: defaults.autoSwitchProfiles),
+            appendGlobalPages: container.decodeLossy(Bool.self, forKey: .appendGlobalPages, default: defaults.appendGlobalPages),
+            haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
+            passTriggerToApps: container.decodeLossy(Bool.self, forKey: .passTriggerToApps, default: defaults.passTriggerToApps),
+            showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
+            cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(trigger, forKey: .trigger)
+        try container.encode(fireMode, forKey: .fireMode)
+        try container.encode(hudDelay, forKey: .hudDelay)
+        try container.encode(hudPosition, forKey: .hudPosition)
+        try container.encode(autoSwitchProfiles, forKey: .autoSwitchProfiles)
+        try container.encode(appendGlobalPages, forKey: .appendGlobalPages)
+        try container.encode(haptics, forKey: .haptics)
+        try container.encode(passTriggerToApps, forKey: .passTriggerToApps)
+        try container.encode(showExecutionToast, forKey: .showExecutionToast)
+        try container.encode(cursorLock, forKey: .cursorLock)
+    }
+
+    /// 範囲外の値を直したもの
+    func validated() -> GlobalSettings {
+        var settings = self
+        let range = GlobalSettings.hudDelayRange
+        settings.hudDelay = hudDelay.isFinite
+            ? min(max(hudDelay, range.lowerBound), range.upperBound)
+            : GlobalSettings().hudDelay
+        return settings
+    }
+}
