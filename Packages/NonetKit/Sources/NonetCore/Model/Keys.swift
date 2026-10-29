@@ -73,18 +73,375 @@ public struct KeySequence: Codable, Hashable, Sendable {
 extension KeyChord {
     /// "⇧⌘4" のような表記。修飾キーは ⌃⌥⇧⌘ の順で、英字は大文字で表示する
     public var displayString: String {
-        fatalError("未実装: keys-license")
+        KeyNotation.prefix(for: modifiers) + KeyNotation.display(key)
     }
 }
 
 extension KeySequence {
     /// "⌘L → ⌘C" のような表記
     public var displayString: String {
-        fatalError("未実装: keys-license")
+        chords.map(\.displayString).joined(separator: KeyNotation.sequenceSeparator)
     }
 
-    /// displayString と同じ書式を読む。読めなければ nil
+    /// displayString と同じ書式を読む。読めなければ nil。
+    /// 修飾キーの順は問わず、空白は省略できる。打鍵の区切りは「→」「->」「,」。
+    /// 修飾キーは「cmd+shift+4」のような英語の名前と「+」でも書ける。記号に付いた異体字セレクタ（「↩︎」など）は無視する
     public init?(parsing text: String) {
-        fatalError("未実装: keys-license")
+        var parser = KeyNotationParser(text)
+        guard let chords = parser?.parse() else { return nil }
+        self.init(chords)
     }
+}
+
+// MARK: - 表記
+
+/// キーの表記の決まり。表示と読み取りで同じ表を使う
+enum KeyNotation {
+    static let sequenceSeparator = " → "
+    /// fn は記号ではなく文字で出す。続く記号と区別するため空白を空ける
+    static let functionPrefix = "fn "
+
+    /// Apple の順（⌃⌥⇧⌘）
+    static let modifierGlyphs: [(ModifierSet, Character)] = [
+        (.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘"),
+    ]
+
+    static func prefix(for modifiers: ModifierSet) -> String {
+        var text = modifiers.contains(.function) ? functionPrefix : ""
+        for (modifier, glyph) in modifierGlyphs where modifiers.contains(modifier) {
+            text.append(glyph)
+        }
+        return text
+    }
+
+    static func display(_ key: Key) -> String {
+        switch key {
+        case .character(let character): display(character: character)
+        case .special(let special): symbol(for: special)
+        case .keyCode(let code): "keyCode(\(code))"
+        }
+    }
+
+    static func symbol(for key: SpecialKey) -> String {
+        switch key {
+        case .returnKey: "↩"
+        case .tab: "⇥"
+        case .space: "Space"
+        case .delete: "⌫"
+        case .forwardDelete: "⌦"
+        case .escape: "⎋"
+        case .leftArrow: "←"
+        case .rightArrow: "→"
+        case .upArrow: "↑"
+        case .downArrow: "↓"
+        case .home: "↖"
+        case .end: "↘"
+        case .pageUp: "⇞"
+        case .pageDown: "⇟"
+        case .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10,
+             .f11, .f12, .f13, .f14, .f15, .f16, .f17, .f18, .f19, .f20:
+            key.rawValue.uppercased()
+        case .eisu: "英数"
+        case .kana: "かな"
+        }
+    }
+
+    static func display(character: String) -> String {
+        // メニューのキー（NSMenuItem.keyEquivalent）では制御文字で表されるもの
+        switch character {
+        case " ": return symbol(for: .space)
+        case "\r", "\n", "\r\n", "\u{3}": return symbol(for: .returnKey)
+        case "\t": return symbol(for: .tab)
+        case "\u{8}", "\u{7F}": return symbol(for: .delete)
+        case "\u{1B}": return symbol(for: .escape)
+        default: break
+        }
+        let scalars = character.unicodeScalars
+        if scalars.count == 1, let scalar = scalars.first, isInvisible(scalar) || !standsAlone(character) {
+            return unicodeEscape(scalar)
+        }
+        // "ß" → "SS" のように元に戻せない大文字にはしない
+        let uppercased = character.uppercased()
+        return uppercased.count == 1 && uppercased.lowercased() == character ? uppercased : character
+    }
+
+    static func unicodeEscape(_ scalar: Unicode.Scalar) -> String {
+        let hex = String(scalar.value, radix: 16, uppercase: true)
+        return "U+" + String(repeating: "0", count: max(0, 4 - hex.count)) + hex
+    }
+
+    /// 見えない文字と、前の文字にくっつく文字（結合文字・異体字セレクタ・肌の色）。表示では U+XXXX と書く
+    static func isInvisible(_ scalar: Unicode.Scalar) -> Bool {
+        let properties = scalar.properties
+        if properties.isWhitespace || properties.isGraphemeExtend || properties.isEmojiModifier { return true }
+        switch properties.generalCategory {
+        case .control, .format, .lineSeparator, .paragraphSeparator, .spaceSeparator, .privateUse, .surrogate, .unassigned,
+             .nonspacingMark, .spacingMark, .enclosingMark:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// 前の修飾キーの記号や空白、後の空白とくっついて別の1文字にならないか（後ろにくっつく文字などもある）
+    static func standsAlone(_ text: String) -> Bool {
+        ["⌘", " "].allSatisfy { before in
+            let characters = Array(before + text + " ")
+            return characters.count == 3 && String(characters[1]) == text
+        }
+    }
+
+    /// テキストか絵文字かの見た目を選ぶだけの異体字セレクタ（「↩︎」の U+FE0E など）
+    static func isPresentationSelector(_ scalar: Unicode.Scalar) -> Bool {
+        scalar == "\u{FE0E}" || scalar == "\u{FE0F}"
+    }
+
+    /// 異体字セレクタを除いた文字。何も残らなければそのまま
+    static func withoutPresentationSelectors(_ character: Character) -> Character {
+        guard character.unicodeScalars.contains(where: isPresentationSelector) else { return character }
+        var scalars = String.UnicodeScalarView()
+        scalars.append(contentsOf: character.unicodeScalars.filter { !isPresentationSelector($0) })
+        let text = String(scalars)
+        guard text.count == 1, let first = text.first else { return character }
+        return first
+    }
+
+    // MARK: 読み取りの表
+
+    static let modifierForGlyph: [Character: ModifierSet] = [
+        "⌃": .control, "⌥": .option, "⇧": .shift, "⌘": .command, "🌐": .function,
+    ]
+
+    /// 小文字で引く
+    static let modifierWords: [String: ModifierSet] = [
+        "cmd": .command, "command": .command,
+        "opt": .option, "option": .option, "alt": .option,
+        "ctrl": .control, "control": .control,
+        "shift": .shift,
+        "fn": .function, "function": .function, "globe": .function,
+    ]
+
+    static let keyForGlyph: [Character: Key] = [
+        "↩": .special(.returnKey), "⏎": .special(.returnKey), "⌤": .special(.returnKey),
+        "⇥": .special(.tab), "␣": .special(.space),
+        "⌫": .special(.delete), "⌦": .special(.forwardDelete), "⎋": .special(.escape),
+        "←": .special(.leftArrow), "→": .special(.rightArrow), "↑": .special(.upArrow), "↓": .special(.downArrow),
+        "↖": .special(.home), "↘": .special(.end), "⇞": .special(.pageUp), "⇟": .special(.pageDown),
+    ]
+
+    /// 英数字以外を含む、2文字以上のキーの名前
+    static let multiCharacterNames: [(name: [Character], key: Key)] = [
+        (Array("英数"), .special(.eisu)), (Array("かな"), .special(.kana)), (Array("スペース"), .special(.space)),
+    ]
+
+    /// 2文字以上の英数字のキーの名前（小文字で引く）。SpecialKey の rawValue も読める
+    static let keyWords: [String: Key] = {
+        var words: [String: Key] = [:]
+        for key in SpecialKey.allCases {
+            words[key.rawValue.lowercased()] = .special(key)
+        }
+        let aliases: [String: SpecialKey] = [
+            "return": .returnKey, "enter": .returnKey,
+            "spacebar": .space, "backspace": .delete, "fwddelete": .forwardDelete, "esc": .escape,
+            "left": .leftArrow, "right": .rightArrow, "up": .upArrow, "down": .downArrow,
+            "pgup": .pageUp, "pgdn": .pageDown,
+        ]
+        for (word, key) in aliases {
+            words[word] = .special(key)
+        }
+        // 区切りや記号と紛らわしい文字を名前で書けるようにする（例: command+plus）
+        let characters: [String: String] = [
+            "plus": "+", "minus": "-", "hyphen": "-", "equal": "=", "equals": "=",
+            "comma": ",", "period": ".", "dot": ".", "slash": "/", "backslash": "\\",
+            "semicolon": ";", "colon": ":", "quote": "'", "apostrophe": "'",
+            "grave": "`", "backquote": "`", "backtick": "`",
+            "leftbracket": "[", "rightbracket": "]", "caret": "^", "underscore": "_", "yen": "¥",
+        ]
+        for (word, character) in characters {
+            words[word] = .character(character)
+        }
+        return words
+    }()
+}
+
+// MARK: - 読み取り
+
+/// KeySequence(parsing:) の中身。
+/// 打鍵 = 修飾キー* キー。修飾キーの後の「+」はつなぎか「+」キーのどちらにもなり得るので、
+/// つなぎとして読む方を先に試し、全体が読めなければ「+」キーとして読み直す
+struct KeyNotationParser {
+    /// これより長い入力は表記として扱わない
+    static let maximumLength = 1000
+
+    /// 異体字セレクタを除いた文字。記号の表と区切りはこちらで調べる（コピーした「⌘↩︎」も読めるように）
+    private let characters: [Character]
+    /// 入力のままの文字。表に無い文字はこちらをキーにする
+    private let original: [Character]
+    /// 位置ごとの、そこから最後までの読み取り結果
+    private var memo: [Int: [KeyChord]?] = [:]
+
+    init?(_ text: String) {
+        let original = Array(text)
+        guard original.count <= Self.maximumLength else { return nil }
+        self.original = original
+        characters = original.map(KeyNotation.withoutPresentationSelectors)
+    }
+
+    mutating func parse() -> [KeyChord]? {
+        sequence(from: 0)
+    }
+
+    private mutating func sequence(from start: Int) -> [KeyChord]? {
+        if let cached = memo[start] {
+            return cached
+        }
+        var result: [KeyChord]?
+        for (chord, end) in chords(at: start, modifiers: []) {
+            let next = skipWhitespace(from: end)
+            if next == characters.count {
+                result = [chord]
+                break
+            }
+            if let afterSeparator = separatorEnd(at: next), let rest = sequence(from: afterSeparator) {
+                result = [chord] + rest
+                break
+            }
+        }
+        memo[start] = .some(result)
+        return result
+    }
+
+    /// start から読める打鍵の候補（優先順）と、その終わりの位置
+    private func chords(at start: Int, modifiers: ModifierSet) -> [(KeyChord, Int)] {
+        let position = skipWhitespace(from: start)
+        if let (modifier, end) = modifier(at: position) {
+            let combined = modifiers.union(modifier)
+            let next = skipWhitespace(from: end)
+            guard next < characters.count, characters[next] == "+" else {
+                return chords(at: end, modifiers: combined)
+            }
+            return chords(at: next + 1, modifiers: combined) + [(KeyChord(.character("+"), modifiers: combined), next + 1)]
+        }
+        if let (key, end) = key(at: position) {
+            return [(KeyChord(key, modifiers: modifiers), end)]
+        }
+        return []
+    }
+
+    private func modifier(at position: Int) -> (ModifierSet, Int)? {
+        guard position < characters.count else { return nil }
+        if let modifier = KeyNotation.modifierForGlyph[characters[position]] {
+            return (modifier, position + 1)
+        }
+        let end = asciiWordEnd(from: position)
+        guard end > position, let modifier = KeyNotation.modifierWords[word(position, end).lowercased()] else { return nil }
+        return (modifier, end)
+    }
+
+    private func key(at position: Int) -> (Key, Int)? {
+        guard position < characters.count else { return nil }
+        if let escaped = unicodeEscape(at: position) {
+            return escaped
+        }
+        let end = asciiWordEnd(from: position)
+        if end > position {
+            let text = word(position, end)
+            if end - position == 1 {
+                return (.character(text.lowercased()), end)
+            }
+            let lowercased = text.lowercased()
+            if let key = KeyNotation.keyWords[lowercased] {
+                return (key, end)
+            }
+            return keyCode(name: lowercased, end: end)
+        }
+        for (name, key) in KeyNotation.multiCharacterNames where matches(name, at: position) {
+            return (key, position + name.count)
+        }
+        let character = characters[position]
+        if let key = KeyNotation.keyForGlyph[character] {
+            return (key, position + 1)
+        }
+        let typed = original[position]
+        guard let first = typed.unicodeScalars.first, !KeyNotation.isInvisible(first),
+              KeyNotation.modifierForGlyph[character] == nil else { return nil }
+        return (.character(String(typed).lowercased()), position + 1)
+    }
+
+    /// "keyCode(53)" または "keyCode53"
+    private func keyCode(name: String, end: Int) -> (Key, Int)? {
+        let prefix = "keycode"
+        guard name.hasPrefix(prefix) else { return nil }
+        let digits = name.dropFirst(prefix.count)
+        if !digits.isEmpty {
+            guard digits.allSatisfy(\.isASCIIDigit), let code = UInt16(digits) else { return nil }
+            return (.keyCode(code), end)
+        }
+        var position = skipWhitespace(from: end)
+        guard position < characters.count, characters[position] == "(" else { return nil }
+        position = skipWhitespace(from: position + 1)
+        var digitEnd = position
+        while digitEnd < characters.count, characters[digitEnd].isASCIIDigit {
+            digitEnd += 1
+        }
+        guard digitEnd > position, let code = UInt16(word(position, digitEnd)) else { return nil }
+        position = skipWhitespace(from: digitEnd)
+        guard position < characters.count, characters[position] == ")" else { return nil }
+        return (.keyCode(code), position + 1)
+    }
+
+    /// 見えない文字の "U+XXXX"
+    private func unicodeEscape(at position: Int) -> (Key, Int)? {
+        guard position + 1 < characters.count, characters[position] == "U" || characters[position] == "u",
+              characters[position + 1] == "+" else { return nil }
+        let start = position + 2
+        var end = start
+        while end < characters.count, characters[end].isASCII, characters[end].isHexDigit {
+            end += 1
+        }
+        guard (4...6).contains(end - start), !(end < characters.count && characters[end].isASCIIAlphanumeric),
+              let value = UInt32(word(start, end), radix: 16), let scalar = Unicode.Scalar(value) else { return nil }
+        return (.character(String(Character(scalar)).lowercased()), end)
+    }
+
+    private func separatorEnd(at position: Int) -> Int? {
+        guard position < characters.count else { return nil }
+        switch characters[position] {
+        case "→", ",":
+            return position + 1
+        case "-" where position + 1 < characters.count && characters[position + 1] == ">":
+            return position + 2
+        default:
+            return nil
+        }
+    }
+
+    private func skipWhitespace(from position: Int) -> Int {
+        var position = position
+        while position < characters.count, characters[position].isWhitespace {
+            position += 1
+        }
+        return position
+    }
+
+    private func asciiWordEnd(from position: Int) -> Int {
+        var end = position
+        while end < characters.count, characters[end].isASCIIAlphanumeric {
+            end += 1
+        }
+        return end
+    }
+
+    private func matches(_ name: [Character], at position: Int) -> Bool {
+        position + name.count <= characters.count && Array(characters[position..<(position + name.count)]) == name
+    }
+
+    private func word(_ start: Int, _ end: Int) -> String {
+        String(characters[start..<end])
+    }
+}
+
+private extension Character {
+    var isASCIIDigit: Bool { isASCII && isWholeNumber }
+    var isASCIIAlphanumeric: Bool { isASCII && (isLetter || isNumber) }
 }
