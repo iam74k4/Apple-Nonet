@@ -309,10 +309,14 @@ struct ModelCodingFixtureTests {
         #expect(configuration.profiles.isEmpty)
     }
 
-    @Test("設定全体: profiles が配列でない・ルートがオブジェクトでないときは読めない")
+    @Test("設定全体: profiles が配列でない（null も）・ルートがオブジェクトでないときは読めない")
     func configurationStructureErrors() {
         #expect(throws: DecodingError.self) {
             try ModelFixtures.decode(NonetConfiguration.self, #"{"profiles": {"a": 1}}"#)
+        }
+        // null を「無い」として空の設定にすると、次の保存ですべてのプロファイルを失う
+        #expect(throws: DecodingError.self) {
+            try ModelFixtures.decode(NonetConfiguration.self, #"{"version": 1, "profiles": null}"#)
         }
         #expect(throws: DecodingError.self) {
             try ModelFixtures.decode(NonetConfiguration.self, "[]")

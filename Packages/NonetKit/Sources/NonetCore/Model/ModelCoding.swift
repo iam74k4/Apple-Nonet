@@ -73,6 +73,8 @@ extension KeyedDecodingContainer {
 /// 配列の中の、読めない要素だけを nil にする（配列全体を失敗させない）
 struct LossyElement<Wrapped: Decodable>: Decodable {
     var value: Wrapped?
+    /// 読めなかった（null ではなかった）
+    var isUnreadable = false
 
     init(from decoder: any Decoder) throws {
         do {
@@ -85,6 +87,33 @@ struct LossyElement<Wrapped: Decodable>: Decodable {
         } catch {
             DecodingIssue.log(String(describing: Wrapped.self), at: decoder.codingPath, error: error)
             value = nil
+            isUnreadable = true
+        }
+    }
+}
+
+// MARK: - 読み込みで失う値
+
+enum JSONContent {
+    /// original（JSONSerialization で読んだもの）の値がすべて、saved に同じ値で残っているか。
+    /// saved で増えたキー（既定値）・配列の後ろに足された要素（9マスに揃えた空きマス）・original の null（値が無いのと同じ）は構わない。
+    /// 知らないキー・知らない値・外したマスやプロファイル・範囲に収めた値は、残っていないことになる
+    static func isPreserved(_ original: Any, in saved: Any) -> Bool {
+        if original is NSNull { return true }
+        switch (original, saved) {
+        case let (original as [String: Any], saved as [String: Any]):
+            return original.allSatisfy { key, value in
+                value is NSNull || saved[key].map { isPreserved(value, in: $0) } == true
+            }
+        case let (original as [Any], saved as [Any]):
+            return original.count <= saved.count && zip(original, saved).allSatisfy { isPreserved($0, in: $1) }
+        case let (original as String, saved as String):
+            // UUID は大文字で書き直す
+            return original == saved || UUID(uuidString: original).map { $0 == UUID(uuidString: saved) } == true
+        case let (original as NSNumber, saved as NSNumber):
+            return original == saved
+        default:
+            return false
         }
     }
 }

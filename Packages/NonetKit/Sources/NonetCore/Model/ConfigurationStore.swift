@@ -28,31 +28,11 @@ public struct ConfigurationStore: Sendable {
 
     /// 保存された設定。ファイルが無ければ nil。古い版は移行し、validated() してから返す。
     /// 読めないファイルは上書きされないよう configuration.corrupt-<日時>.json に移してから
-    /// ConfigurationStoreError.corrupted を投げる
+    /// ConfigurationStoreError.corrupted を投げる。
+    /// 読めても、保存すると失う値（知らない種類のマスやプロファイル、知らない設定など）があれば、原本を
+    /// configuration.lossy-<日時>.json に残す。版の違うファイルは configuration.v<版>.json に残す
     public func load() throws -> NonetConfiguration? {
-        let data: Data
-        do {
-            data = try Data(contentsOf: fileURL)
-        } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
-            return nil
-        } catch {
-            modelLogger.error("設定ファイルを読めない: \(error.localizedDescription, privacy: .public)")
-            throw ConfigurationStoreError.readFailed(reason: error.localizedDescription)
-        }
-
-        do {
-            let (configuration, fileVersion) = try Self.decodeConfiguration(from: data)
-            if fileVersion > NonetConfiguration.currentVersion {
-                // 新しい版の Nonet で書いたファイル。分かる範囲で読むが、元に戻したときのために原本を残す
-                preserveNewerVersionFile(data, version: fileVersion)
-            }
-            return configuration.validated()
-        } catch {
-            let reason = Self.describe(error)
-            let movedTo = moveCorruptFileAside()
-            modelLogger.error("設定ファイルが壊れている（\(reason, privacy: .public)）。退避先: \(movedTo?.lastPathComponent ?? "なし", privacy: .public)")
-            throw ConfigurationStoreError.corrupted(movedTo: movedTo, reason: reason)
-        }
+        try load(currentVersion: NonetConfiguration.currentVersion, steps: ConfigurationMigration.steps)
     }
 
     public func save(_ configuration: NonetConfiguration) throws {
@@ -106,15 +86,68 @@ public struct ConfigurationStore: Sendable {
         try ProfileDocument.encode(profiles)
     }
 
-    /// 読み込んだプロファイル。id は振り直す
+    /// 読み込んだプロファイル。id は振り直す。同じアプリやグローバルが重なっていてもそのまま返す
+    /// （NonetConfiguration.importProfiles(_:) が外して数える）。読めなかったプロファイルの数も要るときは importDocument(from:)
     public static func importProfiles(from data: Data) throws -> [Profile] {
+        try importDocument(from: data).profiles
+    }
+
+    /// 書き出しファイル（.nonetprofile）から読めたものと、読めなかったプロファイルの数。
+    /// NonetConfiguration.importProfiles(_:) に渡すと、読めなかったものも ImportResult.skipped に数える
+    public static func importDocument(from data: Data) throws -> ImportedProfiles {
         try ProfileDocument.decode(data)
+    }
+
+    /// 書き出しファイルから読めたもの
+    public struct ImportedProfiles: Equatable, Sendable {
+        /// 読めたプロファイル。id は振り直してある
+        public var profiles: [Profile]
+        /// 読めなかったプロファイル（新しい版の Nonet の種類など）の数
+        public var unreadableCount: Int
+
+        public init(profiles: [Profile], unreadableCount: Int = 0) {
+            self.profiles = profiles
+            self.unreadableCount = unreadableCount
+        }
     }
 }
 
 // MARK: - 内部
 
 extension ConfigurationStore {
+    func load(currentVersion: Int, steps: [Int: ConfigurationMigration.Step]) throws -> NonetConfiguration? {
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
+            return nil
+        } catch {
+            modelLogger.error("設定ファイルを読めない: \(error.localizedDescription, privacy: .public)")
+            throw ConfigurationStoreError.readFailed(reason: error.localizedDescription)
+        }
+
+        let decoded: (configuration: NonetConfiguration, fileVersion: Int)
+        do {
+            decoded = try Self.decodeConfiguration(from: data, currentVersion: currentVersion, steps: steps)
+        } catch {
+            let reason = Self.describe(error)
+            let movedTo = moveCorruptFileAside()
+            modelLogger.error("設定ファイルが壊れている（\(reason, privacy: .public)）。退避先: \(movedTo?.lastPathComponent ?? "なし", privacy: .public)")
+            throw ConfigurationStoreError.corrupted(movedTo: movedTo, reason: reason)
+        }
+
+        let configuration = decoded.configuration.validated()
+        // 次の save() で原本は configuration.backup.json に移り、その次の save() で消える。
+        // 原本にしか無い値が消えないよう、ここで別の名前で残す
+        if decoded.fileVersion != currentVersion {
+            // 版の違う Nonet で書いたファイル。その版に戻したときに使えるように
+            preserveOriginal(data, family: "configuration.v\(decoded.fileVersion)", preferPlainName: true)
+        } else if Self.losesContent(data, whenSaving: configuration) {
+            preserveOriginal(data, family: "configuration.lossy", preferPlainName: false)
+        }
+        return configuration
+    }
+
     /// ファイルの中身を今の版の設定にする（validated() はしない）。返す版はファイルに書かれていた版
     static func decodeConfiguration(
         from data: Data,
@@ -127,6 +160,16 @@ extension ConfigurationStore {
         return (configuration, fileVersion)
     }
 
+    /// data から読んだ configuration を保存すると、data にあった値のどれかを失うか
+    static func losesContent(_ data: Data, whenSaving configuration: NonetConfiguration) -> Bool {
+        // save() と同じ形で書く。書けなければ失うものとみなす
+        guard let saved = try? ModelJSON.makeEncoder().encode(configuration.validated()) else { return true }
+        if saved == data { return false }
+        guard let original = try? JSONSerialization.jsonObject(with: data),
+              let savedObject = try? JSONSerialization.jsonObject(with: saved) else { return true }
+        return !JSONContent.isPreserved(original, in: savedObject)
+    }
+
     static func describe(_ error: any Error) -> String {
         switch error {
         case let failure as ConfigurationMigration.Failure: failure.description
@@ -137,16 +180,9 @@ extension ConfigurationStore {
 
     /// 壊れたファイルを configuration.corrupt-<日時>.json に移す。移せなければ nil
     private func moveCorruptFileAside() -> URL? {
-        let fileManager = FileManager.default
-        let stamp = Self.timestamp(for: Date())
-        var destination = directory.appending(path: "configuration.corrupt-\(stamp).json")
-        var suffix = 2
-        while fileManager.fileExists(atPath: destination.path(percentEncoded: false)) {
-            destination = directory.appending(path: "configuration.corrupt-\(stamp)-\(suffix).json")
-            suffix += 1
-        }
+        let destination = unusedURL(base: "configuration.corrupt-\(Self.timestamp(for: Date()))")
         do {
-            try fileManager.moveItem(at: fileURL, to: destination)
+            try FileManager.default.moveItem(at: fileURL, to: destination)
             return destination
         } catch {
             // 移せなくても、次の save() でバックアップに残る
@@ -155,16 +191,53 @@ extension ConfigurationStore {
         }
     }
 
-    /// 新しい版のファイルを configuration.v<版>.json として残す。すでにあれば最初のものを残す
-    private func preserveNewerVersionFile(_ data: Data, version: Int) {
-        let url = directory.appending(path: "configuration.v\(version).json")
-        guard !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return }
-        do {
-            try data.write(to: url, options: .atomic)
-            modelLogger.notice("新しい版（\(version)）の設定ファイルを \(url.lastPathComponent, privacy: .public) に残した")
-        } catch {
-            modelLogger.error("新しい版の設定ファイルを残せない: \(error.localizedDescription, privacy: .public)")
+    /// 原本を <family>.json（preferPlainName のとき。使われていれば <family>-<日時>.json）として残す。
+    /// 同じ中身のもの（<family>.json・<family>-*.json）がすでにあれば書かない。
+    /// 残したファイル（すでにあったものを含む）。残せなければ nil
+    @discardableResult
+    func preserveOriginal(_ data: Data, family: String, preferPlainName: Bool) -> URL? {
+        if let existing = existingCopy(of: data, family: family) {
+            return existing
         }
+        let plain = directory.appending(path: "\(family).json", directoryHint: .notDirectory)
+        let destination = preferPlainName && !Self.fileExists(plain)
+            ? plain
+            : unusedURL(base: "\(family)-\(Self.timestamp(for: Date()))")
+        do {
+            try data.write(to: destination, options: .atomic)
+            modelLogger.notice("設定ファイルの原本を \(destination.lastPathComponent, privacy: .public) に残した")
+            return destination
+        } catch {
+            modelLogger.error("設定ファイルの原本を残せない: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// <family>.json・<family>-*.json のうち、中身が data と同じもの
+    private func existingCopy(of data: Data, family: String) -> URL? {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false))) ?? []
+        for name in names.sorted() where name == "\(family).json" || (name.hasPrefix("\(family)-") && name.hasSuffix(".json")) {
+            let url = directory.appending(path: name, directoryHint: .notDirectory)
+            if (try? Data(contentsOf: url)) == data {
+                return url
+            }
+        }
+        return nil
+    }
+
+    /// directory の中の使われていない名前: <base>.json、<base>-2.json、…
+    private func unusedURL(base: String) -> URL {
+        var destination = directory.appending(path: "\(base).json", directoryHint: .notDirectory)
+        var suffix = 2
+        while Self.fileExists(destination) {
+            destination = directory.appending(path: "\(base)-\(suffix).json", directoryHint: .notDirectory)
+            suffix += 1
+        }
+        return destination
+    }
+
+    private static func fileExists(_ url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
     }
 
     static func timestamp(for date: Date) -> String {

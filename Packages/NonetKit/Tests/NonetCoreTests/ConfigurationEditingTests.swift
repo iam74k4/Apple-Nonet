@@ -425,6 +425,23 @@ struct ConfigurationImportTests {
         #expect(configuration.profiles.count == 2)
     }
 
+    @Test("書き出しファイルから読めたものを加えると、読めなかったプロファイルも skipped に数える")
+    func importDocumentCountsUnreadable() {
+        var configuration = ModelFixtures.configuration()
+        let document = ConfigurationStore.ImportedProfiles(
+            profiles: [ModelFixtures.profile(ModelFixtures.figma), ModelFixtures.profile(ModelFixtures.figma, prefix: "2つ目")],
+            unreadableCount: 2
+        )
+        #expect(configuration.importProfiles(document) == NonetConfiguration.ImportResult(added: 1, skipped: 3))
+        #expect(configuration.modelAppProfiles.map(\.name) == ["Safari", "Xcode", "Figma"])
+
+        // 何も読めなかったときは数えるだけ
+        let before = configuration
+        let empty = ConfigurationStore.ImportedProfiles(profiles: [], unreadableCount: 1)
+        #expect(configuration.importProfiles(empty) == NonetConfiguration.ImportResult(skipped: 1))
+        #expect(configuration == before)
+    }
+
     @Test("空の読み込みは何も変えない")
     func importNothing() {
         var configuration = ModelFixtures.configuration()

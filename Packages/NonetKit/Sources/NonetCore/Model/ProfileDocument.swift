@@ -23,8 +23,9 @@ struct ProfileDocument: Encodable {
     }
 
     /// 書式と版を確かめ、プロファイルを取り出す。id はすべて振り直す。
-    /// 読めないプロファイル・bundleID の無いアプリ・2つ目以降のグローバルや同じアプリは外す
-    static func decode(_ data: Data) throws -> [Profile] {
+    /// 2つ目以降のグローバル・同じアプリ・bundleID の無いアプリも外さずに返す（NonetConfiguration.importProfiles(_:) が外して数える）。
+    /// 読めないプロファイルは外して数える。使えるプロファイルが1つも無ければ noProfiles
+    static func decode(_ data: Data) throws -> ConfigurationStore.ImportedProfiles {
         let decoder = ModelJSON.makeDecoder()
         guard let header = try? decoder.decode(Header.self, from: data),
               header.format == formatIdentifier else {
@@ -50,26 +51,21 @@ struct ProfileDocument: Encodable {
             throw ConfigurationStoreError.invalidProfileDocument(reason: DecodingIssue.describe(error))
         }
 
-        var profiles: [Profile] = []
-        var seenBundleIDs = Set<String>()
-        var hasGlobal = false
-        for profile in body.profiles.compactMap(\.value) {
-            switch profile.kind {
-            case .global:
-                guard !hasGlobal else { continue }
-                hasGlobal = true
-            case .app(let app):
-                let key = NonetConfiguration.bundleIDKey(app.bundleID)
-                guard !key.isEmpty, seenBundleIDs.insert(key).inserted else { continue }
-            }
-            profiles.append(profile.normalizedForStorage().reidentified())
+        let profiles = body.profiles.compactMap(\.value).map { $0.normalizedForStorage().reidentified() }
+        let unreadable = body.profiles.filter(\.isUnreadable).count
+        if unreadable > 0 {
+            modelLogger.warning("読み込んだプロファイルのうち \(unreadable) 個を読めなかった")
         }
-        let dropped = body.profiles.count - profiles.count
-        if dropped > 0 {
-            modelLogger.warning("読み込んだプロファイルのうち \(dropped) 個を使わなかった")
+        guard profiles.contains(where: isUsable) else { throw ConfigurationStoreError.noProfiles }
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable)
+    }
+
+    /// 設定に加えられるプロファイル（グローバルか、bundleID のあるアプリ）
+    private static func isUsable(_ profile: Profile) -> Bool {
+        switch profile.kind {
+        case .global: true
+        case .app(let app): !NonetConfiguration.bundleIDKey(app.bundleID).isEmpty
         }
-        guard !profiles.isEmpty else { throw ConfigurationStoreError.noProfiles }
-        return profiles
     }
 
     private struct Header: Decodable {

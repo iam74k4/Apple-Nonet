@@ -105,6 +105,7 @@ struct StoreFileTests {
         #"{"version": 0, "profiles": []}"#,
         #"{"version": -3}"#,
         #"{"version": 1, "profiles": "none"}"#,
+        #"{"version": 1, "profiles": null}"#,
         #"{"version": 1, "profiles": [{"kind": {"type": "global"}}]"#,
     ])
     func corruptFileIsMovedAside(_ contents: String) throws {
@@ -227,16 +228,262 @@ struct StoreFileTests {
             let preserved = directory.appending(path: "configuration.v2.json")
             #expect(try String(contentsOf: preserved, encoding: .utf8) == future)
 
-            // 2回目以降は最初の原本を残す
-            try store.save(configuration)
-            try Data(future.replacingOccurrences(of: "rightShift", with: "function").utf8).write(to: store.fileURL)
+            // 同じファイルをもう一度読んでも増やさない。原本は残してあるので configuration.lossy-… も作らない
             _ = try store.load()
-            #expect(try String(contentsOf: preserved, encoding: .utf8) == future)
+            #expect(try ModelFixtures.fileNames(in: directory) == ["configuration.json", "configuration.v2.json"])
+        }
+    }
+
+    @Test("2度目のダウングレードでは新しい中身を別の名前で残し、前の原本も消さない")
+    func repeatedDowngrade() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let first = #"{"version": 2, "settings": {"trigger": "rightShift"}, "profiles": [{"kind": {"type": "global"}}]}"#
+            let second = #"{"version": 2, "settings": {"trigger": "function"}, "profiles": [{"kind": {"type": "global"}}, {"kind": {"type": "website"}}]}"#
+
+            // 2.0 → 1.x: v2 の原本を残し、編集すると v1 で書く
+            try Data(first.utf8).write(to: store.fileURL)
+            var configuration = try #require(try store.load())
+            configuration.settings.haptics = .off
+            try store.save(configuration)
+
+            // 2.0 に上げて使い続け、また 1.x に戻す
+            try Data(second.utf8).write(to: store.fileURL)
+            configuration = try #require(try store.load())
+            #expect(configuration.settings.trigger == .function)
+            for haptics in [HapticStrength.light, .strong] {
+                configuration.settings.haptics = haptics
+                try store.save(configuration)
+            }
+
+            let names = try ModelFixtures.fileNames(in: directory)
+            let copies = names.filter { $0.hasPrefix("configuration.v2") }
+            #expect(copies.count == 2)
+            #expect(try String(contentsOf: directory.appending(path: "configuration.v2.json"), encoding: .utf8) == first)
+            let newer = try #require(copies.first { $0 != "configuration.v2.json" })
+            #expect(newer.hasPrefix("configuration.v2-") && newer.hasSuffix(".json"))
+            #expect(try String(contentsOf: directory.appending(path: newer), encoding: .utf8) == second)
+
+            // 残してあるものと同じ中身なら、もう増やさない
+            for contents in [first, second] {
+                try Data(contents.utf8).write(to: store.fileURL)
+                _ = try store.load()
+            }
+            #expect(try ModelFixtures.fileNames(in: directory).filter { $0.hasPrefix("configuration.v2") } == copies)
+        }
+    }
+
+    @Test("古い版のファイルは、移行する前の原本を configuration.v<版>.json に残す")
+    func olderVersionKeepsOriginal() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            // 今の版が 2 で、v1 → v2 の手順があったとして
+            let old = #"{"version": 1, "settings": {"trigger": "rightShift"}, "profiles": [{"kind": {"type": "global"}}]}"#
+            try Data(old.utf8).write(to: store.fileURL)
+            let steps: [Int: ConfigurationMigration.Step] = [1: { $0 }]
+
+            let configuration = try #require(try store.load(currentVersion: 2, steps: steps))
+            #expect(configuration.settings.trigger == .rightShift)
+            #expect(try String(contentsOf: directory.appending(path: "configuration.v1.json"), encoding: .utf8) == old)
+
+            _ = try store.load(currentVersion: 2, steps: steps)
+            #expect(try ModelFixtures.fileNames(in: directory) == ["configuration.json", "configuration.v1.json"])
         }
     }
 
     static func decode(_ url: URL) throws -> NonetConfiguration {
         try ModelJSON.makeDecoder().decode(NonetConfiguration.self, from: Data(contentsOf: url))
+    }
+}
+
+@Suite("ConfigurationStore: 保存すると失う値のあるファイル")
+struct StoreLossyFileTests {
+    /// 読めるが、そのまま保存すると何かを失う v1 のファイル（版を上げずに書式を足した Nonet や、手で書き換えたもの）
+    static let lossyFiles: [String] = [
+        // 新しい Nonet で足されたアクションの種類 → 空きマスになる
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          {"title": "左半分", "action": {"type": "window", "layout": "leftHalf"}},
+          {"title": "残る", "action": {"type": "openURL", "url": "https://a.example"}}
+        ]}]}]}
+        """#,
+        // 知らない修飾キー → 空きマスになる
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          {"title": "太字", "action": {"type": "keystroke", "keys": [{"type": "character", "character": "b", "modifiers": ["cmd"]}]}}
+        ]}]}]}
+        """#,
+        // 知らない特殊キー → 空きマスになる
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          {"title": "F21", "action": {"type": "keystroke", "keys": [{"type": "special", "special": "f21"}]}}
+        ]}]}]}
+        """#,
+        // 知らない種類のプロファイル → ページごと外れる
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}},
+          {"kind": {"type": "website", "host": "example.com"}, "pages": [{"cells": [
+            {"title": "x", "action": {"type": "openURL", "url": "https://example.com"}}
+          ]}]}
+        ]}
+        """#,
+        // 同じアプリのプロファイルが2つ → 2つ目が外れる
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}},
+          {"kind": {"type": "app", "app": {"bundleID": "com.apple.Safari", "name": "Safari"}}},
+          {"kind": {"type": "app", "app": {"bundleID": "com.apple.safari", "name": "Safari 2"}}}
+        ]}
+        """#,
+        // 知らない設定の値・知らない設定の項目
+        #"{"version": 1, "settings": {"trigger": "leftControl"}, "profiles": [{"kind": {"type": "global"}}]}"#,
+        #"{"version": 1, "settings": {"hudOpacity": 0.5}, "profiles": [{"kind": {"type": "global"}}]}"#,
+        // アクションの知らない項目
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          {"title": "u", "action": {"type": "openURL", "url": "https://a.example", "inBackground": true}}
+        ]}]}]}
+        """#,
+        // 読めないキー（メニュー項目は残る）・読めないアイコン
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          {"title": "m", "icon": {"type": "emoji", "emoji": "🙂"},
+           "action": {"type": "menuItem", "path": ["編集", "コピー"], "keyEquivalent": [{"type": "joystick"}]}}
+        ]}]}]}
+        """#,
+        // 10個目のマス・4ページ目
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [
+          null, null, null, null, null, null, null, null, null,
+          {"title": "10", "action": {"type": "openURL", "url": "u"}}
+        ]}]}]}
+        """#,
+        #"""
+        {"version": 1, "profiles": [{"kind": {"type": "global"}, "pages": [
+          {"cells": []}, {"cells": []}, {"cells": []},
+          {"cells": [{"title": "4", "action": {"type": "openURL", "url": "u"}}]}
+        ]}]}
+        """#,
+        // 範囲外の値
+        #"{"version": 1, "settings": {"hudDelay": 5}, "profiles": [{"kind": {"type": "global"}}]}"#,
+    ]
+
+    @Test("原本を configuration.lossy-<日時>.json に残し、2回保存した後も残っている", arguments: lossyFiles)
+    func lossyFileKeepsOriginal(_ contents: String) throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let original = Data(contents.utf8)
+            try original.write(to: store.fileURL)
+
+            var configuration = try #require(try store.load())
+            #expect(ConfigurationValidationTests.satisfiesInvariants(configuration))
+            let copies = try Self.lossyCopies(in: directory)
+            try #require(copies.count == 1)
+            #expect(try Data(contentsOf: copies[0]) == original)
+
+            // 保存する前にもう一度読んでも増やさない
+            _ = try store.load()
+            #expect(try Self.lossyCopies(in: directory) == copies)
+
+            // 編集のたびに保存する（configuration.backup.json は直前の版しか残さない）
+            for haptics in [HapticStrength.off, .strong] {
+                configuration.settings.haptics = haptics
+                try store.save(configuration)
+            }
+            #expect(try Data(contentsOf: copies[0]) == original)
+            #expect(try Data(contentsOf: store.backupFileURL) != original)
+
+            // 保存し直したファイルからは何も失わないので、もう残さない
+            _ = try store.load()
+            #expect(try Self.lossyCopies(in: directory) == copies)
+        }
+    }
+
+    @Test("中身の違うファイルはそれぞれ残す")
+    func differentLossyFiles() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            for contents in Self.lossyFiles.prefix(3) {
+                try Data(contents.utf8).write(to: store.fileURL)
+                _ = try store.load()
+            }
+            let copies = try Self.lossyCopies(in: directory)
+            #expect(copies.count == 3)
+            let contents = try Set(copies.map { try String(contentsOf: $0, encoding: .utf8) })
+            #expect(contents == Set(Self.lossyFiles.prefix(3)))
+        }
+    }
+
+    /// 読んで保存し直しても、書かれていた値はすべて残るファイル
+    static let faithfulFiles: [String] = [
+        // 項目の少ない、手で書いたファイル（無い項目は既定値で埋めるだけ）
+        #"{"profiles": [{"kind": {"type": "global"}}]}"#,
+        // キーの順・空白・小文字の UUID・9個に満たないマス・アイコンの無いマス
+        #"""
+        {"profiles":[{"pages":[{"cells":[null,{"action":{"url":"https://a.example","type":"openURL"},"title":"t",
+          "id":"0000000a-0000-0000-0000-00000000000b"}]}],"kind":{"type":"global"},"id":"00000000-0000-0000-0000-0000000000ff"}],
+         "version":1}
+        """#,
+        // null は値が無いのと同じ
+        #"""
+        {"version": 1, "settings": null, "profiles": [{"kind": {"type": "global"}, "isEnabled": null, "pages": [{"cells": [
+          {"title": "m", "action": {"type": "menuItem", "app": null, "path": ["編集"], "keyEquivalent": null}}
+        ]}]}]}
+        """#,
+        ModelCodingFixtureTests.fullConfiguration,
+    ]
+
+    @Test("書かれていた値をすべて保存できるファイルでは、原本を残さない", arguments: faithfulFiles)
+    func faithfulFileIsNotCopied(_ contents: String) throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            try Data(contents.utf8).write(to: store.fileURL)
+            _ = try #require(try store.load())
+            #expect(try ModelFixtures.fileNames(in: directory) == ["configuration.json"])
+        }
+    }
+
+    @Test("Nonet が保存したファイルは原本を残さない")
+    func savedFileIsNotCopied() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            var configuration = ModelFixtures.configuration(settings: GlobalSettings(trigger: .function, hudDelay: 0.55))
+            let xcodeID = configuration.profiles[2].id
+            for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
+                configuration.setCell(ModelFixtures.cell("\(index)", action: action), at: CellAddress(page: 1, index: index), profileID: xcodeID)
+            }
+            try store.save(configuration)
+            #expect(try store.load() == configuration)
+            #expect(try ModelFixtures.fileNames(in: directory) == ["configuration.json"])
+        }
+    }
+
+    @Test("保存すると失うかどうか", arguments: [
+        (#"{"a": 1}"#, #"{"a": 1, "b": 2}"#, true),
+        (#"{"a": 1, "b": 2}"#, #"{"a": 1}"#, false),
+        (#"{"a": 1}"#, #"{"a": 2}"#, false),
+        (#"{"a": 60}"#, #"{"a": 60.0}"#, true),
+        (#"{"a": 0.3}"#, #"{"a": 0.3}"#, true),
+        (#"{"a": "1"}"#, #"{"a": 1}"#, false),
+        (#"{"a": null}"#, #"{}"#, true),
+        (#"{"a": [null, 1]}"#, #"{"a": [{"x": 1}, 1, null]}"#, true),
+        (#"{"a": [1, 2]}"#, #"{"a": [1]}"#, false),
+        (#"{"a": [{"x": 1}]}"#, #"{"a": [null]}"#, false),
+        (#"{"a": {"x": {"y": "z"}}}"#, #"{"a": {"x": {"y": "z", "w": 1}}}"#, true),
+        (#"{"a": {"x": {"y": "z"}}}"#, #"{"a": {"x": {"y": "Z"}}}"#, false),
+        (#"{"id": "0000000a-0000-0000-0000-00000000000b"}"#, #"{"id": "0000000A-0000-0000-0000-00000000000B"}"#, true),
+        (#"{"id": "0000000a-0000-0000-0000-00000000000b"}"#, #"{"id": "0000000A-0000-0000-0000-00000000000C"}"#, false),
+        (#"{"a": "x"}"#, #"{"a": {"x": 1}}"#, false),
+    ])
+    func jsonContentIsPreserved(_ original: String, _ saved: String, _ expected: Bool) throws {
+        let originalObject = try JSONSerialization.jsonObject(with: Data(original.utf8))
+        let savedObject = try JSONSerialization.jsonObject(with: Data(saved.utf8))
+        #expect(JSONContent.isPreserved(originalObject, in: savedObject) == expected)
+    }
+
+    static func lossyCopies(in directory: URL) throws -> [URL] {
+        try ModelFixtures.fileNames(in: directory)
+            .filter { $0.hasPrefix("configuration.lossy-") && $0.hasSuffix(".json") }
+            .map { directory.appending(path: $0) }
     }
 }
 
@@ -422,10 +669,18 @@ struct StoreProfileDocumentTests {
     }
     """#
 
-    @Test("書き出しファイルを読む。読めないマスは空き、使えないプロファイルは外す")
+    @Test("書き出しファイルを読む。読めないマスは空き、読めないプロファイルは外して数え、重なるものはそのまま返す")
     func importFixture() throws {
-        let profiles = try ConfigurationStore.importProfiles(from: Data(Self.document.utf8))
-        #expect(profiles.map(\.kind) == [.app(ModelFixtures.figma), .global])
+        let document = try ConfigurationStore.importDocument(from: Data(Self.document.utf8))
+        #expect(document.unreadableCount == 1)
+        let profiles = document.profiles
+        #expect(profiles.map(\.kind) == [
+            .app(ModelFixtures.figma),
+            .app(AppReference(bundleID: "com.figma.Desktop", name: "Figma（重複）")),
+            .app(AppReference(bundleID: "", name: "名無し")),
+            .global,
+            .global,
+        ])
         let figma = profiles[0]
         #expect(figma.id != UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
         #expect(figma.pages[0].cells[0]?.id != UUID(uuidString: "00000000-0000-0000-0000-0000000000c1"))
@@ -433,7 +688,40 @@ struct StoreProfileDocumentTests {
             app: ModelFixtures.figma, path: ["オブジェクト", "自動レイアウトを追加"], keyEquivalent: .key("a", [.shift])
         )))
         #expect(figma.pages[0].cells[1] == nil)
-        #expect(profiles[1].pages.count == 2)
+        #expect(profiles[3].pages.count == 2)
+        #expect(Set(profiles.map(\.id)).count == profiles.count)
+        #expect(try ConfigurationStore.importProfiles(from: Data(Self.document.utf8)).map(\.kind) == profiles.map(\.kind))
+    }
+
+    @Test("書き出しファイルから設定に反映すると、重なり・bundleID の無いアプリ・読めないプロファイルを skipped に数える")
+    func importFixtureIntoConfiguration() throws {
+        var configuration = ModelFixtures.configuration()
+        let result = configuration.importProfiles(try ConfigurationStore.importDocument(from: Data(Self.document.utf8)))
+        #expect(result == NonetConfiguration.ImportResult(added: 1, replaced: 0, replacedGlobal: true, skipped: 4))
+        #expect(configuration.profiles.map(\.name) == ["グローバル", "Safari", "Xcode", "Figma"])
+        #expect(configuration.globalProfile.pages.count == 2)
+        #expect(ConfigurationValidationTests.satisfiesInvariants(configuration))
+    }
+
+    @Test("新しい版の Nonet の種類のプロファイルは、使わなかった数として知らせる")
+    func importReportsUnknownKinds() throws {
+        let json = #"""
+        {"format": "com.iam74k4.Nonet.profiles", "version": 1, "profiles": [
+          {"kind": {"type": "app", "app": {"bundleID": "com.figma.Desktop", "name": "Figma"}}},
+          {"kind": {"type": "website", "host": "example.com"}},
+          {"kind": {"type": "app", "app": {"bundleID": "com.tinyspeck.slackmacgap", "name": "Slack"}}},
+          null
+        ]}
+        """#
+        let document = try ConfigurationStore.importDocument(from: Data(json.utf8))
+        #expect(document.profiles.map(\.name) == ["Figma", "Slack"])
+        // null はプロファイルではないので数えない
+        #expect(document.unreadableCount == 1)
+
+        var configuration = ModelFixtures.configuration()
+        let result = configuration.importProfiles(document)
+        #expect(result == NonetConfiguration.ImportResult(added: 2, skipped: 1))
+        #expect(result.appliedCount == 2)
     }
 
     @Test("Nonet の書き出しファイルでないものは notAProfileDocument", arguments: [
@@ -497,6 +785,13 @@ struct StoreProfileDocumentTests {
         #expect(result == NonetConfiguration.ImportResult(added: 2))
         #expect(target.profiles.map(\.name) == ["グローバル", "Figma", "Safari", "Xcode"])
         #expect(ConfigurationValidationTests.satisfiesInvariants(target))
+
+        // importDocument(from:) 経由でも同じ
+        var viaDocument = NonetConfiguration(profiles: [ModelFixtures.globalProfile(), ModelFixtures.profile(ModelFixtures.figma)]).validated()
+        let document = try ConfigurationStore.importDocument(from: data)
+        #expect(document.unreadableCount == 0)
+        #expect(viaDocument.importProfiles(document) == NonetConfiguration.ImportResult(added: 2))
+        #expect(viaDocument.profiles.map(\.name) == target.profiles.map(\.name))
     }
 
     @Test("エラーの説明は日本語の文で、空でない")

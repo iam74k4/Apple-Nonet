@@ -244,7 +244,7 @@ extension NonetConfiguration {
         public var replaced: Int
         /// グローバルのページを置き換えた
         public var replacedGlobal: Bool
-        /// 同じアプリの重複などで使わなかった数
+        /// 同じアプリの重複・bundleID の無いアプリ・読めなかったプロファイルなどで使わなかった数
         public var skipped: Int
 
         public init(added: Int = 0, replaced: Int = 0, replacedGlobal: Bool = false, skipped: Int = 0) {
@@ -304,6 +304,15 @@ extension NonetConfiguration {
         }
         // 既存のマスと id が重なったものは振り直す
         self = validated()
+        return result
+    }
+
+    /// 書き出しファイルから読めたものを加える（ConfigurationStore.importDocument(from:) の結果）。
+    /// 読めなかったプロファイルも skipped に数える
+    @discardableResult
+    public mutating func importProfiles(_ document: ConfigurationStore.ImportedProfiles) -> ImportResult {
+        var result = importProfiles(document.profiles)
+        result.skipped += max(document.unreadableCount, 0)
         return result
     }
 }
@@ -377,9 +386,11 @@ extension NonetConfiguration {
         // 版の書かれていないファイルは最初の版とみなす
         let version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
         let settings = container.decodeLossy(GlobalSettings.self, forKey: .settings, default: GlobalSettings())
-        // profiles が配列でなければ全体を読めないことにする（黙ってすべてのプロファイルを失うより、壊れたファイルとして退避する）。
-        // 読めないプロファイルだけは外す
-        let profiles = try container.decodeIfPresent([LossyElement<Profile>].self, forKey: .profiles) ?? []
+        // profiles が配列でなければ（null も）全体を読めないことにする（黙ってすべてのプロファイルを失うより、壊れたファイルとして退避する）。
+        // decodeIfPresent は null を「無い」とみなすので使わない。読めないプロファイルだけは外す
+        let profiles = container.contains(.profiles)
+            ? try container.decode([LossyElement<Profile>].self, forKey: .profiles)
+            : []
         self.init(version: version, settings: settings, profiles: profiles.compactMap(\.value))
     }
 
