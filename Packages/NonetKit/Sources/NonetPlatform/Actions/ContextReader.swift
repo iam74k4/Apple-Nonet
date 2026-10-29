@@ -1,0 +1,241 @@
+// 担当: platform-actions
+import AppKit
+import NonetCore
+
+/// アクションに渡す文脈のうち、読むもの
+struct ContextNeeds: OptionSet, Sendable {
+    let rawValue: Int
+
+    /// アクセシビリティ API で選択中のテキストを読む（副作用なし）
+    static let selectedText = ContextNeeds(rawValue: 1 << 0)
+    /// アクセシビリティで選択を読めないアプリ（Electron など）では ⌘C でクリップボード経由で取る（クリップボードは元に戻す）
+    static let copyFallback = ContextNeeds(rawValue: 1 << 1)
+    static let documentPath = ContextNeeds(rawValue: 1 << 2)
+    /// 前面が対応しているブラウザなら AppleScript で聞く（初回はオートメーションの確認が出る）
+    static let browserURL = ContextNeeds(rawValue: 1 << 3)
+    /// アクセシビリティが「選択なし」と答えても ⌘C を試す。選択があるのに空と答えるアプリもあるので、
+    /// 選択テキストを処理するためのアクション（AI・ショートカット）で使う
+    static let copyWhenEmpty = ContextNeeds(rawValue: 1 << 4)
+
+    /// スクリプトがどの変数を使うかはソースからは分からない（外部のファイルを呼ぶだけのこともある）ので、
+    /// ScriptEnvironment の変数はすべて用意する。ただし選択が空だと読めたときは ⌘C を送らない
+    /// （送っても多くのアプリで警告音が鳴るだけで、選択の要らないスクリプトを遅くする）
+    static let forScript: ContextNeeds = [.selectedText, .copyFallback, .documentPath, .browserURL]
+
+    static func forShortcut(_ action: ShortcutAction) -> ContextNeeds {
+        action.passSelectedText ? [.selectedText, .copyFallback, .copyWhenEmpty] : []
+    }
+
+    static let forAI: ContextNeeds = [.selectedText, .copyFallback, .copyWhenEmpty]
+
+    /// アクセシビリティで読んだ選択のあとに ⌘C を送るか
+    func needsCopy(after selection: AXSelection) -> Bool {
+        switch selection {
+        case .text: false
+        case .empty: contains(.copyWhenEmpty)
+        case .unreadable: contains(.copyFallback) || contains(.copyWhenEmpty)
+        }
+    }
+
+    /// ブラウザに問い合わせるか。対応していないアプリには osascript を起動しない
+    func asksBrowser(bundleID: String) -> Bool {
+        contains(.browserURL) && BrowserURLReader.script(forBundleID: bundleID) != nil
+    }
+}
+
+/// アクセシビリティ API で読んだ、前面の要素の選択
+enum AXSelection: Equatable, Sendable {
+    case text(String)
+    /// 選択テキストを持つ要素で、選択が空
+    case empty
+    /// 読めない（前面の要素が無い・属性が無い・応答しない）。選択があるかどうか分からない
+    case unreadable
+
+    init(error: AXError, value: CFTypeRef?) {
+        guard error == .success, let text = value as? String else {
+            self = .unreadable
+            return
+        }
+        self = text.isEmpty ? .empty : .text(text)
+    }
+}
+
+/// 前面アプリの文脈（選択中のテキスト・書類・ブラウザの URL）を読む
+@MainActor
+final class ContextReader {
+    /// 環境変数の大きさには上限（ARG_MAX）があるので、スクリプトに渡す選択テキストはここで切る
+    static let scriptSelectedTextLimit = 50_000
+
+    /// 文脈を読む手段。テストでは偽物に差し替える
+    struct Sources {
+        var selection: @Sendable (pid_t) async -> AXSelection
+        var documentPath: @Sendable (pid_t) async -> String?
+        var browserURL: @Sendable (_ bundleID: String) async -> String?
+        /// ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
+        var copySelection: @MainActor () async -> String?
+
+        static func live(keySender: KeySender) -> Sources {
+            Sources(
+                selection: { pid in
+                    await Task.detached(priority: .userInitiated) { AXContext.selection(pid: pid) }.value
+                },
+                documentPath: { pid in
+                    await Task.detached(priority: .userInitiated) { AXContext.documentPath(pid: pid) }.value
+                },
+                browserURL: { bundleID in await BrowserURLReader.read(bundleID: bundleID) },
+                copySelection: { await ContextReader.copySelection(using: keySender) }
+            )
+        }
+    }
+
+    private let sources: Sources
+
+    convenience init(keySender: KeySender) {
+        self.init(sources: .live(keySender: keySender))
+    }
+
+    init(sources: Sources) {
+        self.sources = sources
+    }
+
+    func read(_ needs: ContextNeeds, app: RunningAppInfo?) async -> ScriptContextInfo {
+        var info = ScriptContextInfo(app: app?.app)
+        guard let app, !needs.isEmpty else { return info }
+        let pid = app.processID
+        let bundleID = app.app.bundleID
+        let asksBrowser = needs.asksBrowser(bundleID: bundleID)
+        let readBrowserURL = sources.browserURL
+        // ブラウザへの問い合わせ（別プロセスで最大2秒）は、アクセシビリティで読むのと並べて行う
+        async let browserURL: String? = asksBrowser ? readBrowserURL(bundleID) : nil
+        if needs.contains(.documentPath) {
+            info.documentPath = await sources.documentPath(pid)
+        }
+        if needs.contains(.selectedText) {
+            let selection = await sources.selection(pid)
+            if case .text(let text) = selection {
+                info.selectedText = text
+            } else if needs.needsCopy(after: selection) {
+                info.selectedText = await sources.copySelection()
+            }
+        }
+        info.browserURL = await browserURL
+        return info
+    }
+
+    /// ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
+    private static func copySelection(using keySender: KeySender) async -> String? {
+        let pasteboard = NSPasteboard.general
+        let snapshot = PasteboardSnapshot(pasteboard)
+        let before = pasteboard.changeCount
+        do {
+            try await keySender.send(.key("c", .command))
+        } catch {
+            ActionLog.logger.notice("選択テキストを ⌘C で取れませんでした: \(error.localizedDescription)")
+            return nil
+        }
+        // アプリがクリップボードに書くのを待つ（最大 0.5 秒）
+        var text: String?
+        var copied = false
+        for _ in 0 ..< 25 {
+            try? await Task.sleep(for: .milliseconds(20))
+            if pasteboard.changeCount != before {
+                copied = true
+                text = pasteboard.string(forType: .string)
+                if text != nil { break }
+            }
+        }
+        guard copied else { return nil }
+        snapshot.restore(to: pasteboard)
+        guard let text, !text.isEmpty else { return nil }
+        return text
+    }
+}
+
+/// アクセシビリティ API で読む文脈。応答しないアプリで長く待たないよう、メインスレッドの外で短い待ち時間で読む
+enum AXContext {
+    static let timeout: Float = 0.5
+
+    static func selection(pid: pid_t) -> AXSelection {
+        let application = AXRead.application(pid: pid, timeout: timeout)
+        guard let focused = AXRead.element(application, kAXFocusedUIElementAttribute) else { return .unreadable }
+        AXUIElementSetMessagingTimeout(focused, timeout)
+        let (error, value) = AXRead.copy(focused, kAXSelectedTextAttribute)
+        return AXSelection(error: error, value: value)
+    }
+
+    static func documentPath(pid: pid_t) -> String? {
+        let application = AXRead.application(pid: pid, timeout: timeout)
+        let window = AXRead.element(application, kAXFocusedWindowAttribute) ?? AXRead.element(application, kAXMainWindowAttribute)
+        guard let window else { return nil }
+        AXUIElementSetMessagingTimeout(window, timeout)
+        return AXRead.string(window, kAXDocumentAttribute).flatMap(DocumentPathParser.path(fromAXDocument:))
+    }
+}
+
+enum DocumentPathParser {
+    /// kAXDocumentAttribute は "file:///…" の URL か、まれにパスそのもの。ファイル以外は nil
+    static func path(fromAXDocument value: String) -> String? {
+        let text = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix("/") { return trimmingTrailingSlash(text) }
+        guard let url = URL(string: text), url.isFileURL else { return nil }
+        let path = url.path(percentEncoded: false)
+        return path.isEmpty ? nil : trimmingTrailingSlash(path)
+    }
+
+    private static func trimmingTrailingSlash(_ path: String) -> String {
+        var path = path
+        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        return path
+    }
+}
+
+/// ブラウザで表示中のページの URL。AppleScript は別プロセス（osascript）で、短い制限時間で聞く
+enum BrowserURLReader {
+    static let timeout: TimeInterval = 2
+
+    private static let safariIDs: Set<String> = ["com.apple.Safari", "com.apple.SafariTechnologyPreview"]
+    private static let chromiumIDs: Set<String> = [
+        "com.google.Chrome", "com.google.Chrome.beta", "com.google.Chrome.dev", "com.google.Chrome.canary",
+        "company.thebrowser.Browser",
+        "com.microsoft.edgemac", "com.microsoft.edgemac.Beta", "com.microsoft.edgemac.Dev", "com.microsoft.edgemac.Canary",
+        "com.brave.Browser", "com.brave.Browser.beta", "com.brave.Browser.nightly",
+    ]
+
+    /// 対応するブラウザなら AppleScript。bundleID は上の決まった表からしか入らない
+    static func script(forBundleID bundleID: String) -> String? {
+        if safariIDs.contains(bundleID) {
+            return "tell application id \"\(bundleID)\" to return URL of front document"
+        }
+        if chromiumIDs.contains(bundleID) {
+            return "tell application id \"\(bundleID)\" to return URL of active tab of front window"
+        }
+        return nil
+    }
+
+    static func parse(_ output: String) -> String? {
+        let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty || text == "missing value" ? nil : text
+    }
+
+    /// オートメーションが許可されていない・ウィンドウが無い・時間切れなら nil
+    static func read(bundleID: String) async -> String? {
+        guard let script = script(forBundleID: bundleID) else { return nil }
+        do {
+            let output = try await ProcessRunner.run(ProcessRequest(
+                executable: URL(fileURLWithPath: "/usr/bin/osascript"),
+                arguments: ["-e", script],
+                environment: nil,
+                currentDirectory: nil,
+                timeout: timeout,
+                outputLimit: 16 * 1024
+            ))
+            guard output.succeeded else {
+                ActionLog.logger.notice("ブラウザの URL を取れませんでした（終了コード \(output.status)）")
+                return nil
+            }
+            return parse(output.stdout)
+        } catch {
+            return nil
+        }
+    }
+}
