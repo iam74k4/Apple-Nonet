@@ -41,10 +41,13 @@ public struct GridMapper: Equatable, Sendable {
     public static let rows = 3
     public static let cellCount = columns * rows
     public static let defaultHysteresis = 0.03
-    /// マスの半分。これより大きいと、隣のマスの中央に来ても切り替わらなくなる
+    /// 縁を使わないときのマスの半分。これより大きいと、隣のマスの中央に来ても切り替わらなくなる
     public static let maxHysteresis = 1.0 / Double(columns * 2)
+    /// 余裕の上限（マス1つ分を 1 とした単位）。縁を除いてマスが小さくなっても、隣のマスの中央では必ず切り替わる。
+    /// ちょうど半分だと中央が余裕の端と重なり、座標の丸め誤差で結果が変わるので、センサーの分解能よりずっと小さい分だけ引く
+    static let maxMarginInCells = 0.5 - 1e-9
 
-    /// 今のマスを保つ余裕（トラックパッド全体を 1 とした割合）
+    /// 今のマスを保つ余裕（トラックパッド全体を 1 とした割合）。縁を除いてマスが小さくなっても、実際の余裕はマスの半分で止める
     public let hysteresis: Double
     public let insets: GridInsets
 
@@ -65,8 +68,9 @@ public struct GridMapper: Equatable, Sendable {
         guard let current, (0..<Self.cellCount).contains(current), current != candidate, hysteresis > 0 else {
             return candidate
         }
-        let marginX = hysteresis / width * Double(Self.columns)
-        let marginY = hysteresis / height * Double(Self.rows)
+        // 縁を除くとマスが小さくなり、トラックパッド単位の余裕がマスの半分を超えうるので、軸ごとにマス単位で抑える
+        let marginX = min(hysteresis / width * Double(Self.columns), Self.maxMarginInCells)
+        let marginY = min(hysteresis / height * Double(Self.rows), Self.maxMarginInCells)
         let currentColumn = Double(current % Self.columns)
         let currentRow = Double(current / Self.columns)
         let staysInside = column >= currentColumn - marginX && column <= currentColumn + 1 + marginX

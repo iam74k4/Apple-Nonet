@@ -91,6 +91,26 @@ import NonetCore
         ])
     }
 
+    @Test func slidingWithLargeHysteresisAndInsetsHighlightsTheMiddleColumn() {
+        // 縁 0.25 で使える幅が半分になっても、余裕はマスの半分まで。右へ滑らせると 3 → 4 → 5 と1つずつ進む
+        var s = SessionScenario(SessionConfiguration(hysteresis: 1, edgeInsets: GridInsets(all: 0.25)))
+        s.pressTrigger(at: 0)
+        s.touch(x: 0.3, y: 0.5, at: 0.1)
+        s.tick(at: 0.4)
+        #expect(s.engine.hud?.highlightedCell == 3)
+        var highlights: [Int] = []
+        var time = 0.4
+        for step in 0...40 {
+            time += 0.01
+            let effects = s.touch(x: 0.3 + Double(step) * 0.01, y: 0.5, at: time)
+            for case .updateHUD(_, let cell?) in effects {
+                highlights.append(cell)
+            }
+        }
+        #expect(highlights == [4, 5])
+        #expect(s.log.hapticEvents == [.boundary, .boundary])
+    }
+
     @Test func fastTapNearABorderUsesTheCellUnderTheLandingPoint() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
