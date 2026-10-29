@@ -64,14 +64,14 @@ private final class FakeToolEnvironment {
         #expect(try LicenseTool.parse(["keygen", "--out", "dir"]) == .keygen(outputDirectory: "dir"))
         #expect(try LicenseTool.parse(["keygen", "--out=dir"]) == .keygen(outputDirectory: "dir"))
         #expect(try LicenseTool.parse(["issue", "--key", "k", "--name", "Taro Yamada"])
-            == .issue(privateKeyPath: "k", licensee: "Taro Yamada", email: nil, edition: nil, licenseID: nil))
-        #expect(try LicenseTool.parse(["issue", "--name=A", "--id", "X", "--edition", "pro", "--email", "a@b.c", "--key", "k"])
-            == .issue(privateKeyPath: "k", licensee: "A", email: "a@b.c", edition: "pro", licenseID: "X"))
+            == .issue(privateKeyPath: "k", licensee: "Taro Yamada", email: nil, edition: nil, licenseID: nil, publicKey: nil))
+        #expect(try LicenseTool.parse(["issue", "--name=A", "--id", "X", "--edition", "pro", "--email", "a@b.c", "--key", "k", "--public", "PK"])
+            == .issue(privateKeyPath: "k", licensee: "A", email: "a@b.c", edition: "pro", licenseID: "X", publicKey: "PK"))
         #expect(try LicenseTool.parse(["verify", "--public", "PK", "KEY"]) == .verify(publicKey: "PK", licenseKey: "KEY"))
         #expect(try LicenseTool.parse(["verify", "KEY", "--public", "PK"]) == .verify(publicKey: "PK", licenseKey: "KEY"))
         #expect(try LicenseTool.parse(["verify", "--public", "PK", "--", "--KEY"]) == .verify(publicKey: "PK", licenseKey: "--KEY"))
         #expect(try LicenseTool.parse(["issue", "--key", "k", "--name", "-dash"])
-            == .issue(privateKeyPath: "k", licensee: "-dash", email: nil, edition: nil, licenseID: nil))
+            == .issue(privateKeyPath: "k", licensee: "-dash", email: nil, edition: nil, licenseID: nil, publicKey: nil))
         for help in [["help"], ["-h"], ["--help"], ["issue", "--help"], ["keygen", "-h"]] {
             #expect(try LicenseTool.parse(help) == .help)
         }
@@ -151,6 +151,42 @@ private final class FakeToolEnvironment {
         #expect(environment.errorOutput.contains("警告: 秘密鍵を git リポジトリ（/work/repo）の中に作りました"))
     }
 
+    /// base64 が「//」を含む公開鍵（0xFF が続く）
+    private static let slashedPublicKey = Data(repeating: 0xFF, count: 32).base64EncodedString()
+
+    @Test func keygenSkipsPublicKeysThatXcconfigWouldTruncate() throws {
+        #expect(Self.slashedPublicKey.contains("//"))
+        let good = LicenseSigner.generateKeyPair()
+        var candidates = [
+            (privateKeyBase64: LicenseTestFixtures.otherKeys.privateKeyBase64, publicKeyBase64: Self.slashedPublicKey),
+            good,
+        ]
+        var io = environment.io
+        io.generateKeyPair = { candidates.removeFirst() }
+        #expect(LicenseTool.run(["keygen", "--out", "/keys"], io: io) == LicenseTool.exitSuccess)
+        #expect(candidates.isEmpty)
+        #expect(environment.output == good.publicKeyBase64 + "\n")
+        #expect(environment.files["/keys/nonet-license.public-key"]?.contents == good.publicKeyBase64 + "\n")
+        #expect(environment.files["/keys/nonet-license.private-key"]?.contents == good.privateKeyBase64 + "\n")
+    }
+
+    @Test func keygenGivesUpIfEveryPublicKeyContainsDoubleSlash() {
+        var io = environment.io
+        io.generateKeyPair = { (LicenseTestFixtures.keys.privateKeyBase64, Self.slashedPublicKey) }
+        #expect(LicenseTool.run(["keygen", "--out", "/keys"], io: io) == LicenseTool.exitFailure)
+        #expect(environment.files.isEmpty)
+        #expect(environment.output.isEmpty)
+    }
+
+    @Test func generatedPublicKeysNeverContainDoubleSlash() throws {
+        // 本物の鍵の約1%が「//」を含むので、1000回で何度かは選び直しを通る
+        for _ in 0..<1000 {
+            let keys = try #require(LicenseTool.configSafeKeyPair(io: .live))
+            #expect(!keys.publicKeyBase64.contains("//"))
+            #expect(try LicenseSigner(privateKeyBase64: keys.privateKeyBase64).publicKeyBase64 == keys.publicKeyBase64)
+        }
+    }
+
     @Test func keygenReportsWriteFailures() {
         let failing = environment.io
         var io = failing
@@ -201,6 +237,70 @@ private final class FakeToolEnvironment {
         let keys = try installKeys()
         #expect(environment.run(["issue", "--key", keys.privatePath] + extra) == LicenseTool.exitUsage)
         #expect(environment.output.isEmpty)
+    }
+
+    /// keygen と同じ名前で置く
+    private func installStandardKeys(in directory: String = "/keys") -> (privatePath: String, publicPath: String) {
+        let keys = LicenseTestFixtures.keys
+        let privatePath = directory + "/" + LicenseTool.privateKeyFileName
+        let publicPath = directory + "/" + LicenseTool.publicKeyFileName
+        environment.files[privatePath] = .init(contents: keys.privateKeyBase64 + "\n", permissions: 0o600)
+        environment.files[publicPath] = .init(contents: keys.publicKeyBase64 + "\n", permissions: 0o644)
+        return (privatePath, publicPath)
+    }
+
+    @Test func issueChecksTheKeyAgainstThePublicKeyNextToIt() throws {
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitSuccess)
+        _ = try LicenseVerifier(publicKeyBase64: LicenseTestFixtures.keys.publicKeyBase64).verify(try issuedKey(environment.output))
+        #expect(environment.errorOutput.contains("警告") == false)
+
+        // 相対パスでも同じフォルダを探す
+        environment.currentDirectory = "/keys"
+        #expect(environment.run(["issue", "--key", LicenseTool.privateKeyFileName, "--name", "A"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("警告") == false)
+    }
+
+    @Test func issueRefusesThePublicKeyFileAsThePrivateKey() {
+        // 32 バイトなら何でも秘密鍵として読めるので、公開鍵のファイルを渡すと別の鍵で署名してしまう
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.publicPath, "--name", "A"]) == LicenseTool.exitFailure)
+        #expect(environment.output.isEmpty)
+        #expect(environment.errorOutput.contains("秘密鍵と公開鍵が対応していません"))
+    }
+
+    @Test func issueRefusesAPrivateKeyThatDoesNotMatchThePublicKey() {
+        let paths = installStandardKeys()
+        environment.files["/other/key"] = .init(contents: LicenseTestFixtures.otherKeys.privateKeyBase64, permissions: 0o600)
+        // --public（ファイルでも base64 でも）と合わない
+        for publicKey in [paths.publicPath, LicenseTestFixtures.keys.publicKeyBase64] {
+            #expect(environment.run(["issue", "--key", "/other/key", "--name", "A", "--public", publicKey]) == LicenseTool.exitFailure)
+            #expect(environment.output.isEmpty)
+            #expect(environment.errorOutput.contains("秘密鍵と公開鍵が対応していません"))
+        }
+        // 同じフォルダの公開鍵と合わない
+        environment.files["/keys/nonet-license.private-key"] = .init(contents: LicenseTestFixtures.otherKeys.privateKeyBase64, permissions: 0o600)
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitFailure)
+        #expect(environment.output.isEmpty)
+    }
+
+    @Test func issueUsesTheGivenPublicKey() throws {
+        let keys = try installKeys()
+        for publicKey in ["/keys/public", keys.publicKey] {
+            #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", publicKey]) == LicenseTool.exitSuccess)
+            #expect(environment.errorOutput.contains("警告") == false)
+            _ = try LicenseVerifier(publicKeyBase64: keys.publicKey).verify(try issuedKey(environment.output))
+        }
+        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", "not-a-key"]) == LicenseTool.exitFailure)
+        #expect(environment.errorOutput.contains(LicenseTool.message(for: .invalidPublicKey)))
+        #expect(environment.output.isEmpty)
+    }
+
+    @Test func issueWarnsWhenNoPublicKeyIsAvailable() throws {
+        let keys = try installKeys()
+        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("警告: 公開鍵が見つからない"))
+        _ = try LicenseVerifier(publicKeyBase64: keys.publicKey).verify(try issuedKey(environment.output))
     }
 
     @Test func issueReportsKeyProblems() {
@@ -286,7 +386,13 @@ private final class FakeToolEnvironment {
         #expect(LicenseTool.run(["issue", "--key", privatePath, "--name", "Test"], io: io) == LicenseTool.exitSuccess)
         let key = output.trimmingCharacters(in: .whitespacesAndNewlines)
         output = ""
-        #expect(LicenseTool.run(["verify", "--public", keysDirectory + "/" + LicenseTool.publicKeyFileName, key], io: io) == LicenseTool.exitSuccess)
+        let publicPath = keysDirectory + "/" + LicenseTool.publicKeyFileName
+        #expect(LicenseTool.run(["verify", "--public", publicPath, key], io: io) == LicenseTool.exitSuccess)
         #expect(output.contains("購入者: Test"))
+
+        // 公開鍵のファイルを秘密鍵として渡しても発行しない
+        output = ""
+        #expect(LicenseTool.run(["issue", "--key", publicPath, "--name", "Test"], io: io) == LicenseTool.exitFailure)
+        #expect(output.isEmpty)
     }
 }

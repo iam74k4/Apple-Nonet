@@ -85,7 +85,7 @@ extension KeySequence {
 
     /// displayString と同じ書式を読む。読めなければ nil。
     /// 修飾キーの順は問わず、空白は省略できる。打鍵の区切りは「→」「->」「,」。
-    /// 修飾キーは「cmd+shift+4」のような英語の名前と「+」でも書ける
+    /// 修飾キーは「cmd+shift+4」のような英語の名前と「+」でも書ける。記号に付いた異体字セレクタ（「↩︎」など）は無視する
     public init?(parsing text: String) {
         var parser = KeyNotationParser(text)
         guard let chords = parser?.parse() else { return nil }
@@ -157,7 +157,7 @@ enum KeyNotation {
         default: break
         }
         let scalars = character.unicodeScalars
-        if scalars.count == 1, let scalar = scalars.first, isInvisible(scalar) {
+        if scalars.count == 1, let scalar = scalars.first, isInvisible(scalar) || !standsAlone(character) {
             return unicodeEscape(scalar)
         }
         // "ß" → "SS" のように元に戻せない大文字にはしない
@@ -170,22 +170,46 @@ enum KeyNotation {
         return "U+" + String(repeating: "0", count: max(0, 4 - hex.count)) + hex
     }
 
-    /// 見えない文字。表示では U+XXXX と書く
+    /// 見えない文字と、前の文字にくっつく文字（結合文字・異体字セレクタ・肌の色）。表示では U+XXXX と書く
     static func isInvisible(_ scalar: Unicode.Scalar) -> Bool {
-        if scalar.properties.isWhitespace { return true }
-        switch scalar.properties.generalCategory {
-        case .control, .format, .lineSeparator, .paragraphSeparator, .spaceSeparator, .privateUse, .surrogate, .unassigned:
+        let properties = scalar.properties
+        if properties.isWhitespace || properties.isGraphemeExtend || properties.isEmojiModifier { return true }
+        switch properties.generalCategory {
+        case .control, .format, .lineSeparator, .paragraphSeparator, .spaceSeparator, .privateUse, .surrogate, .unassigned,
+             .nonspacingMark, .spacingMark, .enclosingMark:
             return true
         default:
             return false
         }
     }
 
+    /// 前の修飾キーの記号や空白、後の空白とくっついて別の1文字にならないか（後ろにくっつく文字などもある）
+    static func standsAlone(_ text: String) -> Bool {
+        ["⌘", " "].allSatisfy { before in
+            let characters = Array(before + text + " ")
+            return characters.count == 3 && String(characters[1]) == text
+        }
+    }
+
+    /// テキストか絵文字かの見た目を選ぶだけの異体字セレクタ（「↩︎」の U+FE0E など）
+    static func isPresentationSelector(_ scalar: Unicode.Scalar) -> Bool {
+        scalar == "\u{FE0E}" || scalar == "\u{FE0F}"
+    }
+
+    /// 異体字セレクタを除いた文字。何も残らなければそのまま
+    static func withoutPresentationSelectors(_ character: Character) -> Character {
+        guard character.unicodeScalars.contains(where: isPresentationSelector) else { return character }
+        var scalars = String.UnicodeScalarView()
+        scalars.append(contentsOf: character.unicodeScalars.filter { !isPresentationSelector($0) })
+        let text = String(scalars)
+        guard text.count == 1, let first = text.first else { return character }
+        return first
+    }
+
     // MARK: 読み取りの表
 
     static let modifierForGlyph: [Character: ModifierSet] = [
-        "⌃": .control, "⌥": .option, "⇧": .shift, "⌘": .command,
-        "🌐": .function, "🌐\u{FE0F}": .function,
+        "⌃": .control, "⌥": .option, "⇧": .shift, "⌘": .command, "🌐": .function,
     ]
 
     /// 小文字で引く
@@ -249,14 +273,18 @@ struct KeyNotationParser {
     /// これより長い入力は表記として扱わない
     static let maximumLength = 1000
 
+    /// 異体字セレクタを除いた文字。記号の表と区切りはこちらで調べる（コピーした「⌘↩︎」も読めるように）
     private let characters: [Character]
+    /// 入力のままの文字。表に無い文字はこちらをキーにする
+    private let original: [Character]
     /// 位置ごとの、そこから最後までの読み取り結果
     private var memo: [Int: [KeyChord]?] = [:]
 
     init?(_ text: String) {
-        let characters = Array(text)
-        guard characters.count <= Self.maximumLength else { return nil }
-        self.characters = characters
+        let original = Array(text)
+        guard original.count <= Self.maximumLength else { return nil }
+        self.original = original
+        characters = original.map(KeyNotation.withoutPresentationSelectors)
     }
 
     mutating func parse() -> [KeyChord]? {
@@ -334,9 +362,10 @@ struct KeyNotationParser {
         if let key = KeyNotation.keyForGlyph[character] {
             return (key, position + 1)
         }
-        guard let first = character.unicodeScalars.first, !KeyNotation.isInvisible(first),
+        let typed = original[position]
+        guard let first = typed.unicodeScalars.first, !KeyNotation.isInvisible(first),
               KeyNotation.modifierForGlyph[character] == nil else { return nil }
-        return (.character(String(character).lowercased()), position + 1)
+        return (.character(String(typed).lowercased()), position + 1)
     }
 
     /// "keyCode(53)" または "keyCode53"

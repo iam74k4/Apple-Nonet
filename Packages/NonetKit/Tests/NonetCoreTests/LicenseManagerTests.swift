@@ -6,6 +6,8 @@ import Testing
 private final class MemoryLicenseStorage: LicenseStorage {
     var trialStartDate: Date?
     var licenseKey: String?
+    var trialLastSeenDate: Date?
+    var trialUsedTime: TimeInterval?
 
     init(trialStartDate: Date? = nil, licenseKey: String? = nil) {
         self.trialStartDate = trialStartDate
@@ -13,10 +15,17 @@ private final class MemoryLicenseStorage: LicenseStorage {
     }
 }
 
-/// 進めたり戻したりできる時計
+/// 開始日とキーしか持たない保存先（使った時間は既定の実装で、保存しない）
+private final class StartOnlyLicenseStorage: LicenseStorage {
+    var trialStartDate: Date?
+    var licenseKey: String?
+}
+
+/// 進めたり戻したりできる時計と、スリープ中も進む単調な時計
 private final class ManualClock: @unchecked Sendable {
     private let lock = NSLock()
     private var current: Date
+    private var monotonic: TimeInterval = 1_000
 
     init(_ start: Date) {
         current = start
@@ -26,16 +35,29 @@ private final class ManualClock: @unchecked Sendable {
         lock.withLock { current }
     }
 
+    var uptime: TimeInterval {
+        lock.withLock { monotonic }
+    }
+
+    /// 時計を変える（実際の時間は経たない）
     func set(_ date: Date) {
         lock.withLock { current = date }
     }
 
+    /// 実際に時間が経つ
     func advance(days: Double) {
-        lock.withLock { current = current.addingTimeInterval(days * 86_400) }
+        lock.withLock {
+            current = current.addingTimeInterval(days * 86_400)
+            monotonic += days * 86_400
+        }
     }
 
     var closure: @Sendable () -> Date {
         { [self] in now }
+    }
+
+    var uptimeClosure: @Sendable () -> TimeInterval {
+        { [self] in uptime }
     }
 }
 
@@ -49,12 +71,16 @@ private final class ManualClock: @unchecked Sendable {
         clock = ManualClock(start)
     }
 
-    private func makeManager(verifier: LicenseVerifier? = nil) -> LicenseManager {
-        LicenseManager(verifier: verifier, storage: storage, now: clock.closure)
+    private func makeManager(verifier: LicenseVerifier? = nil, monotonic: Bool = false, storage: (any LicenseStorage)? = nil) -> LicenseManager {
+        LicenseManager(verifier: verifier, storage: storage ?? self.storage, now: clock.closure, uptime: monotonic ? clock.uptimeClosure : nil)
     }
 
     private func verifier() throws -> LicenseVerifier {
         try LicenseTestFixtures.verifier()
+    }
+
+    private func days(_ count: Double) -> Date {
+        start.addingTimeInterval(count * 86_400)
     }
 
     // MARK: - 試用
@@ -62,15 +88,30 @@ private final class ManualClock: @unchecked Sendable {
     @Test func firstLaunchStartsTheTrial() throws {
         let manager = makeManager()
         #expect(storage.trialStartDate == start)
+        #expect(storage.trialLastSeenDate == start)
+        #expect(storage.trialUsedTime == 0.0)
         #expect(manager.entitlement == .trial(daysLeft: 14))
         #expect(manager.canExecuteActions)
     }
 
     @Test func keepsAnExistingTrialStart() throws {
-        storage.trialStartDate = start.addingTimeInterval(-3 * 86_400)
+        // 使った時間の記録が無ければ、開始日から数える
+        storage.trialStartDate = days(-3)
         let manager = makeManager()
-        #expect(storage.trialStartDate == start.addingTimeInterval(-3 * 86_400))
+        #expect(storage.trialStartDate == days(-3))
+        #expect(storage.trialUsedTime == 3.0 * 86_400)
+        #expect(storage.trialLastSeenDate == start)
         #expect(manager.entitlement == .trial(daysLeft: 11))
+    }
+
+    @Test func resumesFromTheStoredUsage() throws {
+        storage.trialStartDate = days(-30)
+        storage.trialLastSeenDate = days(-1)
+        storage.trialUsedTime = 5 * 86_400
+        let manager = makeManager()
+        #expect(manager.entitlement == .trial(daysLeft: 8))
+        #expect(storage.trialUsedTime == 6.0 * 86_400)
+        #expect(storage.trialStartDate == days(-30))
     }
 
     nonisolated static let dayCases: [(Double, Entitlement)] = [
@@ -90,42 +131,185 @@ private final class ManualClock: @unchecked Sendable {
 
     @Test(arguments: dayCases)
     func daysLeftRoundsUpUntilExactlyFourteenDays(day: Double, expected: Entitlement) throws {
+        for monotonic in [false, true] {
+            let storage = MemoryLicenseStorage()
+            let clock = ManualClock(start)
+            let manager = LicenseManager(verifier: nil, storage: storage, now: clock.closure, uptime: monotonic ? clock.uptimeClosure : nil)
+            clock.advance(days: day)
+            manager.refresh()
+            #expect(manager.entitlement == expected)
+            #expect(manager.canExecuteActions == (expected != .expired))
+        }
+    }
+
+    @Test func daysLeftAcrossRelaunches() throws {
+        _ = makeManager()
+        clock.advance(days: 13.5)
+        #expect(makeManager().entitlement == .trial(daysLeft: 1))
+        clock.advance(days: 0.5)
+        #expect(makeManager().entitlement == .expired)
+    }
+
+    @Test func trialEndsAfterExactlyFourteenTimesTwentyFourHours() {
+        let duration: TimeInterval = 14 * 24 * 60 * 60
+        #expect(TrialProgress(start: start, lastSeen: start, used: 0).entitlement == .trial(daysLeft: 14))
+        #expect(TrialProgress(start: start, lastSeen: start, used: duration - 0.001).entitlement == .trial(daysLeft: 1))
+        #expect(TrialProgress(start: start, lastSeen: start, used: duration).entitlement == .expired)
+        #expect(TrialProgress(start: start, lastSeen: start, used: duration - 0.001).isActive)
+        #expect(TrialProgress(start: start, lastSeen: start, used: duration).isActive == false)
+    }
+
+    // MARK: - 時計の変更
+
+    @Test func clockMovedBeforeTheTrialStartKeepsTheDaysLeft() throws {
+        storage.trialStartDate = days(-10)
+        storage.trialLastSeenDate = start
+        storage.trialUsedTime = 10 * 86_400
+        clock.set(days(-40))
         let manager = makeManager()
-        clock.advance(days: day)
+        // 戻した分は数えないが、試用もやり直さない
+        #expect(manager.entitlement == .trial(daysLeft: 4))
+        #expect(storage.trialStartDate == days(-10))
+        #expect(storage.trialUsedTime == 10.0 * 86_400)
+        clock.advance(days: 4)
         manager.refresh()
-        #expect(manager.entitlement == expected)
-        #expect(manager.canExecuteActions == (expected != .expired))
+        #expect(manager.entitlement == .expired)
     }
 
-    @Test func trialEndsExactlyFourteenTimesTwentyFourHoursAfterStart() {
-        let end = start.addingTimeInterval(14 * 24 * 60 * 60)
-        #expect(LicenseManager.trialEntitlement(start: start, now: end.addingTimeInterval(-0.001)) == .trial(daysLeft: 1))
-        #expect(LicenseManager.trialEntitlement(start: start, now: end) == .expired)
-    }
+    @Test func clockBeforeTheTrialStartWithoutAUsageRecordIsExpired() throws {
+        // 開始日しか無く、時計がそれより前: どれだけ使ったか分からない
+        let storage = StartOnlyLicenseStorage()
+        storage.trialStartDate = days(5)
+        let manager = makeManager(storage: storage)
+        #expect(manager.entitlement == .expired)
+        #expect(manager.canExecuteActions == false)
+        // 開始日を書き換えない
+        #expect(storage.trialStartDate == days(5))
 
-    @Test func clockMovedBeforeTheTrialStartDoesNotExtendTheTrial() throws {
-        // 保存された開始日より前に時計が戻されている
-        storage.trialStartDate = start.addingTimeInterval(5 * 86_400)
-        let manager = makeManager()
+        // 時計が開始日に追いつけば、開始日から数える
+        clock.advance(days: 5)
+        manager.refresh()
         #expect(manager.entitlement == .trial(daysLeft: 14))
-        #expect(storage.trialStartDate == start)
         clock.advance(days: 14)
         manager.refresh()
         #expect(manager.entitlement == .expired)
     }
 
-    @Test func clockMovedBackWhileRunningNeverGivesMoreThanFourteenDays() throws {
-        let manager = makeManager()
+    @Test func toleratesSmallCorrectionsAroundTheTrialStart() throws {
+        let storage = StartOnlyLicenseStorage()
+        storage.trialStartDate = start.addingTimeInterval(120)
+        #expect(makeManager(storage: storage).entitlement == .trial(daysLeft: 14))
+        storage.trialStartDate = start.addingTimeInterval(TrialProgress.clockTolerance + 1)
+        #expect(makeManager(storage: storage).entitlement == .expired)
+    }
+
+    @Test(arguments: [false, true])
+    func clockMovedBackWhileRunningNeverGivesMoreThanFourteenDays(monotonic: Bool) throws {
+        let manager = makeManager(monotonic: monotonic)
         clock.advance(days: 10)
         manager.refresh()
         #expect(manager.entitlement == .trial(daysLeft: 4))
-        clock.set(start.addingTimeInterval(-365 * 86_400))
+        clock.set(days(-365))
         manager.refresh()
-        #expect(manager.entitlement == .trial(daysLeft: 14))
-        // 正しい時刻に戻すと、試用はもう終わっている
-        clock.set(start.addingTimeInterval(10 * 86_400))
+        #expect(manager.entitlement == .trial(daysLeft: 4))
+        #expect(storage.trialStartDate == start)
+        clock.advance(days: 2)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 2))
+        clock.advance(days: 2)
         manager.refresh()
         #expect(manager.entitlement == .expired)
+        #expect(manager.canExecuteActions == false)
+    }
+
+    @Test(arguments: [false, true])
+    func repeatedRollbacksDoNotExtendTheTrial(monotonic: Bool) throws {
+        // 13日使うたびに日付を30日戻す
+        let manager = makeManager(monotonic: monotonic)
+        clock.advance(days: 13)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 1))
+        var used = 13.0
+        for _ in 0..<5 {
+            clock.set(clock.now.addingTimeInterval(-30 * 86_400))
+            manager.refresh()
+            clock.advance(days: 13)
+            manager.refresh()
+            used += 13
+            #expect(manager.entitlement == .expired)
+            #expect(manager.canExecuteActions == false)
+            #expect(storage.trialUsedTime == used * 86_400)
+        }
+        // 起動し直しても同じ
+        #expect(makeManager(monotonic: monotonic).entitlement == .expired)
+    }
+
+    @Test func rollbackAcrossRelaunchesDoesNotExtendTheTrial() throws {
+        _ = makeManager()
+        clock.advance(days: 13)
+        _ = makeManager()
+        clock.set(days(-30))
+        let manager = makeManager()
+        #expect(manager.entitlement == .trial(daysLeft: 1))
+        clock.advance(days: 1)
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+    }
+
+    @Test func monotonicClockCountsRealTimeWhenTheClockIsChangedBetweenRefreshes() throws {
+        let manager = makeManager(monotonic: true)
+        clock.advance(days: 13)
+        manager.refresh()
+        // refresh の前に13日経ち、その間に日付を30日戻された
+        clock.advance(days: 13)
+        clock.set(clock.now.addingTimeInterval(-30 * 86_400))
+        #expect(manager.canExecuteActions == false)
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+    }
+
+    @Test func monotonicClockIgnoresAClockSetAheadAndBack() throws {
+        // 時計が一時的にずれていた（電池切れや手で変えた）ときに、試用を失わない
+        let manager = makeManager(monotonic: true)
+        clock.advance(days: 1)
+        manager.refresh()
+        clock.set(days(400))
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 13))
+        #expect(manager.canExecuteActions)
+        clock.set(days(1))
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 13))
+        // 過去に戻してから正しい時刻に戻しても同じ
+        clock.set(days(-400))
+        manager.refresh()
+        clock.set(days(1))
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 13))
+        clock.advance(days: 13)
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+    }
+
+    @Test func withoutAMonotonicClockAJumpForwardCounts() throws {
+        // 単調な時計が無ければ、時計の進みと実際の時間を区別できない
+        let manager = makeManager()
+        clock.set(days(20))
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+    }
+
+    @Test func smallClockCorrectionsAreHarmless() throws {
+        let manager = makeManager(monotonic: true)
+        clock.advance(days: 1)
+        manager.refresh()
+        clock.set(clock.now.addingTimeInterval(-90))
+        manager.refresh()
+        clock.set(clock.now.addingTimeInterval(120))
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 13))
+        let used = try #require(storage.trialUsedTime)
+        #expect(abs(used - (86_400 + 120)) < 0.001)
     }
 
     @Test func canExecuteActionsChecksTheClockEvenWithoutRefresh() throws {
@@ -139,13 +323,94 @@ private final class ManualClock: @unchecked Sendable {
         #expect(manager.entitlement == .expired)
     }
 
-    @Test func restartsTheTrialRecordIfStorageLosesIt() throws {
+    @Test func canExecuteActionsUsesTheMonotonicClockWithoutRefresh() throws {
+        let manager = makeManager(monotonic: true)
+        clock.advance(days: 13.5)
+        manager.refresh()
+        // 日付を戻しても、実際に経った時間で期限を過ぎる
+        clock.set(days(-100))
+        #expect(manager.canExecuteActions)
+        clock.advance(days: 0.6)
+        #expect(manager.canExecuteActions == false)
+        // canExecuteActions は保存しない
+        #expect(storage.trialUsedTime == 13.5 * 86_400)
+    }
+
+    // MARK: - 保存先
+
+    @Test func keepsCountingWhenStorageLosesTheRecord() throws {
         let manager = makeManager()
         clock.advance(days: 2)
         storage.trialStartDate = nil
+        storage.trialLastSeenDate = nil
+        storage.trialUsedTime = nil
         manager.refresh()
-        #expect(storage.trialStartDate == start.addingTimeInterval(2 * 86_400))
+        // このプロセスで数えた分から続け、保存先も戻す
+        #expect(manager.entitlement == .trial(daysLeft: 12))
+        #expect(storage.trialStartDate == start)
+        #expect(storage.trialUsedTime == 2.0 * 86_400)
+    }
+
+    @Test func storageTamperedWhileRunningDoesNotExtendTheTrial() throws {
+        let manager = makeManager()
+        clock.advance(days: 5)
+        manager.refresh()
+        storage.trialStartDate = days(5)
+        storage.trialUsedTime = 0
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 9))
+        #expect(storage.trialStartDate == start)
+        #expect(storage.trialUsedTime == 5.0 * 86_400)
+    }
+
+    @Test func largerStoredUsageWins() throws {
+        let manager = makeManager()
+        clock.advance(days: 1)
+        storage.trialUsedTime = 10 * 86_400
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 3))
+    }
+
+    @Test(arguments: [-86_400.0, .nan, .infinity])
+    func invalidStoredUsageFallsBackToTheStartDate(used: Double) throws {
+        storage.trialStartDate = days(-3)
+        storage.trialLastSeenDate = days(-1)
+        storage.trialUsedTime = used
+        let manager = makeManager()
+        #expect(manager.entitlement == .trial(daysLeft: 11))
+        #expect(storage.trialUsedTime == 3.0 * 86_400)
+    }
+
+    @Test func storageWithoutUsageStillCountsWithinAProcess() throws {
+        // 使った時間を保存しない保存先でも、起動中は時計を戻して延ばせない
+        let storage = StartOnlyLicenseStorage()
+        let manager = makeManager(storage: storage)
+        clock.advance(days: 10)
+        manager.refresh()
+        clock.set(start)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 4))
+        #expect(storage.trialLastSeenDate == nil)
+        #expect(storage.trialUsedTime == nil)
+    }
+
+    @Test func restartsTheTrialOnlyWhenEverythingIsGone() throws {
+        _ = makeManager()
+        clock.advance(days: 20)
+        storage.trialStartDate = nil
+        storage.trialLastSeenDate = nil
+        storage.trialUsedTime = nil
+        #expect(makeManager().entitlement == .trial(daysLeft: 14))
+        #expect(storage.trialStartDate == days(20))
+    }
+
+    @Test func liveInitializerUsesTheRealClocks() throws {
+        let manager = LicenseManager(verifier: nil, storage: storage)
         #expect(manager.entitlement == .trial(daysLeft: 14))
+        #expect(manager.canExecuteActions)
+        let first = LicenseManager.systemUptime()
+        #expect(first > 0)
+        #expect(LicenseManager.systemUptime() >= first)
     }
 
     // MARK: - ライセンス

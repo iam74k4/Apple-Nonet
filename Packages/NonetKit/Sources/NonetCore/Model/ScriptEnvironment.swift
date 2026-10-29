@@ -25,7 +25,10 @@ public enum ScriptEnvironment {
     /// プロジェクトとみなすフォルダの印
     static let projectMarkers = [".git", "Package.swift"]
     /// それ自体がプロジェクトの書類になるバンドル。親のフォルダをプロジェクトとする
-    static let projectBundleExtensions = [".xcodeproj", ".xcworkspace", ".swiftpm", ".playground"]
+    static let projectBundleExtensions = [".xcodeproj", ".xcworkspace", ".playground"]
+    /// ちょうど「.swiftpm」ならパッケージの中に SwiftPM / Xcode が作るフォルダ（親がパッケージ）。
+    /// 「Name.swiftpm」は Swift Playgrounds のアプリで、Package.swift を含むパッケージそのもの
+    static let swiftPackageExtension = ".swiftpm"
 
     /// スクリプトに渡す環境変数。値の無いものは含めない。
     /// NONET_APP_BUNDLE_ID, NONET_APP_NAME, NONET_DOCUMENT_PATH, NONET_PROJECT_DIR, NONET_BROWSER_URL, NONET_SELECTED_TEXT,
@@ -49,7 +52,8 @@ public enum ScriptEnvironment {
     }
 
     /// 書類の場所からプロジェクトのフォルダを決める。
-    /// .xcodeproj / .xcworkspace / .swiftpm はその親、ファイルは上にたどって .git か Package.swift のあるフォルダ、見つからなければファイルのあるフォルダ
+    /// .xcodeproj / .xcworkspace / .playground とパッケージの中の .swiftpm はその親、Swift Playgrounds の Name.swiftpm はそれ自体、
+    /// ファイルは上にたどって .git か Package.swift のあるフォルダ、見つからなければファイルのあるフォルダ
     public static func projectDirectory(forDocumentPath path: String, fileExists: (String) -> Bool) -> String {
         projectDirectory(forDocumentPath: path, homeDirectory: NSHomeDirectory(), fileExists: fileExists)
     }
@@ -60,9 +64,14 @@ public enum ScriptEnvironment {
         let normalized = normalizedPath(path)
         guard !normalized.isEmpty else { return "" }
         let document = PathComponents(normalized)
-        // 中の書類（App.xcodeproj/project.xcworkspace や .swiftpm/xcode/package.xcworkspace）でも、いちばん外側のバンドルの親にする
-        if let bundleIndex = document.parts.firstIndex(where: isProjectBundle) {
-            return document.path(prefixCount: bundleIndex)
+        // 中の書類（App.xcodeproj/project.xcworkspace や .swiftpm/xcode/package.xcworkspace）でも、いちばん外側のバンドルで決める
+        for (index, part) in document.parts.enumerated() {
+            if isPackageBundle(part) {
+                return document.path(prefixCount: index + 1)
+            }
+            if isProjectBundle(part) {
+                return document.path(prefixCount: index)
+            }
         }
         let home = normalizedPath(homeDirectory)
         // 書類そのものがフォルダのこともあるので、書類の場所から調べる
@@ -92,9 +101,16 @@ public enum ScriptEnvironment {
         return PathComponents(path).path(prefixCount: nil)
     }
 
+    /// 親のフォルダをプロジェクトとするバンドル（パッケージの中の .swiftpm も含む）
     static func isProjectBundle(_ name: String) -> Bool {
         let lowercased = name.lowercased()
-        return projectBundleExtensions.contains { lowercased.hasSuffix($0) }
+        return lowercased == swiftPackageExtension || projectBundleExtensions.contains { lowercased.hasSuffix($0) }
+    }
+
+    /// それ自体がプロジェクトのフォルダになる Name.swiftpm
+    static func isPackageBundle(_ name: String) -> Bool {
+        let lowercased = name.lowercased()
+        return lowercased.hasSuffix(swiftPackageExtension) && lowercased != swiftPackageExtension
     }
 
     /// NUL を取り除き、長すぎる値を切り詰める。空なら nil

@@ -70,7 +70,7 @@ import Testing
         ("/Users/me/Dev/Kit/.swiftpm", "/Users/me/Dev/Kit"),
         ("/Users/me/Playgrounds/Try.playground", "/Users/me/Playgrounds"),
         ("/Users/me/Playgrounds/Try.playground/Contents.swift", "/Users/me/Playgrounds"),
-        ("/Users/me/Apps/Game.swiftpm", "/Users/me/Apps"),
+        ("/Users/me/Dev/Kit/.SwiftPM/xcode/package.xcworkspace", "/Users/me/Dev/Kit"),
         ("/Users/me/Dev/App/APP.XCODEPROJ", "/Users/me/Dev/App"),
         ("file:///Users/me/Dev/App/App.xcodeproj/", "/Users/me/Dev/App"),
         ("/App.xcodeproj", "/"),
@@ -80,6 +80,32 @@ import Testing
     func bundlesResolveToTheirParent(path: String, expected: String) {
         // 上に .git があっても、バンドルの親を使う
         #expect(Self.project(path, existing: ["/Users/me/.git", "/Users/me/Dev/.git"]) == expected)
+    }
+
+    static let swiftPlaygroundsCases: [(String, String)] = [
+        // Swift Playgrounds のアプリ（Name.swiftpm）は Package.swift を含むパッケージそのもの
+        ("/Users/me/Apps/Game.swiftpm", "/Users/me/Apps/Game.swiftpm"),
+        ("/Users/me/Apps/Game.swiftpm/", "/Users/me/Apps/Game.swiftpm"),
+        ("/Users/me/Apps/Game.swiftpm/Sources/App/ContentView.swift", "/Users/me/Apps/Game.swiftpm"),
+        ("/Users/me/Apps/Game.swiftpm/.swiftpm/xcode/package.xcworkspace", "/Users/me/Apps/Game.swiftpm"),
+        ("/Users/me/Apps/My Game.SwiftPM/Package.swift", "/Users/me/Apps/My Game.SwiftPM"),
+        ("file:///Users/me/Apps/My%20Game.swiftpm/", "/Users/me/Apps/My Game.swiftpm"),
+    ]
+
+    @Test(arguments: swiftPlaygroundsCases)
+    func swiftPlaygroundsAppIsItsOwnProject(path: String, expected: String) {
+        #expect(Self.project(path, existing: ["/Users/me/.git", "/Users/me/Apps/.git"]) == expected)
+    }
+
+    @Test func distinguishesTheSwiftPMFolderFromAPackageBundle() {
+        #expect(ScriptEnvironment.isProjectBundle(".swiftpm"))
+        #expect(ScriptEnvironment.isPackageBundle(".swiftpm") == false)
+        #expect(ScriptEnvironment.isPackageBundle("Game.swiftpm"))
+        #expect(ScriptEnvironment.isProjectBundle("Game.swiftpm") == false)
+        #expect(ScriptEnvironment.isProjectBundle("App.xcodeproj"))
+        #expect(ScriptEnvironment.isPackageBundle("App.xcodeproj") == false)
+        #expect(ScriptEnvironment.isProjectBundle("swiftpm") == false)
+        #expect(ScriptEnvironment.isPackageBundle("swiftpm") == false)
     }
 
     @Test func walksUpToTheNearestGitOrPackage() {

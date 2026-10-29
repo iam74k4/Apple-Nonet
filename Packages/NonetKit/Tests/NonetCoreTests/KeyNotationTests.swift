@@ -69,7 +69,29 @@ import Testing
         (char("\u{1B}"), "⎋"),
         (char("\u{1}"), "U+0001"),
         (char("\u{F700}", .command), "⌘U+F700"),
+        // 前の文字にくっつく文字（そのまま書くと ⌘ と1文字になってしまう）
+        (char("\u{301}", .command), "⌘U+0301"),
+        (char("\u{FE0F}"), "U+FE0F"),
+        (char("\u{FE0E}", .option), "⌥U+FE0E"),
+        (char("\u{1F3FB}", .shift), "⇧U+1F3FB"),
+        (char("\u{903}"), "U+0903"),
+        (char("\u{20DD}", .function), "fn U+20DD"),
+        (char("\u{200D}", .command), "⌘U+200D"),
+        // 後ろの空白とくっつく文字
+        (char("\u{D4E}", .command), "⌘U+0D4E"),
+        // 複数の符号位置でも1文字として立つものはそのまま
+        (char("e\u{301}", .command), "⌘E\u{301}"),
+        (char("❤\u{FE0E}"), "❤\u{FE0E}"),
     ]
+
+    @Test func escapedCharactersStayOneCharacterAfterTheModifiers() throws {
+        for character in ["\u{301}", "\u{FE0F}", "\u{1F3FB}", "\u{903}", "\u{D4E}"] {
+            let display = KeyChord(.character(character), modifiers: .command).displayString
+            #expect(display.hasPrefix("⌘U+"))
+            let parsed = try #require(KeySequence(parsing: display))
+            #expect(parsed.chords == [Self.char(character, .command)])
+        }
+    }
 
     @Test(arguments: displayCases)
     func chordDisplay(chord: KeyChord, expected: String) {
@@ -187,6 +209,18 @@ import Testing
         ("Ü", [char("ü")]),
         ("⌥ß", [char("ß", .option)]),
         ("ー", [char("ー")]),
+        // コピーした表記に付いてくる異体字セレクタ（↩ ↖ ↘ などは絵文字の見た目もある）
+        ("⌥⌘↩\u{FE0E}", [special(.returnKey, [.option, .command])]),
+        ("⌘↩\u{FE0F}", [special(.returnKey, .command)]),
+        ("↖\u{FE0E}", [special(.home)]),
+        ("⇧↘\u{FE0F}", [special(.end, .shift)]),
+        ("⌘\u{FE0E}↑", [special(.upArrow, .command)]),
+        ("⌘L →\u{FE0E} ⌘C", [char("l", .command), char("c", .command)]),
+        ("→\u{FE0E} → ⌘→\u{FE0F}", [special(.rightArrow), special(.rightArrow, .command)]),
+        ("🌐\u{FE0F}E", [char("e", .function)]),
+        ("⌘U+FE0F", [char("\u{FE0F}", .command)]),
+        ("⌘❤\u{FE0E}", [char("❤\u{FE0E}", .command)]),
+        ("⌘👍\u{1F3FB}", [char("👍\u{1F3FB}", .command)]),
     ]
 
     @Test(arguments: parseCases)
@@ -231,6 +265,11 @@ import Testing
         "\u{1}",
         "⌘\u{200B}",
         "cmd-c",
+        // 単独の結合文字や異体字セレクタは U+XXXX と書く
+        "\u{301}",
+        "\u{FE0F}",
+        "\u{1F3FB}",
+        "⌘\u{FE0F}",
     ]
 
     @Test(arguments: rejectedCases)
@@ -330,13 +369,17 @@ import Testing
 
     static let allModifierCombinations: [ModifierSet] = (0..<32).map { ModifierSet(rawValue: UInt8($0)) }
 
-    /// 小文字の英字・数字・ASCII の記号・JIS や欧州の配列にある文字・見えない文字
+    /// 小文字の英字・数字・ASCII の記号・JIS や欧州の配列にある文字・見えない文字・前後にくっつく文字
     static let characters: [String] = {
         var characters = (UInt8(ascii: "a")...UInt8(ascii: "z")).map { String(UnicodeScalar($0)) }
         characters += (0...9).map(String.init)
         characters += "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?".map(String.init)
-        characters += ["¥", "ü", "ö", "ä", "é", "ç", "ñ", "ß", "ø", "å", "ー", "か", "な", "英", "§", "±", "«", "€"]
+        characters += ["¥", "ü", "ö", "ä", "é", "ç", "ñ", "ß", "ø", "å", "ー", "か", "な", "英", "§", "±", "«", "€", "´", "¨"]
         characters += ["\u{1}", "\u{1F}", "\u{0}", "\u{F700}", "\u{3000}", "\u{200B}", "\u{85}"]
+        // 結合文字（Mn / Mc / Me）・異体字セレクタ・肌の色・ZWJ・後ろにくっつく文字（Prepend）
+        characters += ["\u{301}", "\u{308}", "\u{3099}", "\u{903}", "\u{20DD}", "\u{FE0E}", "\u{FE0F}", "\u{E0100}", "\u{1F3FB}", "\u{200D}", "\u{D4E}"]
+        // 複数の符号位置でできた1文字
+        characters += ["e\u{301}", "❤\u{FE0E}", "👍\u{1F3FB}"]
         return characters
     }()
 }

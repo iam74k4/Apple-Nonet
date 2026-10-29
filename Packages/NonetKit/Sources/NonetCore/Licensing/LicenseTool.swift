@@ -6,7 +6,7 @@ import Foundation
 package enum LicenseToolCommand: Equatable {
     case help
     case keygen(outputDirectory: String)
-    case issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?)
+    case issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?, publicKey: String?)
     case verify(publicKey: String, licenseKey: String)
 }
 
@@ -31,6 +31,7 @@ package struct LicenseToolIO {
     package var standardError: (String) -> Void
     package var now: () -> Date
     package var makeLicenseID: () -> String
+    package var generateKeyPair: () -> (privateKeyBase64: String, publicKeyBase64: String)
 
     package init(
         currentDirectory: @escaping () -> String,
@@ -41,7 +42,8 @@ package struct LicenseToolIO {
         standardOutput: @escaping (String) -> Void,
         standardError: @escaping (String) -> Void,
         now: @escaping () -> Date,
-        makeLicenseID: @escaping () -> String
+        makeLicenseID: @escaping () -> String,
+        generateKeyPair: @escaping () -> (privateKeyBase64: String, publicKeyBase64: String) = LicenseSigner.generateKeyPair
     ) {
         self.currentDirectory = currentDirectory
         self.fileExists = fileExists
@@ -52,6 +54,7 @@ package struct LicenseToolIO {
         self.standardError = standardError
         self.now = now
         self.makeLicenseID = makeLicenseID
+        self.generateKeyPair = generateKeyPair
     }
 
     package static var live: LicenseToolIO {
@@ -83,8 +86,9 @@ package enum LicenseTool {
       nonet-license keygen --out <フォルダ>
           Ed25519 の鍵を作る。<フォルダ>/\(privateKeyFileName)（パーミッション 600）と
           <フォルダ>/\(publicKeyFileName) を書き、公開鍵を表示する。既存のファイルは上書きしない
-      nonet-license issue --key <秘密鍵のファイル> --name <購入者> [--email <メール>] [--edition <エディション>] [--id <ライセンス ID>]
-          ライセンスキーを発行して表示する。エディションの既定は standard、ID の既定は新しい UUID
+      nonet-license issue --key <秘密鍵のファイル> --name <購入者> [--email <メール>] [--edition <エディション>] [--id <ライセンス ID>] [--public <公開鍵の base64 かファイル>]
+          ライセンスキーを発行して表示する。エディションの既定は standard、ID の既定は新しい UUID。
+          発行したキーを公開鍵（既定は秘密鍵と同じフォルダの \(publicKeyFileName)）で検証し、合わなければ発行しない
       nonet-license verify --public <公開鍵の base64 かファイル> <ライセンスキー>
           ライセンスキーを検証して中身を表示する
       nonet-license help
@@ -109,8 +113,11 @@ package enum LicenseTool {
             return exitSuccess
         case .keygen(let outputDirectory):
             return keygen(outputDirectory: outputDirectory, io: io)
-        case .issue(let privateKeyPath, let licensee, let email, let edition, let licenseID):
-            return issue(privateKeyPath: privateKeyPath, licensee: licensee, email: email, edition: edition, licenseID: licenseID, io: io)
+        case .issue(let privateKeyPath, let licensee, let email, let edition, let licenseID, let publicKey):
+            return issue(
+                privateKeyPath: privateKeyPath, licensee: licensee, email: email, edition: edition, licenseID: licenseID,
+                publicKey: publicKey, io: io
+            )
         case .verify(let publicKey, let licenseKey):
             return verify(publicKey: publicKey, licenseKey: licenseKey, io: io)
         }
@@ -136,14 +143,15 @@ package enum LicenseTool {
             }
             return .keygen(outputDirectory: outputDirectory)
         case "issue":
-            let parsed = try parseOptions(rest, allowed: ["key", "name", "email", "edition", "id"])
+            let parsed = try parseOptions(rest, allowed: ["key", "name", "email", "edition", "id", "public"])
             try expectPositionals(parsed.positionals, count: 0, command: name)
             return .issue(
                 privateKeyPath: try required("key", in: parsed.options),
                 licensee: try required("name", in: parsed.options),
                 email: parsed.options["email"],
                 edition: parsed.options["edition"],
-                licenseID: parsed.options["id"]
+                licenseID: parsed.options["id"],
+                publicKey: parsed.options["public"]
             )
         case "verify":
             let parsed = try parseOptions(rest, allowed: ["public"])
@@ -222,7 +230,10 @@ package enum LicenseTool {
             io.standardError("エラー: すでにあるので上書きしません: \(path)\n")
             return exitFailure
         }
-        let keys = LicenseSigner.generateKeyPair()
+        guard let keys = configSafeKeyPair(io: io) else {
+            io.standardError("エラー: xcconfig に書ける公開鍵を作れませんでした\n")
+            return exitFailure
+        }
         do {
             try io.createDirectory(directory)
             try io.createNewFile(privatePath, keys.privateKeyBase64 + "\n", 0o600)
@@ -246,7 +257,21 @@ package enum LicenseTool {
         return exitSuccess
     }
 
-    private static func issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?, io: LicenseToolIO) -> Int32 {
+    /// xcconfig は行の途中の「//」から後をコメントとして捨てる。公開鍵が切り詰められないよう、「//」を含まない鍵を選ぶ（約1%が含む）
+    static func configSafeKeyPair(io: LicenseToolIO) -> (privateKeyBase64: String, publicKeyBase64: String)? {
+        for _ in 0..<100 {
+            let keys = io.generateKeyPair()
+            if !keys.publicKeyBase64.contains("//") {
+                return keys
+            }
+        }
+        return nil
+    }
+
+    private static func issue(
+        privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?,
+        publicKey: String?, io: LicenseToolIO
+    ) -> Int32 {
         let licensee = licensee.trimmingCharacters(in: .whitespacesAndNewlines)
         let email = email?.trimmingCharacters(in: .whitespacesAndNewlines)
         let edition = (edition ?? "standard").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -266,7 +291,7 @@ package enum LicenseTool {
 
         let signer: LicenseSigner
         do {
-            signer = try LicenseSigner(privateKeyBase64: try io.readFile(privateKeyPath))
+            signer = try LicenseSigner(privateKeyBase64: try io.readFile(absolutePath(privateKeyPath, io: io)))
         } catch let error as LicenseError {
             io.standardError("エラー: \(message(for: error))\n")
             return exitFailure
@@ -275,14 +300,30 @@ package enum LicenseTool {
             return exitFailure
         }
 
+        // 32 バイトなら何でも秘密鍵として読めてしまう（公開鍵のファイルでも）。アプリに入れる公開鍵で検証できるキーだけを渡す
+        let verifier: LicenseVerifier
+        do {
+            if let publicKeyText = try publicKeyForIssue(publicKey, privateKeyPath: privateKeyPath, io: io) {
+                verifier = try LicenseVerifier(publicKeyBase64: publicKeyText)
+            } else {
+                io.standardError("警告: 公開鍵が見つからないため、アプリの公開鍵と合うか確かめていません（--public で指定できます）\n")
+                verifier = try LicenseVerifier(publicKeyBase64: signer.publicKeyBase64)
+            }
+        } catch let error as LicenseError {
+            io.standardError("エラー: \(message(for: error))\n")
+            return exitFailure
+        } catch {
+            io.standardError("エラー: 公開鍵を読めません: \(error.localizedDescription)\n")
+            return exitFailure
+        }
+
         // キーには秒までしか入らないので、表示と一致するようにそろえる
         let issuedAt = Date(timeIntervalSince1970: io.now().timeIntervalSince1970.rounded(.down))
         let info = LicenseInfo(licenseID: licenseID, licensee: licensee, email: email, edition: edition, issuedAt: issuedAt)
         do {
             let key = try signer.sign(info)
-            // 発行したキーが公開鍵で検証できることを確かめてから渡す
-            guard try LicenseVerifier(publicKeyBase64: signer.publicKeyBase64).verify(key) == info else {
-                io.standardError("エラー: 発行したキーを検証できませんでした\n")
+            guard (try? verifier.verify(key)) == info else {
+                io.standardError("エラー: 秘密鍵と公開鍵が対応していません。--key に公開鍵のファイルや別の秘密鍵を指定していないか確かめてください\n")
                 return exitFailure
             }
             io.standardOutput(key + "\n")
@@ -299,15 +340,11 @@ package enum LicenseTool {
 
     private static func verify(publicKey: String, licenseKey: String, io: LicenseToolIO) -> Int32 {
         let publicKeyText: String
-        if io.fileExists(publicKey) {
-            do {
-                publicKeyText = try io.readFile(publicKey)
-            } catch {
-                io.standardError("エラー: 公開鍵を読めません: \(error.localizedDescription)\n")
-                return exitFailure
-            }
-        } else {
-            publicKeyText = publicKey
+        do {
+            publicKeyText = try readPublicKey(publicKey, io: io)
+        } catch {
+            io.standardError("エラー: 公開鍵を読めません: \(error.localizedDescription)\n")
+            return exitFailure
         }
         do {
             let info = try LicenseVerifier(publicKeyBase64: publicKeyText).verify(licenseKey)
@@ -323,6 +360,21 @@ package enum LicenseTool {
     }
 
     // MARK: - 補助
+
+    /// --public の値（ファイルがあればその中身、無ければ base64 そのもの）
+    private static func readPublicKey(_ value: String, io: LicenseToolIO) throws -> String {
+        io.fileExists(value) ? try io.readFile(value) : value
+    }
+
+    /// issue で照合する公開鍵。--public が無ければ秘密鍵と同じフォルダの公開鍵のファイル。どちらも無ければ nil
+    private static func publicKeyForIssue(_ publicKey: String?, privateKeyPath: String, io: LicenseToolIO) throws -> String? {
+        if let publicKey {
+            return try readPublicKey(publicKey, io: io)
+        }
+        let directory = (absolutePath(privateKeyPath, io: io) as NSString).deletingLastPathComponent
+        let sibling = join(directory, publicKeyFileName)
+        return io.fileExists(sibling) ? try io.readFile(sibling) : nil
+    }
 
     /// アプリの Bundle.module に頼らない（ツール単体でも動くように）
     package static func message(for error: LicenseError) -> String {
