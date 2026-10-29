@@ -76,7 +76,10 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
 
     /// 表示名。グローバルは「グローバル」（ローカライズ済み）、アプリはアプリ名
     public var name: String {
-        fatalError("未実装: core-model")
+        switch kind {
+        case .global: String(localized: "グローバル", bundle: .module)
+        case .app(let app): app.nameOrBundleID
+        }
     }
 }
 
@@ -89,5 +92,167 @@ public struct CellAddress: Codable, Hashable, Sendable {
     public init(page: Int, index: Int) {
         self.page = page
         self.index = index
+    }
+}
+
+// MARK: - Codable
+// 関連値のある enum は {"type": "...", ...} で書く。マス・ページ・プロファイルは読めないところを既定値で埋め、
+// 読めないマスは空きマスにする（知らないアクションの種類で設定全体が読めなくならないように）
+
+extension CellIcon {
+    private enum CodingKeys: String, CodingKey {
+        case type, symbol, bundleID, text
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(String.self, forKey: .type) {
+        case "symbol":
+            self = .symbol(try container.decode(String.self, forKey: .symbol))
+        case "app":
+            self = .app(bundleID: try container.decode(String.self, forKey: .bundleID))
+        case "text":
+            self = .text(try container.decode(String.self, forKey: .text))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアイコンの種類")
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .symbol(let name):
+            try container.encode("symbol", forKey: .type)
+            try container.encode(name, forKey: .symbol)
+        case .app(let bundleID):
+            try container.encode("app", forKey: .type)
+            try container.encode(bundleID, forKey: .bundleID)
+        case .text(let text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        }
+    }
+
+    /// アイコンが読めなかったときに使う
+    static func fallback(for action: Action) -> CellIcon {
+        if case .launchApp(let launch) = action {
+            return .app(bundleID: launch.app.bundleID)
+        }
+        return .symbol("questionmark.square.dashed")
+    }
+}
+
+extension Cell {
+    private enum CodingKeys: String, CodingKey {
+        case id, title, icon, action
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let action = try container.decode(Action.self, forKey: .action)
+        self.init(
+            id: container.decodeLossy(UUID.self, forKey: .id, default: UUID()),
+            title: container.decodeLossy(String.self, forKey: .title, default: ""),
+            icon: container.decodeLossy(CellIcon.self, forKey: .icon, default: .fallback(for: action)),
+            action: action
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(icon, forKey: .icon)
+        try container.encode(action, forKey: .action)
+    }
+}
+
+extension Page {
+    private enum CodingKeys: String, CodingKey {
+        case cells
+    }
+
+    /// cells は 9 個に揃える。読めないマスは空きマス
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let cells = container.decodeLossy([LossyElement<Cell>].self, forKey: .cells, default: [])
+        if cells.count != Page.cellCount {
+            DecodingIssue.log("マスの数（\(cells.count)）", at: container.codingPath + [CodingKeys.cells])
+        }
+        self.init(cells: cells.map(\.value))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Page(cells: cells).cells, forKey: .cells)
+    }
+}
+
+extension ProfileKind {
+    private enum CodingKeys: String, CodingKey {
+        case type, app
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(String.self, forKey: .type) {
+        case "global":
+            self = .global
+        case "app":
+            self = .app(try container.decode(AppReference.self, forKey: .app))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のプロファイルの種類")
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .global:
+            try container.encode("global", forKey: .type)
+        case .app(let app):
+            try container.encode("app", forKey: .type)
+            try container.encode(app, forKey: .app)
+        }
+    }
+}
+
+extension Profile {
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, pages, isEnabled
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 読めないページは空きページにして、ページの位置を保つ
+        let pages = container.decodeLossy([LossyElement<Page>].self, forKey: .pages, default: [])
+        self.init(
+            id: container.decodeLossy(UUID.self, forKey: .id, default: UUID()),
+            kind: try container.decode(ProfileKind.self, forKey: .kind),
+            pages: pages.map { $0.value ?? .empty },
+            isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: true)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(pages, forKey: .pages)
+        try container.encode(isEnabled, forKey: .isEnabled)
+    }
+}
+
+extension Profile {
+    /// ページ数を 1〜maxPages、各ページを9マスに揃える
+    mutating func normalizePages() {
+        if pages.isEmpty {
+            pages = [.empty]
+        } else if pages.count > Profile.maxPages {
+            pages = Array(pages.prefix(Profile.maxPages))
+        }
+        for index in pages.indices where pages[index].cells.count != Page.cellCount {
+            pages[index] = Page(cells: pages[index].cells)
+        }
     }
 }
