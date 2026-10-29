@@ -79,6 +79,13 @@ struct SettingsMenuPanel: View {
     @ViewBuilder
     private var content: some View {
         switch browser.state {
+        case .idle where browser.selectedApp != nil:
+            // 読み込みの途中でウィンドウを閉じたときなど
+            placeholder(
+                symbol: "filemenu.and.selection",
+                text: String(localized: "メニューをまだ読み込んでいません", bundle: .module),
+                action: (String(localized: "メニューを読み込む", bundle: .module), { browser.reload() })
+            )
         case .idle:
             placeholder(symbol: "filemenu.and.selection", text: browser.runningApps.isEmpty
                 ? String(localized: "メニューを読めるアプリが起動していません", bundle: .module)
@@ -134,12 +141,12 @@ struct SettingsMenuPanel: View {
                     ForEach(section.entries) { entry in
                         SettingsMenuRow(entry: entry)
                             .tag(entry.id)
-                            .draggable(SettingsDragPayload.menuItem(id: entry.id).token) {
+                            .draggable(SettingsDragItem(payload: .menuItem(id: entry.id))) {
                                 Text(entry.node.title)
                                     .font(.system(size: 12, weight: .medium))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
-                                    .background(Capsule().fill(Color.primary))
+                                    .background(Capsule(style: .circular).fill(Color.primary))
                                     .foregroundStyle(Color(nsColor: .windowBackgroundColor))
                             }
                     }
@@ -164,7 +171,7 @@ struct SettingsMenuPanel: View {
         }
     }
 
-    private func placeholder(symbol: String, text: String) -> some View {
+    private func placeholder(symbol: String, text: String, action: (title: String, perform: () -> Void)? = nil) -> some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
                 .font(.system(size: 22))
@@ -174,6 +181,10 @@ struct SettingsMenuPanel: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+            if let action {
+                Button(action.title, action: action.perform)
+                    .padding(.top, 2)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -275,6 +286,6 @@ struct SettingsAddProfileSheet: View {
         }
         .padding(20)
         .frame(width: 460, height: 520)
-        .onAppear { model.loadInstalledAppsIfNeeded() }
+        .onAppear { model.reloadInstalledApps() }
     }
 }

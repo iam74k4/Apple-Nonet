@@ -85,6 +85,13 @@ struct SettingsRenderShots {
             model.selectProfile(try profile(named: "とても長い", in: h).id)
             model.selectCell(4)
             try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-long-url-\(suffix)")
+            // 最小の大きさで3ページ（ページの見出しが入りきること）
+            model.addPage()
+            model.addPage()
+            model.selectPage(0)
+            model.selectCell(4)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-3pages-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 980, height: 600), appearance, "profiles-980-3pages-\(suffix)")
             model.selectCell(1)
             try await render(SettingsInspectorView(model: model), size: CGSize(width: 310, height: 520), appearance, "inspector-empty-\(suffix)")
             model.selectCell(8)
@@ -118,6 +125,12 @@ struct SettingsRenderShots {
             model.menuBrowser.query = "存在しない"
             model.showMenus(true)
             try await render(SettingsMenuPanel(model: model, browser: model.menuBrowser), size: CGSize(width: 310, height: 520), appearance, "menus-noresult-\(suffix)")
+            // 読み込みの途中でウィンドウを閉じた
+            h.menus.delayByProcess[SettingsMenuSamples.figma.processID] = .seconds(30)
+            model.menuBrowser.reload()
+            model.menuBrowser.cancel()
+            h.menus.delayByProcess[SettingsMenuSamples.figma.processID] = nil
+            try await render(SettingsMenuPanel(model: model, browser: model.menuBrowser), size: CGSize(width: 310, height: 520), appearance, "menus-idle-\(suffix)")
             h.menus.error = .permissionDenied("アクセシビリティ")
             model.menuBrowser.reload()
             await model.menuBrowser.waitUntilLoaded()
@@ -125,27 +138,27 @@ struct SettingsRenderShots {
             model.showMenus(false)
 
             // 一般（JIS で右⌥・ログイン項目の失敗）
-            model.tab = .general
+            model.selectTab(.general)
             model.setSetting(\.trigger, .rightOption)
             h.loginItem.failure = SettingsFakeLoginError()
             model.setLoginItemEnabled(true)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 1300), appearance, "general-\(suffix)")
 
             // ライセンス（試用・エラー）
-            model.tab = .license
+            model.selectTab(.license)
             model.licenseKeyInput = "eyJsaWNlbnNlSUQiOiJ.broken"
             model.activateLicense()
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-trial-\(suffix)")
 
             // 情報
-            model.tab = .about
+            model.selectTab(.about)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "about-\(suffix)")
 
             // 状態の帯（権限なし）と書き出しの結果
             h.permissions.isAccessibilityGranted = false
             h.controller.refreshPermissions()
             model.fileMessage = SettingsMessage(text: "2個のプロファイルを追加しました。\nスクリプトを含むマスがあります。実行する前に中身を確かめてください。", isError: false)
-            model.tab = .profiles
+            model.selectTab(.profiles)
             try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 760), appearance, "banners-\(suffix)")
 
             // シートと吹き出しの中身
@@ -171,7 +184,7 @@ struct SettingsRenderShots {
         for (suffix, appearance) in appearances {
             _ = NSApplication.shared
             let h = try SettingsHarness(verifier: try LicenseVerifier(publicKeyBase64: pair.publicKeyBase64), links: AppLinks(purchase: URL(string: "https://example.com/buy")))
-            h.model.tab = .license
+            h.model.selectTab(.license)
             h.model.licenseKeyInput = key
             h.model.activateLicense()
             try await render(SettingsRootView(model: h.model), size: CGSize(width: 860, height: 640), appearance, "license-licensed-\(suffix)")
@@ -180,9 +193,9 @@ struct SettingsRenderShots {
             storage.trialStartDate = Date(timeIntervalSinceReferenceDate: 700_000_000)
             let expired = LicenseManager(verifier: nil, storage: storage, now: { Date(timeIntervalSinceReferenceDate: 800_000_000) })
             let model = SettingsModel(controller: h.controller, license: expired, services: h.services, links: AppLinks(purchase: URL(string: "https://example.com/buy")), onCheckForUpdates: {})
-            model.tab = .license
+            model.selectTab(.license)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "license-expired-\(suffix)")
-            model.tab = .about
+            model.selectTab(.about)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "about-update-\(suffix)")
             try await render(SettingsAboutView(model: model, showsNotices: true), size: CGSize(width: 860, height: 900), appearance, "about-notices-\(suffix)")
         }

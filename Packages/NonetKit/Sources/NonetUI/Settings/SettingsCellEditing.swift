@@ -123,6 +123,13 @@ enum SettingsCellEditing {
         return updated
     }
 
+    /// 今の種類のままなら中身を書き換えたマス。種類が変わっていれば nil（遅れて届いた確定で、切り替えを戻さないため）
+    static func updatingContent<Content: SettingsActionContent>(of cell: Cell, as _: Content.Type, _ transform: (inout Content) -> Void) -> Cell? {
+        guard var content = Content.content(of: cell.action) else { return nil }
+        transform(&content)
+        return replacingAction(content.asAction, in: cell)
+    }
+
     /// スクリプトの制限時間を受け付ける範囲に収める
     static func clampedTimeout(_ seconds: Double) -> Double {
         let range = ScriptAction.timeoutRange
@@ -208,4 +215,67 @@ enum SettingsURLCheck: Equatable {
         let host = text.prefix { !"/:?#".contains($0) }.lowercased()
         return ["localhost", "127.0.0.1", "[::1]"].contains(host) ? "http" : "https"
     }
+}
+
+/// アクションの種類ごとの中身。今の種類のときだけ書き換えるのに使う（SettingsModel.updateAction）
+protocol SettingsActionContent: Equatable {
+    /// その種類なら中身。ほかの種類なら nil
+    static func content(of action: Action) -> Self?
+    var asAction: Action { get }
+}
+
+extension KeySequence: SettingsActionContent {
+    static func content(of action: Action) -> KeySequence? {
+        if case .keystroke(let keys) = action { keys } else { nil }
+    }
+
+    var asAction: Action { .keystroke(self) }
+}
+
+extension LaunchAppAction: SettingsActionContent {
+    static func content(of action: Action) -> LaunchAppAction? {
+        if case .launchApp(let launch) = action { launch } else { nil }
+    }
+
+    var asAction: Action { .launchApp(self) }
+}
+
+extension URLAction: SettingsActionContent {
+    static func content(of action: Action) -> URLAction? {
+        if case .openURL(let url) = action { url } else { nil }
+    }
+
+    var asAction: Action { .openURL(self) }
+}
+
+extension ScriptAction: SettingsActionContent {
+    static func content(of action: Action) -> ScriptAction? {
+        if case .script(let script) = action { script } else { nil }
+    }
+
+    var asAction: Action { .script(self) }
+}
+
+extension ShortcutAction: SettingsActionContent {
+    static func content(of action: Action) -> ShortcutAction? {
+        if case .shortcut(let shortcut) = action { shortcut } else { nil }
+    }
+
+    var asAction: Action { .shortcut(self) }
+}
+
+extension MenuItemAction: SettingsActionContent {
+    static func content(of action: Action) -> MenuItemAction? {
+        if case .menuItem(let menu) = action { menu } else { nil }
+    }
+
+    var asAction: Action { .menuItem(self) }
+}
+
+extension AIAction: SettingsActionContent {
+    static func content(of action: Action) -> AIAction? {
+        if case .ai(let ai) = action { ai } else { nil }
+    }
+
+    var asAction: Action { .ai(self) }
 }

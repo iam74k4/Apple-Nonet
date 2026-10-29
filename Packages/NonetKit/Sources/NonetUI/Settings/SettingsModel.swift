@@ -33,12 +33,15 @@ final class SettingsModel {
         case deleteProfile(id: UUID, name: String)
         case removePage(profileID: UUID, index: Int)
         case deactivateLicense
+        /// 読み込むと今のプロファイルやグローバルのページが置き換わる
+        case importProfiles(SettingsImportPlan)
 
         var id: String {
             switch self {
             case .deleteProfile(let id, _): "profile-\(id)"
             case .removePage(let id, let index): "page-\(id)-\(index)"
             case .deactivateLicense: "license"
+            case .importProfiles(let plan): "import-\(plan.id)"
             }
         }
     }
@@ -57,7 +60,8 @@ final class SettingsModel {
     @ObservationIgnored weak var files: (any SettingsFileChoosing)?
     @ObservationIgnored var openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
 
-    var tab: SettingsTab = .profiles
+    /// 変えるときは selectTab(_:)（打ちかけの確定とキーの記録の終わりをそこで行う）
+    private(set) var tab: SettingsTab = .profiles
 
     // MARK: プロファイルの選択
     private(set) var selectedProfileID: UUID?
@@ -93,6 +97,8 @@ final class SettingsModel {
     /// 種類を切り替える前の中身（マスの id ごと）。戻したときに失わないように
     @ObservationIgnored private var rememberedActions: [UUID: [ActionKind: Action]] = [:]
     @ObservationIgnored private var testTask: Task<Void, Never>?
+    /// 確定を待っている入力欄（種類やタブを変える前に確定させる）
+    @ObservationIgnored let pendingEdits = SettingsPendingEdits()
 
     init(controller: NonetController, license: LicenseManager, services: NonetServices, links: AppLinks, onCheckForUpdates: (() -> Void)?) {
         self.controller = controller
@@ -135,6 +141,19 @@ final class SettingsModel {
 
     var canAddPage: Bool { selectedProfile.pages.count < Profile.maxPages }
     var canRemovePage: Bool { selectedProfile.pages.count > 1 }
+
+    // MARK: - タブ
+
+    func selectTab(_ tab: SettingsTab) {
+        guard tab != self.tab else { return }
+        // 記録中のまま離れると、ほかのタブで打ったキー（ライセンスキーの貼り付けなど）が記録に入ってしまう
+        pendingEdits.flushAll()
+        finishRecording()
+        self.tab = tab
+        if tab == .license {
+            license.refresh()
+        }
+    }
 
     // MARK: - プロファイル
 
@@ -277,27 +296,41 @@ final class SettingsModel {
         let profileID = selectedProfile.id
         let address = CellAddress(page: pageIndex, index: index)
         guard SettingsGrid.isEmpty(address, in: selectedProfile) else { return }
+        // 右クリックで作るときも、記録中のマスから離れるので記録を終える
+        finishRecording()
         let cell = SettingsCellEditing.newCell(kind: kind)
         controller.update { $0.setCell(cell, at: address, profileID: profileID) }
         selectedIndex = index
+        gridMessage = nil
     }
 
     /// ドラッグで落とされたもの。受け取れたら true
     @discardableResult
-    func handleDrop(_ token: String, onto index: Int) -> Bool {
+    func handleDrop(_ payload: SettingsDragPayload, onto index: Int) -> Bool {
         let target = CellAddress(page: pageIndex, index: index)
-        switch SettingsDragPayload(token: token) {
-        case .cell(let profileID, let source)? where profileID == selectedProfile.id:
+        switch payload {
+        case .cell(let profileID, let source) where profileID == selectedProfile.id:
             guard source != target else { return false }
             swapCells(source, target)
             return true
-        case .menuItem(let id)?:
+        case .menuItem(let id):
             guard let entry = menuBrowser.entry(id: id) else { return false }
             assignMenuItem(entry.node, to: target)
             return true
         default:
             return false
         }
+    }
+
+    /// ページの見出しに落とされたマスを、そのページの最初の空きマスへ移す。受け取れたら true
+    @discardableResult
+    func handleDrop(_ payload: SettingsDragPayload, ontoPage page: Int) -> Bool {
+        let profile = selectedProfile
+        guard case .cell(let profileID, let source) = payload, profileID == profile.id, source.page != page,
+              profile.pages.indices.contains(page),
+              let empty = SettingsGrid.firstEmptyIndex(in: profile.pages[page]) else { return false }
+        swapCells(source, CellAddress(page: page, index: empty))
+        return true
     }
 
     func swapCells(_ source: CellAddress, _ destination: CellAddress) {
@@ -344,6 +377,8 @@ final class SettingsModel {
     }
 
     func changeKind(ofCell id: UUID, to kind: ActionKind) {
+        // 打ちかけを先に確定させ、切り替える前の中身として覚えておく
+        pendingEdits.flushAll()
         guard let cell = cell(id: id), cell.action.kind != kind else { return }
         if recordingCellID == id {
             cancelRecording()
@@ -356,6 +391,16 @@ final class SettingsModel {
     /// アクションを差し替える（自動で付いた名前とアイコンは合わせる）
     func replaceAction(ofCell id: UUID, with action: Action) {
         updateCell(id: id) { $0 = SettingsCellEditing.replacingAction(action, in: $0) }
+    }
+
+    /// 今の中身を読んで、その一部だけを書き換える。種類が変わっていれば何もしない。
+    /// 入力欄の確定は少し遅れて届くので、描画したときの中身を丸ごと書き戻すと、その間に変えた設定や種類を戻してしまう
+    func updateAction<Content: SettingsActionContent>(ofCell id: UUID, as type: Content.Type, _ transform: (inout Content) -> Void) {
+        updateCell(id: id) { cell in
+            if let updated = SettingsCellEditing.updatingContent(of: cell, as: type, transform) {
+                cell = updated
+            }
+        }
     }
 
     func chooseApp(_ app: AppReference, forCell id: UUID) {
@@ -406,6 +451,12 @@ final class SettingsModel {
 
     var isRecording: Bool { recorder.isRecording }
 
+    /// 記録欄とそのボタンのある場所。ここの外をクリックしたら記録を終える
+    var recorderArea: NSView? {
+        get { keyMonitor.recorderArea }
+        set { keyMonitor.recorderArea = newValue }
+    }
+
     func beginRecording(cellID: UUID) {
         finishRecording()
         guard cell(id: cellID) != nil else { return }
@@ -418,8 +469,18 @@ final class SettingsModel {
             },
             flagsChanged: { [weak self] flags in
                 self?.handleFlagsChanged(flags)
+            },
+            click: { [weak self] insideRecorder in
+                self?.handleClick(insideRecorder: insideRecorder)
             }
         )
+    }
+
+    /// 記録中のクリック。記録欄の外（ほかの欄・ボタン・別のウィンドウ）なら、押したキーを保存して記録を終える。
+    /// 続けると、ほかの欄に打つ文字まで記録に入ってしまう
+    func handleClick(insideRecorder: Bool) {
+        guard !insideRecorder else { return }
+        finishRecording()
     }
 
     func handleKeyDown(keyCode: UInt16, characters: String?, flags: NSEvent.ModifierFlags) {
@@ -457,7 +518,7 @@ final class SettingsModel {
             break
         case .finished(let keys):
             if let id = recordingCellID {
-                replaceAction(ofCell: id, with: .keystroke(keys))
+                updateAction(ofCell: id, as: KeySequence.self) { $0 = keys }
             }
             endRecording()
         case .cancelled:
@@ -546,6 +607,7 @@ final class SettingsModel {
         importProfiles(from: url)
     }
 
+    /// ファイルを読み、今のプロファイルやグローバルのページが置き換わるなら先に確かめる（元に戻せないため）
     func importProfiles(from url: URL) {
         let document: ConfigurationStore.ImportedProfiles
         do {
@@ -556,18 +618,26 @@ final class SettingsModel {
             fileMessage = SettingsMessage(text: SettingsText.fileError(error, reading: true), isError: true)
             return
         }
+        let plan = SettingsImportPlan(document: document, configuration: configuration, fileName: url.lastPathComponent)
+        if plan.replacesExisting {
+            confirmation = .importProfiles(plan)
+        } else {
+            applyImport(document)
+        }
+    }
+
+    /// 置き換えるものは読まず、新しいアプリのプロファイルだけ加える
+    func importNewProfilesOnly(_ plan: SettingsImportPlan) {
+        confirmation = nil
+        applyImport(plan.newProfilesOnly(in: configuration))
+    }
+
+    private func applyImport(_ document: ConfigurationStore.ImportedProfiles) {
+        finishRecording()
         var result = NonetConfiguration.ImportResult()
         controller.update { result = $0.importProfiles(document) }
-        let containsScripts = document.profiles.contains { profile in
-            profile.pages.contains { page in
-                page.cells.contains { cell in
-                    if case .script = cell?.action { return true }
-                    return false
-                }
-            }
-        }
         fileMessage = SettingsMessage(
-            text: SettingsText.importSummary(result, containsScripts: containsScripts),
+            text: SettingsText.importSummary(result, containsScripts: SettingsImportPlan.containsScripts(document.profiles)),
             isError: result.appliedCount == 0
         )
     }
@@ -580,6 +650,8 @@ final class SettingsModel {
         installedAppsLoaded = true
     }
 
+    /// 一覧を出すたびに読み直す（Nonet は何週間も動き続けるので、後で入れたアプリも出す）。
+    /// 実際のサービスは30秒覚えているので、続けて開いても重くない
     func reloadInstalledApps() {
         installedAppsLoaded = false
         loadInstalledAppsIfNeeded()
@@ -628,14 +700,27 @@ final class SettingsModel {
             removePage(index, profileID: profileID)
         case .deactivateLicense:
             deactivateLicense()
+        case .importProfiles(let plan):
+            applyImport(plan.document)
         }
     }
 
     // MARK: - ウィンドウ
 
+    /// 開き直したときや、ほかのアプリから戻ったとき。閉じるときに止めた読み込みを続け、古くなった一覧を読み直す
+    /// （使い回すウィンドウでは onAppear がもう一度呼ばれないため、ここで行う）
     func windowDidBecomeKey() {
         controller.refreshPermissions()
         refreshLoginItem()
+        license.refresh()
+        // ショートカット.app で作ってから戻ってきたときに、見つからないと言わないように
+        shortcutList.markStale()
+        if case .shortcut? = selectedCell?.action {
+            shortcutList.loadIfNeeded()
+        }
+        if rightPanel == .menus {
+            menuBrowser.resume(preferredBundleID: selectedProfile.app?.bundleID)
+        }
     }
 
     /// ほかのアプリに移ったら記録を終える（記録中はトリガーキーが効かないため）
@@ -644,6 +729,7 @@ final class SettingsModel {
     }
 
     func windowWillClose() {
+        pendingEdits.flushAll()
         finishRecording()
         cancelRecording()
         menuBrowser.cancel()
@@ -664,28 +750,49 @@ final class SettingsShortcutList {
     }
 
     private(set) var state: State = .idle
+    /// 読み込んだ一覧を出したまま、読み直している
+    private(set) var isRefreshing = false
     @ObservationIgnored private let shortcuts: any ShortcutsProviding
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// 読み込んだ一覧が古いかもしれない（ウィンドウに戻ってきたとき）
+    @ObservationIgnored private var isStale = false
 
     init(shortcuts: any ShortcutsProviding) {
         self.shortcuts = shortcuts
     }
 
+    /// まだ読んでいないか、古くなっていれば読む
     func loadIfNeeded() {
-        if state == .idle {
+        switch state {
+        case .idle:
             reload()
+        case .loaded where isStale && !isRefreshing:
+            reload()
+        case .loaded, .loading:
+            break
         }
     }
 
+    func markStale() {
+        isStale = true
+    }
+
+    /// 読み直す。読み込んだ一覧があれば、読み終わるまでそれを出しておく（見つからないという注意がちらつかないよう）
     func reload() {
         task?.cancel()
-        state = .loading
+        isStale = false
+        if case .loaded = state {
+            isRefreshing = true
+        } else {
+            state = .loading
+        }
         task = Task { [weak self, shortcuts] in
             let names = await shortcuts.shortcutNames()
             guard !Task.isCancelled, let self else { return }
             var seen = Set<String>()
             self.state = .loaded(names.filter { !$0.isEmpty && seen.insert($0).inserted }
                 .sorted { $0.localizedStandardCompare($1) == .orderedAscending })
+            self.isRefreshing = false
         }
     }
 
@@ -695,6 +802,10 @@ final class SettingsShortcutList {
         if state == .loading {
             state = .idle
         }
+        if isRefreshing {
+            isRefreshing = false
+            isStale = true
+        }
     }
 
     /// 終わるまで待つ（テスト用）
@@ -703,14 +814,21 @@ final class SettingsShortcutList {
     }
 }
 
-/// 記録中だけ、このアプリに来たキーを横取りする（ほかの欄やメニューのショートカットに渡さない）
+/// 記録中だけ、このアプリに来たキーを横取りする（ほかの欄やメニューのショートカットに渡さない）。
+/// クリックは横取りせず、記録欄の外かどうかを知らせる
 @MainActor
 final class SettingsKeyEventMonitor {
     private var monitor: Any?
+    /// 記録欄とそのボタンのある場所（SwiftUI の背景に置いた NSView）
+    weak var recorderArea: NSView?
 
-    func start(keyDown: @escaping (UInt16, String?, NSEvent.ModifierFlags) -> Void, flagsChanged: @escaping (NSEvent.ModifierFlags) -> Void) {
+    func start(
+        keyDown: @escaping (UInt16, String?, NSEvent.ModifierFlags) -> Void,
+        flagsChanged: @escaping (NSEvent.ModifierFlags) -> Void,
+        click: @escaping (_ insideRecorder: Bool) -> Void
+    ) {
         stop()
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
             switch event.type {
             case .keyDown:
                 // 押しっぱなしで同じキーが何度も入らないように
@@ -722,10 +840,19 @@ final class SettingsKeyEventMonitor {
             case .flagsChanged:
                 flagsChanged(event.modifierFlags)
                 return event
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+                click(Self.contains(self?.recorderArea, locationInWindow: event.locationInWindow, of: event.window))
+                return event
             default:
                 return event
             }
         }
+    }
+
+    /// window の locationInWindow が area の中か。area が別のウィンドウにあれば外
+    static func contains(_ area: NSView?, locationInWindow: NSPoint, of window: NSWindow?) -> Bool {
+        guard let area, let window, area.window === window else { return false }
+        return area.bounds.contains(area.convert(locationInWindow, from: nil))
     }
 
     func stop() {

@@ -129,6 +129,14 @@ final class SettingsMenuBrowser {
         select(preferred)
     }
 
+    /// ウィンドウに戻ったとき。起動中のアプリを読み直し、閉じるときに止めた読み込みをやり直す
+    func resume(preferredBundleID: String?) {
+        refreshApps(preferredBundleID: preferredBundleID)
+        if state == .idle, selectedApp != nil {
+            reload()
+        }
+    }
+
     func select(_ app: RunningAppInfo?) {
         guard app != selectedApp || state == .idle else { return }
         selectedApp = app

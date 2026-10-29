@@ -155,7 +155,7 @@ struct SettingsProfileRow: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
-                    .overlay(Capsule().strokeBorder(Color.secondary.opacity(0.5)))
+                    .overlay(Capsule(style: .circular).strokeBorder(Color.secondary.opacity(0.5)))
             }
         }
         .accessibilityElement(children: .combine)
@@ -172,21 +172,10 @@ struct SettingsEditorCenter: View {
         let profile = model.selectedProfile
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .center, spacing: 12) {
-                    Text(profile.name)
-                        .font(.system(size: 22, weight: .bold))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Spacer(minLength: 8)
-                    if !profile.isGlobal {
-                        Toggle(isOn: Binding(get: { profile.isEnabled }, set: { model.setProfileEnabled(profile.id, $0) })) {
-                            Text("このプロファイルを使う", bundle: .module)
-                                .font(.system(size: 12))
-                        }
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                        .fixedSize()
-                    }
+                // 名前が長くて入らないときは、スイッチの説明を省いて名前に場所を譲る（説明はヘルプと VoiceOver に残す）
+                ViewThatFits(in: .horizontal) {
+                    header(profile, showsToggleLabel: true)
+                    header(profile, showsToggleLabel: false)
                 }
                 Text(description(of: profile))
                     .font(.system(size: 12))
@@ -202,6 +191,34 @@ struct SettingsEditorCenter: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 20)
+    }
+
+    private func header(_ profile: Profile, showsToggleLabel: Bool) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(profile.name)
+                .font(.system(size: 22, weight: .bold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 8)
+            if !profile.isGlobal {
+                let title = String(localized: "このプロファイルを使う", bundle: .module)
+                let toggle = Toggle(isOn: Binding(get: { profile.isEnabled }, set: { model.setProfileEnabled(profile.id, $0) })) {
+                    Text(title)
+                        .font(.system(size: 12))
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .help(title)
+                Group {
+                    if showsToggleLabel {
+                        toggle
+                    } else {
+                        toggle.labelsHidden()
+                    }
+                }
+                .fixedSize()
+            }
+        }
     }
 
     @ViewBuilder
@@ -236,10 +253,23 @@ struct SettingsPageBar: View {
     let model: SettingsModel
 
     var body: some View {
+        // 窓が狭いときは「メニューから割り当て」をアイコンだけに、それでも入らなければページの名前を数字だけにする
+        ViewThatFits(in: .horizontal) {
+            bar(compactPages: false, compactMenuButton: false)
+            bar(compactPages: false, compactMenuButton: true)
+            bar(compactPages: true, compactMenuButton: true)
+        }
+    }
+
+    private func bar(compactPages: Bool, compactMenuButton: Bool) -> some View {
         let profile = model.selectedProfile
-        HStack(spacing: 6) {
+        return HStack(spacing: 6) {
             ForEach(profile.pages.indices, id: \.self) { index in
-                pageButton(index, isSelected: index == model.pageIndex, isEmpty: profile.pages[index].cells.allSatisfy { $0 == nil })
+                pageButton(
+                    index,
+                    isSelected: index == model.pageIndex,
+                    compact: compactPages
+                )
             }
             if model.canAddPage {
                 Button {
@@ -264,32 +294,49 @@ struct SettingsPageBar: View {
                 .accessibilityLabel(String(localized: "このページを削除", bundle: .module))
             }
             Spacer(minLength: 8)
-            Toggle(isOn: Binding(get: { model.rightPanel == .menus }, set: { model.showMenus($0) })) {
+            menuToggle(compact: compactMenuButton)
+        }
+    }
+
+    private func menuToggle(compact: Bool) -> some View {
+        let title = String(localized: "メニューから割り当て", bundle: .module)
+        return Toggle(isOn: Binding(get: { model.rightPanel == .menus }, set: { model.showMenus($0) })) {
+            if compact {
+                Image(systemName: "filemenu.and.selection")
+            } else {
                 Label {
-                    Text("メニューから割り当て", bundle: .module)
+                    Text(title).lineLimit(1)
                 } icon: {
                     Image(systemName: "filemenu.and.selection")
                 }
             }
-            .toggleStyle(.button)
-            .controlSize(.small)
         }
+        .toggleStyle(.button)
+        .controlSize(.small)
+        .fixedSize()
+        .help(title)
+        .accessibilityLabel(title)
     }
 
-    private func pageButton(_ index: Int, isSelected: Bool, isEmpty: Bool) -> some View {
-        Button {
+    private func pageButton(_ index: Int, isSelected: Bool, compact: Bool) -> some View {
+        let title = String(localized: "ページ \(index + 1)", bundle: .module)
+        return Button {
             model.selectPage(index)
         } label: {
-            Text("ページ \(index + 1)", bundle: .module)
+            Text(compact ? "\(index + 1)" : title)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                .padding(.horizontal, 10)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, compact ? 8 : 10)
                 .padding(.vertical, 4)
+                .frame(minWidth: 26)
                 .foregroundStyle(isSelected ? Color(nsColor: .windowBackgroundColor) : Color.primary)
-                .background(Capsule().fill(isSelected ? Color.primary : Color.clear))
-                .overlay(Capsule().strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
-                .contentShape(Capsule())
+                .background(Capsule(style: .circular).fill(isSelected ? Color.primary : Color.clear))
+                .overlay(Capsule(style: .circular).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+                .contentShape(Capsule(style: .circular))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu {
             if model.canRemovePage {
@@ -300,13 +347,10 @@ struct SettingsPageBar: View {
                 }
             }
         }
-        .dropDestination(for: String.self) { items, _ in
+        .dropDestination(for: SettingsDragItem.self) { items, _ in
             // マスをページの見出しに落とすと、そのページの空きマスへ移す
-            guard let token = items.first, case .cell(let profileID, let source)? = SettingsDragPayload(token: token),
-                  profileID == model.selectedProfile.id, source.page != index,
-                  let empty = SettingsGrid.firstEmptyIndex(in: model.selectedProfile.pages[index]) else { return false }
-            model.swapCells(source, CellAddress(page: index, index: empty))
-            return true
+            guard let item = items.first else { return false }
+            return model.handleDrop(item.payload, ontoPage: index)
         }
     }
 }

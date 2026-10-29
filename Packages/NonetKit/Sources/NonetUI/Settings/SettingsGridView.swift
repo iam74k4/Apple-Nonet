@@ -20,10 +20,10 @@ struct SettingsGridView: View {
                             index: index,
                             cell: page.cells.indices.contains(index) ? page.cells[index] : nil,
                             isSelected: model.selectedIndex == index,
-                            dragToken: SettingsDragPayload.cell(
+                            dragItem: SettingsDragItem(payload: .cell(
                                 profileID: profile.id,
                                 address: CellAddress(page: model.pageIndex, index: index)
-                            ).token,
+                            )),
                             onSelect: {
                                 model.selectCell(index)
                                 isFocused = true
@@ -68,7 +68,7 @@ struct SettingsGridCell: View {
     let index: Int
     let cell: Cell?
     let isSelected: Bool
-    let dragToken: String
+    let dragItem: SettingsDragItem
     let onSelect: () -> Void
 
     @State private var isDropTarget = false
@@ -85,10 +85,10 @@ struct SettingsGridCell: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 12))
             .onTapGesture(perform: onSelect)
-            .modifier(SettingsDraggableIfFilled(token: cell == nil ? nil : dragToken, preview: cell))
-            .dropDestination(for: String.self) { items, _ in
-                guard let token = items.first else { return false }
-                return model.handleDrop(token, onto: index)
+            .modifier(SettingsDraggableIfFilled(item: cell == nil ? nil : dragItem, preview: cell))
+            .dropDestination(for: SettingsDragItem.self) { items, _ in
+                guard let item = items.first else { return false }
+                return model.handleDrop(item.payload, onto: index)
             } isTargeted: { isDropTarget = $0 }
             .contextMenu { contextMenu }
             .accessibilityElement(children: .ignore)
@@ -198,12 +198,12 @@ struct SettingsGridCell: View {
 
 /// 空きマスはドラッグできない
 private struct SettingsDraggableIfFilled: ViewModifier {
-    let token: String?
+    let item: SettingsDragItem?
     let preview: Cell?
 
     func body(content: Content) -> some View {
-        if let token, let preview {
-            content.draggable(token) {
+        if let item, let preview {
+            content.draggable(item) {
                 VStack(spacing: 4) {
                     CellIconView(preview.icon, size: 18)
                     Text(SettingsGrid.displayTitle(for: preview))

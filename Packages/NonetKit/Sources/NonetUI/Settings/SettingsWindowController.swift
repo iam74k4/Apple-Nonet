@@ -68,7 +68,7 @@ public final class SettingsWindowController {
     }
 
     func select(_ tab: SettingsTab) {
-        model.tab = tab
+        model.selectTab(tab)
         window?.title = tab.title
         window?.toolbar?.selectedItemIdentifier = SettingsWindowCoordinator.identifier(for: tab)
     }

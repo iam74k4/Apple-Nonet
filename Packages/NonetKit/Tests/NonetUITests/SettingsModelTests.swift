@@ -4,6 +4,7 @@ import AppKit
 import Foundation
 import NonetCore
 @testable import NonetUI
+import SwiftUI
 import Testing
 
 @Suite @MainActor struct SettingsModelSelectionTests {
@@ -96,8 +97,8 @@ import Testing
         let h = try SettingsHarness()
         let profile = h.model.selectedProfile
         let safari = try #require(h.model.selectedCell)
-        let token = SettingsDragPayload.cell(profileID: profile.id, address: CellAddress(page: 0, index: 0)).token
-        #expect(h.model.handleDrop(token, onto: 4))
+        let payload = SettingsDragPayload.cell(profileID: profile.id, address: CellAddress(page: 0, index: 0))
+        #expect(h.model.handleDrop(payload, onto: 4))
         #expect(h.model.selectedIndex == 4)
         #expect(h.model.selectedCell?.id == safari.id)
         #expect(h.model.currentPage.cells[0] == nil)
@@ -107,12 +108,15 @@ import Testing
     @Test func foreignDropsAreRefused() throws {
         let h = try SettingsHarness()
         let before = h.controller.configuration
-        let other = SettingsDragPayload.cell(profileID: UUID(), address: CellAddress(page: 0, index: 0)).token
+        let other = SettingsDragPayload.cell(profileID: UUID(), address: CellAddress(page: 0, index: 0))
         #expect(!h.model.handleDrop(other, onto: 4))
-        let same = SettingsDragPayload.cell(profileID: h.model.selectedProfile.id, address: CellAddress(page: 0, index: 4)).token
+        let same = SettingsDragPayload.cell(profileID: h.model.selectedProfile.id, address: CellAddress(page: 0, index: 4))
         #expect(!h.model.handleDrop(same, onto: 4))
-        #expect(!h.model.handleDrop("https://example.com", onto: 4))
-        #expect(!h.model.handleDrop(SettingsDragPayload.menuItem(id: "missing").token, onto: 4))
+        #expect(!h.model.handleDrop(.menuItem(id: "missing"), onto: 4))
+        // ページの見出しへ: 同じページ・別のプロファイル・無いページは受け取らない
+        #expect(!h.model.handleDrop(same, ontoPage: 0))
+        #expect(!h.model.handleDrop(other, ontoPage: 0))
+        #expect(!h.model.handleDrop(same, ontoPage: 5))
         #expect(h.controller.configuration == before)
     }
 
@@ -177,7 +181,7 @@ import Testing
         let h = try SettingsHarness()
         await loadFigmaMenus(h)
         let node = MenuItemNode(title: "自動レイアウトを追加", path: ["オブジェクト", "自動レイアウトを追加"], keyEquivalent: .key("a", .shift))
-        #expect(h.model.handleDrop(SettingsDragPayload.menuItem(id: node.id).token, onto: 1))
+        #expect(h.model.handleDrop(.menuItem(id: node.id), onto: 1))
         let cell = try #require(h.model.selectedCell)
         #expect(h.model.selectedIndex == 1)
         #expect(cell.title == "自動レイアウトを追加")
@@ -332,6 +336,272 @@ import Testing
         h.model.changeKind(ofCell: id, to: .openURL)
         #expect(!h.controller.isRecordingKeys)
         #expect(h.model.cell(id: id)?.action.kind == .openURL)
+    }
+
+    /// 記録中にライセンスのタブへ移って ⌘V を押しても、記録には入らない
+    @Test func switchingTabsFinishesTheRecording() throws {
+        let h = try SettingsHarness()
+        let id = try keystrokeCell(h)
+        h.model.beginRecording(cellID: id)
+        h.model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+        h.model.selectTab(.license)
+        #expect(h.model.tab == .license)
+        #expect(!h.model.isRecording)
+        #expect(!h.controller.isRecordingKeys)
+        #expect(h.model.recordingCellID == nil)
+        #expect(h.model.cell(id: id)?.action == .keystroke(.key("b", .command)))
+        h.model.handleKeyDown(keyCode: 0x09, characters: "v", flags: .command)
+        #expect(h.model.cell(id: id)?.action == .keystroke(.key("b", .command)))
+    }
+
+    @Test func theWindowsTabsFinishTheRecording() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = SettingsWindowController(controller: h.controller, license: h.license, services: h.services, links: AppLinks(), onCheckForUpdates: nil)
+        controller.autosavesFrame = false
+        _ = controller.loadWindow()
+        controller.model.createCell(kind: .keystroke, at: 1)
+        let id = try #require(controller.model.selectedCell?.id)
+        controller.model.beginRecording(cellID: id)
+        controller.select(.general)
+        #expect(!h.controller.isRecordingKeys)
+        #expect(!controller.model.isRecording)
+    }
+
+    @Test func creatingACellFromTheContextMenuFinishesTheRecording() throws {
+        let h = try SettingsHarness()
+        let id = try keystrokeCell(h)
+        h.model.beginRecording(cellID: id)
+        h.model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+        h.model.createCell(kind: .openURL, at: 3)
+        #expect(h.model.selectedIndex == 3)
+        #expect(h.model.recordingCellID == nil)
+        #expect(!h.controller.isRecordingKeys)
+        #expect(h.model.cell(id: id)?.action == .keystroke(.key("b", .command)))
+    }
+
+    @Test func clickingOutsideTheRecorderFinishesIt() throws {
+        let h = try SettingsHarness()
+        let id = try keystrokeCell(h)
+        h.model.beginRecording(cellID: id)
+        h.model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+        // 「Esc を加える」などのボタンは記録欄の中
+        h.model.handleClick(insideRecorder: true)
+        #expect(h.model.isRecording)
+        // 表示名の欄など、外をクリックした
+        h.model.handleClick(insideRecorder: false)
+        #expect(!h.model.isRecording)
+        #expect(!h.controller.isRecordingKeys)
+        #expect(h.model.cell(id: id)?.action == .keystroke(.key("b", .command)))
+        // 記録していないときのクリックは何もしない
+        h.model.handleClick(insideRecorder: false)
+        #expect(h.model.cell(id: id)?.action == .keystroke(.key("b", .command)))
+    }
+
+    @Test func clickHitTestingUsesTheRecorderArea() {
+        _ = NSApplication.shared
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        window.contentView = content
+        let area = NSView(frame: NSRect(x: 100, y: 100, width: 150, height: 60))
+        content.addSubview(area)
+        let other = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        other.isReleasedWhenClosed = false
+        defer {
+            window.close()
+            other.close()
+        }
+        #expect(SettingsKeyEventMonitor.contains(area, locationInWindow: NSPoint(x: 120, y: 130), of: window))
+        #expect(!SettingsKeyEventMonitor.contains(area, locationInWindow: NSPoint(x: 20, y: 130), of: window))
+        #expect(!SettingsKeyEventMonitor.contains(area, locationInWindow: NSPoint(x: 120, y: 200), of: window))
+        #expect(!SettingsKeyEventMonitor.contains(area, locationInWindow: NSPoint(x: 120, y: 130), of: other))
+        #expect(!SettingsKeyEventMonitor.contains(area, locationInWindow: NSPoint(x: 120, y: 130), of: nil))
+        #expect(!SettingsKeyEventMonitor.contains(nil, locationInWindow: NSPoint(x: 120, y: 130), of: window))
+    }
+
+    /// 記録が終わる前に種類が変わっていたら、キーで上書きしない
+    @Test func aFinishedRecordingDoesNotOverwriteAnotherKind() throws {
+        let h = try SettingsHarness()
+        let id = try keystrokeCell(h)
+        h.model.beginRecording(cellID: id)
+        h.model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+        h.controller.update { configuration in
+            configuration.setCell(Cell(id: id, title: "", icon: .symbol("link"), action: .openURL(URLAction(url: "https://example.com"))),
+                                  at: CellAddress(page: 0, index: 1), profileID: configuration.globalProfile.id)
+        }
+        h.model.finishRecording()
+        #expect(h.model.cell(id: id)?.action == .openURL(URLAction(url: "https://example.com")))
+        #expect(!h.controller.isRecordingKeys)
+    }
+}
+
+@Suite @MainActor struct SettingsModelEditTests {
+    @Test func updatesReadTheCurrentContent() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .script, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.updateAction(ofCell: id, as: ScriptAction.self) { $0.runMode = .terminal }
+        h.model.updateAction(ofCell: id, as: ScriptAction.self) { $0.source = "echo hi" }
+        #expect(h.model.cell(id: id)?.action == .script(ScriptAction(source: "echo hi", runMode: .terminal)))
+        // 自動で付いた名前は中身に合わせる
+        #expect(h.model.cell(id: id)?.title == "ターミナル")
+    }
+
+    @Test func updatesOfAnotherKindAreIgnored() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .openURL, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.changeKind(ofCell: id, to: .keystroke)
+        let before = h.controller.configuration
+        // 消えかけの URL 欄から遅れて届いた確定
+        h.model.updateAction(ofCell: id, as: URLAction.self) { $0.url = "example.com" }
+        #expect(h.controller.configuration == before)
+        #expect(h.model.cell(id: id)?.action == .keystroke(KeySequence([])))
+    }
+
+    /// 打ちかけの欄は、種類を切り替える前に確定する（切り替えた後には書き戻さない）
+    @Test func changingTheKindFlushesTypingFirst() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .shortcut, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        let buffer = SettingsDraftBuffer(value: "", delay: .seconds(60)) { [model = h.model] name in
+            model.updateAction(ofCell: id, as: ShortcutAction.self) { $0.name = name }
+        }
+        buffer.registry = h.model.pendingEdits
+        buffer.edit("翻訳")
+        h.model.changeKind(ofCell: id, to: .ai)
+        #expect(h.model.cell(id: id)?.action.kind == .ai)
+        buffer.flush()
+        #expect(h.model.cell(id: id)?.action.kind == .ai)
+        h.model.changeKind(ofCell: id, to: .shortcut)
+        #expect(h.model.cell(id: id)?.action == .shortcut(ShortcutAction(name: "翻訳")))
+    }
+
+    @Test func switchingTabsFlushesTyping() throws {
+        let h = try SettingsHarness()
+        var calls: [String] = []
+        let buffer = SettingsDraftBuffer(value: "", delay: .seconds(60)) { calls.append($0) }
+        buffer.registry = h.model.pendingEdits
+        buffer.edit("x")
+        h.model.selectTab(.general)
+        #expect(calls == ["x"])
+        buffer.edit("xy")
+        h.model.windowWillClose()
+        #expect(calls == ["x", "xy"])
+    }
+}
+
+/// 使い回すウィンドウでは onAppear がもう一度呼ばれないので、ウィンドウに戻ったときに読み込みを続ける
+@Suite @MainActor struct SettingsModelWindowLifecycleTests {
+    @Test func aMenuLoadStoppedByClosingResumesOnReopen() async throws {
+        let h = try SettingsHarness()
+        let xcodeApp = RunningAppInfo(app: SettingsFixtures.xcode, processID: 303)
+        h.menus.apps = [xcodeApp]
+        h.menus.items = SettingsMenuSamples.figmaMenus
+        h.menus.delayByProcess[303] = .seconds(30)
+        let xcode = try #require(h.xcodeProfile)
+        h.model.selectProfile(xcode.id)
+        h.model.showMenus(true)
+        #expect(h.model.menuBrowser.state == .loading)
+        h.model.windowWillClose()
+        #expect(h.model.menuBrowser.state == .idle)
+        #expect(h.model.menuBrowser.selectedApp == xcodeApp)
+
+        h.menus.delayByProcess[303] = nil
+        h.model.windowDidBecomeKey()
+        #expect(h.model.menuBrowser.state == .loading)
+        await h.model.menuBrowser.waitUntilLoaded()
+        #expect(!h.model.menuBrowser.sections.isEmpty)
+        // 読み終えた後に戻ってきても読み直さない
+        let requests = h.menus.requested.count
+        h.model.windowDidBecomeKey()
+        await h.model.menuBrowser.waitUntilLoaded()
+        #expect(h.menus.requested.count == requests)
+    }
+
+    @Test func aShortcutLoadStoppedByClosingResumesOnReopen() async throws {
+        let h = try SettingsHarness()
+        h.shortcuts.names = ["翻訳"]
+        h.model.createCell(kind: .shortcut, at: 1)
+        h.model.shortcutList.loadIfNeeded()
+        #expect(h.model.shortcutList.state == .loading)
+        h.model.windowWillClose()
+        #expect(h.model.shortcutList.state == .idle)
+        h.model.windowDidBecomeKey()
+        await h.model.shortcutList.waitUntilLoaded()
+        #expect(h.model.shortcutList.state == .loaded(["翻訳"]))
+    }
+
+    @Test func newShortcutsAppearAfterComingBack() async throws {
+        let h = try SettingsHarness()
+        h.shortcuts.names = ["要約"]
+        h.model.shortcutList.loadIfNeeded()
+        await h.model.shortcutList.waitUntilLoaded()
+        // ショートカット.app で作ってから戻ってきた
+        h.shortcuts.names = ["要約", "翻訳"]
+        h.model.createCell(kind: .shortcut, at: 1)
+        h.model.windowDidBecomeKey()
+        // 読み直す間も前の一覧を出しておく
+        #expect(h.model.shortcutList.state == .loaded(["要約"]))
+        #expect(h.model.shortcutList.isRefreshing)
+        await h.model.shortcutList.waitUntilLoaded()
+        #expect(h.model.shortcutList.state == .loaded(["翻訳", "要約"].sorted { $0.localizedStandardCompare($1) == .orderedAscending }))
+        #expect(!h.model.shortcutList.isRefreshing)
+        #expect(h.shortcuts.loadCount == 2)
+    }
+
+    @Test func shortcutsAreNotReadWhileNoShortcutCellIsShown() async throws {
+        let h = try SettingsHarness()
+        h.model.shortcutList.loadIfNeeded()
+        await h.model.shortcutList.waitUntilLoaded()
+        h.model.windowDidBecomeKey()
+        await h.model.shortcutList.waitUntilLoaded()
+        #expect(h.shortcuts.loadCount == 1)
+        // 次にショートカットのマスを開いたとき（onAppear）に読み直す
+        h.model.shortcutList.loadIfNeeded()
+        await h.model.shortcutList.waitUntilLoaded()
+        #expect(h.shortcuts.loadCount == 2)
+    }
+
+    @Test func installedAppsAreReadAgainWhenTheListOpens() throws {
+        let h = try SettingsHarness()
+        h.model.reloadInstalledApps()
+        #expect(!h.model.installedApps.contains(SettingsFixtures.terminal))
+        h.installed.apps.append(SettingsFixtures.terminal)
+        h.model.reloadInstalledApps()
+        #expect(h.model.installedApps.contains(SettingsFixtures.terminal))
+    }
+
+    @Test func theAddProfileSheetReadsTheAppsEachTime() async throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        for _ in 0..<2 {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 520), styleMask: [.titled], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: SettingsAddProfileSheet(model: h.model))
+            window.contentView?.layoutSubtreeIfNeeded()
+            try await Task.sleep(for: .milliseconds(50))
+            window.contentView = nil
+            window.close()
+        }
+        #expect(h.installed.listCount == 2)
+    }
+
+    @Test func theLicenseIsCheckedAgainOnReopen() throws {
+        let pair = LicenseSigner.generateKeyPair()
+        let signer = try LicenseSigner(privateKeyBase64: pair.privateKeyBase64)
+        let key = try signer.sign(LicenseInfo(licenseID: "NONET-TEST-2", licensee: "山田 太郎", email: nil, issuedAt: Date(timeIntervalSince1970: 1_800_000_000)))
+        let h = try SettingsHarness(verifier: try LicenseVerifier(publicKeyBase64: pair.publicKeyBase64))
+        #expect(h.license.entitlement == .trial(daysLeft: 14))
+        // 別の経路（初回の案内など）で登録された
+        h.licenseStorage.licenseKey = key
+        h.model.windowDidBecomeKey()
+        guard case .licensed(let info) = h.license.entitlement else {
+            Issue.record("読み直していない: \(h.license.entitlement)")
+            return
+        }
+        #expect(info.licensee == "山田 太郎")
     }
 }
 
@@ -568,15 +838,116 @@ import Testing
         #expect(message.text.contains("スクリプトを含むマスがあります"))
     }
 
-    @Test func importingReplacesTheSameApp() throws {
+    @Test func importingReplacesTheSameAppAfterConfirmation() throws {
         let h = try SettingsHarness()
         let url = h.temporaryFile("all.nonetprofile")
         h.model.exportProfiles(h.controller.configuration.profiles, to: url)
+        h.model.fileMessage = nil
         h.model.importProfiles(from: url)
+        let confirmation = try #require(h.model.confirmation)
+        h.model.confirm(confirmation)
         let text = try #require(h.model.fileMessage?.text)
         #expect(text.contains("2個のプロファイルを同じアプリのものと置き換えました。"))
         #expect(text.contains("グローバルのページを置き換えました。"))
         #expect(h.model.appProfiles.count == 2)
+    }
+
+    /// 全部を書き出したファイル（共有の形）を読むと、自分のグローバルと同じアプリのプロファイルが置き換わる。先に確かめる
+    @Test func aReplacingImportAsksFirstAndChangesNothingMeanwhile() throws {
+        let h = try SettingsHarness()
+        let colleague = try SettingsHarness()
+        colleague.model.addProfile(for: SettingsFixtures.figma)
+        colleague.model.selectProfile(nil)
+        colleague.model.clearCell(at: 0)
+        let url = h.temporaryFile("shared.nonetprofile")
+        h.model.exportProfiles(colleague.controller.configuration.profiles, to: url)
+        h.model.fileMessage = nil
+        // 自分の Xcode を変えておく
+        let xcode = try #require(h.xcodeProfile)
+        h.controller.update {
+            $0.updateProfile(id: xcode.id) { $0.kind = .app(AppReference(bundleID: SettingsFixtures.xcode.bundleID, name: "自分の Xcode")) }
+        }
+        let before = h.controller.configuration
+        let saved = try h.saved()
+
+        h.model.importProfiles(from: url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("確かめずに読み込んだ: \(String(describing: h.model.confirmation))")
+            return
+        }
+        #expect(plan.fileName == "shared.nonetprofile")
+        #expect(plan.result.replacedGlobal)
+        // 無効の Safari も置き換わる
+        #expect(plan.replacedNames == ["自分の Xcode", "Safari"])
+        #expect(plan.result.added == 1)
+        #expect(h.controller.configuration == before)
+        #expect(try h.saved() == saved)
+        #expect(h.model.fileMessage == nil)
+
+        let message = SettingsText.importConfirmation(plan)
+        #expect(message.contains("・グローバルのページ"))
+        #expect(message.contains("・自分の Xcode"))
+        #expect(message.contains("・Safari"))
+        #expect(message.contains("ほかに1個のプロファイルを新しく追加します。"))
+
+        // キャンセルすれば何も変わらない
+        h.model.confirmation = nil
+        #expect(h.controller.configuration == before)
+    }
+
+    @Test func importingOnlyTheNewProfilesKeepsMine() throws {
+        let h = try SettingsHarness()
+        let colleague = try SettingsHarness()
+        colleague.model.addProfile(for: SettingsFixtures.figma)
+        let url = h.temporaryFile("shared.nonetprofile")
+        h.model.exportProfiles(colleague.controller.configuration.profiles, to: url)
+        let before = h.controller.configuration
+        h.model.importProfiles(from: url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("確かめずに読み込んだ")
+            return
+        }
+        h.model.importNewProfilesOnly(plan)
+        #expect(h.model.confirmation == nil)
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+        #expect(h.controller.configuration.globalProfile == before.globalProfile)
+        #expect(h.xcodeProfile == before.profiles.first { $0.app?.bundleID == SettingsFixtures.xcode.bundleID })
+        let text = try #require(h.model.fileMessage?.text)
+        #expect(text.contains("1個のプロファイルを追加しました。"))
+        #expect(!text.contains("置き換え"))
+        #expect(try h.saved()?.profiles.count == 4)
+    }
+
+    @Test func addingOnlyNewProfilesNeedsNoConfirmation() throws {
+        let h = try SettingsHarness()
+        let other = try SettingsHarness()
+        other.model.addProfile(for: SettingsFixtures.figma)
+        let figma = try #require(other.model.appProfiles.last)
+        let url = h.temporaryFile("figma.nonetprofile")
+        h.model.exportProfiles([figma], to: url)
+        h.model.importProfiles(from: url)
+        #expect(h.model.confirmation == nil)
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+    }
+
+    @Test func longListsOfReplacedProfilesAreShortened() throws {
+        var configuration = SettingsFixtures.configuration()
+        var shared: [Profile] = []
+        for number in 1...8 {
+            let app = AppReference(bundleID: "com.example.app\(number)", name: "アプリ\(number)")
+            configuration.addAppProfile(for: app, preset: nil)
+            shared.append(Profile(kind: .app(app), pages: [.empty]))
+        }
+        let plan = SettingsImportPlan(
+            document: ConfigurationStore.ImportedProfiles(profiles: shared),
+            configuration: configuration,
+            fileName: "x.nonetprofile"
+        )
+        #expect(plan.replacedNames.count == 8)
+        #expect(!plan.addsProfiles)
+        let lines = SettingsText.importConfirmation(plan).split(separator: "\n")
+        #expect(lines.filter { $0.hasPrefix("・") }.count == SettingsText.importConfirmationNameLimit)
+        #expect(lines.last == "ほか2個")
     }
 
     @Test func cancellingThePanelsDoesNothing() async throws {

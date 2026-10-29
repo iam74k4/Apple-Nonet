@@ -109,6 +109,28 @@ enum SettingsText {
         return lines.joined(separator: "\n")
     }
 
+    /// 確かめるときに名前を並べる数（多いときは残りを数で伝える）
+    static let importConfirmationNameLimit = 6
+
+    /// 読み込むと置き換わるものを確かめる文
+    static func importConfirmation(_ plan: SettingsImportPlan) -> String {
+        var targets: [String] = []
+        if plan.result.replacedGlobal {
+            targets.append(String(localized: "グローバルのページ", bundle: .module))
+        }
+        targets += plan.replacedNames
+        var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
+        lines += targets.prefix(importConfirmationNameLimit).map { "・\($0)" }
+        let rest = targets.count - importConfirmationNameLimit
+        if rest > 0 {
+            lines.append(String(localized: "ほか\(rest)個", bundle: .module))
+        }
+        if plan.result.added > 0 {
+            lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module))
+        }
+        return lines.joined(separator: "\n")
+    }
+
     /// 書き出しや読み込みの失敗。ConfigurationStoreError はその説明、ほかはファイルの問題として伝える
     static func fileError(_ error: any Error, reading: Bool) -> String {
         if let storeError = error as? ConfigurationStoreError, let description = storeError.errorDescription {

@@ -1,8 +1,10 @@
 // 担当: ui-settings
 // 9マスの位置・選択の移動・複製先・ドラッグの中身など、画面に依存しない決まり
+import CoreTransferable
 import Foundation
 import NonetCore
 import os
+import UniformTypeIdentifiers
 
 let settingsLog = Logger(subsystem: "com.iam74k4.Nonet", category: "ui-settings")
 
@@ -140,7 +142,7 @@ enum SettingsGrid {
     }
 }
 
-/// ドラッグで運ぶもの。中身は文字列で渡し、受け取った側で元に戻す（同じウィンドウの中だけで使う）
+/// ドラッグで運ぶもの。中身は文字列にして SettingsDragItem で運び、受け取った側で元に戻す（同じウィンドウの中だけで使う）
 enum SettingsDragPayload: Equatable, Sendable {
     /// グリッドのマス（入れ替え）
     case cell(profileID: UUID, address: CellAddress)
@@ -172,6 +174,28 @@ enum SettingsDragPayload: Equatable, Sendable {
             self = .menuItem(id: id)
         } else {
             return nil
+        }
+    }
+}
+
+extension UTType {
+    /// 設定画面の中のドラッグだけで使う種類。文字列として運ぶと、取り落としたときに
+    /// スクリプトの欄やほかのアプリ（メモ・メール）に中身の文字が入ってしまう
+    static let nonetSettingsDrag = UTType(exportedAs: "com.iam74k4.nonet.settings-drag", conformingTo: .data)
+}
+
+/// ドラッグで運ぶもの。文字列の種類を持たないので、テキストの欄やほかのアプリは受け取らない
+struct SettingsDragItem: Transferable, Equatable, Sendable {
+    var payload: SettingsDragPayload
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(contentType: .nonetSettingsDrag) { item in
+            Data(item.payload.token.utf8)
+        } importing: { data in
+            guard let token = String(data: data, encoding: .utf8), let payload = SettingsDragPayload(token: token) else {
+                throw CocoaError(.coderReadCorrupt)
+            }
+            return SettingsDragItem(payload: payload)
         }
     }
 }

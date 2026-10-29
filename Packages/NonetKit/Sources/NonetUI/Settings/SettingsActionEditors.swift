@@ -1,5 +1,6 @@
 // 担当: ui-settings
 // アクションの種類ごとの編集欄
+import AppKit
 import NonetCore
 import SwiftUI
 
@@ -20,12 +21,12 @@ struct SettingsKeystrokeEditor: View {
                 recorderField
                 if isRecording {
                     HStack(spacing: 8) {
+                        // Return もキーとして記録するので、既定のボタン（Return で押せる見た目）にはしない
                         Button {
                             model.finishRecording()
                         } label: {
                             Text("完了", bundle: .module)
                         }
-                        .keyboardShortcut(.defaultAction)
                         Button {
                             model.appendEscapeToRecording()
                         } label: {
@@ -48,7 +49,7 @@ struct SettingsKeystrokeEditor: View {
                         }
                     }
                     .controlSize(.small)
-                    Text("続けて押すと連続キーになります（4つまで）。Esc で記録をやめます", bundle: .module)
+                    Text("続けて押すと連続キーになります（4つまで）。Return や Tab もそのまま記録します。「完了」か、ほかの場所をクリックすると決まります。Esc で記録をやめます", bundle: .module)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -71,6 +72,7 @@ struct SettingsKeystrokeEditor: View {
                     }
                 }
             }
+            .background(SettingsRecorderAreaReader(model: model))
         }
     }
 
@@ -130,11 +132,33 @@ struct SettingsKeystrokeEditor: View {
     private func applyNotation() {
         let input = SettingsKeyNotationInput(notation)
         if case .valid(let sequence) = input {
-            model.replaceAction(ofCell: cellID, with: .keystroke(sequence))
+            model.updateAction(ofCell: cellID, as: KeySequence.self) { $0 = sequence }
             notation = ""
             notationMessage = nil
         } else {
             notationMessage = input.message
+        }
+    }
+}
+
+/// 記録欄とそのボタンの場所を SettingsModel に知らせる。記録中にこの外をクリックしたら記録を終える
+struct SettingsRecorderAreaReader: NSViewRepresentable {
+    let model: SettingsModel
+
+    /// 場所を知らせるだけで、クリックは受け取らない
+    final class AreaView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+
+    func makeNSView(context: Context) -> AreaView {
+        let view = AreaView()
+        model.recorderArea = view
+        return view
+    }
+
+    func updateNSView(_ view: AreaView, context: Context) {
+        if model.recorderArea !== view {
+            model.recorderArea = view
         }
     }
 }
@@ -152,7 +176,7 @@ struct SettingsLaunchAppEditor: View {
         SettingsField(title: String(localized: "開くアプリ", bundle: .module)) {
             VStack(alignment: .leading, spacing: 8) {
                 Button {
-                    model.loadInstalledAppsIfNeeded()
+                    model.reloadInstalledApps()
                     isPicking = true
                 } label: {
                     HStack(spacing: 8) {
@@ -197,11 +221,7 @@ struct SettingsLaunchAppEditor: View {
                 }
                 Toggle(isOn: Binding(
                     get: { launch.hideIfFrontmost },
-                    set: { hide in
-                        var updated = launch
-                        updated.hideIfFrontmost = hide
-                        model.replaceAction(ofCell: cellID, with: .launchApp(updated))
-                    }
+                    set: { hide in model.updateAction(ofCell: cellID, as: LaunchAppAction.self) { $0.hideIfFrontmost = hide } }
                 )) {
                     Text("前面のときは隠す", bundle: .module)
                     Text("もう一度押すと隠れるので、アプリの切り替えのように使えます", bundle: .module)
@@ -287,7 +307,7 @@ struct SettingsAppList: View {
                             .fixedSize()
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
-                            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.5)))
+                            .overlay(Capsule(style: .circular).strokeBorder(Color.primary.opacity(0.5)))
                             .padding(.trailing, 4)
                     }
                 }
@@ -323,7 +343,7 @@ struct SettingsURLEditor: View {
         SettingsField(title: String(localized: "開く URL", bundle: .module)) {
             VStack(alignment: .leading, spacing: 6) {
                 SettingsCommitTextField(value: url.url, placeholder: "https://example.com", accessibilityLabel: String(localized: "開く URL", bundle: .module)) { text in
-                    model.replaceAction(ofCell: cellID, with: .openURL(URLAction(url: text.trimmingCharacters(in: .whitespacesAndNewlines))))
+                    model.updateAction(ofCell: cellID, as: URLAction.self) { $0.url = text.trimmingCharacters(in: .whitespacesAndNewlines) }
                 }
                 if let message = check.message {
                     SettingsNote(
@@ -360,8 +380,8 @@ struct SettingsScriptEditor: View {
                 }
                 SettingsCommitTextEditor(
                     value: script.source,
-                    monospaced: true,
-                    minHeight: 110,
+                    code: true,
+                    minHeight: 120,
                     accessibilityLabel: String(localized: "実行するスクリプト", bundle: .module)
                 ) { source in
                     update { $0.source = source }
@@ -416,11 +436,9 @@ struct SettingsScriptEditor: View {
         }
     }
 
+    /// 描画したときの script ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
     private func update(_ transform: (inout ScriptAction) -> Void) {
-        var updated = script
-        transform(&updated)
-        guard updated != script else { return }
-        model.replaceAction(ofCell: cellID, with: .script(updated))
+        model.updateAction(ofCell: cellID, as: ScriptAction.self, transform)
     }
 }
 
@@ -499,6 +517,11 @@ struct SettingsShortcutEditor: View {
                     .fixedSize()
                     .help(String(localized: "ショートカットの一覧から選ぶ", bundle: .module))
                     .accessibilityLabel(String(localized: "ショートカットの一覧から選ぶ", bundle: .module))
+                    if list.isRefreshing {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .accessibilityLabel(String(localized: "ショートカットの一覧を読み直しています", bundle: .module))
+                    }
                 }
                 status
             }
@@ -514,7 +537,9 @@ struct SettingsShortcutEditor: View {
     @ViewBuilder
     private var menuContent: some View {
         switch list.state {
-        case .idle, .loading:
+        case .idle:
+            Text("一覧をまだ読み込んでいません", bundle: .module)
+        case .loading:
             Text("読み込んでいます…", bundle: .module)
         case .loaded(let names) where names.isEmpty:
             Text("ショートカットがありません", bundle: .module)
@@ -534,7 +559,15 @@ struct SettingsShortcutEditor: View {
     @ViewBuilder
     private var status: some View {
         switch list.state {
-        case .idle, .loading:
+        case .idle:
+            // 読み込みの途中でウィンドウを閉じたときなど
+            HStack(spacing: 6) {
+                Text("ショートカットの一覧をまだ読み込んでいません", bundle: .module)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                reloadButton(String(localized: "読み込む", bundle: .module))
+            }
+        case .loading:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini)
                 Text("ショートカットの一覧を読み込んでいます…", bundle: .module)
@@ -542,22 +575,37 @@ struct SettingsShortcutEditor: View {
                     .foregroundStyle(.secondary)
             }
         case .loaded(let names) where names.isEmpty:
-            SettingsNote(text: String(localized: "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください", bundle: .module), symbol: "info.circle")
+            VStack(alignment: .leading, spacing: 4) {
+                SettingsNote(text: String(localized: "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください", bundle: .module), symbol: "info.circle")
+                reloadButton(String(localized: "一覧を読み直す", bundle: .module))
+            }
         case .loaded(let names):
             let name = shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines)
             if !name.isEmpty, !names.contains(name) {
-                SettingsNote(text: String(localized: "「\(name)」というショートカットは見つかりません", bundle: .module), symbol: "exclamationmark.triangle", isWarning: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    SettingsNote(text: String(localized: "「\(name)」というショートカットは見つかりません", bundle: .module), symbol: "exclamationmark.triangle", isWarning: true)
+                    reloadButton(String(localized: "一覧を読み直す", bundle: .module))
+                }
             } else if name.isEmpty {
                 SettingsNote(text: String(localized: "右の一覧から選ぶか、名前を入力してください", bundle: .module))
             }
         }
     }
 
+    private func reloadButton(_ title: String) -> some View {
+        Button {
+            list.reload()
+        } label: {
+            Text(title)
+        }
+        .buttonStyle(.link)
+        .font(.system(size: 11))
+        .disabled(list.isRefreshing)
+    }
+
+    /// 描画したときの shortcut ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
     private func update(_ transform: (inout ShortcutAction) -> Void) {
-        var updated = shortcut
-        transform(&updated)
-        guard updated != shortcut else { return }
-        model.replaceAction(ofCell: cellID, with: .shortcut(updated))
+        model.updateAction(ofCell: cellID, as: ShortcutAction.self, transform)
     }
 }
 
@@ -648,10 +696,8 @@ struct SettingsAIEditor: View {
         }
     }
 
+    /// 描画したときの ai ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
     private func update(_ transform: (inout AIAction) -> Void) {
-        var updated = ai
-        transform(&updated)
-        guard updated != ai else { return }
-        model.replaceAction(ofCell: cellID, with: .ai(updated))
+        model.updateAction(ofCell: cellID, as: AIAction.self, transform)
     }
 }

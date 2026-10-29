@@ -1,8 +1,10 @@
 // 担当: ui-settings
+import AppKit
 import Foundation
 import NonetCore
 @testable import NonetUI
 import Testing
+import UniformTypeIdentifiers
 
 @Suite struct SettingsGridLogicTests {
     @Test(arguments: [
@@ -118,5 +120,38 @@ import Testing
     ])
     func dragPayloadRejectsForeignText(token: String) {
         #expect(SettingsDragPayload(token: token) == nil)
+    }
+}
+
+/// ドラッグの中身は専用の種類だけで運ぶ（テキストの欄やほかのアプリに落ちないこと）
+@Suite struct SettingsDragItemTests {
+    @Test func providersCarryOnlyThePrivateType() async throws {
+        let item = SettingsDragItem(payload: .cell(profileID: UUID(), address: CellAddress(page: 1, index: 4)))
+        let provider = NSItemProvider()
+        provider.register(item)
+        #expect(provider.registeredTypeIdentifiers == [UTType.nonetSettingsDrag.identifier])
+        #expect(!provider.hasItemConformingToTypeIdentifier(UTType.text.identifier))
+        #expect(!provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier))
+        #expect(!provider.hasItemConformingToTypeIdentifier(UTType.url.identifier))
+        #expect(!provider.canLoadObject(ofClass: NSString.self))
+        #expect(!provider.canLoadObject(ofClass: NSURL.self))
+        #expect(!provider.hasItemConformingToTypeIdentifier(UTType.rtf.identifier))
+
+        let loaded: SettingsDragItem = try await withCheckedThrowingContinuation { continuation in
+            _ = provider.loadTransferable(type: SettingsDragItem.self) { continuation.resume(with: $0) }
+        }
+        #expect(loaded == item)
+    }
+
+    @Test func foreignDataIsRejected() async {
+        let provider = NSItemProvider()
+        provider.registerDataRepresentation(forTypeIdentifier: UTType.nonetSettingsDrag.identifier, visibility: .all) { completion in
+            completion(Data("https://example.com".utf8), nil)
+            return nil
+        }
+        let result: Result<SettingsDragItem, any Error> = await withCheckedContinuation { continuation in
+            _ = provider.loadTransferable(type: SettingsDragItem.self) { continuation.resume(returning: $0) }
+        }
+        #expect((try? result.get()) == nil)
     }
 }

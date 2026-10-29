@@ -41,6 +41,7 @@ struct SettingsRootView: View {
         }
         .frame(minWidth: 860, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
+        .environment(\.settingsPendingEdits, model.pendingEdits)
         .alert(
             confirmationTitle,
             isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
@@ -50,6 +51,13 @@ struct SettingsRootView: View {
                 model.confirm(confirmation)
             } label: {
                 Text(confirmationButton(confirmation))
+            }
+            if case .importProfiles(let plan) = confirmation, plan.addsProfiles {
+                Button {
+                    model.importNewProfilesOnly(plan)
+                } label: {
+                    Text("新しいプロファイルだけ追加", bundle: .module)
+                }
             }
             Button(role: .cancel) {
                 model.confirmation = nil
@@ -69,6 +77,8 @@ struct SettingsRootView: View {
             String(localized: "ページ \(index + 1) を削除しますか？", bundle: .module)
         case .deactivateLicense?:
             String(localized: "ライセンスの登録を解除しますか？", bundle: .module)
+        case .importProfiles(let plan)?:
+            String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .module)
         case nil:
             ""
         }
@@ -82,6 +92,8 @@ struct SettingsRootView: View {
             String(localized: "このページのマスはすべて消えます。元に戻せません。", bundle: .module)
         case .deactivateLicense:
             String(localized: "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。", bundle: .module)
+        case .importProfiles(let plan):
+            SettingsText.importConfirmation(plan)
         }
     }
 
@@ -89,6 +101,7 @@ struct SettingsRootView: View {
         switch confirmation {
         case .deleteProfile, .removePage: String(localized: "削除", bundle: .module)
         case .deactivateLicense: String(localized: "登録を解除", bundle: .module)
+        case .importProfiles: String(localized: "置き換えて読み込む", bundle: .module)
         }
     }
 }
