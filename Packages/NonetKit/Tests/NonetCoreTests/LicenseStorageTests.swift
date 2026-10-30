@@ -98,6 +98,18 @@ private final class StorageSandbox {
     func fileExists(_ name: String) -> Bool {
         FileManager.default.fileExists(atPath: directory.appendingPathComponent(name).path)
     }
+
+    /// 写しのファイルを書き直したかを見る印（ファイル番号と変更日。atomic に書くとファイル番号が変わる）
+    func mirrorFileStamps() throws -> [String: String] {
+        var stamps: [String: String] = [:]
+        for name in Self.mirrorFileNames {
+            let attributes = try FileManager.default.attributesOfItem(atPath: directory.appendingPathComponent(name).path)
+            let number = (attributes[.systemFileNumber] as? NSNumber)?.stringValue ?? "?"
+            let modified = (attributes[.modificationDate] as? Date)?.timeIntervalSinceReferenceDate ?? .nan
+            stamps[name] = "\(number) \(modified)"
+        }
+        return stamps
+    }
 }
 
 @Suite struct LicenseStorageTests {
@@ -377,6 +389,47 @@ private final class StorageSandbox {
         #expect(launch(day: -29).entitlement == .trial(daysLeft: 7))
     }
 
+    @MainActor
+    @Test func aStaleMirrorFoundWhileRunningIsCountedFromItsOwnLastSeen() throws {
+        let clock = TestClock(Self.day(0))
+        let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(), now: { clock.now })
+        // 起動したまま、Application Support/Nonet が、ほかで2日目までに4日使った記録に置き換わった（移行・バックアップから戻した）
+        try sandbox.writeMirror(String(Self.day(-2).timeIntervalSinceReferenceDate))
+        try sandbox.writeMirror(String(Self.day(2).timeIntervalSinceReferenceDate), Storage.lastSeenFileName)
+        try sandbox.writeMirror(String(4.0 * 86_400), Storage.usedFileName)
+        clock.now = Self.day(3)
+        manager.refresh()
+        // 写しの4日に足すのは写しの lastSeen からの1日だけ（このプロセスが数えた0日目からの3日を、もう一度は足さない）
+        #expect(manager.entitlement == .trial(daysLeft: 9))
+        #expect(sandbox.makeStorage().trialUsedTime == 5.0 * 86_400)
+        #expect(sandbox.makeStorage().trialStartDate == Self.day(-2))
+        // 起動し直しても同じ
+        #expect(launch(day: 3).entitlement == .trial(daysLeft: 9))
+    }
+
+    @MainActor
+    @Test func twoCopiesRunningAtTheSameTimeDoNotCountTheSameTimeTwice() throws {
+        // 別々のプロセス（保存先のインスタンスも別）が、同じ環境設定・フォルダ・キーチェーンを使う
+        let keychain = MemoryTrialKeychain()
+        let clock = TestClock(Self.day(0))
+        let first = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
+        let second = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
+        for day in 1...6 {
+            clock.now = Self.day(Double(day) - 0.5)
+            first.refresh()
+            clock.now = Self.day(Double(day))
+            second.refresh()
+            first.refresh()
+        }
+        #expect(first.entitlement == .trial(daysLeft: 8))
+        #expect(second.entitlement == .trial(daysLeft: 8))
+        #expect(sandbox.makeStorage().trialUsedTime == 6.0 * 86_400)
+        #expect(sandbox.mirrorText(Storage.usedFileName) == String(6.0 * 86_400))
+        #expect(keychain.record?.used == 6.0 * 86_400)
+        // 両方を終えて起動し直しても同じ
+        #expect(launch(day: 6, keychain: keychain).entitlement == .trial(daysLeft: 8))
+    }
+
     @Test func oneCopyMovedForwardOrReducedIsIgnored() {
         let storage = sandbox.makeStorage()
         storage.trialStartDate = Self.day(0)
@@ -554,6 +607,49 @@ private final class StorageSandbox {
         #expect(sandbox.makeStorage().trialStartDate == Self.day(0))
         #expect(keychain.record?.start == Self.day(0).timeIntervalSinceReferenceDate)
         #expect(keychain.record?.lastSeen == Self.day(2).timeIntervalSinceReferenceDate)
+    }
+
+    @MainActor
+    @Test func refreshDoesNotRewriteTheCopiesWhileNothingMeaningfulChanged() throws {
+        let keychain = MemoryTrialKeychain()
+        let clock = TestClock(Self.day(0))
+        let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
+        let stamps = try sandbox.mirrorFileStamps()
+        for minutes in [0.0, 1, 30, 59] {
+            clock.now = Self.day(0).addingTimeInterval(minutes * 60)
+            manager.refresh()
+        }
+        #expect(try sandbox.mirrorFileStamps() == stamps)
+        #expect(sandbox.mirrorText(Storage.usedFileName) == "0.0")
+        #expect(keychain.writes == 1)
+        // 1時間使ったら、写しもキーチェーンも書く
+        clock.now = Self.day(0).addingTimeInterval(60 * 60)
+        manager.refresh()
+        #expect(try sandbox.mirrorFileStamps() != stamps)
+        #expect(sandbox.mirrorText(Storage.usedFileName) == "3600.0")
+        #expect(keychain.writes == 2)
+    }
+
+    @MainActor
+    @Test func aLicensedLaunchAndRefreshTouchNoCopyOfTheTrialRecord() throws {
+        let keychain = MemoryTrialKeychain()
+        _ = launch(day: 0, keychain: keychain)
+        _ = launch(day: 2, keychain: keychain)
+        let storage = sandbox.makeStorage(keychain: keychain)
+        storage.licenseKey = try LicenseTestFixtures.licenseKey()
+        let stamps = try sandbox.mirrorFileStamps()
+        let defaults = sandbox.defaults.persistentDomain(forName: sandbox.suiteName) as NSDictionary?
+        let reads = keychain.reads
+        let writes = keychain.writes
+        let clock = TestClock(Self.day(5))
+        let manager = LicenseManager(verifier: try LicenseTestFixtures.verifier(), storage: storage, now: { clock.now })
+        clock.now = Self.day(6)
+        manager.refresh()
+        #expect(manager.entitlement == .licensed(LicenseTestFixtures.info()))
+        #expect(try sandbox.mirrorFileStamps() == stamps)
+        #expect(sandbox.defaults.persistentDomain(forName: sandbox.suiteName) as NSDictionary? == defaults)
+        #expect(keychain.reads == reads)
+        #expect(keychain.writes == writes)
     }
 
     @Test func keychainWritesFollowTheRecord() {
