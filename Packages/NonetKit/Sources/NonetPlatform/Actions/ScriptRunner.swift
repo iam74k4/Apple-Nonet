@@ -2,16 +2,20 @@
 import AppKit
 import NonetCore
 
-/// スクリプトアクション（/bin/zsh -l -c）
+/// スクリプトアクション（/bin/zsh -l -c）。PATH は利用者の対話シェルのもの（UserShell）
 enum ScriptRunner {
     static let shell = URL(fileURLWithPath: "/bin/zsh")
     static let defaultTimeout: TimeInterval = 60
     static let maximumTimeout: TimeInterval = 24 * 60 * 60
     static let outputLimit = 64 * 1024
 
-    /// ソースは引数の1つとして渡す。"--" で、"-" で始まるソースもオプションと間違えさせない
-    static func arguments(source: String) -> [String] {
-        ["-l", "-c", "--", source]
+    /// ソースは引数の1つとして渡す。"--" で、"-" で始まるソースもオプションと間違えさせない。
+    /// shellPath（~/.zshrc まで読んだ対話シェルの PATH）があれば、ログインシェルの設定ファイルを読んだ後に PATH をそれにする。
+    /// 環境変数で渡すだけでは、/etc/zprofile の path_helper が順番を入れ替えて、ターミナルと別のコマンドが見つかることがある。
+    /// ソースと同じ行の先頭に置くので、エラーの行番号は変わらない
+    static func arguments(source: String, shellPath: String? = nil) -> [String] {
+        guard let shellPath, !shellPath.isEmpty else { return ["-l", "-c", "--", source] }
+        return ["-l", "-c", "--", "export PATH=\(TerminalCommandFile.shellQuoted(shellPath)); \(source)"]
     }
 
     static func effectiveTimeout(_ timeout: Double) -> TimeInterval {
@@ -20,10 +24,14 @@ enum ScriptRunner {
     }
 
     /// Nonet の環境変数に文脈の変数を重ねる。前に残った NONET_* は消す。
-    /// Finder から起動したアプリには LANG が無く、pbcopy などが UTF-8 を化けさせるので LC_CTYPE を補う
-    static func environment(base: [String: String], context: [String: String]) -> [String: String] {
+    /// Finder から起動したアプリには LANG が無く、pbcopy などが UTF-8 を化けさせるので LC_CTYPE を補う。
+    /// shellPath があれば PATH をそれにする（ログインシェルの設定ファイルも、そのコマンドを使える）
+    static func environment(base: [String: String], context: [String: String], shellPath: String? = nil) -> [String: String] {
         var environment = base.filter { key, _ in !key.hasPrefix("NONET_") && key != "PROJECT_DIR" }
         environment.merge(context) { _, new in new }
+        if let shellPath, !shellPath.isEmpty {
+            environment["PATH"] = shellPath
+        }
         if environment["LANG"] == nil, environment["LC_ALL"] == nil, environment["LC_CTYPE"] == nil {
             environment["LC_CTYPE"] = "UTF-8"
         }
@@ -49,19 +57,21 @@ enum ScriptRunner {
         }
     }
 
-    /// 裏で実行し、終わるまで待つ。失敗したら標準エラーの末尾を添えた NonetError
+    /// 裏で実行し、終わるまで待つ。失敗したら標準エラーの末尾を添えた NonetError。成功したら出力を返す
+    @discardableResult
     static func runInBackground(
         source: String,
         environment: [String: String],
         workingDirectory: URL,
-        timeout: TimeInterval
-    ) async throws {
+        timeout: TimeInterval,
+        shellPath: String? = nil
+    ) async throws -> ProcessOutput {
         try validate(source: source)
         let output: ProcessOutput
         do {
             output = try await ProcessRunner.run(ProcessRequest(
                 executable: shell,
-                arguments: arguments(source: source),
+                arguments: arguments(source: source, shellPath: shellPath),
                 environment: environment,
                 currentDirectory: workingDirectory,
                 timeout: timeout,
@@ -74,7 +84,11 @@ enum ScriptRunner {
             throw NonetError.actionFailed(String(localized: "スクリプトを実行できませんでした", bundle: .nonetActions))
         }
         if let failure = failure(for: output) { throw failure }
+        return output
     }
+
+    /// シェルが「コマンドが見つからない」ときの終了コード
+    static let commandNotFoundStatus: Int32 = 127
 
     static func failure(for output: ProcessOutput) -> NonetError? {
         if output.timedOut { return .timedOut }
@@ -82,9 +96,48 @@ enum ScriptRunner {
             let headline = String(localized: "スクリプトが中断されました（シグナル \(output.status)）", bundle: .nonetActions)
             return .actionFailed(ActionText.message(headline, detail: output.stderr))
         }
+        if output.status == commandNotFoundStatus {
+            // 知らせは4行までしか出ないので、確かめ方を標準エラーより先に置く
+            let headline = String(localized: "スクリプトが失敗しました（終了コード \(output.status)）", bundle: .nonetActions)
+            let hint = commandNotFoundHint(command: missingCommand(in: output.stderr))
+            return .actionFailed(ActionText.message("\(headline)\n\(hint)", detail: output.stderr, lineCount: 2))
+        }
         if output.status != 0 {
             let headline = String(localized: "スクリプトが失敗しました（終了コード \(output.status)）", bundle: .nonetActions)
             return .actionFailed(ActionText.message(headline, detail: output.stderr))
+        }
+        return nil
+    }
+
+    /// 終了コード 127 のときの確かめ方。コマンドの名前が分かれば添える
+    static func commandNotFoundHint(command: String?) -> String {
+        if let command {
+            return String(
+                localized: "コマンドが見つかりません。インストールされているか、ターミナルで command -v \(command) を確かめてください",
+                bundle: .nonetActions
+            )
+        }
+        return String(localized: "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください", bundle: .nonetActions)
+    }
+
+    /// 標準エラーの最後の「コマンドが見つからない」から、コマンドの名前を読む。
+    /// zsh（"zsh:1: command not found: foo"）・bash と sh（"foo: command not found"）・env（"env: foo: No such file or directory"）
+    static func missingCommand(in stderr: String) -> String? {
+        let patterns = [
+            #"command not found: (\S+)\s*$"#,
+            #"(?:^|: )([^\s:]+): command not found\s*$"#,
+            #"^env: ([^\s:]+): No such file or directory\s*$"#,
+        ]
+        let lines = stderr.split(whereSeparator: \.isNewline).map(String.init)
+        for line in lines.reversed() {
+            for pattern in patterns {
+                guard let regex = try? NSRegularExpression(pattern: pattern),
+                      let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                      let range = Range(match.range(at: 1), in: line)
+                else { continue }
+                let name = String(line[range])
+                if !name.isEmpty { return name }
+            }
         }
         return nil
     }
@@ -194,12 +247,18 @@ enum TerminalCommandFile {
         return name.unicodeScalars.allSatisfy { $0 == "_" || ($0.isASCII && ($0.properties.isAlphabetic || ("0" ... "9").contains($0))) }
     }
 
-    /// 実行が始まったら自分を消し、変数を export し、作業フォルダへ移ってからスクリプトを実行する
+    /// ~/.zshrc を読む行。.command はスクリプトとして（対話シェルではなく）動くので、nvm などで足す PATH・エイリアス・関数を読み込む。
+    /// ZDOTDIR を変えている人は、そこにある .zshrc
+    static let zshrcLine = #"[[ -r "${ZDOTDIR:-$HOME}/.zshrc" ]] && source "${ZDOTDIR:-$HOME}/.zshrc""#
+
+    /// 実行が始まったら自分を消し、~/.zshrc を読み、変数を export し、作業フォルダへ移ってからスクリプトを実行する
     static func contents(source: String, variables: [String: String], workingDirectory: String) -> String {
         var lines = [
             "#!/bin/zsh -l",
             "# Nonet がターミナルで実行するために作った一時ファイル（実行が始まると消える）",
             "rm -f -- \"$0\"",
+            // ~/.zshrc が cd や同じ名前の変数を使っても、後の export と cd が勝つ
+            zshrcLine,
         ]
         for name in variables.keys.sorted() where isValidVariableName(name) {
             lines.append("export \(name)=\(shellQuoted(variables[name] ?? ""))")

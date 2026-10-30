@@ -146,7 +146,7 @@ import Testing
     /// 選択中のテキストとブラウザの URL は、スクリプトに名前があるときだけ読む
     @Test @MainActor func scriptHelpNotes() {
         #expect(SettingsScriptHelp.notes == [
-            L10n.ui("作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。"),
+            L10n.ui("作業フォルダはプロジェクトのフォルダ（分からなければホーム）。裏で実行するときはログインシェル（zsh -l）で動き、PATH はターミナルと同じもの（Nonet の起動時に ~/.zshrc まで読んで調べたもの）を使います。~/.zshrc のエイリアスや関数を使えるのは、ターミナルで実行するときだけです。"),
             L10n.ui("NONET_SELECTED_TEXT と NONET_BROWSER_URL は、スクリプトの中（コメントでもかまいません）にその名前があるときだけ設定されます。"),
             L10n.ui("スクリプトに NONET_BROWSER_URL を書くと、ブラウザの URL を初めて読むときに、macOS が「オートメーション」の許可を求めます。"),
         ])

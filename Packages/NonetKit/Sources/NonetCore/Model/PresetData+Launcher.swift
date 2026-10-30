@@ -72,4 +72,36 @@ extension PresetData {
             isInstalled(entry.app.bundleID) && !(entry.supersededBy.map(isInstalled) ?? false)
         }
     }
+
+    /// 利用者が Dock に置いたアプリを Dock の順に先に並べ、その後にインストール済みの候補を優先順で足す。
+    /// 候補にあるアプリは候補の名前（短い名前）にする。同じアプリは1回だけ、同じアプリの新旧も片方だけ
+    /// （Dock にあるほうを残す）。bundleID の大文字・小文字は区別しない
+    static func launcherEntries(dockApps: [AppReference], installedBundleIDs: Set<String>) -> [LauncherEntry] {
+        var placed = Set<String>()
+        var entries: [LauncherEntry] = []
+        for app in dockApps {
+            let key = app.bundleID.lowercased()
+            guard !key.isEmpty, placed.insert(key).inserted else { continue }
+            if let known = launcherEntries.first(where: { $0.app.bundleID.lowercased() == key }) {
+                entries.append(LauncherEntry(known.app, title: known.title))
+            } else {
+                entries.append(LauncherEntry(app, title: app.nameOrBundleID))
+            }
+        }
+        for entry in installedLauncherEntries(installedBundleIDs) where !isPlaced(entry, placed) {
+            placed.insert(entry.app.bundleID.lowercased())
+            entries.append(entry)
+        }
+        return entries
+    }
+
+    /// そのアプリか、その新旧のどちらかがもう並んでいる
+    private static func isPlaced(_ entry: LauncherEntry, _ placed: Set<String>) -> Bool {
+        let key = entry.app.bundleID.lowercased()
+        if placed.contains(key) { return true }
+        if let newer = entry.supersededBy, placed.contains(newer.lowercased()) { return true }
+        return launcherEntries.contains { older in
+            older.supersededBy?.lowercased() == key && placed.contains(older.app.bundleID.lowercased())
+        }
+    }
 }

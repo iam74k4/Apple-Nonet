@@ -4,6 +4,10 @@
 // キーの文字は US と JIS のどちらでも修飾キーなしで入力できるもの（英数字と - , . / ; [ ]）に限る。
 // .character は現在のキー配列から修飾キーなしでその文字が出るキーを探すので、
 // JIS で ⇧ が要る \ ` = ' などは送れない（PresetLibraryTests で確かめている）。
+//
+// 中央は指がいちばん置きやすく、迷った指が止まるマス。AI（Apple Intelligence）や Claude Code のように
+// Mac によっては動かないアクションは、使えない Mac では入れず、中央にはそのアプリの代わりのマスを置く（PresetCapabilities）。
+// Claude Code は押し間違えるとターミナルのウインドウが開くので、使える Mac でも中央には置かない
 import Foundation
 
 /// プリセットの中身。アプリごとのデータは PresetData+*.swift に分けてある
@@ -11,6 +15,9 @@ enum PresetData {}
 
 /// プリセットを組み立てる近道。表示名は日本語で書き、ここで .module からローカライズする
 enum PresetBuilder {
+    /// 中央のマスの位置
+    static let centerIndex = 4
+
     /// 文字列カタログへの抽出は String.LocalizationValue の型で行われるので、引数のリテラルもそのまま抽出される
     static func text(_ value: String.LocalizationValue) -> String {
         String(localized: value, bundle: .module)
@@ -28,10 +35,27 @@ enum PresetBuilder {
         Cell(title: text(title), icon: .symbol(symbol), action: .script(action))
     }
 
-    /// 開発アプリの中央。プロジェクトのフォルダで Claude Code を対話モードで開く。
-    /// PROJECT_DIR は前面の書類から決まる（ScriptEnvironment）。決まらなければホームで開く
-    static func claudeCode() -> Cell {
-        script("Claude Code", "sparkles", ScriptAction(source: #"cd "${PROJECT_DIR:-$HOME}" && claude"#, runMode: .terminal))
+    /// 開発アプリの外側のマス。プロジェクトのフォルダで Claude Code を対話モードで開く。
+    /// PROJECT_DIR は前面の書類から決まる（ScriptEnvironment）。決まらなければホームで開く。
+    /// claude が見つからない Mac では入れない（そのマスは空ける）
+    static func claudeCode(_ capabilities: PresetCapabilities) -> Cell? {
+        guard capabilities.claudeCode else { return nil }
+        return script("Claude Code", "sparkles", ScriptAction(source: #"cd "${PROJECT_DIR:-$HOME}" && claude"#, runMode: .terminal))
+    }
+
+    /// ブラウザのページ内検索（⌘F）。AI を使えない Mac では、ブラウザの中央に置く
+    static func findOnPage() -> Cell {
+        key("ページ内検索", "text.magnifyingglass", .key("f", .command))
+    }
+
+    /// 中央に AI を置く並び。cells の中央は AI のマス。
+    /// AI を使えない Mac では、fallbackIndex のマスを中央へ移し、元の位置は空ける（ほかのマスの位置は変えない）
+    static func aiCentered(_ cells: [Cell?], fallbackIndex: Int, _ capabilities: PresetCapabilities) -> [Cell?] {
+        guard !capabilities.appleIntelligence else { return cells }
+        var cells = cells
+        cells[centerIndex] = cells[fallbackIndex]
+        cells[fallbackIndex] = nil
+        return cells
     }
 
     /// 選択中の文章を要約して HUD の位置に出す。読むだけの画面（ブラウザ・受信メール・チャット）向け

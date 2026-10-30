@@ -33,6 +33,29 @@ enum OnDeviceAI {
         "\(instruction.trimmingCharacters(in: .whitespacesAndNewlines))\n\n---\n\(text)"
     }
 
+    /// プリセットの中央に AI を置いてよいか。モデルの準備中（ダウンロード中など）は、じきに使えるようになるので置く。
+    /// 対応していない Mac・Apple Intelligence がオフ・macOS 26 より前なら置かない
+    static var isUsableForPresets: Bool {
+        #if canImport(FoundationModels)
+        if #available(macOS 26, *) {
+            return isUsableForPresets(SystemLanguageModel.default.availability)
+        }
+        #endif
+        return false
+    }
+
+    #if canImport(FoundationModels)
+    @available(macOS 26, *)
+    static func isUsableForPresets(_ availability: SystemLanguageModel.Availability) -> Bool {
+        switch availability {
+        case .available, .unavailable(.modelNotReady):
+            true
+        case .unavailable:
+            false
+        }
+    }
+    #endif
+
     /// 使えなければ理由を添えた NonetError.unavailable
     static func checkAvailability() throws {
         #if canImport(FoundationModels)

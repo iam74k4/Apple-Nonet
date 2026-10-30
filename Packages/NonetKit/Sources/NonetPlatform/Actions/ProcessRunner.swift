@@ -59,6 +59,8 @@ struct ProcessOutput: Sendable, Equatable {
     var timedOut: Bool
     var stdout: String
     var stderr: String
+    /// 標準出力が outputLimit を超え、先頭を捨てた（stdout は末尾だけ）
+    var stdoutTruncated = false
 
     var succeeded: Bool { !timedOut && !wasSignaled && status == 0 }
 }
@@ -250,7 +252,8 @@ private final class ProcessRun: @unchecked Sendable {
                         wasSignaled: termination.signaled,
                         timedOut: timedOut,
                         stdout: stdout.text,
-                        stderr: stderr.text
+                        stderr: stderr.text,
+                        stdoutTruncated: stdout.isTruncated
                     ))
                 }
             } else {

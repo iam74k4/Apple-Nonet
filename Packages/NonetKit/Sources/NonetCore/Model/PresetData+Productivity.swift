@@ -58,12 +58,12 @@ extension PresetData {
 
     /// 出典: https://www.notion.com/help/keyboard-shortcuts
     /// このページは英語配列が前提と書いてあるので、配列で位置が変わる記号（⌘[ ⌘] など）は使わず、英数字だけにする。
-    /// 中央: 自分で書いた文章を選ぶことが多いので校正（選択範囲を置き換える）
-    static var notion: AppPreset {
+    /// 中央: 自分で書いた文章を選ぶことが多いので校正（選択範囲を置き換える）。AI を使えない Mac では検索を中央に移す
+    static func notion(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.notion,
             category: "ドキュメント",
-            cells: [
+            cells: PresetBuilder.aiCentered([
                 PresetBuilder.key("新規ページ", "doc.badge.plus", .key("n", .command)),
                 PresetBuilder.key("検索", "magnifyingglass", .key("p", .command)),
                 PresetBuilder.key("リンクをコピー", "link", .key("l", .command)),
@@ -73,18 +73,24 @@ extension PresetData {
                 PresetBuilder.key("見出し1", "textformat.size.larger", .key("1", [.option, .command])),
                 PresetBuilder.key("ToDo", "checklist", .key("4", [.option, .command])),
                 PresetBuilder.key("箇条書き", "list.bullet", .key("5", [.option, .command])),
-            ],
-            summary: { "新規ページ、検索、校正など\($0)個" }
+            ], fallbackIndex: 1, capabilities),
+            summary: { count in
+                if capabilities.appleIntelligence {
+                    "新規ページ、検索、校正など\(count)個"
+                } else {
+                    "新規ページ、検索、コメントなど\(count)個"
+                }
+            }
         )
     }
 
     /// 出典: https://support.apple.com/guide/notes/keyboard-shortcuts-and-gestures-apd46c25187e/mac
-    /// 中央: 自分で書いたメモを選ぶことが多いので校正（選択範囲を置き換える）
-    static var notes: AppPreset {
+    /// 中央: 自分で書いたメモを選ぶことが多いので校正（選択範囲を置き換える）。AI を使えない Mac ではチェックリストを中央に移す
+    static func notes(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.notes,
             category: "ドキュメント",
-            cells: [
+            cells: PresetBuilder.aiCentered([
                 PresetBuilder.key("新規メモ", "square.and.pencil", .key("n", .command)),
                 PresetBuilder.key("チェックリスト", "checklist", .key("l", [.shift, .command])),
                 PresetBuilder.key("表", "tablecells", .key("t", [.option, .command])),
@@ -94,8 +100,14 @@ extension PresetData {
                 PresetBuilder.key("箇条書き", "list.bullet", .key("7", [.shift, .command])),
                 PresetBuilder.key("本文", "text.alignleft", .key("b", [.shift, .command])),
                 PresetBuilder.key("検索", "magnifyingglass", .key("f", [.option, .command])),
-            ],
-            summary: { "チェックリスト、表、校正など\($0)個" }
+            ], fallbackIndex: 1, capabilities),
+            summary: { count in
+                if capabilities.appleIntelligence {
+                    "チェックリスト、表、校正など\(count)個"
+                } else {
+                    "チェックリスト、表、見出しなど\(count)個"
+                }
+            }
         )
     }
 }

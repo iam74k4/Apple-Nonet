@@ -68,11 +68,14 @@ public struct ScriptAction: Codable, Equatable, Sendable {
     public var runMode: ScriptRunMode
     /// background のときの制限時間（秒）
     public var timeout: Double
+    /// background のときの、標準出力の使い道（AI の結果の出し方と同じ）。nil なら使わない
+    public var output: AIOutput?
 
-    public init(source: String, runMode: ScriptRunMode = .background, timeout: Double = 60) {
+    public init(source: String, runMode: ScriptRunMode = .background, timeout: Double = 60, output: AIOutput? = nil) {
         self.source = source
         self.runMode = runMode
         self.timeout = timeout
+        self.output = output
     }
 }
 
@@ -81,10 +84,13 @@ public struct ShortcutAction: Codable, Equatable, Sendable {
     public var name: String
     /// 選択中のテキストを入力として渡す
     public var passSelectedText: Bool
+    /// ショートカットの出力（テキスト）の使い道（AI の結果の出し方と同じ）。nil なら使わない
+    public var output: AIOutput?
 
-    public init(name: String, passSelectedText: Bool = false) {
+    public init(name: String, passSelectedText: Bool = false, output: AIOutput? = nil) {
         self.name = name
         self.passSelectedText = passSelectedText
+        self.output = output
     }
 }
 
@@ -103,6 +109,7 @@ public struct MenuItemAction: Codable, Equatable, Sendable {
     }
 }
 
+/// AI の結果の出し方。スクリプト（裏で実行）とショートカットの出力にも使う
 public enum AIOutput: String, Codable, CaseIterable, Sendable {
     /// 選択中のテキストを結果で置き換える
     case replaceSelection
@@ -204,7 +211,8 @@ extension String {
 
 // MARK: - Codable
 // 書式は {"type": "<ActionKind>", ...中身のキー}。keystroke だけは {"type": "keystroke", "keys": [...]}。
-// 既定値のある項目は無くても読み、知らない列挙値は既定値にする。知らない type は読めない（マスが空きになる）
+// 既定値のある項目は無くても読み、知らない列挙値は既定値にする。知らない type は読めない（マスが空きになる）。
+// スクリプトとショートカットの output は、使うときだけ書く（使わない設定の書式は、項目を足す前と同じ）
 
 extension Action {
     private enum CodingKeys: String, CodingKey {
@@ -313,7 +321,7 @@ extension URLAction {
 
 extension ScriptAction {
     private enum CodingKeys: String, CodingKey {
-        case source, runMode, timeout
+        case source, runMode, timeout, output
     }
 
     public init(from decoder: any Decoder) throws {
@@ -321,7 +329,9 @@ extension ScriptAction {
         self.init(
             source: try container.decode(String.self, forKey: .source),
             runMode: container.decodeLossy(ScriptRunMode.self, forKey: .runMode, default: .background),
-            timeout: container.decodeLossy(Double.self, forKey: .timeout, default: ScriptAction.defaultTimeout)
+            timeout: container.decodeLossy(Double.self, forKey: .timeout, default: ScriptAction.defaultTimeout),
+            // 知らない値は「使わない」にする（貼り付けやコピーを勝手に始めない）
+            output: container.decodeLossy(AIOutput?.self, forKey: .output, default: nil)
         )
     }
 
@@ -330,19 +340,21 @@ extension ScriptAction {
         try container.encode(source, forKey: .source)
         try container.encode(runMode, forKey: .runMode)
         try container.encode(timeout, forKey: .timeout)
+        try container.encodeIfPresent(output, forKey: .output)
     }
 }
 
 extension ShortcutAction {
     private enum CodingKeys: String, CodingKey {
-        case name, passSelectedText
+        case name, passSelectedText, output
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
-            passSelectedText: container.decodeLossy(Bool.self, forKey: .passSelectedText, default: false)
+            passSelectedText: container.decodeLossy(Bool.self, forKey: .passSelectedText, default: false),
+            output: container.decodeLossy(AIOutput?.self, forKey: .output, default: nil)
         )
     }
 
@@ -350,6 +362,7 @@ extension ShortcutAction {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(passSelectedText, forKey: .passSelectedText)
+        try container.encodeIfPresent(output, forKey: .output)
     }
 }
 
