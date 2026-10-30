@@ -5,12 +5,31 @@ import Testing
 
 @Suite("アクションの文脈")
 struct ActionContextTests {
-    @Test("スクリプトにはソースの書き方によらず、ScriptEnvironment の変数をすべて用意する")
+    private static let selectionScript = #"printf '%s' "$NONET_SELECTED_TEXT" | pbcopy"#
+    private static let urlScript = #"open "$NONET_BROWSER_URL""#
+
+    @Test("スクリプトは、ソースに書かれた変数の文脈だけを読む。書類の場所はいつも読む")
     func scriptNeeds() {
-        // 外部のファイルを呼ぶだけのスクリプトでも、変数を読むのはそのファイルの中
-        #expect(ContextNeeds.forScript == [.selectedText, .copyFallback, .documentPath, .browserURL])
+        // 使わないスクリプトでは ⌘C も送らず、ブラウザにも聞かない
+        #expect(ContextNeeds.forScript(source: "open -b com.apple.dt.Devices") == [.documentPath])
+        #expect(ContextNeeds.forScript(source: #"cd "${PROJECT_DIR:-$HOME}" && claude"#) == [.documentPath])
+        #expect(ContextNeeds.forScript(source: Self.selectionScript) == [.documentPath, .selectedText, .copyFallback])
+        #expect(ContextNeeds.forScript(source: Self.urlScript) == [.documentPath, .browserURL])
+        // 外部のファイルに渡すときは、コメントに名前を書けばよい
+        #expect(ContextNeeds.forScript(source: "# NONET_SELECTED_TEXT NONET_BROWSER_URL\n~/bin/tool.sh")
+            == [.documentPath, .selectedText, .copyFallback, .browserURL])
         // 選択が空と読めたときは ⌘C を送らない（警告音が鳴るだけ）
-        #expect(!ContextNeeds.forScript.contains(.copyWhenEmpty))
+        #expect(!ContextNeeds.forScript(source: Self.selectionScript).contains(.copyWhenEmpty))
+    }
+
+    @Test("ソースから探す名前は、ScriptEnvironment が渡す変数の名前と同じ")
+    func scriptVariableNames() {
+        let variables = ScriptEnvironment.variables(
+            for: ScriptContextInfo(browserURL: "https://example.com", selectedText: "選択"),
+            projectDirectory: nil
+        )
+        #expect(variables[ScriptVariableName.selectedText] == "選択")
+        #expect(variables[ScriptVariableName.browserURL] == "https://example.com")
     }
 
     @Test("ショートカットは passSelectedText のときだけ選択テキスト、AI は常に選択テキスト")
@@ -22,9 +41,11 @@ struct ActionContextTests {
 
     @Test("⌘C を送るのは、選択を読めないとき。選択が空と読めたときは、選択テキストを処理するアクションだけ")
     func copyDecision() {
-        #expect(ContextNeeds.forScript.needsCopy(after: .unreadable))
-        #expect(!ContextNeeds.forScript.needsCopy(after: .empty))
-        #expect(!ContextNeeds.forScript.needsCopy(after: .text("選択")))
+        let script = ContextNeeds.forScript(source: Self.selectionScript)
+        #expect(script.needsCopy(after: .unreadable))
+        #expect(!script.needsCopy(after: .empty))
+        #expect(!script.needsCopy(after: .text("選択")))
+        #expect(!ContextNeeds.forScript(source: "say hello").needsCopy(after: .unreadable))
         #expect(ContextNeeds.forAI.needsCopy(after: .unreadable))
         #expect(ContextNeeds.forAI.needsCopy(after: .empty))
         #expect(!ContextNeeds.forAI.needsCopy(after: .text("選択")))
@@ -46,12 +67,15 @@ struct ActionContextTests {
 
     @Test("ブラウザに聞くのは、対応しているブラウザが前面のときだけ")
     func browserGate() {
+        let script = ContextNeeds.forScript(source: Self.urlScript)
         for id in ["com.apple.Safari", "com.google.Chrome", "company.thebrowser.Browser", "com.microsoft.edgemac", "com.brave.Browser"] {
-            #expect(ContextNeeds.forScript.asksBrowser(bundleID: id), "\(id)")
+            #expect(script.asksBrowser(bundleID: id), "\(id)")
         }
-        #expect(!ContextNeeds.forScript.asksBrowser(bundleID: "com.apple.dt.Xcode"))
-        #expect(!ContextNeeds.forScript.asksBrowser(bundleID: "org.mozilla.firefox"))
+        #expect(!script.asksBrowser(bundleID: "com.apple.dt.Xcode"))
+        #expect(!script.asksBrowser(bundleID: "org.mozilla.firefox"))
         #expect(!ContextNeeds.forAI.asksBrowser(bundleID: "com.apple.Safari"))
+        // URL を使わないスクリプトでは、Chrome が前面でもオートメーションの確認を出さない
+        #expect(!ContextNeeds.forScript(source: "open -b com.apple.dt.Devices").asksBrowser(bundleID: "com.google.Chrome"))
     }
 
     @Test("何も要らなければ何も読まない")
@@ -59,10 +83,10 @@ struct ActionContextTests {
     func emptyNeedsReadNothing() async {
         let reader = ContextReader(keySender: KeySender())
         let app = RunningAppInfo(app: AppReference(bundleID: "com.example.app", name: "App"), processID: 1)
-        let info = await reader.read([], app: app)
-        #expect(info == ScriptContextInfo(app: app.app))
+        let reading = await reader.read([], app: app)
+        #expect(reading == ContextReading(info: ScriptContextInfo(app: app.app)))
         let none = await reader.read([.selectedText, .documentPath], app: nil)
-        #expect(none == ScriptContextInfo())
+        #expect(none == ContextReading(info: ScriptContextInfo()))
     }
 
     @Test("書類の場所", arguments: [
@@ -89,6 +113,53 @@ struct ActionContextTests {
         }
         #expect(BrowserURLReader.script(forBundleID: "org.mozilla.firefox") == nil)
         #expect(BrowserURLReader.script(forBundleID: "com.apple.Safari\" to do shell script \"x") == nil)
+    }
+
+    @Test("何も選択していないと行を丸ごとコピーするエディタでは、改行で終わる1行は選択なしとみなす")
+    func lineCopyingEditors() {
+        let line = "let total = items.reduce(0, +)\n"
+        for id in ["com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "md.obsidian", "com.jetbrains.intellij", "com.sublimetext.4"] {
+            #expect(ContextReader.selectedText(fromCopy: line, bundleID: id) == nil, "\(id)")
+        }
+        // 複数行や、改行で終わらない部分は選択したもの
+        #expect(ContextReader.selectedText(fromCopy: "a\nb\n", bundleID: "com.microsoft.VSCode") == "a\nb\n")
+        #expect(ContextReader.selectedText(fromCopy: "items.reduce", bundleID: "com.microsoft.VSCode") == "items.reduce")
+        // ほかのアプリでは、そのまま選択テキスト
+        #expect(ContextReader.selectedText(fromCopy: line, bundleID: "com.tinyspeck.slackmacgap") == line)
+    }
+
+    @Test("Windows の改行（CRLF）の書類でも、改行で終わる1行は選択なしとみなす")
+    func lineCopyingEditorsWithCRLF() {
+        let line = "let total = items.reduce(0, +)\r\n"
+        for id in ["com.microsoft.VSCode", "com.jetbrains.intellij", "com.sublimetext.4"] {
+            #expect(ContextReader.selectedText(fromCopy: line, bundleID: id) == nil, "\(id)")
+        }
+        #expect(ContextReader.selectedText(fromCopy: "\r\n", bundleID: "com.microsoft.VSCode") == nil)
+        // 複数行は選択したもの
+        #expect(ContextReader.selectedText(fromCopy: "a\r\nb\r\n", bundleID: "com.microsoft.VSCode") == "a\r\nb\r\n")
+    }
+
+    @Test("選択テキストが無いときの説明: ⌘C を送れなかった理由と、エディタの行のコピーを無視したことを分けて伝える")
+    func noSelectionMessages() {
+        let info = ScriptContextInfo(app: nil)
+        let plain = SelectionMessage.noSelection(ContextReading(info: info))
+        #expect(plain == String(localized: "テキストを選択してから実行してください", bundle: .nonetActions))
+        let denied = SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: .denied))
+        let tooLarge = SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: .tooLarge))
+        let lineCopy = SelectionMessage.noSelection(ContextReading(info: info, ignoredLineCopy: true))
+        #expect(Set([plain, denied, tooLarge, lineCopy]).count == 4)
+        // クリップボードを保てない理由のうち、許可が無いとき以外は同じ説明（選択したテキストを自分でコピーすれば読める）
+        for failure in [PasteboardSnapshot.Failure.tooSlow, .unrestorable, .unreadable] {
+            #expect(SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: failure)) == tooLarge)
+        }
+    }
+
+    @Test("選択を置き換えるのは、アクセシビリティで読めたか、読めずに ⌘C で取れたときだけ")
+    func replacePlan() {
+        #expect(ReplacePlan.canPaste(over: .accessibility))
+        #expect(ReplacePlan.canPaste(over: .copyAfterUnreadable))
+        // 「選択なし」と答えていたなら、貼り付けはカーソルの位置への挿入になる
+        #expect(!ReplacePlan.canPaste(over: .copyAfterEmpty))
     }
 
     @Test("osascript の出力")
@@ -131,7 +202,7 @@ struct ActionContextGatheringTests {
     private func reader(
         selection: AXSelection,
         documentPath: String? = nil,
-        copied: String? = "⌘C で取った文",
+        copied: ClipboardCopy.Outcome = .copied("⌘C で取った文"),
         log: CallLog,
         rendezvous: Bool = false
     ) -> ContextReader {
@@ -149,8 +220,8 @@ struct ActionContextGatheringTests {
                 if rendezvous { await log.waitFor("copy") }
                 return Self.url
             },
-            copySelection: {
-                await log.record("copy")
+            copySelection: { pid in
+                await log.record("copy:\(pid)")
                 if rendezvous { await log.waitFor("browser:") }
                 return copied
             }
@@ -161,121 +232,112 @@ struct ActionContextGatheringTests {
         RunningAppInfo(app: AppReference(bundleID: bundleID, name: bundleID), processID: 4242)
     }
 
-    @Test("外部のスクリプトを呼ぶだけでも、Safari の URL と、アクセシビリティで読めない選択（⌘C）を渡す")
+    private nonisolated static let contextScript = #"printf '%s %s' "$NONET_BROWSER_URL" "$NONET_SELECTED_TEXT""#
+
+    @Test("変数を使うスクリプトには、Safari の URL と、アクセシビリティで読めない選択（⌘C）を渡す")
     func scriptInBrowser() async {
         let log = CallLog()
-        let info = await reader(selection: .unreadable, log: log).read(.forScript, app: app("com.apple.Safari"))
+        let reading = await reader(selection: .unreadable, log: log).read(.forScript(source: Self.contextScript), app: app("com.apple.Safari"))
+        let info = reading.info
+        #expect(reading.selectionSource == .copyAfterUnreadable)
         #expect(info.browserURL == Self.url)
         #expect(info.selectedText == "⌘C で取った文")
         #expect(info.app?.bundleID == "com.apple.Safari")
         let calls = await log.calls
         #expect(calls.contains("browser:com.apple.Safari"))
-        #expect(calls.contains("copy"))
+        #expect(calls.contains("copy:4242"))
         #expect(calls.contains("documentPath"))
+    }
+
+    @Test("変数を使わないスクリプトは、⌘C を送らず、ブラウザにも聞かない（書類の場所だけ読む）")
+    func scriptWithoutContextVariables() async {
+        let log = CallLog()
+        let reading = await reader(selection: .unreadable, documentPath: "/tmp/doc.txt", log: log)
+            .read(.forScript(source: "open -b com.apple.dt.Devices"), app: app("com.google.Chrome"))
+        #expect(reading.info == ScriptContextInfo(
+            app: AppReference(bundleID: "com.google.Chrome", name: "com.google.Chrome"),
+            documentPath: "/tmp/doc.txt"
+        ))
+        #expect(await log.calls == ["documentPath"])
     }
 
     @Test("ブラウザでないアプリには osascript で聞かない")
     func scriptOutsideBrowser() async {
         let log = CallLog()
-        let info = await reader(selection: .text("選択"), documentPath: "/tmp/App/App.xcodeproj", log: log)
-            .read(.forScript, app: app("com.apple.dt.Xcode"))
-        #expect(info == ScriptContextInfo(
+        let reading = await reader(selection: .text("選択"), documentPath: "/tmp/App/App.xcodeproj", log: log)
+            .read(.forScript(source: Self.contextScript), app: app("com.apple.dt.Xcode"))
+        #expect(reading.selectionSource == .accessibility)
+        #expect(reading.info == ScriptContextInfo(
             app: AppReference(bundleID: "com.apple.dt.Xcode", name: "com.apple.dt.Xcode"),
             documentPath: "/tmp/App/App.xcodeproj",
             selectedText: "選択"
         ))
         let calls = await log.calls
         #expect(!calls.contains { $0.hasPrefix("browser") })
-        #expect(!calls.contains("copy"))
+        #expect(!calls.contains { $0.hasPrefix("copy") })
     }
 
     @Test("スクリプト: 選択が空と読めたら ⌘C は送らない。AI は送る")
     func emptySelection() async {
         let scriptLog = CallLog()
-        let script = await reader(selection: .empty, log: scriptLog).read(.forScript, app: app("com.apple.dt.Xcode"))
-        #expect(script.selectedText == nil)
-        #expect(await !scriptLog.calls.contains("copy"))
+        let script = await reader(selection: .empty, log: scriptLog).read(.forScript(source: Self.contextScript), app: app("com.apple.dt.Xcode"))
+        #expect(script.info.selectedText == nil)
+        #expect(await !scriptLog.calls.contains { $0.hasPrefix("copy") })
 
         let aiLog = CallLog()
         let ai = await reader(selection: .empty, log: aiLog).read(.forAI, app: app("com.apple.dt.Xcode"))
-        #expect(ai.selectedText == "⌘C で取った文")
-        #expect(await aiLog.calls.contains("copy"))
+        #expect(ai.info.selectedText == "⌘C で取った文")
+        // 置き換えてよいかは分からない
+        #expect(ai.selectionSource == .copyAfterEmpty)
+        #expect(await aiLog.calls.contains("copy:4242"))
     }
 
     @Test("⌘C でも取れなければ選択テキストは無し")
     func copyFindsNothing() async {
         let log = CallLog()
-        let info = await reader(selection: .unreadable, copied: nil, log: log).read(.forShortcut(ShortcutAction(name: "X", passSelectedText: true)), app: app("com.tinyspeck.slackmacgap"))
+        let reading = await reader(selection: .unreadable, copied: .nothing, log: log)
+            .read(.forShortcut(ShortcutAction(name: "X", passSelectedText: true)), app: app("com.tinyspeck.slackmacgap"))
+        let info = reading.info
+        #expect(reading.selectionSource == nil)
+        #expect(reading.copyUnavailable == nil)
         #expect(info.selectedText == nil)
         #expect(info.browserURL == nil)
         #expect(info.documentPath == nil)
-        #expect(await log.calls == ["selection", "copy"])
+        #expect(await log.calls == ["selection", "copy:4242"])
+    }
+
+    @Test("クリップボードの中身を保てずに ⌘C を送らなかったことが分かる")
+    func copySkipped() async {
+        let reading = await reader(selection: .unreadable, copied: .clipboardUnavailable(.tooLarge), log: CallLog())
+            .read(.forAI, app: app("com.tinyspeck.slackmacgap"))
+        #expect(reading.info.selectedText == nil)
+        #expect(reading.copyUnavailable == .tooLarge)
+    }
+
+    @Test("VS Code で何も選択せずに ⌘C で取れた1行は、選択テキストにしない")
+    func lineCopyIsNotASelection() async {
+        let line = "let total = items.reduce(0, +)\n"
+        let vscode = await reader(selection: .unreadable, copied: .copied(line), log: CallLog()).read(.forAI, app: app("com.microsoft.VSCode"))
+        #expect(vscode.info.selectedText == nil)
+        #expect(vscode.selectionSource == nil)
+        #expect(vscode.ignoredLineCopy)
+        let slack = await reader(selection: .unreadable, copied: .copied(line), log: CallLog()).read(.forAI, app: app("com.tinyspeck.slackmacgap"))
+        #expect(slack.info.selectedText == line)
+        #expect(!slack.ignoredLineCopy)
     }
 
     @Test("ブラウザへの問い合わせは、選択テキストを読むのと並べて行う")
     func browserRunsConcurrently() async {
         let log = CallLog()
         let info = await reader(selection: .unreadable, log: log, rendezvous: true)
-            .read(.forScript, app: app("com.google.Chrome"))
+            .read(.forScript(source: Self.contextScript), app: app("com.google.Chrome")).info
         #expect(info.browserURL == Self.url)
         #expect(info.selectedText == "⌘C で取った文")
         let calls = await log.calls
         #expect(calls.contains("browser:com.google.Chrome"))
-        #expect(calls.contains("copy"))
+        #expect(calls.contains("copy:4242"))
         // どちらを先にしても、順に読んでいれば先のほうが相手を待ちきれない
         #expect(!calls.contains { $0.hasPrefix("timeout") }, "\(calls)")
-    }
-}
-
-/// 利用者のクリップボードには触らず、名前付きの別のクリップボードで確かめる
-@Suite("クリップボードの写しと書き込み")
-@MainActor
-struct ActionPasteboardTests {
-    private func withPrivatePasteboard(_ body: (NSPasteboard) throws -> Void) rethrows {
-        let pasteboard = NSPasteboard(name: NSPasteboard.Name("com.iam74k4.Nonet.tests.\(UUID().uuidString)"))
-        defer { pasteboard.releaseGlobally() }
-        try body(pasteboard)
-    }
-
-    @Test("書いて戻すと、複数の項目と型が元どおり")
-    func snapshotRestores() throws {
-        try withPrivatePasteboard { pasteboard in
-            let custom = NSPasteboard.PasteboardType("com.iam74k4.nonet.test")
-            let first = NSPasteboardItem()
-            first.setString("元のテキスト", forType: .string)
-            first.setData(Data([1, 2, 3]), forType: custom)
-            let second = NSPasteboardItem()
-            second.setString("2つめ", forType: .string)
-            pasteboard.clearContents()
-            pasteboard.writeObjects([first, second])
-
-            let snapshot = PasteboardSnapshot(pasteboard)
-            #expect(!snapshot.isEmpty)
-            let count = PasteboardWriter.write("AI の結果", to: pasteboard, transient: true)
-            #expect(count == pasteboard.changeCount)
-            #expect(pasteboard.string(forType: .string) == "AI の結果")
-            #expect(pasteboard.types?.contains(PasteboardWriter.transientType) == true)
-
-            snapshot.restore(to: pasteboard)
-            let items = try #require(pasteboard.pasteboardItems)
-            #expect(items.count == 2)
-            #expect(items[0].string(forType: .string) == "元のテキスト")
-            #expect(items[0].data(forType: custom) == Data([1, 2, 3]))
-            #expect(items[1].string(forType: .string) == "2つめ")
-        }
-    }
-
-    @Test("空のクリップボードは空に戻す")
-    func restoresEmpty() {
-        withPrivatePasteboard { pasteboard in
-            pasteboard.clearContents()
-            let snapshot = PasteboardSnapshot(pasteboard)
-            #expect(snapshot.isEmpty)
-            PasteboardWriter.write("一時的", to: pasteboard)
-            #expect(pasteboard.types?.contains(PasteboardWriter.transientType) == false)
-            snapshot.restore(to: pasteboard)
-            #expect(pasteboard.string(forType: .string) == nil)
-        }
     }
 }
 

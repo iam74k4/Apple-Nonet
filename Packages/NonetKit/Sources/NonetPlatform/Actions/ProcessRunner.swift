@@ -201,7 +201,8 @@ private final class ProcessRun: @unchecked Sendable {
         }
     }
 
-    /// 制限時間・取り消し。まず SIGTERM、猶予のあと残っていれば SIGKILL
+    /// 制限時間・取り消し。まず SIGTERM、猶予のあと残っていれば SIGKILL。
+    /// シェルが SIGTERM で終わっても、SIGTERM を無視する子孫がグループに残っていれば、グループごと SIGKILL で止める
     func stop(timedOut: Bool) {
         let target: pid_t? = locked {
             if timedOut { guard !cancelled else { return nil } } else { cancelled = true }
@@ -212,15 +213,25 @@ private final class ProcessRun: @unchecked Sendable {
         guard let target else { return }
         Self.signal(target, SIGTERM)
         DispatchQueue.global().asyncAfter(deadline: .now() + request.killGracePeriod) { [self] in
-            let stillRunning = locked { termination == nil }
-            if stillRunning { Self.signal(target, SIGKILL) }
+            let shellRunning = locked { termination == nil }
+            Self.kill(group: target, orProcess: shellRunning)
+        }
+    }
+
+    /// グループ（ID はシェルの pid）にまだ誰かいれば SIGKILL。グループが無く、シェルがまだ動いていればシェルだけ。
+    /// 終わったシェルの pid は別のプロセスに使い回されることがあるので、グループの無いときに pid へは送らない
+    static func kill(group: pid_t, orProcess processRunning: Bool) {
+        if killpg(group, 0) == 0 {
+            killpg(group, SIGKILL)
+        } else if processRunning {
+            Darwin.kill(group, SIGKILL)
         }
     }
 
     private static func signal(_ pid: pid_t, _ signal: Int32) {
         // グループごと止める。グループが無ければ本人だけ
-        if kill(-pid, signal) != 0 {
-            kill(pid, signal)
+        if Darwin.kill(-pid, signal) != 0 {
+            Darwin.kill(pid, signal)
         }
     }
 

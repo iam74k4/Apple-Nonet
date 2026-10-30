@@ -108,8 +108,10 @@ enum MenuTreeBuilder {
 }
 
 enum MenuPathResolver {
-    /// タイトルの並びをたどった先の項目。Apple メニューは見ない。見つからなければ nil
-    static func resolve<Tree: MenuTree>(_ path: [String], in tree: Tree) throws -> Tree.Node? {
+    /// タイトルの並びをたどった先の項目。Apple メニューは見ない。見つからなければ nil。
+    /// 状態でタイトルが変わる項目（「再生」⇄「一時停止」、「ツールバーを表示」⇄「ツールバーを非表示」）は、
+    /// 対になるタイトルでも探す。最後の項目は、それでも無ければ同じショートカットの項目（同じメニューに1つだけのとき）
+    static func resolve<Tree: MenuTree>(_ path: [String], keyEquivalent: KeySequence? = nil, in tree: Tree) throws -> Tree.Node? {
         guard !path.isEmpty else { return nil }
         var candidates = Array(try tree.menuBarItems().dropFirst())
         var found: Tree.Node?
@@ -117,10 +119,62 @@ enum MenuPathResolver {
             if level > 0, let parent = found {
                 candidates = tree.submenuItems(of: parent)
             }
-            let titles = candidates.map { tree.attributes(of: $0).title }
-            guard let index = MenuTitleMatcher.index(of: title, in: titles) else { return nil }
-            found = candidates[index]
+            let attributes = candidates.map { tree.attributes(of: $0) }
+            let titles = attributes.map(\.title)
+            let isLast = level == path.count - 1
+            if let index = MenuTitleMatcher.index(of: title, in: titles)
+                ?? MenuToggleTitles.alternates(of: title).lazy.compactMap({ MenuTitleMatcher.index(of: $0, in: titles) }).first
+                ?? (isLast ? uniqueIndex(of: keyEquivalent, in: attributes) : nil) {
+                found = candidates[index]
+            } else {
+                return nil
+            }
         }
         return found
+    }
+
+    /// そのショートカットを持つ項目が1つだけならその位置
+    private static func uniqueIndex(of keyEquivalent: KeySequence?, in attributes: [MenuEntryAttributes]) -> Int? {
+        guard let keyEquivalent, !keyEquivalent.chords.isEmpty else { return nil }
+        let matches = attributes.indices.filter { !attributes[$0].trimmedTitle.isEmpty && attributes[$0].keyEquivalent == keyEquivalent }
+        return matches.count == 1 ? matches[0] : nil
+    }
+}
+
+/// 状態で入れ替わるメニュー項目のタイトルの対
+enum MenuToggleTitles {
+    /// 先頭が入れ替わるもの（英語）。後ろに空白か終わりが続くときだけ
+    private static let prefixPairs = [
+        ("Show", "Hide"), ("Enter", "Exit"), ("Play", "Pause"), ("Mute", "Unmute"),
+        ("Start", "Stop"), ("Turn On", "Turn Off"), ("Enable", "Disable"), ("Lock", "Unlock"),
+    ]
+    /// 末尾が入れ替わるもの（日本語）
+    private static let suffixPairs = [
+        ("を非表示", "を表示"), ("にする", "を解除"), ("を開始", "を停止"), ("をオン", "をオフ"),
+    ]
+    /// 全体が入れ替わるもの
+    private static let wholePairs = [
+        ("再生", "一時停止"), ("消音", "消音を解除"), ("表示", "非表示"),
+    ]
+
+    /// 対になるタイトル。無ければ空
+    static func alternates(of title: String) -> [String] {
+        let text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result: [String] = []
+        for (a, b) in wholePairs {
+            if text == a { result.append(b) }
+            if text == b { result.append(a) }
+        }
+        for (a, b) in prefixPairs {
+            for (from, to) in [(a, b), (b, a)] where text == from || text.hasPrefix(from + " ") {
+                result.append(to + String(text.dropFirst(from.count)))
+            }
+        }
+        for (a, b) in suffixPairs {
+            for (from, to) in [(a, b), (b, a)] where text.hasSuffix(from) && text.count > from.count {
+                result.append(String(text.dropLast(from.count)) + to)
+            }
+        }
+        return result
     }
 }

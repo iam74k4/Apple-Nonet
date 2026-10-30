@@ -12,6 +12,8 @@ public final class SystemActionPerformer: ActionPerforming {
     public init() {
         keySender = KeySender()
         contextReader = ContextReader(keySender: keySender)
+        // 前に起動していたときに開かれずに残ったターミナル用のファイル（選択テキストなどが入っている）を消す
+        TerminalCommandFile.removeStaleFilesInBackground()
     }
 
     public func perform(_ action: Action, context: ActionContext) async throws {
@@ -66,19 +68,14 @@ public final class SystemActionPerformer: ActionPerforming {
 
     private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?) async throws {
         try ScriptRunner.validate(source: script.source)
-        var info = await contextReader.read(.forScript, app: frontmost)
+        var info = await contextReader.read(.forScript(source: script.source), app: frontmost).info
         if let text = info.selectedText, text.count > ContextReader.scriptSelectedTextLimit {
             info.selectedText = String(text.prefix(ContextReader.scriptSelectedTextLimit))
         }
-        let projectDirectory = info.documentPath.map { path in
-            ScriptEnvironment.projectDirectory(forDocumentPath: path) { FileManager.default.fileExists(atPath: $0) }
-        }
-        let variables = ScriptEnvironment.variables(for: info, projectDirectory: projectDirectory)
-        let workingDirectory = ScriptRunner.workingDirectory(
-            projectDirectory: projectDirectory,
-            home: FileManager.default.homeDirectoryForCurrentUser,
-            isDirectory: ScriptRunner.isDirectory
-        )
+        // 書類がネットワークの場所にあると、フォルダを調べるだけで長く止まることがあるので、メインスレッドの外で短く調べる
+        let location = await ScriptLocation.find(documentPath: info.documentPath, home: FileManager.default.homeDirectoryForCurrentUser)
+        let variables = ScriptEnvironment.variables(for: info, projectDirectory: location.projectDirectory)
+        let workingDirectory = location.workingDirectory
         switch script.runMode {
         case .background:
             try await ScriptRunner.runInBackground(
@@ -97,7 +94,7 @@ public final class SystemActionPerformer: ActionPerforming {
     private func runShortcut(_ shortcut: ShortcutAction, frontmost: RunningAppInfo?) async throws {
         var input: String?
         if shortcut.passSelectedText {
-            input = await contextReader.read(.forShortcut(shortcut), app: frontmost).selectedText
+            input = await contextReader.read(.forShortcut(shortcut), app: frontmost).info.selectedText
         }
         try await ShortcutRunner.run(name: shortcut.name, input: input)
     }
@@ -136,8 +133,9 @@ public final class SystemActionPerformer: ActionPerforming {
         guard AXIsProcessTrusted() else { throw NonetError.permissionDenied(ActionText.accessibility) }
         let pid = target.processIdentifier
         let path = action.path
+        let keyEquivalent = action.keyEquivalent
         try await Task.detached(priority: .userInitiated) {
-            try MenuItemPresser.press(path: path, pid: pid, appName: name)
+            try MenuItemPresser.press(path: path, keyEquivalent: keyEquivalent, pid: pid, appName: name)
         }.value
     }
 
@@ -146,15 +144,20 @@ public final class SystemActionPerformer: ActionPerforming {
     private func runAI(_ ai: AIAction, frontmost: RunningAppInfo?) async throws -> String? {
         // 使えないなら、⌘C などを送る前に知らせる
         try OnDeviceAI.checkAvailability()
-        let info = await contextReader.read(.forAI, app: frontmost)
-        guard let text = info.selectedText, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw NonetError.actionFailed(String(localized: "テキストを選択してから実行してください", bundle: .nonetActions))
+        let reading = await contextReader.read(.forAI, app: frontmost)
+        guard let text = reading.info.selectedText, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
         }
         let result = try await OnDeviceAI.respond(instruction: ai.prompt, text: text)
         switch ai.output {
         case .replaceSelection:
-            try await replaceSelection(with: result, in: frontmost)
-            return nil
+            // アクセシビリティが「選択なし」と答えていたなら、貼り付けると選択の置き換えではなくカーソルの位置への挿入になる。
+            // クリップボードの中身を保てないときも貼り付けない。どちらも結果のパネルに出す（利用者がコピーできる）
+            guard ReplacePlan.canPaste(over: reading.selectionSource) else {
+                ActionLog.logger.notice("選択があるか確かめられないので、置き換えずに結果を表示します")
+                return result
+            }
+            return try await replaceSelection(with: result, in: frontmost) ? nil : result
         case .copyToClipboard:
             PasteboardWriter.write(result, to: .general)
             return nil
@@ -163,27 +166,60 @@ public final class SystemActionPerformer: ActionPerforming {
         }
     }
 
-    /// クリップボード経由で ⌘V し、少し待ってから元のクリップボードに戻す
-    private func replaceSelection(with text: String, in app: RunningAppInfo?) async throws {
+    /// クリップボード経由で ⌘V し、相手が読み終えてから元のクリップボードに戻す。
+    /// クリップボードの中身を保てない（大きすぎる・読む許可が無いなど）ときは貼り付けずに false
+    private func replaceSelection(with text: String, in app: RunningAppInfo?) async throws -> Bool {
         let pasteboard = NSPasteboard.general
-        // AI の処理中にほかのアプリへ移っていたら、そこへは貼らない
-        if let app, NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processID {
+        // AI の処理中や、クリップボードを写している間にほかのアプリへ移っていたら、そこへは貼らない
+        func frontmostChanged() -> Bool {
+            guard let app else { return false }
+            return NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processID
+        }
+        do {
+            if frontmostChanged() { throw FrontmostAppChanged() }
+            let keySender = keySender
+            let outcome = try await ClipboardPaste.paste(text, to: pasteboard) {
+                if frontmostChanged() { throw FrontmostAppChanged() }
+                try await keySender.send(.key("v", .command))
+            }
+            return outcome == .pasted
+        } catch is FrontmostAppChanged {
             PasteboardWriter.write(text, to: pasteboard)
             throw NonetError.actionFailed(String(localized: "前面のアプリが変わったため、結果をクリップボードにコピーしました", bundle: .nonetActions))
         }
-        let snapshot = PasteboardSnapshot(pasteboard)
-        let changeCount = PasteboardWriter.write(text, to: pasteboard, transient: true)
-        do {
-            try await keySender.send(.key("v", .command))
-        } catch {
-            snapshot.restore(to: pasteboard)
-            throw error
+    }
+
+    private struct FrontmostAppChanged: Error {}
+}
+
+enum SelectionMessage {
+    /// 選択テキストを読めなかったときの説明。⌘C を送れなかった理由や、エディタの行のコピーを無視したことが分かれば、それを伝える
+    static func noSelection(_ reading: ContextReading) -> String {
+        switch reading.copyUnavailable {
+        case .denied?:
+            return String(
+                localized: "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください",
+                bundle: .nonetActions
+            )
+        case .some:
+            return String(
+                localized: "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください",
+                bundle: .nonetActions
+            )
+        case nil:
+            break
         }
-        Task { @MainActor in
-            // アプリがクリップボードを読み終えるのを待つ。その間に利用者がコピーしたものは消さない
-            try? await Task.sleep(for: .milliseconds(600))
-            if pasteboard.changeCount == changeCount { snapshot.restore(to: pasteboard) }
+        if reading.ignoredLineCopy {
+            return String(localized: "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください", bundle: .nonetActions)
         }
+        return String(localized: "テキストを選択してから実行してください", bundle: .nonetActions)
+    }
+}
+
+enum ReplacePlan {
+    /// 選択範囲を貼り付けで置き換えてよいか。⌘C で取れても、アクセシビリティが「選択なし」と答えていたなら置き換えない
+    static func canPaste(over source: SelectionSource?) -> Bool {
+        source != .copyAfterEmpty
     }
 }
 

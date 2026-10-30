@@ -101,6 +101,59 @@ struct ActionMenuTreeTests {
         #expect(copy?.attributes.cmdChar == "C")
     }
 
+    /// 状態でタイトルが変わる項目のあるメニュー
+    private static let toggling = FakeMenuTree(bar: [
+        FakeMenu("Apple"),
+        FakeMenu("Controls", [FakeMenu("Pause", char: " ", modifiers: 8), FakeMenu("Next", char: "→")]),
+        FakeMenu("View", [
+            FakeMenu("Hide Toolbar", char: "T", modifiers: 2),
+            FakeMenu("Exit Full Screen", char: "F", modifiers: 4),
+            FakeMenu("as Columns", char: "3"),
+            FakeMenu("Use Small Icons", char: "1"),
+            FakeMenu("Sort A", char: "S", modifiers: 1),
+            FakeMenu("Sort B", char: "S", modifiers: 1),
+        ]),
+        FakeMenu("表示", [FakeMenu("ツールバーを非表示"), FakeMenu("フルスクリーンを解除")]),
+        FakeMenu("コントロール", [FakeMenu("一時停止")]),
+    ])
+
+    @Test("押して名前が変わった項目（再生⇄一時停止、表示⇄非表示）も、対になるタイトルで見つける")
+    func resolvesToggledTitles() throws {
+        let tree = Self.toggling
+        #expect(try MenuPathResolver.resolve(["Controls", "Play"], in: tree)?.attributes.title == "Pause")
+        #expect(try MenuPathResolver.resolve(["View", "Show Toolbar"], in: tree)?.attributes.title == "Hide Toolbar")
+        #expect(try MenuPathResolver.resolve(["View", "Enter Full Screen"], in: tree)?.attributes.title == "Exit Full Screen")
+        #expect(try MenuPathResolver.resolve(["表示", "ツールバーを表示"], in: tree)?.attributes.title == "ツールバーを非表示")
+        #expect(try MenuPathResolver.resolve(["表示", "フルスクリーンにする"], in: tree)?.attributes.title == "フルスクリーンを解除")
+        #expect(try MenuPathResolver.resolve(["コントロール", "再生"], in: tree)?.attributes.title == "一時停止")
+    }
+
+    @Test("それでも無ければ、同じショートカットの項目（メニューに1つだけのとき）")
+    func resolvesByKeyEquivalent() throws {
+        let tree = Self.toggling
+        let icons = try MenuPathResolver.resolve(["View", "Use Large Icons"], keyEquivalent: .key("1", .command), in: tree)
+        #expect(icons?.attributes.title == "Use Small Icons")
+        // ショートカットが同じ項目が2つあれば選ばない
+        #expect(try MenuPathResolver.resolve(["View", "Sort C"], keyEquivalent: .key("s", [.command, .shift]), in: tree) == nil)
+        // ショートカットが無ければ見つからない（はっきり「見つかりません」と知らせる）
+        #expect(try MenuPathResolver.resolve(["View", "Use Large Icons"], in: tree) == nil)
+        // 途中のメニューはショートカットで探さない
+        #expect(try MenuPathResolver.resolve(["Missing", "Use Small Icons"], keyEquivalent: .key("1", .command), in: tree) == nil)
+    }
+
+    @Test("対になるタイトル")
+    func toggleAlternates() {
+        #expect(MenuToggleTitles.alternates(of: "Show Sidebar").contains("Hide Sidebar"))
+        #expect(MenuToggleTitles.alternates(of: "Hide Sidebar").contains("Show Sidebar"))
+        #expect(MenuToggleTitles.alternates(of: "Play").contains("Pause"))
+        #expect(MenuToggleTitles.alternates(of: "Start Dictation…").contains("Stop Dictation…"))
+        #expect(MenuToggleTitles.alternates(of: "サイドバーを表示") == ["サイドバーを非表示"])
+        #expect(MenuToggleTitles.alternates(of: "サイドバーを非表示") == ["サイドバーを表示"])
+        // 単語の途中は入れ替えない
+        #expect(MenuToggleTitles.alternates(of: "Showcase").isEmpty)
+        #expect(MenuToggleTitles.alternates(of: "Copy").isEmpty)
+    }
+
     @Test("見つからなければ nil。Apple メニューはたどらない")
     func missingPaths() throws {
         #expect(try MenuPathResolver.resolve(["File", "Print"], in: Self.sample) == nil)
