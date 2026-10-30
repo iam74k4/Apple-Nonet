@@ -134,17 +134,18 @@ struct SettingsGridCell: View {
             .foregroundStyle(Color.primary)
     }
 
+    /// 長い名前は縮めずに省く（縮めると隣のマスと文字の大きさがそろわない）
     private func title(_ cell: Cell) -> some View {
         Text(SettingsGrid.displayTitle(for: cell))
             .font(.system(size: 13, weight: .medium))
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
             .truncationMode(.tail)
     }
 
     private func subtitle(_ cell: Cell) -> some View {
-        Text(SettingsGrid.subtitle(for: cell))
-            .font(.system(size: 11, design: .monospaced))
+        let subtitle = SettingsGrid.subtitleContent(for: cell)
+        return Text(subtitle.text)
+            .font(.system(size: 11, design: subtitle.isKeys ? .monospaced : .default))
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .truncationMode(.middle)

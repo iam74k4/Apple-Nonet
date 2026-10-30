@@ -47,12 +47,12 @@ struct SettingsRootView: View {
             isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
             presenting: model.confirmation
         ) { confirmation in
-            Button(role: .destructive) {
+            Button(role: confirmationRole(confirmation)) {
                 model.confirm(confirmation)
             } label: {
                 Text(confirmationButton(confirmation))
             }
-            if case .importProfiles(let plan) = confirmation, plan.addsProfiles {
+            if case .importProfiles(let plan) = confirmation, plan.replacesExisting, plan.addsProfiles {
                 Button {
                     model.importNewProfilesOnly(plan)
                 } label: {
@@ -101,8 +101,16 @@ struct SettingsRootView: View {
         switch confirmation {
         case .deleteProfile, .removePage: String(localized: "削除", bundle: .module)
         case .deactivateLicense: String(localized: "登録を解除", bundle: .module)
-        case .importProfiles: String(localized: "置き換えて読み込む", bundle: .module)
+        case .importProfiles(let plan): SettingsText.importConfirmationButton(plan)
         }
+    }
+
+    /// 何も消さない読み込み（スクリプトを含むだけ）は、赤いボタンにしない
+    private func confirmationRole(_ confirmation: SettingsModel.Confirmation) -> ButtonRole? {
+        if case .importProfiles(let plan) = confirmation, !plan.replacesExisting {
+            return nil
+        }
+        return .destructive
     }
 }
 

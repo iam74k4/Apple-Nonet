@@ -65,6 +65,8 @@ public final class SettingsWindowController {
         window.makeKeyAndOrderFront(nil)
         // メニューバー常駐のアプリ（LSUIElement）は、前に出さないとウィンドウがほかのアプリの後ろに隠れる
         NSApp.activate()
+        // ほかのアプリを使っている最中などで前に出せなかったときも、ウィンドウは見えるようにする
+        window.orderFrontRegardless()
     }
 
     func select(_ tab: SettingsTab) {
@@ -87,6 +89,12 @@ public final class SettingsWindowController {
         )
         window.isReleasedWhenClosed = false
         window.contentMinSize = Self.minimumSize
+        // 前に開いていた操作スペースへ移らず、今の操作スペース（フルスクリーンのアプリの上を含む）に出す
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        // 中身を入れる前に delegate を付ける。中身が先にウィンドウの undoManager を尋ねると、
+        // ウィンドウが自分のものを作って使い続け、設定の undoManager（マスの変更の取り消し）に届かない
+        let coordinator = SettingsWindowCoordinator(owner: self, window: window)
+        window.delegate = coordinator
         let hosting = NSHostingController(rootView: SettingsRootView(model: model))
         // 中身の大きさに合わせてウィンドウを縮めたり広げたりしない（最小の大きさだけ守る）
         hosting.sizingOptions = [.minSize]
@@ -98,14 +106,12 @@ public final class SettingsWindowController {
             window.setFrameAutosaveName(Self.frameAutosaveName)
         }
 
-        let coordinator = SettingsWindowCoordinator(owner: self, window: window)
         let toolbar = NSToolbar(identifier: "NonetSettingsToolbar")
         toolbar.delegate = coordinator
         toolbar.displayMode = .iconAndLabel
         toolbar.allowsUserCustomization = false
         window.toolbar = toolbar
         window.toolbarStyle = .preference
-        window.delegate = coordinator
         model.files = coordinator
 
         self.coordinator = coordinator
@@ -178,6 +184,11 @@ final class SettingsWindowCoordinator: NSObject, NSToolbarDelegate, NSWindowDele
         // 打ちかけの欄を確定させる
         window?.makeFirstResponder(nil)
         owner?.model.windowWillClose()
+    }
+
+    /// 編集 › 取り消す（⌘Z）がマスの変更も元に戻せるよう、設定の undoManager を使う
+    func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? {
+        owner?.model.undoManager
     }
 
     // MARK: SettingsFileChoosing

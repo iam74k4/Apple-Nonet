@@ -80,9 +80,27 @@ enum SettingsText {
     }
 
     /// 「0.30秒」
-    static func seconds(_ value: Double, locale: Locale = .current) -> String {
+    static func seconds(_ value: Double, locale: Locale = uiLocale) -> String {
         let number = value.formatted(.number.precision(.fractionLength(2)).locale(locale))
         return String(localized: "\(number)秒", bundle: .module)
+    }
+
+    // MARK: 日付と数の書き方
+
+    /// 文言と同じ言語（このモジュールのカタログから選ばれた言語）に、利用者の地域を合わせた Locale。
+    /// アプリだけ英語にしているときなど、Locale.current の言語が文言と違うことがあり、日付だけ日本語になってしまう
+    static var uiLocale: Locale {
+        uiLocale(language: Bundle.module.preferredLocalizations.first, region: Locale.current.region)
+    }
+
+    static func uiLocale(language: String?, region: Locale.Region?) -> Locale {
+        guard let language, !language.isEmpty else { return .current }
+        return Locale(languageCode: Locale.LanguageCode(language), languageRegion: region)
+    }
+
+    /// ライセンスの発行日（「2026年9月21日」）
+    static func issuedDate(_ date: Date, locale: Locale = uiLocale) -> String {
+        date.formatted(.dateTime.year().month(.wide).day().locale(locale))
     }
 
     /// 読み込みの結果（1行に1つ）
@@ -112,23 +130,47 @@ enum SettingsText {
     /// 確かめるときに名前を並べる数（多いときは残りを数で伝える）
     static let importConfirmationNameLimit = 6
 
-    /// 読み込むと置き換わるものを確かめる文
+    /// 読み込む前に確かめる文。置き換わるものと、スクリプトを含むプロファイル（両方あれば空行で分ける）
     static func importConfirmation(_ plan: SettingsImportPlan) -> String {
-        var targets: [String] = []
-        if plan.result.replacedGlobal {
-            targets.append(String(localized: "グローバルのページ", bundle: .module))
+        var sections: [[String]] = []
+        if plan.replacesExisting {
+            var targets: [String] = []
+            if plan.result.replacedGlobal {
+                targets.append(String(localized: "グローバルのページ", bundle: .module))
+            }
+            targets += plan.replacedNames
+            var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
+            lines += importConfirmationNames(targets)
+            if plan.result.added > 0 {
+                lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module))
+            }
+            sections.append(lines)
         }
-        targets += plan.replacedNames
-        var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
-        lines += targets.prefix(importConfirmationNameLimit).map { String(localized: "・\($0)", bundle: .module) }
-        let rest = targets.count - importConfirmationNameLimit
+        if plan.containsScripts {
+            sections.append(
+                [String(localized: "次のプロファイルには、スクリプトを実行するマスがあります。スクリプトはあなたの権限で動くので、信頼できるファイルだけを読み込んでください。", bundle: .module)]
+                    + importConfirmationNames(plan.scriptProfileNames)
+            )
+        }
+        return sections.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
+    }
+
+    /// 読み込みを確かめるときの、読み込むボタン
+    static func importConfirmationButton(_ plan: SettingsImportPlan) -> String {
+        plan.replacesExisting
+            ? String(localized: "置き換えて読み込む", bundle: .module)
+            // 「読み込む」は一覧の読み込み（Load）と同じ言葉なので、別のキーにする
+            : String(localized: "settings.import.confirmButton", defaultValue: "読み込む", bundle: .module)
+    }
+
+    /// 「・名前」の行。多いときは残りを数で伝える
+    private static func importConfirmationNames(_ names: [String]) -> [String] {
+        var lines = names.prefix(importConfirmationNameLimit).map { String(localized: "・\($0)", bundle: .module) }
+        let rest = names.count - importConfirmationNameLimit
         if rest > 0 {
             lines.append(String(localized: "ほか\(rest)個", bundle: .module))
         }
-        if plan.result.added > 0 {
-            lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module))
-        }
-        return lines.joined(separator: "\n")
+        return lines
     }
 
     /// 書き出しや読み込みの失敗。ConfigurationStoreError はその説明、ほかはファイルの問題として伝える

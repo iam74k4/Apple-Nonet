@@ -789,6 +789,42 @@ import Testing
         #expect(!h.model.loginItemEnabled)
     }
 
+    /// システム設定の「ログイン項目」での許可待ちは、失敗ではなく許可を求める知らせにする。許可されて戻ってきたら消す
+    @Test func aLoginItemWaitingForApprovalIsClearedOnceAllowed() throws {
+        let h = try SettingsHarness()
+        h.loginItem.failure = NonetError.permissionDenied("ログイン項目")
+        h.model.setLoginItemEnabled(true)
+        #expect(!h.model.loginItemEnabled)
+        #expect(h.model.loginItemError == L10n.ui("システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります"))
+        // 許可されないまま戻ってきたら、知らせは残す
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemError != nil)
+        // システム設定で許可して戻ってくる
+        h.loginItem.failure = nil
+        h.loginItem.isEnabled = true
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemEnabled)
+        #expect(h.model.loginItemError == nil)
+    }
+
+    @Test func aLoginItemFailureStaysUntilTheStateMatches() throws {
+        let h = try SettingsHarness()
+        h.loginItem.isEnabled = true
+        h.model.refreshLoginItem()
+        h.loginItem.failure = SettingsFakeLoginError()
+        h.model.setLoginItemEnabled(false)
+        let reason = try #require(SettingsFakeLoginError().errorDescription)
+        #expect(h.model.loginItemError == L10n.ui("ログイン時に起動しないように設定できませんでした（\(reason)）"))
+        // まだオンのまま: 止められなかったという知らせはそのまま
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemEnabled)
+        #expect(h.model.loginItemError != nil)
+        // ほかの所（システム設定）でオフにされた
+        h.loginItem.isEnabled = false
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemError == nil)
+    }
+
     @Test func installedAppsAreReadOnce() throws {
         let h = try SettingsHarness()
         h.model.loadInstalledAppsIfNeeded()
@@ -829,6 +865,14 @@ import Testing
         #expect(h.xcodeProfile == nil)
         h.files.importURL = url
         await h.model.importProfiles()
+        // Xcode のプリセットにはスクリプトのマスがあるので、何も置き換わらなくても先に確かめる
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("スクリプトを含むのに確かめずに読み込んだ")
+            return
+        }
+        #expect(plan.scriptProfileNames == ["Xcode"])
+        #expect(h.xcodeProfile == nil)
+        h.model.confirm(.importProfiles(plan))
         let restored = try #require(h.xcodeProfile)
         #expect(restored.pages[0].cells.compactMap { $0?.title } == xcode.pages[0].cells.compactMap { $0?.title })
         let message = try #require(h.model.fileMessage)
@@ -889,6 +933,12 @@ import Testing
         #expect(message.contains(L10n.ui("・\("自分の Xcode")")))
         #expect(message.contains(L10n.ui("・\("Safari")")))
         #expect(message.contains(L10n.ui("ほかに\(1)個のプロファイルを新しく追加します。")))
+        // 同僚の Xcode にはスクリプトがある。置き換えの確認と1つにまとめて伝える
+        #expect(plan.scriptProfileNames == ["Xcode"])
+        let scripts = [L10n.ui("次のプロファイルには、スクリプトを実行するマスがあります。スクリプトはあなたの権限で動くので、信頼できるファイルだけを読み込んでください。"), L10n.ui("・\("Xcode")")]
+        #expect(message.hasSuffix("\n\n" + scripts.joined(separator: "\n")))
+        #expect(message.hasPrefix(L10n.ui("次の設定が、ファイルの中身で置き換わります。元に戻せません。")))
+        #expect(SettingsText.importConfirmationButton(plan) == L10n.ui("置き換えて読み込む"))
 
         // キャンセルすれば何も変わらない
         h.model.confirmation = nil
@@ -928,6 +978,49 @@ import Testing
         let figma = try #require(other.model.appProfiles.last)
         let url = h.temporaryFile("figma.nonetprofile")
         h.model.exportProfiles([figma], to: url)
+        h.model.importProfiles(from: url)
+        #expect(h.model.confirmation == nil)
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+    }
+
+    /// スクリプトのマスはあなたの権限で動くので、何も置き換わらなくても読み込む前に確かめる
+    @Test func importingScriptsAsksFirstEvenWhenNothingIsReplaced() throws {
+        let h = try SettingsHarness()
+        let script = Cell(title: "片付け", icon: .symbol("eraser"), action: .script(ScriptAction(source: "rm -rf ~/build", runMode: .background)))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [script])])
+        let url = h.temporaryFile("figma.nonetprofile")
+        h.model.exportProfiles([figma], to: url)
+        h.model.fileMessage = nil
+        let before = h.controller.configuration
+        h.model.importProfiles(from: url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("スクリプトを含むのに確かめずに読み込んだ")
+            return
+        }
+        #expect(!plan.replacesExisting)
+        #expect(plan.scriptProfileNames == ["Figma"])
+        #expect(h.controller.configuration == before)
+        #expect(h.model.fileMessage == nil)
+        #expect(SettingsText.importConfirmation(plan) == [
+            L10n.ui("次のプロファイルには、スクリプトを実行するマスがあります。スクリプトはあなたの権限で動くので、信頼できるファイルだけを読み込んでください。"),
+            L10n.ui("・\("Figma")"),
+        ].joined(separator: "\n"))
+        // 置き換えないので「置き換えて読み込む」ではなく、ただの「読み込む」
+        #expect(SettingsText.importConfirmationButton(plan) == String(localized: "settings.import.confirmButton", defaultValue: "読み込む", bundle: .nonetUI))
+
+        h.model.confirm(.importProfiles(plan))
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+        #expect(h.model.fileMessage?.text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")) == true)
+    }
+
+    /// 重なっていて読み込まれないプロファイルのスクリプトは数えない
+    @Test func scriptsThatAreNotImportedNeedNoConfirmation() throws {
+        let h = try SettingsHarness()
+        let script = Cell(title: "片付け", icon: .symbol("eraser"), action: .script(ScriptAction(source: "echo", runMode: .background)))
+        let first = Profile(kind: .app(SettingsFixtures.figma), pages: [.empty])
+        let duplicate = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [script])])
+        let url = h.temporaryFile("figma.nonetprofile")
+        h.model.exportProfiles([first, duplicate], to: url)
         h.model.importProfiles(from: url)
         #expect(h.model.confirmation == nil)
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])

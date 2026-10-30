@@ -10,6 +10,12 @@ struct SettingsMessage: Equatable {
     var isError: Bool
 }
 
+/// 元に戻すときに覚えておく、マスの場所と中身
+struct SettingsCellSnapshot: Equatable {
+    var address: CellAddress
+    var cell: Cell?
+}
+
 /// 書き出し・読み込みのファイルを選ぶ（テストでは偽物にする）
 @MainActor
 protocol SettingsFileChoosing: AnyObject {
@@ -33,7 +39,7 @@ final class SettingsModel {
         case deleteProfile(id: UUID, name: String)
         case removePage(profileID: UUID, index: Int)
         case deactivateLicense
-        /// 読み込むと今のプロファイルやグローバルのページが置き換わる
+        /// 読み込むと今のプロファイルやグローバルのページが置き換わるか、スクリプトのマスを含む
         case importProfiles(SettingsImportPlan)
 
         var id: String {
@@ -81,9 +87,16 @@ final class SettingsModel {
     private(set) var recordingCellID: UUID?
     @ObservationIgnored private let keyMonitor = SettingsKeyEventMonitor()
 
+    // MARK: 元に戻す
+    /// マスを空にする・入れ替える・作る・メニュー項目を割り当てるなどを元に戻す（設定ウィンドウの undoManager。⌘Z）
+    @ObservationIgnored let undoManager = UndoManager()
+
     // MARK: 一般
     private(set) var loginItemEnabled = false
-    var loginItemError: String?
+    /// ログイン時に起動を変えられなかったとき（システム設定での許可待ちを含む）の知らせ
+    private(set) var loginItemError: String?
+    /// loginItemError を出したときに望んでいた状態。そうなったら知らせを消す
+    @ObservationIgnored private var loginItemWanted: Bool?
 
     // MARK: ライセンス
     var licenseKeyInput = ""
@@ -189,6 +202,7 @@ final class SettingsModel {
         guard let position = before.firstIndex(where: { $0.id == id }) else { return }
         let wasSelected = selectedProfile.id == id
         controller.update { $0.removeProfile(id: id) }
+        discardCellUndo()
         rememberedActions = rememberedActions.filter { cellID, _ in
             configuration.profiles.contains { SettingsGrid.address(ofCell: cellID, in: $0) != nil }
         }
@@ -241,6 +255,7 @@ final class SettingsModel {
     func removePage(_ index: Int, profileID: UUID) {
         finishRecording()
         controller.update { $0.removePage(at: index, profileID: profileID) }
+        discardCellUndo()
         guard profileID == selectedProfile.id else { return }
         if selectedPage > index || selectedPage >= selectedProfile.pages.count {
             selectedPage = max(selectedPage - 1, 0)
@@ -265,14 +280,17 @@ final class SettingsModel {
         selectCell(SettingsGrid.neighbor(of: current, direction))
     }
 
+    /// マスを空にする（確かめずに消すので、元に戻せるようにする）
     func clearCell(at index: Int) {
         let profileID = selectedProfile.id
         let address = CellAddress(page: pageIndex, index: index)
-        guard SettingsGrid.cell(at: address, in: selectedProfile) != nil else { return }
-        if recordingCellID == SettingsGrid.cell(at: address, in: selectedProfile)?.id {
+        guard let cell = SettingsGrid.cell(at: address, in: selectedProfile) else { return }
+        if recordingCellID == cell.id {
             cancelRecording()
         }
-        controller.update { $0.setCell(nil, at: address, profileID: profileID) }
+        changeCells(String(localized: "マスを空にする", bundle: .module), profileID: profileID, at: [address]) {
+            $0.setCell(nil, at: address, profileID: profileID)
+        }
     }
 
     /// 次の空きマスに写す。空きが無ければ知らせる
@@ -285,7 +303,9 @@ final class SettingsModel {
             return
         }
         copy.id = UUID()
-        controller.update { $0.setCell(copy, at: target, profileID: profile.id) }
+        changeCells(String(localized: "複製", bundle: .module), profileID: profile.id, at: [target]) {
+            $0.setCell(copy, at: target, profileID: profile.id)
+        }
         finishRecording()
         selectedPage = target.page
         selectedIndex = target.index
@@ -299,7 +319,9 @@ final class SettingsModel {
         // 右クリックで作るときも、記録中のマスから離れるので記録を終える
         finishRecording()
         let cell = SettingsCellEditing.newCell(kind: kind)
-        controller.update { $0.setCell(cell, at: address, profileID: profileID) }
+        changeCells(String(localized: "アクションを追加", bundle: .module), profileID: profileID, at: [address]) {
+            $0.setCell(cell, at: address, profileID: profileID)
+        }
         selectedIndex = index
         gridMessage = nil
     }
@@ -335,7 +357,12 @@ final class SettingsModel {
 
     func swapCells(_ source: CellAddress, _ destination: CellAddress) {
         let profileID = selectedProfile.id
-        controller.update { $0.swapCells(source, destination, profileID: profileID) }
+        let actionName = SettingsGrid.isEmpty(destination, in: selectedProfile)
+            ? String(localized: "マスの移動", bundle: .module)
+            : String(localized: "マスの入れ替え", bundle: .module)
+        changeCells(actionName, profileID: profileID, at: [source, destination]) {
+            $0.swapCells(source, destination, profileID: profileID)
+        }
         finishRecording()
         selectedPage = destination.page
         selectedIndex = destination.index
@@ -354,10 +381,77 @@ final class SettingsModel {
             cancelRecording()
         }
         let cell = SettingsCellEditing.assigningMenuItem(item, app: menuBrowser.selectedApp?.app, to: existing)
-        controller.update { $0.setCell(cell, at: target, profileID: profile.id) }
+        // 中身のあるマスに落とすと置き換わるので、元に戻せるようにする
+        changeCells(String(localized: "メニュー項目の割り当て", bundle: .module), profileID: profile.id, at: [target]) {
+            $0.setCell(cell, at: target, profileID: profile.id)
+        }
         selectedPage = target.page
         selectedIndex = target.index
         gridMessage = nil
+    }
+
+    // MARK: - 元に戻す
+
+    /// マスを変え、元に戻せるようにする。addresses は change で中身が変わる場所（変える前と後の中身を覚える）
+    private func changeCells(_ actionName: String, profileID: UUID, at addresses: [CellAddress], _ change: (inout NonetConfiguration) -> Void) {
+        let before = cellSnapshots(at: addresses, profileID: profileID)
+        controller.update(change)
+        let after = cellSnapshots(at: addresses, profileID: profileID)
+        guard before != after else { return }
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: self) { model in
+            model.restoreCells(before, expecting: after, profileID: profileID, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
+    }
+
+    /// 覚えておいた中身に戻す（元に戻す・やり直す）。今の中身が変えた後のものと違えば（間にほかの変更があれば）何もしない。
+    /// 入れ替えで別の場所へ動いたマスは今の中身を使い、その後にインスペクタで変えたものを失わない
+    private func restoreCells(_ snapshots: [SettingsCellSnapshot], expecting expected: [SettingsCellSnapshot], profileID: UUID, actionName: String) {
+        // 記録中のキーを先に保存してから、今の中身を読む
+        finishRecording()
+        let addresses = snapshots.map(\.address)
+        let current = cellSnapshots(at: addresses, profileID: profileID)
+        guard configuration.profile(id: profileID) != nil, current.map(\.cell?.id) == expected.map(\.cell?.id) else { return }
+        let restored = snapshots.map { snapshot in
+            guard let id = snapshot.cell?.id,
+                  let moved = current.first(where: { $0.address != snapshot.address && $0.cell?.id == id })?.cell else { return snapshot }
+            return SettingsCellSnapshot(address: snapshot.address, cell: moved)
+        }
+        // 元に戻している間に登録したものは、やり直しになる
+        changeCells(actionName, profileID: profileID, at: addresses) { configuration in
+            // 先にすべて空けてから入れる（入れ替えた2つの id が途中で重なって、振り直されないように）
+            for snapshot in restored {
+                configuration.setCell(nil, at: snapshot.address, profileID: profileID)
+            }
+            for snapshot in restored {
+                configuration.setCell(snapshot.cell, at: snapshot.address, profileID: profileID)
+            }
+        }
+        if let address = addresses.first {
+            reveal(address, profileID: profileID)
+        }
+    }
+
+    private func cellSnapshots(at addresses: [CellAddress], profileID: UUID) -> [SettingsCellSnapshot] {
+        guard let profile = configuration.profile(id: profileID) else { return [] }
+        return addresses.map { SettingsCellSnapshot(address: $0, cell: SettingsGrid.cell(at: $0, in: profile)) }
+    }
+
+    /// 元に戻したマスを選んで見せる
+    private func reveal(_ address: CellAddress, profileID: UUID) {
+        if selectedProfile.id != profileID {
+            selectProfile(profileID)
+        }
+        selectedPage = address.page
+        selectedIndex = address.index
+        gridMessage = nil
+    }
+
+    /// ページやプロファイルを消したり、読み込みで置き換えたりした後は、覚えた場所がずれるので元に戻せなくする
+    private func discardCellUndo() {
+        undoManager.removeAllActions(withTarget: self)
     }
 
     // MARK: - インスペクタ
@@ -543,20 +637,33 @@ final class SettingsModel {
         SettingsText.triggerWarning(trigger: settings.trigger, isJISKeyboard: services.isJISKeyboard)
     }
 
+    /// システム設定から戻ったときなど。望んでいた状態になっていれば、前の知らせは消す
+    /// （システム設定の「ログイン項目」で許可されたのに、できなかったと出し続けないように）
     func refreshLoginItem() {
         loginItemEnabled = services.loginItem.isEnabled
+        if let wanted = loginItemWanted, wanted == loginItemEnabled {
+            loginItemError = nil
+            loginItemWanted = nil
+        }
     }
 
     func setLoginItemEnabled(_ enabled: Bool) {
         do {
             try services.loginItem.setEnabled(enabled)
             loginItemError = nil
+            loginItemWanted = nil
+        } catch NonetError.permissionDenied where enabled {
+            // 登録はできたが、システム設定の「ログイン項目」で許可されるまで動かない（システム設定はサービスが開く）
+            settingsLog.info("ログイン時に起動するには、システム設定での許可が要ります")
+            loginItemError = String(localized: "システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります", bundle: .module)
+            loginItemWanted = enabled
         } catch {
             settingsLog.error("ログイン時に起動を変えられませんでした: \(error.localizedDescription, privacy: .public)")
             let reason = error.localizedDescription
             loginItemError = enabled
                 ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）", bundle: .module)
                 : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）", bundle: .module)
+            loginItemWanted = enabled
         }
         loginItemEnabled = services.loginItem.isEnabled
     }
@@ -607,7 +714,8 @@ final class SettingsModel {
         importProfiles(from: url)
     }
 
-    /// ファイルを読み、今のプロファイルやグローバルのページが置き換わるなら先に確かめる（元に戻せないため）
+    /// ファイルを読み、今のプロファイルやグローバルのページが置き換わるなら先に確かめる（元に戻せないため）。
+    /// スクリプトのマスがあるときも、何も置き換わらなくても先に確かめる（読み込むとすぐ、あなたの権限で動かせるため）
     func importProfiles(from url: URL) {
         let document: ConfigurationStore.ImportedProfiles
         do {
@@ -619,7 +727,7 @@ final class SettingsModel {
             return
         }
         let plan = SettingsImportPlan(document: document, configuration: configuration, fileName: url.lastPathComponent)
-        if plan.replacesExisting {
+        if plan.needsConfirmation {
             confirmation = .importProfiles(plan)
         } else {
             applyImport(document)
@@ -636,6 +744,7 @@ final class SettingsModel {
         finishRecording()
         var result = NonetConfiguration.ImportResult()
         controller.update { result = $0.importProfiles(document) }
+        discardCellUndo()
         fileMessage = SettingsMessage(
             text: SettingsText.importSummary(result, containsScripts: SettingsImportPlan.containsScripts(document.profiles)),
             isError: result.appliedCount == 0

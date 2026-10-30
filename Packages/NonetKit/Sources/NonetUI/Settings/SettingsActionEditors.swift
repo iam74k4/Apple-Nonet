@@ -53,20 +53,29 @@ struct SettingsKeystrokeEditor: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // 記録はこのアプリに届いたキーだけを見る。スクリーンショットなどのキーは macOS が先に使うので届かない
+                    Text("スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください", bundle: .module)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     HStack(spacing: 6) {
-                        TextField(text: $notation, prompt: Text("表記で入力（例: ⌘L → ⌘C）", bundle: .module)) {
+                        // 等幅にすると案内（プロンプト）まで等幅になり、狭いインスペクタで切れる
+                        TextField(text: $notation, prompt: Text("表記で入力", bundle: .module)) {
                             Text("キーの表記", bundle: .module)
                         }
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
                         .onSubmit(applyNotation)
                         Button(action: applyNotation) {
                             Text("決定", bundle: .module)
                         }
                         .disabled(notation.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
+                    Text("例: ⌘L → ⌘C。スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できないので、ここに入力します", bundle: .module)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let notationMessage {
                         SettingsNote(text: notationMessage, symbol: "exclamationmark.triangle", isWarning: true)
                     }
@@ -90,7 +99,7 @@ struct SettingsKeystrokeEditor: View {
                     .foregroundStyle(isRecording ? Color.red : Color.secondary)
                     .accessibilityHidden(true)
                 Text(fieldText)
-                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .font(.system(size: 15, weight: .medium, design: fieldTextIsPlaceholder ? .default : .monospaced))
                     .foregroundStyle(fieldTextIsPlaceholder ? Color.secondary : Color.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -479,7 +488,11 @@ struct SettingsScriptHelp: View {
             Divider()
             // ~ や $ を Markdown として読まないよう、String で渡す
             VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "変数は \"$NONET_SELECTED_TEXT\" のように \" で囲んでください。無いかもしれない変数は ${PROJECT_DIR:-$HOME} のように既定値を付けると安全です。", bundle: .module))
+                // コードの例は文の中に入れると途中で折り返されるので、それぞれの行に置く
+                Text(String(localized: "変数は次のように \" で囲んでください。", bundle: .module))
+                SettingsCodeLine(code: "\"$NONET_SELECTED_TEXT\"")
+                Text(String(localized: "無いかもしれない変数は、次のように既定値を付けると安全です。", bundle: .module))
+                SettingsCodeLine(code: "${PROJECT_DIR:-$HOME}")
                 Text(String(localized: "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。", bundle: .module))
                 Text(String(localized: "ブラウザの URL を初めて読むときや、ターミナルで初めて実行するときは、macOS が「オートメーション」の許可を求めます。", bundle: .module))
             }
@@ -487,6 +500,20 @@ struct SettingsScriptHelp: View {
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// 説明の中のコードの例。折り返さず等幅で、そのままコピーできる
+struct SettingsCodeLine: View {
+    let code: String
+
+    var body: some View {
+        Text(verbatim: code)
+            .font(.system(size: 11, design: .monospaced))
+            .foregroundStyle(.primary)
+            .fixedSize()
+            .textSelection(.enabled)
+            .padding(.leading, 12)
     }
 }
 
@@ -527,7 +554,7 @@ struct SettingsShortcutEditor: View {
             }
             Toggle(isOn: Binding(get: { shortcut.passSelectedText }, set: { pass in update { $0.passSelectedText = pass } })) {
                 Text("選択中のテキストを渡す", bundle: .module)
-                Text("選択中のテキストを、ショートカットへの入力として渡します", bundle: .module)
+                Text("翻訳や要約など、テキストを受け取るショートカットで使います", bundle: .module)
             }
             .toggleStyle(.checkbox)
         }

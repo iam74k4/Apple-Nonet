@@ -35,6 +35,26 @@ import Testing
         #expect(controller.model.files != nil)
     }
 
+    /// 前に開いていた操作スペース（フルスクリーンのアプリの外）へ移らず、今の操作スペースに出す
+    @Test func theWindowOpensOnTheCurrentSpace() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let window = makeController(h).loadWindow()
+        #expect(window.collectionBehavior.contains(.moveToActiveSpace))
+        #expect(window.collectionBehavior.contains(.fullScreenAuxiliary))
+    }
+
+    /// 編集 › 取り消す（⌘Z）はウィンドウの undoManager に届く。マスの変更を元に戻せるよう、設定の undoManager を返す
+    @Test func undoGoesThroughTheSettingsUndoManager() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        #expect(window.undoManager === controller.model.undoManager)
+        // 中身（SwiftUI）の欄も、応答の連なりで同じものに届く
+        #expect(window.contentView?.undoManager === controller.model.undoManager)
+    }
+
     @Test func selectingATabUpdatesTitleAndToolbar() throws {
         _ = NSApplication.shared
         let h = try SettingsHarness()

@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// プロファイルの読み込みを、実際に設定へ入れる前に写しで試した結果。置き換わるものがあれば先に確かめる
+// プロファイルの読み込みを、実際に設定へ入れる前に写しで試した結果。置き換わるものやスクリプトがあれば先に確かめる
 import Foundation
 import NonetCore
 
@@ -12,6 +12,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
     var result: NonetConfiguration.ImportResult
     /// 置き換わる自分のアプリのプロファイルの名前（設定の並び順）
     var replacedNames: [String]
+    /// スクリプトのマスを含む、読み込まれるプロファイルの名前（ファイルの並び順）。
+    /// スクリプトはその人の権限で動くので、何も置き換わらなくても読み込む前に確かめる
+    var scriptProfileNames: [String]
 
     init(document: ConfigurationStore.ImportedProfiles, configuration: NonetConfiguration, fileName: String) {
         self.fileName = fileName
@@ -22,6 +25,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             Self.existingProfile(for: app, in: configuration)?.id
         })
         replacedNames = configuration.profiles.filter { replacedIDs.contains($0.id) }.map(\.name)
+        scriptProfileNames = Self.usedProfiles(in: document).filter { Self.containsScripts([$0]) }.map(\.name)
     }
 
     /// 今の設定を上書きする（グローバルのページか、同じアプリのプロファイル）
@@ -30,10 +34,11 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// 新しく加わるアプリのプロファイルがある
     var addsProfiles: Bool { result.added > 0 }
 
-    /// スクリプトのマスを含む（読み込んだ後に中身を確かめるよう知らせる）
-    var containsScripts: Bool {
-        Self.containsScripts(document.profiles)
-    }
+    /// 読み込まれるプロファイルがスクリプトのマスを含む
+    var containsScripts: Bool { !scriptProfileNames.isEmpty }
+
+    /// 読み込む前に確かめる（置き換わるものがあるか、スクリプトを含む）
+    var needsConfirmation: Bool { replacesExisting || containsScripts }
 
     /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき）。設定はその時点のもので決める
     func newProfilesOnly(in configuration: NonetConfiguration) -> ConfigurationStore.ImportedProfiles {
@@ -55,15 +60,24 @@ struct SettingsImportPlan: Identifiable, Equatable {
         }
     }
 
+    /// 読み込みで使われるプロファイル。グローバルや同じアプリが重なっていれば最初のものだけ、bundle ID の無いアプリは除く
+    /// （NonetConfiguration.importProfiles と同じ決まり）
+    private static func usedProfiles(in document: ConfigurationStore.ImportedProfiles) -> [Profile] {
+        var seen = Set<String>()
+        var hasGlobal = false
+        return document.profiles.filter { profile in
+            guard let app = profile.app else {
+                defer { hasGlobal = true }
+                return !hasGlobal
+            }
+            let key = bundleIDKey(app.bundleID)
+            return !key.isEmpty && seen.insert(key).inserted
+        }
+    }
+
     /// ファイルの中のアプリ。同じアプリが重なっていれば最初のものだけ（読み込みと同じ決まり）
     private static func importedApps(in document: ConfigurationStore.ImportedProfiles) -> [AppReference] {
-        var seen = Set<String>()
-        return document.profiles.compactMap { profile in
-            guard let app = profile.app else { return nil }
-            let key = bundleIDKey(app.bundleID)
-            guard !key.isEmpty, seen.insert(key).inserted else { return nil }
-            return app
-        }
+        usedProfiles(in: document).compactMap(\.app)
     }
 
     /// 有効・無効にかかわらず、同じアプリのプロファイル（読み込みはこれを置き換える）

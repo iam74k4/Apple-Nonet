@@ -51,7 +51,8 @@ struct SettingsSidebar: View {
                     }
                     .onMove { model.moveProfiles(fromOffsets: $0, toOffset: $1) }
                 } header: {
-                    Text("アプリ", bundle: .module)
+                    // アイコンの種類やメニュー項目の「アプリ」と違い、複数のアプリの一覧の見出し
+                    Text(String(localized: "settings.sidebar.appsHeader", defaultValue: "アプリ", bundle: .module))
                 }
             }
             .listStyle(.sidebar)

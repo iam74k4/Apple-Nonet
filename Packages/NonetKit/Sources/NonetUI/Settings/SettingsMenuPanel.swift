@@ -235,7 +235,8 @@ struct SettingsAddProfileSheet: View {
         let existing = Set(model.appProfiles.compactMap(\.app?.bundleID))
         let entries = SettingsAppCatalog.entries(apps: model.installedApps, query: query, existingBundleIDs: existing, presetsFirst: true)
         VStack(alignment: .leading, spacing: 12) {
-            Text("プロファイルを追加", bundle: .module)
+            // 開くボタン（「プロファイルを追加…」）と違い、シートの見出しには「…」を付けない
+            Text(String(localized: "settings.addProfileSheet.title", defaultValue: "プロファイルを追加", bundle: .module))
                 .font(.headline)
             Text("アプリを選ぶと、そのアプリが前面にあるときの9マスを作ります。プリセットのあるアプリは、最初から中身が入ります。", bundle: .module)
                 .font(.system(size: 12))

@@ -42,6 +42,24 @@ import Testing
         #expect(SettingsText.seconds(0.8, locale: Locale(identifier: "ja_JP")) == L10n.ui("\("0.80")秒"))
     }
 
+    /// 日付や数は文言と同じ言語で書く（地域は利用者のまま）。Locale.current だと英語の画面で日付だけ日本語になることがある
+    @Test func datesUseTheLanguageOfTheText() throws {
+        let uiLanguage = try #require(Bundle.nonetUI.preferredLocalizations.first)
+        #expect(SettingsText.uiLocale.language.languageCode == Locale.LanguageCode(uiLanguage))
+        #expect(SettingsText.uiLocale.region == Locale.current.region)
+
+        var components = DateComponents(year: 2026, month: 9, day: 21, hour: 12)
+        components.calendar = Calendar(identifier: .gregorian)
+        let date = try #require(components.date)
+        let english = SettingsText.issuedDate(date, locale: SettingsText.uiLocale(language: "en", region: Locale.Region("JP")))
+        #expect(english.contains("September"))
+        #expect(english.contains("2026"))
+        #expect(!english.contains("年"))
+        let japanese = SettingsText.issuedDate(date, locale: SettingsText.uiLocale(language: "ja", region: Locale.Region("US")))
+        #expect(japanese == "2026年9月21日")
+        #expect(SettingsText.uiLocale(language: nil, region: nil) == .current)
+    }
+
     @Test func importSummaryListsEachChange() {
         let result = NonetConfiguration.ImportResult(added: 2, replaced: 1, replacedGlobal: true, skipped: 3)
         let lines = SettingsText.importSummary(result, containsScripts: false).components(separatedBy: "\n")
