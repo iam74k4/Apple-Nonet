@@ -66,6 +66,13 @@ public final class WorkspaceFrontmostAppObserver: FrontmostAppObserving {
         observations = []
     }
 
+    /// 設定ウィンドウなどで Nonet 自身が前面になっている
+    public var isOwnAppActive: Bool {
+        if NSRunningApplication.current.isActive { return true }
+        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
+        return FrontmostAppFilter.isOwn(bundleID: app.bundleIdentifier, processID: app.processIdentifier, own: own)
+    }
+
     private func activated(_ app: NSRunningApplication?) {
         guard case .update(let info) = decide(app) else { return }
         set(info)
@@ -100,6 +107,13 @@ enum FrontmostAppFilter {
         var processID: Int32
     }
 
+    /// Nonet 自身（同じ bundleID の別のプロセスも含む）
+    static func isOwn(bundleID: String?, processID: Int32, own: Own) -> Bool {
+        if processID == own.processID { return true }
+        if let bundleID, let ownBundleID = own.bundleID, bundleID == ownBundleID { return true }
+        return false
+    }
+
     enum Decision: Equatable {
         /// Nonet 自身。今の値を変えない
         case ignore
@@ -108,8 +122,7 @@ enum FrontmostAppFilter {
     }
 
     static func decide(bundleID: String?, name: String?, processID: Int32, own: Own) -> Decision {
-        if processID == own.processID { return .ignore }
-        if let bundleID, let ownBundleID = own.bundleID, bundleID == ownBundleID { return .ignore }
+        if isOwn(bundleID: bundleID, processID: processID, own: own) { return .ignore }
         guard let bundleID, !bundleID.isEmpty else { return .update(nil) }
         let displayName = name.flatMap { $0.isEmpty ? nil : $0 } ?? bundleID
         return .update(RunningAppInfo(app: AppReference(bundleID: bundleID, name: displayName), processID: processID))

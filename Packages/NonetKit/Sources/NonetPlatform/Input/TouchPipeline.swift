@@ -202,15 +202,35 @@ struct MultitouchRestartPlanner: Sendable {
         case start
         case hotPlug
         case wake
+        /// ログインし直した・ユーザーの切り替えから戻った
+        case sessionActive
+        /// ディスプレイの構成が変わった（蓋を閉じた・外部ディスプレイの抜き差し）・ディスプレイがスリープから戻った
+        case display
+        /// 開始できなかったデバイスを、間を置いて開始し直す
+        case retry
+        /// 一覧を見直したら、開始しようとしたデバイスと違っていた（抜き差しの通知を取りこぼした）
+        case deviceListChanged
+        /// トリガーを押したのに、開始し直してから一度もフレームが届いていない
+        case silent
 
-        /// 指が触れていても待たずに開始し直す
-        var isUnconditional: Bool { self != .hotPlug }
+        /// 指が触れていても待たずに開始し直す。それ以外は、触れているデバイスとは関係ないことが多いので指が離れるまで待つ
+        var isUnconditional: Bool {
+            switch self {
+            case .start, .wake, .sessionActive: true
+            case .hotPlug, .display, .retry, .deviceListChanged, .silent: false
+            }
+        }
 
         var logName: String {
             switch self {
             case .start: "開始"
             case .hotPlug: "抜き差し"
             case .wake: "スリープからの復帰"
+            case .sessionActive: "ユーザーの切り替えからの復帰"
+            case .display: "ディスプレイの変化"
+            case .retry: "再試行"
+            case .deviceListChanged: "一覧の変化"
+            case .silent: "フレームが届かない"
             }
         }
     }
@@ -264,5 +284,63 @@ struct MultitouchRestartPlanner: Sendable {
 
     mutating func reset() {
         self = MultitouchRestartPlanner(staleInterval: staleInterval)
+    }
+}
+
+/// デバイスを開始し直した後の見張り。開始できなかったデバイスは間隔を延ばしながら開始し直し、
+/// 一覧が変わっていれば（抜き差しの通知を取りこぼしても）開始し直し、フレームが届かないままなら
+/// トリガーを押したときに開始し直す。どれも安く済むように間隔を置く
+struct MultitouchRecovery: Sendable {
+    /// 使えるはずのデバイスの一部を開始できなかったとき、次に開始し直すまでの秒数。最後の値で繰り返す
+    static let retryDelays: [TimeInterval] = [1, 3, 10, 30, 60]
+    /// デバイスの一覧を見直す間隔
+    static let listCheckInterval: TimeInterval = 10
+    /// 開始し直してからこれだけ経ってもフレームが1つも届いていなければ、トリガーを押したときに開始し直す。
+    /// 触れていなければフレームは来ないので止まったとは言い切れず、開始し直すのもこの間隔に1回まで
+    static let silentRestartInterval: TimeInterval = 10
+
+    /// 最後に開始しようとしたデバイス
+    private(set) var attempted: Set<UInt64> = []
+    /// 続けて一部のデバイスを開始できなかった回数
+    private(set) var failures = 0
+    /// 最後に開始し直してから、デバイスのフレームが届いた
+    private(set) var hasReceivedFrames = false
+    private var lastRestart: TimeInterval?
+
+    /// 開始し直した。開始できなかったデバイスがあれば、次に開始し直すまでの秒数を返す
+    mutating func restarted(attempted ids: [UInt64], started: [UInt64], at time: TimeInterval) -> TimeInterval? {
+        let next = Set(ids)
+        // 別の組み合わせになったら、数え直す
+        if next != attempted { failures = 0 }
+        attempted = next
+        lastRestart = time
+        hasReceivedFrames = false
+        guard !next.isSubset(of: Set(started)) else {
+            failures = 0
+            return nil
+        }
+        let delay = Self.retryDelays[min(failures, Self.retryDelays.count - 1)]
+        failures += 1
+        return delay
+    }
+
+    /// デバイスからフレームが届いた
+    mutating func frameArrived() {
+        hasReceivedFrames = true
+    }
+
+    /// 一覧を見直した。listed はいま使えるデバイス。開始しようとしたものと違えば開始し直す
+    func needsRestart(listed: [UInt64]) -> Bool {
+        Set(listed) != attempted
+    }
+
+    /// トリガーを押した。デバイスを開始しているのに、開始し直してから silentRestartInterval の間フレームが届いていなければ開始し直す
+    func needsRestartOnTrigger(now: TimeInterval) -> Bool {
+        guard !attempted.isEmpty, !hasReceivedFrames, let lastRestart else { return false }
+        return now - lastRestart >= Self.silentRestartInterval
+    }
+
+    mutating func reset() {
+        self = MultitouchRecovery()
     }
 }

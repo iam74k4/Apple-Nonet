@@ -55,6 +55,9 @@ public final class NonetController {
     /// それでも前面にならないとき（起動に時間がかかるとき）に確かめ直す間隔と回数
     static let activationRetryInterval: TimeInterval = 0.2
     static let activationRetryCount = 8
+    /// トリガーで license.refresh() を呼び直さない間隔。refresh は試用の記録を保存先に書くので、トリガーのたびには呼ばない
+    /// （実行してよいかは canExecuteActions がいつでも正しく答え、日付の変化などでは ui-shell が呼ぶ）
+    static let licenseRefreshInterval: TimeInterval = 60
 
     public private(set) var configuration: NonetConfiguration
     public private(set) var status: ControllerStatus = .stopped
@@ -98,6 +101,8 @@ public final class NonetController {
     @ObservationIgnored private var serviceFailures: [String: String] = [:]
     /// 保存の失敗で出した notice。保存できたら消す
     @ObservationIgnored private var saveFailureNotice: String?
+    /// トリガーで最後に license.refresh() を頼んだ時刻（Scheduler.now）
+    @ObservationIgnored private var lastLicenseRefresh: TimeInterval?
 
     public init(services: NonetServices, store: ConfigurationStore, hud: any HUDPresenting, license: LicenseManager) {
         self.services = services
@@ -281,6 +286,8 @@ public final class NonetController {
             // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
             send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)
             refreshLicenseAfterTrigger()
+            // フレームが届かなくなったトラックパッドを、利用者が触れる前に開始し直す（すぐに戻る）
+            services.touchSource.revalidate()
         case .triggerUp:
             send(.triggerUp(at: now))
         case .interrupted:
@@ -290,6 +297,12 @@ public final class NonetController {
 
     private func canBeginSession() -> Bool {
         guard isStarted, !isRecordingKeys else { return false }
+        // Nonet 自身（設定ウィンドウ）が前面なら始めない。セッションは直前のアプリのページを使うが、キーは前面の
+        // 設定ウィンドウに届いてしまう。設定画面からは「テスト実行」で試せる。練習モードは何も実行しないので、
+        // 初回起動の案内のウィンドウが前面でも始める
+        if !isPracticeMode, services.frontmostApp.isOwnAppActive {
+            return false
+        }
         // セキュア入力は2秒ごとにしか確かめないので、トリガーのたびに確かめ直す
         // （パスワード欄に入った直後に始めないため・離れた直後から使えるようにするため）
         if status == .secureInputActive || services.permissions.isSecureInputActive {
@@ -299,8 +312,13 @@ public final class NonetController {
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
-    /// 保存先への書き込みがあるので、トリガーのイベントを返してから行う。実行してよいかは canExecuteActions がいつでも正しく答える
+    /// 保存先への書き込みがあるので、トリガーのイベントを返してから行い、licenseRefreshInterval に1回までにする。
+    /// ライセンスがあれば試用を数えなくてよいので呼ばない。実行してよいかは canExecuteActions がいつでも正しく答える
     private func refreshLicenseAfterTrigger() {
+        if case .licensed = license.entitlement { return }
+        let now = services.scheduler.now
+        if let last = lastLicenseRefresh, now >= last, now - last < Self.licenseRefreshInterval { return }
+        lastLicenseRefresh = now
         services.scheduler.schedule(after: 0) { [weak self] in
             self?.license.refresh()
         }
@@ -476,15 +494,20 @@ public final class NonetController {
     private func refreshServices() {
         guard isStarted else { return }
         let isEnabled = configuration.settings.isEnabled
+        var hasPermission = false
         var isGranted = false
         var hasTrackpad = false
         var isSecureInput = false
         if isEnabled {
-            hasTrackpad = startTouchSource()
-            isGranted = services.permissions.isAccessibilityGranted
-            // トラックパッドが無ければキーボードは見張らない（トリガーを飲み込む設定のとき、使えないキーにしないため）
-            if isGranted, hasTrackpad {
-                isGranted = startKeyboard()
+            hasPermission = services.permissions.isAccessibilityGranted
+            isGranted = hasPermission
+            // 許可が無い間はセッションを始められないので、指の位置も読まない（指が触れるたびにメインスレッドを起こさない）
+            if hasPermission {
+                hasTrackpad = startTouchSource()
+                // トラックパッドが無ければキーボードは見張らない（トリガーを飲み込む設定のとき、使えないキーにしないため）
+                if hasTrackpad {
+                    isGranted = startKeyboard()
+                }
             }
             isSecureInput = services.permissions.isSecureInputActive
         }
@@ -498,7 +521,9 @@ public final class NonetController {
         if !(isEnabled && isGranted && hasTrackpad) {
             stopKeyboard()
         }
-        if !isEnabled {
+        // 止めるときに触れていた指は離れたことにするので、始め直した後は新しいタッチとして数える。
+        // セキュア入力の間は止めない（入ったり出たりが多く、終わったらすぐに使えるようにするため）
+        if !(isEnabled && hasPermission) {
             stopTouchSource()
         }
         schedulePoll()

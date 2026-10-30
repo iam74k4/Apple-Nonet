@@ -17,7 +17,9 @@ struct ControllerSession: Equatable, Sendable {
     }
 
     var engineConfiguration: SessionConfiguration {
-        SessionConfiguration(settings: settings, pageCount: pages.count)
+        // 空きマスの速押しで 6 の (a) の HUD が止まらないように、中身のあるマスを渡す
+        let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
+        return SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied)
     }
 
     /// page（resolvedPages での位置）の cell 番目のマス。範囲外と空きマスは nil

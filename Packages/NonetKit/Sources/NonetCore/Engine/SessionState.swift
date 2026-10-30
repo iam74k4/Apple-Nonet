@@ -137,7 +137,7 @@ struct SessionState: Sendable {
             // 仕様 5: onTriggerRelease なら指を置いたまま離すとハイライト中のマスを実行。指を先に離していたらキャンセル
             let cell = configuration.fireMode == .onTriggerRelease && touch?.isMultiFinger == false ? highlight : nil
             hideHUD(effects: &effects)
-            if let cell {
+            if let cell, !isEmptyCell(cell) {
                 execute(cell: cell, wasFastTap: false, effects: &effects)
             } else {
                 reason = .cancelled
@@ -203,7 +203,7 @@ struct SessionState: Sendable {
                 touch?.isMultiFinger = true
             }
         case .ended, .restarted:
-            if drain.allowsTap, let touch, !touch.isMultiFinger, now < drain.deadline, let cell = touch.downCell {
+            if drain.allowsTap, let touch, !touch.isMultiFinger, now < drain.deadline, let cell = touch.downCell, !isEmptyCell(cell) {
                 execute(cell: cell, wasFastTap: true, effects: &effects)
             }
             end(drain.reason, effects: &effects)
@@ -231,16 +231,18 @@ struct SessionState: Sendable {
         }
         guard let touch else { return }
         if isHUDVisible {
-            if configuration.fireMode == .onFingerLift, !touch.isMultiFinger, let cell = highlight {
-                // 仕様 5: onFingerLift なら1本指を離したときにハイライト中のマスを実行し、HUD を閉じる
+            if configuration.fireMode == .onFingerLift, !touch.isMultiFinger, let cell = highlight, !isEmptyCell(cell) {
+                // 仕様 5: onFingerLift なら1本指を離したときにハイライト中のマスを実行し、HUD を閉じる。
+                // 空きマスなら何もしない（仕様 12）ので、HUD は出したまま選び直せるようにする
                 hideHUD(effects: &effects)
                 execute(cell: cell, wasFastTap: false, effects: &effects)
             } else if highlight != nil {
                 highlight = nil
                 effects.append(.updateHUD(page: page, highlightedCell: nil))
             }
-        } else if touch.isTapCandidate, !touch.isMultiFinger, now < touch.restStart + configuration.hudDelay, let cell = touch.downCell {
-            // 仕様 3: 速押し。置いた位置のマスを HUD なしで実行する
+        } else if touch.isTapCandidate, !touch.isMultiFinger, now < touch.restStart + configuration.hudDelay, let cell = touch.downCell, !isEmptyCell(cell) {
+            // 仕様 3: 速押し。置いた位置のマスを HUD なしで実行する。
+            // 空きマスは実行せずに離したのと同じ（hasExecuted にしないので、迷っていれば (a) の HUD が出る）
             execute(cell: cell, wasFastTap: true, effects: &effects)
         }
     }
@@ -326,6 +328,12 @@ struct SessionState: Sendable {
         isHUDVisible = false
         highlight = nil
         effects.append(.hideHUD)
+    }
+
+    /// 今のページで中身が無いと分かっているマス（仕様 12）。分からなければ false（controller が判断する）
+    private func isEmptyCell(_ cell: Int) -> Bool {
+        guard let occupied = configuration.occupiedCells, occupied.indices.contains(page) else { return false }
+        return !occupied[page].contains(cell)
     }
 
     private mutating func execute(cell: Int, wasFastTap: Bool, effects: inout [SessionEffect]) {

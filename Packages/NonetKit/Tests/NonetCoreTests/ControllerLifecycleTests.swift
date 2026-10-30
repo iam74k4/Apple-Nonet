@@ -91,16 +91,38 @@ import Testing
         h.start()
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
-        // トラックパッドの指は権限が無くても読める
-        #expect(h.touchSource.isRunning)
+        // 指の位置は権限が無くても読めるが、セッションを始められないので読まない（指が触れるたびにメインスレッドを起こさない）
+        #expect(!h.touchSource.isRunning)
 
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .needsAccessibility)
+        #expect(h.touchSource.startCount == 0)
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
         #expect(h.keyboard.isRunning)
+        #expect(h.touchSource.isRunning)
         #expect(h.keyboard.trigger == .rightOption)
+    }
+
+    @Test func aFingerRestingWhileAccessibilityIsRevokedIsForgotten() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(on: 2)
+        h.permissions.isAccessibilityGranted = false
+        h.advance(NonetController.pollInterval)
+        #expect(!h.touchSource.isRunning)
+        // 止めている間に離した（フレームは届かない）
+        h.lift()
+        h.permissions.isAccessibilityGranted = true
+        h.advance(NonetController.pollInterval)
+        #expect(h.touchSource.isRunning)
+        // 止めたときに離れたことにしてあるので、次に置いた指は新しいタッチ（速押しになる）
+        h.pressTrigger()
+        h.tap(2)
+        h.releaseTrigger()
+        await h.settle()
+        #expect(h.performer.actions == [F.closeTab.action])
     }
 
     @Test func refreshPermissionsChecksImmediately() throws {
@@ -125,6 +147,7 @@ import Testing
 
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
+        #expect(!h.touchSource.isRunning)
         #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
     }
@@ -134,6 +157,10 @@ import Testing
         h.keyboard.startError = NonetError.permissionDenied("アクセシビリティ")
         h.start()
         #expect(h.controller.status == .needsAccessibility)
+        // 許可はあるので、トラックパッドは止めたり始めたりしない
+        #expect(h.touchSource.isRunning)
+        h.advance(NonetController.pollInterval)
+        #expect(h.touchSource.startCount == 1)
         h.keyboard.startError = nil
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
@@ -184,8 +211,9 @@ import Testing
         h.permissions.isSecureInputActive = true
         h.start()
         #expect(h.controller.status == .secureInputActive)
-        // キーボードは動かしたまま（終わったらすぐ使えるように）
+        // キーボードは動かしたまま（終わったらすぐ使えるように）。指の位置も読み続ける
         #expect(h.keyboard.isRunning)
+        #expect(h.touchSource.isRunning)
         h.pressTrigger()
         #expect(h.keyboard.suppressionChanges.isEmpty)
         h.releaseTrigger()

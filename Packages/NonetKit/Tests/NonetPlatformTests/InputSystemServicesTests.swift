@@ -34,6 +34,16 @@ import Testing
         let unbundled = FrontmostAppFilter.Own(bundleID: nil, processID: 1)
         #expect(FrontmostAppFilter.decide(bundleID: "com.apple.Safari", name: "Safari", processID: 2, own: unbundled) != .ignore)
     }
+
+    @Test func recognizesNonetAsTheActiveApp() {
+        // セッションを始めないかどうか（設定ウィンドウが前面）を決めるのに使う
+        #expect(FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 500, own: own))
+        #expect(FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 501, own: own))
+        #expect(FrontmostAppFilter.isOwn(bundleID: nil, processID: 500, own: own))
+        #expect(!FrontmostAppFilter.isOwn(bundleID: "com.apple.Safari", processID: 42, own: own))
+        #expect(!FrontmostAppFilter.isOwn(bundleID: nil, processID: 42, own: own))
+        #expect(!FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 42, own: FrontmostAppFilter.Own(bundleID: nil, processID: 1)))
+    }
 }
 
 @MainActor

@@ -69,7 +69,9 @@ import Testing
     @Test func theSessionResolvesPagesForTheFrontmostApp() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
         #expect(session.pages.map(\.profileName) == ["Safari", "Safari", ModelFixtures.globalName])
-        #expect(session.engineConfiguration == SessionConfiguration(hudDelay: 0.3, fireMode: .onTriggerRelease, pageCount: 3))
+        // 中身のあるマスも渡す（空きマスの速押しで HUD を止めないため）
+        let occupied: [Set<Int>] = [[0, 2, 4, 8], [0], [0, 8]]
+        #expect(session.engineConfiguration == SessionConfiguration(hudDelay: 0.3, fireMode: .onTriggerRelease, pageCount: 3, occupiedCells: occupied))
 
         let other = ControllerSession(configuration: F.configuration(), frontmostApp: nil)
         #expect(other.pages.map(\.profileName) == [ModelFixtures.globalName])

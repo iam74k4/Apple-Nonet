@@ -14,13 +14,17 @@ public final class MultitouchTouchSource: TouchSource {
 
     private var connection: MultitouchConnection?
     private var watcher: MultitouchDeviceWatcher?
-    private var wakeObservation: NotificationObservation?
+    /// スリープ・ユーザーの切り替え・ディスプレイの変化
+    private var observations: [NotificationObservation] = []
+    /// デバイスの一覧を見直すタイマー
+    private var listCheck: Timer?
     private var pendingRestart: DispatchWorkItem?
     private var runningDeviceIDs: [UInt64] = []
     private var planner = MultitouchRestartPlanner()
+    private var recovery = MultitouchRecovery()
 
     /// 抜き差しやスリープ復帰の後、デバイスが使えるようになるまで待つ秒数。指が離れるのを待つ間は、この間隔で確かめ直す
-    static let restartDelay: TimeInterval = 1
+    nonisolated static let restartDelay: TimeInterval = 1
 
     public init() {}
 
@@ -45,12 +49,34 @@ public final class MultitouchTouchSource: TouchSource {
             self?.scheduleRestart(.hotPlug)
         }
         if !watcher.start() {
-            inputLogger.error("トラックパッドの抜き差しを監視できない（開始時の一覧だけを使う）")
+            inputLogger.error("トラックパッドの抜き差しを監視できない（一覧を定期的に見直すだけにする）")
         }
         self.watcher = watcher
-        wakeObservation = NotificationObservation(center: NSWorkspace.shared.notificationCenter, name: NSWorkspace.didWakeNotification) { [weak self] _ in
-            self?.scheduleRestart(.wake)
+        let workspace = NSWorkspace.shared.notificationCenter
+        let restarts: [(NotificationCenter, Notification.Name, MultitouchRestartPlanner.Reason)] = [
+            (workspace, NSWorkspace.didWakeNotification, .wake),
+            (workspace, NSWorkspace.sessionDidBecomeActiveNotification, .sessionActive),
+            (workspace, NSWorkspace.screensDidWakeNotification, .display),
+            (NotificationCenter.default, NSApplication.didChangeScreenParametersNotification, .display),
+        ]
+        observations = restarts.map { center, name, reason in
+            NotificationObservation(center: center, name: name) { [weak self] _ in
+                self?.scheduleRestart(reason)
+            }
         }
+        // 通知を取りこぼしても追いつけるよう、一覧をときどき見直す（間隔は長く、時刻はゆるくして電力を使わない）
+        let timer = Timer(timeInterval: MultitouchRecovery.listCheckInterval, repeats: true) { [weak self] timer in
+            MainActor.assumeIsolated {
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                self.checkDeviceList()
+            }
+        }
+        timer.tolerance = MultitouchRecovery.listCheckInterval / 2
+        RunLoop.main.add(timer, forMode: .common)
+        listCheck = timer
         restartDevices(.start, devices: MultitouchLibrary.devices(), liftFirst: false)
     }
 
@@ -61,15 +87,34 @@ public final class MultitouchTouchSource: TouchSource {
         pendingRestart = nil
         watcher?.stop()
         watcher = nil
-        wakeObservation = nil
+        observations = []
+        listCheck?.invalidate()
+        listCheck = nil
         connection?.stop()
         connection = nil
         runningDeviceIDs = []
         planner.reset()
+        recovery.reset()
         inputLogger.info("トラックパッドの読み取りを止めた")
     }
 
-    private func scheduleRestart(_ reason: MultitouchRestartPlanner.Reason) {
+    /// トリガーが押された。開始し直してからしばらく経つのにフレームが1つも届いていなければ、止まっているかもしれないので開始し直す。
+    /// イベントタップのコールバックから呼ばれるので、開始し直すのはメインループの次の回にする
+    public func revalidate() {
+        guard isRunning, pendingRestart == nil, recovery.needsRestartOnTrigger(now: ProcessInfo.processInfo.systemUptime) else { return }
+        inputLogger.notice("トラックパッドのフレームが届いていないので、開始し直す")
+        scheduleRestart(.silent, after: 0)
+    }
+
+    /// 一覧が開始しようとしたデバイスと違えば（抜き差しの通知を取りこぼした）開始し直す
+    private func checkDeviceList() {
+        guard isRunning, pendingRestart == nil else { return }
+        let listed = MultitouchDeviceInfo.usable(MultitouchLibrary.devices()).map(\.id)
+        guard recovery.needsRestart(listed: listed) else { return }
+        scheduleRestart(.deviceListChanged)
+    }
+
+    private func scheduleRestart(_ reason: MultitouchRestartPlanner.Reason, after delay: TimeInterval = MultitouchTouchSource.restartDelay) {
         guard isRunning else { return }
         planner.request(reason)
         pendingRestart?.cancel()
@@ -77,7 +122,7 @@ public final class MultitouchTouchSource: TouchSource {
             MainActor.assumeIsolated { self?.restartWhenReady() }
         }
         pendingRestart = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.restartDelay, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
 
     private func restartWhenReady() {
@@ -115,12 +160,20 @@ public final class MultitouchTouchSource: TouchSource {
         if let last = MultitouchActivity.lastTouchedDeviceID, !started.contains(last) {
             MultitouchActivity.lastTouchedDeviceID = nil
         }
+        // 起動の途中などで開始できなかったデバイスは、間を置いて開始し直す
+        if let retry = recovery.restarted(attempted: usable.map(\.id), started: started, at: ProcessInfo.processInfo.systemUptime) {
+            if recovery.failures == 1 {
+                inputLogger.notice("トラックパッド \(usable.count) 台のうち \(started.count) 台しか開始できないので、開始し直す")
+            }
+            scheduleRestart(.retry, after: retry)
+        }
     }
 
     private func drainFrames() {
         guard isRunning, let connection else { return }
         let (frames, device) = connection.pipeline.drain()
         if let device { MultitouchActivity.lastTouchedDeviceID = device }
+        if !frames.isEmpty { recovery.frameArrived() }
         for frame in frames {
             guard isRunning else { return }
             deliver(frame, from: device)

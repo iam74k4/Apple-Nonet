@@ -544,6 +544,100 @@ import NonetCore
         #expect(s.log.visible == [.beginPointerSuppression, .endPointerSuppression, .sessionEnded(.released)])
     }
 
+    // MARK: 12. 空きマス
+
+    /// 1ページ目は 0・2、2ページ目は 4 だけに中身がある
+    private func withEmptyCells(fireMode: FireMode = .onTriggerRelease) -> SessionScenario {
+        SessionScenario(SessionConfiguration(fireMode: fireMode, pageCount: 2, occupiedCells: [[0, 2], [4]]))
+    }
+
+    @Test func fastTapOnAnEmptyCellDoesNotExecuteAndTheHUDStillAppears() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.touch(on: 1, at: 0.05)
+        // 実行せずに離したのと同じ。迷っていれば (a) の HUD を出す（仕様 6 の「一度実行した後」にしない）
+        #expect(s.lift(at: 0.1) == [.requestTick(at: 0.3)])
+        #expect(s.tick(at: 0.3).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    @Test func anEmptyTapAfterTheHudDelayShowsTheHUDRightAway() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.touch(on: 5, at: 0.25)
+        #expect(!s.tick(at: 0.3).showsHUD)
+        #expect(s.lift(at: 0.4).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    @Test func anEmptyTapDoesNotUndoAnEarlierExecution() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.touch(on: 2, at: 0.05)
+        s.lift(at: 0.1)
+        s.touch(on: 1, at: 0.5)
+        s.lift(at: 0.6)
+        #expect(!s.tick(at: 3).showsHUD)
+        #expect(s.log.executions == [.execute(page: 0, cell: 2, wasFastTap: true)])
+    }
+
+    @Test func anEmptyTapFinishedAfterTheTriggerIsReleasedDoesNotExecute() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.touch(on: 1, at: 0.05)
+        #expect(s.releaseTrigger(at: 0.08).visible.isEmpty)
+        #expect(s.lift(at: 0.1) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    @Test func onFingerLiftKeepsTheHUDWhenLiftedOnAnEmptyCell() {
+        var s = withEmptyCells(fireMode: .onFingerLift)
+        s.pressTrigger(at: 0)
+        s.touch(on: 1, at: 0.05)
+        #expect(s.tick(at: 0.35).visible == [.showHUD(page: 0, highlightedCell: 1)])
+        // 何も起きないので、HUD は出したまま選び直せる
+        #expect(s.lift(at: 0.5).visible == [.updateHUD(page: 0, highlightedCell: nil)])
+        #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil))
+        s.touch(on: 2, at: 0.6)
+        #expect(s.lift(at: 0.7).visible == [.hideHUD, .execute(page: 0, cell: 2, wasFastTap: false)])
+    }
+
+    @Test func onTriggerReleaseOnAnEmptyCellCancels() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.touch(on: 1, at: 0.05)
+        s.tick(at: 0.35)
+        #expect(s.releaseTrigger(at: 0.5) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    @Test func emptyCellsAreLookedUpOnTheCurrentPage() {
+        // 2ページ目では 2 は空き（1ページ目にはある）、4 は中身がある（1ページ目には無い）
+        var s = withEmptyCells(fireMode: .onFingerLift)
+        s.pressTrigger(at: 0)
+        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.05)
+        s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.1)
+        s.liftAll(at: 0.2)
+        #expect(s.engine.pageIndex == 1)
+        s.touch(on: 2, at: 0.3)
+        #expect(s.lift(at: 0.4).executions.isEmpty)
+        s.touch(on: 4, at: 0.5)
+        #expect(s.lift(at: 0.6).executions == [.execute(page: 1, cell: 4, wasFastTap: false)])
+    }
+
+    @Test func pagesWithoutAnEntryCountAsFull() {
+        // 中身が分からないページのマスは、controller に判断を任せる
+        var s = SessionScenario(SessionConfiguration(pageCount: 2, occupiedCells: [[0]]))
+        s.pressTrigger(at: 0)
+        s.touch(on: 1, at: 0.05)
+        #expect(s.lift(at: 0.1).executions.isEmpty)
+        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.5)
+        s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.55)
+        s.liftAll(at: 0.6)
+        s.touch(on: 1, at: 0.7)
+        #expect(s.releaseTrigger(at: 1.1).executions == [.execute(page: 1, cell: 1, wasFastTap: false)])
+    }
+
     // MARK: トリガーより前から置いていた指
 
     @Test func fingerRestingBeforeTheTriggerIsNotATap() {
