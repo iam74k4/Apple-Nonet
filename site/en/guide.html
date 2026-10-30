@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Guide — Nonet</title>
+<meta name="description" content="How to use Nonet: the trigger key and the nine buttons, editing profiles, action types, settings, your license and troubleshooting.">
+<meta name="color-scheme" content="light dark">
+<link rel="alternate" hreflang="ja" href="../guide.html">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="./#how">How it works</a></li>
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#pricing">Pricing</a></li>
+        <li><a href="./#faq">FAQ</a></li>
+        <li><a href="guide.html" aria-current="page">User guide</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="../guide.html" hreflang="ja" lang="ja">日本語</a>
+    </div>
+  </div>
+</header>
+
+<!-- The source is docs/user-guide.en.md. This page is built with python3 -I scripts/build-guide.py (don't edit it by hand; scripts/tests/site_test.sh catches a page that wasn't rebuilt) -->
+<main id="main" class="doc guide">
+  <div class="wrap">
+    <h1>Nonet User Guide</h1>
+    <nav class="toc" aria-label="Contents">
+      <p class="toc-title" aria-hidden="true">Contents</p>
+      <ol>
+        <li><a href="#about">About Nonet</a>
+          <ol>
+            <li><a href="#requirements">Requirements</a></li>
+          </ol>
+        </li>
+        <li><a href="#getting-started">Getting started</a>
+          <ol>
+            <li><a href="#install">Installing Nonet</a></li>
+            <li><a href="#accessibility">Accessibility permission</a></li>
+            <li><a href="#welcome-guide">Welcome guide</a></li>
+          </ol>
+        </li>
+        <li><a href="#basics">Basics</a>
+          <ol>
+            <li><a href="#trigger-key">Trigger key</a></li>
+            <li><a href="#quick-tap">Quick tap</a></li>
+            <li><a href="#hud">The HUD</a></li>
+            <li><a href="#cancel">Canceling</a></li>
+            <li><a href="#while-holding">The trackpad while you hold the key</a></li>
+            <li><a href="#pages">Pages</a></li>
+            <li><a href="#global-and-launcher">Global profile and launcher</a></li>
+            <li><a href="#haptics">Haptic feedback</a></li>
+          </ol>
+        </li>
+        <li><a href="#menu-bar">Menu bar</a></li>
+        <li><a href="#profiles">Editing profiles</a>
+          <ol>
+            <li><a href="#profile-list">Profile list</a></li>
+            <li><a href="#pages-and-buttons">Pages and buttons</a></li>
+            <li><a href="#inspector">Inspector</a></li>
+            <li><a href="#pick-from-menus">Pick from Menus</a></li>
+          </ol>
+        </li>
+        <li><a href="#actions">Action types</a>
+          <ol>
+            <li><a href="#keystrokes">Keystrokes</a></li>
+            <li><a href="#open-app">Open App</a></li>
+            <li><a href="#url">URL</a></li>
+            <li><a href="#script">Script</a></li>
+            <li><a href="#shortcut">Shortcut</a></li>
+            <li><a href="#menu-item">Menu Item</a></li>
+            <li><a href="#ai">AI</a></li>
+          </ol>
+        </li>
+        <li><a href="#general">General settings</a>
+          <ol>
+            <li><a href="#trigger-and-hud">Trigger &amp; HUD</a></li>
+            <li><a href="#general-profiles">Profiles</a></li>
+            <li><a href="#feedback">Feedback</a></li>
+            <li><a href="#advanced">Advanced</a></li>
+            <li><a href="#startup">Startup</a></li>
+            <li><a href="#export-import">Export &amp; Import</a></li>
+          </ol>
+        </li>
+        <li><a href="#license">Trial and license</a></li>
+        <li><a href="#updates">Updates and About</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a>
+          <ol>
+            <li><a href="#no-accessibility">“Accessibility permission required”</a></li>
+            <li><a href="#secure-input">“Nonet doesn't work while you enter a password”</a></li>
+            <li><a href="#no-trackpad">“Can't find a multi-touch trackpad”</a></li>
+            <li><a href="#nothing-happens">Nothing happens</a></li>
+            <li><a href="#menu-bar-icon-missing">The menu bar icon is missing</a></li>
+            <li><a href="#pointer-stuck">The pointer doesn't move or clicks don't work</a></li>
+            <li><a href="#jis-right-option">No right ⌥ on a JIS keyboard</a></li>
+            <li><a href="#other-tools">Another tool also uses right ⌘</a></li>
+            <li><a href="#wrong-button">The wrong button runs</a></li>
+            <li><a href="#script-fails">A script fails</a></li>
+            <li><a href="#automation">macOS asks for Automation permission</a></li>
+            <li><a href="#menu-item-fails">A Menu Item action fails</a></li>
+            <li><a href="#ai-unavailable">AI actions aren't available</a></li>
+            <li><a href="#no-haptics">No haptic feedback</a></li>
+            <li><a href="#login-item">Nonet doesn't open at login</a></li>
+            <li><a href="#damaged-settings">“Couldn't load the settings file”</a></li>
+            <li><a href="#reset">Resetting your settings</a></li>
+          </ol>
+        </li>
+        <li><a href="#uninstall">Uninstalling</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="about">About Nonet</h2>
+    <p>Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app, but only while you hold a key.</p>
+    <ul>
+      <li>The trackpad is split into a 3×3 grid, and <strong>where you rest your finger</strong> picks the button. The pointer position doesn't matter</li>
+      <li>Once you know the layout, press the key and tap right away to run a button. The HUD, an overlay that shows all nine buttons, appears only when you hesitate</li>
+      <li>The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)</li>
+    </ul>
+    <h3 id="requirements">Requirements</h3>
+    <ul>
+      <li>macOS 14 Sonoma or later (Apple silicon or Intel)</li>
+      <li>A multi-touch trackpad: a MacBook's built-in trackpad or a Magic Trackpad. Nonet doesn't work on a Mac with only a mouse</li>
+      <li>AI actions also need macOS 26 or later and a Mac that supports Apple Intelligence</li>
+    </ul>
+
+    <h2 id="getting-started">Getting started</h2>
+    <h3 id="install">Installing Nonet</h3>
+    <ol>
+      <li>Open the <code>Nonet-&lt;version&gt;.dmg</code> file you downloaded</li>
+      <li>Drag <code>Nonet</code> to the <code>Applications</code> folder</li>
+      <li>Open Nonet from the Applications folder</li>
+    </ol>
+    <p>If you open Nonet from the disk image or from the folder you downloaded it to, it can't install updates from there, so Nonet offers to move itself to the Applications folder. Accept, and Nonet moves there and opens again. On an account that isn't an administrator, it moves to the Applications folder in your home folder.</p>
+    <p>Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu. If you open Nonet from the Applications folder while it's already running, the Settings window opens.</p>
+    <h3 id="accessibility">Accessibility permission</h3>
+    <p>The first time you open Nonet, the Welcome to Nonet window (the welcome guide) opens. Click <strong>Open System Settings</strong>, then turn on Nonet in <strong>System Settings › Privacy &amp; Security › Accessibility</strong>. Once you allow Nonet, the guide moves on automatically.</p>
+    <p><strong>Why Nonet needs it</strong>: macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:</p>
+    <ul>
+      <li>Detect when you press and release the trigger key</li>
+      <li>Keep pointer movement and clicks from reaching the front app while you hold the trigger key</li>
+      <li>Send the keystrokes you set up, choose menu items and read selected text</li>
+    </ul>
+    <p><strong>What Nonet doesn't collect</strong>: Nonet never records or sends what you type. Your settings are stored only on your Mac (in <code>~/Library/Application Support/Nonet/</code>), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the <a href="privacy.html">privacy policy</a>.</p>
+    <p>You can click <strong>Not Now</strong> to continue without it, but Nonet doesn't work until you allow it. To allow it later, choose <strong>Allow Accessibility Access…</strong> from the Nonet menu, or click <strong>Open System Settings</strong> in the banner at the top of the Settings window.</p>
+    <p>The first time a script uses the URL of the page shown in a browser (<code>NONET_BROWSER_URL</code>), macOS asks for Automation permission (see <a href="#automation">macOS asks for Automation permission</a> under Troubleshooting).</p>
+    <h3 id="welcome-guide">Welcome guide</h3>
+    <p>The Welcome to Nonet window has three steps, shown at the top.</p>
+    <ol>
+      <li><strong>Accessibility</strong>: the permission described above</li>
+      <li><strong>Choose Apps</strong>: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Xcode, Visual Studio Code, Safari, Slack, Zoom and others). All of them are selected at first. Keep the ones you use, then click <strong>Next: Try It Out</strong>. <strong>Select All</strong> and <strong>Deselect All</strong> change them all at once. Click <strong>Set Up Later</strong> to move on without choosing (the first time, Nonet then uses all of the listed apps)</li>
+      <li><strong>Try It Out</strong>: practice mode. Follow the prompt: hold the trigger key and tap the top-right corner of the trackpad. Nothing runs in practice mode. Click <strong>Skip</strong> to move on</li>
+    </ol>
+    <p>At the end, "You're all set" shows three quick tips. Click <strong>Done</strong> to close the window, or <strong>Open Settings</strong> to go straight to the Settings window.</p>
+    <p>The Global profile starts with a launcher of popular apps from your Mac (see <a href="#global-and-launcher">Global profile and launcher</a> under Basics).</p>
+    <p>To see the welcome guide again, choose <strong>Show Welcome Guide</strong> from the Nonet menu. When you run it again, Choose Apps only adds profiles for the apps you choose. Apps marked Added keep their profiles, so nothing you edited is lost.</p>
+
+    <h2 id="basics">Basics</h2>
+    <h3 id="trigger-key">Trigger key</h3>
+    <p>The trigger key turns your trackpad into the nine buttons. By default it's <strong>right ⌘</strong> on a JIS keyboard and <strong>right ⌥</strong> on other keyboards (JIS keyboards have no right ⌥). You can also choose right ⇧ or fn (Globe) in Settings. Nonet responds only to the right-side key, so left ⌘ and ⌥ work as usual.</p>
+    <p>The examples below use right ⌘.</p>
+    <h3 id="quick-tap">Quick tap</h3>
+    <ol>
+      <li>Press right ⌘</li>
+      <li>Right away (within 0.3 seconds by default), tap where the button you want is</li>
+    </ol>
+    <p>The button runs right away, without the HUD. Nonet briefly shows the button at the bottom of the screen. While you keep holding right ⌘, you can tap as many times as you like.</p>
+    <h3 id="hud">The HUD</h3>
+    <ol>
+      <li>Press right ⌘</li>
+      <li>Rest your finger on the trackpad (or wait a moment without touching it)</li>
+      <li>The HUD appears, and the button under your finger is highlighted. Slide to the button you want</li>
+      <li>Release right ⌘ with your finger still down to run the highlighted button</li>
+    </ol>
+    <p>The top of the HUD shows the profile name and the hint "Release ⌘ to run". The HUD appears on the display with the pointer.</p>
+    <p>If you set <strong>Run on</strong> to <strong>Finger Lift</strong> in Settings, the button runs when you lift your finger instead of at step 4 (the hint reads "Lift your finger to run"). This also changes how you cancel (see the next section, <a href="#cancel">Canceling</a>).</p>
+    <h3 id="cancel">Canceling</h3>
+    <p>With any setting:</p>
+    <ul>
+      <li>If you release right ⌘ without touching the trackpad, nothing happens</li>
+      <li>If you press any other key while holding right ⌘, Nonet steps aside right away and runs nothing. The key reaches the app as usual, so shortcuts like right ⌘C still work. To cancel on purpose, press a modifier key that does nothing on its own, such as <strong>left ⇧</strong></li>
+    </ul>
+    <p>Depending on <strong>Run on</strong>:</p>
+    <ul>
+      <li><strong>Key Release (the default)</strong>: lift your finger first, then release right ⌘, and nothing runs</li>
+      <li><strong>Finger Lift</strong>: lifting your finger runs the highlighted button. To cancel while choosing in the HUD, <strong>keep your finger down and press left ⇧</strong>, or slide to an empty button, if there is one, and lift your finger there (nothing happens on an empty button)</li>
+    </ul>
+    <h3 id="while-holding">The trackpad while you hold the key</h3>
+    <p>While you hold right ⌘, the pointer stays put, and clicks and scrolling don't reach the front app. Taps with two or more fingers don't run anything. Tapping an empty button does nothing. If you hold right ⌘ for 20 seconds, Nonet steps aside on its own.</p>
+    <h3 id="pages">Pages</h3>
+    <p>Hold right ⌘ and <strong>swipe left or right with two fingers</strong> to change pages. Moving two fingers to the left goes to the next page. Each swipe moves one page and stops at the first or last page. If the HUD isn't showing yet, it appears. The page dots under the HUD show the current page.</p>
+    <p>Each profile can have up to three pages. Global pages follow an app profile's pages (the <strong>Add Global pages after app pages</strong> setting).</p>
+    <h3 id="global-and-launcher">Global profile and launcher</h3>
+    <p>If the front app has a profile, Nonet uses that app's buttons. In apps without a profile, Nonet uses the Global profile, which works in every app.</p>
+    <p>The Global profile starts as a launcher with up to 27 apps on three pages, chosen from the apps on your Mac. It's a handy stand-in for Launchpad, which macOS 26 no longer has. You can change it like any other profile.</p>
+    <h3 id="haptics">Haptic feedback</h3>
+    <p>Each time your finger crosses into another button, the trackpad gives a light tick. It also ticks when the page changes and when a button runs. You can choose the strength with the <strong>Haptic feedback</strong> setting.</p>
+
+    <h2 id="menu-bar">Menu bar</h2>
+    <p>Click the 3×3 icon in the menu bar to open the Nonet menu.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Status (the top line)</td><td>While Nonet is running, it shows the profile used for the front app, like "Xcode profile" or "Global profile". If something is wrong, it shows the problem, such as "Accessibility permission required", "Can't find a trackpad", "Unavailable while entering a password" or "Nonet is disabled"</td></tr>
+          <tr><td>Allow Accessibility Access…</td><td>Appears only when Nonet doesn't have permission. Opens the Accessibility section of System Settings</td></tr>
+          <tr><td>Dismiss Notice</td><td>Appears with a notice, for example when Nonet couldn't read its settings file</td></tr>
+          <tr><td>Enable Nonet</td><td>Uncheck it and Nonet ignores the trigger key</td></tr>
+          <tr><td>Settings…</td><td>Opens the Settings window on the General tab</td></tr>
+          <tr><td>Edit Profiles…</td><td>Opens the Settings window on the Profiles tab</td></tr>
+          <tr><td>Show Welcome Guide</td><td>Opens the Welcome to Nonet window</td></tr>
+          <tr><td>14 days left in your trial / Registered / Your trial has ended</td><td>Your license status. Choose it to open the Settings window on the License tab</td></tr>
+          <tr><td>Check for Updates…</td><td>Checks for a new version. When an automatic check has already found one, this item says that an update is available instead; choose it to see the update</td></tr>
+          <tr><td>Quit Nonet</td><td>Quits Nonet</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The icon also shows the status. It's dimmed while Nonet is disabled, and it gets a dot in the top-right corner when something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended, or a notice). It also gets a dot when a new version is available.</p>
+
+    <h2 id="profiles">Editing profiles</h2>
+    <p>Choose <strong>Edit Profiles…</strong> from the Nonet menu to open the Profiles tab of the Settings window. It has three columns: the profile list, the buttons and the inspector.</p>
+    <h3 id="profile-list">Profile list</h3>
+    <ul>
+      <li><strong>Global</strong> at the top (marked Default) holds the nine buttons used in apps without a profile. You can't delete it</li>
+      <li>App profiles are listed below it. Drag to reorder them</li>
+      <li>Click <strong>Add Profile…</strong> and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click <strong>Choose Another App…</strong></li>
+      <li>Control-click (or right-click) a profile to choose <strong>Disable</strong>, <strong>Export This Profile…</strong> or <strong>Delete…</strong>. You can also press Delete. Nonet asks before deleting, because you can't undo it</li>
+      <li>A disabled profile is marked Off, and Nonet uses the Global profile in that app. You can also switch it with <strong>Use this profile</strong> above the buttons</li>
+      <li><strong>Enable Nonet</strong> under the list is the same switch as in the General settings</li>
+    </ul>
+    <h3 id="pages-and-buttons">Pages and buttons</h3>
+    <p>The middle column shows the pages and the 3×3 grid of the selected profile.</p>
+    <ul>
+      <li>Click <strong>Page 1</strong>, <strong>Page 2</strong> and so on to switch pages. Click <strong>+</strong> (Add page) to add one (up to three pages). To delete a page, click <strong>−</strong> (Delete this page), or Control-click the page and choose <strong>Delete This Page…</strong></li>
+      <li>Click a button to select it, and drag to swap buttons. Drag a button onto <strong>Page 2</strong> (or another page) to move it to an empty button on that page</li>
+      <li>Use the arrow keys to move the selection, and press Delete to clear a button</li>
+      <li>Press ⌘Z to undo changes to buttons, such as clearing, deleting, duplicating, creating, swapping or moving them, or assigning a menu item, and ⇧⌘Z to redo. After you clear a button, or replace a filled button with a menu item, you can also click <strong>Undo</strong> under the grid. Deleting a page or a profile, and replacing profiles by importing, can't be undone</li>
+      <li>Control-click a button to choose <strong>Duplicate</strong>, <strong>Delete</strong> or <strong>Test This Button</strong>. On an empty button, choose an action type from <strong>Add Action</strong></li>
+    </ul>
+    <h3 id="inspector">Inspector</h3>
+    <p>The right column is where you set up the selected button. Changes are saved right away.</p>
+    <ul>
+      <li><strong>Empty button</strong>: click an action type to create one</li>
+      <li><strong>Name</strong>: the name shown under the icon. If you leave it empty, Nonet names the button from its action</li>
+      <li><strong>Icon</strong>: click the icon to the left of the name (Change icon). Choose <strong>Symbol</strong> (SF Symbols, searched by their English names), <strong>App</strong> (<strong>Use This App's Icon</strong>, available for Open App buttons and in app profiles) or <strong>Text</strong> (type 1–2 characters and click <strong>Use</strong>). <strong>Restore Default Icon</strong> goes back to the default</li>
+      <li><strong>Action type</strong>: Keystrokes, Open App, URL, Script, Shortcut, Menu Item or AI (see Action types)</li>
+      <li><strong>Test This Button</strong>: runs the button now and shows "Ran successfully." or the error. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings</li>
+      <li><strong>Clear This Button</strong>: removes the action and leaves an empty button</li>
+    </ul>
+    <h3 id="pick-from-menus">Pick from Menus</h3>
+    <p>You can assign an app's menu items without looking up keyboard shortcuts.</p>
+    <ol>
+      <li>Make sure the app is running</li>
+      <li>Click <strong>Pick from Menus</strong> at the top right of the grid, then choose the app from the pop-up menu</li>
+      <li>Find the item with <strong>Search menus</strong>, then drag it onto an empty button. You can also double-click it, or Control-click it and choose <strong>Add to Empty Button</strong></li>
+    </ol>
+    <p>To go back to the inspector, click the × at the top right of the panel (Back to the inspector).</p>
+
+    <h2 id="actions">Action types</h2>
+    <h3 id="keystrokes">Keystrokes</h3>
+    <p>Sends keystrokes to the front app. Click the <strong>Keys to send</strong> field (<strong>Record Shortcut</strong>), then press the keys you want to send.</p>
+    <ul>
+      <li>A combination like <code>⌘B</code> or <code>⇧⌘4</code></li>
+      <li>A sequence like <code>⌘L → ⌘C</code>, up to four keystrokes, sent 40 milliseconds apart</li>
+    </ul>
+    <p>While the field is recording (it shows <strong>Type Shortcut…</strong>):</p>
+    <ul>
+      <li>Press more keys to record a sequence. Return and Tab are recorded too</li>
+      <li>Click <strong>Done</strong> or anywhere else to finish. Recording also finishes after four keystrokes</li>
+      <li>Press Esc to stop recording without changing anything (<strong>Cancel</strong> does the same). To send the Esc key itself, click <strong>Add Esc</strong></li>
+      <li>To remove a wrong key, click ⌫ (Delete last key)</li>
+    </ul>
+    <p>Some keys never reach the field because macOS uses them first, such as ⌘Tab, ⌘Space and the ⇧⌘4 screenshot shortcut. For those, type the keys in the field below the recorder (<strong>Type keys as text</strong>) and click <strong>Apply</strong>. Nonet reads symbols like <code>⇧⌘4</code> as well as words like <code>cmd+shift+4</code>. Separate the keystrokes of a sequence with <code>→</code> or <code>,</code>.</p>
+    <p>Shortcuts like <code>⌘[</code> work correctly on JIS keyboards too.</p>
+    <h3 id="open-app">Open App</h3>
+    <p>Opens the app, or brings it to the front if it's already running. Under <strong>App to open</strong>, click <strong>Choose App…</strong> and choose an installed app. For an app that isn't listed, click <strong>Choose Another App…</strong>.</p>
+    <p>Turn on <strong>Hide if already in front</strong> to hide the app when you tap the button again, so you can switch to it and back.</p>
+    <h3 id="url">URL</h3>
+    <p>Opens the <strong>URL to open</strong> in its default app. If you leave out <code>https://</code>, Nonet adds it (<code>http://</code> for addresses like <code>localhost</code>). App URLs like <code>obsidian://</code> work too. A path that starts with <code>/</code> or <code>~</code> opens as a file or folder.</p>
+    <h3 id="script">Script</h3>
+    <p>Runs the zsh script in the <strong>Script to run (zsh)</strong> field with <code>/bin/zsh -l -c</code>. Click <strong>?</strong> above the field to see the environment variables described below.</p>
+    <ul>
+      <li><strong>Run</strong>
+        <ul>
+          <li>In Background: waits for the script to finish and stops it after the <strong>Timeout</strong> (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error</li>
+          <li>In Terminal: runs the script in a new Terminal window. Use it for interactive commands like <code>claude</code></li>
+        </ul>
+      </li>
+      <li><strong>Working directory</strong>: the project folder (see below), or your home folder if there isn't one</li>
+      <li><strong>Environment</strong>: scripts run in a login shell, so <code>~/.zprofile</code> is read but <code>~/.zshrc</code> isn't. Put your <code>PATH</code> for Homebrew and other tools in <code>~/.zprofile</code></li>
+    </ul>
+    <h4 id="script-variables">Environment variables passed to scripts</h4>
+    <p>These describe the front app when the script runs. <strong>Variables without a value aren't set.</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Variable</th>
+            <th scope="col">Contents</th>
+            <th scope="col">Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>NONET_APP_BUNDLE_ID</code></td><td>Bundle ID of the front app</td><td><code>com.apple.dt.Xcode</code></td></tr>
+          <tr><td><code>NONET_APP_NAME</code></td><td>Name of the front app</td><td><code>Xcode</code></td></tr>
+          <tr><td><code>NONET_DOCUMENT_PATH</code></td><td>Document open in the front window</td><td><code>/Users/you/dev/App/App.xcodeproj</code></td></tr>
+          <tr><td><code>NONET_PROJECT_DIR</code></td><td>Project folder that contains the document</td><td><code>/Users/you/dev/App</code></td></tr>
+          <tr><td><code>PROJECT_DIR</code></td><td>Same as <code>NONET_PROJECT_DIR</code></td><td><code>/Users/you/dev/App</code></td></tr>
+          <tr><td><code>NONET_BROWSER_URL</code></td><td>URL of the current page in Safari, Google Chrome, Arc, Microsoft Edge or Brave</td><td><code>https://example.com/article</code></td></tr>
+          <tr><td><code>NONET_SELECTED_TEXT</code></td><td>Selected text</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Nonet reads the selected text (<code>NONET_SELECTED_TEXT</code>) and the browser URL (<code>NONET_BROWSER_URL</code>) only when the script contains the variable's name, because reading them can mean sending ⌘C or asking the browser. In apps whose selection can't be read directly, Nonet copies it with ⌘C and then restores the clipboard. If your script only calls a script in another file, write the names of the variables it uses in your script, even in a comment (see the last example below).</p>
+    <p>Nonet finds the project folder like this:</p>
+    <ul>
+      <li>If the document is a <code>.xcodeproj</code>, <code>.xcworkspace</code> or <code>.swiftpm</code>, the folder that contains it</li>
+      <li>For any other file, the nearest folder above it that contains <code>.git</code> or <code>Package.swift</code>. If there isn't one, the folder that contains the file</li>
+    </ul>
+    <p>Examples:</p>
+    <pre><code class="language-zsh"># Open Claude Code in the project folder (Run: In Terminal)
+cd "$PROJECT_DIR" &amp;&amp; claude
+
+# Open the project in VS Code
+open -a "Visual Studio Code" "${PROJECT_DIR:-$HOME}"
+
+# Copy the URL of the current page to the clipboard
+printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
+
+# Pass the selected text to a script in another file (Nonet reads it because this comment names NONET_SELECTED_TEXT)
+~/bin/translate.sh</code></pre>
+    <p>Always put variables in double quotes, like <code>"$NONET_SELECTED_TEXT"</code>, because they can contain spaces and symbols. If a variable might not be set, use <code>${VARIABLE:-default}</code> or <code>${VARIABLE:?message}</code>. The <code>:?</code> message appears on screen as the error.</p>
+    <h3 id="shortcut">Shortcut</h3>
+    <p>Runs a shortcut from the Shortcuts app. Type its name in <strong>Shortcut to run</strong>, or pick it from the list next to the field (Choose a shortcut). Turn on <strong>Pass selected text as input</strong> to pass the selected text to the shortcut.</p>
+    <h3 id="menu-item">Menu Item</h3>
+    <p>Chooses a menu item in an app. The easiest way to set it up is <strong>Pick from Menus</strong> (the button in the inspector's Menu Item editor opens the same panel). <strong>Menu item to choose</strong> shows where the item is, its app and its keys.</p>
+    <ul>
+      <li>If the app is in front and the item has a keyboard shortcut, Nonet sends the keys, which is fast</li>
+      <li>If it has none (<strong>None (Nonet opens the menus to choose it)</strong>), Nonet opens the menus one by one with Accessibility and chooses the item</li>
+      <li>The app must be running</li>
+      <li>Menu names depend on the macOS language, so reassign the item if you change the language</li>
+    </ul>
+    <h3 id="ai">AI</h3>
+    <p>Sends the selected text and the <strong>Prompt</strong> to the on-device language model (Apple Intelligence). The text never leaves your Mac.</p>
+    <ul>
+      <li>Requirements: macOS 26 or later, a Mac that supports Apple Intelligence, and Apple Intelligence turned on in <strong>System Settings › Apple Intelligence &amp; Siri</strong> (with the model fully downloaded)</li>
+      <li><strong>Output</strong>:
+        <ul>
+          <li>Replace Selection: replaces the selected text with the result. If the front app changes while Nonet waits for the result, the result is copied to the clipboard instead</li>
+          <li>Copy to Clipboard</li>
+          <li>Show Result: shows the result in the result panel, where you can also select and copy text. Click <strong>Copy</strong> to copy the result, and <strong>Close</strong> or Esc to close the panel</li>
+        </ul>
+      </li>
+      <li>On a Mac that can't use AI actions, the inspector shows why, and so does the error when the button runs</li>
+    </ul>
+
+    <h2 id="general">General settings</h2>
+    <p>Choose <strong>Settings…</strong> from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General, License and About. The General tab is grouped into these sections.</p>
+    <h3 id="trigger-and-hud">Trigger &amp; HUD</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Setting</th>
+            <th scope="col">Default</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Enable Nonet</td><td>On</td><td>When off, Nonet ignores the trigger key. You can also switch it in the Nonet menu and under the profile list</td></tr>
+          <tr><td>Trigger key</td><td>Right ⌘ on JIS keyboards, right ⌥ on others</td><td>Right Command (⌘), Right Option (⌥), Right Shift (⇧) or fn. Nonet responds only to the right-side key. On a JIS keyboard, choosing right ⌥ shows a warning</td></tr>
+          <tr><td>Run on</td><td>Key Release</td><td>Whether a button you choose in the HUD runs when you release the trigger key (Key Release) or when you lift your finger (Finger Lift). Quick taps always run right away. Finger Lift changes how you cancel (see <a href="#cancel">Canceling</a> under Basics)</td></tr>
+          <tr><td>HUD delay</td><td>0.30 s</td><td>0.15–0.80 s. Taps faster than this run right away, without the HUD</td></tr>
+          <tr><td>HUD position</td><td>Center of Screen</td><td>Center of Screen or Near Pointer. The HUD appears on the display with the pointer</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="general-profiles">Profiles</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Setting</th>
+            <th scope="col">Default</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Switch profiles with the front app</td><td>On</td><td>When off, Nonet always uses the Global profile</td></tr>
+          <tr><td>Add Global pages after app pages</td><td>On</td><td>Global pages follow the app's pages, so you can reach them with a two-finger swipe. You can't change it while Switch profiles with the front app is off</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="feedback">Feedback</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Setting</th>
+            <th scope="col">Default</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Haptic feedback</td><td>Medium</td><td>Off, Light, Medium or Strong. The trackpad ticks when your finger crosses into another button, the page changes or a button runs</td></tr>
+          <tr><td>Show a notice when a button runs</td><td>On</td><td>When a button runs without the HUD, Nonet briefly shows it at the bottom of the screen</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="advanced">Advanced</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Setting</th>
+            <th scope="col">Default</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Pass the trigger key to the front app</td><td>On</td><td>When off, the trigger key itself doesn't reach the front app or other tools (see "Another tool also uses right ⌘" under Troubleshooting)</td></tr>
+          <tr><td>Pointer lock method</td><td>Automatic</td><td>Automatic (discards movement and moves the pointer back if it drifts), Discard Movement, Detach Pointer or Off (the pointer moves with your finger). Try another method if the pointer moves while you hold the trigger key</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="startup">Startup</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Setting</th>
+            <th scope="col">Default</th>
+            <th scope="col">What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Open at login</td><td>Off</td><td>Opens Nonet when you log in to your Mac</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="export-import">Export &amp; Import</h3>
+    <p>You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Only profiles (the buttons and their actions) are exported. General settings and your license aren't included.</p>
+    <ul>
+      <li><strong>Export…</strong>: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose <strong>Export This Profile…</strong></li>
+      <li><strong>Import…</strong>: adds the profiles in a file. In either of these cases, Nonet first asks "Import “file name”?":
+        <ul>
+          <li>Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced</li>
+          <li>The file has buttons that run something: scripts, keystrokes that press Return or are longer than four keystrokes, and URLs that open a file on your Mac. Nonet lists each of these buttons with what it runs: the first lines of the script, the keys or the file</li>
+        </ul>
+      </li>
+    </ul>
+    <p>When Nonet asks, check the contents, then choose one of these:</p>
+    <ul>
+      <li>Replace and Import: shown when something would be replaced. Replaces the listed profiles with the contents of the file and adds any new app profiles. You can't undo this action</li>
+      <li>Import: shown when nothing would be replaced. Adds the profiles in the file</li>
+      <li>Add New Profiles Only: leaves your profiles as they are and adds only profiles for apps you don't have yet (shown only when the file both replaces some profiles and adds new ones)</li>
+      <li>Cancel: changes nothing</li>
+    </ul>
+    <p>In other cases, Nonet imports the file without asking. The result (how many profiles were added, replaced or skipped) appears in the banner at the top of the window.</p>
+    <p><strong>Import profiles from someone else only if you trust them, and always check their scripts.</strong> Scripts and keystrokes run with your permissions. If the file contains scripts, the banner reminds you after importing.</p>
+
+    <h2 id="license">Trial and license</h2>
+    <ul>
+      <li>You can use every feature free for <strong>14 days</strong> from the day you first open Nonet. The days left appear in the Nonet menu and on the License tab of Settings</li>
+      <li>When the trial ends, the HUD shows "Your trial has ended" and buttons no longer run. Your settings are kept</li>
+      <li>After you buy Nonet, your license key arrives by email</li>
+    </ul>
+    <p>The License tab:</p>
+    <ul>
+      <li><strong>Status</strong>: "14 days left in your trial", "Registered" or "Your trial has ended". Once you register, it also shows who it's registered to, the issue date and the license ID</li>
+      <li><strong>License Key</strong>: paste the license key from your purchase email into the field and click <strong>Register</strong>. It takes effect right away. If you paste the text around the key too, like "License key:", Nonet reads only the key. Nonet checks the key on this Mac, so you don't need a network connection or an account</li>
+      <li><strong>Buy Nonet</strong>: opens the purchase page (shown only before you register)</li>
+      <li><strong>Unregister this Mac</strong>: click <strong>Unregister…</strong>, then <strong>Unregister</strong> to confirm, and Nonet removes your license key from this Mac. Use this when you move your license to another Mac. Keep a copy of your license key so you can register again</li>
+    </ul>
+
+    <h2 id="updates">Updates and About</h2>
+    <p>Nonet checks for new versions automatically. When it finds one, the menu bar icon gets a dot, and the <strong>Check for Updates…</strong> item in the Nonet menu says that an update is available. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose <strong>Check for Updates…</strong> from the Nonet menu.</p>
+    <p>The About tab of Settings shows the version and has <strong>Check for Updates…</strong>, <strong>User Guide</strong> (this guide) and <strong>Privacy Policy</strong>, plus the licenses of the third-party software Nonet uses.</p>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <p>When Nonet can't work, the top line of the Nonet menu and the banner at the top of the Settings window tell you why.</p>
+    <h3 id="no-accessibility">“Accessibility permission required”</h3>
+    <ul>
+      <li>Click <strong>Request Permission</strong> or <strong>Open System Settings</strong> in the banner at the top of the Settings window, or choose <strong>Allow Accessibility Access…</strong> from the Nonet menu</li>
+      <li>Turn on Nonet in <strong>System Settings › Privacy &amp; Security › Accessibility</strong>. Nonet starts working once you allow it</li>
+      <li>If Nonet is on but still doesn't work (after an update, for example), select Nonet in the list, click − to remove it, then add it again and turn it on</li>
+    </ul>
+    <h3 id="secure-input">“Nonet doesn't work while you enter a password”</h3>
+    <p>While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps. Leave the password field, or turn off <strong>Terminal › Secure Keyboard Entry</strong>. Nonet starts working again on its own. To check right away, click <strong>Check Again</strong> in the banner.</p>
+    <h3 id="no-trackpad">“Can't find a multi-touch trackpad”</h3>
+    <p>Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work with only a mouse. When you connect or reconnect a Magic Trackpad, Nonet finds it again on its own, which can take about 10 seconds. To check right away, click <strong>Check Again</strong> in the banner. If it still doesn't respond, choose <strong>Quit Nonet</strong> from the Nonet menu and open Nonet again.</p>
+    <h3 id="nothing-happens">Nothing happens</h3>
+    <ul>
+      <li>Make sure <strong>Enable Nonet</strong> is checked in the Nonet menu</li>
+      <li>Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")</li>
+      <li>Make sure you're holding the trigger key set in Settings. Nonet doesn't respond to left ⌘ or ⌥</li>
+      <li>Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown</li>
+      <li>While a Nonet window such as Settings is in front, Keystrokes, Script, Shortcut, Menu Item and AI buttons don't run, and Nonet tells you so (Open App and URL buttons do run). To try a button in Settings, use <strong>Test This Button</strong> in the inspector</li>
+    </ul>
+    <h3 id="menu-bar-icon-missing">The menu bar icon is missing</h3>
+    <p>When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder to open the Settings window.</p>
+    <h3 id="pointer-stuck">The pointer doesn't move or clicks don't work</h3>
+    <p>While you hold the trigger key, Nonet holds the pointer still and blocks clicks. If Nonet thinks the key is still down, any of these gets things back to normal:</p>
+    <ul>
+      <li>Press and release the trigger key (right ⌘ or the key you chose) once</li>
+      <li>Press any other key (this cancels right away)</li>
+      <li>Wait 20 seconds (long sessions end on their own)</li>
+      <li>If none of these work, choose <strong>Quit Nonet</strong> from the Nonet menu</li>
+    </ul>
+    <p>If the pointer moves a little while you hold the trigger key, try another <strong>Pointer lock method</strong> under Advanced.</p>
+    <h3 id="jis-right-option">No right ⌥ on a JIS keyboard</h3>
+    <p>JIS keyboards have no right ⌥. Choose right ⌘ (the default), right ⇧ or fn as the trigger key.</p>
+    <h3 id="other-tools">Another tool also uses right ⌘</h3>
+    <p>If you use a tool such as ⌘英かな or Karabiner-Elements that acts when you press right ⌘ by itself, it may react every time you use Nonet. Choose another trigger key, or change that tool's settings. If you turn off <strong>Pass the trigger key to the front app</strong>, the trigger key no longer reaches other apps and tools.</p>
+    <h3 id="wrong-button">The wrong button runs</h3>
+    <p>Buttons are chosen by the <strong>absolute position</strong> of your finger on the trackpad. For a button on the edge, tap near that edge of the trackpad. When you're not sure, rest your finger and check the HUD before the button runs. If quick taps keep bringing up the HUD, or the HUD doesn't appear when you want it, change the <strong>HUD delay</strong>.</p>
+    <h3 id="script-fails">A script fails</h3>
+    <ul>
+      <li>Read the error on screen. If it says <code>command not found</code>, put your <code>PATH</code> in <code>~/.zprofile</code> (scripts run in a login shell, so <code>~/.zshrc</code> isn't read). For Homebrew, for example, add <code>eval "$(/opt/homebrew/bin/brew shellenv)"</code> to <code>~/.zprofile</code></li>
+      <li>To test under the same conditions, run <code>zsh -l -c '&lt;script&gt;'</code> in Terminal</li>
+      <li><strong>Test This Button</strong> in the inspector shows the result right away</li>
+      <li>For long tasks, raise the <strong>Timeout</strong> or choose <strong>In Terminal</strong></li>
+    </ul>
+    <h3 id="automation">macOS asks for Automation permission</h3>
+    <p>When a script contains <code>NONET_BROWSER_URL</code> and a supported browser (Safari, Google Chrome, Arc, Microsoft Edge or Brave) is in front, Nonet asks that browser for the URL of the current page just before the script runs. The first time, macOS asks whether Nonet may control that browser. If you want to use the URL, allow it and run the button again. If you don't allow it, the script still runs, without <code>NONET_BROWSER_URL</code>.</p>
+    <p>If you denied it and want it later, turn on the browser under Nonet in <strong>System Settings › Privacy &amp; Security › Automation</strong>.</p>
+    <h3 id="menu-item-fails">A Menu Item action fails</h3>
+    <ul>
+      <li>Make sure the app is running</li>
+      <li>Check whether the menu item's name changed, for example after an app update or a change of the macOS language. If it did, assign it again with <strong>Pick from Menus</strong></li>
+    </ul>
+    <h3 id="ai-unavailable">AI actions aren't available</h3>
+    <p>Make sure you're on macOS 26 or later, your Mac supports Apple Intelligence, and Apple Intelligence is turned on with the model fully downloaded. The AI editor in the inspector also shows the reason. Select some text before you run the button.</p>
+    <h3 id="no-haptics">No haptic feedback</h3>
+    <p>Make sure <strong>Haptic feedback</strong> isn't set to Off. You can feel it only on a Force Touch trackpad.</p>
+    <h3 id="login-item">Nonet doesn't open at login</h3>
+    <p>When you turn on <strong>Open at login</strong>, macOS may ask you to approve it. Allow Nonet in <strong>System Settings › General › Login Items</strong> (Login Items &amp; Extensions on macOS 15 and later).</p>
+    <h3 id="damaged-settings">“Couldn't load the settings file”</h3>
+    <p>If Nonet says it couldn't load the settings file because it was damaged, it started with the default settings. The original file is kept, under the name shown in the notice, in the same folder (<code>~/Library/Application Support/Nonet/</code>). If you exported your profiles, you can bring them back with <strong>Import…</strong>. To clear the notice, choose <strong>Dismiss Notice</strong> from the Nonet menu.</p>
+    <h3 id="reset">Resetting your settings</h3>
+    <p>Quit Nonet, move <code>~/Library/Application Support/Nonet/</code> to the Trash, and open Nonet again. It starts as if it were opened for the first time. The days left in your trial and your registration stay as they were.</p>
+
+    <h2 id="uninstall">Uninstalling</h2>
+    <ol>
+      <li>On the General tab of Settings, turn off <strong>Open at login</strong></li>
+      <li>If you'll use your license on another Mac, keep a copy of your license key</li>
+      <li>Choose <strong>Quit Nonet</strong> from the Nonet menu</li>
+      <li>Move <code>Nonet</code> from the Applications folder to the Trash</li>
+      <li>Delete these files and folders:
+        <ul>
+          <li><code>~/Library/Application Support/Nonet/</code> (settings)</li>
+          <li><code>~/Library/Preferences/com.iam74k4.Nonet.plist</code> (the trial record and your license key)</li>
+          <li><code>~/Library/Caches/com.iam74k4.Nonet/</code> (temporary update files)</li>
+        </ul>
+      </li>
+      <li>In Keychain Access, search for <code>com.iam74k4.Nonet.license.trial</code> and delete the item it finds (the trial record)</li>
+      <li>In <strong>System Settings › Privacy &amp; Security › Accessibility</strong>, select Nonet and click − to remove it. Running <code>tccutil reset Accessibility com.iam74k4.Nonet</code> in Terminal does the same</li>
+    </ol>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <!-- TODO: support email address (same as index.html) -->
+        <li><a href="mailto:support@TODO.invalid">Contact</a></li>
+        <li><a href="../guide.html" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Apple, Mac, MacBook, macOS, Magic Trackpad, Force Touch, Apple Intelligence, Siri, Launchpad, Xcode and Safari are trademarks of Apple Inc. Other product names are trademarks of their respective owners.</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
