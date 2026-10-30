@@ -25,7 +25,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // 画面には出ないが、設定や案内のウィンドウで ⌘C・⌘V・⌘Z・⌘W などを使えるようにする
+        NSApplication.shared.mainMenu = ShellMainMenu.make(
+            onAbout: { [weak self] in self?.showSettings(tab: .about) },
+            onOpenSettings: { [weak self] in self?.showSettings(tab: .general) }
+        )
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // ディスクイメージなどから開かれたら、アプリケーションフォルダに移して開き直す
+        if ShellMoveToApplications.offerIfNeeded() {
+            NSApplication.shared.terminate(nil)
+            return
+        }
         let services = NonetServices.live()
         let hud = HUDWindowController()
         let license = makeLicenseManager()
@@ -53,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             permissions.requestAccessibility()
             permissions.openAccessibilitySettings()
         }
+        updater.onUpdateAvailableChange = { [weak menuBar] available in menuBar?.isUpdateAvailable = available }
         self.menuBar = menuBar
         settingsWindow = SettingsWindowController(
             controller: controller,
@@ -133,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard let controller, let services else { return }
-        let window = OnboardingWindowController(controller: controller, services: services) { [weak self] in
+        let window = OnboardingWindowController(controller: controller, services: services, license: license) { [weak self] in
             self?.onboardingWindow = nil
         }
         window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }

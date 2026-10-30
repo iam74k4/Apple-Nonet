@@ -48,6 +48,8 @@ enum OnboardingPracticeBlocker: Equatable {
     case needsAccessibility
     case noTrackpad
     case secureInput
+    /// 試用期間が終わっていて、練習のタップも実行されなかった
+    case licenseRequired
 
     var message: String {
         switch self {
@@ -59,6 +61,8 @@ enum OnboardingPracticeBlocker: Equatable {
             String(localized: "トラックパッドが見つからないため、試せません", bundle: .module)
         case .secureInput:
             String(localized: "パスワードの入力中は試せません。パスワード欄から離れてください", bundle: .module)
+        case .licenseRequired:
+            String(localized: "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます", bundle: .module)
         }
     }
 
@@ -67,6 +71,7 @@ enum OnboardingPracticeBlocker: Equatable {
         switch self {
         case .disabled: .enableNonet
         case .needsAccessibility: .openAccessibilitySettings
+        case .licenseRequired: .openLicense
         case .noTrackpad, .secureInput: nil
         }
     }
@@ -75,11 +80,14 @@ enum OnboardingPracticeBlocker: Equatable {
 enum OnboardingPracticeRemedy: Equatable {
     case enableNonet
     case openAccessibilitySettings
+    /// 設定の「ライセンス」を開く
+    case openLicense
 
     var title: String {
         switch self {
-        case .enableNonet: String(localized: "有効にする", bundle: .module)
+        case .enableNonet: String(localized: "Nonet を有効にする", bundle: .module)
         case .openAccessibilitySettings: String(localized: "システム設定を開く", bundle: .module)
+        case .openLicense: String(localized: "ライセンスキーを入力…", bundle: .module)
         }
     }
 }
@@ -100,8 +108,15 @@ final class OnboardingModel {
     private(set) var isWindowKey = true
     /// 初回起動の案内として開いた。選んだアプリだけのプロファイルで作り直してよい
     let isFirstLaunchGuide: Bool
+    /// 練習のタップが試用期間の終了で断られた（もう一度押して実行されれば消える）。
+    /// 知らせは、ライセンスを登録して実行できるようになった時点で出さなくなる（practiceBlocker）
+    private(set) var isPracticeRefusedForLicense = false
+    /// 設定を開く（ライセンスの登録など）。ウィンドウの側が入れる
+    @ObservationIgnored var onOpenSettings: ((SettingsTab) -> Void)?
 
     @ObservationIgnored private let controller: NonetController
+    /// 実行できるか（ライセンス・試用）を見る。@Observable なので、登録すると練習の画面も変わる
+    @ObservationIgnored private let license: LicenseManager?
     @ObservationIgnored private let permissions: any PermissionsProviding
     @ObservationIgnored private let presets: [AppPreset]
     @ObservationIgnored private let installedLauncherIDs: Set<String>
@@ -115,14 +130,17 @@ final class OnboardingModel {
     /// ここから変わっていれば利用者が編集したので、作り直さずに足すだけにする
     private var profilesSnapshot: [Profile]
 
+    /// license が nil なら、断られた後は次に実行されるまで知らせを出し続ける
     init(
         controller: NonetController,
+        license: LicenseManager? = nil,
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
         isFirstLaunchGuide: Bool,
         now: @escaping () -> Date = Date.init
     ) {
         self.controller = controller
+        self.license = license
         self.permissions = permissions
         self.isFirstLaunchGuide = isFirstLaunchGuide
         self.now = now
@@ -179,8 +197,11 @@ final class OnboardingModel {
         case .needsAccessibility: return .needsAccessibility
         case .noTrackpad: return .noTrackpad
         case .secureInputActive: return .secureInput
-        case .running, .disabled, .stopped: return nil
+        case .running, .disabled, .stopped: break
         }
+        // 断られた後でも、ライセンスキーを登録して実行できるようになっていれば、もう知らせない
+        guard isPracticeRefusedForLicense, license?.canExecuteActions != true else { return nil }
+        return .licenseRequired
     }
 
     /// 練習モードにしてよいか。見えていても、ほかのアプリを使っている間は本物を実行する
@@ -190,16 +211,19 @@ final class OnboardingModel {
 
     // MARK: - アクセシビリティ
 
-    /// 1秒ごとに呼ぶ。許可されたらコントローラーに知らせ、最初の画面なら次へ進む
-    func pollPermission() {
+    /// 1秒ごとに呼ぶ。許可されたらコントローラーに知らせ、最初の画面なら次へ進む。
+    /// いま許可されたなら true（ウィンドウはシステム設定の後ろにあるので、呼んだ側が前に出す）
+    @discardableResult
+    func pollPermission() -> Bool {
         let granted = permissions.isAccessibilityGranted
-        guard granted != isAccessibilityGranted else { return }
+        guard granted != isAccessibilityGranted else { return false }
         isAccessibilityGranted = granted
         controller.refreshPermissions()
         if granted, step == .welcome {
             logger.info("アクセシビリティが許可されたので次へ進む")
             go(to: .apps)
         }
+        return granted
     }
 
     /// 許可のダイアログを出し（一覧に Nonet が載る）、設定アプリの欄を開く
@@ -242,6 +266,7 @@ final class OnboardingModel {
         switch remedy {
         case .enableNonet: enableNonet()
         case .openAccessibilitySettings: requestAccessibility()
+        case .openLicense: onOpenSettings?(.license)
         }
     }
 
@@ -316,11 +341,19 @@ final class OnboardingModel {
 
     // MARK: - 練習
 
-    /// controller.lastExecution が変わったら呼ぶ。練習を始めてからの記録だけを数える
+    /// controller.lastExecution が変わったら呼ぶ。練習を始めてからの記録だけを数える。
+    /// 実行されなかったもの（試用期間の終了で断られた）は押せたことにしない
     func handleExecution(_ record: ExecutionRecord?) {
         guard step == .practice, isWindowAttended, let record, let startedAt = practiceStartedAt,
               record != practiceBaseline, record.date >= startedAt else { return }
         practiceBaseline = record
+        guard record.succeeded else {
+            if record.message == NonetError.licenseRequired.localizedDescription {
+                isPracticeRefusedForLicense = true
+            }
+            return
+        }
+        isPracticeRefusedForLicense = false
         if record.address.index == Self.practiceTargetIndex {
             practice = .succeeded
         } else if practice != .succeeded {
@@ -348,6 +381,7 @@ final class OnboardingModel {
         step = newStep
         if newStep == .practice {
             practice = .waiting
+            isPracticeRefusedForLicense = false
             practiceBaseline = controller.lastExecution
             practiceStartedAt = now()
             controller.isPracticeMode = isWindowAttended

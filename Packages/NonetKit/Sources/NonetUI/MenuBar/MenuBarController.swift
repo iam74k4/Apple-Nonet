@@ -9,6 +9,16 @@ import SwiftUI
 public final class MenuBarController {
     /// 「アクセシビリティを許可…」で呼ぶ（App が設定アプリを開く）。nil なら初回の案内を開く
     public var onRequestAccessibility: (() -> Void)?
+    /// 定期の確認でアップデートが見つかった（App が Sparkle から受けて入れる）。
+    /// アイコンに印を付け、メニューに「アップデートがあります…」を出す
+    public var isUpdateAvailable = false {
+        didSet {
+            // @Observable ではないので、見張りに頼らずここでアイコンを描き直す
+            if isUpdateAvailable != oldValue {
+                applyIcon(currentState())
+            }
+        }
+    }
 
     private let controller: NonetController
     private let license: LicenseManager
@@ -16,8 +26,10 @@ public final class MenuBarController {
     private let onOpenOnboarding: () -> Void
     private let onCheckForUpdates: (() -> Void)?
 
-    private let statusItem: NSStatusItem
-    private let menu = NSMenu()
+    /// メニューバーのアイコン（テストから見た目を確かめる）
+    let statusItem: NSStatusItem
+    /// メニューバーのメニュー（テストから項目を押す）
+    let menu = NSMenu()
     private let menuDelegate = MenuBarMenuDelegate()
     private let actionTarget = MenuBarActionTarget()
     private var observer: ShellObserver<MenuBarState>?
@@ -50,12 +62,17 @@ public final class MenuBarController {
     }
 
     private func currentState() -> MenuBarState {
-        MenuBarState(controller: controller, license: license, canCheckForUpdates: onCheckForUpdates != nil)
+        MenuBarState(
+            controller: controller,
+            license: license,
+            canCheckForUpdates: onCheckForUpdates != nil,
+            isUpdateAvailable: isUpdateAvailable
+        )
     }
 
     private func applyIcon(_ state: MenuBarState) {
         guard let button = statusItem.button else { return }
-        let iconState = MenuBarModel.iconState(for: state)
+        let iconState = MenuBarModel.buttonIconState(for: state)
         button.image = MenuBarIconRenderer.image(for: iconState)
         button.appearsDisabled = iconState == .disabled
         let description = MenuBarModel.accessibilityDescription(for: state)
@@ -116,7 +133,8 @@ public final class MenuBarController {
             return actionItem(entry) { [weak self] in self?.onOpenOnboarding() }
         case .license:
             return actionItem(entry) { [weak self] in self?.onOpenSettings(.license) }
-        case .checkForUpdates:
+        case .checkForUpdates, .updateAvailable:
+            // 見つかっているときは、Sparkle がその知らせの画面を出す
             return actionItem(entry) { [weak self] in self?.onCheckForUpdates?() }
         case .quit:
             let item = actionItem(entry) { NSApplication.shared.terminate(nil) }
@@ -126,7 +144,7 @@ public final class MenuBarController {
     }
 
     private func actionItem(_ entry: MenuBarEntry, _ action: @escaping @MainActor () -> Void) -> NSMenuItem {
-        let item = NSMenuItem(title: entry.title, action: #selector(MenuBarActionTarget.perform(_:)), keyEquivalent: "")
+        let item = NSMenuItem(title: entry.title, action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
         item.target = actionTarget
         item.representedObject = MenuBarAction(action)
         item.isEnabled = true
@@ -135,7 +153,7 @@ public final class MenuBarController {
 
     private static func statusSymbol(_ state: MenuBarIconState) -> String {
         switch state {
-        case .normal: "checkmark.circle"
+        case .normal, .updateAvailable: "checkmark.circle"
         case .disabled: "pause.circle"
         case .attention: "exclamationmark.triangle"
         }
@@ -161,7 +179,8 @@ private final class MenuBarAction {
 }
 
 private final class MenuBarActionTarget: NSObject {
-    @objc func perform(_ sender: NSMenuItem) {
+    /// perform(_:) という名前にすると、#selector が NSObject の performSelector: を指してしまい、押しても動かない
+    @objc func runAction(_ sender: NSMenuItem) {
         guard let action = sender.representedObject as? MenuBarAction else { return }
         MainActor.assumeIsolated { action.run() }
     }

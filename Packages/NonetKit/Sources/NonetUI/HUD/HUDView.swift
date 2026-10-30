@@ -233,6 +233,18 @@ enum HUDAnnouncement {
         }
     }
 
+    /// 名詞の前に置くときの位置の呼び方（英語では「top-right corner」のようにハイフンでつなぐ）。
+    /// 角の4つだけ別の訳が要る。ほかは positionName と同じ
+    static func attributivePositionName(_ index: Int) -> String {
+        switch index {
+        case 0: String(localized: "attributivePosition.topLeft", defaultValue: "左上", bundle: .module)
+        case 2: String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .module)
+        case 6: String(localized: "attributivePosition.bottomLeft", defaultValue: "左下", bundle: .module)
+        case 8: String(localized: "attributivePosition.bottomRight", defaultValue: "右下", bundle: .module)
+        default: positionName(index)
+        }
+    }
+
     static func pageDescription(pageIndex: Int, pageCount: Int) -> String {
         String(localized: "\(pageCount) ページ中 \(pageIndex + 1) ページ目", bundle: .module)
     }

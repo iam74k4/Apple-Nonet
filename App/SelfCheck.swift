@@ -11,7 +11,8 @@ enum SelfCheck {
     static func run() -> Int32 {
         let license = LicenseManager(
             verifier: AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) },
-            storage: ReadOnlyLicenseStorage(base: UserDefaultsLicenseStorage())
+            // 試用の記録は読むだけ。試用を始めたり、時間を数えたり、2か所の記録をそろえたりもしない
+            storage: ShellSelfCheck.LicenseSnapshot()
         )
         let report = ShellSelfCheck.run(
             version: AppInfo.fullVersion,
@@ -30,35 +31,6 @@ enum SelfCheck {
         output.append(0x0A)
         FileHandle.standardOutput.write(output)
         return report.isSuccess ? 0 : 1
-    }
-}
-
-/// 試用の記録を読むだけで書かない（確認のために試用を始めたり、時間を数えたりしない）
-private final class ReadOnlyLicenseStorage: LicenseStorage {
-    private let base: any LicenseStorage
-
-    init(base: any LicenseStorage) {
-        self.base = base
-    }
-
-    var trialStartDate: Date? {
-        get { base.trialStartDate }
-        set {}
-    }
-
-    var licenseKey: String? {
-        get { base.licenseKey }
-        set {}
-    }
-
-    var trialLastSeenDate: Date? {
-        get { base.trialLastSeenDate }
-        set {}
-    }
-
-    var trialUsedTime: TimeInterval? {
-        get { base.trialUsedTime }
-        set {}
     }
 }
 

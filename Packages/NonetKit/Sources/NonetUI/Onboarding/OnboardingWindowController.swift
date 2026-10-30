@@ -6,8 +6,10 @@ import SwiftUI
 /// 初回起動のウィンドウ（権限 → アプリを選ぶ → 試してみる → 完了）
 @MainActor
 public final class OnboardingWindowController {
-    /// 完了の画面の「設定を開く」。nil ならボタンを出さない
+    /// 完了の画面の「設定を開く」と、練習の画面の「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
+    /// アクセシビリティが許可されたときにウィンドウを前に出す（テストではウィンドウを出さずに数える）
+    var raiseWindow: () -> Void = {}
 
     let model: OnboardingModel
     private let controller: NonetController
@@ -18,20 +20,31 @@ public final class OnboardingWindowController {
     private var executionObserver: ShellObserver<ExecutionRecord?>?
     private var didFinish = false
 
+    /// license: 練習のタップが試用期間の終了で断られた後、ライセンスキーを登録したら知らせを消すために見る。
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
-    public convenience init(controller: NonetController, services: NonetServices, onFinish: @escaping () -> Void) {
-        self.init(controller: controller, services: services, history: .shared, onFinish: onFinish)
+    public convenience init(controller: NonetController, services: NonetServices, license: LicenseManager? = nil, onFinish: @escaping () -> Void) {
+        self.init(controller: controller, services: services, license: license, history: .shared, onFinish: onFinish)
     }
 
-    init(controller: NonetController, services: NonetServices, history: OnboardingGuideHistory, onFinish: @escaping () -> Void) {
+    init(
+        controller: NonetController,
+        services: NonetServices,
+        license: LicenseManager? = nil,
+        history: OnboardingGuideHistory,
+        onFinish: @escaping () -> Void
+    ) {
         self.controller = controller
         self.onFinish = onFinish
         model = OnboardingModel(
             controller: controller,
+            license: license,
             permissions: services.permissions,
             installedApps: services.installedApps,
             isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
         )
+        raiseWindow = { [weak self] in self?.bringToFront() }
+        // ライセンスの登録は設定で行い、案内は開いたまま戻ってこられるようにする
+        model.onOpenSettings = { [weak self] tab in self?.onOpenSettings?(tab) }
     }
 
     public func show() {
@@ -76,7 +89,7 @@ public final class OnboardingWindowController {
     /// 許可を1秒ごとに確かめ、練習の記録を見張る
     private func startWatching() {
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.model.pollPermission() }
+            MainActor.assumeIsolated { self?.checkPermission() }
         }
         permissionTimer = timer
         RunLoop.main.add(timer, forMode: .common)
@@ -85,6 +98,22 @@ public final class OnboardingWindowController {
         }, onChange: { [weak self] record in
             self?.model.handleExecution(record)
         })
+    }
+
+    /// 許可されたら、システム設定の後ろに隠れたウィンドウを前に出す（Nonet は Dock にも ⌘Tab にも出ないので、自分では探せない）
+    func checkPermission() {
+        if model.pollPermission() {
+            raiseWindow()
+        }
+    }
+
+    private func bringToFront() {
+        guard let window else { return }
+        // ほかのアプリが前面のときは前面にしてもらえないことがあるので、まずウィンドウだけでも前に出す
+        window.orderFrontRegardless()
+        NSApplication.shared.activate()
+        window.makeKeyAndOrderFront(nil)
+        model.setWindowKey(window.isKeyWindow)
     }
 
     private func openSettings() {

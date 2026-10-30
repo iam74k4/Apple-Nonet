@@ -2,7 +2,8 @@
 // NonetController が HUD・トースト・結果のパネルに渡すものを作る純粋な関数
 import Foundation
 
-enum ControllerPresentation {
+/// hint と trialEndedBanner だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
+public enum ControllerPresentation {
     /// page は resolvedPages での位置。範囲外は端に寄せる
     static func hudModel(pages: [ResolvedPage], page: Int, highlightedCell: Int?, hint: String, banner: String?) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(page, 0), pages.count - 1)
@@ -32,7 +33,7 @@ enum ControllerPresentation {
     }
 
     /// HUD の右上の案内
-    static func hint(fireMode: FireMode, trigger: TriggerKey, isPracticeMode: Bool) -> String {
+    public static func hint(fireMode: FireMode, trigger: TriggerKey, isPracticeMode: Bool) -> String {
         let base = switch fireMode {
         case .onTriggerRelease:
             String(localized: "\(trigger.symbol)を離して実行", bundle: .module)
@@ -43,7 +44,7 @@ enum ControllerPresentation {
         return String(localized: "練習中 · \(base)", bundle: .module)
     }
 
-    static var trialEndedBanner: String {
+    public static var trialEndedBanner: String {
         String(localized: "試用期間が終了しました", bundle: .module)
     }
 

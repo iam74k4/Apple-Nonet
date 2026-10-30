@@ -11,6 +11,8 @@ struct MenuBarState: Equatable {
     var notice: String?
     var entitlement: Entitlement
     var canCheckForUpdates: Bool
+    /// 定期の確認で見つかったアップデートを、まだ見せていない（Sparkle の控えめな知らせ）
+    var isUpdateAvailable: Bool
 
     init(
         status: ControllerStatus,
@@ -19,7 +21,8 @@ struct MenuBarState: Equatable {
         isGlobalProfileActive: Bool = false,
         notice: String? = nil,
         entitlement: Entitlement,
-        canCheckForUpdates: Bool = false
+        canCheckForUpdates: Bool = false,
+        isUpdateAvailable: Bool = false
     ) {
         self.status = status
         self.isEnabled = isEnabled
@@ -28,10 +31,11 @@ struct MenuBarState: Equatable {
         self.notice = notice
         self.entitlement = entitlement
         self.canCheckForUpdates = canCheckForUpdates
+        self.isUpdateAvailable = isUpdateAvailable
     }
 
     @MainActor
-    init(controller: NonetController, license: LicenseManager, canCheckForUpdates: Bool) {
+    init(controller: NonetController, license: LicenseManager, canCheckForUpdates: Bool, isUpdateAvailable: Bool = false) {
         let active = controller.activeProfileName
         self.init(
             status: controller.status,
@@ -40,7 +44,8 @@ struct MenuBarState: Equatable {
             isGlobalProfileActive: active != nil && active == controller.configuration.globalProfile.name,
             notice: controller.notice,
             entitlement: license.entitlement,
-            canCheckForUpdates: canCheckForUpdates
+            canCheckForUpdates: canCheckForUpdates,
+            isUpdateAvailable: isUpdateAvailable
         )
     }
 }
@@ -52,6 +57,8 @@ enum MenuBarIconState: Equatable, CaseIterable {
     case disabled
     /// 権限が無い・トラックパッドが無い・パスワード入力中・試用終了・知らせたい問題がある
     case attention
+    /// 普段どおり動いていて、定期の確認で見つかったアップデートがある（メニューバーのアイコンだけ。メニューの状態の行には使わない）
+    case updateAvailable
 }
 
 /// メニューの1行
@@ -67,6 +74,8 @@ enum MenuBarEntry: Equatable {
     case showOnboarding
     case license(String)
     case checkForUpdates
+    /// 見つかったアップデートを見せる（「アップデートを確認」の代わり）
+    case updateAvailable
     case quit
 
     /// メニューに出す文字
@@ -83,6 +92,7 @@ enum MenuBarEntry: Equatable {
         case .showOnboarding: String(localized: "初回の案内をもう一度", bundle: .module)
         case .license(let text): text
         case .checkForUpdates: String(localized: "アップデートを確認", bundle: .module)
+        case .updateAvailable: String(localized: "アップデートがあります…", bundle: .module)
         case .quit: String(localized: "終了", bundle: .module)
         }
     }
@@ -136,7 +146,8 @@ enum MenuBarModel {
     static func licenseText(for entitlement: Entitlement) -> String {
         switch entitlement {
         case .trial(let daysLeft):
-            String(localized: "試用期間: 残り \(daysLeft) 日", bundle: .module)
+            // 数で文が変わる（1 day / 2 days）ので、文言の言語の規則で選ぶ
+            String(localized: "試用期間: 残り \(daysLeft) 日", bundle: .module, locale: .nonetUI)
         case .licensed:
             String(localized: "登録済み", bundle: .module)
         case .expired:
@@ -144,12 +155,20 @@ enum MenuBarModel {
         }
     }
 
+    /// メニューバーのアイコン。普段どおりのときだけ、見つかったアップデートを印で知らせる
+    /// （Nonet は前に出ないので、Sparkle の画面の代わりにここで気づいてもらう。問題や無効の見た目の方を優先する）
+    static func buttonIconState(for state: MenuBarState) -> MenuBarIconState {
+        let base = iconState(for: state)
+        return base == .normal && state.canCheckForUpdates && state.isUpdateAvailable ? .updateAvailable : base
+    }
+
     /// アイコンの説明（VoiceOver とツールチップ）
     static func accessibilityDescription(for state: MenuBarState) -> String {
-        switch iconState(for: state) {
+        switch buttonIconState(for: state) {
         case .normal: String(localized: "Nonet", bundle: .module)
         case .disabled: String(localized: "Nonet（無効）", bundle: .module)
         case .attention: String(localized: "Nonet（確認が必要）", bundle: .module)
+        case .updateAvailable: String(localized: "Nonet（アップデートがあります）", bundle: .module)
         }
     }
 
@@ -172,7 +191,7 @@ enum MenuBarModel {
             .license(licenseText(for: state.entitlement)),
         ]
         if state.canCheckForUpdates {
-            entries.append(.checkForUpdates)
+            entries.append(state.isUpdateAvailable ? .updateAvailable : .checkForUpdates)
         }
         entries += [.separator, .quit]
         return entries
