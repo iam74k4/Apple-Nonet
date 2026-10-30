@@ -17,10 +17,21 @@ struct ContextNeeds: OptionSet, Sendable {
     /// 選択テキストを処理するためのアクション（AI・ショートカット）で使う
     static let copyWhenEmpty = ContextNeeds(rawValue: 1 << 4)
 
-    /// スクリプトがどの変数を使うかはソースからは分からない（外部のファイルを呼ぶだけのこともある）ので、
-    /// ScriptEnvironment の変数はすべて用意する。ただし選択が空だと読めたときは ⌘C を送らない
-    /// （送っても多くのアプリで警告音が鳴るだけで、選択の要らないスクリプトを遅くする）
-    static let forScript: ContextNeeds = [.selectedText, .copyFallback, .documentPath, .browserURL]
+    /// スクリプトのソースに書かれている変数の文脈だけを読む。
+    /// 選択テキスト（⌘C を送ることがある）とブラウザの URL（オートメーションの確認が出る）は副作用があるので、
+    /// 使わないスクリプトでは読まない。外部のファイルに渡したいときは、ソースのどこか（コメントでもよい）に変数名を書く。
+    /// 書類の場所は副作用が無く、プロジェクトのフォルダ（作業フォルダ）を決めるのに使うので、いつも読む。
+    /// 選択が空と読めたときは ⌘C を送らない（送っても多くのアプリで警告音が鳴るだけ）
+    static func forScript(source: String) -> ContextNeeds {
+        var needs: ContextNeeds = [.documentPath]
+        if source.contains(ScriptVariableName.selectedText) {
+            needs.formUnion([.selectedText, .copyFallback])
+        }
+        if source.contains(ScriptVariableName.browserURL) {
+            needs.insert(.browserURL)
+        }
+        return needs
+    }
 
     static func forShortcut(_ action: ShortcutAction) -> ContextNeeds {
         action.passSelectedText ? [.selectedText, .copyFallback, .copyWhenEmpty] : []
@@ -41,6 +52,29 @@ struct ContextNeeds: OptionSet, Sendable {
     func asksBrowser(bundleID: String) -> Bool {
         contains(.browserURL) && BrowserURLReader.script(forBundleID: bundleID) != nil
     }
+}
+
+/// 副作用のある文脈を渡す環境変数の名前（ScriptEnvironment.variables と同じ）
+enum ScriptVariableName {
+    static let selectedText = "NONET_SELECTED_TEXT"
+    static let browserURL = "NONET_BROWSER_URL"
+}
+
+/// 選択テキストをどこから取ったか
+enum SelectionSource: Equatable, Sendable {
+    case accessibility
+    /// アクセシビリティでは読めず、⌘C で取った
+    case copyAfterUnreadable
+    /// アクセシビリティは「選択なし」と答えたが、⌘C で取れた。選択が本当にあるかは分からない
+    case copyAfterEmpty
+}
+
+/// 読んだ文脈
+struct ContextReading: Equatable, Sendable {
+    var info: ScriptContextInfo
+    var selectionSource: SelectionSource?
+    /// クリップボードの中身を保てない（大きすぎる・読む許可が無いなど）ので、⌘C を送らなかった
+    var skippedCopy = false
 }
 
 /// アクセシビリティ API で読んだ、前面の要素の選択
@@ -72,7 +106,7 @@ final class ContextReader {
         var documentPath: @Sendable (pid_t) async -> String?
         var browserURL: @Sendable (_ bundleID: String) async -> String?
         /// ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
-        var copySelection: @MainActor () async -> String?
+        var copySelection: @MainActor () async -> ClipboardCopy.Outcome
 
         static func live(keySender: KeySender) -> Sources {
             Sources(
@@ -83,9 +117,37 @@ final class ContextReader {
                     await Task.detached(priority: .userInitiated) { AXContext.documentPath(pid: pid) }.value
                 },
                 browserURL: { bundleID in await BrowserURLReader.read(bundleID: bundleID) },
-                copySelection: { await ContextReader.copySelection(using: keySender) }
+                copySelection: {
+                    await ClipboardCopy.copySelection(from: .general) {
+                        try await keySender.send(.key("c", .command))
+                    }
+                }
             )
         }
+    }
+
+    /// 何も選択していないと ⌘C でカーソルのある行を丸ごとコピーするエディタ（VS Code 系の editor.emptySelectionClipboard、
+    /// CodeMirror 6 の lineWiseCopyCut、JetBrains、Sublime Text）
+    nonisolated static let lineCopyingEditorIDs: Set<String> = [
+        "com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.vscodium", "com.visualstudio.code.oss",
+        "com.todesktop.230313mzl4w4u92", // Cursor
+        "com.exafunction.windsurf",
+        "md.obsidian",
+        "com.sublimetext.4", "com.sublimetext.3",
+        "com.google.android.studio",
+    ]
+    nonisolated static let lineCopyingEditorPrefixes = ["com.jetbrains."]
+
+    nonisolated static func copiesLineWhenNothingSelected(bundleID: String) -> Bool {
+        lineCopyingEditorIDs.contains(bundleID) || lineCopyingEditorPrefixes.contains { bundleID.hasPrefix($0) }
+    }
+
+    /// ⌘C で取った文字を選択テキストとして使うか。行を丸ごとコピーするエディタで、改行で終わる1行だけなら
+    /// 何も選択していなかったとみなす（その行を選択とみなすと、AI の結果をカーソルの位置に貼り付けて行を壊す）
+    nonisolated static func selectedText(fromCopy text: String, bundleID: String) -> String? {
+        guard copiesLineWhenNothingSelected(bundleID: bundleID), text.hasSuffix("\n") else { return text }
+        let body = text.dropLast()
+        return body.contains(where: \.isNewline) ? text : nil
     }
 
     private let sources: Sources
@@ -98,9 +160,9 @@ final class ContextReader {
         self.sources = sources
     }
 
-    func read(_ needs: ContextNeeds, app: RunningAppInfo?) async -> ScriptContextInfo {
-        var info = ScriptContextInfo(app: app?.app)
-        guard let app, !needs.isEmpty else { return info }
+    func read(_ needs: ContextNeeds, app: RunningAppInfo?) async -> ContextReading {
+        var reading = ContextReading(info: ScriptContextInfo(app: app?.app))
+        guard let app, !needs.isEmpty else { return reading }
         let pid = app.processID
         let bundleID = app.app.bundleID
         let asksBrowser = needs.asksBrowser(bundleID: bundleID)
@@ -108,46 +170,29 @@ final class ContextReader {
         // ブラウザへの問い合わせ（別プロセスで最大2秒）は、アクセシビリティで読むのと並べて行う
         async let browserURL: String? = asksBrowser ? readBrowserURL(bundleID) : nil
         if needs.contains(.documentPath) {
-            info.documentPath = await sources.documentPath(pid)
+            reading.info.documentPath = await sources.documentPath(pid)
         }
         if needs.contains(.selectedText) {
             let selection = await sources.selection(pid)
             if case .text(let text) = selection {
-                info.selectedText = text
+                reading.info.selectedText = text
+                reading.selectionSource = .accessibility
             } else if needs.needsCopy(after: selection) {
-                info.selectedText = await sources.copySelection()
+                switch await sources.copySelection() {
+                case .copied(let text):
+                    if let text = Self.selectedText(fromCopy: text, bundleID: bundleID) {
+                        reading.info.selectedText = text
+                        reading.selectionSource = selection == .empty ? .copyAfterEmpty : .copyAfterUnreadable
+                    }
+                case .clipboardUnavailable:
+                    reading.skippedCopy = true
+                case .nothing, .failed:
+                    break
+                }
             }
         }
-        info.browserURL = await browserURL
-        return info
-    }
-
-    /// ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
-    private static func copySelection(using keySender: KeySender) async -> String? {
-        let pasteboard = NSPasteboard.general
-        let snapshot = PasteboardSnapshot(pasteboard)
-        let before = pasteboard.changeCount
-        do {
-            try await keySender.send(.key("c", .command))
-        } catch {
-            ActionLog.logger.notice("選択テキストを ⌘C で取れませんでした: \(error.localizedDescription)")
-            return nil
-        }
-        // アプリがクリップボードに書くのを待つ（最大 0.5 秒）
-        var text: String?
-        var copied = false
-        for _ in 0 ..< 25 {
-            try? await Task.sleep(for: .milliseconds(20))
-            if pasteboard.changeCount != before {
-                copied = true
-                text = pasteboard.string(forType: .string)
-                if text != nil { break }
-            }
-        }
-        guard copied else { return nil }
-        snapshot.restore(to: pasteboard)
-        guard let text, !text.isEmpty else { return nil }
-        return text
+        reading.info.browserURL = await browserURL
+        return reading
     }
 }
 

@@ -13,6 +13,41 @@ enum ActionLog {
     static let logger = Logger(subsystem: "com.iam74k4.Nonet", category: "platform-actions")
 }
 
+/// 止まるかもしれない呼び出し（クリップボードの中身を渡すのが遅いアプリ・眠ったネットワークの場所）をメインスレッドの外で行う。
+/// メインスレッドではイベントタップも動いているので、そこで待つと Mac 全体のキー入力が止まる
+enum BlockingCall {
+    /// 制限時間を過ぎたら呼び出しの終わりを待たずに fallback を返す（呼び出しは裏で終わるまで続く）
+    static func run<T>(timeout: TimeInterval, fallback: T, _ body: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            let gate = ResumeOnce(continuation)
+            DispatchQueue.global(qos: .userInitiated).async {
+                gate.resume(with: body())
+            }
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + max(0, timeout)) {
+                gate.resume(with: fallback)
+            }
+        }
+    }
+
+    /// 先に来たほうだけで再開する
+    private final class ResumeOnce<T>: @unchecked Sendable {
+        private let lock = NSLock()
+        private var continuation: CheckedContinuation<T, Never>?
+
+        init(_ continuation: CheckedContinuation<T, Never>) {
+            self.continuation = continuation
+        }
+
+        func resume(with value: T) {
+            lock.lock()
+            let continuation = self.continuation
+            self.continuation = nil
+            lock.unlock()
+            continuation?.resume(returning: value)
+        }
+    }
+}
+
 enum ActionText {
     /// NonetError.permissionDenied に渡す権限の名前
     static var accessibility: String {

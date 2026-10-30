@@ -105,6 +105,49 @@ struct ActionTerminalCommandTests {
         #expect(directoryMode == 0o700)
     }
 
+    @Test("前からあるフォルダも本人だけのものにする")
+    func tightensExistingDirectory() throws {
+        let directory = try ActionTemporaryDirectory()
+        let commandDirectory = try directory.subdirectory("Nonet/Terminal")
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: commandDirectory.path)
+        let file = try TerminalCommandFile.write("#!/bin/zsh\n", in: commandDirectory)
+        let directoryMode = try FileManager.default.attributesOfItem(atPath: commandDirectory.path)[.posixPermissions] as? Int
+        let fileMode = try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? Int
+        #expect(directoryMode == 0o700)
+        #expect(fileMode == 0o700)
+        #expect(try String(contentsOf: file, encoding: .utf8) == "#!/bin/zsh\n")
+    }
+
+    @Test("ファイルは利用者ごとの一時フォルダの中に作る")
+    func perUserDirectory() {
+        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.path
+        #expect(TerminalCommandFile.directory.standardizedFileURL.path.hasPrefix(temporary))
+    }
+
+    @Test("開かれずに残ったファイルは数分で古いとみなし、次の起動でも消す")
+    func staleFilesAreRemovedSoon() throws {
+        let directory = try ActionTemporaryDirectory()
+        let now = Date()
+        let url = directory.url.appendingPathComponent("nonet-left.command")
+        try Data("export NONET_SELECTED_TEXT='秘密'".utf8).write(to: url)
+        try FileManager.default.setAttributes([.modificationDate: now.addingTimeInterval(-10 * 60)], ofItemAtPath: url.path)
+        TerminalCommandFile.removeStaleFiles(in: directory.url, olderThan: TerminalCommandFile.staleAge, now: now)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("開いた後、実行されないまま残ったファイルも時間がたてば消す")
+    func removesLater() async throws {
+        let directory = try ActionTemporaryDirectory()
+        let file = try TerminalCommandFile.write("#!/bin/zsh\n", in: directory.url)
+        TerminalCommandFile.removeLater(file, after: 0.1)
+        var removed = false
+        for _ in 0 ..< 100 where !removed {
+            try await Task.sleep(for: .milliseconds(20))
+            removed = !FileManager.default.fileExists(atPath: file.path)
+        }
+        #expect(removed)
+    }
+
     @Test("古い .command だけを消す")
     func removesStaleFiles() throws {
         let directory = try ActionTemporaryDirectory()

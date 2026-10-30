@@ -138,6 +138,27 @@ struct ActionScriptRunnerTests {
         #expect(elapsed < 5)
     }
 
+    @Test("シェルが SIGTERM で終わっても、SIGTERM を無視する子孫は猶予の後にグループごと止める")
+    func killsDescendantsIgnoringSIGTERM() async throws {
+        let directory = try ActionTemporaryDirectory()
+        let pidFile = directory.url.appendingPathComponent("child.pid")
+        let output = try await runScript(
+            "(trap '' TERM; exec sleep 30) & echo $! > child.pid; wait",
+            in: directory,
+            timeout: 0.5,
+            killGracePeriod: 0.5
+        )
+        #expect(output.timedOut)
+        let childPID = try #require(Int32(String(contentsOf: pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)))
+        var stopped = false
+        for _ in 0 ..< 150 where !stopped {
+            try await Task.sleep(for: .milliseconds(20))
+            stopped = kill(childPID, 0) != 0
+        }
+        if !stopped { kill(childPID, SIGKILL) }
+        #expect(stopped, "SIGTERM を無視した孫プロセスが残っている")
+    }
+
     @Test("裏に残ったプロセスが出力を握っていても、本体が終われば戻る")
     func doesNotWaitForBackgroundChildren() async throws {
         let directory = try ActionTemporaryDirectory()
@@ -228,6 +249,114 @@ struct ActionScriptSetupTests {
         #expect(ScriptRunner.workingDirectory(projectDirectory: "", home: home) { _ in true } == home)
         #expect(ScriptRunner.workingDirectory(projectDirectory: "/missing", home: home) { _ in false } == home)
         #expect(ScriptRunner.workingDirectory(projectDirectory: "/Users/me/app", home: home) { _ in true }.path == "/Users/me/app")
+    }
+
+    /// 調べたパスを記録する偽のファイルシステム
+    private final class StatLog {
+        var paths: [String] = []
+        let existing: Set<String>
+
+        init(existing: Set<String> = []) {
+            self.existing = existing
+        }
+
+        func fileExists(_ path: String) -> Bool {
+            paths.append(path)
+            return existing.contains(path)
+        }
+    }
+
+    @Test("ネットワークの場所の書類では .git などを探さず、書類のフォルダをプロジェクトにする")
+    func networkVolumeSkipsSearch() {
+        let log = StatLog()
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let location = ScriptLocation.resolve(
+            documentPath: "/Volumes/NAS/share/docs/report.docx",
+            home: home,
+            fileExists: log.fileExists,
+            isLocalVolume: { _ in false },
+            isDirectory: { _ in true }
+        )
+        #expect(log.paths.isEmpty, "\(log.paths)")
+        #expect(location.projectDirectory == "/Volumes/NAS/share/docs")
+        #expect(location.workingDirectory.path == "/Volumes/NAS/share/docs")
+    }
+
+    @Test("ホームの外では、書類から上へ決まった数のフォルダまでしか調べず、/ や /Volumes は調べない")
+    func boundedSearchOutsideHome() {
+        let log = StatLog()
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let deep = "/Volumes/Dev/" + (1 ... 12).map { "d\($0)" }.joined(separator: "/") + "/file.txt"
+        let location = ScriptLocation.resolve(
+            documentPath: deep,
+            home: home,
+            maxLevels: 4,
+            fileExists: log.fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        let directories = Set(log.paths.map { ($0 as NSString).deletingLastPathComponent })
+        #expect(directories.count == 4, "\(directories.sorted())")
+        #expect(!log.paths.contains { $0.hasPrefix("/Volumes/.") || $0.hasPrefix("//") || $0 == "/.git" })
+        #expect(location.projectDirectory == "/Volumes/Dev/" + (1 ... 12).map { "d\($0)" }.joined(separator: "/"))
+
+        let shallow = StatLog()
+        _ = ScriptLocation.resolve(
+            documentPath: "/Volumes/Dev/file.txt",
+            home: home,
+            fileExists: shallow.fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        // /Volumes/Dev（外付けのディスクの一番上）までは調べ、/Volumes と / は調べない
+        #expect(Set(shallow.paths) == ["/Volumes/Dev/file.txt/.git", "/Volumes/Dev/file.txt/Package.swift", "/Volumes/Dev/.git", "/Volumes/Dev/Package.swift"])
+    }
+
+    @Test("範囲の中で .git が見つかればそこがプロジェクト。ホームより上は調べない")
+    func findsMarkerWithinRange() {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let found = ScriptLocation.resolve(
+            documentPath: "/Users/me/src/app/Sources/main.swift",
+            home: home,
+            fileExists: StatLog(existing: ["/Users/me/src/app/.git"]).fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        #expect(found.projectDirectory == "/Users/me/src/app")
+        #expect(found.workingDirectory.path == "/Users/me/src/app")
+
+        let log = StatLog()
+        _ = ScriptLocation.resolve(
+            documentPath: "/Users/me/notes.txt",
+            home: home,
+            fileExists: log.fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        #expect(!log.paths.contains("/Users/me/.git"))
+        #expect(!log.paths.contains("/Users/.git"))
+    }
+
+    @Test("書類が無ければプロジェクトは無く、作業フォルダはホーム")
+    func noDocument() async {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        #expect(await ScriptLocation.find(documentPath: nil, home: home) == ScriptLocation(projectDirectory: nil, workingDirectory: home))
+        #expect(await ScriptLocation.find(documentPath: "", home: home) == ScriptLocation(projectDirectory: nil, workingDirectory: home))
+    }
+
+    @Test("本物のフォルダで: .git のあるフォルダがプロジェクトで作業フォルダ")
+    func findsRealProject() async throws {
+        let directory = try ActionTemporaryDirectory()
+        let project = try directory.subdirectory("app")
+        try FileManager.default.createDirectory(at: project.appendingPathComponent(".git"), withIntermediateDirectories: true)
+        let sources = try directory.subdirectory("app/Sources")
+        let file = sources.appendingPathComponent("main.swift")
+        try Data("x".utf8).write(to: file)
+        #expect(ScriptLocation.isLocalVolume(file.path))
+        let home = URL(fileURLWithPath: "/nonexistent-home", isDirectory: true)
+        let location = await ScriptLocation.find(documentPath: file.path, home: home, timeout: 5)
+        #expect(location.projectDirectory == project.path)
+        #expect(location.workingDirectory.path == project.path)
     }
 
     @Test("フォルダかどうか")
