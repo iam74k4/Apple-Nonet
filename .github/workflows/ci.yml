@@ -1,11 +1,17 @@
-# プッシュとプルリクエストで scripts/test.sh（スクリプトのテスト・swift build / swift test・文言が String Catalog にあるかの確認・署名なしのアプリのビルド）を動かす。
+# main への push・プルリクエストと手動の実行で scripts/test.sh（スクリプトのテスト・swift build / swift test・文言が String Catalog にあるかの確認・署名なしのアプリのビルド）を動かす。
 # このプロジェクトは Swift 6 のツールを含む Xcode が要る（Package.swift は swift-tools-version: 6.0、設計は Xcode 27 / Swift 6.4）。
 # そのため、ランナーに入っている Xcode のうち、いちばん新しいものを選ぶ。
 name: CI
 
+# リポジトリは非公開。非公開のリポジトリでは macOS の実行が無料の枠を10倍の速さで使う（月 2,000 分の枠で、
+# macOS はおよそ 200 分）。1回 15 分ほどかかるので、main への push・main へのプルリクエスト・手動の実行に絞る
+# （ほかのブランチへの push では動かさない）
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

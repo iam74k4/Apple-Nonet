@@ -99,7 +99,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 |---|---|---|
 | `Website` | `https://nonet.astlog.dev/` | いま入れる（公開は販売ページが開いてから） |
 | `Download` | `https://nonet.astlog.dev/download` | **いまは入れない。** 公証済みの DMG を出したら、Website の次に足す（最新の DMG へ飛ぶ固定の URL） |
-| `Repository` | `https://github.com/iam74k4/Apple-Nonet` | **いまは入れない。** GitHub の `main` には README だけ（Initial commit）で、コードはまだ上がっていない。公開のまま push したら足す。販売前に非公開にするなら入れない |
+| `Repository` | — | **入れない。** 有料のアプリなので、GitHub のリポジトリ（`iam74k4/Apple-Nonet`）は非公開にした（2026-10-31） |
 
 - ラベルは既にある作品と同じく英語（`App Store`・`Repository`）
 - URL は `https://` で始める（`isSafeUrl`）。ラベルと URL の片方だけの行は保存できない
@@ -224,7 +224,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 成果の CI の一文 | 書いていない | コードを push して GitHub Actions が緑になったら、2段落目に「プッシュのたびに GitHub Actions でも同じ一式を動かしています。」を足す |
 | 工夫の触覚・カーソルの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（T5・T6）で方式が決まったら、それに合わせる |
 | リンク `Download` | 入れない | 公証済みの DMG を出したら `Download` / `https://nonet.astlog.dev/download` を Website の次に足す |
-| リンク `Repository` | 入れない | コードを push し、公開のままにするなら足す。非公開にするなら入れない |
+| リンク `Repository` | 入れない | リポジトリは非公開なので入れない |
 | 公開する | 外す（下書き） | nonet.astlog.dev が開き、`scripts/check-site.sh --strict` が通ったら入れる |
 | 画像 | — | 画面が変わったら撮り直し、代替テキストも合わせる。動画を販売ページのデモで代えていたら、実際のアプリの収録に替える |
 | 実績値 | 空 | 本当の数（ダウンロード数など）が出たら。添えは「1,200 DL 公開から3か月」のように値と単位のあとに続けて読める形 |

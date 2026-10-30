@@ -2,7 +2,7 @@
 // アップデートの配信先（Sparkle の appcast.xml の URL）。空ならアップデート確認を出さない
 NONET_APPCAST_URL = https:/$()/nonet.astlog.dev/updates/appcast.xml
 // Sparkle の EdDSA 公開鍵（generate_keys の出力）
-NONET_SPARKLE_PUBLIC_KEY =
+NONET_SPARKLE_PUBLIC_KEY = be5y71T7N+L1AkrPlczR5Gyw1J8BhlQ/KGLPSqe13f8=
 // 購入ページの URL
 NONET_PURCHASE_URL =
 // 利用ガイド・サポートのページの URL（設定の「情報」から開く）
@@ -10,4 +10,4 @@ NONET_SUPPORT_URL = https:/$()/nonet.astlog.dev/guide.html
 // プライバシーポリシーの URL
 NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
 // ライセンスキー検証用の Ed25519 公開鍵（nonet-license keygen の出力）
-NONET_LICENSE_PUBLIC_KEY =
+NONET_LICENSE_PUBLIC_KEY = VI0XbQQ0Ur8hUQ6fxf49+YaFdZtP/ZnG8Tn1ZIqEoz8=
