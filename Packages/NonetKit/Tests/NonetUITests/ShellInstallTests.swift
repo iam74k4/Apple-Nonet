@@ -28,6 +28,7 @@ struct ShellInstallTests {
         _ url: URL? = installed,
         terminated: Bool = false,
         finished: Bool = true,
+        quitting: Bool = false,
         launched: Date? = nil,
         location: ShellInstallLocation = .installed
     ) -> ShellRunningInstance {
@@ -36,6 +37,7 @@ struct ShellInstallTests {
             bundleURL: url,
             isTerminated: terminated,
             isFinishedLaunching: finished,
+            isQuitting: quitting,
             launchDate: launched,
             location: location
         )
@@ -59,21 +61,24 @@ struct ShellInstallTests {
         #expect(Self.decide([Self.me(), Self.instance(42, terminated: true)], waited: 0) == .launch)
     }
 
-    @Test("ほかに動いていれば、終わるのを3秒まで待ち、まだ動いていればそちらに任せて終わる")
-    func handsOffAfterGrace() {
+    @Test("起動し終えて動いているものがあれば、待たずにそちらに任せて終わる（もう一度開いたらすぐに設定が開く）")
+    func handsOffImmediately() {
         let own = Self.me(location: .temporary)
-        let running = [own, Self.instance(42)]
-        #expect(Self.decide(running, own: own, waited: 0) == .wait)
-        #expect(Self.decide(running, own: own, waited: 2.9) == .wait)
-        #expect(Self.decide(running, own: own, waited: ShellInstanceGuard.shutdownGrace) == .handOff(Self.instance(42)))
+        #expect(Self.decide([own, Self.instance(42)], own: own, waited: 0) == .handOff(Self.instance(42)))
         // 同じ場所のものでも同じ（起動し終えた方を残す）
-        #expect(Self.decide([Self.me(), Self.instance(42)], waited: ShellInstanceGuard.shutdownGrace) == .handOff(Self.instance(42)))
+        #expect(Self.decide([Self.me(), Self.instance(42)], waited: 0) == .handOff(Self.instance(42)))
     }
 
-    @Test("待っている間に前のものが終われば（アップデートの後の再起動）、そのまま起動する")
-    func launchesAfterShutdown() {
-        #expect(Self.decide([Self.instance(42), Self.me()], waited: 0.1) == .wait)
-        #expect(Self.decide([Self.instance(42, terminated: true), Self.me()], waited: 0.2) == .launch)
+    @Test("終わりかけのもの（終了した直後に開き直した）は、終わるのを待ってから起動する。任せない")
+    func waitsWhileQuitting() {
+        let quitting = Self.instance(42, quitting: true)
+        #expect(Self.decide([Self.instance(42, quitting: true), Self.me()], waited: 0.1) == .wait)
+        #expect(Self.decide([quitting, Self.me()], waited: ShellInstanceGuard.shutdownGrace + 1) == .wait)
+        #expect(Self.decide([Self.instance(42, terminated: true, quitting: true), Self.me()], waited: 0.2) == .launch)
+        // 終わりきらなくても、もう入力は見ていないので、待ちすぎたら起動する（どちらも動かない、にはしない）
+        #expect(Self.decide([quitting, Self.me()], waited: ShellInstanceGuard.takeOverTimeout) == .launch)
+        // 終わりかけのものと動いているものがあれば、動いている方に任せる
+        #expect(Self.decide([quitting, Self.instance(43), Self.me()], waited: 0) == .handOff(Self.instance(43)))
     }
 
     @Test("並べて動かしてよいときは調べない")
@@ -187,6 +192,29 @@ struct ShellInstallTests {
         #expect(Self.simulate(launching: [(a, 0), (b, 0)], running: [temporaryRunning]) == [41])
     }
 
+    // MARK: - 終わり始めた印
+
+    @Test("終わり始めた印: 書いたプロセスだけが終わりかけ。開いた時刻より前の印（同じ番号の前のプロセス）は数えない。起動したら消す")
+    func quitMarker() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("nonet-quit-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let launched = Date().addingTimeInterval(-60)
+        #expect(!ShellQuitMarker.isQuitting(processID: 42, launchDate: launched, in: directory))
+        ShellQuitMarker.mark(processID: 42, in: directory)
+        #expect(ShellQuitMarker.isQuitting(processID: 42, launchDate: launched, in: directory))
+        #expect(ShellQuitMarker.isQuitting(processID: 42, launchDate: nil, in: directory))
+        #expect(!ShellQuitMarker.isQuitting(processID: 43, launchDate: launched, in: directory))
+        // 印より後に開かれた（同じ番号を使い回した）プロセスは終わりかけではない
+        #expect(!ShellQuitMarker.isQuitting(processID: 42, launchDate: Date().addingTimeInterval(60), in: directory))
+
+        let other = directory.appendingPathComponent("keep.txt")
+        try Data().write(to: other)
+        ShellQuitMarker.removeAll(in: directory)
+        #expect(!ShellQuitMarker.isQuitting(processID: 42, launchDate: nil, in: directory))
+        #expect(FileManager.default.fileExists(atPath: other.path))
+    }
+
     // MARK: - どこから開かれたか
 
     @Test("App Translocation と読み取り専用のディスクイメージは一時的な場所", arguments: [
@@ -219,6 +247,12 @@ struct ShellInstallTests {
         #expect(ShellMoveToApplications.plan(destinationExists: true, directoryWritable: false) == .explain)
         #expect(ShellMoveToApplications.destination(for: Self.diskImage, in: ShellMoveToApplications.applicationsDirectory).path
             == "/Applications/Nonet.app")
+    }
+
+    @Test("移すかを尋ねる説明は、移さないとどうなるか（取り出すと使えない・アップデートが届かない）を言う")
+    func moveMessage() {
+        #expect(ShellMoveToApplications.moveMessage
+            == L10n.ui("このままだと、ディスクイメージを取り出したり Mac を再起動したりすると Nonet が使えなくなり、アップデートも届きません。移すと自動で開き直します。"))
     }
 
     @Test("/Applications に書き込めない（管理者でない）ときは、ホームのアプリケーションフォルダに移す")

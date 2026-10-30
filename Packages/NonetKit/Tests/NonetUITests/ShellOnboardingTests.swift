@@ -8,8 +8,6 @@ import Testing
 enum ShellFirstGuideEnding: String, CaseIterable, Sendable {
     /// ようこそのまま閉じた
     case closedAtWelcome
-    /// 「あとで設定する」で飛ばしてから閉じた
-    case skipped
     /// 選んだアプリを反映してから閉じた
     case applied
 }
@@ -26,24 +24,65 @@ struct ShellOnboardingTests {
         var now = ShellControllerHarness.now
     }
 
+    /// 読み上げと、少し後に行うことを、テストから見られるようにしたもの
+    final class Recorder {
+        var announcements: [String] = []
+        var scheduled: [(delay: TimeInterval, action: @MainActor () -> Void)] = []
+
+        @MainActor
+        func runScheduled() {
+            let actions = scheduled
+            scheduled = []
+            for item in actions {
+                item.action()
+            }
+        }
+    }
+
     static func make(
         installed: Set<String> = installed,
         granted: Bool = true,
         isFirstLaunchGuide: Bool = true,
         clock: Clock = Clock(),
-        license: LicenseManager? = nil
+        license: LicenseManager? = nil,
+        frontmost: RunningAppInfo? = nil,
+        recorder: Recorder = Recorder()
     ) -> (OnboardingModel, ShellControllerHarness) {
         let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted, license: license)
+        harness.frontmost.current = frontmost
         harness.controller.start()
         let model = OnboardingModel(
             controller: harness.controller,
             license: harness.license,
             permissions: harness.permissions,
             installedApps: harness.installedApps,
+            frontmostApp: harness.frontmost,
+            touchSource: harness.touchSource,
+            loginItem: harness.loginItem,
             isFirstLaunchGuide: isFirstLaunchGuide,
             now: { clock.now }
         )
+        model.announce = { recorder.announcements.append($0) }
+        model.scheduleAfter = { delay, action in recorder.scheduled.append((delay, action)) }
         return (model, harness)
+    }
+
+    /// 練習の画面まで進める
+    static func enterPractice(_ model: OnboardingModel) {
+        model.next()
+        model.applySelection()
+    }
+
+    /// HUD から目標のマスを実行した記録（1つ目の課題）
+    static func hudRecord(_ model: OnboardingModel, date: Date) throws -> ExecutionRecord {
+        let target = try #require(model.practicePage).hudTarget
+        return ShellFixtures.record(index: target.index, date: date, title: target.title, fastTap: false)
+    }
+
+    /// 目標の角をすぐにタップした記録（2つ目の課題）
+    static func quickTapRecord(_ model: OnboardingModel, date: Date) throws -> ExecutionRecord {
+        let target = try #require(model.practicePage).quickTapTarget
+        return ShellFixtures.record(index: target.index, date: date, title: target.title, fastTap: true)
     }
 
     // MARK: - アクセシビリティ
@@ -69,7 +108,7 @@ struct ShellOnboardingTests {
     func permissionLaterDoesNotJump() {
         let (model, harness) = Self.make(granted: false)
         model.next()
-        model.skipSelection()
+        model.applySelection()
         #expect(model.step == .practice)
         #expect(model.practiceBlocker == .needsAccessibility)
         #expect(model.practiceBlocker?.message == L10n.ui("アクセシビリティが許可されていないため、まだ試せません"))
@@ -128,7 +167,7 @@ struct ShellOnboardingTests {
         // 練習の画面で「システム設定を開く」から許可したときも
         harness.permissions.isAccessibilityGranted = false
         window.checkPermission()
-        window.model.skipSelection()
+        window.model.applySelection()
         harness.permissions.isAccessibilityGranted = true
         window.checkPermission()
         #expect(raised == 2)
@@ -136,12 +175,103 @@ struct ShellOnboardingTests {
         window.windowDidClose()
     }
 
-    @Test("「システム設定を開く」は許可のダイアログと設定アプリの両方")
+    @Test("「システム設定を開く」: 1回目は macOS の確認だけ（確認に移ればシステム設定は開かない）。2回目からはシステム設定だけ")
     func requestAccessibility() {
-        let (model, harness) = Self.make(granted: false)
+        let recorder = Recorder()
+        let (model, harness) = Self.make(granted: false, recorder: recorder)
+        model.requestAccessibility()
+        #expect(harness.permissions.requestCount == 1)
+        #expect(harness.permissions.openSettingsCount == 0)
+        // macOS の確認が前に出て、案内のウィンドウはキーでなくなった
+        model.setWindowKey(false)
+        #expect(recorder.scheduled.map(\.delay) == [OnboardingModel.promptFallbackDelay])
+        recorder.runScheduled()
+        #expect(harness.permissions.openSettingsCount == 0)
+
+        model.setWindowKey(true)
         model.requestAccessibility()
         #expect(harness.permissions.requestCount == 1)
         #expect(harness.permissions.openSettingsCount == 1)
+        #expect(recorder.scheduled.isEmpty)
+    }
+
+    @Test("前に確認を出したことがあって macOS が確認を出さなければ（ウィンドウがキーのまま）、少し後にシステム設定だけを開く")
+    func requestAccessibilityFallsBackToSettings() {
+        let recorder = Recorder()
+        let (model, harness) = Self.make(granted: false, recorder: recorder)
+        model.requestAccessibility()
+        #expect(harness.permissions.openSettingsCount == 0)
+        recorder.runScheduled()
+        #expect(harness.permissions.requestCount == 1)
+        #expect(harness.permissions.openSettingsCount == 1)
+
+        // その間に許可されていれば開かない
+        let (granted, grantedHarness) = Self.make(granted: false, recorder: recorder)
+        granted.requestAccessibility()
+        grantedHarness.permissions.isAccessibilityGranted = true
+        recorder.runScheduled()
+        #expect(grantedHarness.permissions.openSettingsCount == 0)
+    }
+
+    @Test("許可されたら VoiceOver に知らせる（最初の画面では次へ進むことも）")
+    func announcesPermission() {
+        let recorder = Recorder()
+        let (model, harness) = Self.make(granted: false, recorder: recorder)
+        harness.permissions.isAccessibilityGranted = true
+        model.pollPermission()
+        #expect(recorder.announcements == [L10n.ui("アクセシビリティが許可されました。次へ進みます")])
+
+        harness.permissions.isAccessibilityGranted = false
+        model.pollPermission()
+        harness.permissions.isAccessibilityGranted = true
+        model.pollPermission()
+        #expect(model.step == .apps)
+        #expect(recorder.announcements.last == L10n.ui("アクセシビリティが許可されました"))
+    }
+
+    @Test("トラックパッドが無ければ最初の画面で知らせ、「もう一度確かめる」で探し直す。許可を待つ間も探し直す")
+    func welcomeTrackpadCheck() {
+        let harness = ShellControllerHarness(installed: Self.installed, accessibilityGranted: false)
+        harness.touchSource.isAvailable = false
+        harness.controller.start()
+        let model = OnboardingModel(
+            controller: harness.controller,
+            permissions: harness.permissions,
+            installedApps: harness.installedApps,
+            touchSource: harness.touchSource,
+            isFirstLaunchGuide: true
+        )
+        #expect(model.isTrackpadMissing)
+        #expect(OnboardingModel.noTrackpadMessage
+            == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）"))
+        model.recheckTrackpad()
+        #expect(model.isTrackpadMissing)
+        harness.touchSource.isAvailable = true
+        model.recheckTrackpad()
+        #expect(!model.isTrackpadMissing)
+
+        harness.touchSource.isAvailable = false
+        model.recheckTrackpad()
+        harness.touchSource.isAvailable = true
+        model.pollPermission()
+        #expect(!model.isTrackpadMissing)
+
+        // touchSource を渡さなければ確かめない
+        let unchecked = OnboardingModel(
+            controller: harness.controller,
+            permissions: harness.permissions,
+            installedApps: harness.installedApps,
+            isFirstLaunchGuide: false
+        )
+        #expect(!unchecked.isTrackpadMissing)
+    }
+
+    @Test("ようこその説明は設定のトリガーキーで言う")
+    func welcomeSubtitleNamesTheKey() {
+        let (model, harness) = Self.make()
+        harness.controller.update { $0.settings.trigger = .rightOption }
+        #expect(ShellText.welcomeSubtitle(model.trigger)
+            == L10n.ui("\(L10n.ui("右⌥"))キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンになります"))
     }
 
     @Test("許可せずに先へ進める")
@@ -221,15 +351,16 @@ struct ShellOnboardingTests {
         #expect(harness.controller.configuration.profiles[0].isGlobal)
     }
 
-    @Test("「あとで設定する」は設定を変えずに試してみるへ")
-    func skipSelection() {
+    @Test("選び直さずに「次へ」を押すと、おすすめ（並んだアプリすべて）のまま使う（飛ばすボタンは無い）")
+    func nextKeepsSuggestions() {
         let (model, harness) = Self.make()
-        let before = harness.controller.configuration
+        let suggested = Set(harness.controller.configuration.profiles.compactMap(\.app?.bundleID))
         model.next()
-        model.setAllSelected(false)
-        model.skipSelection()
+        #expect(model.choices.allSatisfy { $0.isSelected })
+        model.applySelection()
         #expect(model.step == .practice)
-        #expect(harness.controller.configuration == before)
+        #expect(Set(harness.controller.configuration.profiles.compactMap(\.app?.bundleID)) == suggested)
+        #expect(Set(model.choices.map(\.id)) == suggested)
     }
 
     @Test("「アプリを選ぶ」以外の画面では反映しない")
@@ -237,7 +368,6 @@ struct ShellOnboardingTests {
         let (model, harness) = Self.make()
         let before = harness.controller.configuration
         model.applySelection()
-        model.skipSelection()
         #expect(model.step == .welcome)
         #expect(harness.controller.configuration == before)
     }
@@ -347,9 +477,6 @@ struct ShellOnboardingTests {
         switch ending {
         case .closedAtWelcome:
             break
-        case .skipped:
-            first.model.next()
-            first.model.skipSelection()
         case .applied:
             first.model.next()
             first.model.applySelection()
@@ -501,8 +628,7 @@ struct ShellOnboardingTests {
     func practiceModeLifecycle() {
         let (model, harness) = Self.make()
         #expect(!harness.controller.isPracticeMode)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         #expect(model.step == .practice)
         #expect(harness.controller.isPracticeMode)
 
@@ -524,27 +650,26 @@ struct ShellOnboardingTests {
     }
 
     @Test("ウィンドウが隠れている間は練習モードにせず、その間の実行は数えない")
-    func practiceFollowsWindowVisibility() {
+    func practiceFollowsWindowVisibility() throws {
         let clock = Clock()
         let (model, harness) = Self.make(clock: clock)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         #expect(harness.controller.isPracticeMode)
 
         model.setWindowVisible(false)
         #expect(!harness.controller.isPracticeMode)
         // 隠れている間の実行は本物なので練習に数えない
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(1)))
-        #expect(model.practice == .waiting)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(1)))
+        #expect(model.practice == .hud)
 
         clock.now = clock.now.addingTimeInterval(10)
         model.setWindowVisible(true)
         #expect(harness.controller.isPracticeMode)
         // 見えるようになる前の記録も数えない
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(-2)))
-        #expect(model.practice == .waiting)
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(1)))
-        #expect(model.practice == .succeeded)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(-2)))
+        #expect(model.practice == .hud)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(1)))
+        #expect(model.practice == .quickTap)
     }
 
     @Test("隠れたまま練習の画面に入っても練習モードにしない。ほかの画面では見え方で練習モードを変えない")
@@ -552,8 +677,7 @@ struct ShellOnboardingTests {
         let (model, harness) = Self.make()
         model.setWindowVisible(false)
         #expect(!harness.controller.isPracticeMode)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         #expect(model.step == .practice)
         #expect(!harness.controller.isPracticeMode)
         model.setWindowVisible(true)
@@ -565,11 +689,10 @@ struct ShellOnboardingTests {
     }
 
     @Test("見えていても、ほかのアプリを使っている（キーでない）間は練習モードにせず、その間の実行は数えない")
-    func practiceRequiresKeyWindow() {
+    func practiceRequiresKeyWindow() throws {
         let clock = Clock()
         let (model, harness) = Self.make(clock: clock)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         #expect(harness.controller.isPracticeMode)
 
         // Safari に切り替えた。ウィンドウの一部はまだ見えている
@@ -577,26 +700,25 @@ struct ShellOnboardingTests {
         #expect(model.isWindowVisible)
         #expect(!model.isWindowAttended)
         #expect(!harness.controller.isPracticeMode)
-        // その間に右上を押したのは本物の実行なので、練習の成功にしない
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(1)))
-        #expect(model.practice == .waiting)
+        // その間に目標のマスを実行したのは本物なので、練習の成功にしない
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(1)))
+        #expect(model.practice == .hud)
 
         clock.now = clock.now.addingTimeInterval(10)
         model.setWindowKey(true)
         #expect(harness.controller.isPracticeMode)
         // 戻る前の記録は数えない
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(-2)))
-        #expect(model.practice == .waiting)
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(1)))
-        #expect(model.practice == .succeeded)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(-2)))
+        #expect(model.practice == .hud)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(1)))
+        #expect(model.practice == .quickTap)
     }
 
     @Test("キーでないまま練習の画面に入っても練習モードにしない。見えていてキーのときだけ練習モード")
     func practiceNeedsVisibleAndKey() {
         let (model, harness) = Self.make()
         model.setWindowKey(false)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         #expect(model.step == .practice)
         #expect(!harness.controller.isPracticeMode)
 
@@ -623,27 +745,97 @@ struct ShellOnboardingTests {
         #expect(!harness.controller.isPracticeMode)
     }
 
-    @Test("練習の案内は設定のトリガーキーで出す")
-    func practiceInstructionUsesTrigger() {
+    @Test("練習の目標は、HUD に出る前面のアプリのプロファイルの本物のボタン。すぐにタップは右上の角、HUD はそこから離れたマス")
+    func practiceTargetsComeFromTheFrontApp() throws {
+        let (model, harness) = Self.make(frontmost: ShellFixtures.running(ShellFixtures.xcode, name: "Xcode"))
+        Self.enterPractice(model)
+        let xcode = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode))
+        let page = try #require(model.practicePage)
+        #expect(page.profileName == xcode.name)
+        #expect(page.titles == xcode.pages[0].cells.map { $0?.title })
+        #expect(page.quickTapTarget.index == 2)
+        #expect(page.quickTapTarget.title == xcode.pages[0].cells[2]?.title)
+        #expect(page.hudTarget.index != page.quickTapTarget.index)
+        #expect(page.hudTarget.title == xcode.pages[0].cells[page.hudTarget.index]?.title)
+
+        // 前面のアプリが変われば、そのアプリのページで案内する（プロファイルが無ければグローバル）
+        harness.frontmost.current = ShellFixtures.running("com.example.none", name: "None")
+        #expect(model.practicePage?.profileName == harness.controller.configuration.globalProfile.name)
+        // 前面のアプリが分からなければグローバル
+        let (global, globalHarness) = Self.make()
+        #expect(global.practicePage?.profileName == globalHarness.controller.configuration.globalProfile.name)
+    }
+
+    @Test("目標のマスの選び方: 中身のあるマスから。すぐにタップは角（右上・左上・右下・左下の順）、HUD は別のマス", arguments: [
+        ([0, 2, 6], 2, 6),
+        ([0, 4], 0, 4),
+        ([8], 8, 8),
+        ([1, 3, 7], 1, 3),
+        ([2, 5], 2, 5),
+    ])
+    func practiceTargetChoice(occupied: [Int], quickTap: Int, hud: Int) throws {
+        let cells: [Cell?] = (0..<Page.cellCount).map { index in
+            occupied.contains(index) ? Cell(title: "マス\(index)", icon: .symbol("star"), action: .openURL(URLAction(url: "example.com"))) : nil
+        }
+        let page = try #require(OnboardingPracticePage(ResolvedPage(profileID: UUID(), profileName: "P", pageIndex: 0, cells: cells)))
+        #expect(page.quickTapTarget == OnboardingPracticeTarget(index: quickTap, title: "マス\(quickTap)"))
+        #expect(page.hudTarget == OnboardingPracticeTarget(index: hud, title: "マス\(hud)"))
+        #expect(page.titles.compactMap { $0 }.count == occupied.count)
+    }
+
+    @Test("中身のあるマスが無いページでは練習できない（空きマスは押しても何も記録されない）。「設定を開く」でプロファイルを開く")
+    func practiceWithoutButtons() throws {
+        #expect(OnboardingPracticePage(nil) == nil)
+        #expect(OnboardingPracticePage(ResolvedPage(profileID: UUID(), profileName: "P", pageIndex: 0, cells: Array(repeating: nil, count: 9))) == nil)
+
+        let (model, harness) = Self.make()
+        var opened: [SettingsTab] = []
+        model.onOpenSettings = { opened.append($0) }
+        Self.enterPractice(model)
+        let global = harness.controller.configuration.globalProfile.id
+        harness.controller.update { configuration in
+            for index in 0..<Page.cellCount {
+                configuration.setCell(nil, at: CellAddress(page: 0, index: index), profileID: global)
+            }
+        }
+        let blocker = try #require(model.practiceBlocker)
+        #expect(blocker == .noButtons)
+        #expect(blocker.message == L10n.ui("いま使うページにボタンがありません。設定でボタンを追加すると試せます"))
+        #expect(blocker.remedy == .openProfiles)
+        #expect(blocker.remedy?.title == L10n.ui("設定を開く"))
+        model.resolve(.openProfiles)
+        #expect(opened == [.profiles])
+    }
+
+    @Test("練習の手順は、設定のトリガーキーと実行のタイミング、目標のボタンの名前で言う")
+    func practiceInstructionText() throws {
         let (model, harness) = Self.make()
         harness.controller.update { $0.settings.trigger = .rightOption }
-        #expect(model.trigger == .rightOption)
-        #expect(ShellText.practiceInstruction(model.trigger) == L10n.ui("\(L10n.ui("右⌥"))を押しながら、トラックパッドの右上をタップ"))
+        Self.enterPractice(model)
+        let page = try #require(model.practicePage)
+        let key = L10n.ui("右⌥")
+        let hud = page.hudTarget.title
+        #expect(ShellText.practiceHUDInstruction(trigger: model.trigger, fireMode: .onTriggerRelease, target: page.hudTarget)
+            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、\(key)を離してください"))
+        #expect(ShellText.practiceHUDInstruction(trigger: model.trigger, fireMode: .onFingerLift, target: page.hudTarget)
+            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、指を離してください"))
+        let position = String(localized: "右上", bundle: .nonetUI)
+        let quick = page.quickTapTarget.title
+        #expect(ShellText.practiceQuickTapInstruction(trigger: model.trigger, target: page.quickTapTarget)
+            == L10n.ui("\(key)を押して、\(position)の「\(quick)」をすぐにタップしてください"))
+        let attributive = String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .nonetUI)
+        #expect(ShellText.practiceQuickTapDone(page.quickTapTarget)
+            == L10n.ui("すぐにタップできました。\(attributive)のマスは「\(quick)」です。慣れたら、これがいちばん速い使い方です"))
     }
 
-    @Test("足すアプリの数の文は、文言の言語の規則で数を数える（1 app profile）")
-    func additionNotePlural() {
-        let language = Locale(identifier: Bundle.nonetUI.preferredLocalizations.first ?? "ja")
-        for count in [1, 3] {
-            #expect(ShellText.additionNote(count) == String(localized: "\(count)個のアプリのプロファイルを追加します", bundle: .nonetUI, locale: language))
-        }
-    }
-
-    @Test("違うマスの知らせは、名詞の前に置く位置の呼び方を使う（英語は bottom-left）")
+    @Test("違うマスの知らせは、押したマスの位置と名前、目標の位置を言う。位置の呼び方（英語は bottom-left）")
     func wrongCellMessage() {
-        let bottomLeft = String(localized: "attributivePosition.bottomLeft", defaultValue: "左下", bundle: .nonetUI)
-        #expect(HUDAnnouncement.attributivePositionName(6) == bottomLeft)
-        #expect(ShellText.wrongCellMessage(6) == L10n.ui("いまのは「\(bottomLeft)」のマスです。右上をタップしてみてください"))
+        let bottomLeft = String(localized: "左下", bundle: .nonetUI)
+        let topRight = String(localized: "右上", bundle: .nonetUI)
+        let target = OnboardingPracticeTarget(index: 2, title: "Safari")
+        #expect(ShellText.practiceWrongCell(index: 6, title: "Finder", target: target)
+            == L10n.ui("いまのは\(bottomLeft)の「\("Finder")」です。「\("Safari")」は\(topRight)にあります"))
+        #expect(HUDAnnouncement.attributivePositionName(6) == String(localized: "attributivePosition.bottomLeft", defaultValue: "左下", bundle: .nonetUI))
         #expect(HUDAnnouncement.attributivePositionName(0) == String(localized: "attributivePosition.topLeft", defaultValue: "左上", bundle: .nonetUI))
         #expect(HUDAnnouncement.attributivePositionName(2) == String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .nonetUI))
         #expect(HUDAnnouncement.attributivePositionName(8) == String(localized: "attributivePosition.bottomRight", defaultValue: "右下", bundle: .nonetUI))
@@ -653,26 +845,56 @@ struct ShellOnboardingTests {
         }
     }
 
-    @Test("右上（どのページでも）を押したら成功。練習を始めた後の記録だけを数える")
-    func practiceSuccess() {
+    @Test("練習は2つ: HUD から目標のマスを実行（HUD を出す前の実行・違うマスは知らせる）→ 目標の角をすぐにタップ（HUD からは知らせる）。VoiceOver にも知らせる")
+    func practiceTwoTasks() throws {
         let clock = Clock()
-        let (model, _) = Self.make(clock: clock)
-        model.next()
-        model.skipSelection()
+        let recorder = Recorder()
+        let (model, _) = Self.make(clock: clock, frontmost: ShellFixtures.running(ShellFixtures.xcode, name: "Xcode"), recorder: recorder)
+        Self.enterPractice(model)
+        let page = try #require(model.practicePage)
         let started = clock.now
+        #expect(model.practice == .hud)
+        #expect(model.cornerTrial == nil)
 
         // 練習を始める前の記録は数えない
-        model.handleExecution(ShellFixtures.record(index: 2, date: started.addingTimeInterval(-1)))
-        #expect(model.practice == .waiting)
+        model.handleExecution(try Self.hudRecord(model, date: started.addingTimeInterval(-1)))
+        #expect(model.practice == .hud)
+        #expect(model.practiceFeedback == nil)
 
-        model.handleExecution(ShellFixtures.record(index: 0, date: started.addingTimeInterval(1)))
-        #expect(model.practice == .wrongCell(0))
+        // 1つ目: 違うマス
+        let wrong = (0..<Page.cellCount).first { $0 != page.hudTarget.index && page.titles[$0] != nil } ?? 0
+        model.handleExecution(ShellFixtures.record(index: wrong, date: started.addingTimeInterval(1), title: "違う", fastTap: false))
+        #expect(model.practice == .hud)
+        #expect(model.practiceFeedback == .wrongCell(index: wrong, title: "違う"))
+        #expect(recorder.announcements.last == ShellText.practiceWrongCell(index: wrong, title: "違う", target: page.hudTarget))
 
-        model.handleExecution(ShellFixtures.record(index: 2, page: 1, date: started.addingTimeInterval(2)))
+        // 目標のマスでも、HUD が出る前に実行したら（すぐにタップ）まだ
+        model.handleExecution(ShellFixtures.record(index: page.hudTarget.index, date: started.addingTimeInterval(2), fastTap: true))
+        #expect(model.practice == .hud)
+        #expect(model.practiceFeedback == .tooQuick)
+        #expect(recorder.announcements.last == L10n.ui("HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください"))
+
+        // HUD から実行した（HUD のマスをタップしたときも wasFastTap は false）。別のページの同じ位置でもよい
+        model.handleExecution(ShellFixtures.record(index: page.hudTarget.index, page: 1, date: started.addingTimeInterval(3), fastTap: false))
+        #expect(model.practice == .quickTap)
+        #expect(model.practiceFeedback == nil)
+        #expect(recorder.announcements.last == L10n.ui("できました。迷ったときはこのやり方で"))
+
+        // 2つ目: HUD から実行したら、すぐにタップするよう知らせる
+        model.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: started.addingTimeInterval(4), fastTap: false))
+        #expect(model.practice == .quickTap)
+        #expect(model.practiceFeedback == .usedHUD)
+        #expect(recorder.announcements.last == L10n.ui("HUD から実行しました。今度は指を止めずに、すぐにタップしてください"))
+
+        model.handleExecution(try Self.quickTapRecord(model, date: started.addingTimeInterval(5)))
         #expect(model.practice == .succeeded)
+        #expect(model.practiceFeedback == nil)
+        #expect(recorder.announcements.last == ShellText.practiceQuickTapDone(page.quickTapTarget))
+        // できたら、角の長押しを紹介する
+        #expect(model.cornerTrial == .offered)
 
         // 成功の後に違うマスを押しても成功のまま
-        model.handleExecution(ShellFixtures.record(index: 7, date: started.addingTimeInterval(3)))
+        model.handleExecution(ShellFixtures.record(index: 7, date: started.addingTimeInterval(6)))
         #expect(model.practice == .succeeded)
     }
 
@@ -693,19 +915,12 @@ struct ShellOnboardingTests {
         let (model, _) = Self.make(clock: clock, license: license)
         var opened: [SettingsTab] = []
         model.onOpenSettings = { opened.append($0) }
-        model.next()
-        model.skipSelection()
-        let refused = ExecutionRecord(
-            cellTitle: "マス",
-            profileName: "Xcode",
-            address: CellAddress(page: 0, index: OnboardingModel.practiceTargetIndex),
-            succeeded: false,
-            message: NonetError.licenseRequired.localizedDescription,
-            wasFastTap: true,
-            date: clock.now.addingTimeInterval(1)
-        )
+        Self.enterPractice(model)
+        var refused = try Self.hudRecord(model, date: clock.now.addingTimeInterval(1))
+        refused.succeeded = false
+        refused.message = NonetError.licenseRequired.localizedDescription
         model.handleExecution(refused)
-        #expect(model.practice == .waiting)
+        #expect(model.practice == .hud)
         let blocker = try #require(model.practiceBlocker)
         #expect(blocker == .licenseRequired)
         #expect(blocker.message == L10n.ui("試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます"))
@@ -717,9 +932,9 @@ struct ShellOnboardingTests {
         try license.activate(licenseKey: key)
         #expect(model.practiceBlocker == nil)
 
-        // 押し直せば成功
-        model.handleExecution(ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(2)))
-        #expect(model.practice == .succeeded)
+        // 押し直せば進む
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(2)))
+        #expect(model.practice == .quickTap)
         #expect(model.practiceBlocker == nil)
     }
 
@@ -735,28 +950,28 @@ struct ShellOnboardingTests {
             isFirstLaunchGuide: true,
             now: { clock.now }
         )
-        model.next()
-        model.skipSelection()
-        var refused = ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(1))
+        model.announce = { _ in }
+        Self.enterPractice(model)
+        var refused = try Self.hudRecord(model, date: clock.now.addingTimeInterval(1))
         refused.succeeded = false
         refused.message = NonetError.licenseRequired.localizedDescription
         model.handleExecution(refused)
         #expect(model.practiceBlocker == .licenseRequired)
-        model.handleExecution(ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(2)))
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(2)))
         #expect(model.practiceBlocker == nil)
     }
 
     @Test("ほかの理由で失敗した記録も成功にしない")
-    func failedRecordIsNotSuccess() {
+    func failedRecordIsNotSuccess() throws {
         let clock = Clock()
         let (model, _) = Self.make(clock: clock)
-        model.next()
-        model.skipSelection()
-        var record = ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(1))
+        Self.enterPractice(model)
+        var record = try Self.hudRecord(model, date: clock.now.addingTimeInterval(1))
         record.succeeded = false
         record.message = "失敗"
         model.handleExecution(record)
-        #expect(model.practice == .waiting)
+        #expect(model.practice == .hud)
+        #expect(model.practiceFeedback == nil)
         #expect(model.practiceBlocker == nil)
     }
 
@@ -773,51 +988,54 @@ struct ShellOnboardingTests {
     }
 
     @Test("練習の画面を開いたときにすでにあった記録は、時刻が後でも数えない")
-    func practiceIgnoresBaseline() async {
+    func practiceIgnoresBaseline() async throws {
         let clock = Clock()
         let (model, harness) = Self.make(clock: clock)
-        // テスト実行の記録を lastExecution に残しておく（右上のマス）
-        let cell = Cell(title: "右上", icon: .symbol("star"), action: .openURL(URLAction(url: "example.com")))
-        let global = harness.controller.configuration.globalProfile.id
-        harness.controller.update { $0.setCell(cell, at: CellAddress(page: 0, index: 2), profileID: global) }
+        Self.enterPractice(model)
+        let target = try #require(model.practicePage).hudTarget
+        model.back()
+        // テスト実行の記録を lastExecution に残しておく（HUD の目標のマス）
+        let global = harness.controller.configuration.globalProfile
+        let cell = try #require(global.pages[0].cells[target.index])
         clock.now = Date().addingTimeInterval(-60)
-        _ = await harness.controller.testRun(cell, profileID: global)
+        _ = await harness.controller.testRun(cell, profileID: global.id)
         // テスト実行を lastExecution に残さないコントローラーなら、この確かめ方はできない
         guard let existing = harness.controller.lastExecution else { return }
 
-        model.next()
-        model.skipSelection()
+        model.applySelection()
         model.handleExecution(existing)
-        #expect(model.practice == .waiting)
+        #expect(model.practice == .hud)
     }
 
     @Test("練習の画面の外では記録を数えない。nil は無視する")
-    func executionOutsidePractice() {
+    func executionOutsidePractice() throws {
         let clock = Clock()
         let (model, _) = Self.make(clock: clock)
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(5)))
-        model.next()
-        model.skipSelection()
-        #expect(model.practice == .waiting)
+        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(5), fastTap: false))
+        Self.enterPractice(model)
+        #expect(model.practice == .hud)
         model.handleExecution(nil)
-        #expect(model.practice == .waiting)
+        #expect(model.practice == .hud)
     }
 
     @Test("練習の画面に入り直したら、やり直し")
-    func practiceRestart() {
+    func practiceRestart() throws {
         let clock = Clock()
         let (model, _) = Self.make(clock: clock)
-        model.next()
-        model.skipSelection()
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(1)))
+        Self.enterPractice(model)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(1)))
+        model.handleExecution(try Self.quickTapRecord(model, date: clock.now.addingTimeInterval(2)))
         #expect(model.practice == .succeeded)
+        #expect(model.cornerTrial == .offered)
         model.back()
         clock.now = clock.now.addingTimeInterval(10)
-        model.skipSelection()
-        #expect(model.practice == .waiting)
+        model.applySelection()
+        #expect(model.practice == .hud)
+        #expect(model.cornerTrial == nil)
+        #expect(model.practiceFeedback == nil)
         // 入り直す前の記録は数えない
-        model.handleExecution(ShellFixtures.record(index: 2, date: clock.now.addingTimeInterval(-5)))
-        #expect(model.practice == .waiting)
+        model.handleExecution(try Self.hudRecord(model, date: clock.now.addingTimeInterval(-5)))
+        #expect(model.practice == .hud)
     }
 
     @Test("練習できない理由: 無効にしている")
@@ -833,11 +1051,26 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
     }
 
+    @Test("トラックパッドが無ければ、見つけ方の知らせと「もう一度確かめる」。つないで確かめ直したら練習できる")
+    func practiceNoTrackpad() throws {
+        let (model, harness) = Self.make()
+        Self.enterPractice(model)
+        harness.touchSource.isAvailable = false
+        harness.controller.refreshPermissions()
+        let blocker = try #require(model.practiceBlocker)
+        #expect(blocker == .noTrackpad)
+        #expect(blocker.message == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）"))
+        #expect(blocker.remedy == .recheck)
+        #expect(blocker.remedy?.title == L10n.ui("もう一度確かめる"))
+        harness.touchSource.isAvailable = true
+        model.resolve(.recheck)
+        #expect(model.practiceBlocker == nil)
+    }
+
     @Test("無効で許可も無いときは「無効」の知らせと「有効にする」。有効にしたら許可の知らせと「システム設定を開く」")
     func practiceBlockerTextAndActionAgree() throws {
         let (model, harness) = Self.make(granted: false)
-        model.next()
-        model.skipSelection()
+        Self.enterPractice(model)
         harness.controller.update { $0.settings.isEnabled = false }
         #expect(!model.isAccessibilityGranted)
         let disabled = try #require(model.practiceBlocker)
@@ -854,6 +1087,10 @@ struct ShellOnboardingTests {
         #expect(needsAccessibility?.remedy == .openAccessibilitySettings)
         #expect(needsAccessibility?.remedy?.title == L10n.ui("システム設定を開く"))
 
+        // 1回目は macOS の確認だけ。2回目はシステム設定だけ
+        model.resolve(.openAccessibilitySettings)
+        #expect(harness.permissions.requestCount == 1)
+        #expect(harness.permissions.openSettingsCount == 0)
         model.resolve(.openAccessibilitySettings)
         #expect(harness.permissions.requestCount == 1)
         #expect(harness.permissions.openSettingsCount == 1)
@@ -865,8 +1102,9 @@ struct ShellOnboardingTests {
     @Test("練習できない理由ごとの知らせと、その場で直す方法", arguments: [
         (OnboardingPracticeBlocker.disabled, OnboardingPracticeRemedy?.some(.enableNonet)),
         (.needsAccessibility, .openAccessibilitySettings),
-        (.noTrackpad, nil),
+        (.noTrackpad, .recheck),
         (.secureInput, nil),
+        (.noButtons, .openProfiles),
         (.licenseRequired, .openLicense),
     ])
     func practiceBlockerRemedies(blocker: OnboardingPracticeBlocker, remedy: OnboardingPracticeRemedy?) {

@@ -203,6 +203,27 @@ final class SettingsModel {
         }
     }
 
+    /// メニューバーの「◯◯のボタンを編集…」から。プロファイルのタブでそのプロファイルを選び、address があればそのページとマスを選ぶ
+    func showProfile(id: UUID, at address: CellAddress?) {
+        if tab != .profiles {
+            selectTab(.profiles)
+        }
+        selectProfile(id)
+        guard let address, selectedProfile.id == id, selectedProfile.pages.indices.contains(address.page) else { return }
+        finishRecording()
+        selectedPage = address.page
+        selectedIndex = min(max(address.index, 0), Page.cellCount - 1)
+        gridMessage = nil
+        undoNotice = nil
+    }
+
+    /// 前面のアプリでいま使われるプロファイル（サイドバーの「使用中」）。設定のウィンドウは Nonet を数えないので、その前に使っていたアプリ。
+    /// 前面のアプリが変わったら描き直すよう、activeProfileName を読んでおく
+    var inUseProfileID: UUID? {
+        _ = controller.activeProfileName
+        return configuration.resolvedPages(frontmostBundleID: services.frontmostApp.current?.app.bundleID).first?.profileID
+    }
+
     func addProfile(for app: AppReference) {
         var added: UUID?
         controller.update { added = $0.addAppProfile(for: app, preset: PresetLibrary.preset(forBundleID: app.bundleID)) }

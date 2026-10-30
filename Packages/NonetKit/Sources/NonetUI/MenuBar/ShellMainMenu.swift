@@ -6,12 +6,16 @@ import AppKit
 /// メニューが無いと、ライセンスキーの欄に ⌘V で貼り付けられない
 @MainActor
 public enum ShellMainMenu {
-    /// 起動時に App が NSApp.mainMenu に入れる。onAbout は「Nonet について」、onOpenSettings は「設定…」
-    public static func make(onAbout: @escaping () -> Void, onOpenSettings: @escaping () -> Void) -> NSMenu {
+    /// 起動時に App が NSApp.mainMenu に入れる。onAbout は「Nonet について」、onOpenSettings は「設定…」、
+    /// onHelp は「Nonet ヘルプ」（⌘?。利用ガイドを開く。nil ならヘルプのメニューを出さない）
+    public static func make(onAbout: @escaping () -> Void, onOpenSettings: @escaping () -> Void, onHelp: (() -> Void)? = nil) -> NSMenu {
         let main = NSMenu(title: "Nonet")
         main.addItem(submenuItem(appMenu(onAbout: onAbout, onOpenSettings: onOpenSettings)))
         main.addItem(submenuItem(editMenu()))
         main.addItem(submenuItem(windowMenu()))
+        if let onHelp {
+            main.addItem(submenuItem(helpMenu(onHelp: onHelp)))
+        }
         return main
     }
 
@@ -49,6 +53,13 @@ public enum ShellMainMenu {
         let menu = NSMenu(title: String(localized: "ウインドウ", bundle: .module))
         menu.addItem(item(String(localized: "閉じる", bundle: .module), #selector(NSWindow.performClose(_:)), "w"))
         menu.addItem(item(String(localized: "しまう", bundle: .module), #selector(NSWindow.performMiniaturize(_:)), "m"))
+        return menu
+    }
+
+    /// 設定や案内のウィンドウがキーの間、⌘? で利用ガイドを開く
+    private static func helpMenu(onHelp: @escaping () -> Void) -> NSMenu {
+        let menu = NSMenu(title: String(localized: "ヘルプ", bundle: .module))
+        menu.addItem(closureItem(String(localized: "Nonet ヘルプ", bundle: .module), keyEquivalent: "?", onHelp))
         return menu
     }
 

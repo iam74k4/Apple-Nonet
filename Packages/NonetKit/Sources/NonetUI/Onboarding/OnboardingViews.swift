@@ -3,7 +3,7 @@ import NonetCore
 import SwiftUI
 
 enum OnboardingLayout {
-    static let windowSize = CGSize(width: 760, height: 540)
+    static let windowSize = CGSize(width: 760, height: 600)
     static let horizontalPadding: CGFloat = 40
 }
 
@@ -25,7 +25,7 @@ struct OnboardingView: View {
                 case .welcome: OnboardingWelcomeStep(model: model)
                 case .apps: OnboardingAppsStep(model: model)
                 case .practice: OnboardingPracticeStep(model: model)
-                case .done: OnboardingDoneStep()
+                case .done: OnboardingDoneStep(model: model)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -56,7 +56,13 @@ struct OnboardingView: View {
     private var footerNote: some View {
         switch model.step {
         case .welcome:
-            if model.isAccessibilityGranted {
+            if model.purpose == .permission(remindsAtLaunch: true), !model.isAccessibilityGranted {
+                // 起動するたびに開かないようにできる
+                Toggle(isOn: Binding(get: { model.hidesReminder }, set: { model.setHidesReminder($0) })) {
+                    Text("今後表示しない", bundle: .module)
+                }
+                .toggleStyle(.checkbox)
+            } else if model.isAccessibilityGranted {
                 Text("許可されています。次へ進んでください", bundle: .module)
             } else {
                 Text("許可すると、自動で次へ進みます", bundle: .module)
@@ -74,7 +80,7 @@ struct OnboardingView: View {
         case .practice:
             Text("練習中は、マスを押しても何も実行されません", bundle: .module)
         case .done:
-            Text("この案内は、メニューバーの Nonet ›「初回の案内をもう一度」でまた見られます", bundle: .module)
+            Text("この案内は、メニューバーの 3×3 のアイコン ›「初回の案内をもう一度」でまた見られます", bundle: .module)
         }
     }
 
@@ -94,9 +100,8 @@ struct OnboardingView: View {
                     .keyboardShortcut(.defaultAction)
             }
         case .apps:
+            // 「あとで設定する」は置かない。どのカードも最初は選ばれているので、「次へ」がそのまま「おすすめのまま使う」になる
             Button { model.back() } label: { Text("戻る", bundle: .module) }
-                .buttonStyle(OnboardingSecondaryButtonStyle())
-            Button { model.skipSelection() } label: { Text("あとで設定する", bundle: .module) }
                 .buttonStyle(OnboardingSecondaryButtonStyle())
             Button { model.applySelection() } label: { Text("次へ：試してみる", bundle: .module) }
                 .buttonStyle(OnboardingPrimaryButtonStyle())
@@ -210,13 +215,21 @@ struct OnboardingWelcomeStep: View {
     let model: OnboardingModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
                 OnboardingLogo(size: 44)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Nonet へようこそ", bundle: .module)
-                        .font(.system(size: 24, weight: .bold))
-                    Text("キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンになります", bundle: .module)
+                    Group {
+                        if case .permission = model.purpose {
+                            Text("Nonet を使うには、あと1つ許可が必要です", bundle: .module)
+                        } else {
+                            Text("Nonet へようこそ", bundle: .module)
+                        }
+                    }
+                    .font(.system(size: 24, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onboardingHeading()
+                    Text(ShellText.welcomeSubtitle(model.trigger))
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -242,17 +255,51 @@ struct OnboardingWelcomeStep: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if !model.isAccessibilityGranted {
-                    Text("「システム設定を開く」を押し、プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。", bundle: .module)
-                        .font(.system(size: 12))
-                        .fixedSize(horizontal: false, vertical: true)
+                    Divider()
+                    OnboardingPermissionSteps()
                 }
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
+            if model.isTrackpadMissing {
+                // 許可より前に分かる。許可しても、トラックパッドが無ければ使えない
+                OnboardingNotice(text: OnboardingModel.noTrackpadMessage) {
+                    Button { model.recheckTrackpad() } label: { Text(OnboardingPracticeRemedy.recheck.title) }
+                }
+            }
         }
         .padding(.horizontal, OnboardingLayout.horizontalPadding)
         .padding(.top, 6)
+    }
+}
+
+/// 許可の手順。macOS がパスワードか Touch ID を求めることも先に伝える
+struct OnboardingPermissionSteps: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            OnboardingNumberedLine(number: 1, text: Text("「システム設定を開く」を押す", bundle: .module))
+            OnboardingNumberedLine(number: 2, text: Text("一覧の Nonet をオンにする（パスワードか Touch ID を求められます）", bundle: .module))
+            OnboardingNumberedLine(number: 3, text: Text("この画面に自動で戻ります", bundle: .module))
+        }
+    }
+}
+
+struct OnboardingNumberedLine: View {
+    let number: Int
+    let text: Text
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(verbatim: "\(number).")
+                .font(.system(size: 13, weight: .semibold))
+                .monospacedDigit()
+                .frame(width: 18, alignment: .trailing)
+            text
+                .font(.system(size: 13))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -315,6 +362,7 @@ struct OnboardingAppsStep: View {
                     }
                 }
                 .font(.system(size: 22, weight: .bold))
+                .onboardingHeading()
                 if !model.choices.isEmpty {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -491,87 +539,32 @@ struct OnboardingAppCard: View {
     }
 }
 
-// MARK: - 3. 試してみる
+// MARK: - 部品
 
-struct OnboardingPracticeStep: View {
-    let model: OnboardingModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 8) {
-                // 上の段の「試してみる」（Try It Out）とは別の文言（見出しは sentence case）
-                Text("試してみよう", bundle: .module)
-                    .font(.system(size: 22, weight: .bold))
-                Text(ShellText.practiceInstruction(model.trigger))
-                    .font(.system(size: 17, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("すぐにタップすると、その場で実行されます。迷ったら指を置いたまま止めると、9マスの一覧（HUD）が出ます。", bundle: .module)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            HStack(alignment: .top, spacing: 28) {
-                OnboardingTrackpadFigure(state: model.practice)
-                    .frame(width: 312, height: 204)
-                Group {
-                    if let blocker = model.practiceBlocker {
-                        OnboardingNotice(text: blocker.message) {
-                            if let remedy = blocker.remedy {
-                                Button { model.resolve(remedy) } label: { Text(remedy.title) }
-                            }
-                        }
-                    } else {
-                        OnboardingPracticeFeedback(state: model.practice)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-        }
-        .padding(.horizontal, OnboardingLayout.horizontalPadding)
-        .padding(.top, 6)
+extension View {
+    /// 画面の見出し。画面が変わったら、VoiceOver の場所をここに移す
+    func onboardingHeading() -> some View {
+        modifier(OnboardingHeading())
     }
 }
 
-struct OnboardingPracticeFeedback: View {
-    let state: OnboardingPracticeState
+private struct OnboardingHeading: ViewModifier {
+    @AccessibilityFocusState private var isFocused: Bool
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            switch state {
-            case .waiting:
-                ProgressView()
-                    .controlSize(.small)
-                Text("タップを待っています…", bundle: .module)
-                    .foregroundStyle(.secondary)
-            case .wrongCell(let index):
-                Image(systemName: "arrow.up.right.circle")
-                    .font(.system(size: 18))
-                Text(ShellText.wrongCellMessage(index))
-                    .fixedSize(horizontal: false, vertical: true)
-            case .succeeded:
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 22))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("できました！", bundle: .module)
-                        .font(.system(size: 15, weight: .bold))
-                    Text("右上のマスを押せました。実際に使うときは、ここで実行されます", bundle: .module)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+    func body(content: Content) -> some View {
+        content
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityFocused($isFocused)
+            .onAppear {
+                // 画面が入れ替わってから移す（すぐだと、消える前の画面の要素に戻されることがある）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    isFocused = true
                 }
             }
-        }
-        .font(.system(size: 13))
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(state == .succeeded ? Color.primary : Color.secondary.opacity(0.3), lineWidth: state == .succeeded ? 2 : 1)
-        )
-        .accessibilityElement(children: .combine)
     }
 }
 
-/// 練習できないときの知らせ
+/// 知らせ（練習できない理由・トラックパッドが無い）。actions にその場で直すボタンを置く
 struct OnboardingNotice<Actions: View>: View {
     let text: String
     @ViewBuilder let actions: () -> Actions
@@ -580,6 +573,7 @@ struct OnboardingNotice<Actions: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
+                    .accessibilityHidden(true)
                 Text(text)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -592,131 +586,6 @@ struct OnboardingNotice<Actions: View>: View {
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
     }
 }
-
-/// トラックパッドを上から見た図。右上が押してほしいマス
-struct OnboardingTrackpadFigure: View {
-    let state: OnboardingPracticeState
-
-    var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = geometry.size.height
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.secondary.opacity(0.45))
-                Path { path in
-                    for line in 1...2 {
-                        let x = width * CGFloat(line) / 3
-                        let y = height * CGFloat(line) / 3
-                        path.move(to: CGPoint(x: x, y: 6))
-                        path.addLine(to: CGPoint(x: x, y: height - 6))
-                        path.move(to: CGPoint(x: 6, y: y))
-                        path.addLine(to: CGPoint(x: width - 6, y: y))
-                    }
-                }
-                .stroke(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                ForEach(0..<9, id: \.self) { index in
-                    marker(for: index)
-                        .frame(width: width / 3, height: height / 3)
-                        .offset(x: CGFloat(index % 3) * width / 3, y: CGFloat(index / 3) * height / 3)
-                }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("トラックパッドの図。右上のマスが目標です", bundle: .module))
-    }
-
-    @ViewBuilder
-    private func marker(for index: Int) -> some View {
-        if index == OnboardingModel.practiceTargetIndex {
-            ZStack {
-                Circle()
-                    .strokeBorder(Color.primary.opacity(0.25), lineWidth: 1)
-                    .frame(width: 46, height: 46)
-                Circle()
-                    .fill(Color.primary)
-                    .frame(width: 26, height: 26)
-                if state == .succeeded {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color(nsColor: .controlBackgroundColor))
-                }
-            }
-        } else if case .wrongCell(let wrong) = state, wrong == index {
-            Circle()
-                .strokeBorder(Color.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
-                .frame(width: 26, height: 26)
-        }
-    }
-}
-
-// MARK: - 4. 完了
-
-struct OnboardingDoneStep: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 14) {
-                OnboardingLogo(size: 44)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("準備ができました", bundle: .module)
-                        .font(.system(size: 24, weight: .bold))
-                    Text("使いながら覚えられるように、こつを3つだけ。", bundle: .module)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            VStack(alignment: .leading, spacing: 14) {
-                OnboardingTip(
-                    symbol: "hand.raised",
-                    title: Text("迷ったら、指を止める", bundle: .module),
-                    detail: Text("キーを押したまま指を置いて止めると、9マスの一覧（HUD）が出ます。慣れたら、すぐにタップするだけで実行できます。", bundle: .module)
-                )
-                OnboardingTip(
-                    symbol: "hand.draw",
-                    title: Text("2本指で左右にスワイプ", bundle: .module),
-                    detail: Text("キーを押したまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。", bundle: .module)
-                )
-                OnboardingTip(
-                    symbol: "square.grid.3x3.middle.filled",
-                    title: Text("メニューバーのアイコン", bundle: .module),
-                    detail: Text("メニューバーの 3×3 のアイコンから、設定を開いたり、Nonet を有効・無効にしたりできます。", bundle: .module)
-                )
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
-        }
-        .padding(.horizontal, OnboardingLayout.horizontalPadding)
-        .padding(.top, 6)
-    }
-}
-
-struct OnboardingTip: View {
-    let symbol: String
-    let title: Text
-    let detail: Text
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.system(size: 18))
-                .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 3) {
-                title
-                    .font(.system(size: 14, weight: .semibold))
-                detail
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - 部品
 
 /// ロゴ（角の丸い 3×3、中央が塗り）。メニューバーのアイコンと同じ形
 struct OnboardingLogo: View {

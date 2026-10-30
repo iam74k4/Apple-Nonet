@@ -31,6 +31,9 @@ enum SingleInstance {
                     bundleURL: app.bundleURL,
                     isTerminated: app.isTerminated || !isAlive(processID),
                     isFinishedLaunching: app.isFinishedLaunching,
+                    // 終わり始めたもの（applicationWillTerminate で印を書く）だけを待つ。動いているものには、待たずに設定を開かせる
+                    isQuitting: processID != current.processIdentifier
+                        && ShellQuitMarker.isQuitting(processID: processID, launchDate: app.launchDate),
                     launchDate: app.launchDate,
                     location: location
                 )
