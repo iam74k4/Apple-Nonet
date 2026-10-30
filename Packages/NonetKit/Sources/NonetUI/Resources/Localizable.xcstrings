@@ -2250,6 +2250,16 @@
         }
       }
     },
+    "ショートカットの出力をテキストとして、最後の改行を除いて使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the shortcut's output as text, without the final newline."
+          }
+        }
+      }
+    },
     "ショートカットの名前" : {
       "localizations" : {
         "en" : {
@@ -2306,6 +2316,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Environment variables passed to scripts"
+          }
+        }
+      }
+    },
+    "スクリプトの標準出力を、最後の改行を除いて使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses the script's standard output, without the final newline."
           }
         }
       }
@@ -3363,11 +3383,22 @@
       }
     },
     "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The working directory is the project folder, or your home folder if there isn't one. Scripts run in a login shell (zsh -l), so ~/.zprofile is read but ~/.zshrc isn't."
+          }
+        }
+      }
+    },
+    "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。裏で実行するときはログインシェル（zsh -l）で動き、PATH はターミナルと同じもの（Nonet の起動時に ~/.zshrc まで読んで調べたもの）を使います。~/.zshrc のエイリアスや関数を使えるのは、ターミナルで実行するときだけです。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The working directory is the project folder, or your home folder if there isn't one. Background scripts run in a login shell (zsh -l) with the same PATH as Terminal, which Nonet reads (including ~/.zshrc) when it opens. Aliases and functions from ~/.zshrc work only when the script runs in Terminal."
           }
         }
       }
@@ -3448,6 +3479,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet never records or sends what you type. Your settings are stored only on your Mac."
+          }
+        }
+      }
+    },
+    "出力を使わない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore"
           }
         }
       }

@@ -66,7 +66,8 @@ final class ControllerHarness {
         licensed: Bool = false,
         isJISKeyboard: Bool = false,
         installed: Set<String> = [],
-        frontmost app: RunningAppInfo? = ControllerFixtures.safariApp
+        frontmost app: RunningAppInfo? = ControllerFixtures.safariApp,
+        presetEnvironment: FixedPresetEnvironment = FixedPresetEnvironment()
     ) throws {
         keyboard = ControllerFakeKeyboard(recorder: recorder, permissions: permissions)
         haptics = ControllerFakeHaptics(recorder: recorder)
@@ -102,7 +103,8 @@ final class ControllerHarness {
             ai: ControllerFakeAI(),
             loginItem: ControllerFakeLoginItem(),
             scheduler: scheduler,
-            isJISKeyboard: isJISKeyboard
+            isJISKeyboard: isJISKeyboard,
+            presetEnvironment: presetEnvironment
         )
         controller = NonetController(services: services, store: store, hud: hud, license: license)
     }

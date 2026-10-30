@@ -30,8 +30,19 @@ public struct ExecutionRecord: Equatable, Sendable {
     /// HUD を出さずに実行した
     public var wasFastTap: Bool
     public var date: Date
+    /// 結果の出し方が「画面に表示」のアクション（AI・裏のスクリプト・ショートカット）の結果。設定画面のテスト実行の下に出す
+    public var output: String?
 
-    public init(cellTitle: String, profileName: String, address: CellAddress, succeeded: Bool, message: String?, wasFastTap: Bool, date: Date) {
+    public init(
+        cellTitle: String,
+        profileName: String,
+        address: CellAddress,
+        succeeded: Bool,
+        message: String?,
+        wasFastTap: Bool,
+        date: Date,
+        output: String? = nil
+    ) {
         self.cellTitle = cellTitle
         self.profileName = profileName
         self.address = address
@@ -39,6 +50,7 @@ public struct ExecutionRecord: Equatable, Sendable {
         self.message = message
         self.wasFastTap = wasFastTap
         self.date = date
+        self.output = output
     }
 }
 
@@ -529,7 +541,7 @@ public final class NonetController {
             } else if showsSuccessToast {
                 hud.showToast(ControllerPresentation.successToast(target.cell))
             }
-            return record(target, succeeded: true, message: nil, wasFastTap: wasFastTap)
+            return record(target, succeeded: true, message: nil, wasFastTap: wasFastTap, output: output)
         } catch {
             return fail(target, wasFastTap: wasFastTap, error: error)
         }
@@ -560,7 +572,7 @@ public final class NonetController {
     }
 
     @discardableResult
-    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, wasFastTap: Bool) -> ExecutionRecord {
+    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, wasFastTap: Bool, output: String? = nil) -> ExecutionRecord {
         let record = ExecutionRecord(
             cellTitle: target.cell.title,
             profileName: target.profileName,
@@ -568,7 +580,8 @@ public final class NonetController {
             succeeded: succeeded,
             message: message,
             wasFastTap: wasFastTap,
-            date: Date()
+            date: Date(),
+            output: output
         )
         lastExecution = record
         return record
@@ -792,16 +805,20 @@ public final class NonetController {
         return CellAddress(page: 0, index: 0)
     }
 
-    /// インストール済みのアプリから作る最初の設定
+    /// インストール済みのアプリから作る最初の設定。プリセットはこの Mac でできることに合わせる
+    /// （claude を調べ終える前なら Claude Code のマスは空き。初回の案内の「アプリを選ぶ」で調べ終えてから作り直す）
     static func initialConfiguration(services: NonetServices) -> NonetConfiguration {
         let installedLaunchers = PresetLibrary.launcherCandidates
             .map(\.bundleID)
             .filter { services.installedApps.isInstalled(bundleID: $0) }
-        let presets = PresetLibrary.apps.filter { services.installedApps.isInstalled(bundleID: $0.app.bundleID) }
+        let environment = services.presetEnvironment
+        let presets = PresetLibrary.apps(for: environment.capabilities)
+            .filter { services.installedApps.isInstalled(bundleID: $0.app.bundleID) }
         return .initial(
             trigger: .defaultKey(isJIS: services.isJISKeyboard),
             appPresets: presets,
-            installedBundleIDs: Set(installedLaunchers)
+            installedBundleIDs: Set(installedLaunchers),
+            dockApps: environment.dockApps()
         )
     }
 }

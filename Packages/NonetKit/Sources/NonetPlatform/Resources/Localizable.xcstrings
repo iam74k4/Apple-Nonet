@@ -201,6 +201,26 @@
         }
       }
     },
+    "コマンドが見つかりません。インストールされているか、ターミナルで command -v %@ を確かめてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command not found. Check that it's installed with command -v %@ in Terminal."
+          }
+        }
+      }
+    },
+    "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command not found. Check in Terminal that it's installed."
+          }
+        }
+      }
+    },
     "ショートカット「%@」が失敗しました" : {
       "localizations" : {
         "en" : {
@@ -377,6 +397,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Login Items"
+          }
+        }
+      }
+    },
+    "出力が大きすぎるため、使えませんでした（%lld KB まで）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't use the output because it's larger than %lld KB."
           }
         }
       }

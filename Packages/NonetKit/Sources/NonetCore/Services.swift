@@ -136,7 +136,7 @@ public struct ActionContext: Sendable {
 public protocol ActionPerforming: AnyObject {
     /// 失敗したら NonetError（表示できる説明つき）を投げる
     func perform(_ action: Action, context: ActionContext) async throws
-    /// perform と同じだが、AI の「結果を表示」の文字列をクリップボードに入れずに返す。ほかのアクションは nil
+    /// perform と同じだが、結果の出し方が「画面に表示」の AI・裏のスクリプト・ショートカットの文字列を、クリップボードに入れずに返す。ほかは nil
     func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String?
 }
 
@@ -276,6 +276,8 @@ public struct NonetServices {
     public var scheduler: any Scheduler
     /// 物理キーボードが JIS 配列か（トリガーの既定値を決める）
     public var isJISKeyboard: Bool
+    /// プリセットを組み立てるときに見る、この Mac の状態（AI・Claude Code・Dock）
+    public var presetEnvironment: any PresetEnvironmentProviding
 
     public init(
         touchSource: any TouchSource,
@@ -290,7 +292,8 @@ public struct NonetServices {
         ai: any AIAvailabilityProviding,
         loginItem: any LoginItemControlling,
         scheduler: any Scheduler,
-        isJISKeyboard: Bool
+        isJISKeyboard: Bool,
+        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
     ) {
         self.touchSource = touchSource
         self.keyboard = keyboard
@@ -305,5 +308,6 @@ public struct NonetServices {
         self.loginItem = loginItem
         self.scheduler = scheduler
         self.isJISKeyboard = isJISKeyboard
+        self.presetEnvironment = presetEnvironment
     }
 }

@@ -114,7 +114,10 @@ enum ControllerExecutionPolicy {
         switch action {
         case .keystroke: true
         case .ai(let ai): ai.output == .replaceSelection
-        case .launchApp, .openURL, .script, .shortcut, .menuItem: false
+        // 裏のスクリプトとショートカットも、出力で選択範囲を置き換えるなら ⌘V を送る
+        case .script(let script): script.runMode == .background && script.output == .replaceSelection
+        case .shortcut(let shortcut): shortcut.output == .replaceSelection
+        case .launchApp, .openURL, .menuItem: false
         }
     }
 

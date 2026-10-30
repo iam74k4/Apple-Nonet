@@ -169,6 +169,9 @@ struct SettingsTestRunSection: View {
                         symbol: record.succeeded ? "checkmark.circle" : "xmark.octagon",
                         isWarning: !record.succeeded
                     )
+                    if let output = record.output {
+                        SettingsTestOutput(text: output)
+                    }
                 } else {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small)
@@ -187,6 +190,24 @@ struct SettingsTestRunSection: View {
     }
 
     private var profile: Profile { model.selectedProfile }
+}
+
+/// テスト実行の結果（「画面に表示」の AI・スクリプト・ショートカット）。選んでコピーできる
+struct SettingsTestOutput: View {
+    let text: String
+
+    var body: some View {
+        ScrollView {
+            Text(verbatim: text)
+                .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+        }
+        .frame(maxHeight: 160)
+        .background(RoundedRectangle(cornerRadius: 6).strokeBorder(SettingsPalette.panelBorder))
+        .accessibilityLabel(Text("結果", bundle: .module))
+    }
 }
 
 // MARK: - アイコン

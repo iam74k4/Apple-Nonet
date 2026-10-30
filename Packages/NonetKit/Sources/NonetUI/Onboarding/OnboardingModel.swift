@@ -118,7 +118,10 @@ final class OnboardingModel {
     /// 実行できるか（ライセンス・試用）を見る。@Observable なので、登録すると練習の画面も変わる
     @ObservationIgnored private let license: LicenseManager?
     @ObservationIgnored private let permissions: any PermissionsProviding
-    @ObservationIgnored private let presets: [AppPreset]
+    /// この Mac でできることに合わせたプリセット（インストール済みのアプリのもの）。「アプリを選ぶ」で調べ直す
+    private var presets: [AppPreset]
+    @ObservationIgnored private let installedApps: any InstalledAppsProviding
+    @ObservationIgnored private let presetEnvironment: any PresetEnvironmentProviding
     @ObservationIgnored private let installedLauncherIDs: Set<String>
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var practiceStartedAt: Date?
@@ -136,20 +139,25 @@ final class OnboardingModel {
         license: LicenseManager? = nil,
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
+        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment(),
         isFirstLaunchGuide: Bool,
         now: @escaping () -> Date = Date.init
     ) {
         self.controller = controller
         self.license = license
         self.permissions = permissions
+        self.installedApps = installedApps
+        self.presetEnvironment = presetEnvironment
         self.isFirstLaunchGuide = isFirstLaunchGuide
         self.now = now
         isAccessibilityGranted = permissions.isAccessibilityGranted
-        presets = PresetLibrary.apps.filter { installedApps.isInstalled(bundleID: $0.app.bundleID) }
+        let available = PresetLibrary.apps(for: presetEnvironment.capabilities)
+            .filter { installedApps.isInstalled(bundleID: $0.app.bundleID) }
+        presets = available
         installedLauncherIDs = Set(
             PresetLibrary.launcherCandidates.map(\.bundleID).filter { installedApps.isInstalled(bundleID: $0) }
         )
-        selectedIDs = Set(presets.map(\.app.bundleID))
+        selectedIDs = Set(available.map(\.app.bundleID))
         profilesSnapshot = controller.configuration.profiles
     }
 
@@ -321,7 +329,8 @@ final class OnboardingModel {
             var configuration = NonetConfiguration.initial(
                 trigger: settings.trigger,
                 appPresets: selected,
-                installedBundleIDs: installedLauncherIDs
+                installedBundleIDs: installedLauncherIDs,
+                dockApps: presetEnvironment.dockApps()
             )
             configuration.settings = settings
             controller.replaceConfiguration(configuration)
@@ -379,12 +388,24 @@ final class OnboardingModel {
             practiceStartedAt = nil
         }
         step = newStep
+        if newStep == .apps {
+            refreshPresets()
+        }
         if newStep == .practice {
             practice = .waiting
             isPracticeRefusedForLicense = false
             practiceBaseline = controller.lastExecution
             practiceStartedAt = now()
             controller.isPracticeMode = isWindowAttended
+        }
+    }
+
+    /// claude を調べ終えてから、この Mac でできることに合わせてプリセットを作り直す（カードの説明も変わる）
+    private func refreshPresets() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let capabilities = await presetEnvironment.resolvedCapabilities()
+            presets = PresetLibrary.apps(for: capabilities).filter { self.installedApps.isInstalled(bundleID: $0.app.bundleID) }
         }
     }
 

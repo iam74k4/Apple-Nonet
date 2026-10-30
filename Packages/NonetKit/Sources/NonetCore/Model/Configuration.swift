@@ -34,12 +34,18 @@ public struct ResolvedPage: Equatable, Sendable {
 }
 
 extension NonetConfiguration {
-    /// 初回起動時の設定。グローバルはインストール済みのアプリを並べたランチャー、アプリのプロファイルは渡されたプリセットから作る
-    public static func initial(trigger: TriggerKey, appPresets: [AppPreset], installedBundleIDs: Set<String>) -> NonetConfiguration {
+    /// 初回起動時の設定。グローバルは Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
+    /// アプリのプロファイルは渡されたプリセットから作る
+    public static func initial(
+        trigger: TriggerKey,
+        appPresets: [AppPreset],
+        installedBundleIDs: Set<String>,
+        dockApps: [AppReference] = []
+    ) -> NonetConfiguration {
         initial(
             trigger: trigger,
             appPresets: appPresets,
-            globalProfile: PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs)
+            globalProfile: PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
         )
     }
 

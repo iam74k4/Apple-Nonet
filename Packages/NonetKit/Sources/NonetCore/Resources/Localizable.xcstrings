@@ -93,6 +93,28 @@
         }
       }
     },
+    "AIチャット、エージェント、コマンドなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including AI Chat, Agent Layout and Commands"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including AI Chat, Agent Layout and Commands"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "AirDrop" : {
       "localizations" : {
         "en" : {
@@ -129,6 +151,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Little Arc"
+          }
+        }
+      }
+    },
+    "Little Arc、リンクをコピー、ページ内検索など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Little Arc, Copy Link and Find on Page"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Little Arc, Copy Link and Find on Page"
+                }
+              }
+            }
           }
         }
       }
@@ -206,6 +250,7 @@
       }
     },
     "あとで読む" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -261,6 +306,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calendar"
+          }
+        }
+      }
+    },
+    "クイックオープン" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Quickly"
           }
         }
       }
@@ -357,6 +412,28 @@
         }
       }
     },
+    "コマンド、検索、定義へ移動など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Commands, Find in Files and Go to Definition"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Commands, Find in Files and Go to Definition"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "コミット" : {
       "localizations" : {
         "en" : {
@@ -438,6 +515,7 @@
       }
     },
     "ステータス" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -453,6 +531,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Threads"
+          }
+        }
+      }
+    },
+    "スレッド、未読、会話へ移動など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Threads, All Unreads and Jump To"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Threads, All Unreads and Jump To"
+                }
+              }
+            }
           }
         }
       }
@@ -514,6 +614,50 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld buttons, including tab controls, Clear and Claude Code"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "タブ、クリア、分割など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including tab controls, Clear and Split Pane"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including tab controls, Clear and Split Pane"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "タブ、戻る・進む、ページ内検索など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including tab controls, Back, Forward and Find on Page"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including tab controls, Back, Forward and Find on Page"
                 }
               }
             }
@@ -608,6 +752,28 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld buttons, including Checklist, Table and Proofread"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "チェックリスト、表、見出しなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Checklist, Table and Heading"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Checklist, Table and Heading"
                 }
               }
             }
@@ -727,6 +893,28 @@
         }
       }
     },
+    "ビルド、テスト、クイックオープンなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Build, Test and Open Quickly"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Build, Test and Open Quickly"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "ファイル" : {
       "localizations" : {
         "en" : {
@@ -790,6 +978,7 @@
       }
     },
     "ブックマーク" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1083,6 +1272,16 @@
         }
       }
     },
+    "会話へ移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump To"
+          }
+        }
+      }
+    },
     "会議" : {
       "localizations" : {
         "en" : {
@@ -1351,6 +1550,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Page"
+          }
+        }
+      }
+    },
+    "新規ページ、検索、コメントなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including New Page, Search and Comment"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including New Page, Search and Comment"
+                }
+              }
+            }
           }
         }
       }
@@ -1732,6 +1953,28 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld buttons, including Reply, Archive and Summarize"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "返信、アーカイブ、転送など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Reply, Archive and Forward"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Reply, Archive and Forward"
                 }
               }
             }

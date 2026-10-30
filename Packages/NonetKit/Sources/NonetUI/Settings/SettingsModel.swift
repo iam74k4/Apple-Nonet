@@ -227,7 +227,8 @@ final class SettingsModel {
 
     func addProfile(for app: AppReference) {
         var added: UUID?
-        controller.update { added = $0.addAppProfile(for: app, preset: PresetLibrary.preset(forBundleID: app.bundleID)) }
+        let preset = PresetLibrary.preset(forBundleID: app.bundleID, capabilities: services.presetEnvironment.capabilities)
+        controller.update { added = $0.addAppProfile(for: app, preset: preset) }
         isAddingProfile = false
         if let added {
             selectProfile(added)

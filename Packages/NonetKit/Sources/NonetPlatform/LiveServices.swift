@@ -18,7 +18,8 @@ extension NonetServices {
             ai: OnDeviceAIAvailability(),
             loginItem: SMAppServiceLoginItem(),
             scheduler: MainRunLoopScheduler(),
-            isJISKeyboard: KeyboardLayout.isJIS
+            isJISKeyboard: KeyboardLayout.isJIS,
+            presetEnvironment: SystemPresetEnvironment()
         )
     }
 }

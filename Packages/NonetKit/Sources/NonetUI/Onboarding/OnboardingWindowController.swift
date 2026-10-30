@@ -42,6 +42,7 @@ public final class OnboardingWindowController {
             license: license,
             permissions: services.permissions,
             installedApps: services.installedApps,
+            presetEnvironment: services.presetEnvironment,
             isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
         )
         raiseWindow = { [weak self] in self?.bringToFront() }
