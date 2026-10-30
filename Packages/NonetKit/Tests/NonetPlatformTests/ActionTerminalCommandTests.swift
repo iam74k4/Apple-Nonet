@@ -118,10 +118,31 @@ struct ActionTerminalCommandTests {
         #expect(try String(contentsOf: file, encoding: .utf8) == "#!/bin/zsh\n")
     }
 
-    @Test("ファイルは利用者ごとの一時フォルダの中に作る")
-    func perUserDirectory() {
-        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.path
-        #expect(TerminalCommandFile.directory.standardizedFileURL.path.hasPrefix(temporary))
+    @Test("ターミナルに渡すファイルは、利用者ごとの一時フォルダ（getconf DARWIN_USER_TEMP_DIR）の中の、本人だけのフォルダに作る")
+    func perUserDirectory() async throws {
+        let getconf = try await ProcessRunner.run(ProcessRequest(
+            executable: URL(fileURLWithPath: "/usr/bin/getconf"),
+            arguments: ["DARWIN_USER_TEMP_DIR"],
+            environment: nil,
+            currentDirectory: nil,
+            timeout: 10
+        ))
+        let perUser = getconf.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        #expect(!perUser.isEmpty)
+        let file = try TerminalCommandFile.prepare(
+            source: "echo ok",
+            variables: ["NONET_SELECTED_TEXT": "選択"],
+            workingDirectory: "/"
+        )
+        defer { try? FileManager.default.removeItem(at: file) }
+        #expect(actionRealPath(file).hasPrefix(actionRealPath(URL(fileURLWithPath: perUser, isDirectory: true)) + "/"))
+        let folder = file.deletingLastPathComponent()
+        for url in [file, folder] {
+            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+            #expect(attributes[.posixPermissions] as? Int == 0o700, "\(url.path)")
+            #expect((attributes[.ownerAccountID] as? NSNumber)?.uint32Value == getuid(), "\(url.path)")
+        }
+        #expect(try String(contentsOf: file, encoding: .utf8).contains("export NONET_SELECTED_TEXT='選択'"))
     }
 
     @Test("開かれずに残ったファイルは数分で古いとみなし、次の起動でも消す")

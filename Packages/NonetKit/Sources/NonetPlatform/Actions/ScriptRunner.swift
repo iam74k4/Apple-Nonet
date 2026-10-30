@@ -97,8 +97,9 @@ struct ScriptLocation: Equatable, Sendable {
 
     /// 調べる時間の上限。過ぎたら（眠ったネットワークの場所など）プロジェクトのフォルダは無しで、作業フォルダはホーム
     static let timeout: TimeInterval = 0.3
-    /// .git などを探して上にたどるフォルダの数の上限（書類のフォルダを含む）
-    static let maxSearchLevels = 8
+    /// ホームの外で、.git などを探して上にたどるフォルダの数の上限（書類のフォルダを含む）。
+    /// ホームの中ではホームで止まるので上限は無い（Maven・Gradle・Android のように、ソースがルートから10段以上深いこともある）
+    static let maxSearchLevels = 32
     /// これより浅いフォルダ（/ や /Volumes、/Users）では探さない
     static let minSearchDepth = 2
 
@@ -118,7 +119,7 @@ struct ScriptLocation: Equatable, Sendable {
     }
 
     /// ネットワークの場所の書類では .git などを探さない（書類のフォルダをプロジェクトとする）。
-    /// 探すのは書類から上へ maxSearchLevels 個までで、ホームより上と浅いフォルダは調べない
+    /// ホームより上と浅いフォルダは調べない。ホームの外では、書類から上へ maxLevels 個までしか調べない
     static func resolve(
         documentPath: String,
         home: URL,
@@ -128,17 +129,25 @@ struct ScriptLocation: Equatable, Sendable {
         isDirectory: (String) -> Bool
     ) -> ScriptLocation {
         let searches = isLocalVolume(documentPath)
+        let limitsLevels = !isInside(documentPath, home: home)
         var directories: [String] = []
         let project = ScriptEnvironment.projectDirectory(forDocumentPath: documentPath, homeDirectory: home.path) { candidate in
             guard searches else { return false }
             let directory = (candidate as NSString).deletingLastPathComponent
             if directories.last != directory { directories.append(directory) }
             let depth = directory.split(separator: "/").count
-            guard directories.count <= maxLevels, depth >= minSearchDepth else { return false }
+            guard !limitsLevels || directories.count <= maxLevels, depth >= minSearchDepth else { return false }
             return fileExists(candidate)
         }
         let workingDirectory = ScriptRunner.workingDirectory(projectDirectory: project, home: home, isDirectory: isDirectory)
         return ScriptLocation(projectDirectory: project.isEmpty ? nil : project, workingDirectory: workingDirectory)
+    }
+
+    /// path がホームの中か（ホームそのものも含む）。ディスクは見ない
+    static func isInside(_ path: String, home: URL) -> Bool {
+        let path = URL(fileURLWithPath: path, isDirectory: false).standardizedFileURL.path
+        let home = home.standardizedFileURL.path
+        return path == home || path.hasPrefix(home.hasSuffix("/") ? home : home + "/")
     }
 
     /// 内蔵や外付けのディスクなら true。分からなければ探さない
@@ -159,9 +168,17 @@ enum TerminalCommandFile {
     static let staleAge: TimeInterval = 5 * 60
 
     static var directory: URL {
-        FileManager.default.temporaryDirectory
+        perUserTemporaryDirectory
             .appendingPathComponent("Nonet", isDirectory: true)
             .appendingPathComponent("Terminal", isDirectory: true)
+    }
+
+    /// 利用者ごとの一時フォルダ（/var/folders/…/T/、本人だけが入れる）。環境変数の TMPDIR が /tmp などに変えられていても、OS に聞いた場所を使う
+    static var perUserTemporaryDirectory: URL {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        let length = confstr(_CS_DARWIN_USER_TEMP_DIR, &buffer, buffer.count)
+        guard length > 0, length <= buffer.count else { return FileManager.default.temporaryDirectory }
+        return URL(fileURLWithPath: String(cString: buffer), isDirectory: true)
     }
 
     /// シェルの単一引用符で囲む。中の ' は '\'' にする。NUL は環境変数にもシェルにも入らないので消す
@@ -236,15 +253,20 @@ enum TerminalCommandFile {
         }
     }
 
+    /// 前に残った古いファイルを消してから、ターミナルに渡すファイルを書く
+    static func prepare(source: String, variables: [String: String], workingDirectory: String) throws -> URL {
+        let directory = directory
+        removeStaleFiles(in: directory, olderThan: staleAge)
+        return try write(contents(source: source, variables: variables, workingDirectory: workingDirectory), in: directory)
+    }
+
     /// ターミナルの新しいウィンドウで実行する
     @MainActor
     static func open(source: String, variables: [String: String], workingDirectory: String) async throws {
         try ScriptRunner.validate(source: source)
-        let directory = directory
-        removeStaleFiles(in: directory, olderThan: staleAge)
         let file: URL
         do {
-            file = try write(contents(source: source, variables: variables, workingDirectory: workingDirectory), in: directory)
+            file = try prepare(source: source, variables: variables, workingDirectory: workingDirectory)
         } catch {
             ActionLog.logger.error("一時ファイルを書けませんでした: \(error.localizedDescription)")
             throw NonetError.actionFailed(String(localized: "ターミナル用のファイルを作れませんでした", bundle: .nonetActions))

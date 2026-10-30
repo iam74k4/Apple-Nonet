@@ -16,11 +16,17 @@ enum ActionLog {
 /// 止まるかもしれない呼び出し（クリップボードの中身を渡すのが遅いアプリ・眠ったネットワークの場所）をメインスレッドの外で行う。
 /// メインスレッドではイベントタップも動いているので、そこで待つと Mac 全体のキー入力が止まる
 enum BlockingCall {
-    /// 制限時間を過ぎたら呼び出しの終わりを待たずに fallback を返す（呼び出しは裏で終わるまで続く）
-    static func run<T>(timeout: TimeInterval, fallback: T, _ body: @escaping @Sendable () -> T) async -> T {
+    /// 制限時間を過ぎたら呼び出しの終わりを待たずに fallback を返す（呼び出しは裏で終わるまで続く）。
+    /// queue を渡すと、そのキューで呼ぶ（直列のキューなら、前の呼び出しが終わってから）
+    static func run<T>(
+        timeout: TimeInterval,
+        fallback: T,
+        queue: DispatchQueue = .global(qos: .userInitiated),
+        _ body: @escaping @Sendable () -> T
+    ) async -> T {
         await withCheckedContinuation { continuation in
             let gate = ResumeOnce(continuation)
-            DispatchQueue.global(qos: .userInitiated).async {
+            queue.async {
                 gate.resume(with: body())
             }
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + max(0, timeout)) {

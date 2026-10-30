@@ -128,6 +128,32 @@ struct ActionContextTests {
         #expect(ContextReader.selectedText(fromCopy: line, bundleID: "com.tinyspeck.slackmacgap") == line)
     }
 
+    @Test("Windows の改行（CRLF）の書類でも、改行で終わる1行は選択なしとみなす")
+    func lineCopyingEditorsWithCRLF() {
+        let line = "let total = items.reduce(0, +)\r\n"
+        for id in ["com.microsoft.VSCode", "com.jetbrains.intellij", "com.sublimetext.4"] {
+            #expect(ContextReader.selectedText(fromCopy: line, bundleID: id) == nil, "\(id)")
+        }
+        #expect(ContextReader.selectedText(fromCopy: "\r\n", bundleID: "com.microsoft.VSCode") == nil)
+        // 複数行は選択したもの
+        #expect(ContextReader.selectedText(fromCopy: "a\r\nb\r\n", bundleID: "com.microsoft.VSCode") == "a\r\nb\r\n")
+    }
+
+    @Test("選択テキストが無いときの説明: ⌘C を送れなかった理由と、エディタの行のコピーを無視したことを分けて伝える")
+    func noSelectionMessages() {
+        let info = ScriptContextInfo(app: nil)
+        let plain = SelectionMessage.noSelection(ContextReading(info: info))
+        #expect(plain == String(localized: "テキストを選択してから実行してください", bundle: .nonetActions))
+        let denied = SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: .denied))
+        let tooLarge = SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: .tooLarge))
+        let lineCopy = SelectionMessage.noSelection(ContextReading(info: info, ignoredLineCopy: true))
+        #expect(Set([plain, denied, tooLarge, lineCopy]).count == 4)
+        // クリップボードを保てない理由のうち、許可が無いとき以外は同じ説明（選択したテキストを自分でコピーすれば読める）
+        for failure in [PasteboardSnapshot.Failure.tooSlow, .unrestorable, .unreadable] {
+            #expect(SelectionMessage.noSelection(ContextReading(info: info, copyUnavailable: failure)) == tooLarge)
+        }
+    }
+
     @Test("選択を置き換えるのは、アクセシビリティで読めたか、読めずに ⌘C で取れたときだけ")
     func replacePlan() {
         #expect(ReplacePlan.canPaste(over: .accessibility))
@@ -194,8 +220,8 @@ struct ActionContextGatheringTests {
                 if rendezvous { await log.waitFor("copy") }
                 return Self.url
             },
-            copySelection: {
-                await log.record("copy")
+            copySelection: { pid in
+                await log.record("copy:\(pid)")
                 if rendezvous { await log.waitFor("browser:") }
                 return copied
             }
@@ -219,7 +245,7 @@ struct ActionContextGatheringTests {
         #expect(info.app?.bundleID == "com.apple.Safari")
         let calls = await log.calls
         #expect(calls.contains("browser:com.apple.Safari"))
-        #expect(calls.contains("copy"))
+        #expect(calls.contains("copy:4242"))
         #expect(calls.contains("documentPath"))
     }
 
@@ -248,7 +274,7 @@ struct ActionContextGatheringTests {
         ))
         let calls = await log.calls
         #expect(!calls.contains { $0.hasPrefix("browser") })
-        #expect(!calls.contains("copy"))
+        #expect(!calls.contains { $0.hasPrefix("copy") })
     }
 
     @Test("スクリプト: 選択が空と読めたら ⌘C は送らない。AI は送る")
@@ -256,14 +282,14 @@ struct ActionContextGatheringTests {
         let scriptLog = CallLog()
         let script = await reader(selection: .empty, log: scriptLog).read(.forScript(source: Self.contextScript), app: app("com.apple.dt.Xcode"))
         #expect(script.info.selectedText == nil)
-        #expect(await !scriptLog.calls.contains("copy"))
+        #expect(await !scriptLog.calls.contains { $0.hasPrefix("copy") })
 
         let aiLog = CallLog()
         let ai = await reader(selection: .empty, log: aiLog).read(.forAI, app: app("com.apple.dt.Xcode"))
         #expect(ai.info.selectedText == "⌘C で取った文")
         // 置き換えてよいかは分からない
         #expect(ai.selectionSource == .copyAfterEmpty)
-        #expect(await aiLog.calls.contains("copy"))
+        #expect(await aiLog.calls.contains("copy:4242"))
     }
 
     @Test("⌘C でも取れなければ選択テキストは無し")
@@ -273,11 +299,11 @@ struct ActionContextGatheringTests {
             .read(.forShortcut(ShortcutAction(name: "X", passSelectedText: true)), app: app("com.tinyspeck.slackmacgap"))
         let info = reading.info
         #expect(reading.selectionSource == nil)
-        #expect(!reading.skippedCopy)
+        #expect(reading.copyUnavailable == nil)
         #expect(info.selectedText == nil)
         #expect(info.browserURL == nil)
         #expect(info.documentPath == nil)
-        #expect(await log.calls == ["selection", "copy"])
+        #expect(await log.calls == ["selection", "copy:4242"])
     }
 
     @Test("クリップボードの中身を保てずに ⌘C を送らなかったことが分かる")
@@ -285,7 +311,7 @@ struct ActionContextGatheringTests {
         let reading = await reader(selection: .unreadable, copied: .clipboardUnavailable(.tooLarge), log: CallLog())
             .read(.forAI, app: app("com.tinyspeck.slackmacgap"))
         #expect(reading.info.selectedText == nil)
-        #expect(reading.skippedCopy)
+        #expect(reading.copyUnavailable == .tooLarge)
     }
 
     @Test("VS Code で何も選択せずに ⌘C で取れた1行は、選択テキストにしない")
@@ -294,8 +320,10 @@ struct ActionContextGatheringTests {
         let vscode = await reader(selection: .unreadable, copied: .copied(line), log: CallLog()).read(.forAI, app: app("com.microsoft.VSCode"))
         #expect(vscode.info.selectedText == nil)
         #expect(vscode.selectionSource == nil)
+        #expect(vscode.ignoredLineCopy)
         let slack = await reader(selection: .unreadable, copied: .copied(line), log: CallLog()).read(.forAI, app: app("com.tinyspeck.slackmacgap"))
         #expect(slack.info.selectedText == line)
+        #expect(!slack.ignoredLineCopy)
     }
 
     @Test("ブラウザへの問い合わせは、選択テキストを読むのと並べて行う")
@@ -307,7 +335,7 @@ struct ActionContextGatheringTests {
         #expect(info.selectedText == "⌘C で取った文")
         let calls = await log.calls
         #expect(calls.contains("browser:com.google.Chrome"))
-        #expect(calls.contains("copy"))
+        #expect(calls.contains("copy:4242"))
         // どちらを先にしても、順に読んでいれば先のほうが相手を待ちきれない
         #expect(!calls.contains { $0.hasPrefix("timeout") }, "\(calls)")
     }

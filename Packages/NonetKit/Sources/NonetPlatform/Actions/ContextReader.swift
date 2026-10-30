@@ -73,8 +73,10 @@ enum SelectionSource: Equatable, Sendable {
 struct ContextReading: Equatable, Sendable {
     var info: ScriptContextInfo
     var selectionSource: SelectionSource?
-    /// クリップボードの中身を保てない（大きすぎる・読む許可が無いなど）ので、⌘C を送らなかった
-    var skippedCopy = false
+    /// クリップボードの中身を保てない（大きすぎる・読む許可が無いなど）ので、⌘C を送らなかった。その理由
+    var copyUnavailable: PasteboardSnapshot.Failure?
+    /// ⌘C で取れたのが、何も選択していないときにエディタがコピーする1行だったので、選択テキストにしなかった
+    var ignoredLineCopy = false
 }
 
 /// アクセシビリティ API で読んだ、前面の要素の選択
@@ -105,8 +107,8 @@ final class ContextReader {
         var selection: @Sendable (pid_t) async -> AXSelection
         var documentPath: @Sendable (pid_t) async -> String?
         var browserURL: @Sendable (_ bundleID: String) async -> String?
-        /// ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
-        var copySelection: @MainActor () async -> ClipboardCopy.Outcome
+        /// pid のアプリに ⌘C を送ってクリップボードから読み、クリップボードを元に戻す
+        var copySelection: @MainActor (pid_t) async -> ClipboardCopy.Outcome
 
         static func live(keySender: KeySender) -> Sources {
             Sources(
@@ -117,13 +119,20 @@ final class ContextReader {
                     await Task.detached(priority: .userInitiated) { AXContext.documentPath(pid: pid) }.value
                 },
                 browserURL: { bundleID in await BrowserURLReader.read(bundleID: bundleID) },
-                copySelection: {
-                    await ClipboardCopy.copySelection(from: .general) {
+                copySelection: { pid in
+                    let isTargetFrontmost: @MainActor () -> Bool = {
+                        NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                    }
+                    return await ClipboardCopy.copySelection(from: .general, isTargetFrontmost: isTargetFrontmost) {
+                        // クリップボードを写している間（確認に答えるのを待つこともある）にほかのアプリへ移っていたら、送らない
+                        guard isTargetFrontmost() else { throw FrontmostAppChanged() }
                         try await keySender.send(.key("c", .command))
                     }
                 }
             )
         }
+
+        private struct FrontmostAppChanged: Error {}
     }
 
     /// 何も選択していないと ⌘C でカーソルのある行を丸ごとコピーするエディタ（VS Code 系の editor.emptySelectionClipboard、
@@ -143,9 +152,10 @@ final class ContextReader {
     }
 
     /// ⌘C で取った文字を選択テキストとして使うか。行を丸ごとコピーするエディタで、改行で終わる1行だけなら
-    /// 何も選択していなかったとみなす（その行を選択とみなすと、AI の結果をカーソルの位置に貼り付けて行を壊す）
+    /// 何も選択していなかったとみなす（その行を選択とみなすと、AI の結果をカーソルの位置に貼り付けて行を壊す）。
+    /// 改行は LF でも CRLF（Windows の改行の書類）でもよい。Swift では "\r\n" が1文字なので hasSuffix("\n") では見分けられない
     nonisolated static func selectedText(fromCopy text: String, bundleID: String) -> String? {
-        guard copiesLineWhenNothingSelected(bundleID: bundleID), text.hasSuffix("\n") else { return text }
+        guard copiesLineWhenNothingSelected(bundleID: bundleID), text.last?.isNewline == true else { return text }
         let body = text.dropLast()
         return body.contains(where: \.isNewline) ? text : nil
     }
@@ -178,14 +188,16 @@ final class ContextReader {
                 reading.info.selectedText = text
                 reading.selectionSource = .accessibility
             } else if needs.needsCopy(after: selection) {
-                switch await sources.copySelection() {
+                switch await sources.copySelection(pid) {
                 case .copied(let text):
                     if let text = Self.selectedText(fromCopy: text, bundleID: bundleID) {
                         reading.info.selectedText = text
                         reading.selectionSource = selection == .empty ? .copyAfterEmpty : .copyAfterUnreadable
+                    } else {
+                        reading.ignoredLineCopy = true
                     }
-                case .clipboardUnavailable:
-                    reading.skippedCopy = true
+                case .clipboardUnavailable(let failure):
+                    reading.copyUnavailable = failure
                 case .nothing, .failed:
                     break
                 }

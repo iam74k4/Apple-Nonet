@@ -337,6 +337,49 @@ struct ActionScriptSetupTests {
         #expect(!log.paths.contains("/Users/.git"))
     }
 
+    @Test("ホームの中では深さの上限なしに上へたどる（Maven・Gradle・Android のソースや深いモノレポでもルートを見つける）", arguments: [
+        "/Users/me/dev/proj/src/main/java/com/acme/app/web/Controller.java",
+        "/Users/me/dev/proj/apps/web/src/app/settings/profile/a/b/c/d/e/page.tsx",
+    ])
+    func deepProjectInsideHome(path: String) {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let log = StatLog(existing: ["/Users/me/dev/proj/.git"])
+        let location = ScriptLocation.resolve(
+            documentPath: path,
+            home: home,
+            maxLevels: 4,
+            fileExists: log.fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        #expect(location.projectDirectory == "/Users/me/dev/proj")
+        #expect(!log.paths.contains("/Users/me/.git"))
+    }
+
+    @Test("ホームの外でも、標準の上限なら外付けのディスクの深いソースからルートを見つける")
+    func deepProjectOnExternalDisk() {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        let location = ScriptLocation.resolve(
+            documentPath: "/Volumes/SSD/dev/proj/src/main/java/com/acme/app/web/Controller.java",
+            home: home,
+            fileExists: StatLog(existing: ["/Volumes/SSD/dev/proj/.git"]).fileExists,
+            isLocalVolume: { _ in true },
+            isDirectory: { _ in true }
+        )
+        #expect(location.projectDirectory == "/Volumes/SSD/dev/proj")
+    }
+
+    @Test("ホームの中かどうか（ディスクは見ない）")
+    func insideHome() {
+        let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
+        #expect(ScriptLocation.isInside("/Users/me/a/b.txt", home: home))
+        #expect(ScriptLocation.isInside("/Users/me", home: home))
+        #expect(ScriptLocation.isInside("/Users/me/./x/../y.txt", home: home))
+        #expect(!ScriptLocation.isInside("/Users/meow/a.txt", home: home))
+        #expect(!ScriptLocation.isInside("/Users/me/../other/a.txt", home: home))
+        #expect(!ScriptLocation.isInside("/Volumes/Dev/a.txt", home: home))
+    }
+
     @Test("書類が無ければプロジェクトは無く、作業フォルダはホーム")
     func noDocument() async {
         let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)

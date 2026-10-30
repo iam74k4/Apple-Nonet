@@ -146,10 +146,7 @@ public final class SystemActionPerformer: ActionPerforming {
         try OnDeviceAI.checkAvailability()
         let reading = await contextReader.read(.forAI, app: frontmost)
         guard let text = reading.info.selectedText, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            if reading.skippedCopy {
-                throw NonetError.actionFailed(String(localized: "クリップボードの中身を保てないため、選択テキストを読めませんでした", bundle: .nonetActions))
-            }
-            throw NonetError.actionFailed(String(localized: "テキストを選択してから実行してください", bundle: .nonetActions))
+            throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
         }
         let result = try await OnDeviceAI.respond(instruction: ai.prompt, text: text)
         switch ai.output {
@@ -193,6 +190,30 @@ public final class SystemActionPerformer: ActionPerforming {
     }
 
     private struct FrontmostAppChanged: Error {}
+}
+
+enum SelectionMessage {
+    /// 選択テキストを読めなかったときの説明。⌘C を送れなかった理由や、エディタの行のコピーを無視したことが分かれば、それを伝える
+    static func noSelection(_ reading: ContextReading) -> String {
+        switch reading.copyUnavailable {
+        case .denied?:
+            return String(
+                localized: "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください",
+                bundle: .nonetActions
+            )
+        case .some:
+            return String(
+                localized: "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください",
+                bundle: .nonetActions
+            )
+        case nil:
+            break
+        }
+        if reading.ignoredLineCopy {
+            return String(localized: "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください", bundle: .nonetActions)
+        }
+        return String(localized: "テキストを選択してから実行してください", bundle: .nonetActions)
+    }
 }
 
 enum ReplacePlan {
