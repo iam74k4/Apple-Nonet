@@ -24,6 +24,9 @@ public struct SessionConfiguration: Equatable, Sendable {
     public var swipeThreshold: Double
     /// これを超えたセッションは終える（トリガーを離したイベントを取りこぼしたときの安全装置）
     public var maxDuration: TimeInterval
+    /// ページごとの、中身のあるマス（0〜8）。nil や範囲外のページは、すべてのマスに中身があるとみなす。
+    /// 空きマス（仕様 12）の速押しを「実行せずに離した」と扱い、6 の (a) の HUD を止めないために使う
+    public var occupiedCells: [Set<Int>]?
 
     public init(
         hudDelay: TimeInterval = SessionConfiguration.defaultHUDDelay,
@@ -32,7 +35,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         hysteresis: Double = GridMapper.defaultHysteresis,
         edgeInsets: GridInsets = .zero,
         swipeThreshold: Double = SessionConfiguration.defaultSwipeThreshold,
-        maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration
+        maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration,
+        occupiedCells: [Set<Int>]? = nil
     ) {
         self.hudDelay = hudDelay
         self.fireMode = fireMode
@@ -41,11 +45,12 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.edgeInsets = edgeInsets
         self.swipeThreshold = swipeThreshold
         self.maxDuration = maxDuration
+        self.occupiedCells = occupiedCells
     }
 
     /// 全体の設定から作る。pageCount は前面アプリの resolvedPages の数
-    public init(settings: GlobalSettings, pageCount: Int) {
-        self.init(hudDelay: settings.hudDelay, fireMode: settings.fireMode, pageCount: pageCount)
+    public init(settings: GlobalSettings, pageCount: Int, occupiedCells: [Set<Int>]? = nil) {
+        self.init(hudDelay: settings.hudDelay, fireMode: settings.fireMode, pageCount: pageCount, occupiedCells: occupiedCells)
     }
 
     /// 範囲外の値を直したもの。エンジンはセッションの開始時にこれを使う
@@ -108,8 +113,10 @@ public struct SessionHUDState: Equatable, Sendable {
 public enum SessionEffect: Equatable, Sendable {
     /// セッションが始まった。ポインタの抑止を始める
     case beginPointerSuppression
-    /// ポインタの抑止をやめる。必ず sessionEnded の直前に来る
-    case endPointerSuppression
+    /// ポインタの抑止をやめる。必ず sessionEnded の直前に来る。dropsLateClicks なら、やめた直後の短い間に届く
+    /// クリックの「押す」も捨ててもらう（終わる直前に指が離れた・置いたばかりの指がまだ触れているとき。
+    /// その指の「タップでクリック」が抑止の後に届くことがある。SessionEngine.lateClickWindow）
+    case endPointerSuppression(dropsLateClicks: Bool)
     /// HUD を出す。page は resolvedPages での位置、highlightedCell は指の下のマス
     case showHUD(page: Int, highlightedCell: Int?)
     /// 表示中の HUD のページかハイライトが変わった
@@ -117,7 +124,8 @@ public enum SessionEffect: Equatable, Sendable {
     case hideHUD
     /// boundary と pageChange だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
     case haptic(HapticEvent)
-    /// マスを実行する。空きマス・ライセンス・練習モード・トーストの判断は controller がする。
+    /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
+    /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする。
     /// wasFastTap は HUD を出さずに実行した（速押し）
     case execute(page: Int, cell: Int, wasFastTap: Bool)
     /// この時刻に tick を渡してほしい。前の依頼を置き換える（タイマーは常に1つでよい）
@@ -138,8 +146,15 @@ public enum SessionEffect: Equatable, Sendable {
 /// - トリガーを離したとき、置いたばかりの指（hudDelay 未満）が残っていれば、その指が離れるまで（最長 hudDelay）セッションを続ける。
 ///   その指のタップがクリックとして前面アプリに届かないようにし、トリガーを指より少し先に離した速押しも拾うため。
 ///   終わりは必ず `sessionEnded` で知らせる
-/// - 空きマス（仕様 12）・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
+/// - 空きマス（仕様 12）は、`occupiedCells` で分かればエンジンが実行しない（速押しは「実行せずに離した」とみなし、
+///   6 の (a) の HUD を止めない。HUD で選んだ空きマスは選ばなかったことにする）。
+///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
 public struct SessionEngine: Sendable {
+    /// セッションの終わりの前のこの秒数のうちに指が離れたか、この秒数より新しい指がまだ触れていれば、
+    /// その指の「タップでクリック」が抑止の後に届きうるとみなす（endPointerSuppression の dropsLateClicks）。
+    /// 指に触れていないセッション（トリガーをほかのキーと組み合わせただけ など）の後のクリックは捨てない
+    public static let lateClickWindow: TimeInterval = 0.5
+
     /// 入力で受け取った最新の時刻。時刻が戻った入力は、この時刻に起きたものとして扱う
     private var clock: TimeInterval = -.infinity
     private var tracker = FingerTracker()
@@ -167,7 +182,7 @@ public struct SessionEngine: Sendable {
         case .triggerDown(let time, let configuration):
             advance(to: time, effects: &effects)
             if let session {
-                self.session?.end(session.isDraining ? session.releaseReason : .interrupted, effects: &effects)
+                self.session?.end(session.isDraining ? session.releaseReason : .interrupted, now: clock, effects: &effects)
                 finishIfEnded()
             }
             if !clock.isFinite { clock = 0 }
@@ -178,7 +193,7 @@ public struct SessionEngine: Sendable {
             session?.releaseTrigger(now: clock, effects: &effects)
         case .interrupted(let time):
             advance(to: time, effects: &effects)
-            session?.end(.interrupted, effects: &effects)
+            session?.end(.interrupted, now: clock, effects: &effects)
         case .touches(let frame):
             advance(to: frame.timestamp, effects: &effects)
             let change = tracker.apply(frame.points, at: clock)

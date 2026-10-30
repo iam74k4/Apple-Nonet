@@ -59,10 +59,11 @@ final class ControllerHarness {
     private var fingers: [Int: (x: Double, y: Double)] = [:]
 
     /// configuration を保存してから組み立てる（nil なら設定ファイルの無い初回起動）。
-    /// trialEnded なら試用期間が終わっている。frontmost はトリガーを押すときの前面アプリ
+    /// trialEnded なら試用期間が終わっている。licensed ならライセンスを登録済み。frontmost はトリガーを押すときの前面アプリ
     init(
         configuration: NonetConfiguration? = ControllerFixtures.configuration(),
         trialEnded: Bool = false,
+        licensed: Bool = false,
         isJISKeyboard: Bool = false,
         installed: Set<String> = [],
         frontmost app: RunningAppInfo? = ControllerFixtures.safariApp
@@ -81,7 +82,12 @@ final class ControllerHarness {
         if trialEnded {
             licenseStorage.trialStartDate = clock.now.addingTimeInterval(-30 * 86_400)
         }
-        license = LicenseManager(verifier: nil, storage: licenseStorage, now: clock.closure)
+        var verifier: LicenseVerifier?
+        if licensed {
+            verifier = try LicenseTestFixtures.verifier()
+            licenseStorage.licenseKey = try LicenseTestFixtures.licenseKey()
+        }
+        license = LicenseManager(verifier: verifier, storage: licenseStorage, now: clock.closure)
         frontmost.current = app
         let services = NonetServices(
             touchSource: touchSource,

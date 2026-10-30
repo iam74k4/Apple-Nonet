@@ -112,6 +112,103 @@ import Testing
         #expect(h.controller.lastExecution == nil)
     }
 
+    @Test func anEmptyCellTapStillLetsTheHUDAppearWhenHesitating() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.pressTrigger()
+        h.tap(1)
+        #expect(!h.hud.isVisible)
+        // 何も実行していないので、指を置かずに迷っていれば (a) の HUD を出す
+        h.advance(0.2)
+        #expect(h.hud.isVisible)
+        #expect(h.hud.current?.highlightedIndex == nil)
+        h.releaseTrigger()
+        await h.settle()
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
+    // MARK: Nonet 自身が前面のとき
+
+    @Test func buttonsForTheFrontAppDoNotRunWhileANonetWindowIsKey() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        // 設定ウィンドウがキー。前面アプリ（current）は直前の Safari のまま
+        h.frontmost.isOwnWindowKey = true
+        h.fastTap(2)
+        await h.settle()
+
+        // セッションは始まる（タップがクリックとして設定ウィンドウに届かない）が、キーは送らずに知らせる
+        #expect(h.keyboard.suppressionChanges == [true, false])
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+        let message = ModelFixtures.text("Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます")
+        #expect(h.hud.toasts == [ToastModel(title: F.closeTab.title, detail: message, icon: F.closeTab.icon, style: .failure)])
+        let record = try #require(h.controller.lastExecution)
+        #expect(record.cellTitle == F.closeTab.title)
+        #expect(!record.succeeded)
+        #expect(record.message == message)
+
+        // 別のアプリに戻れば使える
+        h.frontmost.isOwnWindowKey = false
+        h.fastTap(2)
+        await h.settle()
+        #expect(h.performer.actions == [F.closeTab.action])
+    }
+
+    @Test func openAppAndURLButtonsRunWhileANonetWindowIsKey() async throws {
+        // 前面アプリに働きかけないマスは、設定ウィンドウがキーでも実行する
+        let h = try ControllerHarness(frontmost: F.notesApp)
+        h.start()
+        h.frontmost.isOwnWindowKey = true
+        h.fastTap(0)
+        h.fastTap(8)
+        await h.settle()
+
+        #expect(h.performer.actions == [F.openNotes.action, F.docs.action])
+        #expect(h.hud.toasts.allSatisfy { $0.style == .success })
+    }
+
+    @Test func buttonsRunWhileNonetIsActiveWithoutAKeyWindow() async throws {
+        // 設定ウィンドウを閉じた後・Finder から開いた直後は Nonet が前面に残るが、キーのウィンドウは無い
+        let h = try ControllerHarness()
+        h.start()
+        h.frontmost.isOwnWindowKey = false
+        h.fastTap(2)
+        h.fastTap(8)
+        await h.settle()
+
+        #expect(h.performer.actions == [F.closeTab.action, F.reader.action])
+        #expect(h.hud.toasts.allSatisfy { $0.style == .success })
+    }
+
+    @Test func practiceModeRecordsEvenWhileANonetWindowIsKey() async throws {
+        // 初回起動の練習は、案内のウィンドウをキーにしたまま行う（何も実行しない）
+        let h = try ControllerHarness()
+        h.start()
+        h.controller.isPracticeMode = true
+        h.frontmost.isOwnWindowKey = true
+        h.fastTap(2)
+        await h.settle()
+
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.hud.toasts.isEmpty)
+        #expect(h.controller.lastExecution?.cellTitle == F.closeTab.title)
+        #expect(h.controller.lastExecution?.succeeded == true)
+    }
+
+    // MARK: トラックパッドの確かめ直し
+
+    @Test func startingASessionAsksTheTouchSourceToRevalidate() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.pressTrigger()
+        #expect(h.touchSource.revalidateCount == 1)
+        h.releaseTrigger()
+        h.pressTrigger()
+        #expect(h.touchSource.revalidateCount == 2)
+    }
+
     // MARK: HUD
 
     @Test func hudShowsUpdatesAndHidesWithTheResolvedPages() async throws {
@@ -387,6 +484,45 @@ import Testing
         #expect(ticks().isEmpty)
     }
 
+    @Test func endingRightAfterALiftAsksTheKeyboardToDropLateClicks() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        // 速押しで指を離してからトリガーを離した
+        h.fastTap(2)
+        // トリガーを指より少し先に離した（指を離したフレームで終わる）
+        h.pressTrigger()
+        h.advance(0.05)
+        h.touch(on: 2)
+        h.advance(0.05)
+        h.releaseTrigger()
+        h.advance(0.03)
+        h.lift()
+        await h.settle()
+
+        #expect(h.keyboard.lateClickGraces == [true, true])
+        #expect(h.performer.actions == [F.closeTab.action, F.closeTab.action])
+    }
+
+    @Test func endingWithoutARecentTouchLetsClicksThrough() throws {
+        let h = try ControllerHarness()
+        h.start()
+        // トリガーをほかのキーと組み合わせただけ（右⌘＋C など）
+        h.pressTrigger()
+        h.advance(0.1)
+        h.interrupt()
+        h.releaseTrigger()
+        // HUD で指を長く置いて離し、しばらくしてからトリガーを離した
+        h.pressTrigger()
+        h.touch(on: 4)
+        h.advance(1)
+        h.lift()
+        h.advance(1)
+        h.releaseTrigger()
+
+        #expect(h.keyboard.lateClickGraces == [false, false])
+        #expect(h.keyboard.suppressionChanges == [true, false, true, false])
+    }
+
     // MARK: ライセンス・練習モード
 
     @Test func anExpiredTrialShowsTheBannerAndRefusesToExecute() async throws {
@@ -431,6 +567,39 @@ import Testing
         h.pressTrigger()
         h.advance(0.01)
         #expect(h.license.entitlement == .expired)
+    }
+
+    @Test func theTriggerRefreshesTheLicenseAtMostOncePerInterval() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        let initial = h.licenseStorage.trialWrites
+        // ふつうのショートカットでもトリガーの押下は届く。そのたびに試用の記録を書かない
+        for _ in 0..<5 {
+            h.pressTrigger()
+            h.advance(0.5)
+            h.releaseTrigger()
+            h.advance(0.5)
+        }
+        #expect(h.licenseStorage.trialWrites == initial + 1)
+        h.advance(NonetController.licenseRefreshInterval)
+        h.pressTrigger()
+        h.advance(0.01)
+        #expect(h.licenseStorage.trialWrites == initial + 2)
+    }
+
+    @Test func aLicensedTriggerDoesNotRefreshTheTrial() async throws {
+        let h = try ControllerHarness(licensed: true)
+        guard case .licensed = h.license.entitlement else {
+            Issue.record("ライセンスが登録されていない: \(h.license.entitlement)")
+            return
+        }
+        h.start()
+        let initial = h.licenseStorage.trialWrites
+        h.fastTap(2)
+        h.advance(1)
+        await h.settle()
+        #expect(h.licenseStorage.trialWrites == initial)
+        #expect(h.performer.actions == [F.closeTab.action])
     }
 
     @Test func practiceModeRecordsWithoutPerforming() async throws {

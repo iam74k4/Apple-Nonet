@@ -1,6 +1,7 @@
 // 担当: platform-input
 // イベントタップの判断（トリガーの検出・中断・ポインタの抑止）。CGEvent に触れず、テストできるようにしてある
 import CoreGraphics
+import Foundation
 import NonetCore
 
 /// CGEventFlags のうち、左右を区別するビット（IOLLEvent.h の NX_DEVICE*KEYMASK）
@@ -267,7 +268,8 @@ struct PointerEventInfo: Equatable {
     var momentumPhase: Int64 = 0
 }
 
-/// 抑止中のポインタ系イベントを捨てる。捨てた「押す」と対になる「離す」は、抑止が終わった後でも捨てる
+/// 抑止中のポインタ系イベントを捨てる。捨てた「押す」と対になる「離す」は、抑止が終わった後でも捨てる。
+/// 時刻（now）はどれも同じ単調な時計の秒
 struct PointerSuppressor {
     enum Decision: Equatable {
         case pass
@@ -276,40 +278,79 @@ struct PointerSuppressor {
         case passAsMove
     }
 
-    private(set) var droppedButtons: Set<Int64> = []
+    /// 抑止が終わってから、押すイベントも捨て続ける秒数（終わる直前に指が離れた・置いたばかりの指がまだ触れているときだけ。
+    /// SessionEngine.lateClickWindow）。セッションを終えたタップの指が離れたときに「タップでクリック」が作るクリックは、
+    /// 抑止を終えた後に届くことがあり、そのままだと止めていたカーソルの下でクリックになる
+    static let clickGraceInterval: TimeInterval = 0.2
+    /// 離すイベントが届かない捨てたボタンを、物理的に離れて見えても忘れずに待つ秒数
+    static let staleButtonAge: TimeInterval = 2
+    /// 捨てたボタンを忘れるのに要る、続けて物理的に離れて見えた sweep の回数
+    static let staleButtonSweeps = 2
+
+    private struct DroppedButton {
+        /// 押すイベントを捨てた時刻
+        var since: TimeInterval
+        /// 続けて物理的に離れて見えた sweep の回数
+        var releasedSweeps = 0
+    }
+
+    private var dropped: [Int64: DroppedButton] = [:]
     /// 抑止中に始まったスクロールの続き（慣性を含む）を捨てている
     private(set) var isDroppingScrollTail = false
     /// タップが無効にされていた間に、離すイベントを取りこぼしたかもしれない捨てたボタン
     private(set) var buttonsWithPossiblyMissedUp: Set<Int64> = []
     /// 前回の sweep から、スクロールのイベントが届いた
     private var sawScrollSinceSweep = false
+    /// 抑止が終わった後、この時刻までは押すイベントを捨てる
+    private(set) var clickGraceDeadline: TimeInterval?
+
+    /// 押すイベントを捨て、離すイベントを待っているボタン
+    var droppedButtons: Set<Int64> { Set(dropped.keys) }
 
     /// 抑止が終わっても、捨てた押下の離す・スクロールの続きを待っている
-    var isTracking: Bool { !droppedButtons.isEmpty || isDroppingScrollTail }
+    var isTracking: Bool { !dropped.isEmpty || isDroppingScrollTail }
+
+    /// 抑止が終わった直後で、押すイベントを捨てている
+    func isInClickGrace(at now: TimeInterval) -> Bool {
+        clickGraceDeadline.map { now < $0 } ?? false
+    }
 
     /// ポインタ系のイベントを見ている必要があるか（ポインタのタップを有効にしておくか）
-    func needsEvents(suppressing: Bool) -> Bool { suppressing || isTracking }
+    func needsEvents(suppressing: Bool, now: TimeInterval) -> Bool {
+        suppressing || isTracking || isInClickGrace(at: now)
+    }
 
-    mutating func decide(_ event: PointerEventInfo, suppressing: Bool, dropsMoves: Bool) -> Decision {
+    /// 抑止を始めた
+    mutating func suppressionBegan() {
+        clickGraceDeadline = nil
+    }
+
+    /// 抑止をやめた。dropsLateClicks なら、しばらくは押すイベントを捨てる（移動・スクロールは渡す）。
+    /// 指に触れていないセッション（トリガーをほかのキーと組み合わせただけ など）の直後のクリックは捨てない
+    mutating func suppressionEnded(at now: TimeInterval, dropsLateClicks: Bool) {
+        clickGraceDeadline = dropsLateClicks ? now + Self.clickGraceInterval : nil
+    }
+
+    mutating func decide(_ event: PointerEventInfo, suppressing: Bool, dropsMoves: Bool, now: TimeInterval) -> Decision {
         let type = event.type
         if let button = PointerEventKind.upButton(type, buttonNumber: event.buttonNumber) {
             buttonsWithPossiblyMissedUp.remove(button)
             // 押すイベントを渡したボタンの離すは、抑止中でも渡す（アプリのドラッグが終わらなくならないように）
-            return droppedButtons.remove(button) == nil ? .pass : .drop
+            return dropped.removeValue(forKey: button) == nil ? .pass : .drop
         }
         if let button = PointerEventKind.downButton(type, buttonNumber: event.buttonNumber) {
             buttonsWithPossiblyMissedUp.remove(button)
-            guard suppressing else {
+            guard suppressing || isInClickGrace(at: now) else {
                 // 新しい押下。離すを取りこぼして残っていても、前の対は終わっている
-                droppedButtons.remove(button)
+                dropped.removeValue(forKey: button)
                 return .pass
             }
-            droppedButtons.insert(button)
+            dropped[button] = DroppedButton(since: now)
             return .drop
         }
         if let button = PointerEventKind.dragButton(type, buttonNumber: event.buttonNumber) {
             if suppressing, dropsMoves { return .drop }
-            return droppedButtons.contains(button) ? .passAsMove : .pass
+            return dropped[button] != nil ? .passAsMove : .pass
         }
         if type == PointerEventKind.mouseMoved {
             return suppressing && dropsMoves ? .drop : .pass
@@ -322,19 +363,34 @@ struct PointerSuppressor {
 
     /// ポインタのタップが無効にされた。その間の離すイベントは届いていないかもしれない
     mutating func eventsMayHaveBeenMissed() {
-        buttonsWithPossiblyMissedUp.formUnion(droppedButtons)
+        buttonsWithPossiblyMissedUp.formUnion(dropped.keys)
     }
 
     /// 抑止が終わった後、ポインタのタップを残している間に定期的に呼ぶ。もう届かないものを待つのをやめる。
     /// - 離すイベントを取りこぼしたかもしれないボタンは、物理的に離れていれば忘れる
+    /// - ほかの捨てたボタンも、staleButtonAge 以上待ち、staleButtonSweeps 回続けて物理的に離れて見えたら忘れる
+    ///   （デバイスが外れたなどで離すが届かないと、ポインタのタップを止められない。捨てた押下が物理的な状態に
+    ///   反映されるかは確かめていないので、1回だけ離れて見えても、押した直後でも忘れない）
     /// - 前回の sweep から1つも届いていないスクロールの続きは、終わったものとする
     ///   （慣性の無いスクロールは終わりの印が来ないので、次のスクロールまで待ち続けてしまう）
-    mutating func sweep(isPhysicallyPressed: (Int64) -> Bool) {
+    mutating func sweep(isPhysicallyPressed: (Int64) -> Bool, now: TimeInterval) {
         for button in buttonsWithPossiblyMissedUp where !isPhysicallyPressed(button) {
-            droppedButtons.remove(button)
+            dropped.removeValue(forKey: button)
         }
         // まだ押されているボタンの離すは、有効なタップに届く
         buttonsWithPossiblyMissedUp = []
+        for (button, entry) in dropped {
+            guard !isPhysicallyPressed(button) else {
+                dropped[button]?.releasedSweeps = 0
+                continue
+            }
+            let releasedSweeps = entry.releasedSweeps + 1
+            if releasedSweeps >= Self.staleButtonSweeps, now - entry.since >= Self.staleButtonAge {
+                dropped.removeValue(forKey: button)
+            } else {
+                dropped[button]?.releasedSweeps = releasedSweeps
+            }
+        }
         if !sawScrollSinceSweep {
             isDroppingScrollTail = false
         }

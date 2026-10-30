@@ -11,6 +11,8 @@ import NonetCore
         #expect(configuration.edgeInsets == .zero)
         #expect(configuration.swipeThreshold == 0.12)
         #expect(configuration.maxDuration == 20)
+        // 中身のあるマスが分からなければ、空きマスの判断は controller に任せる
+        #expect(configuration.occupiedCells == nil)
         #expect(configuration.sanitized == configuration)
     }
 
@@ -22,6 +24,7 @@ import NonetCore
         #expect(configuration.pageCount == 3)
         #expect(configuration.swipeThreshold == SessionConfiguration.defaultSwipeThreshold)
         #expect(configuration.maxDuration == SessionConfiguration.defaultMaxDuration)
+        #expect(SessionConfiguration(settings: settings, pageCount: 1, occupiedCells: [[0, 8]]).occupiedCells == [[0, 8]])
     }
 
     @Test func sanitizedFixesOutOfRangeValues() {

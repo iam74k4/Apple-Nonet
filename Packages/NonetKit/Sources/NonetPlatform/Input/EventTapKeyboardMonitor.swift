@@ -5,8 +5,8 @@ import ApplicationServices
 import NonetCore
 
 /// イベントタップでトリガーキーを検出し、セッション中はポインタ系のイベントを止める。
-/// タップはキーボード用とポインタ用に分ける。ポインタ用は抑止中とその後片付けの間だけ有効にして、
-/// ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない
+/// タップはキーボード用とポインタ用に分ける。ポインタ用は抑止中とその後片付け（指が離れた直後などに終えたときに、
+/// 遅れて届くクリックを捨てる短い間を含む）の間だけ有効にして、ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない
 /// （メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
 @MainActor
 public final class EventTapKeyboardMonitor: KeyboardMonitor {
@@ -22,6 +22,13 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     public var onEvent: ((KeyboardEvent) -> Void)?
 
     public var isRunning: Bool { keyboardTap != nil }
+
+    /// 抑止をやめる。dropsLateClicks なら、その直後の clickGraceInterval の間に届く「押す」も捨てる
+    public func endPointerSuppression(dropsLateClicks: Bool) {
+        endsWithClickGrace = dropsLateClicks
+        defer { endsWithClickGrace = false }
+        isSuppressingPointer = false
+    }
 
     /// トリガーを押している間、取りこぼしが無いか物理的な状態を確かめる間隔
     static let watchdogInterval: TimeInterval = 0.3
@@ -41,12 +48,18 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private(set) var isPointerTapEnabled = false
     private var watchdog: Timer?
     private var sweeper: Timer?
+    /// 抑止の直後にクリックを捨てる間が終わったら、ポインタのタップを止めるか確かめ直す
+    private var clickGraceTimer: Timer?
+    /// endPointerSuppression(dropsLateClicks: true) で抑止をやめているところ
+    private var endsWithClickGrace = false
     private let cursor: any CursorControlling
     private let association: CursorAssociationGuard
     private let physicalFlags: () -> CGEventFlags
     private let physicalButton: (Int64) -> Bool
     private let isAccessibilityTrusted: () -> Bool
     private let ownProcessID: Int64
+    /// 単調な時計の秒
+    private let now: () -> TimeInterval
 
     public convenience init() {
         self.init(
@@ -66,7 +79,8 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         physicalFlags: @escaping () -> CGEventFlags,
         physicalButton: @escaping (Int64) -> Bool,
         isAccessibilityTrusted: @escaping () -> Bool,
-        ownProcessID: Int64
+        ownProcessID: Int64,
+        now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) {
         self.cursor = cursor
         association = CursorAssociationGuard(cursor: cursor)
@@ -74,6 +88,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         self.physicalButton = physicalButton
         self.isAccessibilityTrusted = isAccessibilityTrusted
         self.ownProcessID = ownProcessID
+        self.now = now
     }
 
     public func start() throws {
@@ -104,8 +119,9 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         pointerTap = nil
         stopWatchdog()
         detector.reset()
-        suppressor = PointerSuppressor()
         isSuppressingPointer = false
+        // 抑止の後片付け（クリックを捨てる間を含む）も残さない
+        suppressor = PointerSuppressor()
         updatePointerTap()
         association.restore()
     }
@@ -163,7 +179,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
             info.scrollPhase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
             info.momentumPhase = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
         }
-        let decision = suppressor.decide(info, suppressing: isSuppressingPointer, dropsMoves: activePlan?.dropsMoves ?? false)
+        let decision = suppressor.decide(info, suppressing: isSuppressingPointer, dropsMoves: activePlan?.dropsMoves ?? false, now: now())
         updatePointerTap()
         switch decision {
         case .pass:
@@ -213,10 +229,11 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
 
     // MARK: ポインタのタップ
 
-    /// ポインタのタップは、抑止中と、捨てた押下の離す・スクロールの続きを待っている間だけ有効にする。
-    /// 判断を変えうること（抑止の開始・終了、ポインタのイベント、片付け）の後に毎回呼ぶ
+    /// ポインタのタップは、抑止中と、抑止の直後にクリックを捨てる間と、捨てた押下の離す・スクロールの続きを
+    /// 待っている間だけ有効にする。判断を変えうること（抑止の開始・終了、ポインタのイベント、片付け）の後に毎回呼ぶ
     private func updatePointerTap() {
-        let wanted = suppressor.needsEvents(suppressing: isSuppressingPointer)
+        let time = now()
+        let wanted = suppressor.needsEvents(suppressing: isSuppressingPointer, now: time)
         if wanted != isPointerTapEnabled {
             isPointerTapEnabled = wanted
             pointerTap?.setEnabled(wanted)
@@ -226,12 +243,41 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         } else {
             stopSweeper()
         }
+        // クリックを捨てる間が終わったら、イベントが来なくても確かめ直してタップを止める
+        if !isSuppressingPointer, let deadline = suppressor.clickGraceDeadline, time < deadline {
+            startClickGraceTimer(after: deadline - time)
+        } else {
+            stopClickGraceTimer()
+        }
     }
 
     /// 抑止が終わった後、もう届かない離すイベントやスクロールの続きを待つのをやめる
     func sweepPointerState() {
-        suppressor.sweep(isPhysicallyPressed: physicalButton)
+        suppressor.sweep(isPhysicallyPressed: physicalButton, now: now())
         updatePointerTap()
+    }
+
+    /// 抑止の直後にクリックを捨てる間が終わった（タイマーから呼ぶ）
+    func clickGraceDidEnd() {
+        clickGraceTimer?.invalidate()
+        clickGraceTimer = nil
+        updatePointerTap()
+    }
+
+    var isWaitingForClickGrace: Bool { clickGraceTimer != nil }
+
+    private func startClickGraceTimer(after delay: TimeInterval) {
+        guard clickGraceTimer == nil else { return }
+        let timer = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.clickGraceDidEnd() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        clickGraceTimer = timer
+    }
+
+    private func stopClickGraceTimer() {
+        clickGraceTimer?.invalidate()
+        clickGraceTimer = nil
     }
 
     var isSweeping: Bool { sweeper != nil }
@@ -268,6 +314,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         activePlan = plan
         anchor = cursor.location
         if plan.decouples { association.decouple() }
+        suppressor.suppressionBegan()
         updatePointerTap()
     }
 
@@ -276,6 +323,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         association.restore()
         activePlan = nil
         anchor = nil
+        suppressor.suppressionEnded(at: now(), dropsLateClicks: endsWithClickGrace)
         updatePointerTap()
     }
 

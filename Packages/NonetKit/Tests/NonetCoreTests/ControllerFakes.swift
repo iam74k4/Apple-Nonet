@@ -141,8 +141,12 @@ final class ControllerFakeClock: @unchecked Sendable {
 final class ControllerFakeLicenseStorage: LicenseStorage {
     var trialStartDate: Date?
     var licenseKey: String?
-    var trialLastSeenDate: Date?
+    var trialLastSeenDate: Date? {
+        didSet { trialWrites += 1 }
+    }
     var trialUsedTime: TimeInterval?
+    /// 試用の経過を書いた回数（license.refresh() のたびに書く）
+    private(set) var trialWrites = 0
 }
 
 // MARK: - 入力
@@ -156,6 +160,7 @@ final class ControllerFakeTouchSource: TouchSource {
     private(set) var isRunning = false
     private(set) var startCount = 0
     private(set) var stopCount = 0
+    private(set) var revalidateCount = 0
 
     func start() throws {
         startCount += 1
@@ -168,7 +173,13 @@ final class ControllerFakeTouchSource: TouchSource {
         isRunning = false
     }
 
+    func revalidate() {
+        revalidateCount += 1
+    }
+
+    /// 本物と同じく、動いている間だけフレームを渡す
     func send(_ frame: TouchFrame) {
+        guard isRunning else { return }
         onFrame?(frame)
     }
 }
@@ -219,6 +230,16 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         isSuppressingPointer = false
     }
 
+    /// endPointerSuppression で抑止をやめたときの dropsLateClicks（抑止していなかったときは数えない）
+    private(set) var lateClickGraces: [Bool] = []
+
+    func endPointerSuppression(dropsLateClicks: Bool) {
+        if isSuppressingPointer {
+            lateClickGraces.append(dropsLateClicks)
+        }
+        isSuppressingPointer = false
+    }
+
     /// 本物のモニターは動いている間だけイベントを渡す
     func send(_ event: KeyboardEvent) {
         guard isRunning else { return }
@@ -231,6 +252,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
 final class ControllerFakeFrontmostApp: FrontmostAppObserving {
     var current: RunningAppInfo?
     var onChange: ((RunningAppInfo?) -> Void)?
+    /// Nonet の設定ウィンドウなどがキー（current は変えない）
+    var isOwnWindowKey = false
     private(set) var isRunning = false
 
     func start() {

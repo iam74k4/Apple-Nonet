@@ -49,6 +49,8 @@ struct SessionState: Sendable {
     private var swipeBaseline: SwipeBaseline?
     private var drain: Drain?
     private var endReason: SessionEndReason?
+    /// このセッションで最後にタッチが離れた（すべての指が離れた）時刻。遅れて届くクリックの判断に使う
+    private var lastLiftAt: TimeInterval?
 
     /// configuration は sanitized 済みのもの
     init(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker) {
@@ -103,14 +105,14 @@ struct SessionState: Sendable {
         guard endReason == nil else { return }
         if let drain {
             if now >= timeoutAt, timeoutAt < drain.deadline {
-                end(.timeout, effects: &effects)
+                end(.timeout, now: now, effects: &effects)
             } else if now >= drain.deadline {
-                end(drain.reason, effects: &effects)
+                end(drain.reason, now: now, effects: &effects)
             }
             return
         }
         if now >= timeoutAt {
-            end(.timeout, effects: &effects)
+            end(.timeout, now: now, effects: &effects)
             return
         }
         guard !isHUDVisible else { return }
@@ -137,7 +139,7 @@ struct SessionState: Sendable {
             // 仕様 5: onTriggerRelease なら指を置いたまま離すとハイライト中のマスを実行。指を先に離していたらキャンセル
             let cell = configuration.fireMode == .onTriggerRelease && touch?.isMultiFinger == false ? highlight : nil
             hideHUD(effects: &effects)
-            if let cell {
+            if let cell, !isEmptyCell(cell) {
                 execute(cell: cell, wasFastTap: false, effects: &effects)
             } else {
                 reason = .cancelled
@@ -152,19 +154,28 @@ struct SessionState: Sendable {
                 allowsTap: !wasHUDVisible && touch.isTapCandidate
             )
         } else {
-            end(reason, effects: &effects)
+            end(reason, now: now, effects: &effects)
         }
     }
 
     /// HUD を閉じ、ポインタの抑止をやめて終える
-    mutating func end(_ reason: SessionEndReason, effects: inout [SessionEffect]) {
+    mutating func end(_ reason: SessionEndReason, now: TimeInterval, effects: inout [SessionEffect]) {
         guard endReason == nil else { return }
         if isHUDVisible {
             hideHUD(effects: &effects)
         }
-        effects.append(.endPointerSuppression)
+        effects.append(.endPointerSuppression(dropsLateClicks: mayClickLate(at: now)))
         effects.append(.sessionEnded(reason))
         endReason = reason
+    }
+
+    /// now に終えると、指の「タップでクリック」が抑止の後に届きうるか（SessionEngine.lateClickWindow）。
+    /// まだ触れている指は、置いてから長ければタップにならない。トリガーより前から置いていた指も同じく数える
+    private func mayClickLate(at now: TimeInterval) -> Bool {
+        let window = SessionEngine.lateClickWindow
+        if let touch, now - touch.physicalStart < window { return true }
+        if let lastLiftAt, now - lastLiftAt < window { return true }
+        return false
     }
 
     // MARK: トラックパッド
@@ -203,11 +214,23 @@ struct SessionState: Sendable {
                 touch?.isMultiFinger = true
             }
         case .ended, .restarted:
-            if drain.allowsTap, let touch, !touch.isMultiFinger, now < drain.deadline, let cell = touch.downCell {
+            if drain.allowsTap, let touch, !touch.isMultiFinger, now < drain.deadline, let cell = touch.downCell, !isEmptyCell(cell) {
                 execute(cell: cell, wasFastTap: true, effects: &effects)
             }
-            end(drain.reason, effects: &effects)
+            recordLift(now: now)
+            if case .restarted = change {
+                // 離すと同時に新しく置いた指は、まだ触れている
+                beginTouch(tracker)
+            }
+            end(drain.reason, now: now, effects: &effects)
         }
+    }
+
+    /// 今のタッチが離れた
+    private mutating func recordLift(now: TimeInterval) {
+        guard touch != nil else { return }
+        lastLiftAt = now
+        touch = nil
     }
 
     private mutating func beginTouch(_ tracker: FingerTracker) {
@@ -225,22 +248,24 @@ struct SessionState: Sendable {
 
     private mutating func liftTouch(now: TimeInterval, effects: inout [SessionEffect]) {
         defer {
-            touch = nil
+            recordLift(now: now)
             tracked = nil
             swipeBaseline = nil
         }
         guard let touch else { return }
         if isHUDVisible {
-            if configuration.fireMode == .onFingerLift, !touch.isMultiFinger, let cell = highlight {
-                // 仕様 5: onFingerLift なら1本指を離したときにハイライト中のマスを実行し、HUD を閉じる
+            if configuration.fireMode == .onFingerLift, !touch.isMultiFinger, let cell = highlight, !isEmptyCell(cell) {
+                // 仕様 5: onFingerLift なら1本指を離したときにハイライト中のマスを実行し、HUD を閉じる。
+                // 空きマスなら何もしない（仕様 12）ので、HUD は出したまま選び直せるようにする
                 hideHUD(effects: &effects)
                 execute(cell: cell, wasFastTap: false, effects: &effects)
             } else if highlight != nil {
                 highlight = nil
                 effects.append(.updateHUD(page: page, highlightedCell: nil))
             }
-        } else if touch.isTapCandidate, !touch.isMultiFinger, now < touch.restStart + configuration.hudDelay, let cell = touch.downCell {
-            // 仕様 3: 速押し。置いた位置のマスを HUD なしで実行する
+        } else if touch.isTapCandidate, !touch.isMultiFinger, now < touch.restStart + configuration.hudDelay, let cell = touch.downCell, !isEmptyCell(cell) {
+            // 仕様 3: 速押し。置いた位置のマスを HUD なしで実行する。
+            // 空きマスは実行せずに離したのと同じ（hasExecuted にしないので、迷っていれば (a) の HUD が出る）
             execute(cell: cell, wasFastTap: true, effects: &effects)
         }
     }
@@ -326,6 +351,12 @@ struct SessionState: Sendable {
         isHUDVisible = false
         highlight = nil
         effects.append(.hideHUD)
+    }
+
+    /// 今のページで中身が無いと分かっているマス（仕様 12）。分からなければ false（controller が判断する）
+    private func isEmptyCell(_ cell: Int) -> Bool {
+        guard let occupied = configuration.occupiedCells, occupied.indices.contains(page) else { return false }
+        return !occupied[page].contains(cell)
     }
 
     private mutating func execute(cell: Int, wasFastTap: Bool, effects: inout [SessionEffect]) {

@@ -139,7 +139,7 @@ private struct InvariantChecker {
                 if !inSession { fail("セッション外で end") }
                 guard case .sessionEnded = next else { fail("end の次が sessionEnded でない"); break }
             case .sessionEnded:
-                if previous != .endPointerSuppression { fail("sessionEnded の前が end でない") }
+                if case .endPointerSuppression? = previous {} else { fail("sessionEnded の前が end でない") }
                 if hud != nil { fail("HUD を出したまま終えた") }
                 inSession = false
             case .showHUD(let page, let cell):
