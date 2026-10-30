@@ -15,6 +15,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindowController?
     private var onboardingWindow: OnboardingWindowController?
     private var licenseRefreshObservers: [(NotificationCenter, NSObjectProtocol)] = []
+    /// 試用期間が終わったときの小さなウィンドウ
+    private var trialEndedWindow: TrialEndedWindowController?
+    /// 起動の途中に届いた nonet://register と .nonetlicense（設定のウィンドウができてから開く）
+    private var pendingLicenseLinks: [URL] = []
     private let updater = UpdaterController()
     #if DEBUG
     private var preview: DebugPreview?
@@ -78,6 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onCheckForUpdates: checkForUpdates
         )
 
+        setUpLicenseSupport(license: license)
         observeLicenseRefreshTriggers()
         controller.start()
         if controller.isFirstLaunch {
@@ -94,6 +99,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         licenseRefreshObservers = []
         controller?.stop()
+    }
+
+    /// 購入のメールの nonet://register?key=… と、.nonetlicense のファイル。設定のライセンスのタブで、登録してよいか尋ねる
+    func application(_ application: NSApplication, open urls: [URL]) {
+        pendingLicenseLinks += urls
+        openPendingLicenseLinks()
     }
 
     /// アプリをもう一度開いたら設定を開く
@@ -124,6 +135,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         // 試用の記録はキーチェーンにも置く（Developer ID で署名したビルドでだけ働く。docs/privacy.md）
         return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain()))
+    }
+
+    /// お問い合わせの宛先、試用期間が終わったときのウィンドウ、起動の途中に届いたライセンスのリンク
+    private func setUpLicenseSupport(license: LicenseManager) {
+        settingsWindow?.supportEmail = AppInfo.supportEmail
+        var defaults: UserDefaults? = .standard
+        #if DEBUG
+        // 設定の置き場所を分けたとき・期限切れを試すときは、ウィンドウを出した日を本物（UserDefaults）に書かない
+        if options.configDirectory != nil || options.simulateExpiredTrial {
+            defaults = nil
+        }
+        #endif
+        let window = TrialEndedWindowController(license: license, purchaseURL: AppInfo.purchaseURL, defaults: defaults) { [weak self] in
+            self?.settingsWindow?.showLicenseKeyEntry()
+        }
+        trialEndedWindow = window
+        window.start()
+        openPendingLicenseLinks()
+    }
+
+    private func openPendingLicenseLinks() {
+        guard let settingsWindow else { return }
+        let urls = pendingLicenseLinks
+        pendingLicenseLinks = []
+        for url in urls {
+            settingsWindow.openLicenseLink(url)
+        }
     }
 
     /// 試用の残り日数の表示は refresh() でしか変わらないので、日付や時計が変わりうるときに呼ぶ

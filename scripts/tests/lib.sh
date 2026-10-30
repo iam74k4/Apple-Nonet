@@ -8,6 +8,7 @@ TEST_APPCAST_URL="https://nonet.test/updates/appcast.xml"
 TEST_PURCHASE_URL="https://store.nonet.test/buy"
 TEST_SPARKLE_KEY="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 TEST_LICENSE_KEY="BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+TEST_SUPPORT_EMAIL="support@nonet.test"
 
 fail() {
   printf '  %s\n' "$@" >&2
@@ -91,6 +92,7 @@ use_fakes() {
   export FAKE_PLIST_ED_KEY="$TEST_SPARKLE_KEY"
   export FAKE_PLIST_PURCHASE="$TEST_PURCHASE_URL"
   export FAKE_PLIST_LICENSE_KEY="$TEST_LICENSE_KEY"
+  export FAKE_PLIST_SUPPORT_EMAIL="$TEST_SUPPORT_EMAIL"
   # AI のアクションに要る FoundationModels の入った偽の macOS SDK
   export FAKE_SDK_PATH="$TEST_TMP/sdk/MacOSX.sdk"
   mkdir -p "$FAKE_SDK_PATH/System/Library/Frameworks/FoundationModels.framework"
@@ -106,6 +108,7 @@ NONET_PURCHASE_URL = https:/\$()/store.nonet.test/buy
 NONET_SUPPORT_URL = https:/\$()/nonet.test/guide.html
 NONET_PRIVACY_URL = https:/\$()/nonet.test/privacy.html
 NONET_LICENSE_PUBLIC_KEY = $TEST_LICENSE_KEY
+NONET_SUPPORT_EMAIL = $TEST_SUPPORT_EMAIL
 EOF
 }
 

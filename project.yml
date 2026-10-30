@@ -61,7 +61,18 @@ targets:
         NonetSupportURL: $(NONET_SUPPORT_URL)
         NonetPrivacyURL: $(NONET_PRIVACY_URL)
         NonetLicensePublicKey: $(NONET_LICENSE_PUBLIC_KEY)
-        # 設定画面の中のドラッグ（マスの入れ替えなど）と、プロファイルの書き出しファイル
+        NonetSupportEmail: $(NONET_SUPPORT_EMAIL)
+        # 購入のメールの「Nonet に登録する」のリンク（nonet://register?key=…）。開くと設定で登録してよいか尋ねる
+        CFBundleURLTypes:
+          - CFBundleURLName: com.iam74k4.Nonet.register
+            CFBundleURLSchemes: [nonet]
+        # 購入のメールに添付するライセンスキーのファイル（.nonetlicense）。リンクと同じく、開くと登録してよいか尋ねる
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Nonet License Key
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes: [com.iam74k4.nonet.license]
+        # 設定画面の中のドラッグ（マスの入れ替えなど）と、プロファイルの書き出しファイルと、ライセンスキーのファイル
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: com.iam74k4.nonet.settings-drag
             UTTypeDescription: Nonet Settings Item
@@ -71,6 +82,11 @@ targets:
             UTTypeConformsTo: [public.json]
             UTTypeTagSpecification:
               public.filename-extension: [nonetprofile]
+          - UTTypeIdentifier: com.iam74k4.nonet.license
+            UTTypeDescription: Nonet License Key
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [nonetlicense]
     entitlements:
       path: App/Nonet.entitlements
       properties:

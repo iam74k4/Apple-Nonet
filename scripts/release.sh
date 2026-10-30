@@ -66,6 +66,12 @@ is_ed25519_public_key() {
   [[ "$1" =~ $standard || "$1" =~ $url_safe ]]
 }
 
+# 「name@example.com」の形のメールアドレス（アプリの SettingsSupportMail.isValidAddress と同じ決まり）
+is_email_address() {
+  local re='^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+  [[ "$1" =~ $re ]]
+}
+
 is_placeholder() {
   case "$1" in
     *example.com* | *example.org* | *example.net* | *.invalid* | *TODO*) return 0 ;;
@@ -93,6 +99,15 @@ config_problems() {
       printf '%s が仮の値のままです（%s）\n' "$key" "$value"
     fi
   done
+  # 設定の「お問い合わせ…」の宛先。空だとボタンが出ず、購入した人がアプリから問い合わせられない
+  value="$(xcconfig_value "$file" NONET_SUPPORT_EMAIL)"
+  if [[ -z "$value" ]]; then
+    printf '%s が空です\n' NONET_SUPPORT_EMAIL
+  elif ! is_email_address "$value"; then
+    printf '%s は support@example.com のようなメールアドレスにしてください（いまは %s）\n' NONET_SUPPORT_EMAIL "$value"
+  elif is_placeholder "$value"; then
+    printf '%s が仮の値のままです（%s）\n' NONET_SUPPORT_EMAIL "$value"
+  fi
   for key in NONET_SPARKLE_PUBLIC_KEY NONET_LICENSE_PUBLIC_KEY; do
     value="$(xcconfig_value "$file" "$key")"
     # base64 の公開鍵の約1%は「//」を含み、xcconfig ではそこから後ろがコメントになって切れる
@@ -508,7 +523,8 @@ verify_app() {
 
   for key in CFBundleShortVersionString:"$VERSION" CFBundleVersion:"$BUILD" \
     SUFeedURL:"$APPCAST_URL" SUPublicEDKey:"$SPARKLE_PUBLIC_KEY" \
-    NonetPurchaseURL:"$PURCHASE_URL" NonetLicensePublicKey:"$LICENSE_PUBLIC_KEY"; do
+    NonetPurchaseURL:"$PURCHASE_URL" NonetLicensePublicKey:"$LICENSE_PUBLIC_KEY" \
+    NonetSupportEmail:"$SUPPORT_EMAIL"; do
     expected="${key#*:}"
     key="${key%%:*}"
     actual="$(plist_value "$plist" "$key")"
@@ -607,6 +623,7 @@ main() {
   PURCHASE_URL="$(xcconfig_value "$config" NONET_PURCHASE_URL)"
   SPARKLE_PUBLIC_KEY="$(xcconfig_value "$config" NONET_SPARKLE_PUBLIC_KEY)"
   LICENSE_PUBLIC_KEY="$(xcconfig_value "$config" NONET_LICENSE_PUBLIC_KEY)"
+  SUPPORT_EMAIL="$(xcconfig_value "$config" NONET_SUPPORT_EMAIL)"
   info "チーム: $TEAM / 署名: Developer ID Application（$IDENTITY）"
 
   local appcast_dir

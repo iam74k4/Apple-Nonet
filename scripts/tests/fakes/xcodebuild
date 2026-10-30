@@ -63,6 +63,8 @@ APP
 	<string>${FAKE_PLIST_PURCHASE:-}</string>
 	<key>NonetLicensePublicKey</key>
 	<string>${FAKE_PLIST_LICENSE_KEY:-}</string>
+	<key>NonetSupportEmail</key>
+	<string>${FAKE_PLIST_SUPPORT_EMAIL:-}</string>
 </dict>
 </plist>
 EOF

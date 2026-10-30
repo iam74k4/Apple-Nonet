@@ -196,8 +196,9 @@ import Testing
     @Test func statusBanners() {
         #expect(SettingsStatusBanner(status: .running) == nil)
         #expect(SettingsStatusBanner(status: .stopped) == nil)
+        // ほぼ同じことをするボタンを2つ並べない（「システム設定を開く」だけ）
         let accessibility = SettingsStatusBanner(status: .needsAccessibility)
-        #expect(accessibility?.buttons.map(\.action) == [.requestAccessibility, .openAccessibilitySettings])
+        #expect(accessibility?.buttons == [SettingsStatusBanner.Button(action: .openAccessibilitySettings, title: L10n.ui("システム設定を開く"))])
         #expect(SettingsStatusBanner(status: .noTrackpad)?.buttons.map(\.action) == [.recheck])
         #expect(SettingsStatusBanner(status: .secureInputActive)?.buttons.map(\.action) == [.recheck])
         #expect(SettingsStatusBanner(status: .disabled)?.buttons.map(\.action) == [.enable])

@@ -485,18 +485,37 @@ public final class LicenseManager {
         update(progress?.entitlement ?? .expired)
     }
 
+    /// 試用期間が終わる日時（試用中だけ。ほかは nil）。使った時間は起動していない間も時計どおりに数えるので、
+    /// 時計を変えない限り毎回同じ日時になる。画面に「11月14日まで」と出すのに使う
+    public var trialEndDate: Date? {
+        guard case .trial = entitlement, let trial else { return nil }
+        return trial.progress.lastSeen.addingTimeInterval(TrialProgress.duration - trial.progress.used)
+    }
+
+    /// 登録してあるライセンスキー（登録済みのときだけ）。同じキーをほかの Mac に登録するために、設定からコピーする
+    public var registeredLicenseKey: String? {
+        guard case .licensed = entitlement, let key = storage.licenseKey, !key.isEmpty else { return nil }
+        return key
+    }
+
+    /// 保存せずに検証する。リンクやファイルから開いたキーを、登録してよいか尋ねる前に確かめる。
+    /// activate と同じく、貼り付けた文に「License key:」などが付いていれば、キーの部分だけを返す。失敗したら LicenseError
+    public func verify(licenseKey: String) throws -> VerifiedLicense {
+        guard let verifier else { throw LicenseError.invalidPublicKey }
+        guard let key = LicenseCoding.licenseKey(in: licenseKey) else { throw LicenseError.malformed }
+        return VerifiedLicense(key: key, info: try verifier.verify(key))
+    }
+
     /// 検証してから保存する。失敗したら LicenseError を投げ、保存済みのキーはそのまま。
     /// 貼り付けた文に「License key:」などが付いていれば、キーの部分だけを保存する
     @discardableResult
     public func activate(licenseKey: String) throws -> LicenseInfo {
-        guard let verifier else { throw LicenseError.invalidPublicKey }
-        guard let key = LicenseCoding.licenseKey(in: licenseKey) else { throw LicenseError.malformed }
-        let info = try verifier.verify(key)
-        storage.licenseKey = key
-        checkedKey = (key, .success(info))
-        update(.licensed(info))
+        let verified = try verify(licenseKey: licenseKey)
+        storage.licenseKey = verified.key
+        checkedKey = (verified.key, .success(verified.info))
+        update(.licensed(verified.info))
         logger.info("ライセンスを登録しました")
-        return info
+        return verified.info
     }
 
     public func deactivate() {

@@ -97,7 +97,7 @@ swift run nonet-license verify --public ../../Config/Nonet.xcconfig "<発行し�
 
 ### 1.6 Config/Nonet.xcconfig
 
-販売用の6つの値を入れてコミットする（公開鍵と URL なので、公開されても問題ない）。
+販売用の7つの値を入れてコミットする（公開鍵・URL・問い合わせ先なので、公開されても問題ない）。
 
 ```
 NONET_APPCAST_URL = https:/$()/nonet.astlog.dev/updates/appcast.xml
@@ -106,7 +106,10 @@ NONET_PURCHASE_URL = https:/$()/nonet.example.com/buy
 NONET_SUPPORT_URL = https:/$()/nonet.astlog.dev/guide.html
 NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
 NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
+NONET_SUPPORT_EMAIL = <問い合わせを受けるメールアドレス>
 ```
+
+`NONET_SUPPORT_EMAIL` は、設定の「情報」タブと、ライセンスキーを登録できなかったときのエラーの横に出る「お問い合わせ…」の宛先になる（Info.plist の `NonetSupportEmail`）。押すと、件名「Nonet <版> のお問い合わせ」と、アプリの版・macOS の版・Mac の機種・トリガーキー・キーボードの種類（JIS / ANSI / ISO）だけを書いた本文で、メールのアプリが開く（ライセンスキーやプロファイルの中身は入れない）。`support@nonet.astlog.dev` のようなアドレスだけを書き、`mailto:` は付けない。空のままだとボタンを出さない。プライバシーポリシー（[privacy.md](privacy.md) の「お問い合わせ」）と販売ページの問い合わせ先も同じアドレスにする。`scripts/release.sh` は、空・メールアドレスの形でない・`example.com` などの仮の値のときに止まり、書き出したアプリの Info.plist の値も確かめる。
 
 `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブの「利用ガイド」「プライバシー」のリンクになる。日本語のページ（`site/guide.html`・`site/privacy.html`）を指しておく。アプリが英語で動いているときは、最後の要素の前に `en/` を入れた英語のページ（`https://nonet.astlog.dev/en/guide.html`。`site/en/guide.html`）を開く。`#troubleshooting` のような節へのリンクは、日本語と英語で同じ id にしてある。
 

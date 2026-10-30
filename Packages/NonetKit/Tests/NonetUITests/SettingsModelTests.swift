@@ -764,11 +764,16 @@ import Testing
         h.permissions.isAccessibilityGranted = false
         h.controller.refreshPermissions()
         let banner = try #require(h.model.statusBanner)
-        #expect(banner.buttons.map(\.action) == [.requestAccessibility, .openAccessibilitySettings])
-        h.model.perform(.requestAccessibility)
+        #expect(banner.buttons.map(\.action) == [.openAccessibilitySettings])
+        // 最初は macOS のダイアログだけ。システム設定と同時には出さない
         h.model.perform(.openAccessibilitySettings)
         #expect(h.permissions.requestCount == 1)
-        #expect(h.permissions.openCount == 1)
+        #expect(h.permissions.openCount == 0)
+        // 2回目からはシステム設定だけ
+        h.model.perform(.openAccessibilitySettings)
+        h.model.perform(.openAccessibilitySettings)
+        #expect(h.permissions.requestCount == 1)
+        #expect(h.permissions.openCount == 2)
         h.permissions.isAccessibilityGranted = true
         h.model.perform(.recheck)
         #expect(h.model.statusBanner == nil)
@@ -1250,7 +1255,7 @@ import Testing
         h.model.confirmation = .deactivateLicense
         h.model.confirm(.deactivateLicense)
         #expect(h.license.entitlement == .trial(daysLeft: 14))
-        #expect(h.model.licenseMessage?.isError == false)
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("この Mac から登録を消しました。"), isError: false))
     }
 
     @Test func badKeysShowTheReason() throws {
@@ -1258,13 +1263,13 @@ import Testing
         let h = try SettingsHarness(verifier: verifier)
         h.model.licenseKeyInput = "not-a-key"
         h.model.activateLicense()
-        #expect(h.model.licenseMessage == SettingsMessage(text: LicenseError.malformed.errorDescription ?? "", isError: true))
+        #expect(h.model.licenseMessage == SettingsMessage(text: SettingsText.licenseError(LicenseError.malformed, input: "not-a-key"), isError: true))
         #expect(h.model.licenseKeyInput == "not-a-key")
         // 別の鍵で署名したキー
         let (otherKey, _) = try signedKey(name: "y")
         h.model.licenseKeyInput = otherKey
         h.model.activateLicense()
-        #expect(h.model.licenseMessage == SettingsMessage(text: LicenseError.invalidSignature.errorDescription ?? "", isError: true))
+        #expect(h.model.licenseMessage == SettingsMessage(text: SettingsText.licenseError(LicenseError.invalidSignature, input: otherKey), isError: true))
         #expect(h.license.entitlement == .trial(daysLeft: 14))
     }
 
@@ -1279,7 +1284,10 @@ import Testing
         let h = try SettingsHarness(verifier: nil)
         h.model.licenseKeyInput = "abc.def"
         h.model.activateLicense()
-        #expect(h.model.licenseMessage == SettingsMessage(text: LicenseError.invalidPublicKey.errorDescription ?? "", isError: true))
+        #expect(h.model.licenseMessage == SettingsMessage(
+            text: L10n.ui("この Nonet ではライセンスキーを確かめられません。最新の Nonet をダウンロードし直してください。"),
+            isError: true
+        ))
     }
 }
 
