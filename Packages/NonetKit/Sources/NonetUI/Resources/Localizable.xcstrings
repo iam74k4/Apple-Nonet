@@ -469,6 +469,16 @@
         }
       }
     },
+    "NONET_SELECTED_TEXT と NONET_BROWSER_URL は、スクリプトの中（コメントでもかまいません）にその名前があるときだけ設定されます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NONET_SELECTED_TEXT and NONET_BROWSER_URL are set only when the script mentions their names (a comment is enough)."
+          }
+        }
+      }
+    },
     "Nonet" : {
       "localizations" : {
         "en" : {
@@ -2058,6 +2068,16 @@
         }
       }
     },
+    "スクリプトに NONET_BROWSER_URL を書くと、ブラウザの URL を初めて読むときに、macOS が「オートメーション」の許可を求めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If your script uses NONET_BROWSER_URL, macOS asks for Automation permission the first time Nonet reads the browser's URL."
+          }
+        }
+      }
+    },
     "スクリプトに渡す環境変数" : {
       "localizations" : {
         "en" : {
@@ -2367,6 +2387,7 @@
       }
     },
     "ブラウザの URL を初めて読むときや、ターミナルで初めて実行するときは、macOS が「オートメーション」の許可を求めます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
