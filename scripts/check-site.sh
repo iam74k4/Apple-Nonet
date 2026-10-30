@@ -1,7 +1,7 @@
 #!/bin/bash
 # 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記・
 # 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページを指していること。
-# --strict を付けると、TODO（価格・URL などの仮の値）が残っていても失敗にする。公開の前に使う。
+# --strict を付けると、TODO（価格・URL などの仮の値）が残っているときと、canonical が無くてアプリの URL を確かめられないときも失敗にする。公開の前に使う。
 # 使い方: scripts/check-site.sh [--strict] [--config <xcconfig（既定: Config/Nonet.xcconfig）>] [サイトのフォルダ（既定: site）]
 set -euo pipefail
 
@@ -179,14 +179,15 @@ check_html() {
 }
 
 # 利用ガイド: 見出し（h2〜h4）にはすべて id を付け（ほかのページやアプリから #id で開けるように）、
-# h2 は目次からリンクする
+# h2 は目次（<nav class="toc">）からリンクする。本文の中のリンクは目次の代わりにならない
 check_guide() {
-  local file="$1" rel="$2" flat tag ident id_pattern='[[:space:]]id="([^"]+)"'
+  local file="$1" rel="$2" flat toc tag ident id_pattern='[[:space:]]id="([^"]+)"'
   flat="$(LC_ALL=C tr '\n\r\t' '   ' <"$file")"
+  toc="$(LC_ALL=C sed -nE 's/^.*(<nav[^>]*[[:space:]]class="([^"]*[[:space:]])?toc([[:space:]][^"]*)?"[^>]*>)/\1/p' <<<"$flat" | LC_ALL=C sed 's|</nav>.*||')"
   while IFS= read -r tag; do
     if [[ "$tag" =~ $id_pattern ]]; then
       ident="${BASH_REMATCH[1]}"
-      if [[ "$tag" == "<h2"* ]] && ! grep -qF "href=\"#$ident\"" "$file"; then
+      if [[ "$tag" == "<h2"* && "$toc" != *"href=\"#$ident\""* ]]; then
         problem "$rel: 目次に #$ident へのリンクがありません"
       fi
     else
@@ -195,18 +196,38 @@ check_guide() {
   done < <(LC_ALL=C grep -oE '<h[234]([[:space:]][^>]*)?>' <<<"$flat" || true)
 }
 
+# <link rel="canonical" href="…"> のホスト（小文字）。属性の順や rel のほかの値は問わない。無ければ空文字
+canonical_host() {
+  local file="$1" tag rels href host_pattern='^https?://([^/?#]+)'
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r tag; do
+    rels="$(attribute_values "$tag" rel | tr '\n' ' ')"
+    [[ " $rels " == *[[:space:]]canonical[[:space:]]* ]] || continue
+    href="$(attribute_values "$tag" href | head -n 1)"
+    if [[ "$href" =~ $host_pattern ]]; then
+      printf '%s' "${BASH_REMATCH[1]}"
+      return 0
+    fi
+  done < <(LC_ALL=C tr '\n\r\t' '   ' <"$file" | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C grep -oE '<link([[:space:]][^>]*)?>' || true)
+  return 0
+}
+
 # アプリの「利用ガイド」「プライバシー」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
-# そのページが site/ にあるか。ホストは site/index.html の canonical で決める（入れるまでは確かめない）
+# そのページが site/ にあるか。ホストは site/index.html の canonical で決める。
+# canonical が無いと確かめられないので、--strict では問題にする（ふだんは知らせるだけ）
 check_app_links() {
-  local canonical host key url rest url_host path found candidate
+  local host key url rest url_host path found
   [[ -f "$CONFIG" ]] || return 0
-  canonical="$(sed -nE 's/.*<link rel="canonical" href="https?:\/\/([^/"]+)[^"]*".*/\1/p' "$SITE/index.html" 2>/dev/null | head -n 1)"
-  host="$(printf '%s' "$canonical" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  host="$(canonical_host "$SITE/index.html")"
   for key in NONET_SUPPORT_URL NONET_PRIVACY_URL; do
     url="$(xcconfig_value "$CONFIG" "$key")"
     [[ "$url" == http://* || "$url" == https://* ]] || continue
     if [[ -z "$host" ]]; then
-      info "site/index.html に canonical が無いので、$key（$url）の行き先は確かめていません"
+      if [[ "$STRICT" == 1 ]]; then
+        problem "$(basename "$SITE")/index.html に canonical が無いので、$key（$url）がこのサイトのページを指しているか確かめられません（公開する URL の canonical を入れてください）"
+      else
+        info "$(basename "$SITE")/index.html に canonical が無いので、$key（$url）の行き先は確かめていません（--strict では失敗にする）"
+      fi
       continue
     fi
     rest="${url#*://}"
@@ -219,11 +240,12 @@ check_app_links() {
     found=""
     if [[ -z "$path" || "$path" == */ ]]; then
       [[ -f "$SITE/${path}index.html" ]] && found=1
-    else
-      # 拡張子を省いた URL（/guide）を guide.html として返すホスティングもある
-      for candidate in "$path" "$path.html" "$path/index.html"; do
-        [[ -f "$SITE/$candidate" ]] && found=1
-      done
+    elif [[ -f "$SITE/$path" || -f "$SITE/$path/index.html" ]]; then
+      found=1
+    elif [[ -f "$SITE/$path.html" ]]; then
+      # 拡張子を省いた URL（/guide）は、S3 ＋ CloudFront のように .html を補わないホストでは 404 になる
+      problem "$(basename "$CONFIG") の $key（$url）は .html を省いています。補わないホストでは開けないので、/$path.html と書いてください"
+      continue
     fi
     [[ -n "$found" ]] || problem "$(basename "$CONFIG") の $key（$url）に当たるページが $(basename "$SITE")/ にありません"
   done
