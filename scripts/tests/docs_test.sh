@@ -1,6 +1,6 @@
 # ドキュメント（README・docs/）と CI の設定が、実物とずれていないかのテスト
 
-OWNED_DOCS="README.md docs/release.md docs/user-guide.md docs/privacy.md"
+OWNED_DOCS="README.md docs/release.md docs/user-guide.md docs/user-guide.en.md docs/privacy.md"
 
 test_markdown_links_resolve() {
   local doc link path anchor target heading_pattern

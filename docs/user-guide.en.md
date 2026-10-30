@@ -24,13 +24,15 @@ Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes wi
 2. Drag `Nonet` to the `Applications` folder
 3. Open Nonet from the Applications folder
 
-If you open Nonet from the disk image or from the folder you downloaded it to, it can't install updates from there, so Nonet offers to move itself to the Applications folder. Accept, and Nonet moves there and opens again. On an account that isn't an administrator, it moves to the Applications folder in your home folder.
+If you open Nonet from the disk image or from the folder you downloaded it to, it can't install updates from there, so Nonet asks "Move Nonet to the Applications folder?". Click **Move to Applications Folder**, and Nonet moves there and opens again. On an account that isn't an administrator, it moves to the Applications folder in your home folder. If the Applications folder already has a copy of Nonet, Nonet asks again before replacing it and moves the old copy to the Trash. If Nonet can't move itself to either folder, it explains how to move it in the Finder.
 
-Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu. If you open Nonet from the Applications folder while it's already running, the Settings window opens.
+Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu.
+
+Only one copy of Nonet runs at a time. If you open Nonet again while it's running, the running copy opens its Settings window instead of a second copy starting (this takes about 3 seconds). If a copy opened from the disk image is running and you open the copy in the Applications folder, the disk image copy quits and the one in the Applications folder takes over.
 
 ### Accessibility permission
 
-The first time you open Nonet, the Welcome to Nonet window (the welcome guide) opens. Click **Open System Settings**, then turn on Nonet in **System Settings › Privacy & Security › Accessibility**. Once you allow Nonet, the guide moves on automatically.
+The first time you open Nonet, the Welcome to Nonet window (the welcome guide) opens. Click **Open System Settings**, then turn on Nonet in **System Settings › Privacy & Security › Accessibility**. Once you allow Nonet, the welcome guide comes back in front of System Settings and moves on automatically.
 
 **Why Nonet needs it**: macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:
 
@@ -40,7 +42,7 @@ The first time you open Nonet, the Welcome to Nonet window (the welcome guide) o
 
 **What Nonet doesn't collect**: Nonet never records or sends what you type. Your settings are stored only on your Mac (in `~/Library/Application Support/Nonet/`), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the [privacy policy](privacy.md).
 
-You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu, or click **Open System Settings** in the banner at the top of the Settings window.
+You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). To allow it later, choose **Allow Accessibility Access…** from the Nonet menu, or click **Open System Settings** in the banner at the top of the Settings window.
 
 The first time a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
 
@@ -50,7 +52,7 @@ The Welcome to Nonet window has three steps, shown at the top.
 
 1. **Accessibility**: the permission described above
 2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Xcode, Visual Studio Code, Safari, Slack, Zoom and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. Click **Set Up Later** to move on without choosing (the first time, Nonet then uses all of the listed apps)
-3. **Try It Out**: practice mode. Follow the prompt: hold the trigger key and tap the top-right corner of the trackpad. Nothing runs in practice mode. Click **Skip** to move on
+3. **Try It Out**: practice mode. Follow the prompt: hold the trigger key and tap the top-right corner of the trackpad. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
 At the end, "You're all set" shows three quick tips. Click **Done** to close the window, or **Open Settings** to go straight to the Settings window.
 
@@ -130,7 +132,7 @@ Click the 3×3 icon in the menu bar to open the Nonet menu.
 | Edit Profiles… | Opens the Settings window on the Profiles tab |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | 14 days left in your trial / Registered / Your trial has ended | Your license status. Choose it to open the Settings window on the License tab |
-| Check for Updates… | Checks for a new version. When an automatic check has already found one, this item says that an update is available instead; choose it to see the update |
+| Check for Updates… | Checks for a new version. When an automatic check has already found one, this item changes to **Update Available…**; choose it to see the update |
 | Quit Nonet | Quits Nonet |
 
 The icon also shows the status. It's dimmed while Nonet is disabled, and it gets a dot in the top-right corner when something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended, or a notice). It also gets a dot when a new version is available.
@@ -142,7 +144,7 @@ Choose **Edit Profiles…** from the Nonet menu to open the Profiles tab of the 
 ### Profile list
 
 - **Global** at the top (marked Default) holds the nine buttons used in apps without a profile. You can't delete it
-- App profiles are listed below it. Drag to reorder them
+- App profiles are listed below it, under **Apps**. Drag to reorder them
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to choose **Disable**, **Export This Profile…** or **Delete…**. You can also press Delete. Nonet asks before deleting, because you can't undo it
 - A disabled profile is marked Off, and Nonet uses the Global profile in that app. You can also switch it with **Use this profile** above the buttons
@@ -155,7 +157,7 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 - Click **Page 1**, **Page 2** and so on to switch pages. Click **+** (Add page) to add one (up to three pages). To delete a page, click **−** (Delete this page), or Control-click the page and choose **Delete This Page…**
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page
 - Use the arrow keys to move the selection, and press Delete to clear a button
-- Press ⌘Z to undo changes to buttons, such as clearing, deleting, duplicating, creating, swapping or moving them, or assigning a menu item, and ⇧⌘Z to redo. After you clear a button, or replace a filled button with a menu item, you can also click **Undo** under the grid. Deleting a page or a profile, and replacing profiles by importing, can't be undone
+- Press ⌘Z to undo changes to buttons, such as clearing, deleting, duplicating, creating, swapping or moving them to another page, or assigning a menu item, and ⇧⌘Z to redo. After you clear a button, or replace a filled button with a menu item, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so. Deleting a page or a profile, and replacing profiles by importing, can't be undone
 - Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. On an empty button, choose an action type from **Add Action**
 
 ### Inspector
@@ -233,12 +235,16 @@ These describe the front app when the script runs. **Variables without a value a
 | `NONET_BROWSER_URL` | URL of the current page in Safari, Google Chrome, Arc, Microsoft Edge or Brave | `https://example.com/article` |
 | `NONET_SELECTED_TEXT` | Selected text | |
 
-Nonet reads the selected text (`NONET_SELECTED_TEXT`) and the browser URL (`NONET_BROWSER_URL`) only when the script contains the variable's name, because reading them can mean sending ⌘C or asking the browser. In apps whose selection can't be read directly, Nonet copies it with ⌘C and then restores the clipboard. If your script only calls a script in another file, write the names of the variables it uses in your script, even in a comment (see the last example below).
+Nonet reads the selected text (`NONET_SELECTED_TEXT`) and the browser URL (`NONET_BROWSER_URL`) only when the script contains the variable's name, because reading them can mean sending ⌘C or asking the browser. A script that doesn't contain these names never sends ⌘C and never asks the browser, so no Automation prompt appears. In apps whose selection can't be read directly, Nonet copies it with ⌘C and then restores the clipboard. If your script only calls a script in another file, write the names of the variables it uses in your script, even in a comment (see the last example below). The other variables (`NONET_APP_BUNDLE_ID`, `NONET_APP_NAME`, `NONET_DOCUMENT_PATH`, `NONET_PROJECT_DIR` and `PROJECT_DIR`) are always set when they have a value.
 
 Nonet finds the project folder like this:
 
 - If the document is a `.xcodeproj`, `.xcworkspace` or `.swiftpm`, the folder that contains it
 - For any other file, the nearest folder above it that contains `.git` or `Package.swift`. If there isn't one, the folder that contains the file
+  - Inside your home folder, Nonet looks at every folder up to, but not including, your home folder, however deep the document is, so deep Maven, Gradle and Android projects work
+  - Outside your home folder (for example `/Volumes/SSD`), Nonet looks at no more than 32 folders above the document, and never at `/` or a top-level folder such as `/Volumes`
+  - For a document on a network volume, Nonet doesn't search and uses the folder that contains the document
+  - If Nonet can't check the location within 0.3 seconds (for example, a sleeping NAS), there's no project folder, and the script runs in your home folder
 
 Examples:
 
@@ -268,6 +274,7 @@ Chooses a menu item in an app. The easiest way to set it up is **Pick from Menus
 
 - If the app is in front and the item has a keyboard shortcut, Nonet sends the keys, which is fast
 - If it has none (**None (Nonet opens the menus to choose it)**), Nonet opens the menus one by one with Accessibility and chooses the item
+- Items whose name changes when you choose them, such as Play and Pause or Show Toolbar and Hide Toolbar, keep working after the first press. If Nonet can't find the name, it looks for the paired name, then for the only item in the same menu with the same keyboard shortcut
 - The app must be running
 - Menu names depend on the macOS language, so reassign the item if you change the language
 
@@ -277,10 +284,11 @@ Sends the selected text and the **Prompt** to the on-device language model (Appl
 
 - Requirements: macOS 26 or later, a Mac that supports Apple Intelligence, and Apple Intelligence turned on in **System Settings › Apple Intelligence & Siri** (with the model fully downloaded)
 - **Output**:
-  - Replace Selection: replaces the selected text with the result. If the front app changes while Nonet waits for the result, the result is copied to the clipboard instead
+  - Replace Selection: replaces the selected text with the result (Nonet pastes it with ⌘V through the clipboard, then restores the clipboard). If the front app changes while Nonet waits for the result, the result is copied to the clipboard instead. If the app didn't report a selection and Nonet read the text with ⌘C (pasting could insert the result at the cursor instead), or if Nonet can't restore what's on the clipboard (see "Nonet can't read the selected text" under Troubleshooting), Nonet shows the result in the result panel instead of pasting it
   - Copy to Clipboard
   - Show Result: shows the result in the result panel, where you can also select and copy text. Click **Copy** to copy the result, and **Close** or Esc to close the panel
 - On a Mac that can't use AI actions, the inspector shows why, and so does the error when the button runs
+- When Nonet restores the clipboard, a copied image comes back in one image format, and files copied in the Finder come back as files without their icons
 
 ## General settings
 
@@ -330,7 +338,7 @@ You can export profiles to a .nonetprofile file to back them up or to share them
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
 - **Import…**: adds the profiles in a file. In either of these cases, Nonet first asks "Import “file name”?":
   - Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced
-  - The file has buttons that run something: scripts, keystrokes that press Return or are longer than four keystrokes, and URLs that open a file on your Mac. Nonet lists each of these buttons with what it runs: the first lines of the script, the keys or the file
+  - The file has buttons that run something: scripts, keystrokes that press Return or are longer than four keystrokes, and URLs that open a file on your Mac. Nonet asks even if nothing would be replaced. It lists each of these buttons as "• Profile › Button" with what it runs: the first three lines of the script and its line count, the keys, or the location of the file
 
 When Nonet asks, check the contents, then choose one of these:
 
@@ -339,9 +347,9 @@ When Nonet asks, check the contents, then choose one of these:
 - Add New Profiles Only: leaves your profiles as they are and adds only profiles for apps you don't have yet (shown only when the file both replaces some profiles and adds new ones)
 - Cancel: changes nothing
 
-In other cases, Nonet imports the file without asking. The result (how many profiles were added, replaced or skipped) appears in the banner at the top of the window.
+In other cases, Nonet imports the file without asking. The result (how many profiles were added, replaced or skipped) appears in the banner at the top of the window. For Menu Item buttons, Nonet imports a keyboard shortcut only if it's a single keystroke. It drops longer ones, and Nonet chooses those items by opening the menus.
 
-**Import profiles from someone else only if you trust them, and always check their scripts.** Scripts and keystrokes run with your permissions. If the file contains scripts, the banner reminds you after importing.
+**Import profiles from someone else only if you trust them.** Scripts and keystrokes run with your permissions. Check the buttons Nonet lists before you import, and read whole scripts in the inspector after importing. If the file contains scripts, the banner reminds you after importing.
 
 ## Trial and license
 
@@ -358,9 +366,9 @@ The License tab:
 
 ## Updates and About
 
-Nonet checks for new versions automatically. When it finds one, the menu bar icon gets a dot, and the **Check for Updates…** item in the Nonet menu says that an update is available. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
+Nonet checks for new versions automatically. When it finds one, the menu bar icon gets a dot, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
 
-The About tab of Settings shows the version and has **Check for Updates…**, **User Guide** (this guide) and **Privacy Policy**, plus the licenses of the third-party software Nonet uses.
+The About tab of Settings shows the version and has **Check for Updates…**, **User Guide** (this guide) and **Privacy Policy**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
 
 ## Troubleshooting
 
@@ -386,11 +394,11 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Make sure you're holding the trigger key set in Settings. Nonet doesn't respond to left ⌘ or ⌥
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- While a Nonet window such as Settings is in front, Keystrokes, Script, Shortcut, Menu Item and AI buttons don't run, and Nonet tells you so (Open App and URL buttons do run). To try a button in Settings, use **Test This Button** in the inspector
+- While a Nonet window such as Settings is in front, Keystrokes, Script, Shortcut, Menu Item and AI buttons don't run, and Nonet shows "Didn't run because a Nonet window is in front. …" (Open App and URL buttons do run). Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing
 
-When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder to open the Settings window.
+When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder, and after a moment (about 3 seconds) the Settings window opens.
 
 ### The pointer doesn't move or clicks don't work
 
@@ -437,6 +445,19 @@ If you denied it and want it later, turn on the browser under Nonet in **System 
 
 Make sure you're on macOS 26 or later, your Mac supports Apple Intelligence, and Apple Intelligence is turned on with the model fully downloaded. The AI editor in the inspector also shows the reason. Select some text before you run the button.
 
+### Nonet can't read the selected text
+
+When Nonet passes the selected text to an AI action, a shortcut or a script and the app doesn't report its selection directly, Nonet copies the text with ⌘C and then restores the clipboard. If an AI action can't get the text, Nonet tells you why (shortcuts and scripts run without the selected text):
+
+- "Select some text first.": select the text and run the button again. In VS Code, Cursor, Obsidian, JetBrains IDEs and Sublime Text, ⌘C with nothing selected copies the whole line, so a single copied line that ends with a line break doesn't count as selected text. The message then says "To use a single line, select it without the line break at the end."
+- "Couldn't read the selected text without losing what's on the clipboard. …": the clipboard holds something Nonet can't put back, such as more than 64 MB, files that are created when pasted, or content the app that copied it is too slow to provide, so Nonet didn't send ⌘C. Copy the selected text with ⌘C yourself, then run the button again
+- "Couldn't read the selected text because Nonet isn't allowed to read the clipboard. …": macOS is set not to let Nonet read the clipboard (see below). Allow it in **System Settings › Privacy & Security**
+
+On macOS 15.4 and later, if your Mac is set to ask before apps read the clipboard, macOS may ask whether Nonet can paste from other apps when Nonet reads the clipboard. Answer within 20 seconds. If it's set to always deny, Nonet never reads or restores the clipboard. It doesn't use ⌘C to read the selected text, and Replace Selection shows the result in the result panel instead.
+
+- Passwords copied from a password manager are never read and never put back
+- If ⌘C copies nothing, Nonet waits 0.5 seconds for apps that copy late. It puts the clipboard back only if that app is still in front, and it never undoes a copy you make later yourself
+
 ### No haptic feedback
 
 Make sure **Haptic feedback** isn't set to Off. You can feel it only on a Force Touch trackpad.
@@ -445,7 +466,7 @@ Make sure **Haptic feedback** isn't set to Off. You can feel it only on a Force 
 
 When you turn on **Open at login**, macOS may ask you to approve it. Allow Nonet in **System Settings › General › Login Items** (Login Items & Extensions on macOS 15 and later).
 
-### “Couldn't load the settings file”
+### “Couldn't load the settings file because it was damaged”
 
 If Nonet says it couldn't load the settings file because it was damaged, it started with the default settings. The original file is kept, under the name shown in the notice, in the same folder (`~/Library/Application Support/Nonet/`). If you exported your profiles, you can bring them back with **Import…**. To clear the notice, choose **Dismiss Notice** from the Nonet menu.
 
@@ -460,7 +481,7 @@ Quit Nonet, move `~/Library/Application Support/Nonet/` to the Trash, and open N
 3. Choose **Quit Nonet** from the Nonet menu
 4. Move `Nonet` from the Applications folder to the Trash
 5. Delete these files and folders:
-   - `~/Library/Application Support/Nonet/` (settings)
+   - `~/Library/Application Support/Nonet/` (settings and the trial record)
    - `~/Library/Preferences/com.iam74k4.Nonet.plist` (the trial record and your license key)
    - `~/Library/Caches/com.iam74k4.Nonet/` (temporary update files)
 6. In Keychain Access, search for `com.iam74k4.Nonet.license.trial` and delete the item it finds (the trial record)

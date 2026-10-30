@@ -60,7 +60,7 @@
 | ショートカット（キーの組み合わせ） | keyboard shortcut | Always write "keyboard shortcut" when the text means a key combination, so it is not confused with Shortcuts items. The site's marketing ("no shortcuts to memorize") is fine as is. |
 | 選択中のテキストを渡す | Pass selected text as input | Checkbox for the Shortcut action. |
 | メニュー項目 | Menu Item / menu item | Apple term. Title Case as an action type. Use Apple's verb in prose: "choose a menu item". |
-| メニューから割り当てる | Pick from Menus | Button and sheet title. Site: "Pick from the menus". The search field placeholder is "Search menus" (site). |
+| メニューから割り当てる | Pick from Menus | Button and sheet title. Site: "Pick from the menus". The search field placeholder is "Search menus" (site). The Menu Item editor's button メニューから選ぶ… is also "Pick from Menus", without an ellipsis, because it opens the same panel. |
 | 割り当てる | assign | "assign it to an empty button". |
 | AI | AI | Action type. Use "Apple Intelligence" for the system feature. AI actions run on "the on-device language model" (privacy policy). |
 | 指示文 | prompt | Field label "Prompt". |
@@ -80,7 +80,7 @@
 | インスペクタ | inspector | Apple term (Xcode, Pages). |
 | 表示名 | Name | Inspector field: the text shown under the icon. |
 | アイコン（SF Symbols / アプリのアイコン / 1〜2文字） | Icon: Symbol / App Icon / Text | Icon sources. Mention "SF Symbols" only when naming Apple's library. 1〜2文字 is "1–2 characters". |
-| プロファイルを追加 | Add Profile… | Ends with an ellipsis because an app must be chosen next. |
+| プロファイルを追加 | Add Profile… | Ends with an ellipsis because an app must be chosen next. The sheet it opens is titled "Add Profile", without an ellipsis (its own key, `settings.addProfileSheet.title`). |
 | 複製 / 削除 / 無効化 / 空にする | Duplicate / Delete / Disable / Clear | Context menu commands for profiles and buttons. |
 | このマスをテスト実行 | Test This Button | Context menu command. In prose: "test run". |
 | 並べ替え / 入れ替え | reorder / swap | "Drag to reorder", "drag to swap buttons". |
@@ -94,7 +94,7 @@
 | トリガーキーを前面のアプリに渡す | Pass the trigger key to the front app | Settings checkbox. |
 | 実行を知らせる | Show a notice when a button runs | Settings checkbox. The notice is the short label at the bottom of the screen. |
 | カーソル | pointer | Apple calls the mouse arrow the "pointer", and the site does too ("the pointer stays put"). Use "cursor" only for a text insertion point. |
-| カーソルの固定方法（詳細） | Pointer lock method (Advanced) | Options: "Automatic" / "Discard Movement" / "Detach Pointer" / "Off". |
+| カーソルの固定方法 | Pointer lock method | Setting label under the Advanced (詳細) section header, so the label itself has no "(Advanced)". Options: "Automatic" / "Discard Movement" / "Detach Pointer" / "Off". |
 | ログイン時に起動 | Open at login | Apple's wording (Dock menu and Login Items). Sentence case because it is a checkbox. |
 | ログイン項目 | Login Items | System Settings › General › Login Items on macOS 14; the pane is "Login Items & Extensions" on macOS 15 and later. |
 | プロファイルの書き出し / 読み込み | Export or import profiles | Setting label in General, next to the push buttons "Export…" and "Import…". The save and open panels are titled "Export Profiles" and "Import Profiles". The file is "a .nonetprofile file". |
@@ -110,13 +110,18 @@
 | 購入する / 購入ページ | Buy Nonet / purchase page | Site button and privacy policy wording. |
 | 買い切り | one-time purchase | Site. |
 | メニューバー / メニューバーのアイコン | menu bar / menu bar icon | Apple term. |
+| Nonet のメニュー | the Nonet menu | The menu that opens from the menu bar icon. The user guide uses this name: "choose Settings… from the Nonet menu". |
 | プロファイルを編集… | Edit Profiles… | Menu bar menu item. |
 | 「Xcode のプロファイル」（メニューの状態） | Xcode profile | Status line in the menu bar menu. |
 | 初回の案内 / 初回の案内をもう一度 | welcome guide / Show Welcome Guide | Menu item without an ellipsis, because it only opens a window. |
 | アプリを選ぶ / あとで設定する / 試してみる | Choose Apps / Set Up Later / Try It Out | Onboarding steps and buttons. Apple uses "choose" for user decisions and "select" for text or list items. |
 | 練習モード | practice mode | "Nothing runs in practice mode." |
 | アップデート / アップデートを確認 | update / Check for Updates… | Sparkle's standard menu item. |
+| アップデートがあります… | Update Available… | Replaces Check for Updates… in the Nonet menu when a scheduled check has found an update. Title Case and an ellipsis, because it opens Sparkle's update window. |
 | 終了 | Quit Nonet | Apple's `Quit <App>` pattern. |
+| Nonet について | About Nonet | App menu item of the hidden main menu. It opens the About tab of Settings. |
+| 取り消す / やり直す / カット / コピー / ペースト / ペーストしてスタイルを合わせる / 削除 / すべてを選択 | Undo / Redo / Cut / Copy / Paste / Paste and Match Style / Delete / Select All | Edit menu of the hidden main menu. These are Apple's standard item names. The menu itself is "Edit" (its own key, `menu.edit`, because 編集 is also the symbol group "Editing"). |
+| ウインドウ / 閉じる / しまう | Window / Close / Minimize | Window menu of the hidden main menu (⌘W, ⌘M). |
 | 「⌘を離して実行」（HUD の案内） | Release ⌘ to run | Site wording. |
 | アクセシビリティ | Accessibility | Name of the System Settings pane, so it is capitalized: "Accessibility permission". |
 | オートメーション | Automation | Same rule: "Automation permission". |
@@ -140,7 +145,7 @@
 | プリセットのボタン名 | the target app's own English wording | Take preset names from the target app's English menus (Xcode "Build", "Test"; Zoom "Mute"). |
 | 「」 / … / 〜 / 秒 | “ ” / … (U+2026) / – (en dash) / s | Curly quotes, the single ellipsis character, an en dash for ranges, and a space before units: "0.15–0.8 s", "60 s". Spell out "seconds" in running prose. Menu paths: "Nonet › Settings…". |
 | 打鍵 | keystroke | "Adds Esc as a keystroke". The action type is still "Keystrokes". |
-| 表記で入力 / キーの表記 | Type keys as text / Keys as text | Placeholder and label of the field where keys are typed as text, like ⌘L → ⌘C. Apple style avoids "e.g.". |
+| 表記で入力 / キーの表記 | Type keys as text / Keys as text | Placeholder and VoiceOver label of the field where keys are typed as text. The example is in the caption under the field: "For example, ⌘L → ⌘C. …". Apple style avoids "e.g.". |
 | 決定（入力欄の横のボタン） / 使う（アイコンの文字） | Apply / Use | Buttons that confirm a typed value. |
 | 送るキー / 開くアプリ / 開く URL / 実行するスクリプト / 実行するショートカット / 押すメニュー項目 | Keys to send / App to open / URL to open / Script to run / Shortcut to run / Menu item to choose | Inspector field labels, sentence case. |
 | 未設定 / なし（メニューを順にたどって押します） | Not set / None (Nonet opens the menus to choose it) | Values shown when a button or a menu item has nothing set. |
@@ -150,11 +155,16 @@
 | 元に戻せません | You can't undo this action. | Apple's wording in confirmation alerts. |
 | 許可を求める / もう一度確かめる | Request Permission / Check Again | Buttons in the Settings status banner. |
 | トリガーと HUD / 知らせ / 詳細 / 起動 / 書き出しと読み込み / 状態 | Trigger & HUD / Feedback / Advanced / Startup / Export & Import / Status | Settings section headers, Title Case. |
-| 新しいプロファイルだけ追加 / 置き換えて読み込む | Add New Profiles Only / Replace and Import | Buttons in the import confirmation alert. |
+| 新しいプロファイルだけ追加 / 置き換えて読み込む / 読み込む | Add New Profiles Only / Replace and Import / Import | Buttons in the import confirmation alert. "Import" is shown when nothing would be replaced. It has its own key (`settings.import.confirmButton`), because the bare 読み込む is "Load" in the Pick from Menus panel. |
+| ・%@ › %@ / スクリプト（%lld行）: / キー入力: %@ / 開くファイル: %@ / …ほか%lld行 | • %1$@ › %2$@ / Script (%lld lines): / Keystrokes: %@ / File to open: %@ / …and %lld more lines | The import confirmation's list of buttons that run something: "• Profile › Button", then the first lines of the script, the keys or the file. Use plural variants for the line counts. |
+| 元に戻す（9マスの下） / マスを空にしました | Undo / Cleared the button. | The notice and link under the grid after a button is cleared. After a filled button is replaced with a menu item, the notice is "Replaced the button with the menu item.". |
+| マスを空にする / マスの移動 / マスの入れ替え / メニュー項目の割り当て | Clear Button / Move Button / Swap Buttons / Assign Menu Item | Undo action names (`UndoManager.setActionName`) for button edits in Settings. Title Case. |
 | 既定（サイドバーのバッジ） | Default | Only the badge next to the Global profile. The profile itself is always named "Global". |
 | プリセットあり / 追加済み / 設定済み | Preset / Added / Added | Badges in app lists. 設定済み（無効） is "Added, disabled". |
-| 記号 / アプリ / 文字（アイコンの種類） | Symbol / App / Text | Icon picker segments. The アプリ key is shared with the Profiles sidebar header and the Menu Item editor's row label, so the segment says "App", not "App Icon". The sidebar header would read better as "Apps" if it got its own key. |
-| 左上 / 上 / 右上 / 左 / 中央 / 右 / 左下 / 下 / 右下 | top left / top / top right / left / center / right / bottom left / bottom / bottom right | Button positions, lowercase. Used inside "Button %lld (%@)" and VoiceOver labels. In fixed text where the position comes before a noun, hyphenate it ("the top-right corner"). |
+| 記号 / アプリ / 文字（アイコンの種類） | Symbol / App / Text | Icon picker segments. The アプリ key is shared with the Menu Item editor's row label, so the segment says "App", not "App Icon". The Profiles sidebar header has its own key (`settings.sidebar.appsHeader`) and reads "Apps". |
+| 左上 / 上 / 右上 / 左 / 中央 / 右 / 左下 / 下 / 右下 | top left / top / top right / left / center / right / bottom left / bottom / bottom right | Button positions, lowercase. Used inside "Button %lld (%@)" and VoiceOver labels. Before a noun, the four corners use their own keys (`attributivePosition.topLeft` and so on) with U+2011 non-breaking hyphens, so the line doesn't wrap at the hyphen: "That was the bottom‑left button. Try the top‑right corner." |
+| 開発 / デザイン / チャット / メール / ブラウザ / 会議 / ドキュメント / ファイル（プリセットの分類） | Development / Design / Chat / Mail / Web Browsing / Video Conferencing / Writing / File Management | Preset categories shown with each app in Choose Apps. Title Case. |
+| よく使う / 編集 / 画面と操作 / メディアと連絡 / AI と文章 / 開発（記号の分類） | Common / Editing / Windows & Navigation / Media & Communication / AI & Writing / Development | Symbol groups in the icon picker. 編集 here is "Editing", not the Edit menu. |
 | マス %lld（%@） | Button %lld (%@) | Inspector heading and VoiceOver label, e.g. "Button 3 (top right)". An empty one is "%@: empty" in Settings and "Empty button, %@" in the HUD. |
 | アクションを追加 / 空いているマスに入れる / このマスを空にする / 既定のアイコンに戻す | Add Action / Add to Empty Button / Clear This Button / Restore Default Icon | Commands, Title Case. |
 | アプリを選ぶ…（1つ選ぶ） / 一覧に無いアプリを選ぶ… | Choose App… / Choose Another App… | Singular wherever one app is picked. The bare key アプリを選ぶ is the onboarding step "Choose Apps", but code also uses it for the Pick from Menus app pop-up's placeholder and for the app open panel's title. Those should get their own key, translated "Choose App". |
@@ -162,7 +172,7 @@
 | 「ボタン名」を押す（文中で操作を指す） | click <label> | In UI text, name controls by their label without quotes: "Click Add Profile to…", "click Register", "Click Next to continue". |
 | 動作中 / 停止しています / パスワード入力中は使えません | Running / Stopped / Unavailable while entering a password | Menu bar status line. |
 | この知らせを消す / アクセシビリティを許可… | Dismiss Notice / Allow Accessibility Access… | Menu bar menu items. |
-| Nonet（無効） / Nonet（確認が必要） | Nonet (disabled) / Nonet (needs attention) | Menu bar icon tooltip and VoiceOver. |
+| Nonet（無効） / Nonet（確認が必要） / Nonet（アップデートがあります） | Nonet (disabled) / Nonet (needs attention) / Nonet (update available) | Menu bar icon tooltip and VoiceOver. |
 | あとで許可する / 準備ができました / できました！ | Not Now / You're all set / Well done | Onboarding. No exclamation marks. |
 | 練習中 · %@ / 指を離して実行 | Practice · %@ / Lift your finger to run | HUD hints. Finger Lift uses the second hint; Key Release uses "Release ⌘ to run". |
 | スクリプトで使える環境変数 / スクリプトに渡す環境変数 | Environment variables for scripts / Environment variables passed to scripts | Help button label and popover heading in the Script editor. |
