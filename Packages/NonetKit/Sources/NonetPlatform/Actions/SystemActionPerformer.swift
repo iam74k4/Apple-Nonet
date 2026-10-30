@@ -14,16 +14,18 @@ public final class SystemActionPerformer: ActionPerforming {
         contextReader = ContextReader(keySender: keySender)
         // 前に起動していたときに開かれずに残ったターミナル用のファイル（選択テキストなどが入っている）を消す
         TerminalCommandFile.removeStaleFilesInBackground()
+        // 裏のスクリプトに渡す PATH を、最初のスクリプトより前に調べ始めておく（起動ごとに1回）
+        UserShell.shared.start()
     }
 
     public func perform(_ action: Action, context: ActionContext) async throws {
         if let text = try await performReturningOutput(action, context: context) {
-            // AI の showResult を HUD に出す口がまだ無いので、クリップボードに入れておく
+            // 「画面に表示」を HUD に出す口がまだ無いので、クリップボードに入れておく
             PasteboardWriter.write(text, to: .general)
         }
     }
 
-    /// perform と同じだが、AI の showResult の結果を返す（ほかのアクションは nil）。
+    /// perform と同じだが、結果の出し方が「画面に表示」の AI・裏のスクリプト・ショートカットの結果を返す（ほかは nil）。
     /// 呼び出し側が結果を表示できるときはこちらを使う
     public func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
         do {
@@ -48,9 +50,9 @@ public final class SystemActionPerformer: ActionPerforming {
         case .openURL(let url):
             try await URLNormalizer.open(url.url)
         case .script(let script):
-            try await runScript(script, frontmost: frontmost)
+            return try await runScript(script, frontmost: frontmost)
         case .shortcut(let shortcut):
-            try await runShortcut(shortcut, frontmost: frontmost)
+            return try await runShortcut(shortcut, frontmost: frontmost)
         case .menuItem(let menuItem):
             try await pressMenuItem(menuItem, frontmost: frontmost)
         case .ai(let ai):
@@ -66,9 +68,10 @@ public final class SystemActionPerformer: ActionPerforming {
 
     // MARK: - スクリプト
 
-    private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?) async throws {
+    private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?) async throws -> String? {
         try ScriptRunner.validate(source: script.source)
-        var info = await contextReader.read(.forScript(source: script.source), app: frontmost).info
+        let reading = await contextReader.read(.forScript(source: script.source), app: frontmost)
+        var info = reading.info
         if let text = info.selectedText, text.count > ContextReader.scriptSelectedTextLimit {
             info.selectedText = String(text.prefix(ContextReader.scriptSelectedTextLimit))
         }
@@ -78,25 +81,65 @@ public final class SystemActionPerformer: ActionPerforming {
         let workingDirectory = location.workingDirectory
         switch script.runMode {
         case .background:
-            try await ScriptRunner.runInBackground(
+            // ターミナルと同じ PATH（起動時に調べ始めたもの。まだなら終わるまで待つ。調べられなければ今までどおり）
+            let shellPath = await UserShell.shared.info()?.path
+            let output = try await ScriptRunner.runInBackground(
                 source: script.source,
-                environment: ScriptRunner.environment(base: ProcessInfo.processInfo.environment, context: variables),
+                environment: ScriptRunner.environment(base: ProcessInfo.processInfo.environment, context: variables, shellPath: shellPath),
                 workingDirectory: workingDirectory,
-                timeout: ScriptRunner.effectiveTimeout(script.timeout)
+                timeout: ScriptRunner.effectiveTimeout(script.timeout),
+                shellPath: shellPath
             )
+            guard let destination = script.output else { return nil }
+            return try await deliver(output, to: destination, selection: reading.selectionSource, frontmost: frontmost)
         case .terminal:
+            // 出力はターミナルのウインドウに出るので、結果の出し方は使わない
             try await TerminalCommandFile.open(source: script.source, variables: variables, workingDirectory: workingDirectory.path)
+            return nil
         }
     }
 
     // MARK: - ショートカット
 
-    private func runShortcut(_ shortcut: ShortcutAction, frontmost: RunningAppInfo?) async throws {
-        var input: String?
+    private func runShortcut(_ shortcut: ShortcutAction, frontmost: RunningAppInfo?) async throws -> String? {
+        var reading: ContextReading?
         if shortcut.passSelectedText {
-            input = await contextReader.read(.forShortcut(shortcut), app: frontmost).info.selectedText
+            reading = await contextReader.read(.forShortcut(shortcut), app: frontmost)
         }
-        try await ShortcutRunner.run(name: shortcut.name, input: input)
+        let output = try await ShortcutRunner.run(
+            name: shortcut.name,
+            input: reading?.info.selectedText,
+            wantsTextOutput: shortcut.output != nil
+        )
+        guard let destination = shortcut.output else { return nil }
+        return try await deliver(output, to: destination, selection: reading?.selectionSource, frontmost: frontmost)
+    }
+
+    // MARK: - 結果の出し方
+
+    /// スクリプトとショートカットの出力を、選んだ出し方で使う。出力が空なら何もしない
+    private func deliver(_ output: ProcessOutput, to destination: AIOutput, selection: SelectionSource?, frontmost: RunningAppInfo?) async throws -> String? {
+        guard let text = try CommandOutput.text(from: output) else { return nil }
+        return try await deliver(text, to: destination, selection: selection, frontmost: frontmost)
+    }
+
+    /// 結果を選んだ出し方で使う。画面に出すものを返す（置き換えた・コピーしたなら nil）
+    private func deliver(_ text: String, to destination: AIOutput, selection: SelectionSource?, frontmost: RunningAppInfo?) async throws -> String? {
+        switch destination {
+        case .replaceSelection:
+            // アクセシビリティが「選択なし」と答えていたなら、貼り付けると選択の置き換えではなくカーソルの位置への挿入になる。
+            // クリップボードの中身を保てないときも貼り付けない。どちらも結果のパネルに出す（利用者がコピーできる）
+            guard ReplacePlan.canPaste(over: selection) else {
+                ActionLog.logger.notice("選択があるか確かめられないので、置き換えずに結果を表示します")
+                return text
+            }
+            return try await replaceSelection(with: text, in: frontmost) ? nil : text
+        case .copyToClipboard:
+            PasteboardWriter.write(text, to: .general)
+            return nil
+        case .showResult:
+            return text
+        }
     }
 
     // MARK: - メニュー項目
@@ -149,21 +192,7 @@ public final class SystemActionPerformer: ActionPerforming {
             throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
         }
         let result = try await OnDeviceAI.respond(instruction: ai.prompt, text: text)
-        switch ai.output {
-        case .replaceSelection:
-            // アクセシビリティが「選択なし」と答えていたなら、貼り付けると選択の置き換えではなくカーソルの位置への挿入になる。
-            // クリップボードの中身を保てないときも貼り付けない。どちらも結果のパネルに出す（利用者がコピーできる）
-            guard ReplacePlan.canPaste(over: reading.selectionSource) else {
-                ActionLog.logger.notice("選択があるか確かめられないので、置き換えずに結果を表示します")
-                return result
-            }
-            return try await replaceSelection(with: result, in: frontmost) ? nil : result
-        case .copyToClipboard:
-            PasteboardWriter.write(result, to: .general)
-            return nil
-        case .showResult:
-            return result
-        }
+        return try await deliver(result, to: ai.output, selection: reading.selectionSource, frontmost: frontmost)
     }
 
     /// クリップボード経由で ⌘V し、相手が読み終えてから元のクリップボードに戻す。
@@ -213,6 +242,24 @@ enum SelectionMessage {
             return String(localized: "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください", bundle: .nonetActions)
         }
         return String(localized: "テキストを選択してから実行してください", bundle: .nonetActions)
+    }
+}
+
+/// スクリプトとショートカットの出力を、結果として使う形にする
+enum CommandOutput {
+    /// 末尾の改行を1つだけ除いた標準出力（"echo" の改行を貼り付けない）。空なら nil（貼り付けもコピーもしない）。
+    /// 上限を超えて先頭が切れていたら、途中から始まる文字を貼り付けたりコピーしたりしないよう NonetError
+    static func text(from output: ProcessOutput) throws -> String? {
+        if output.stdoutTruncated {
+            let limit = ScriptRunner.outputLimit / 1024
+            throw NonetError.actionFailed(String(localized: "出力が大きすぎるため、使えませんでした（\(limit) KB まで）", bundle: .nonetActions))
+        }
+        var text = output.stdout
+        // "\r\n" は Swift では1文字なので、最後の1文字が改行かで見る
+        if let last = text.last, last.isNewline {
+            text.removeLast()
+        }
+        return text.isEmpty ? nil : text
     }
 }
 

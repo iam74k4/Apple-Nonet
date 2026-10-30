@@ -4,7 +4,8 @@ import Foundation
 import Testing
 @testable import NonetCore
 
-/// アプリ別プリセットの中身を確かめる。KeySequence.displayString などほかの担当の未実装部分は呼ばない
+/// アプリ別プリセットの中身を確かめる（AI も Claude Code も使える Mac のもの。使えない Mac は PresetCapabilitiesTests）。
+/// KeySequence.displayString などほかの担当の未実装部分は呼ばない
 @Suite struct PresetLibraryTests {
     static let bundleIDs = PresetLibrary.apps.map(\.app.bundleID)
 
@@ -22,8 +23,8 @@ import Testing
         "com.apple.Notes", "com.tinyspeck.slackmacgap", "notion.id", "com.microsoft.teams2",
     ]
 
-    /// 中央が Claude Code の開発アプリ
-    static let claudeCodeCenterBundleIDs: Set<String> = [
+    /// Claude Code が外側のマスにある開発アプリ。中央はそのアプリでいちばん使うキー
+    static let claudeCodeBundleIDs: Set<String> = [
         "com.apple.dt.Xcode", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.apple.Terminal",
     ]
 
@@ -266,22 +267,38 @@ import Testing
             }
             #expect(!ai.prompt.isEmpty)
             #expect((ai.output == .replaceSelection) == Self.replaceSelectionBundleIDs.contains(bundleID))
-        } else if Self.claudeCodeCenterBundleIDs.contains(bundleID) {
-            guard case .script(let script) = center.action else {
-                Issue.record("中央が Claude Code ではない: \(center.title)")
-                return
-            }
-            #expect(script.runMode == .terminal)
-            #expect(script.source.contains("claude"))
-            #expect(script.source.contains("PROJECT_DIR"))
         } else {
-            // Figma・Zoom・Finder は選択中のテキストが無いので、そのアプリでいちばん使う操作
+            // 開発アプリ（押し間違えるとターミナルが開く Claude Code は外側）と、
+            // Figma・Zoom・Finder（選択中のテキストが無い）は、そのアプリでいちばん使う操作
             #expect(center.action.kind == .keystroke, "\(center.title)")
         }
     }
 
+    /// Claude Code は、プロジェクトのフォルダでターミナルを開く外側のマス
+    @Test(arguments: claudeCodeBundleIDs.sorted())
+    func claudeCodeIsAnOuterTerminalCell(bundleID: String) throws {
+        let preset = try Self.preset(bundleID)
+        let index = try #require(preset.pages[0].cells.firstIndex { cell in
+            guard case .script(let script)? = cell?.action else { return false }
+            return script.runMode == .terminal
+        }, "Claude Code が無い")
+        #expect(index != PresetBuilder.centerIndex)
+        guard case .script(let script)? = preset.pages[0].cells[index]?.action else { return }
+        #expect(script.source.contains("claude"))
+        #expect(script.source.contains("PROJECT_DIR"))
+    }
+
+    @Test func noPresetPutsATerminalWindowInTheCenter() {
+        for capabilities in PresetCapabilities.allCombinations {
+            for preset in PresetLibrary.apps(for: capabilities) {
+                guard case .script(let script)? = preset.pages[0].cells[PresetBuilder.centerIndex]?.action else { continue }
+                #expect(script.runMode != .terminal, "\(preset.app.bundleID)")
+            }
+        }
+    }
+
     @Test func everyAppHasAKnownCenterKind() {
-        let classified = Self.aiCenterBundleIDs.union(Self.claudeCodeCenterBundleIDs)
+        let classified = Self.aiCenterBundleIDs.union(Self.claudeCodeBundleIDs)
             .union(["com.figma.Desktop", "us.zoom.xos", "com.apple.finder"])
         for bundleID in Self.bundleIDs {
             #expect(classified.contains(bundleID), "中央の種類が決まっていない: \(bundleID)")
@@ -310,9 +327,30 @@ import Testing
         #expect(actions.contains(.keystroke(.key("u", .command))))
         // モックのとおり ⌥⌘C（Integrate > Commit…）
         #expect(actions.contains(.keystroke(.key("c", [.option, .command]))))
-        #expect(actions.contains {
-            if case .launchApp(let launch) = $0 { launch.app.bundleID == "com.apple.Terminal" } else { false }
-        })
+    }
+
+    @Test func xcodeCentersOpenQuicklyInsteadOfLaunchingTerminal() throws {
+        let xcode = try Self.preset("com.apple.dt.Xcode")
+        // Open Quickly… は ⇧⌘O。ターミナルの起動はグローバルのランチャーにあるので入れない
+        #expect(xcode.pages[0].cells[PresetBuilder.centerIndex]?.action == .keystroke(.key("o", [.shift, .command])))
+        #expect(!Self.cells(of: xcode).contains { $0.action.kind == .launchApp })
+    }
+
+    @Test func slackJumpsToAConversationInsteadOfSettingStatus() throws {
+        let actions = try Self.actions(of: "com.tinyspeck.slackmacgap")
+        // Slack のヘルプ「Navigate Slack with your keyboard」の ⌘K（Mac）
+        #expect(actions.contains(.keystroke(.key("k", .command))))
+        #expect(!actions.contains(.keystroke(.key("y", [.shift, .command]))))
+    }
+
+    @Test func browsersFindOnPageInsteadOfReadingListOrBookmark() throws {
+        let find = Action.keystroke(.key("f", .command))
+        let safari = try Self.actions(of: "com.apple.Safari")
+        #expect(safari.contains(find))
+        #expect(!safari.contains(.keystroke(.key("d", [.shift, .command]))))
+        let chrome = try Self.actions(of: "com.google.Chrome")
+        #expect(chrome.contains(find))
+        #expect(!chrome.contains(.keystroke(.key("d", .command))))
     }
 
     @Test func xcodeSimulatorOpensDeviceHubOrSimulator() throws {
@@ -388,9 +426,10 @@ import Testing
 
     @Test func safariMatchesMock() throws {
         let actions = try Self.actions(of: "com.apple.Safari")
+        // モックの「あとで読む」⇧⌘D はページ内検索 ⌘F に替えた
         let expected: [KeySequence] = [
             .key("t", .command), .key("w", .command), .key("r", .command), .key("[", .command),
-            .key("]", .command), .key("d", [.shift, .command]), .key("t", [.shift, .command]),
+            .key("]", .command), .key("f", .command), .key("t", [.shift, .command]),
         ]
         for keys in expected {
             #expect(actions.contains(.keystroke(keys)))

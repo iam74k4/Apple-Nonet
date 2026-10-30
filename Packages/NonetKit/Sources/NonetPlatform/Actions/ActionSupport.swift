@@ -72,8 +72,8 @@ enum ActionText {
     }
 
     /// 見出しと詳細（標準エラーの末尾など）を改行でつなぐ
-    static func message(_ headline: String, detail: String) -> String {
-        let lines = lastLines(of: detail)
+    static func message(_ headline: String, detail: String, lineCount: Int = 3) -> String {
+        let lines = lastLines(of: detail, count: lineCount)
         return lines.isEmpty ? headline : ([headline] + lines).joined(separator: "\n")
     }
 }

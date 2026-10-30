@@ -27,15 +27,18 @@ extension PresetData {
     }
 
     /// 出典: https://slack.com/help/articles/201374536-Slack-keyboard-shortcuts （Mac の欄）
-    /// 会話の切り替え ⌘K は Mac の欄に載っていないので使わない。
+    /// - 会話へ移動 ⌘K はこの一覧の Mac の欄には無いが、Slack のヘルプ「Navigate Slack with your keyboard」の
+    ///   「Open a conversation」に「Press ⌘ K (Mac) or Ctrl K (Windows/Linux)」とある:
+    ///   https://slack.com/help/articles/115003340723-Navigate-Slack-with-your-keyboard
     /// ハドル ⇧⌘H は「開始・参加・退出・終了」を1つのキーで切り替えるので入れない（Teams の ⇧⌘H と同じ理由）。
     /// 押し間違えると通話から抜けたり、マイクをオンにしてチャンネルにハドルを始めたりしてしまう。canvas では検索と置換にもなる。
-    /// 中央: 読んでいるメッセージを選んで訳すことが多いので翻訳
-    static var slack: AppPreset {
+    /// 外したもの: ステータス ⇧⌘Y（毎日は使わない）。代わりに、いちばん使う会話へ移動 ⌘K
+    /// 中央: 読んでいるメッセージを選んで訳すことが多いので翻訳。AI を使えない Mac では会話へ移動を中央に移す
+    static func slack(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.slack,
             category: "チャット",
-            cells: [
+            cells: PresetBuilder.aiCentered([
                 PresetBuilder.key("新規メッセージ", "square.and.pencil", .key("n", .command)),
                 PresetBuilder.key("検索", "magnifyingglass", .key("g", .command)),
                 PresetBuilder.key("全未読", "tray.full", .key("a", [.shift, .command])),
@@ -43,23 +46,30 @@ extension PresetData {
                 PresetBuilder.translate(),
                 PresetBuilder.key("アクティビティ", "bell", .key("m", [.shift, .command])),
                 PresetBuilder.key("DM", "bubble.left", .key("k", [.shift, .command])),
-                PresetBuilder.key("ステータス", "face.smiling", .key("y", [.shift, .command])),
+                // 名前を入れてチャンネルか DM を開く。押し間違えても入力欄が開くだけ
+                PresetBuilder.key("会話へ移動", "arrow.right.circle", .key("k", .command)),
                 // 次の未読のチャンネルか DM へ移る。押し間違えても移動するだけ
                 PresetBuilder.key("次の未読", "arrow.down.circle", .special(.downArrow, [.option, .shift])),
-            ],
-            summary: { "スレッド、翻訳、未読など\($0)個" }
+            ], fallbackIndex: 7, capabilities),
+            summary: { count in
+                if capabilities.appleIntelligence {
+                    "スレッド、翻訳、未読など\(count)個"
+                } else {
+                    "スレッド、未読、会話へ移動など\(count)個"
+                }
+            }
         )
     }
 
     /// 出典: https://support.microsoft.com/en-us/office/keyboard-shortcuts-for-microsoft-teams-2e8e2a70-e8d8-4a19-949b-4c36dd5292d2
     /// （新しい Teams の Mac の欄）。⌘1〜⌘9 はアプリバーの並び順で変わるので使わない。
     /// 通話の終了 ⇧⌘H は押し間違えると会議から抜けてしまうので入れない。
-    /// 中央: 長いチャットを選んで読むことが多いので要約
-    static var teams: AppPreset {
+    /// 中央: 長いチャットを選んで読むことが多いので要約。AI を使えない Mac では、会議中にいちばん使うミュートを中央に移す
+    static func teams(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.teams,
             category: "チャット",
-            cells: [
+            cells: PresetBuilder.aiCentered([
                 PresetBuilder.key("新規チャット", "square.and.pencil", .key("n", .command)),
                 PresetBuilder.key("検索", "magnifyingglass", .key("e", .command)),
                 PresetBuilder.key("チャットへ移動", "arrow.right.circle", .key("g", .command)),
@@ -70,18 +80,26 @@ extension PresetData {
                 PresetBuilder.key("ビデオ", "video", .key("o", [.shift, .command])),
                 // 共有するコンテンツのトレイを開く
                 PresetBuilder.key("画面共有", "display", .key("e", [.shift, .command])),
-            ],
-            summary: { "ミュート、検索、要約など\($0)個" }
+            ], fallbackIndex: 6, capabilities),
+            summary: { count in
+                if capabilities.appleIntelligence {
+                    "ミュート、検索、要約など\(count)個"
+                } else {
+                    // Zoom と同じ説明（どちらにもミュート・ビデオ・画面共有がある）
+                    "ミュート、ビデオ、画面共有など\(count)個"
+                }
+            }
         )
     }
 
     /// 出典: https://support.apple.com/guide/mail/keyboard-shortcuts-mlhlb94f262b/mac
-    /// 中央: 受け取ったメールを選んで読むことが多いので要約（受信したメールは書き換えられないので結果は表示）
-    static var mail: AppPreset {
+    /// 中央: 受け取ったメールを選んで読むことが多いので要約（受信したメールは書き換えられないので結果は表示）。
+    /// AI を使えない Mac では、読み終えたメールを片付けるアーカイブを中央に移す
+    static func mail(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.mail,
             category: "メール",
-            cells: [
+            cells: PresetBuilder.aiCentered([
                 PresetBuilder.key("新規メール", "square.and.pencil", .key("n", .command)),
                 PresetBuilder.key("返信", "arrowshape.turn.up.left", .key("r", .command)),
                 PresetBuilder.key("全員に返信", "arrowshape.turn.up.left.2", .key("r", [.shift, .command])),
@@ -91,8 +109,14 @@ extension PresetData {
                 PresetBuilder.key("受信", "tray.and.arrow.down", .key("n", [.shift, .command])),
                 PresetBuilder.key("既読/未読", "envelope.badge", .key("u", [.shift, .command])),
                 PresetBuilder.key("送信", "paperplane", .key("d", [.shift, .command])),
-            ],
-            summary: { "返信、アーカイブ、要約など\($0)個" }
+            ], fallbackIndex: 5, capabilities),
+            summary: { count in
+                if capabilities.appleIntelligence {
+                    "返信、アーカイブ、要約など\(count)個"
+                } else {
+                    "返信、アーカイブ、転送など\(count)個"
+                }
+            }
         )
     }
 }

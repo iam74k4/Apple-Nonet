@@ -442,12 +442,61 @@ struct SettingsScriptEditor: View {
                     }
                 }
             }
+            if Self.showsOutput(script) {
+                SettingsCommandOutputField(
+                    output: script.output,
+                    caption: String(localized: "スクリプトの標準出力を、最後の改行を除いて使います", bundle: .module)
+                ) { output in
+                    update { $0.output = output }
+                }
+            }
         }
+    }
+
+    /// 結果の出し方を選べるか。ターミナルで実行するときは、出力はターミナルのウインドウに出る
+    static func showsOutput(_ script: ScriptAction) -> Bool {
+        script.runMode == .background
     }
 
     /// 描画したときの script ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
     private func update(_ transform: (inout ScriptAction) -> Void) {
         model.updateAction(ofCell: cellID, as: ScriptAction.self, transform)
+    }
+}
+
+/// スクリプト（裏で実行）とショートカットの「結果の出し方」。AI と同じ選択肢の前に「出力を使わない」を置く
+enum SettingsCommandOutput {
+    /// nil は「出力を使わない」（既定。以前の設定もこれ）
+    static let choices: [AIOutput?] = [nil] + AIOutput.allCases.map(Optional.some)
+
+    static func name(_ output: AIOutput?) -> String {
+        guard let output else { return String(localized: "出力を使わない", bundle: .module) }
+        return SettingsText.name(output)
+    }
+}
+
+/// スクリプトとショートカットの「結果の出し方」の欄
+struct SettingsCommandOutputField: View {
+    let output: AIOutput?
+    let caption: String
+    let set: (AIOutput?) -> Void
+
+    var body: some View {
+        SettingsField(title: String(localized: "結果の出し方", bundle: .module)) {
+            Picker(selection: Binding(get: { output }, set: set)) {
+                ForEach(SettingsCommandOutput.choices, id: \.self) { choice in
+                    Text(SettingsCommandOutput.name(choice)).tag(choice)
+                }
+            } label: {
+                Text("結果の出し方", bundle: .module)
+            }
+            .labelsHidden()
+            .pickerStyle(.radioGroup)
+            Text(caption)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -468,7 +517,7 @@ struct SettingsScriptHelp: View {
     /// 説明の最後の段落（それぞれ1つの Text）
     static var notes: [String] {
         [
-            String(localized: "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。", bundle: .module),
+            String(localized: "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。裏で実行するときはログインシェル（zsh -l）で動き、PATH はターミナルと同じもの（Nonet の起動時に ~/.zshrc まで読んで調べたもの）を使います。~/.zshrc のエイリアスや関数を使えるのは、ターミナルで実行するときだけです。", bundle: .module),
             // 選択中のテキストとブラウザの URL は、読むのに ⌘C を送ったりブラウザに問い合わせたりするので、名前を書いたスクリプトでだけ読む
             String(localized: "NONET_SELECTED_TEXT と NONET_BROWSER_URL は、スクリプトの中（コメントでもかまいません）にその名前があるときだけ設定されます。", bundle: .module),
             // 「ターミナルで実行」は .command のファイルを開くだけで、Apple Events を送らない（許可を求めない）
@@ -569,6 +618,12 @@ struct SettingsShortcutEditor: View {
                 Text("翻訳や要約など、テキストを受け取るショートカットで使います", bundle: .module)
             }
             .toggleStyle(.checkbox)
+            SettingsCommandOutputField(
+                output: shortcut.output,
+                caption: String(localized: "ショートカットの出力をテキストとして、最後の改行を除いて使います", bundle: .module)
+            ) { output in
+                update { $0.output = output }
+            }
         }
         .onAppear { list.loadIfNeeded() }
     }
