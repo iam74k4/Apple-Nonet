@@ -881,9 +881,17 @@ import Testing
         #expect(restored.pages[0].cells.compactMap { $0?.title } == xcode.pages[0].cells.compactMap { $0?.title })
         let message = try #require(h.model.fileMessage)
         #expect(!message.isError)
-        #expect(message.text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
+        #expect(message.text.contains(L10n.uiCounted("\(1)個のプロファイルを追加しました。")))
         // Xcode のプリセットにはスクリプトのマスがある
         #expect(message.text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")))
+    }
+
+    /// 書き出した数は、文言の言語の規則で数える（地域が日本でアプリが英語でも「1 profile」）
+    @Test func theExportMessageCountsInTheTextLanguage() throws {
+        let h = try SettingsHarness()
+        let xcode = try #require(h.xcodeProfile)
+        h.model.exportProfiles([xcode], to: h.temporaryFile("Xcode.nonetprofile"))
+        #expect(h.model.fileMessage?.text == L10n.uiCounted("\(1)個のプロファイルを「\("Xcode.nonetprofile")」に書き出しました。"))
     }
 
     @Test func importingReplacesTheSameAppAfterConfirmation() throws {
@@ -895,7 +903,7 @@ import Testing
         let confirmation = try #require(h.model.confirmation)
         h.model.confirm(confirmation)
         let text = try #require(h.model.fileMessage?.text)
-        #expect(text.contains(L10n.ui("\(2)個のプロファイルを同じアプリのものと置き換えました。")))
+        #expect(text.contains(L10n.uiCounted("\(2)個のプロファイルを同じアプリのものと置き換えました。")))
         #expect(text.contains(L10n.ui("グローバルのページを置き換えました。")))
         #expect(h.model.appProfiles.count == 2)
     }
@@ -936,7 +944,7 @@ import Testing
         #expect(message.contains(L10n.ui("・\(L10n.ui("グローバルのページ"))")))
         #expect(message.contains(L10n.ui("・\("自分の Xcode")")))
         #expect(message.contains(L10n.ui("・\("Safari")")))
-        #expect(message.contains(L10n.ui("ほかに\(1)個のプロファイルを新しく追加します。")))
+        #expect(message.contains(L10n.uiCounted("ほかに\(1)個のプロファイルを新しく追加します。")))
         // 同僚の Xcode にはスクリプトがある。置き換えの確認と1つにまとめて、マスと中身を伝える
         #expect(plan.reviewedCells.map(\.profileName) == ["Xcode", "Xcode"])
         var review = [L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。")]
@@ -971,10 +979,10 @@ import Testing
         #expect(h.controller.configuration.globalProfile == before.globalProfile)
         #expect(h.xcodeProfile == before.profiles.first { $0.app?.bundleID == SettingsFixtures.xcode.bundleID })
         let text = try #require(h.model.fileMessage?.text)
-        #expect(text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
+        #expect(text.contains(L10n.uiCounted("\(1)個のプロファイルを追加しました。")))
         // 置き換えを伝える行は無い（置き換わりうるのはグローバルと Xcode・Safari）
         let replacementLines = [L10n.ui("グローバルのページを置き換えました。")]
-            + (1...2).map { L10n.ui("\($0)個のプロファイルを同じアプリのものと置き換えました。") }
+            + (1...2).map { L10n.uiCounted("\($0)個のプロファイルを同じアプリのものと置き換えました。") }
         #expect(!replacementLines.contains { text.contains($0) })
         #expect(try h.saved()?.profiles.count == 4)
     }
@@ -1013,7 +1021,7 @@ import Testing
         #expect(SettingsText.importConfirmation(plan) == [
             Self.reviewIntro,
             L10n.ui("・\("Figma") › \("片付け")"),
-            L10n.ui("スクリプト（\(1)行）:"),
+            L10n.uiCounted("スクリプト（\(1)行）:"),
             "rm -rf ~/build",
         ].joined(separator: "\n"))
         // 置き換えないので「置き換えて読み込む」ではなく、ただの「読み込む」
@@ -1037,7 +1045,7 @@ import Testing
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
         // 読み込んだ後の知らせも、読み込まなかったプロファイルのスクリプトは数えない
         let text = try #require(h.model.fileMessage?.text)
-        #expect(text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
+        #expect(text.contains(L10n.uiCounted("\(1)個のプロファイルを追加しました。")))
         #expect(!text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")))
     }
 
@@ -1059,7 +1067,7 @@ import Testing
         let lines = SettingsText.importConfirmation(plan).split(separator: "\n")
         let nameLines = plan.replacedNames.map { L10n.ui("・\($0)") }
         #expect(lines.filter { nameLines.contains(String($0)) }.count == SettingsText.importConfirmationNameLimit)
-        #expect(lines.last.map(String.init) == L10n.ui("ほか\(2)個"))
+        #expect(lines.last.map(String.init) == L10n.uiCounted("ほか\(2)個"))
     }
 
     static var reviewIntro: String {
@@ -1180,7 +1188,7 @@ import Testing
         #expect(lines == [
             Self.reviewIntro,
             L10n.ui("・\(profileName) › \("Build lmth.exe")"),
-            L10n.ui("スクリプト（\(2)行）:"),
+            L10n.uiCounted("スクリプト（\(2)行）:"),
             "make",
             "echo done",
         ])

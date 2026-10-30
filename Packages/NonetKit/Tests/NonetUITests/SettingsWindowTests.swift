@@ -111,4 +111,64 @@ import Testing
         window.delegate?.windowWillClose?(Notification(name: NSWindow.willCloseNotification, object: window))
         #expect(!h.controller.isRecordingKeys)
     }
+
+    /// 閉じたら、ほかに Nonet のウィンドウが無ければ前面を前のアプリに返す（キーのウィンドウが無いまま Nonet を前面に残さない）
+    @Test func closingTheWindowHandsBackActivation() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        var handBacks = 0
+        controller.handBackActivation = { handBacks += 1 }
+        let window = controller.loadWindow()
+        window.close()
+        #expect(handBacks == 1)
+    }
+}
+
+/// 利用ガイドとプライバシーポリシーは、画面が英語ならサイトの en/ の下のページを開く
+@Suite struct SettingsLinksTests {
+    static let site = "https://nonet.astlog.dev"
+
+    @Test(arguments: [
+        ("https://nonet.astlog.dev/guide.html", "https://nonet.astlog.dev/en/guide.html"),
+        ("https://nonet.astlog.dev/privacy.html", "https://nonet.astlog.dev/en/privacy.html"),
+        ("https://nonet.astlog.dev/guide.html?from=app#scripts", "https://nonet.astlog.dev/en/guide.html?from=app#scripts"),
+        ("https://nonet.astlog.dev/guide/", "https://nonet.astlog.dev/en/guide/"),
+        ("https://nonet.astlog.dev/", "https://nonet.astlog.dev/en/"),
+        ("https://nonet.astlog.dev", "https://nonet.astlog.dev/en/"),
+        ("https://nonet.astlog.dev/docs/guide.html", "https://nonet.astlog.dev/docs/en/guide.html"),
+        // すでに英語のページ
+        ("https://nonet.astlog.dev/en/guide.html", "https://nonet.astlog.dev/en/guide.html"),
+        ("https://nonet.astlog.dev/en/", "https://nonet.astlog.dev/en/"),
+        // サイトのページでないもの
+        ("mailto:support@example.com", "mailto:support@example.com"),
+    ])
+    func englishPages(url: String, expected: String) {
+        #expect(Self.page(url, language: "en") == expected)
+    }
+
+    @Test func otherLanguagesKeepThePage() {
+        let guide = "\(Self.site)/guide.html"
+        #expect(Self.page(guide, language: "ja") == guide)
+        #expect(Self.page(guide, language: nil) == guide)
+        #expect(Self.page(guide, language: "en-GB") == "\(Self.site)/en/guide.html")
+    }
+
+    @Test func onlyTheGuideAndPrivacyPolicyChange() throws {
+        let links = AppLinks(
+            purchase: URL(string: "https://store.example.com/nonet"),
+            support: URL(string: "\(Self.site)/guide.html"),
+            privacy: URL(string: "\(Self.site)/privacy.html")
+        )
+        let english = links.localized(language: "en")
+        #expect(english.purchase == links.purchase)
+        #expect(english.support == URL(string: "\(Self.site)/en/guide.html"))
+        #expect(english.privacy == URL(string: "\(Self.site)/en/privacy.html"))
+        #expect(links.localized(language: "ja") == links)
+        #expect(AppLinks().localized(language: "en") == AppLinks())
+    }
+
+    static func page(_ url: String, language: String?) -> String? {
+        URL(string: url).map { AppLinks.page($0, language: language).absoluteString }
+    }
 }

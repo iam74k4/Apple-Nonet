@@ -5,6 +5,14 @@ import Foundation
 import NonetCore
 @testable import NonetUI
 
+extension L10n {
+    /// 数の入る文言（1 profile / 2 profiles）。設定の画面と同じく、文言の言語の規則で単数・複数を選ぶ。
+    /// L10n.ui は Locale.current の規則なので、地域が日本の Mac では英語でも「1 profiles」になる
+    static func uiCounted(_ key: String.LocalizationValue) -> String {
+        String(localized: key, bundle: .nonetUI, locale: Locale(identifier: Bundle.nonetUI.preferredLocalizations.first ?? "ja"))
+    }
+}
+
 @MainActor
 final class SettingsFakeTouchSource: TouchSource {
     var isAvailable = true

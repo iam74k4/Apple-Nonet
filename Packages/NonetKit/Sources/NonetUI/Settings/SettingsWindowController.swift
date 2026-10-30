@@ -27,6 +27,41 @@ public struct AppLinks: Equatable, Sendable {
         self.support = support
         self.privacy = privacy
     }
+
+    /// 利用ガイドとプライバシーポリシーを、アプリの画面の言語（language。Bundle.main.preferredLocalizations.first）のページにする。
+    /// サイトは日本語のページが /、英語のページが /en/ の下にある（guide.html ↔ en/guide.html）。購入ページはそのまま
+    public func localized(language: String?) -> AppLinks {
+        var links = self
+        links.support = support.map { Self.page($0, language: language) }
+        links.privacy = privacy.map { Self.page($0, language: language) }
+        return links
+    }
+
+    /// 英語なら、パスの最後の部品の前に en/ を入れる（https://nonet.astlog.dev/guide.html → https://nonet.astlog.dev/en/guide.html、
+    /// /guide/ → /en/guide/、/ → /en/）。クエリとフラグメントはそのまま。
+    /// 英語でないとき、すでに en の下のページ、http(s) でない URL は変えない
+    static func page(_ url: URL, language: String?) -> URL {
+        guard let language, Locale.Language(identifier: language).languageCode == .english,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(), scheme == "http" || scheme == "https"
+        else { return url }
+        let path = components.percentEncodedPath
+        guard !path.split(separator: "/").contains("en") else { return url }
+        // 最後の部品（末尾の / を含む）と、その前（/ で終わる）に分ける
+        let trailingSlash = path.hasSuffix("/") ? "/" : ""
+        let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
+        let directory: Substring
+        let last: Substring
+        if let slash = trimmed.lastIndex(of: "/") {
+            directory = trimmed[...slash]
+            last = trimmed[trimmed.index(after: slash)...]
+        } else {
+            directory = "/"
+            last = Substring(trimmed)
+        }
+        components.percentEncodedPath = last.isEmpty ? "\(directory)en/" : "\(directory)en/\(last)\(trailingSlash)"
+        return components.url ?? url
+    }
 }
 
 /// 設定ウィンドウ。1つのウィンドウを使い回し、閉じても状態（選んでいたプロファイルなど）は残す
@@ -39,6 +74,8 @@ public final class SettingsWindowController {
     let model: SettingsModel
     /// 位置と大きさを覚える（テストでは UserDefaults に書かないよう false にする）
     var autosavesFrame = true
+    /// ウィンドウを閉じたときに、ほかに Nonet のウィンドウが無ければ前面を前のアプリに返す（テストでは数える）
+    var handBackActivation: () -> Void = { ShellActivation.handBackAfterClosingWindow() }
     private var window: NSWindow?
     private var coordinator: SettingsWindowCoordinator?
 
@@ -190,6 +227,7 @@ final class SettingsWindowCoordinator: NSObject, NSToolbarDelegate, NSWindowDele
         // 打ちかけの欄を確定させる
         window?.makeFirstResponder(nil)
         owner?.model.windowWillClose()
+        owner?.handBackActivation()
     }
 
     /// 編集 › 取り消す（⌘Z）がマスの変更も元に戻せるよう、設定の undoManager を使う

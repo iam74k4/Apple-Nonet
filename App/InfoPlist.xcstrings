@@ -8,13 +8,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet uses this to get information for your scripts, such as the page you're viewing or the location of the open document, and to run commands in Terminal."
+            "value" : "Nonet asks your browser for the URL of the current page to pass it to your script."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "スクリプトに渡す情報（表示中のページや書類の場所）を取得し、ターミナルでコマンドを実行するために使います。"
+            "value" : "スクリプトに渡すために、ブラウザで表示中のページの URL を取得します。"
           }
         }
       }
