@@ -9,17 +9,22 @@ struct ControllerSession: Equatable, Sendable {
     /// トリガーを押したときに前面にあったアプリ。アクションはこのアプリに向けて実行する
     let frontmostApp: RunningAppInfo?
     let settings: GlobalSettings
+    /// トリガーキーで始めたか、トラックパッドの角の長押しで始めたか
+    let activation: SessionActivation
 
-    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
+    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?, activation: SessionActivation = .triggerKey) {
         pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
+        self.activation = activation
     }
 
     var engineConfiguration: SessionConfiguration {
         // 空きマスの速押しで 6 の (a) の HUD が止まらないように、中身のあるマスを渡す
         let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
-        return SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied)
+        var configuration = SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied)
+        configuration.activation = activation
+        return configuration
     }
 
     /// page（resolvedPages での位置）の cell 番目のマス。範囲外と空きマスは nil
@@ -35,7 +40,12 @@ struct ControllerSession: Equatable, Sendable {
             pages: pages,
             page: page,
             highlightedCell: highlightedCell,
-            hint: ControllerPresentation.hint(fireMode: settings.fireMode, trigger: settings.trigger, isPracticeMode: isPracticeMode),
+            // 角の長押しのセッションは、実行のタイミングの設定に関係なく指を離して実行する
+            hint: ControllerPresentation.hint(
+                fireMode: activation == .cornerHold ? .onFingerLift : settings.fireMode,
+                trigger: settings.trigger,
+                isPracticeMode: isPracticeMode
+            ),
             banner: isTrialEnded ? ControllerPresentation.trialEndedBanner : nil
         )
     }

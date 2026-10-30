@@ -15,7 +15,7 @@ IDS = [
     (2, "about"), (3, "requirements"),
     (2, "getting-started"), (3, "install"), (3, "accessibility"), (3, "welcome-guide"),
     (2, "basics"), (3, "trigger-key"), (3, "quick-tap"), (3, "hud"), (3, "cancel"), (3, "while-holding"),
-    (3, "pages"), (3, "global-and-launcher"), (3, "haptics"),
+    (3, "pages"), (3, "global-and-launcher"), (3, "haptics"), (3, "trackpad-alone"),
     (2, "menu-bar"),
     (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "inspector"), (3, "pick-from-menus"),
     (2, "actions"), (3, "keystrokes"), (3, "open-app"), (3, "url"), (3, "script"), (4, "script-variables"),

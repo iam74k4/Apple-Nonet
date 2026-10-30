@@ -59,6 +59,8 @@ enum HapticTuning {
         .boundary: (light: 3, medium: 4, strong: 6),
         .pageChange: (light: 4, medium: 6, strong: 6),
         .execute: (light: 4, medium: 6, strong: 6),
+        // 角の長押しで9マスが出た。指を置いたまま気づけるよう、ページの切り替えと同じ強さ
+        .activation: (light: 4, medium: 6, strong: 6),
     ]
 
     /// 同じ種類を続けて鳴らす最短の間隔（秒）。境界を素早くまたいでも震えっぱなしにならないように
@@ -66,6 +68,7 @@ enum HapticTuning {
         .boundary: 0.06,
         .pageChange: 0.15,
         .execute: 0.08,
+        .activation: 0.15,
     ]
 
     /// 境界の触覚は、ほかの触覚の直後（この秒数以内）なら鳴らさない
@@ -89,6 +92,7 @@ enum HapticTuning {
         case .boundary: .alignment
         case .pageChange: .levelChange
         case .execute: .generic
+        case .activation: .levelChange
         }
     }
 }

@@ -24,6 +24,14 @@ struct SettingsGeneralView: View {
                 if let warning = model.triggerWarning {
                     SettingsNote(text: warning, symbol: "exclamationmark.triangle", isWarning: true)
                 }
+                Picker(selection: binding(\.touchActivation)) {
+                    ForEach(TouchActivation.allCases, id: \.self) { activation in
+                        Text(SettingsText.name(activation)).tag(activation)
+                    }
+                } label: {
+                    Text("トラックパッドだけで呼び出す", bundle: .module)
+                    Text("角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します", bundle: .module)
+                }
                 Picker(selection: binding(\.fireMode)) {
                     ForEach(FireMode.allCases, id: \.self) { mode in
                         Text(SettingsText.name(mode)).tag(mode)

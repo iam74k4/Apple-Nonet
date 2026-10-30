@@ -15,6 +15,14 @@ enum SettingsText {
         }
     }
 
+    static func name(_ activation: TouchActivation) -> String {
+        switch activation {
+        case .off: String(localized: "使わない", bundle: .module)
+        case .topLeft: String(localized: "左上の角で長押し", bundle: .module)
+        case .topRight: String(localized: "右上の角で長押し", bundle: .module)
+        }
+    }
+
     static func name(_ mode: FireMode) -> String {
         switch mode {
         case .onTriggerRelease: String(localized: "キーを離したとき", bundle: .module)

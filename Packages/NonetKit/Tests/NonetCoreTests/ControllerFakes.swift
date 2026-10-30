@@ -199,6 +199,13 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         }
     }
     var onEvent: ((KeyboardEvent) -> Void)?
+    /// 角の長押しのセッションの間 true（本物は、トリガーを押していなくてもキーで .interrupted を送る）
+    var interruptsWithoutTrigger = false {
+        didSet {
+            guard interruptsWithoutTrigger != oldValue else { return }
+            recorder.log(interruptsWithoutTrigger ? "keys:watch" : "keys:unwatch")
+        }
+    }
     private(set) var isRunning = false
     /// start() で投げるもの（アクセシビリティの許可が無いときは別に permissionDenied を投げる）
     var startError: (any Error)?

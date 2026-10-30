@@ -70,6 +70,9 @@ public protocol KeyboardMonitor: AnyObject {
     var isSuppressingPointer: Bool { get set }
     /// メインスレッドで呼ばれる
     var onEvent: ((KeyboardEvent) -> Void)? { get set }
+    /// true の間は、トリガーを押していなくても、キーや修飾キーが押されたら .interrupted を1回送る（そのキーは前面アプリに渡す）。
+    /// トラックパッドの角の長押しで始めたセッションの間だけ true にする。トリガーキーが押されたら、いつもどおり .triggerDown
+    var interruptsWithoutTrigger: Bool { get set }
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
@@ -84,6 +87,12 @@ extension KeyboardMonitor {
     public func endPointerSuppression(dropsLateClicks: Bool) {
         isSuppressingPointer = false
     }
+
+    /// トリガーを押していないときのキーを見ない実装の既定（角の長押しのセッションは、キーでは終わらない）
+    public var interruptsWithoutTrigger: Bool {
+        get { false }
+        set {}
+    }
 }
 
 // MARK: - 触覚
@@ -93,6 +102,8 @@ public enum HapticEvent: Equatable, Sendable {
     case boundary
     case pageChange
     case execute
+    /// トラックパッドの角の長押しで9マスを出した（トリガーキーを押していないので、出たことを指に知らせる）
+    case activation
 }
 
 @MainActor

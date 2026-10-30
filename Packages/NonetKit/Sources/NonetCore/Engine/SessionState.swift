@@ -28,6 +28,32 @@ private struct SwipeBaseline: Sendable {
     var x: Double
 }
 
+/// 角の長押しのセッションで、指を滑らせたか（滑らせずに離したらキャンセル）。
+/// 測り始めた位置から CornerHoldRecognizer.movementTolerance より動いたら滑らせたとみなす
+private struct CornerSlide: Sendable {
+    /// 測り始めた指と位置（セッションの始まりと、2本以上から1本指に戻ったとき）
+    private var anchor: FingerTracker.Finger?
+    private(set) var hasMoved = false
+
+    init(anchor: FingerTracker.Finger?) {
+        self.anchor = anchor
+    }
+
+    /// 測り直す。滑らせていないことにする
+    mutating func restart(at finger: FingerTracker.Finger?) {
+        anchor = finger
+        hasMoved = false
+    }
+
+    /// 1本だけ触れている指の位置
+    mutating func follow(_ finger: FingerTracker.Finger?) {
+        guard let finger, let anchor, anchor.id == finger.id else { return }
+        if hypot(finger.x - anchor.x, finger.y - anchor.y) > CornerHoldRecognizer.movementTolerance {
+            hasMoved = true
+        }
+    }
+}
+
 /// トリガーを離した後、置いたばかりの指が離れるのを待っている
 private struct Drain: Sendable {
     var deadline: TimeInterval
@@ -51,6 +77,8 @@ struct SessionState: Sendable {
     private var endReason: SessionEndReason?
     /// このセッションで最後にタッチが離れた（すべての指が離れた）時刻。遅れて届くクリックの判断に使う
     private var lastLiftAt: TimeInterval?
+    /// 角の長押しのセッションだけ
+    private var slide: CornerSlide?
 
     /// configuration は sanitized 済みのもの
     init(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker) {
@@ -68,9 +96,13 @@ struct SessionState: Sendable {
             )
             trackFinger(tracker)
         }
+        if configuration.activation == .cornerHold {
+            slide = CornerSlide(anchor: tracker.lastPlaced)
+        }
     }
 
     var isEnded: Bool { endReason != nil }
+    var isCornerHold: Bool { configuration.activation == .cornerHold }
     var isDraining: Bool { drain != nil }
     /// トリガーを離したときに決めた終わり方
     var releaseReason: SessionEndReason { drain?.reason ?? .released }
@@ -129,10 +161,66 @@ struct SessionState: Sendable {
         }
     }
 
+    // MARK: 角の長押し
+
+    /// 角の長押しで始めた。速押しの段階は無く、HUD をすぐに出して指の下のマスを光らせ、触覚で知らせる
+    mutating func activateFromCorner(now: TimeInterval, effects: inout [SessionEffect]) {
+        guard endReason == nil else { return }
+        guard touch != nil else {
+            // 長押しの指がもう離れていた。選ぶ指が無いので、何も出さずに終える
+            end(.cancelled, now: now, effects: &effects)
+            return
+        }
+        showHUD(effects: &effects)
+        effects.append(.haptic(.activation))
+    }
+
+    /// 角の長押しのセッションのタッチ。セッションはこのタッチ1つで、すべての指が離れたら終える
+    private mutating func applyCornerHold(_ change: FingerTracker.Change, tracker: FingerTracker, now: TimeInterval, effects: inout [SessionEffect]) {
+        switch change {
+        case .none:
+            return
+        case .ended, .restarted:
+            // 離すと同時に置いた指（restarted）は、セッションの外の新しいタッチになる
+            liftCornerHold(now: now, effects: &effects)
+            return
+        case .began, .moved:
+            if tracker.count >= 2 {
+                touch?.isMultiFinger = true
+            } else if touch?.isMultiFinger == true {
+                // 1本指に戻った（2本指のスワイプでページを変えた後など）: 残った指でまた選べ、次の2本指のスワイプでもページを変えられる。
+                // 滑らせていないことにするので、すぐに離すとキャンセル（選ぶには、もう一度滑らせる）
+                touch?.isMultiFinger = false
+                touch?.hasTurnedPage = false
+                slide?.restart(at: tracker.lastPlaced)
+            }
+        }
+        follow(tracker, effects: &effects)
+        if tracker.count == 1, touch?.isMultiFinger == false {
+            slide?.follow(tracker.lastPlaced)
+        }
+    }
+
+    /// すべての指が離れた。滑らせてから1本指で離したなら、光っているマスを実行する。
+    /// 滑らせずに離した・2本以上で離した・空きマス（仕様 12）なら、何もせずにキャンセルとして終える
+    private mutating func liftCornerHold(now: TimeInterval, effects: inout [SessionEffect]) {
+        var reason = SessionEndReason.cancelled
+        if let touch, !touch.isMultiFinger, slide?.hasMoved == true, let cell = highlight, !isEmptyCell(cell) {
+            hideHUD(effects: &effects)
+            execute(cell: cell, wasFastTap: false, effects: &effects)
+            reason = .released
+        }
+        recordLift(now: now)
+        tracked = nil
+        swipeBaseline = nil
+        end(reason, now: now, effects: &effects)
+    }
+
     // MARK: キーボード
 
     mutating func releaseTrigger(now: TimeInterval, effects: inout [SessionEffect]) {
-        guard endReason == nil, drain == nil else { return }
+        // 角の長押しのセッションはトリガーを押していないので、離したイベントは関係ない
+        guard endReason == nil, drain == nil, !isCornerHold else { return }
         var reason = SessionEndReason.released
         let wasHUDVisible = isHUDVisible
         if isHUDVisible {
@@ -182,6 +270,10 @@ struct SessionState: Sendable {
 
     mutating func apply(_ change: FingerTracker.Change, tracker: FingerTracker, now: TimeInterval, effects: inout [SessionEffect]) {
         guard endReason == nil else { return }
+        if isCornerHold {
+            applyCornerHold(change, tracker: tracker, now: now, effects: &effects)
+            return
+        }
         if let drain {
             applyWhileDraining(change, drain: drain, tracker: tracker, now: now, effects: &effects)
             return

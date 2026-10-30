@@ -6,6 +6,15 @@ import Foundation
 
 // MARK: - 設定
 
+/// セッションの始まり方
+public enum SessionActivation: Equatable, Sendable {
+    /// トリガーキーを押した（docs/architecture.md の「操作の仕様」1〜14）
+    case triggerKey
+    /// トラックパッドの角の長押し（CornerHoldRecognizer）。HUD をすぐに出し、指を滑らせてから離すと実行する。
+    /// 速押しも、トリガーを離して実行することも無い
+    case cornerHold
+}
+
 /// 1回のセッションで使う設定。トリガーを押したときに渡し、そのセッションの間は変わらない
 public struct SessionConfiguration: Equatable, Sendable {
     public static let defaultHUDDelay: TimeInterval = 0.3
@@ -27,6 +36,7 @@ public struct SessionConfiguration: Equatable, Sendable {
     /// ページごとの、中身のあるマス（0〜8）。nil や範囲外のページは、すべてのマスに中身があるとみなす。
     /// 空きマス（仕様 12）の速押しを「実行せずに離した」と扱い、6 の (a) の HUD を止めないために使う
     public var occupiedCells: [Set<Int>]?
+    public var activation: SessionActivation
 
     public init(
         hudDelay: TimeInterval = SessionConfiguration.defaultHUDDelay,
@@ -36,7 +46,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         edgeInsets: GridInsets = .zero,
         swipeThreshold: Double = SessionConfiguration.defaultSwipeThreshold,
         maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration,
-        occupiedCells: [Set<Int>]? = nil
+        occupiedCells: [Set<Int>]? = nil,
+        activation: SessionActivation = .triggerKey
     ) {
         self.hudDelay = hudDelay
         self.fireMode = fireMode
@@ -46,6 +57,7 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.swipeThreshold = swipeThreshold
         self.maxDuration = maxDuration
         self.occupiedCells = occupiedCells
+        self.activation = activation
     }
 
     /// 全体の設定から作る。pageCount は前面アプリの resolvedPages の数
@@ -74,7 +86,9 @@ public struct SessionConfiguration: Equatable, Sendable {
 
 /// エンジンへの入力。時刻はすべて Scheduler.now と同じ時計の秒
 public enum SessionInput: Equatable, Sendable {
-    /// トリガーキーが押された。セッション中なら、そのセッションを何も実行せずに終えてから新しく始める
+    /// トリガーキーが押された。セッション中なら、そのセッションを何も実行せずに終えてから新しく始める。
+    /// configuration.activation が .cornerHold なら、トリガーではなくトラックパッドの角の長押しで始める。
+    /// そのときは触れている指をそのまま使う（指が触れていなければ、何も出さずにキャンセルとして終える）
     case triggerDown(at: TimeInterval, configuration: SessionConfiguration)
     case triggerUp(at: TimeInterval)
     /// トリガーを押している間に、ほかのキーや修飾キーが押された
@@ -86,9 +100,11 @@ public enum SessionInput: Equatable, Sendable {
 }
 
 public enum SessionEndReason: Equatable, Sendable {
-    /// トリガーを離して終えた（離したときに実行した場合も、何もしなかった場合も）
+    /// トリガーを離して終えた（離したときに実行した場合も、何もしなかった場合も）。
+    /// 角の長押しのセッションでは、指を滑らせてから離して終えた
     case released
-    /// HUD を出したまま、何も実行せずにトリガーを離した（指を先に離した、など）
+    /// HUD を出したまま、何も実行せずにトリガーを離した（指を先に離した、など）。
+    /// 角の長押しのセッションでは、指を滑らせずに離した
     case cancelled
     /// ほかのキーが押された。または、離したイベントを取りこぼしたままトリガーがもう一度押された
     case interrupted
@@ -122,7 +138,7 @@ public enum SessionEffect: Equatable, Sendable {
     /// 表示中の HUD のページかハイライトが変わった
     case updateHUD(page: Int, highlightedCell: Int?)
     case hideHUD
-    /// boundary と pageChange だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
+    /// boundary・pageChange・activation（角の長押しで始めたとき）だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする。
@@ -149,6 +165,8 @@ public enum SessionEffect: Equatable, Sendable {
 /// - 空きマス（仕様 12）は、`occupiedCells` で分かればエンジンが実行しない（速押しは「実行せずに離した」とみなし、
 ///   6 の (a) の HUD を止めない。HUD で選んだ空きマスは選ばなかったことにする）。
 ///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
+/// - 角の長押し（`SessionActivation.cornerHold`）で始めたセッションは、HUD をすぐに出し、すべての指が離れたら終える。
+///   滑らせてから1本指で離せば光っているマスを実行し、滑らせずに離せばキャンセル。トリガーを離したイベントは使わない
 public struct SessionEngine: Sendable {
     /// セッションの終わりの前のこの秒数のうちに指が離れたか、この秒数より新しい指がまだ触れていれば、
     /// その指の「タップでクリック」が抑止の後に届きうるとみなす（endPointerSuppression の dropsLateClicks）。
@@ -166,8 +184,11 @@ public struct SessionEngine: Sendable {
     /// セッション中（トリガーを離した後、指が離れるのを待っている間も含む）
     public var isInSession: Bool { session != nil }
 
-    /// トリガーを押している間 true。離した後、指が離れるのを待っている間は false
-    public var isTriggerHeld: Bool { session.map { !$0.isDraining } ?? false }
+    /// トリガーを押している間 true。離した後、指が離れるのを待っている間と、角の長押しのセッションでは false
+    public var isTriggerHeld: Bool { session.map { !$0.isDraining && !$0.isCornerHold } ?? false }
+
+    /// 角の長押しで始めたセッション中
+    public var isCornerHoldSession: Bool { session?.isCornerHold ?? false }
 
     /// いまのページ（resolvedPages での位置）。セッション外は nil
     public var pageIndex: Int? { session?.page }
@@ -188,6 +209,9 @@ public struct SessionEngine: Sendable {
             if !clock.isFinite { clock = 0 }
             effects.append(.beginPointerSuppression)
             session = SessionState(configuration: configuration.sanitized, start: clock, tracker: tracker)
+            if configuration.activation == .cornerHold {
+                session?.activateFromCorner(now: clock, effects: &effects)
+            }
         case .triggerUp(let time):
             advance(to: time, effects: &effects)
             session?.releaseTrigger(now: clock, effects: &effects)

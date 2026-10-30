@@ -86,6 +86,9 @@
 | 並べ替え / 入れ替え | reorder / swap | "Drag to reorder", "drag to swap buttons". |
 | 右クリック | Control-click | Apple docs style: "Control-click (or right-click)". |
 | Nonet を有効にする | Enable Nonet | Settings checkbox, and a menu bar menu item with a checkmark. |
+| トラックパッドだけで呼び出す | Open with the trackpad alone | Settings label under Trigger & HUD, right below Trigger key. The user guide section is "Using the trackpad alone". |
+| 使わない / 左上の角で長押し / 右上の角で長押し | Off / Touch and hold the top-left corner / Touch and hold the top-right corner | Options of Open with the trackpad alone. They are phrases, so they use sentence case. "Touch and hold" is Apple's term for a long press; here it means resting one finger in the corner without clicking. Do not use "long press" or "long-click". |
+| 角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します | Rest a finger in the corner for a moment to show the nine buttons. Slide to a button and lift your finger to run it. | Caption under Open with the trackpad alone. |
 | HUD が出るまでの時間 | HUD delay | Settings label. Value "0.3 s", range "0.15–0.8 s". Taps faster than this count as quick taps. |
 | HUD の位置 | HUD position | Options: "Center of Screen" / "Near Pointer". |
 | 前面のアプリで切り替える | Switch profiles with the front app | Settings checkbox. |

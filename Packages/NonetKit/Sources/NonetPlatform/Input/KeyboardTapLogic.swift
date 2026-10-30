@@ -77,6 +77,33 @@ extension TriggerKey {
     }
 }
 
+/// flagsChanged の仮想キーコードごとの、そのキーが押されているかの見分け方
+enum ModifierKeyCode {
+    /// 押されているときに立つビット。own は左右を区別するそのキーのビット、sibling は反対側のキーのビット、flag は左右の区別の無いフラグ
+    private static let table: [Int64: (own: UInt64?, sibling: UInt64?, flag: CGEventFlags)] = [
+        55: (DeviceModifierMask.leftCommand, DeviceModifierMask.rightCommand, .maskCommand),
+        54: (DeviceModifierMask.rightCommand, DeviceModifierMask.leftCommand, .maskCommand),
+        56: (DeviceModifierMask.leftShift, DeviceModifierMask.rightShift, .maskShift),
+        60: (DeviceModifierMask.rightShift, DeviceModifierMask.leftShift, .maskShift),
+        58: (DeviceModifierMask.leftOption, DeviceModifierMask.rightOption, .maskAlternate),
+        61: (DeviceModifierMask.rightOption, DeviceModifierMask.leftOption, .maskAlternate),
+        59: (DeviceModifierMask.leftControl, DeviceModifierMask.rightControl, .maskControl),
+        62: (DeviceModifierMask.rightControl, DeviceModifierMask.leftControl, .maskControl),
+        63: (nil, nil, .maskSecondaryFn),
+    ]
+
+    /// この flagsChanged がキーを押したものか（離したものなら false）。
+    /// Caps Lock（押すたびに入と切が替わる）と表に無いキーは、いつも押したとみなす
+    static func isPress(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        guard let entry = table[keyCode] else { return true }
+        if let own = entry.own, flags.rawValue & own != 0 { return true }
+        // 反対側だけが押されている（このキーは離れた）
+        if let sibling = entry.sibling, flags.rawValue & sibling != 0 { return false }
+        // 左右のビットを付けないキーボードでは、左右の区別が無いフラグで判断する
+        return flags.contains(entry.flag)
+    }
+}
+
 /// トリガーキーの押下・解放と、押している間の中断を見分ける
 struct TriggerDetector {
     struct Output: Equatable {
@@ -97,6 +124,14 @@ struct TriggerDetector {
     /// 捨てて押している最中に押されて見えたら true にする。離れて見えたことからは決めない
     /// （その確認は、離すイベントを取りこぼした直後のことが多い）
     private(set) var swallowedStateIsReliable = false
+    /// トリガーを押していなくても、キーや修飾キーが押されたら .interrupted を出す（角の長押しで始めたセッションの間。
+    /// KeyboardMonitor.interruptsWithoutTrigger）。出すのは true にしてから1回だけ
+    var interruptsWithoutTrigger = false {
+        didSet {
+            if interruptsWithoutTrigger != oldValue { isInterruptedWithoutTrigger = false }
+        }
+    }
+    private(set) var isInterruptedWithoutTrigger = false
 
     var isHeld: Bool { heldTrigger != nil }
 
@@ -121,6 +156,10 @@ struct TriggerDetector {
         }
 
         guard keyCode == trigger.keyCode, trigger.isPressed(in: flags), !trigger.hasOtherModifiers(in: flags) else {
+            // 修飾キーを離しただけ（セッションの前から押していたキーなど）では終えない
+            if interruptsWithoutTrigger, ModifierKeyCode.isPress(keyCode: keyCode, flags: flags) {
+                return interruptWithoutTrigger()
+            }
             return .passThrough
         }
         heldTrigger = trigger
@@ -130,7 +169,8 @@ struct TriggerDetector {
     }
 
     mutating func keyDown() -> Output {
-        isHeld ? interrupt() : .passThrough
+        if isHeld { return interrupt() }
+        return interruptsWithoutTrigger ? interruptWithoutTrigger() : .passThrough
     }
 
     /// 物理的な状態と食い違っていたら（離すイベントを取りこぼしたら）離したことにする。
@@ -158,6 +198,12 @@ struct TriggerDetector {
     private mutating func interrupt() -> Output {
         guard !isInterrupted else { return .passThrough }
         isInterrupted = true
+        return Output(event: .interrupted, pass: true)
+    }
+
+    private mutating func interruptWithoutTrigger() -> Output {
+        guard !isInterruptedWithoutTrigger else { return .passThrough }
+        isInterruptedWithoutTrigger = true
         return Output(event: .interrupted, pass: true)
     }
 
