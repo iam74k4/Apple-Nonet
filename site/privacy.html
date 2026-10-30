@@ -6,9 +6,23 @@
 <title>プライバシーポリシー — Nonet</title>
 <meta name="description" content="Nonet のプライバシーポリシー。情報を集めず、設定は Mac の中だけに保存します。ネットワークはアップデートの確認と購入ページを開くときだけ使います。">
 <meta name="color-scheme" content="light dark">
-<link rel="alternate" hreflang="en" href="en/privacy.html">
+<link rel="canonical" href="https://nonet.astlog.dev/privacy.html">
+<link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/privacy.html">
+<link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/privacy.html">
+<link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/privacy.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Nonet">
+<meta property="og:title" content="プライバシーポリシー — Nonet">
+<meta property="og:url" content="https://nonet.astlog.dev/privacy.html">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://nonet.astlog.dev/images/og-ja.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -16,6 +30,15 @@
 </svg>
 
 <a class="skip" href="#main">本文へ移動</a>
+
+<div class="lang-bar" data-lang-bar lang="en" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>This page is also available in English. <a href="en/privacy.html" hreflang="en">Read in English →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="Close">×</button>
+    </div>
+  </div>
+</div>
 
 <header class="site-header">
   <div class="wrap header-inner">
@@ -43,7 +66,7 @@
     <h2>2. Mac の中だけに保存する情報</h2>
     <ul>
       <li><strong>設定</strong>（プロファイル・マス・アクション・全体の設定）: <code>~/Library/Application Support/Nonet/configuration.json</code> に保存します。保存するたびに1つ前の版を同じフォルダの <code>configuration.backup.json</code> に残します。読めなかったファイルや別の版のファイルは、上書きせずに名前を変えて同じフォルダに残します。</li>
-      <li><strong>試用の記録</strong>（開始日・最後に確かめた時刻・使った時間）: 本アプリの環境設定（<code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>）と <code>~/Library/Application Support/Nonet/</code> に保存し、製品版ではログインキーチェーンにも項目（<code>com.iam74k4.Nonet.license.trial</code>）として保存します。試用期間を正しく数えるためだけに使います。キーチェーンの項目は iCloud キーチェーンと同期しません。</li>
+      <li><strong>試用の記録</strong>（開始日・最後に確かめた時刻・試用を始めてから経った時間）: 本アプリの環境設定（<code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>）と <code>~/Library/Application Support/Nonet/</code> に保存し、製品版ではログインキーチェーンにも項目（<code>com.iam74k4.Nonet.license.trial</code>）として保存します。試用期間を正しく数えるためだけに使います。キーチェーンの項目は iCloud キーチェーンと同期しません。</li>
       <li><strong>ライセンスキー</strong>: 本アプリの環境設定に保存します。ライセンスキーには、購入時の名前とメールアドレスが含まれます。</li>
       <li><strong>そのほかの環境設定</strong>: 設定ウインドウの位置と大きさ、アップデートの確認の設定と最後に確認した日時（Sparkle）を、本アプリの環境設定に保存します。</li>
       <li><strong>一時ファイル</strong>: スクリプトをターミナルで実行するとき、スクリプトとそれに渡す情報（選択中のテキストなど）を書いた一時ファイル（<code>nonet-….command</code>）を、Mac の一時フォルダ（<code>$TMPDIR/Nonet/Terminal/</code>）に作ります。ショートカットに選択中のテキストを渡すときは、そのテキストを書いた一時ファイル（<code>input-….txt</code>）を <code>$TMPDIR/Nonet/Shortcuts/</code> に作ります。どちらも本人だけが読める権限で作ります。ターミナルのファイルは実行が始まると消し、開かれずに残ったものは5分後か、次に本アプリを起動したときに消します。ショートカットのファイルは、ショートカットが終わると消します。</li>
@@ -80,21 +103,33 @@
 
     <h2>7. 購入のときの情報</h2>
     <p>購入の手続きと支払いは販売サービスが行い、カード番号などの支払いの情報を私たちが受け取ることはありません。私たちは、ライセンスキーの発行とサポートのために、販売サービスから購入者の名前・メールアドレス・注文の情報を受け取ります。これらは、ライセンスキーの発行と再発行、問い合わせへの対応、法令で求められる記録のためだけに使い、第三者に売ったり広告に使ったりしません。</p>
+    <p>購入の記録は、法令で求められる期間保存し、その後消します。ご自身の情報の開示・訂正・削除を求めるときは、お問い合わせ先までご連絡ください。販売サービスが持つ情報は、販売サービス（<span class="todo">TODO: 販売サービス名</span>）の<a href="https://TODO.invalid/privacy">プライバシーポリシー</a>に従って扱われます。</p>
 
     <h2>8. 販売ページ</h2>
     <p>販売ページは、Cookie・アクセス解析・外部のフォントやスクリプトを使っていません。ページを置いているホスティング事業者が、一般的なアクセスログ（IP アドレスなど）を記録することがあります。</p>
+    <p>ページの言語の案内（「This page is also available in English」など）を閉じると、閉じたことだけをブラウザの localStorage に記録し、次からは出しません。この記録はお使いのブラウザの中にだけあり、送信しません。</p>
 
     <h2>9. このポリシーの変更</h2>
     <p>内容を変えるときは、このページを更新し、最終更新日を改めます。</p>
 
     <h2>10. お問い合わせ</h2>
-    <!-- TODO: サポートのメールアドレス -->
     <p>Takanari Okazaki（<a href="mailto:support@TODO.invalid">support@TODO.invalid</a>）</p>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">利用ガイド</a></li>
+        <li><a href="privacy.html" aria-current="page">プライバシーポリシー</a></li>
+        <li><a href="terms.html">利用規約</a></li>
+        <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="mailto:support@TODO.invalid">お問い合わせ</a></li>
+        <li><a href="en/privacy.html" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
     <div class="legal">
       <p>© 2026 Takanari Okazaki</p>
     </div>

@@ -1,7 +1,8 @@
 #!/bin/bash
 # 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記・
+# canonical と hreflang・フッターから法的な文書（プライバシー・利用規約・特商法）へのリンク・robots.txt と sitemap.xml・共有の画像（og:image）・
 # 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページとその英語版（en/）を指していること。
-# --strict を付けると、TODO（価格・URL などの仮の値）が残っているときと、canonical が無くてアプリの URL を確かめられないときも失敗にする。公開の前に使う。
+# --strict を付けると、TODO（価格・販売サービス・問い合わせ先などの仮の値）が残っているときと、canonical が無くてアプリの URL を確かめられないときも失敗にする。公開の前に使う。
 # 使い方: scripts/check-site.sh [--strict] [--config <xcconfig（既定: Config/Nonet.xcconfig）>] [サイトのフォルダ（既定: site）]
 set -euo pipefail
 
@@ -16,7 +17,7 @@ CONFIG="$ROOT/Config/Nonet.xcconfig"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
-      sed -n '2,5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     --strict) STRICT=1 ;;
@@ -171,11 +172,15 @@ check_html() {
       if ! grep -q 'Stream Deck' "$file" || ! grep -q 'Corsair Memory' "$file"; then
         problem "$rel: Stream Deck の商標の表記（Corsair Memory, Inc.）がありません"
       fi
-      grep -qE 'href="privacy\.html"' "$file" || problem "$rel: プライバシーポリシーへのリンクがありません"
-      grep -qE 'href="guide\.html"' "$file" || problem "$rel: 利用ガイドへのリンクがありません"
+      grep -qE 'href="([^"]*/)?privacy\.html"' "$file" || problem "$rel: プライバシーポリシーへのリンクがありません"
+      grep -qE 'href="([^"]*/)?guide\.html"' "$file" || problem "$rel: 利用ガイドへのリンクがありません"
       ;;
     guide.html) check_guide "$file" "$rel" ;;
   esac
+
+  check_head "$file" "$rel"
+  check_footer "$file" "$rel"
+  check_images "$file" "$rel"
 }
 
 # 利用ガイド: 見出し（h2〜h4）にはすべて id を付け（ほかのページやアプリから #id で開けるように）、
@@ -280,6 +285,199 @@ check_app_links() {
   return 0
 }
 
+# MARK: 検索と共有（canonical・hreflang・sitemap.xml・robots.txt・og:image）とフッター
+
+# 法的な文書。どれも site/ にあり、各ページのフッターからリンクする（英語のページの特商法は日本語のページへ）
+LEGAL_PAGES="privacy.html en/privacy.html terms.html en/terms.html tokushoho.html"
+FOOTER_LEGAL_LINKS="privacy.html terms.html tokushoho.html"
+
+# 検索に出さないページ（<meta name="robots" content="noindex">。404・ダウンロードのページ）
+is_noindex() {
+  LC_ALL=C grep -qiE '<meta[[:space:]]+name="robots"[[:space:]]+content="[^"]*noindex' "$1"
+}
+
+# 別の仕組みが作るページ。ここでは直さず、足りないものを知らせるだけにする
+#   guide.html・en/guide.html: scripts/build-guide.py が docs/user-guide*.md から作る
+generated_by() {
+  case "$(basename "$1")" in
+    guide.html) printf 'scripts/build-guide.py' ;;
+  esac
+}
+
+# site/ の中の rel（index.html・en/terms.html など）の公開する URL。index.html はフォルダの URL（/・/en/）
+page_url() {
+  local rel="$1"
+  case "$rel" in
+    index.html) rel="" ;;
+    */index.html) rel="${rel%index.html}" ;;
+  esac
+  printf 'https://%s/%s' "$HOST" "$rel"
+}
+
+# 日本語と英語の組の、もう一方のページ（en/x.html ↔ x.html）。無ければ空文字
+counterpart_of() {
+  local rel="$1" other
+  case "$rel" in
+    en/*) other="${rel#en/}" ;;
+    *) other="en/$rel" ;;
+  esac
+  [[ -f "$SITE/$other" ]] && printf '%s' "$other"
+  return 0
+}
+
+# <link> を「rel<TAB>hreflang<TAB>href」で1行ずつ出す。属性の順・大文字・改行を問わない（URL は小文字にして比べる）
+link_tags() {
+  local tag
+  while IFS= read -r tag; do
+    printf '%s\t%s\t%s\n' "$(attribute_values "$tag" rel | head -n 1)" "$(attribute_values "$tag" hreflang | head -n 1)" \
+      "$(attribute_values "$tag" href | head -n 1)"
+  done < <(LC_ALL=C tr '\n\r\t' '   ' <"$1" | LC_ALL=C tr '[:upper:]' '[:lower:]' | LC_ALL=C grep -oE '<link([[:space:]][^>]*)?>' || true)
+}
+
+# <meta property="…" content="…"> の content。無ければ空文字
+meta_property() {
+  sed -nE "s/.*<meta property=\"$2\" content=\"([^\"]*)\".*/\\1/p" "$1" | head -n 1
+}
+
+# PNG の大きさを「幅×高さ」で出す。PNG でなければ空文字
+png_size() {
+  local bytes=()
+  [[ -f "$1" ]] || return 0
+  read -r -a bytes <<<"$(LC_ALL=C od -An -tu1 -N24 "$1" | tr -s ' \n' '  ')"
+  [[ "${#bytes[@]}" -ge 24 && "${bytes[0]}" == 137 && "${bytes[1]}" == 80 && "${bytes[2]}" == 78 && "${bytes[3]}" == 71 ]] || return 0
+  printf '%d×%d' $(((bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19])) \
+    $(((bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23]))
+}
+
+# 検索に出すページは、自分の URL の canonical を持ち、日本語と英語の組があれば hreflang で互いを指す
+# （ja・en と、言語の合わないブラウザ向けの x-default は英語のページ）。URL はどれも絶対の URL。
+# 別の仕組みが作るページで足りないものは、問題にせず知らせる（直すのはその仕組みのほう）
+check_head() {
+  local file="$1" rel="$2" links canonical counterpart ja en expected line issues=() maker
+  [[ -n "$HOST" ]] || return 0
+  is_noindex "$file" && return 0
+  links="$(link_tags "$file")"
+  canonical="$(awk -F'\t' '(" " $1 " ") ~ / canonical / { print $3; exit }' <<<"$links")"
+  expected="$(page_url "$rel")"
+  if [[ -z "$canonical" ]]; then
+    issues+=("<link rel=\"canonical\" href=\"$expected\"> がありません")
+  elif [[ "$canonical" != "$expected" ]]; then
+    issues+=("canonical が $expected ではありません（いまは $canonical）")
+  fi
+  counterpart="$(counterpart_of "$rel")"
+  if [[ -n "$counterpart" ]] && ! is_noindex "$SITE/$counterpart"; then
+    case "$rel" in
+      en/*) ja="$counterpart" en="$rel" ;;
+      *) ja="$rel" en="$counterpart" ;;
+    esac
+    for line in "ja"$'\t'"$(page_url "$ja")" "en"$'\t'"$(page_url "$en")" "x-default"$'\t'"$(page_url "$en")"; do
+      if ! awk -F'\t' '(" " $1 " ") ~ / alternate / { print $2 "\t" $3 }' <<<"$links" | grep -qxF "$line"; then
+        issues+=("<link rel=\"alternate\" hreflang=\"${line%%$'\t'*}\" href=\"${line#*$'\t'}\"> がありません")
+      fi
+    done
+  fi
+  [[ ${#issues[@]} -gt 0 ]] || return 0
+  maker="$(generated_by "$file")"
+  if [[ -n "$maker" ]]; then
+    info "$rel は $maker が作るページなので止めません。$maker で直すこと: $(printf '%s。' "${issues[@]}")"
+    return 0
+  fi
+  for line in "${issues[@]}"; do
+    problem "$rel: $line"
+  done
+}
+
+# どのページのフッターからも、法的な文書へ行ける
+check_footer() {
+  local file="$1" rel="$2" footer name pattern missing=() maker
+  footer="$(LC_ALL=C tr '\n\r\t' '   ' <"$file" | sed -nE 's/.*(<footer([[:space:]][^>]*)?>.*<\/footer>).*/\1/p')"
+  for name in $FOOTER_LEGAL_LINKS; do
+    pattern="href=\"[^\"]*${name//./\\.}[\"#]"
+    [[ "$footer" =~ $pattern ]] || missing+=("$name")
+  done
+  [[ ${#missing[@]} -gt 0 ]] || return 0
+  maker="$(generated_by "$file")"
+  if [[ -n "$maker" ]]; then
+    info "$rel は $maker が作るページなので止めません。$maker でフッターに足すリンク: ${missing[*]}"
+    return 0
+  fi
+  problem "$rel: フッターに ${missing[*]} へのリンクがありません（法的な文書は、どのページのフッターからも開けるようにする）"
+}
+
+# 共有の画像（og:image）はこのサイトの画像で、og:image:width・height と同じ大きさ。apple-touch-icon は 180×180
+check_images() {
+  local file="$1" rel="$2" url path width height actual tag href
+  url="$(meta_property "$file" 'og:image')"
+  if [[ -n "$url" && -n "$HOST" ]]; then
+    if [[ "$url" != "https://$HOST/"* ]]; then
+      problem "$rel: og:image がこのサイト（https://$HOST/）の画像ではありません: $url"
+    else
+      path="${url#"https://$HOST/"}"
+      width="$(meta_property "$file" 'og:image:width')"
+      height="$(meta_property "$file" 'og:image:height')"
+      if [[ ! -f "$SITE/$path" ]]; then
+        problem "$rel: og:image の画像がありません: site/$path（python3 -I scripts/make-site-images.py で作る）"
+      elif [[ -n "$width$height" ]]; then
+        actual="$(png_size "$SITE/$path")"
+        [[ "$actual" == "$width×$height" ]] || problem "$rel: og:image（site/$path）の大きさが $width×$height ではありません（いまは ${actual:-PNG ではない}）"
+      fi
+    fi
+  fi
+  while IFS= read -r tag; do
+    href="$(attribute_values "$tag" href | head -n 1)"
+    [[ -n "$href" && -f "$(dirname "$file")/$href" ]] || continue
+    actual="$(png_size "$(dirname "$file")/$href")"
+    [[ "$actual" == "180×180" ]] || problem "$rel: apple-touch-icon（$href）が 180×180 の PNG ではありません（いまは ${actual:-PNG ではない}）"
+  done < <(LC_ALL=C tr '\n\r\t' '   ' <"$file" | LC_ALL=C grep -oE '<link[^>]*rel="apple-touch-icon"[^>]*>' || true)
+}
+
+check_legal_pages() {
+  local rel
+  for rel in $LEGAL_PAGES; do
+    [[ -f "$SITE/$rel" ]] || problem "法的な文書のページがありません: $rel"
+  done
+}
+
+# robots.txt は sitemap.xml の場所を絶対の URL で書く。sitemap.xml の URL はどれもこのサイトのページで、
+# 検索に出すページ（noindex でないもの）はすべて <loc> にあり、noindex のページは無い
+check_robots_and_sitemap() {
+  local robots="$SITE/robots.txt" sitemap="$SITE/sitemap.xml" listed url file rel
+  [[ -n "$HOST" ]] || return 0
+  if [[ ! -f "$robots" ]]; then
+    problem "robots.txt がありません"
+  elif ! grep -qxF "Sitemap: https://$HOST/sitemap.xml" "$robots"; then
+    problem "robots.txt に「Sitemap: https://$HOST/sitemap.xml」の行がありません"
+  fi
+  if [[ ! -f "$sitemap" ]]; then
+    problem "sitemap.xml がありません"
+    return 0
+  fi
+  listed="$(grep -oE '<loc>[^<]*</loc>' "$sitemap" | sed -E 's|</?loc>||g' || true)"
+  while IFS= read -r url; do
+    [[ -n "$url" ]] || continue
+    if [[ "$url" != "https://$HOST/"* ]]; then
+      problem "sitemap.xml: このサイト（https://$HOST/）の外の URL です: $url"
+    elif ! site_page_exists "${url#"https://$HOST/"}"; then
+      problem "sitemap.xml: ページがありません: $url"
+    fi
+  done < <({
+    printf '%s\n' "$listed"
+    grep -oE 'href="[^"]*"' "$sitemap" | sed -E 's/^href="//; s/"$//' || true
+  } | sort -u)
+  while IFS= read -r file; do
+    rel="${file#"$SITE/"}"
+    url="$(page_url "$rel")"
+    if is_noindex "$file"; then
+      if grep -qxF "$url" <<<"$listed"; then
+        problem "sitemap.xml: 検索に出さない（noindex の）ページが入っています: $url"
+      fi
+    elif ! grep -qxF "$url" <<<"$listed"; then
+      problem "sitemap.xml に $rel（$url）がありません"
+    fi
+  done <<<"$html_files"
+  return 0
+}
+
 check_css() {
   local file="$1" rel="${1#"$SITE/"}"
   if LC_ALL=C grep -qiE "@import|url\\([[:space:]]*[\"']?(https?:)?//" "$file"; then
@@ -297,9 +495,14 @@ check_js() {
 
 html_files="$(find "$SITE" -type f -name '*.html' | sort)"
 [[ -n "$html_files" ]] || die "$SITE に HTML がありません"
+# 公開するホスト（小文字）。site/index.html の canonical で決める。無ければ canonical・hreflang・sitemap の URL は確かめられない
+HOST="$(canonical_host "$SITE/index.html")"
+[[ -n "$HOST" ]] || problem "index.html: <link rel=\"canonical\"> がありません（公開する URL。ほかのページの canonical・hreflang・sitemap.xml はこれと比べる）"
 while IFS= read -r file; do
   check_html "$file"
 done <<<"$html_files"
+check_legal_pages
+check_robots_and_sitemap
 while IFS= read -r file; do
   [[ -z "$file" ]] || check_css "$file"
 done < <(find "$SITE" -type f -name '*.css' | sort)
@@ -311,8 +514,8 @@ while IFS= read -r file; do
 done < <(find "$SITE" -type f -name '*.js' | sort)
 check_app_links
 
-# 公開前に埋める仮の値。TODO の印と、届かない .invalid のドメイン
-todos="$(grep -rnE 'TODO|\.invalid' "$SITE" | sed "s|^$SITE/||" || true)"
+# 公開前に埋める仮の値。TODO の印と、届かない .invalid のドメイン（画像などのバイナリは見ない）
+todos="$(grep -rnIE 'TODO|\.invalid' "$SITE" | sed "s|^$SITE/||" || true)"
 if [[ -n "$todos" ]]; then
   if [[ "$STRICT" == 1 ]]; then
     while IFS= read -r line; do
@@ -321,6 +524,13 @@ if [[ -n "$todos" ]]; then
   else
     info "公開前に埋めるところ（--strict で失敗にする）: $(printf '%s\n' "$todos" | wc -l | tr -d ' ') か所"
   fi
+fi
+
+# リリースのたびに、実物で確かめて埋めるところ（data-placeholder。確認済みの macOS の版など）。
+# 価格・販売サービス・問い合わせ先のように一度埋めれば済むものではないので、--strict でも止めずに知らせる（docs/release.md）
+pending="$(grep -rnIoE 'data-placeholder="[^"]+"' "$SITE" | sed -E "s|^$SITE/||; s|:[0-9]+:data-placeholder=\"([^\"]+)\"| \\1|" | sort -u || true)"
+if [[ -n "$pending" ]]; then
+  info "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: $(printf '%s\n' "$pending" | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
 fi
 
 if [[ "$PROBLEMS" != 0 ]]; then
