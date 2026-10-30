@@ -1,0 +1,25 @@
+# 販売ページ（site/）の応答に付けるヘッダ。Cloudflare Workers の静的アセットがこのファイルを読んで付け、
+# このファイル自身は配らない（cloudflare/wrangler.toml の [assets]。docs/hosting.md）。
+# Worker が作る応答（/updates/*・/download）には付かないので、そちらは cloudflare/src/http.js が付ける。
+#
+# CSP は、いまのページが実際に読むものだけを許す（scripts/check-site.sh が外部の読み込みを禁じているので、
+# どれも同じオリジン）。
+#   - script-src 'self': script.js だけ。インラインのスクリプトとイベント属性（onclick など）は使わない
+#   - style-src: style.css と、SVG のアイコンの style 属性（style="fill: var(--bg)" など）。
+#     style-src-elem と style-src-attr を分けられるブラウザでは <style> を許さず、属性だけを許す。
+#     分けられない古いブラウザは style-src を見るので、そちらにも 'unsafe-inline' を置く（属性が要るため）
+#   - img-src 'self': favicon.svg
+#   - base-uri 'self': 404.html が <base href="/"> を使う（どの深さの URL で出ても、相対のリンクを効かせるため）
+#   - form-action 'none'・frame-ancestors 'none': フォームは無く、ほかのサイトの枠には入れさせない
+# 外のものを読むようにしたら（動画・決済のウィジェットなど）、ここも一緒に直す。
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+
+# favicon.svg は中の <style> で色を変える（ダークモード）。直に開かれたときもそれだけは効かせ、
+# ほかは何も許さない
+/favicon.svg
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; sandbox

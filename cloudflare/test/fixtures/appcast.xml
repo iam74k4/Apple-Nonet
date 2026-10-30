@@ -1,0 +1,68 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+-->
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Nonet</title>
+        <item>
+            <title>1.3.0</title>
+            <pubDate>Thu, 29 Oct 2026 21:04:12 +0900</pubDate>
+            <sparkle:channel>beta</sparkle:channel>
+            <sparkle:version>43</sparkle:version>
+            <sparkle:shortVersionString>1.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[## 1.3.0 のベータ
+
+- 新しいプリセットを試せます
+]]></description>
+            <enclosure url="https://nonet.astlog.dev/updates/Nonet-1.3.0.dmg" length="18934272" type="application/octet-stream" sparkle:edSignature="Q2xvdWRmbGFyZVRlc3RTaWduYXR1cmVCZXRhNDNRMmxvZFdSbWJHRnlaVlJsYzNSVGFXZHVZWFIxY21WQ1pYUmhOREk9PQ=="/>
+            <sparkle:deltas>
+                <enclosure url="https://nonet.astlog.dev/updates/Nonet43-42.delta" sparkle:deltaFrom="42" length="612352" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="1234560" sparkle:deltaFromSparkleLocales="de,en,ja" sparkle:edSignature="RGVsdGFCZXRhNDMtNDJEZWx0YUJldGE0My00MkRlbHRhQmV0YTQzLTQyRGVsdGFCZXRhNDMtNDJEZWx0YUJldGE0Mw=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
+            <title>1.2.0</title>
+            <pubDate>Tue, 27 Oct 2026 10:15:00 +0900</pubDate>
+            <sparkle:version>42</sparkle:version>
+            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[## 1.2.0
+
+- プロファイルの書き出しに対応しました
+- リリースノートの中の字は数えません: <item><sparkle:version>99</sparkle:version><enclosure url="https://evil.example/x.dmg"/></item> </channel>
+]]></description>
+            <enclosure url="https://nonet.astlog.dev/updates/Nonet-1.2.0.dmg" length="18874368" type="application/octet-stream" sparkle:edSignature="U3RhYmxlNDJTdGFibGU0MlN0YWJsZTQyU3RhYmxlNDJTdGFibGU0MlN0YWJsZTQyU3RhYmxlNDJTdGFibGU0MlN0YQ=="/>
+            <sparkle:deltas>
+                <enclosure url="https://nonet.astlog.dev/updates/Nonet42-41.delta" sparkle:deltaFrom="41" length="524288" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="1234560" sparkle:deltaFromSparkleLocales="de,en,ja" sparkle:edSignature="RGVsdGE0Mi00MURlbHRhNDItNDFEZWx0YTQyLTQxRGVsdGE0Mi00MURlbHRhNDItNDFEZWx0YTQyLTQxRGVsdGE0Mg=="/>
+                <enclosure url="https://nonet.astlog.dev/updates/Nonet42-40.delta" sparkle:deltaFrom="40" length="786432" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="1234560" sparkle:deltaFromSparkleLocales="de,en,ja" sparkle:edSignature="RGVsdGE0Mi00MERlbHRhNDItNDBEZWx0YTQyLTQwRGVsdGE0Mi00MERlbHRhNDItNDBEZWx0YTQyLTQwRGVsdGE0Mg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
+            <title>1.1.1</title>
+            <pubDate>Mon, 12 Oct 2026 18:30:45 +0900</pubDate>
+            <sparkle:version>41</sparkle:version>
+            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[## 1.1.1
+
+- 不具合を直しました &amp; は実体のまま
+]]></description>
+            <enclosure url="https://nonet.astlog.dev/updates/Nonet-1.1.1.dmg" length="18612224" type="application/octet-stream" sparkle:edSignature="T2xkNDFPbGQ0MU9sZDQxT2xkNDFPbGQ0MU9sZDQxT2xkNDFPbGQ0MU9sZDQxT2xkNDFPbGQ0MU9sZDQxT2xkNA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://nonet.astlog.dev/updates/Nonet41-40.delta" sparkle:deltaFrom="40" length="262144" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="1234560" sparkle:deltaFromSparkleLocales="de,en,ja" sparkle:edSignature="RGVsdGE0MS00MERlbHRhNDEtNDBEZWx0YTQxLTQwRGVsdGE0MS00MERlbHRhNDEtNDBEZWx0YTQxLTQwRGVsdGE0MQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
+            <title>1.1</title>
+            <pubDate>Fri, 02 Oct 2026 09:00:00 +0900</pubDate>
+            <sparkle:version>40</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://nonet.astlog.dev/updates/Nonet-1.1.dmg" length="18350080" type="application/octet-stream" sparkle:edSignature="T2xkNDBPbGQ0ME9sZDQwT2xkNDBPbGQ0ME9sZDQwT2xkNDBPbGQ0ME9sZDQwT2xkNDBPbGQ0ME9sZDQwT2xkNA=="/>
+        </item>
+    </channel>
+</rss>
+<!-- sparkle-signatures:
+edSignature: QXBwY2FzdFNpZ25hdHVyZUFwcGNhc3RTaWduYXR1cmVBcHBjYXN0U2lnbmF0dXJlQXBwY2FzdFNpZ25hdHVyZUFwcA==
+length: 6412
+-->
