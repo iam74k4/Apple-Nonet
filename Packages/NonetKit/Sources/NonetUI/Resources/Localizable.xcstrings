@@ -449,6 +449,16 @@
         }
       }
     },
+    "Mac を手放すときなどに使います。同じキーは、ほかの Mac でもそのまま使えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this before you sell or give away this Mac. The same key keeps working on your other Macs."
+          }
+        }
+      }
+    },
     "MacBook の内蔵トラックパッドか Magic Trackpad が必要です。Magic Trackpad をつないでも反応しないときは、Nonet を終了して起動し直してください。" : {
       "localizations" : {
         "en" : {
@@ -489,6 +499,16 @@
         }
       }
     },
+    "Nonet %@ のお問い合わせ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet %@ support"
+          }
+        }
+      }
+    },
     "Nonet が無効になっています。有効にすると試せます" : {
       "localizations" : {
         "en" : {
@@ -515,6 +535,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet Profiles"
+          }
+        }
+      }
+    },
+    "Nonet の試用期間が終了しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Nonet trial has ended"
           }
         }
       }
@@ -555,6 +585,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Move Nonet to the Applications folder?"
+          }
+        }
+      }
+    },
+    "Nonet をアンインストール…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Nonet…"
+          }
+        }
+      }
+    },
+    "Nonet をアンインストールしますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall Nonet?"
+          }
+        }
+      }
+    },
+    "Nonet をゴミ箱に入れました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is in the Trash"
+          }
+        }
+      }
+    },
+    "Nonet をゴミ箱に入れられませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't move Nonet to the Trash"
           }
         }
       }
@@ -897,6 +967,16 @@
         }
       }
     },
+    "あとで" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Now"
+          }
+        }
+      }
+    },
     "あとで設定する" : {
       "localizations" : {
         "en" : {
@@ -927,7 +1007,58 @@
         }
       }
     },
+    "お問い合わせ…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact Support…"
+          }
+        }
+      }
+    },
+    "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet will remove the license key from this Mac. You can register the key again at any time."
+          }
+        }
+      }
+    },
+    "この Mac から登録を消しました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The license was removed from this Mac."
+          }
+        }
+      }
+    },
+    "この Mac から登録を消しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove the license from this Mac?"
+          }
+        }
+      }
+    },
+    "この Mac から登録を消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove License from This Mac"
+          }
+        }
+      }
+    },
     "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -938,11 +1069,22 @@
       }
     },
     "この Mac での登録を外す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unregister this Mac"
+          }
+        }
+      }
+    },
+    "この Nonet ではライセンスキーを確かめられません。最新の Nonet をダウンロードし直してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This copy of Nonet can't check license keys. Download the latest version of Nonet."
           }
         }
       }
@@ -1057,6 +1199,36 @@
         }
       }
     },
+    "このライセンスキーは Nonet のものではありません。購入時のメールにある、Nonet のライセンスキーを貼り付けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This license key isn't for Nonet. Paste the Nonet license key from your purchase email."
+          }
+        }
+      }
+    },
+    "このライセンスキーは登録済みです。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This license key is already registered."
+          }
+        }
+      }
+    },
+    "このライセンスキーを登録しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register this license key?"
+          }
+        }
+      }
+    },
     "この案内は、メニューバーの Nonet ›「初回の案内をもう一度」でまた見られます" : {
       "localizations" : {
         "en" : {
@@ -1073,6 +1245,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dismiss Notice"
+          }
+        }
+      }
+    },
+    "これはライセンス ID です。メールにある長いライセンスキーを貼り付けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That's your license ID. Paste the long license key from your email instead."
           }
         }
       }
@@ -1537,6 +1719,16 @@
         }
       }
     },
+    "アンインストール" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall"
+          }
+        }
+      }
+    },
     "インスペクタに戻る" : {
       "localizations" : {
         "en" : {
@@ -1728,6 +1920,16 @@
         }
       }
     },
+    "キーをコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy License Key"
+          }
+        }
+      }
+    },
     "キーを押したまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。" : {
       "localizations" : {
         "en" : {
@@ -1784,6 +1986,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Key Release"
+          }
+        }
+      }
+    },
+    "キーボード: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard: %@"
           }
         }
       }
@@ -1944,6 +2156,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To open Nonet at login, allow it in System Settings under Login Items."
+          }
+        }
+      }
+    },
+    "システム設定を開いて終了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings and Quit"
           }
         }
       }
@@ -2246,6 +2468,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trigger key"
+          }
+        }
+      }
+    },
+    "トリガーキー: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger key: %@"
           }
         }
       }
@@ -2834,6 +3066,7 @@
       }
     },
     "ライセンスの登録を解除しますか？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2853,12 +3086,62 @@
         }
       }
     },
+    "ライセンスキーが見つからないときは" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find your license key?"
+          }
+        }
+      }
+    },
+    "ライセンスキーの形式が正しくありません。購入時のメールから、キー全体をもう一度コピーしてください。それでも登録できないときは、お問い合わせください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This doesn't look like a license key. Copy the whole key from your purchase email again. If it still doesn't work, contact us."
+          }
+        }
+      }
+    },
+    "ライセンスキーは残すので、入れ直せば登録し直さずに使えます。試用期間もやり直しにはなりません。ゴミ箱を空にするまでは元に戻せます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your license key stays on this Mac, so Nonet works right away if you reinstall it. The trial doesn't start over. You can undo this until you empty the Trash."
+          }
+        }
+      }
+    },
+    "ライセンスキーをコピーしました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "License key copied."
+          }
+        }
+      }
+    },
     "ライセンスキーを入力…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter License Key…"
+          }
+        }
+      }
+    },
+    "ライセンスキーを登録…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register License Key…"
           }
         }
       }
@@ -2873,12 +3156,42 @@
         }
       }
     },
+    "ライセンスキーを確かめられませんでした。購入時のメールからキー全体をもう一度コピーしてください。それでも登録できないときは、お問い合わせください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet couldn't verify this license key. Copy the whole key from your purchase email again. If it still doesn't work, contact us."
+          }
+        }
+      }
+    },
+    "リンクからライセンスキーを読み取れませんでした。購入時のメールからキーをコピーして、ここに貼り付けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet couldn't read the license key from the link. Copy the key from your purchase email and paste it here."
+          }
+        }
+      }
+    },
     "ログイン時に起動" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open at login"
+          }
+        }
+      }
+    },
+    "ログイン時に起動しないようにし、Nonet の設定フォルダとキャッシュと Nonet 本体をゴミ箱に入れて終了します。最後に、アクセシビリティの許可を外せるようにシステム設定を開きます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet will stop opening at login, move its settings folder, its caches and the app itself to the Trash, and quit. Then System Settings opens so you can remove its Accessibility permission."
           }
         }
       }
@@ -2899,6 +3212,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't set Nonet to open at login (%@)."
+          }
+        }
+      }
+    },
+    "ログイン時の起動を止められませんでした。システム設定 › 一般 › ログイン項目 で Nonet を外してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet couldn't stop opening at login. Remove it in System Settings › General › Login Items."
           }
         }
       }
@@ -2989,6 +3312,16 @@
         }
       }
     },
+    "下の情報は、調べるためだけに使います。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The details below are used only to look into your question."
+          }
+        }
+      }
+    },
     "中" : {
       "localizations" : {
         "en" : {
@@ -3015,6 +3348,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not Now"
+          }
+        }
+      }
+    },
+    "何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was changed. Quit Nonet, then move it from the Applications folder to the Trash in Finder."
           }
         }
       }
@@ -3120,11 +3463,32 @@
       }
     },
     "別の Mac に移すときなどに使います" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use this when you move your license to another Mac."
+          }
+        }
+      }
+    },
+    "別のキーを登録…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register a Different Key…"
+          }
+        }
+      }
+    },
+    "別のライセンスキーを登録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Register a Different License Key"
           }
         }
       }
@@ -3385,6 +3749,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet responds only to the right-side key. Left ⌘ and ⌥ work as usual."
+          }
+        }
+      }
+    },
+    "同じキーを、あなたが使うほかの Mac にも登録できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can register the same key on your other Macs."
           }
         }
       }
@@ -3760,6 +4134,16 @@
         }
       }
     },
+    "最後に、システム設定 › プライバシーとセキュリティ › アクセシビリティ の一覧で Nonet を選び、「−」で外してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One last step: in System Settings › Privacy & Security › Accessibility, select Nonet and click –."
+          }
+        }
+      }
+    },
     "最後のキーを消す" : {
       "localizations" : {
         "en" : {
@@ -3796,6 +4180,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not selected"
+          }
+        }
+      }
+    },
+    "次のフォルダはゴミ箱に入れられませんでした。Finder でゴミ箱に入れてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These folders couldn't be moved to the Trash. Move them to the Trash in Finder."
           }
         }
       }
@@ -3970,7 +4364,28 @@
         }
       }
     },
+    "登録を消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        }
+      }
+    },
+    "登録を消す…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove…"
+          }
+        }
+      }
+    },
     "登録を解除" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3981,6 +4396,7 @@
       }
     },
     "登録を解除…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3991,6 +4407,7 @@
       }
     },
     "登録を解除しました。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4367,6 +4784,16 @@
         }
       }
     },
+    "設定はそのまま残っています。ライセンスキーを登録すると、すぐに元どおり使えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your settings are still here. Register a license key and everything works again right away."
+          }
+        }
+      }
+    },
     "設定を開く" : {
       "localizations" : {
         "en" : {
@@ -4448,6 +4875,7 @@
       }
     },
     "許可を求める" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4520,11 +4948,50 @@
       }
     },
     "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、ずっと使えます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Every feature is available during the trial. Buy Nonet and register a license key to keep using it."
+          }
+        }
+      }
+    },
+    "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、試用期間のあとも使い続けられます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every feature works during the trial. Buy Nonet and register your license key to keep using it after the trial."
+          }
+        }
+      }
+    },
+    "試用期間中（残り %lld 日・%@まで）" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left in your trial (ends %@)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left in your trial (ends %@)"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "試用期間中（残り %1$lld 日・%2$@まで）"
           }
         }
       }
@@ -4632,11 +5099,32 @@
       }
     },
     "購入すると、ライセンスキーがメールで届きます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your license key arrives by email after purchase."
+          }
+        }
+      }
+    },
+    "購入すると、ライセンスキーがメールで届きます。1つのライセンスで、あなたが使うすべての Mac に使えます。30日以内なら全額を返金します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your license key arrives by email after purchase. One license covers every Mac you use. Full refund within 30 days."
+          }
+        }
+      }
+    },
+    "購入時のメールにあるライセンスキーを貼り付け" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the license key from your purchase email"
           }
         }
       }
@@ -4647,6 +5135,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste the license key from your purchase email and click Register. Nonet checks the key on this Mac, so you don't need a network connection or an account."
+          }
+        }
+      }
+    },
+    "購入済みの方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already Bought Nonet?"
           }
         }
       }
