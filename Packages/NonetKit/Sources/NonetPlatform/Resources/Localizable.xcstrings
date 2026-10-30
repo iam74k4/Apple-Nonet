@@ -101,6 +101,16 @@
         }
       }
     },
+    "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the selected text because Nonet isn't allowed to read the clipboard. Allow it in System Settings › Privacy & Security."
+          }
+        }
+      }
+    },
     "URL が正しくありません" : {
       "localizations" : {
         "en" : {
@@ -177,6 +187,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't send the keystrokes."
+          }
+        }
+      }
+    },
+    "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the selected text without losing what's on the clipboard. Copy the selected text with ⌘C, then try again."
           }
         }
       }
@@ -287,6 +307,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select some text first."
+          }
+        }
+      }
+    },
+    "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text first. To use a single line, select it without the line break at the end."
           }
         }
       }

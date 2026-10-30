@@ -155,6 +155,16 @@
         }
       }
     },
+    "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Didn't run because a Nonet window is in front. In Settings, use “Test This Button” to try it."
+          }
+        }
+      }
+    },
     "Nonet のプロファイルのファイルではありません" : {
       "localizations" : {
         "en" : {
@@ -670,7 +680,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Documents"
+            "value" : "Writing"
           }
         }
       }
@@ -722,7 +732,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Files"
+            "value" : "File Management"
           }
         }
       }
@@ -794,7 +804,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Browsers"
+            "value" : "Web Browsing"
           }
         }
       }
@@ -1078,7 +1088,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meetings"
+            "value" : "Video Conferencing"
           }
         }
       }

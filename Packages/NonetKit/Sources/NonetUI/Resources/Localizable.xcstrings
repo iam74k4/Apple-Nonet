@@ -359,6 +359,16 @@
         }
       }
     },
+    "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the Finder, drag Nonet to the Applications folder, then open it from there."
+          }
+        }
+      }
+    },
     "HUD が出るまでの時間" : {
       "localizations" : {
         "en" : {
@@ -479,6 +489,16 @@
         }
       }
     },
+    "Nonet について" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About Nonet"
+          }
+        }
+      }
+    },
     "Nonet のプロファイル" : {
       "localizations" : {
         "en" : {
@@ -519,12 +539,32 @@
         }
       }
     },
+    "Nonet をアプリケーションフォルダに移しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Nonet to the Applications folder?"
+          }
+        }
+      }
+    },
     "Nonet を有効にする" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enable Nonet"
+          }
+        }
+      }
+    },
+    "Nonet（アップデートがあります）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet (update available)"
           }
         }
       }
@@ -549,6 +589,16 @@
         }
       }
     },
+    "OK" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "URL" : {
       "localizations" : {
         "en" : {
@@ -565,6 +615,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The URL isn't valid."
+          }
+        }
+      }
+    },
+    "attributivePosition.bottomLeft" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottom‑left"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "左下"
+          }
+        }
+      }
+    },
+    "attributivePosition.bottomRight" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bottom‑right"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "右下"
+          }
+        }
+      }
+    },
+    "attributivePosition.topLeft" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "top‑left"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "左上"
+          }
+        }
+      }
+    },
+    "attributivePosition.topRight" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "top‑right"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "右上"
           }
         }
       }
@@ -599,12 +717,112 @@
         }
       }
     },
+    "menu.edit" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "編集"
+          }
+        }
+      }
+    },
+    "settings.addProfileSheet.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Profile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "プロファイルを追加"
+          }
+        }
+      }
+    },
+    "settings.import.confirmButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "読み込む"
+          }
+        }
+      }
+    },
+    "settings.sidebar.appsHeader" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "アプリ"
+          }
+        }
+      }
+    },
+    "…ほか%lld行" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "…and %lld more line"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "…and %lld more lines"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "、" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : ", "
+          }
+        }
+      }
+    },
+    "「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”"
           }
         }
       }
@@ -694,7 +912,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "That was the %@ button. Try the top-right corner."
+            "value" : "That was the %@ button. Try the top‑right corner."
           }
         }
       }
@@ -834,7 +1052,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To see this guide again, choose Nonet › Show Welcome Guide in the menu bar."
+            "value" : "To see this guide again, click the 3×3 icon in the menu bar and choose Show Welcome Guide."
           }
         }
       }
@@ -859,12 +1077,22 @@
         }
       }
     },
+    "しまう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimize"
+          }
+        }
+      }
+    },
     "すぐにタップすると、その場で実行されます。迷ったら指を置いたまま止めると、9マスの一覧（HUD）が出ます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap right away and the button runs instantly. Not sure? Rest your finger and the HUD shows all nine buttons."
+            "value" : "Tap right away and the button runs. Not sure? Rest your finger and the HUD shows all nine buttons."
           }
         }
       }
@@ -875,6 +1103,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exports all profiles to a .%@ file. To export one profile, Control-click it in the profile list."
+          }
+        }
+      }
+    },
+    "すべてを選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select All"
           }
         }
       }
@@ -1013,6 +1251,16 @@
         }
       }
     },
+    "やり直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo"
+          }
+        }
+      }
+    },
     "よく使う" : {
       "localizations" : {
         "en" : {
@@ -1123,6 +1371,16 @@
         }
       }
     },
+    "アップデートがあります…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Available…"
+          }
+        }
+      }
+    },
     "アップデートを確認" : {
       "localizations" : {
         "en" : {
@@ -1213,6 +1471,52 @@
         }
       }
     },
+    "アプリケーションフォルダにある Nonet（%@）をゴミ箱に入れ、この Nonet（%@）に置き換えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy in the Applications folder (version %1$@) moves to the Trash, and this copy (version %2$@) replaces it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "アプリケーションフォルダにある Nonet（%1$@）をゴミ箱に入れ、この Nonet（%2$@）に置き換えます。"
+          }
+        }
+      }
+    },
+    "アプリケーションフォルダに移す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Applications Folder"
+          }
+        }
+      }
+    },
+    "アプリケーションフォルダに移せませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't move Nonet to the Applications folder"
+          }
+        }
+      }
+    },
+    "アプリケーションフォルダの Nonet を置き換えますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace the copy of Nonet in the Applications folder?"
+          }
+        }
+      }
+    },
     "アプリ起動" : {
       "localizations" : {
         "en" : {
@@ -1229,6 +1533,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back to the inspector"
+          }
+        }
+      }
+    },
+    "ウインドウ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window"
           }
         }
       }
@@ -1273,6 +1587,16 @@
         }
       }
     },
+    "カット" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cut"
+          }
+        }
+      }
+    },
     "カーソルとトラックパッドの動きを切り離します" : {
       "localizations" : {
         "en" : {
@@ -1293,7 +1617,18 @@
         }
       }
     },
+    "カーソルの固定方法" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointer lock method"
+          }
+        }
+      }
+    },
     "カーソルの固定方法（詳細）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1388,7 +1723,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hold the key and swipe with two fingers to change pages. Each app can have up to three pages."
+            "value" : "Hold the trigger key and swipe with two fingers to change pages. Each app can have up to three pages."
           }
         }
       }
@@ -1398,7 +1733,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hold the key and rest your finger to see all nine buttons in the HUD. Once you know the layout, just tap right away to run a button."
+            "value" : "Hold the trigger key and rest your finger to see all nine buttons in the HUD. Once you know the layout, just tap right away to run a button."
           }
         }
       }
@@ -1453,6 +1788,16 @@
         }
       }
     },
+    "キー入力: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keystrokes: %@"
+          }
+        }
+      }
+    },
     "クリックして記録" : {
       "localizations" : {
         "en" : {
@@ -1499,6 +1844,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global profile"
+          }
+        }
+      }
+    },
+    "グローバルのプロファイルから始めましょう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start with the Global profile"
           }
         }
       }
@@ -1569,6 +1924,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. Nonet starts working once you allow it."
+          }
+        }
+      }
+    },
+    "システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To open Nonet at login, allow it in System Settings under Login Items."
           }
         }
       }
@@ -1713,6 +2078,38 @@
         }
       }
     },
+    "スクリプト（%lld行）:" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Script (%lld line):"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Script (%lld lines):"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keys that macOS uses first, like ⇧⌘4 for screenshots, can't be recorded. Click Cancel and type them as text instead."
+          }
+        }
+      }
+    },
     "タップを待っています…" : {
       "localizations" : {
         "en" : {
@@ -1759,6 +2156,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Double-click an app to choose it."
+          }
+        }
+      }
+    },
+    "ディスクイメージやダウンロードしたままの場所から開いているため、アップデートを入れられません。アプリケーションフォルダに移して開き直します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is running from a disk image or from where it was downloaded, so it can't install updates. Nonet will move itself to the Applications folder and reopen."
           }
         }
       }
@@ -1994,7 +2401,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No apps with presets found"
+            "value" : "None of your apps has a preset yet"
           }
         }
       }
@@ -2099,6 +2506,26 @@
         }
       }
     },
+    "ペースト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste"
+          }
+        }
+      }
+    },
+    "ペーストしてスタイルを合わせる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste and Match Style"
+          }
+        }
+      }
+    },
     "マス %lld（%@）" : {
       "localizations" : {
         "en" : {
@@ -2115,12 +2542,72 @@
         }
       }
     },
+    "マスがその後に変わったため、元に戻せませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't undo because the button has changed since then."
+          }
+        }
+      }
+    },
+    "マスの中身をメニュー項目で置き換えました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced the button with the menu item."
+          }
+        }
+      }
+    },
+    "マスの入れ替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap Buttons"
+          }
+        }
+      }
+    },
     "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The trackpad ticks when your finger crosses into another button, the page changes or a button runs."
+          }
+        }
+      }
+    },
+    "マスの移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Button"
+          }
+        }
+      }
+    },
+    "マスを空にしました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleared the button."
+          }
+        }
+      }
+    },
+    "マスを空にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Button"
           }
         }
       }
@@ -2180,7 +2667,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pick from Menus…"
+            "value" : "Pick from Menus"
           }
         }
       }
@@ -2285,6 +2772,16 @@
         }
       }
     },
+    "メニュー項目の割り当て" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assign Menu Item"
+          }
+        }
+      }
+    },
     "ライセンス" : {
       "localizations" : {
         "en" : {
@@ -2325,6 +2822,16 @@
         }
       }
     },
+    "ライセンスキーを入力…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter License Key…"
+          }
+        }
+      }
+    },
     "ライセンスキーを登録すると、また使えるようになります。設定はそのまま残っています。" : {
       "localizations" : {
         "en" : {
@@ -2350,7 +2857,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn't stop Nonet from opening at login. %@"
+            "value" : "Couldn't stop Nonet from opening at login (%@)."
           }
         }
       }
@@ -2360,7 +2867,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn't set Nonet to open at login. %@"
+            "value" : "Couldn't set Nonet to open at login (%@)."
           }
         }
       }
@@ -2371,6 +2878,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "• %@"
+          }
+        }
+      }
+    },
+    "・%@ › %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %1$@ › %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "・%1$@ › %2$@"
           }
         }
       }
@@ -2455,6 +2978,16 @@
         }
       }
     },
+    "今は移さない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Now"
+          }
+        }
+      }
+    },
     "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。" : {
       "localizations" : {
         "en" : {
@@ -2495,12 +3028,32 @@
         }
       }
     },
+    "例: ⌘L → ⌘C。スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できないので、ここに入力します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For example, ⌘L → ⌘C. Type keys that macOS uses first here, like ⇧⌘4 for screenshots, because they can't be recorded."
+          }
+        }
+      }
+    },
     "停止しています" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stopped"
+          }
+        }
+      }
+    },
+    "元に戻す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
           }
         }
       }
@@ -2655,6 +3208,16 @@
         }
       }
     },
+    "取り消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        }
+      }
+    },
     "右" : {
       "localizations" : {
         "en" : {
@@ -2786,11 +3349,22 @@
       }
     },
     "変数は \"$NONET_SELECTED_TEXT\" のように \" で囲んでください。無いかもしれない変数は ${PROJECT_DIR:-$HOME} のように既定値を付けると安全です。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Put variables in double quotes, like \"$NONET_SELECTED_TEXT\". If a variable might not be set, give it a default, like ${PROJECT_DIR:-$HOME}."
+          }
+        }
+      }
+    },
+    "変数は次のように \" で囲んでください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put variables in double quotes, like this:"
           }
         }
       }
@@ -3165,6 +3739,16 @@
         }
       }
     },
+    "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These buttons run scripts, type keys or open files with your permissions. Check what they do, and import only files you trust."
+          }
+        }
+      }
+    },
     "次の設定が、ファイルの中身で置き換わります。元に戻せません。" : {
       "localizations" : {
         "en" : {
@@ -3211,6 +3795,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're all set"
+          }
+        }
+      }
+    },
+    "無いかもしれない変数は、次のように既定値を付けると安全です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If a variable might not be set, give it a default, like this:"
           }
         }
       }
@@ -3310,7 +3904,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Registered. Thank you for your purchase."
+            "value" : "Thank you for your purchase."
           }
         }
       }
@@ -3541,6 +4135,26 @@
         }
       }
     },
+    "置き換える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        }
+      }
+    },
+    "翻訳や要約など、テキストを受け取るショートカットで使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this with shortcuts that take text input, like translating or summarizing."
+          }
+        }
+      }
+    },
     "自動" : {
       "localizations" : {
         "en" : {
@@ -3561,7 +4175,18 @@
         }
       }
     },
+    "表記で入力" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type keys as text"
+          }
+        }
+      }
+    },
     "表記で入力（例: ⌘L → ⌘C）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3721,6 +4346,16 @@
         }
       }
     },
+    "許可されていません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not allowed"
+          }
+        }
+      }
+    },
     "許可すると、自動で次へ進みます" : {
       "localizations" : {
         "en" : {
@@ -3747,6 +4382,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request Permission"
+          }
+        }
+      }
+    },
+    "試してみよう" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it out"
           }
         }
       }
@@ -3779,6 +4424,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended. Register a license key to practice."
           }
         }
       }
@@ -4050,12 +4705,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sends the selected text and the prompt to the on-device language model (Apple Intelligence)."
+            "value" : "Sends the selected text and the prompt to the on‑device language model (Apple Intelligence)."
           }
         }
       }
     },
     "選択中のテキストを、ショートカットへの入力として渡します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4121,6 +4777,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App to open"
+          }
+        }
+      }
+    },
+    "開くファイル: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File to open: %@"
           }
         }
       }
