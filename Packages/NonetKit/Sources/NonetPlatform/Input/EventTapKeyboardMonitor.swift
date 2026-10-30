@@ -25,6 +25,11 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         get { detector.interruptsWithoutTrigger }
         set { detector.interruptsWithoutTrigger = newValue }
     }
+    /// トラックパッドにいま指が触れているか。抑止中に、触れていない間に届いたマウスやホイールのイベントでセッションを終える
+    public var isTrackpadTouched: Bool {
+        get { contact.isTouched }
+        set { contact.update(isTouched: newValue, at: now()) }
+    }
 
     public var isRunning: Bool { keyboardTap != nil }
 
@@ -42,6 +47,9 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
 
     private var detector = TriggerDetector()
     private var suppressor = PointerSuppressor()
+    private var contact = TrackpadContact()
+    /// この抑止の間に、マウスやホイールで .interrupted を送った（1回だけ送る）
+    private var didInterruptForOtherDevice = false
     /// 抑止を始めたときの方式と、カーソルの位置
     private var activePlan: CursorLockPlan?
     private var anchor: CGPoint?
@@ -167,6 +175,8 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
             // 無効だった間の離すイベントを取りこぼしたかもしれない
             reconcileTrigger(tapWasDisabled: true)
         case .pointer:
+            // 自分で無効にした直後にも届く（start の後と、セッションの後片付けを終えるたび）。取りこぼしではない
+            guard PointerTapDisableResponse.response(to: type, isPointerTapEnabled: isPointerTapEnabled) == .recover else { return }
             suppressor.eventsMayHaveBeenMissed()
             // 有効にしておくはずのときだけ有効にし直す
             if isPointerTapEnabled { pointerTap?.setEnabled(true) }
@@ -183,6 +193,13 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         } else if type == PointerEventKind.scrollWheel {
             info.scrollPhase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
             info.momentumPhase = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
+        }
+        if isSuppressingPointer, !didInterruptForOtherDevice, contact.isFromAnotherDevice(info, now: now()) {
+            // マウスやホイールを使った: 何も実行せずにセッションを終えてもらい、イベントは手を加えずに渡す
+            didInterruptForOtherDevice = true
+            emit(.interrupted)
+            updatePointerTap()
+            return true
         }
         let decision = suppressor.decide(info, suppressing: isSuppressingPointer, dropsMoves: activePlan?.dropsMoves ?? false, now: now())
         updatePointerTap()
@@ -315,6 +332,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     // MARK: カーソル
 
     private func beginSuppression() {
+        didInterruptForOtherDevice = false
         let plan = CursorLockPlan(cursorLock)
         activePlan = plan
         anchor = cursor.location

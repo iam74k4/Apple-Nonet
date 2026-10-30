@@ -46,19 +46,83 @@ import Testing
         #expect(ControllerPresentation.hudCell(F.newTab) == HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: ControllerPresentation.detail(for: F.newTab.action)))
     }
 
-    @Test func hintsFollowTheFireModeTriggerAndPracticeMode() {
-        // キーの記号は文の外から差し込む（記号は言語で変わらない）
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("\("⌘")を離して実行"))
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == ModelFixtures.text("\("fn")を離して実行"))
+    /// どのキーか（右⌘ など。JIS 配列には⌘が2つある）まで言い、「キーを離したとき」でもタップで実行できることを言う
+    @Test func hintsNameTheTriggerKeyAndSayTappingWorks() {
+        let release = { (trigger: TriggerKey) in ModelFixtures.text("タップか \(trigger.localizedName)を離して実行") }
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == release(.rightCommand))
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == release(.function))
         #expect(ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("指を離して実行"))
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightOption, isPracticeMode: true) == ModelFixtures.text("練習中 · \(ModelFixtures.text("\("⌥")を離して実行"))"))
-        #expect(ControllerPresentation.trialEndedBanner == ModelFixtures.text("試用期間が終了しました"))
+        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightOption, isPracticeMode: true) == ModelFixtures.text("練習中 · \(release(.rightOption))"))
+        #expect(TriggerKey.allCases.map(\.localizedName) == [
+            ModelFixtures.text("右⌘"), ModelFixtures.text("右⌥"), ModelFixtures.text("右⇧"), ModelFixtures.text("fn"),
+        ])
+    }
+
+    /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
+    @Test func trialTexts() {
+        let ended = ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます")
+        #expect(ControllerPresentation.trialEndedBanner == ended)
+        #expect(NonetError.licenseRequired.localizedDescription == ended)
+        #expect(ControllerPresentation.trialReminderBanner(daysLeft: 3) == String(localized: "試用期間は残り\(3)日です", bundle: .nonetCore, locale: ControllerPresentation.textLocale))
+        #expect(ControllerPresentation.trialReminderBanner(daysLeft: 1) == String(localized: "試用期間は残り\(1)日です", bundle: .nonetCore, locale: ControllerPresentation.textLocale))
+        #expect(ControllerPresentation.trialEndedToast == ToastModel(
+            title: ModelFixtures.text("試用期間が終了しました"),
+            detail: ModelFixtures.text("メニューバーの Nonet から購入・登録できます"),
+            style: .failure
+        ))
+    }
+
+    @Test func beginnerFootnotesExplainChoosingCancellingAndPages() {
+        let choose = ModelFixtures.text("指を滑らせて選ぶ")
+        let pages = ModelFixtures.text("2本指のスワイプでページを切り替え")
+        let release = ModelFixtures.text("先に指を離してから\(TriggerKey.rightCommand.localizedName)を離すとやめる")
+        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightCommand, pageCount: 1)
+            == [choose, release].joined(separator: " · "))
+        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightCommand, pageCount: 3)
+            == [choose, release, pages].joined(separator: " · "))
+        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onFingerLift, activation: .triggerKey, trigger: .rightCommand, pageCount: 1)
+            == [choose, ModelFixtures.text("やめるときは指を置いたまま左の⇧を押す")].joined(separator: " · "))
+        // 角の長押しは、実行のタイミングの設定に関係なく、滑らせずに離すとやめる
+        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .cornerHold, trigger: .rightCommand, pageCount: 2)
+            == [choose, ModelFixtures.text("滑らせずに離すとやめる"), pages].joined(separator: " · "))
+    }
+
+    /// アプリのページの後ろにつなげたグローバルのページの位置（ページの点をそこで離す）
+    @Test func globalPagesStartWhereTheProfileChanges() {
+        #expect(ControllerPresentation.globalPagesStart(pages(frontmost: F.safari)) == 2)
+        #expect(ControllerPresentation.globalPagesStart(pages(frontmost: nil)) == nil)
+        #expect(ControllerPresentation.globalPagesStart([]) == nil)
+        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), page: 0, highlightedCell: nil, hint: "", banner: nil)
+        #expect(model.globalPagesStart == 2)
     }
 
     @Test func toastsAndResultsCarryTheCell() {
         #expect(ControllerPresentation.successToast(F.newTab) == ToastModel(title: F.newTab.title, icon: F.newTab.icon, style: .success))
-        #expect(ControllerPresentation.failureToast(F.newTab, message: "だめ") == ToastModel(title: F.newTab.title, detail: "だめ", icon: F.newTab.icon, style: .failure))
         #expect(ControllerPresentation.result(F.summarize, output: "文") == ResultModel(title: F.summarize.title, text: "文", icon: F.summarize.icon))
+        #expect(ControllerPresentation.runningToast(F.summarize) == ToastModel(
+            title: ModelFixtures.text("「\(F.summarize.title)」を実行中…"),
+            icon: F.summarize.icon,
+            style: .running
+        ))
+    }
+
+    /// 失敗の見出しは、どのプロファイルのどのマスか。ページが複数のプロファイルならページも言う
+    @Test func failureToastsSayWhereTheCellIs() {
+        let onePage = ControllerTarget(cell: F.docs, profileName: ModelFixtures.globalName, address: CellAddress(page: 0, index: 8))
+        #expect(ControllerPresentation.failureToast(onePage, message: "だめ") == ToastModel(
+            title: ModelFixtures.text("\(ModelFixtures.globalName) › \(F.docs.title)"),
+            detail: "だめ",
+            icon: F.docs.icon,
+            style: .failure
+        ))
+        let secondPage = ControllerTarget(cell: F.reload, profileName: "Safari", address: CellAddress(page: 1, index: 0), profilePageCount: 2)
+        #expect(ControllerPresentation.failureTitle(secondPage) == String(
+            localized: "\("Safari") › \(F.reload.title)（\(2)ページ目）",
+            bundle: .nonetCore,
+            locale: ControllerPresentation.textLocale
+        ))
+        // プロファイルの名前が分からなければ、マスの名前だけ
+        #expect(ControllerPresentation.failureTitle(ControllerTarget(cell: F.newTab, profileName: "", address: CellAddress(page: 0, index: 0))) == F.newTab.title)
     }
 }
 
@@ -79,9 +143,23 @@ import Testing
 
     @Test func targetsUseTheAddressInsideTheProfile() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
-        #expect(session.target(page: 0, cell: 2) == ControllerTarget(cell: F.closeTab, profileName: "Safari", address: CellAddress(page: 0, index: 2)))
+        let safariID = session.pages[0].profileID
+        let globalID = session.pages[2].profileID
+        #expect(session.target(page: 0, cell: 2) == ControllerTarget(
+            cell: F.closeTab,
+            profileName: "Safari",
+            address: CellAddress(page: 0, index: 2),
+            profileID: safariID,
+            profilePageCount: 2
+        ))
         #expect(session.target(page: 1, cell: 0)?.address == CellAddress(page: 1, index: 0))
-        #expect(session.target(page: 2, cell: 8) == ControllerTarget(cell: F.docs, profileName: ModelFixtures.globalName, address: CellAddress(page: 0, index: 8)))
+        #expect(session.target(page: 2, cell: 8) == ControllerTarget(
+            cell: F.docs,
+            profileName: ModelFixtures.globalName,
+            address: CellAddress(page: 0, index: 8),
+            profileID: globalID,
+            profilePageCount: 1
+        ))
         // 空きマスと範囲外
         #expect(session.target(page: 0, cell: 1) == nil)
         #expect(session.target(page: 3, cell: 0) == nil)
@@ -94,9 +172,28 @@ import Testing
         let session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
         let model = session.hudModel(page: 0, highlightedCell: 4, isPracticeMode: false, isTrialEnded: true)
         #expect(model.hint == ModelFixtures.text("指を離して実行"))
-        #expect(model.banner == ModelFixtures.text("試用期間が終了しました"))
+        #expect(model.banner == ControllerPresentation.trialEndedBanner)
+        #expect(model.bannerStyle == .warning)
         #expect(model.highlightedIndex == 4)
+        #expect(model.footnote == nil)
+        #expect(model.scale == 1)
+        #expect(model.globalPagesStart == 2)
         #expect(session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: true, isTrialEnded: false).banner == nil)
+    }
+
+    /// 使い始めの案内・試用期間の残り日数（知らせの見た目）・HUD の大きさは、セッションで決めたとおりに出す
+    @Test func theHUDModelCarriesTheGuidanceAndTheScale() {
+        let settings = F.settings { $0.hudScale = .extraLarge }
+        var session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
+        session.showsBeginnerHint = true
+        session.trialReminderDays = 2
+        let model = session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: false, isTrialEnded: false)
+        #expect(model.banner == ControllerPresentation.trialReminderBanner(daysLeft: 2))
+        #expect(model.bannerStyle == .info)
+        #expect(model.footnote == ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightOption, pageCount: 3))
+        #expect(model.scale == 1.5)
+        // 試用期間が終わっていれば、終わった帯を出す
+        #expect(session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: false, isTrialEnded: true).banner == ControllerPresentation.trialEndedBanner)
     }
 }
 

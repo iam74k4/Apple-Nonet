@@ -1,5 +1,6 @@
 // 担当: engine。キーボード・指・時計の偽物から NonetController を動かし、HUD・触覚・実行までを確かめる。
-// 既定: トリガーは右⌥、hudDelay 0.3秒、onTriggerRelease、前面は Safari（ページは Safari 2枚＋グローバル1枚）
+// 既定: トリガーは右⌥、hudDelay 0.3秒（指を置かなければ placementWindow 0.6秒で HUD）、onTriggerRelease、
+// 前面は Safari（ページは Safari 2枚＋グローバル1枚）。使い始めの案内は出し終えている（ControllerHarness）
 import Foundation
 import Testing
 @testable import NonetCore
@@ -7,6 +8,14 @@ import Testing
 @MainActor
 @Suite struct ControllerSessionTests {
     typealias F = ControllerFixtures
+
+    /// 指を置かずに HUD が出るまで待つ（仕様 4 (a)）
+    private static let placementWindow = SessionConfiguration.defaultPlacementWindow
+
+    /// 失敗のトーストの見出し（どのプロファイルのどのマスか）
+    private func failureTitle(_ cell: Cell, profile: String, page: Int = 0, index: Int, pages: Int) -> String {
+        ControllerPresentation.failureTitle(ControllerTarget(cell: cell, profileName: profile, address: CellAddress(page: page, index: index), profilePageCount: pages))
+    }
 
     private func detail(_ cell: Cell) -> String? {
         guard case .keystroke(let keys) = cell.action else { return nil }
@@ -100,14 +109,15 @@ import Testing
         #expect(h.controller.lastExecution?.cellTitle == F.reader.title)
     }
 
-    @Test func anEmptyCellDoesNothing() async throws {
+    /// 何も実行しないが、すぐにタップしたことは届いたと触覚で知らせる
+    @Test func anEmptyCellRunsNothingButBuzzes() async throws {
         let h = try ControllerHarness()
         h.start()
         h.fastTap(1)
         await h.settle()
 
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
+        #expect(h.haptics.events == [.rejected])
         #expect(h.hud.toasts.isEmpty)
         #expect(h.controller.lastExecution == nil)
     }
@@ -119,13 +129,13 @@ import Testing
         h.tap(1)
         #expect(!h.hud.isVisible)
         // 何も実行していないので、指を置かずに迷っていれば (a) の HUD を出す
-        h.advance(0.2)
+        h.advance(Self.placementWindow - 0.15)
         #expect(h.hud.isVisible)
         #expect(h.hud.current?.highlightedIndex == nil)
         h.releaseTrigger()
         await h.settle()
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
+        #expect(h.haptics.events == [.rejected])
     }
 
     // MARK: Nonet 自身が前面のとき
@@ -141,9 +151,11 @@ import Testing
         // セッションは始まる（タップがクリックとして設定ウィンドウに届かない）が、キーは送らずに知らせる
         #expect(h.keyboard.suppressionChanges == [true, false])
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
+        // 実行しなかったことを触覚でも知らせる
+        #expect(h.haptics.events == [.rejected])
         let message = ModelFixtures.text("Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます")
-        #expect(h.hud.toasts == [ToastModel(title: F.closeTab.title, detail: message, icon: F.closeTab.icon, style: .failure)])
+        let title = failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2)
+        #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: F.closeTab.icon, style: .failure)])
         let record = try #require(h.controller.lastExecution)
         #expect(record.cellTitle == F.closeTab.title)
         #expect(!record.succeeded)
@@ -215,7 +227,7 @@ import Testing
         let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.hudPosition = .nearCursor }))
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
 
         let expectedCells: [HUDCell?] = [
             HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: detail(F.newTab)),
@@ -226,8 +238,9 @@ import Testing
             nil, nil, nil,
             HUDCell(title: F.reader.title, icon: F.reader.icon),
         ]
-        let hint = ModelFixtures.text("\("⌥")を離して実行")
-        let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: hint)
+        let hint = ModelFixtures.text("タップか \(TriggerKey.rightOption.localizedName)を離して実行")
+        // グローバルのページは 3枚目から（ページの点をそこで離す）
+        let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: hint, globalPagesStart: 2)
         #expect(h.hud.shown == [ControllerFakeHUD.Shown(model: shown, position: .nearCursor)])
         #expect(detail(F.newTab)?.isEmpty == false)
 
@@ -236,7 +249,7 @@ import Testing
         h.advance(0.1)
         h.touch(on: 8)
         #expect(h.hud.updates.map(\.highlightedIndex) == [4, 8])
-        #expect(h.hud.updates.last == HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: 8, hint: hint))
+        #expect(h.hud.updates.last == HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: 8, hint: hint, globalPagesStart: 2))
         #expect(h.haptics.events == [.boundary])
 
         h.advance(0.3)
@@ -276,7 +289,7 @@ import Testing
         let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.fireMode = .onFingerLift }))
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         #expect(h.hud.current?.hint == ModelFixtures.text("指を離して実行"))
         h.touch(on: 0)
         h.advance(0.4)
@@ -297,7 +310,7 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         h.touch(on: 4)
         h.interrupt()
         #expect(!h.hud.isVisible)
@@ -372,12 +385,12 @@ import Testing
         h.controller.update { configuration in
             configuration.updateProfile(id: safariID) { $0.pages[0].cells[0]?.title = "変えた" }
         }
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         #expect(h.hud.current?.cells.first??.title == F.newTab.title)
         h.releaseTrigger()
 
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         #expect(h.hud.current?.cells.first??.title == "変えた")
     }
 
@@ -396,7 +409,7 @@ import Testing
 
         // 新しいセッションは押したときの前面アプリ（メモ → グローバル）を使い、残っていた指は速押しにしない
         h.lift()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         #expect(h.hud.current?.title == ModelFixtures.globalName)
         h.releaseTrigger()
         await h.settle()
@@ -408,7 +421,7 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         h.touch(on: 4)
         // 離したイベントを取りこぼしたまま、もう一度押された
         h.pressTrigger()
@@ -416,7 +429,7 @@ import Testing
         #expect(h.keyboard.isSuppressingPointer)
         #expect(Array(h.recorder.events.suffix(3)) == ["hud:hide", "suppress:off", "suppress:on"])
         h.lift()
-        h.advance(0.3)
+        h.advance(Self.placementWindow)
         #expect(h.hud.shown.count == 2)
         h.releaseTrigger()
         await h.settle()
@@ -529,8 +542,9 @@ import Testing
         let h = try ControllerHarness(trialEnded: true)
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
-        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました"))
+        h.advance(Self.placementWindow)
+        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます"))
+        #expect(h.hud.current?.bannerStyle == .warning)
         h.touch(on: 4)
         h.advance(0.4)
         h.releaseTrigger()
@@ -538,8 +552,9 @@ import Testing
 
         let message = NonetError.licenseRequired.errorDescription
         #expect(h.performer.calls.isEmpty)
-        #expect(!h.haptics.events.contains(.execute))
-        #expect(h.hud.toasts == [ToastModel(title: F.summarize.title, detail: message, icon: F.summarize.icon, style: .failure)])
+        #expect(h.haptics.events == [.rejected])
+        let title = failureTitle(F.summarize, profile: "Safari", index: 4, pages: 2)
+        #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: F.summarize.icon, style: .failure)])
         #expect(h.controller.lastExecution?.succeeded == false)
         #expect(h.controller.lastExecution?.message == message)
         #expect(h.controller.lastExecution?.cellTitle == F.summarize.title)
@@ -607,8 +622,8 @@ import Testing
         h.start()
         h.controller.isPracticeMode = true
         h.pressTrigger()
-        h.advance(0.3)
-        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("\("⌥")を離して実行"))"))
+        h.advance(Self.placementWindow)
+        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("タップか \(TriggerKey.rightOption.localizedName)を離して実行"))"))
         h.releaseTrigger()
         h.fastTap(2)
         await h.settle()
@@ -620,6 +635,8 @@ import Testing
         #expect(record.succeeded)
         #expect(record.cellTitle == F.closeTab.title)
         #expect(record.wasFastTap)
+        // 実際には実行していないので、最近の実行には入れない
+        #expect(h.controller.recentExecutions.isEmpty)
     }
 
     @Test func anExpiredTrialAlsoRefusesPracticeTaps() async throws {
@@ -629,7 +646,7 @@ import Testing
         h.fastTap(2)
         await h.settle()
 
-        #expect(h.haptics.plays.isEmpty)
+        #expect(h.haptics.events == [.rejected])
         #expect(h.hud.toasts.map(\.style) == [.failure])
         #expect(h.controller.lastExecution?.succeeded == false)
     }
@@ -641,7 +658,7 @@ import Testing
         h.fastTap(1)
         await h.settle()
         #expect(h.controller.lastExecution == nil)
-        #expect(h.haptics.plays.isEmpty)
+        #expect(h.haptics.events == [.rejected])
     }
 
     // MARK: 結果とトースト
@@ -686,8 +703,8 @@ import Testing
 
         let message = error.errorDescription
         #expect(h.hud.toasts == [
-            ToastModel(title: F.closeTab.title, detail: message, icon: F.closeTab.icon, style: .failure),
-            ToastModel(title: F.newTab.title, detail: message, icon: F.newTab.icon, style: .failure),
+            ToastModel(title: failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2), detail: message, icon: F.closeTab.icon, style: .failure),
+            ToastModel(title: failureTitle(F.newTab, profile: "Safari", index: 0, pages: 2), detail: message, icon: F.newTab.icon, style: .failure),
         ])
         #expect(h.controller.lastExecution?.succeeded == false)
         #expect(h.controller.lastExecution?.message == message)

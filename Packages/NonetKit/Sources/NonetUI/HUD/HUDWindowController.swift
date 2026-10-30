@@ -12,6 +12,8 @@ private let logger = Logger(subsystem: "com.iam74k4.Nonet", category: "ui-shell"
 public final class HUDWindowController: HUDPresenting {
     private let screens: () -> [HUDScreenGeometry]
     private let mouseLocation: () -> CGPoint
+    /// システム設定の「コントラストを上げる」。HUD とトーストを出すたびに読み直す
+    private let prefersIncreasedContrast: () -> Bool
 
     private let hudStore = HUDStore()
     private lazy var hudPanel: HUDOverlayPanel = {
@@ -30,12 +32,21 @@ public final class HUDWindowController: HUDPresenting {
     private let result = HUDResultPanelController()
 
     public convenience init() {
-        self.init(screens: { HUDScreenGeometry.current() }, mouseLocation: { NSEvent.mouseLocation })
+        self.init(
+            screens: { HUDScreenGeometry.current() },
+            mouseLocation: { NSEvent.mouseLocation },
+            prefersIncreasedContrast: { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast }
+        )
     }
 
-    init(screens: @escaping () -> [HUDScreenGeometry], mouseLocation: @escaping () -> CGPoint) {
+    init(
+        screens: @escaping () -> [HUDScreenGeometry],
+        mouseLocation: @escaping () -> CGPoint,
+        prefersIncreasedContrast: @escaping () -> Bool = { false }
+    ) {
         self.screens = screens
         self.mouseLocation = mouseLocation
+        self.prefersIncreasedContrast = prefersIncreasedContrast
     }
 
     /// HUD を表示中か（フェードアウト中は含まない）
@@ -53,7 +64,9 @@ public final class HUDWindowController: HUDPresenting {
             logger.error("HUD を出す画面が見つからない")
             return
         }
+        let model = HUDPlacement.fitted(model, in: screen)
         hudStore.model = model
+        hudStore.increasedContrast = prefersIncreasedContrast()
         let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), position: position, cursor: cursor, screen: screen)
         place(frame, screen: screen)
         hudFader.show()
@@ -63,6 +76,7 @@ public final class HUDWindowController: HUDPresenting {
 
     public func update(_ model: HUDModel) {
         guard hudFader.isShowing, let frame = hudFrame, let screen = hudScreen else { return }
+        let model = HUDPlacement.fitted(model, in: screen)
         let previous = hudStore.model
         guard previous != model else { return }
         hudStore.model = model
@@ -90,7 +104,15 @@ public final class HUDWindowController: HUDPresenting {
             logger.error("トーストを出す画面が見つからない")
             return
         }
-        self.toast.show(toast, on: screen)
+        self.toast.show(toast, on: screen, increasedContrast: prefersIncreasedContrast())
+    }
+
+    public func hideToast() {
+        toast.hide()
+    }
+
+    public func setTriggerHeld(_ held: Bool) {
+        toast.setTriggerHeld(held)
     }
 
     public func showResult(_ result: ResultModel) {

@@ -5,6 +5,7 @@ import NonetCore
     @Test func defaultsMatchTheSpec() {
         let configuration = SessionConfiguration()
         #expect(configuration.hudDelay == 0.3)
+        #expect(configuration.placementWindow == 0.6)
         #expect(configuration.fireMode == .onTriggerRelease)
         #expect(configuration.pageCount == 1)
         #expect(configuration.hysteresis == 0.03)
@@ -57,17 +58,30 @@ import NonetCore
         #expect(SessionConfiguration(hudDelay: 0).sanitized.hudDelay == 0)
     }
 
+    /// 指を置かないときの待ち時間は、指を止めたときの待ち時間より短くしない。壊れた値は既定に、maxDuration で止める
+    @Test func thePlacementWindowIsNeverShorterThanTheHudDelay() {
+        #expect(SessionConfiguration(hudDelay: 0.8).sanitized.placementWindow == 0.8)
+        #expect(SessionConfiguration(hudDelay: 0.15).sanitized.placementWindow == 0.6)
+        #expect(SessionConfiguration(placementWindow: .nan).sanitized.placementWindow == SessionConfiguration.defaultPlacementWindow)
+        #expect(SessionConfiguration(placementWindow: -1).sanitized.placementWindow == SessionConfiguration.defaultPlacementWindow)
+        #expect(SessionConfiguration(placementWindow: 30, maxDuration: 5).sanitized.placementWindow == 5)
+        // 設定から作るときは、いつも既定の値（設定画面には出さない）
+        #expect(SessionConfiguration(settings: GlobalSettings(hudDelay: 0.45), pageCount: 1).placementWindow == SessionConfiguration.defaultPlacementWindow)
+    }
+
     @Test func engineTreatsAZeroPageCountAsOnePage() {
         var s = SessionScenario(pageCount: 0)
         s.pressTrigger(at: 0)
         s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.05)
         s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1)
         #expect(s.engine.pageIndex == 0)
-        #expect(s.log.hapticEvents.isEmpty)
+        // 1ページしか無いので、先へ行けなかったことだけを知らせる
+        #expect(s.log.hapticEvents == [.rejected])
     }
 
     @Test func engineUsesTheSanitizedHudDelay() {
         var s = SessionScenario(SessionConfiguration(hudDelay: -2))
-        #expect(s.pressTrigger(at: 0).tickRequests == [SessionConfiguration.defaultHUDDelay])
+        #expect(s.pressTrigger(at: 0).tickRequests == [SessionConfiguration.defaultPlacementWindow])
+        #expect(s.touch(on: 4, at: 0.1).tickRequests == [0.1 + SessionConfiguration.defaultHUDDelay])
     }
 }

@@ -80,17 +80,69 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.highlighted(in: short) == L10n.ui("空きマス、\(L10n.ui("左"))"))
     }
 
-    @Test("トーストの表示時間: 成功と案内は一瞬、失敗は長め", arguments: [
-        (ToastModel.Style.success, 0.8),
+    @Test("トーストの表示時間: 成功と案内は一瞬、実行中は時間では消さない", arguments: [
+        (ToastModel.Style.success, 0.8 as Double?),
         (.info, 0.8),
-        (.failure, 2.5),
+        (.running, nil),
     ])
-    func toastDuration(style: ToastModel.Style, seconds: Double) {
-        #expect(HUDToastLayout.duration(for: style) == seconds)
+    func toastDuration(style: ToastModel.Style, seconds: Double?) {
+        #expect(HUDToastLayout.duration(for: ToastModel(title: "ビルド", detail: String(repeating: "あ", count: 200), style: style)) == seconds)
+    }
+
+    /// 失敗は文字数で決める: 1.5秒＋1文字 0.06秒を、3〜8秒に収める（見出しと説明の文字を数える）
+    @Test("失敗のトーストは、文が長いほど長く出す")
+    func failureToastDurationFollowsTheLength() throws {
+        func duration(title: String, detail: String?) throws -> Double {
+            try #require(HUDToastLayout.duration(for: ToastModel(title: title, detail: detail, style: .failure)))
+        }
+        #expect(try duration(title: "A", detail: nil) == 3)
+        // 10 + 40 文字 → 1.5 + 0.06 × 50 = 4.5秒
+        let medium = try duration(title: String(repeating: "a", count: 10), detail: String(repeating: "b", count: 40))
+        #expect(abs(medium - 4.5) < 1e-9)
+        #expect(try duration(title: "A", detail: String(repeating: "b", count: 500)) == 8)
+    }
+
+    @Test("失敗のトーストは、トリガーキーを押している間は消さず、離してから少しして消す")
+    func failureToastWaitsForTheTriggerRelease() {
+        let failure = ToastModel(title: "ビルド", detail: "だめ", style: .failure)
+        var schedule = HUDToastSchedule()
+        let hideAt = schedule.show(failure, at: 10)
+        #expect(hideAt == Double(13))
+        _ = schedule.setTriggerHeld(true, at: 11)
+        let beforeDeadline = schedule.deadlineReached(at: 12)
+        let atDeadlineWhileHeld = schedule.deadlineReached(at: 13)
+        #expect(!beforeDeadline)
+        #expect(!atDeadlineWhileHeld)
+        #expect(schedule.waitsForRelease)
+        let afterRelease = schedule.setTriggerHeld(false, at: 20)
+        #expect(afterRelease == 20 + HUDToastSchedule.afterRelease)
+        let hidesAfterRelease = schedule.deadlineReached(at: 21)
+        #expect(hidesAfterRelease)
+
+        // 押していなければ、時間どおりに消す。成功のトーストは押していても消す
+        var plain = HUDToastSchedule()
+        _ = plain.show(failure, at: 0)
+        let plainHides = plain.deadlineReached(at: 3)
+        #expect(plainHides)
+        var success = HUDToastSchedule()
+        _ = success.setTriggerHeld(true, at: 0)
+        let successHideAt = success.show(ToastModel(title: "ビルド", style: .success), at: 0)
+        #expect(successHideAt == 0.8)
+        let successHides = success.deadlineReached(at: 0.8)
+        #expect(successHides)
+        let successRelease = success.setTriggerHeld(false, at: 1)
+        #expect(successRelease == nil)
+        // 実行中のトーストは時間では消さない
+        var running = HUDToastSchedule()
+        let runningHideAt = running.show(ToastModel(title: "要約", style: .running), at: 0)
+        #expect(runningHideAt == nil)
+        let runningHides = running.deadlineReached(at: 100)
+        #expect(!runningHides)
     }
 
     @Test("トーストのアイコンが無いときの記号")
     func toastFallbackSymbol() {
+        #expect(HUDToastLayout.fallbackSymbol(for: .running) == nil)
         #expect(HUDToastLayout.fallbackSymbol(for: .info) == nil)
         #expect(HUDToastLayout.fallbackSymbol(for: .success) == "checkmark.circle.fill")
         #expect(HUDToastLayout.fallbackSymbol(for: .failure) == "exclamationmark.triangle.fill")

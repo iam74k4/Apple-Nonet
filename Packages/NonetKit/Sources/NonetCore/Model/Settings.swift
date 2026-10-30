@@ -14,13 +14,24 @@ public enum TriggerKey: String, Codable, CaseIterable, Sendable {
         isJIS ? .rightCommand : .rightOption
     }
 
-    /// "⌘" など。HUD の「⌘を離して実行」に使う
+    /// "⌘" など
     public var symbol: String {
         switch self {
         case .rightCommand: "⌘"
         case .rightOption: "⌥"
         case .rightShift: "⇧"
         case .function: "fn"
+        }
+    }
+
+    /// 「右⌘」など。HUD の「タップか 右⌘を離して実行」に使う（JIS 配列には⌘が2つあるので、右か左かまで言う）。
+    /// 呼び方は利用ガイドとメニューバー（ShellText.triggerName）に合わせる
+    public var localizedName: String {
+        switch self {
+        case .rightCommand: String(localized: "右⌘", bundle: .module)
+        case .rightOption: String(localized: "右⌥", bundle: .module)
+        case .rightShift: String(localized: "右⇧", bundle: .module)
+        case .function: String(localized: "fn", bundle: .module)
         }
     }
 }
@@ -53,6 +64,22 @@ public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     case none
 }
 
+/// HUD とトーストの大きさ（文字の小さい HUD を読みにくい人のため）
+public enum HUDScale: String, Codable, CaseIterable, Sendable {
+    case standard
+    case large
+    case extraLarge
+
+    /// HUD とトーストの寸法と文字に掛ける倍率
+    public var factor: Double {
+        switch self {
+        case .standard: 1
+        case .large: 1.25
+        case .extraLarge: 1.5
+        }
+    }
+}
+
 /// トリガーキーを使わずに、トラックパッドだけで9マスを出す方法。トリガーキーはどれを選んでもいつもどおり使える
 public enum TouchActivation: String, Codable, CaseIterable, Sendable {
     /// 使わない
@@ -67,7 +94,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
     public var trigger: TriggerKey
     public var fireMode: FireMode
-    /// トリガーを押してから HUD を出すまでの秒数。速押しの判定にも使う（0.15〜0.8）
+    /// 置いた指を止めてから HUD を出すまでの秒数。これより短いタップはその場で実行する（0.15〜0.8）。
+    /// 指を置かないときに HUD を出すまでの時間は別（SessionConfiguration.placementWindow）
     public var hudDelay: Double
     public var hudPosition: HUDPosition
     /// 前面アプリのプロファイルに自動で切り替える。false なら常にグローバル
@@ -82,6 +110,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var cursorLock: CursorLockMethod
     /// トラックパッドの角の長押しで9マスを出す。既定は使わない
     public var touchActivation: TouchActivation
+    /// HUD とトーストの大きさ。既定は標準
+    public var hudScale: HUDScale
 
     public init(
         isEnabled: Bool = true,
@@ -95,7 +125,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         passTriggerToApps: Bool = true,
         showExecutionToast: Bool = true,
         cursorLock: CursorLockMethod = .automatic,
-        touchActivation: TouchActivation = .off
+        touchActivation: TouchActivation = .off,
+        hudScale: HUDScale = .standard
     ) {
         self.isEnabled = isEnabled
         self.trigger = trigger
@@ -109,6 +140,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         self.showExecutionToast = showExecutionToast
         self.cursorLock = cursorLock
         self.touchActivation = touchActivation
+        self.hudScale = hudScale
     }
 
     public static let hudDelayRange: ClosedRange<Double> = 0.15...0.8
@@ -120,7 +152,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
 extension GlobalSettings {
     private enum CodingKeys: String, CodingKey {
         case isEnabled, trigger, fireMode, hudDelay, hudPosition, autoSwitchProfiles
-        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock, touchActivation
+        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock, touchActivation, hudScale
     }
 
     public init(from decoder: any Decoder) throws {
@@ -138,7 +170,8 @@ extension GlobalSettings {
             passTriggerToApps: container.decodeLossy(Bool.self, forKey: .passTriggerToApps, default: defaults.passTriggerToApps),
             showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
             cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock),
-            touchActivation: container.decodeLossy(TouchActivation.self, forKey: .touchActivation, default: defaults.touchActivation)
+            touchActivation: container.decodeLossy(TouchActivation.self, forKey: .touchActivation, default: defaults.touchActivation),
+            hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale)
         )
     }
 
@@ -158,6 +191,10 @@ extension GlobalSettings {
         // 使わない（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ使わないとして読む）
         if touchActivation != .off {
             try container.encode(touchActivation, forKey: .touchActivation)
+        }
+        // 標準（既定）なら書かない。touchActivation と同じく、前の版と同じ書式のままにする
+        if hudScale != .standard {
+            try container.encode(hudScale, forKey: .hudScale)
         }
     }
 

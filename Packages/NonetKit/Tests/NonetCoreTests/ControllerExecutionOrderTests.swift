@@ -54,13 +54,15 @@ import Testing
         #expect(h.performer.actions == [Self.build.action, F.newTab.action])
         #expect(h.performer.finished == [F.newTab.action])
         #expect(h.performer.calls.last?.frontmostApp == F.safariApp)
-        #expect(h.hud.toasts.map(\.title) == [F.newTab.title])
+        // ビルドが終わらないうちは「実行中」のトーストを出し、後の速押しのトーストがそれを置き換える
+        let running = ControllerPresentation.runningToast(Self.build)
+        #expect(h.hud.toasts.map(\.title) == [running.title, F.newTab.title])
         #expect(h.controller.lastExecution?.cellTitle == F.newTab.title)
 
         // ビルドの結果は、終わったときに知らせる
         h.performer.release(Self.build.action)
         await h.settle()
-        #expect(h.hud.toasts.map(\.title) == [F.newTab.title, Self.build.title])
+        #expect(h.hud.toasts.map(\.title) == [running.title, F.newTab.title, Self.build.title])
         #expect(h.controller.lastExecution?.cellTitle == Self.build.title)
         #expect(h.controller.lastExecution?.succeeded == true)
     }
@@ -136,9 +138,11 @@ import Testing
         await h.settle()
 
         let message = try #require(NonetError.timedOut.errorDescription)
+        let title = ControllerPresentation.failureTitle(ControllerTarget(cell: Self.build, profileName: "Safari", address: CellAddress(page: 0, index: 0)))
         #expect(h.hud.toasts == [
+            ControllerPresentation.runningToast(Self.build),
             ToastModel(title: F.newTab.title, icon: F.newTab.icon, style: .success),
-            ToastModel(title: Self.build.title, detail: message, icon: Self.build.icon, style: .failure),
+            ToastModel(title: title, detail: message, icon: Self.build.icon, style: .failure),
         ])
         let record = try #require(h.controller.lastExecution)
         #expect(record.cellTitle == Self.build.title)
@@ -163,7 +167,7 @@ import Testing
         h.performer.release(summarize.action)
         await h.settle()
         #expect(h.hud.results == [ResultModel(title: summarize.title, text: "要約です", icon: summarize.icon)])
-        #expect(h.hud.toasts.map(\.title) == [F.closeTab.title])
+        #expect(h.hud.toasts.map(\.title) == [ControllerPresentation.runningToast(summarize).title, F.closeTab.title])
     }
 
     // MARK: 1つずつ実行するアクション

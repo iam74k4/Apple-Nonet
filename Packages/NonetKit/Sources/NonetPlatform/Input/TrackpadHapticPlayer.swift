@@ -37,6 +37,13 @@ struct HapticActuation: Equatable, Sendable {
     var unknown3: Float = 2
 }
 
+/// 1回の触覚の中の1打
+struct HapticPulse: Equatable, Sendable {
+    var actuation: HapticActuation
+    /// 1打目からの秒数
+    var delay: TimeInterval
+}
+
 /// 公開 API で鳴らすときの種類
 enum HapticFallbackPattern: Equatable, Sendable {
     case alignment
@@ -52,15 +59,26 @@ enum HapticFallbackPattern: Equatable, Sendable {
     }
 }
 
-/// 触覚の割り当て。実機での感触は確かめていないので、調整はこの表だけで済むようにまとめてある
+/// 触覚の割り当て。実機での感触は確かめていないので、調整はこの表だけで済むようにまとめてある。
+/// どの強さでも種類を指で見分けられるよう、強さ（境界 < 実行）と打つ回数（ページ・受け付けなかった は2打）で分ける
 enum HapticTuning {
     /// MTActuator の actuationID（弱 / 中 / 強）。3〜6 は数字が大きいほど強いという報告に基づく（未確認）
     static let actuationIDs: [HapticEvent: (light: Int32, medium: Int32, strong: Int32)] = [
-        .boundary: (light: 3, medium: 4, strong: 6),
-        .pageChange: (light: 4, medium: 6, strong: 6),
+        .boundary: (light: 3, medium: 4, strong: 5),
+        // 2打（secondPulseDelays）。境界と同じ強さでも、打つ回数で分かる。
+        // 弱では「受け付けなかった」（3 の2打）と同じにならないよう、1つ強くする
+        .pageChange: (light: 4, medium: 4, strong: 5),
         .execute: (light: 4, medium: 6, strong: 6),
-        // 角の長押しで9マスが出た。指を置いたまま気づけるよう、ページの切り替えと同じ強さ
+        // 角の長押しで9マスが出た。指を置いたまま気づけるよう、実行と同じ強さ
         .activation: (light: 4, medium: 6, strong: 6),
+        // 弱い2打。強さの設定に関係なく同じ（「何も起きなかった」は控えめに）
+        .rejected: (light: 3, medium: 3, strong: 3),
+    ]
+
+    /// 2打目を打つまでの秒数。無い種類は1打だけ
+    static let secondPulseDelays: [HapticEvent: TimeInterval] = [
+        .pageChange: 0.05,
+        .rejected: 0.04,
     ]
 
     /// 同じ種類を続けて鳴らす最短の間隔（秒）。境界を素早くまたいでも震えっぱなしにならないように
@@ -69,6 +87,7 @@ enum HapticTuning {
         .pageChange: 0.15,
         .execute: 0.08,
         .activation: 0.15,
+        .rejected: 0.15,
     ]
 
     /// 境界の触覚は、ほかの触覚の直後（この秒数以内）なら鳴らさない
@@ -87,12 +106,23 @@ enum HapticTuning {
         }
     }
 
+    /// 鳴らす打（1打目は delay 0）。オフなら空
+    static func pulses(for event: HapticEvent, strength: HapticStrength) -> [HapticPulse] {
+        guard let actuation = actuation(for: event, strength: strength) else { return [] }
+        var pulses = [HapticPulse(actuation: actuation, delay: 0)]
+        if let delay = secondPulseDelays[event] {
+            pulses.append(HapticPulse(actuation: actuation, delay: delay))
+        }
+        return pulses
+    }
+
     static func fallback(for event: HapticEvent) -> HapticFallbackPattern {
         switch event {
         case .boundary: .alignment
         case .pageChange: .levelChange
         case .execute: .generic
         case .activation: .levelChange
+        case .rejected: .generic
         }
     }
 }
@@ -134,21 +164,47 @@ final class HapticEngine {
     private let backend: any HapticBackend
     private let clock: () -> TimeInterval
     private let lastTouchedDevice: () -> UInt64?
+    /// 2打目を打つ時刻に呼んでもらう（テストでは手で進める）
+    private let schedule: (TimeInterval, @escaping @MainActor () -> Void) -> Void
     private var limiter = HapticRateLimiter()
     private(set) var openDeviceID: UInt64?
     private var failedAt: [UInt64: TimeInterval] = [:]
     private var defaultDevice: UInt64??
 
-    init(backend: any HapticBackend, clock: @escaping () -> TimeInterval, lastTouchedDevice: @escaping () -> UInt64?) {
+    init(
+        backend: any HapticBackend,
+        clock: @escaping () -> TimeInterval,
+        lastTouchedDevice: @escaping () -> UInt64?,
+        schedule: @escaping (TimeInterval, @escaping @MainActor () -> Void) -> Void = HapticEngine.scheduleOnMain
+    ) {
         self.backend = backend
         self.clock = clock
         self.lastTouchedDevice = lastTouchedDevice
+        self.schedule = schedule
+    }
+
+    nonisolated static func scheduleOnMain(after delay: TimeInterval, _ action: @escaping @MainActor () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            MainActor.assumeIsolated { action() }
+        }
     }
 
     func play(_ event: HapticEvent, strength: HapticStrength) {
-        guard let actuation = HapticTuning.actuation(for: event, strength: strength) else { return }
+        let pulses = HapticTuning.pulses(for: event, strength: strength)
+        guard let first = pulses.first else { return }
         let now = clock()
         guard limiter.shouldPlay(event, at: now) else { return }
+        pulse(first.actuation, event: event, now: now)
+        // 2打目は間を空けて打つ（ページの切り替え・受け付けなかった）
+        for next in pulses.dropFirst() {
+            schedule(next.delay) { [weak self] in
+                guard let self else { return }
+                self.pulse(next.actuation, event: event, now: self.clock())
+            }
+        }
+    }
+
+    private func pulse(_ actuation: HapticActuation, event: HapticEvent, now: TimeInterval) {
         if !actuate(actuation, now: now) {
             backend.performFallback(HapticTuning.fallback(for: event))
         }

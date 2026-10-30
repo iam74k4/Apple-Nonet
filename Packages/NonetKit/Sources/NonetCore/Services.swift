@@ -73,6 +73,10 @@ public protocol KeyboardMonitor: AnyObject {
     /// true の間は、トリガーを押していなくても、キーや修飾キーが押されたら .interrupted を1回送る（そのキーは前面アプリに渡す）。
     /// トラックパッドの角の長押しで始めたセッションの間だけ true にする。トリガーキーが押されたら、いつもどおり .triggerDown
     var interruptsWithoutTrigger: Bool { get set }
+    /// トラックパッドにいま指が触れているか（NonetController が指のフレームから知らせる）。
+    /// 抑止中に、トラックパッドに触れていない間（離してから少し経った後）に届いた押す・スクロール・移動は、
+    /// マウスやホイールのものとみなす。そのイベントは手を加えずに前面アプリに渡し、.interrupted を1回送る
+    var isTrackpadTouched: Bool { get set }
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
@@ -93,6 +97,12 @@ extension KeyboardMonitor {
         get { false }
         set {}
     }
+
+    /// マウスのイベントを見分けない実装の既定（抑止中はどのデバイスのイベントも捨てる）
+    public var isTrackpadTouched: Bool {
+        get { false }
+        set {}
+    }
 }
 
 // MARK: - 触覚
@@ -104,6 +114,9 @@ public enum HapticEvent: Equatable, Sendable {
     case execute
     /// トラックパッドの角の長押しで9マスを出した（トリガーキーを押していないので、出たことを指に知らせる）
     case activation
+    /// 受け付けたが何もしなかった（空きマスのすぐにタップ・2本以上の指で離した・試用期間の終了や Nonet のウィンドウで
+    /// 実行しなかった・最初や最後のページから先へスワイプした）。「何も起きなかった」と「届かなかった」を指で見分けられるように
+    case rejected
 }
 
 @MainActor
@@ -255,6 +268,17 @@ public protocol HUDPresenting: AnyObject {
     func showToast(_ toast: ToastModel)
     /// AI の結果など、読んでコピーできる文を出す（閉じるまで残る）
     func showResult(_ result: ResultModel)
+    /// 表示中のトーストを消す（「実行中」のトーストを、実行が終わって知らせることが無いときに消す）
+    func hideToast()
+    /// トリガーキーを押している間 true。失敗のトーストは、押している間は消さない（下を向いてタップしていても読めるように）
+    func setTriggerHeld(_ held: Bool)
+}
+
+extension HUDPresenting {
+    /// トーストを消せない実装の既定（時間で消える）
+    public func hideToast() {}
+    /// トリガーキーを気にしない実装の既定
+    public func setTriggerHeld(_ held: Bool) {}
 }
 
 // MARK: - まとめ

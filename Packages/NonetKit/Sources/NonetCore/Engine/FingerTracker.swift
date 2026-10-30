@@ -31,6 +31,8 @@ struct FingerTracker: Sendable {
     private(set) var gestureStart: TimeInterval = 0
     /// いまのタッチで同時に触れていた指の最大数
     private(set) var gestureMaxFingers = 0
+    /// 直前のフレームで新しく置かれた指の id（置いた順）
+    private(set) var placedInLastFrame: [Int] = []
 
     var isTouching: Bool { !fingers.isEmpty }
     var count: Int { fingers.count }
@@ -50,13 +52,16 @@ struct FingerTracker: Sendable {
             latest[finger.id].map { Finger(id: finger.id, x: $0.x, y: $0.y) }
         }
         let continued = !next.isEmpty
+        var placed: [Int] = []
         // 同じフレームで複数の指が増えたら、id の小さい順に置いたとみなす
         for id in latest.keys.sorted() where !previousIDs.contains(id) {
             if let point = latest[id] {
                 next.append(Finger(id: id, x: point.x, y: point.y))
+                placed.append(id)
             }
         }
         fingers = next
+        placedInLastFrame = placed
 
         let change: Change = switch (wasTouching, !next.isEmpty) {
         case (false, false): .none

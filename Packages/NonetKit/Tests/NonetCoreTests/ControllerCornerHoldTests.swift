@@ -183,15 +183,31 @@ import Testing
         expectNoSession(h)
     }
 
-    /// 試用期間が終わっていたら始めない（トリガーキーなら、帯を出した HUD で知らせる）
-    @Test func nothingHappensWhenTheTrialHasEnded() throws {
+    /// 試用期間が終わっていたら始めない（何も実行できない HUD は出さない）。トリガーキーでマスを押したときと同じく、
+    /// 終わったことと次にすることをトースト1つと触覚で知らせる
+    @Test func anExpiredTrialOnlyTellsItHasEnded() throws {
         let h = try harness(trialEnded: true)
         h.start()
         holdCorner(h)
-        expectNoSession(h)
-        // 同じタッチのまま待っても始めない
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.keyboard.suppressionChanges.isEmpty)
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.interruptsWithoutTrigger)
+        #expect(h.haptics.events == [.rejected])
+        #expect(h.hud.toasts == [ControllerPresentation.trialEndedToast])
+        // 同じタッチのまま待っても、もう一度は知らせない
         h.advance(1)
+        #expect(h.hud.toasts.count == 1)
+        #expect(h.hud.shown.isEmpty)
+    }
+
+    /// 無効などで始められないときは、試用期間が終わっていても何も知らせない
+    @Test func anExpiredTrialIsNotToldWhileNonetIsDisabled() throws {
+        let h = try harness({ $0.isEnabled = false }, trialEnded: true)
+        h.start()
+        holdCorner(h)
         expectNoSession(h)
+        #expect(h.hud.toasts.isEmpty)
     }
 
     @Test func nothingHappensWithoutAccessibility() throws {

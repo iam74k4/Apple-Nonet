@@ -18,11 +18,24 @@ public enum SessionActivation: Equatable, Sendable {
 /// 1回のセッションで使う設定。トリガーを押したときに渡し、そのセッションの間は変わらない
 public struct SessionConfiguration: Equatable, Sendable {
     public static let defaultHUDDelay: TimeInterval = 0.3
+    public static let defaultPlacementWindow: TimeInterval = 0.6
     public static let defaultSwipeThreshold = 0.12
     public static let defaultMaxDuration: TimeInterval = 20
+    /// HUD が出ているときの「タップ」の最長の長さ（秒）。これより短く、tapMaxTravel より動かずに1本指で離したら、
+    /// 実行のタイミングが「キーを離したとき」でも、置いたマスをその場で実行する。これより長く置いた指は、
+    /// これまでどおり滑らせて選び、トリガーを離して実行する（先に指を離すとやめる）
+    public static let tapMaxDuration: TimeInterval = 0.25
+    /// HUD が出ているときの「タップ」で、置いた位置から動いてよい距離（トラックパッドを 1 とした割合）
+    public static let tapMaxTravel = 0.04
+    /// トリガーより前から置いていた指を「休めている」とみなす、トリガーを押したときの位置からの距離（トラックパッドを 1 とした割合）。
+    /// 休めている指（キーボードの手前に置いた親指など）は指の数に数えず、ほかに置いた指は新しいタッチ（すぐにタップの候補）にする
+    public static let restingTolerance = 0.02
 
-    /// トリガーを押してから / 指を置いてから HUD を出すまでの秒数。速押しの判定にも使う
+    /// 置いた指が止まってから HUD を出すまでの秒数（仕様 4 (b)）。すぐにタップの長さの上限にも使う
     public var hudDelay: TimeInterval
+    /// トリガーを押してから指を置かないときに HUD を出すまでの秒数（仕様 4 (a)）。キーボードからトラックパッドへ手を
+    /// 動かす間に HUD が出ないよう、hudDelay より長くする（hudDelay より短ければ hudDelay にそろえる）。設定画面には出さない
+    public var placementWindow: TimeInterval
     public var fireMode: FireMode
     /// 前面アプリで使うページの数（resolvedPages の数）。1 未満は 1 とみなす
     public var pageCount: Int
@@ -40,6 +53,7 @@ public struct SessionConfiguration: Equatable, Sendable {
 
     public init(
         hudDelay: TimeInterval = SessionConfiguration.defaultHUDDelay,
+        placementWindow: TimeInterval = SessionConfiguration.defaultPlacementWindow,
         fireMode: FireMode = .onTriggerRelease,
         pageCount: Int = 1,
         hysteresis: Double = GridMapper.defaultHysteresis,
@@ -50,6 +64,7 @@ public struct SessionConfiguration: Equatable, Sendable {
         activation: SessionActivation = .triggerKey
     ) {
         self.hudDelay = hudDelay
+        self.placementWindow = placementWindow
         self.fireMode = fireMode
         self.pageCount = pageCount
         self.hysteresis = hysteresis
@@ -71,6 +86,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         result.maxDuration = maxDuration.isFinite && maxDuration > 0 ? maxDuration : Self.defaultMaxDuration
         let delay = hudDelay.isFinite && hudDelay >= 0 ? hudDelay : Self.defaultHUDDelay
         result.hudDelay = min(delay, result.maxDuration)
+        let window = placementWindow.isFinite && placementWindow >= 0 ? placementWindow : Self.defaultPlacementWindow
+        result.placementWindow = min(max(window, result.hudDelay), result.maxDuration)
         result.pageCount = max(pageCount, 1)
         result.hysteresis = GridMapper(hysteresis: hysteresis).hysteresis
         result.swipeThreshold = swipeThreshold.isFinite && swipeThreshold > 0 ? min(swipeThreshold, 1) : Self.defaultSwipeThreshold
@@ -138,7 +155,8 @@ public enum SessionEffect: Equatable, Sendable {
     /// 表示中の HUD のページかハイライトが変わった
     case updateHUD(page: Int, highlightedCell: Int?)
     case hideHUD
-    /// boundary・pageChange・activation（角の長押しで始めたとき）だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
+    /// boundary・pageChange・activation（角の長押しで始めたとき）・rejected（空きマスのすぐにタップ・2本以上の指で離した・
+    /// 端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする。
@@ -152,7 +170,7 @@ public enum SessionEffect: Equatable, Sendable {
 
 // MARK: - エンジン
 
-/// 1回のセッション（トリガーを押してから離すまで）の状態遷移。docs/architecture.md の「操作の仕様」1〜11 を受け持つ。
+/// 1回のセッション（トリガーを押してから離すまで）の状態遷移。docs/architecture.md の「操作の仕様」1〜12 を受け持つ。
 /// 時刻はすべて入力で受け取り、タイマーも持たない（同じ入力には必ず同じ出力を返す）。
 ///
 /// NonetController からの使い方:
@@ -165,6 +183,9 @@ public enum SessionEffect: Equatable, Sendable {
 /// - 空きマス（仕様 12）は、`occupiedCells` で分かればエンジンが実行しない（速押しは「実行せずに離した」とみなし、
 ///   6 の (a) の HUD を止めない。HUD で選んだ空きマスは選ばなかったことにする）。
 ///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
+/// - HUD が出ているときも、短く（`tapMaxDuration`）動かさずに（`tapMaxTravel`）1本指でタップしたら、置いたマスを実行して HUD を閉じる
+///   （実行のタイミングが「キーを離したとき」のとき。セッションは続く）
+/// - トリガーより前から置いて動かしていない指（`restingTolerance`）は、ほかの指を置いたら数えない。ほかに置いた指は新しいタッチ
 /// - 角の長押し（`SessionActivation.cornerHold`）で始めたセッションは、HUD をすぐに出し、すべての指が離れたら終える。
 ///   滑らせてから1本指で離せば光っているマスを実行し、滑らせずに離せばキャンセル。トリガーを離したイベントは使わない
 public struct SessionEngine: Sendable {

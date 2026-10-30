@@ -88,7 +88,8 @@ import Testing
         #expect(!record.succeeded)
         let message = ModelFixtures.text("\("Safari") が前面になりませんでした")
         #expect(record.message == message)
-        #expect(h.hud.toasts == [ToastModel(title: cell.title, detail: message, icon: cell.icon, style: .failure)])
+        let title = ControllerPresentation.failureTitle(ControllerTarget(cell: cell, profileName: "Safari", address: CellAddress(page: 0, index: 0), profilePageCount: 2))
+        #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: cell.icon, style: .failure)])
         #expect(h.controller.lastExecution == record)
     }
 
@@ -203,7 +204,10 @@ import Testing
         let record = await h.controller.testRun(F.docs, profileID: h.controller.configuration.globalProfile.id)
         #expect(!record.succeeded)
         #expect(record.message == "うまくいかない")
-        #expect(h.hud.toasts == [ToastModel(title: F.docs.title, detail: "うまくいかない", icon: F.docs.icon, style: .failure)])
+        let title = ControllerPresentation.failureTitle(ControllerTarget(cell: F.docs, profileName: ModelFixtures.globalName, address: CellAddress(page: 0, index: 8)))
+        #expect(h.hud.toasts == [ToastModel(title: title, detail: "うまくいかない", icon: F.docs.icon, style: .failure)])
+        // 設定のマスを開けるよう、プロファイルも記録する
+        #expect(record.profileID == h.controller.configuration.globalProfile.id)
         #expect(h.controller.lastExecution == record)
     }
 

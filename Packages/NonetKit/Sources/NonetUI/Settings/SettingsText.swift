@@ -37,6 +37,14 @@ enum SettingsText {
         }
     }
 
+    static func name(_ scale: HUDScale) -> String {
+        switch scale {
+        case .standard: String(localized: "標準", bundle: .module)
+        case .large: String(localized: "大きい", bundle: .module)
+        case .extraLarge: String(localized: "特大", bundle: .module)
+        }
+    }
+
     static func name(_ strength: HapticStrength) -> String {
         switch strength {
         case .off: String(localized: "オフ", bundle: .module)
@@ -80,6 +88,41 @@ enum SettingsText {
     }
 
     // MARK: 一般
+
+    /// 実行のタイミングの説明。「キーを離したとき」でも、すぐにタップすれば HUD が出ていてもその場で実行する
+    static func detail(_ mode: FireMode) -> String {
+        switch mode {
+        case .onTriggerRelease:
+            String(localized: "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します", bundle: .module)
+        case .onFingerLift:
+            String(localized: "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します", bundle: .module)
+        }
+    }
+
+    /// GlobalSettings.hudDelay。指を置かないときに HUD が出るまでの時間（SessionConfiguration.placementWindow）は別で、設定には出さない
+    static var hudDelayTitle: String {
+        String(localized: "指を止めてから HUD が出るまでの時間", bundle: .module)
+    }
+
+    static var hudDelayDetail: String {
+        String(localized: "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します", bundle: .module)
+    }
+
+    static var hudScaleTitle: String {
+        String(localized: "HUD の大きさ", bundle: .module)
+    }
+
+    static var hudScaleDetail: String {
+        String(localized: "画面の下に出る知らせも同じ大きさになります", bundle: .module)
+    }
+
+    static var hapticsDetail: String {
+        String(localized: "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します", bundle: .module)
+    }
+
+    static var executionToastDetail: String {
+        String(localized: "HUD を出さずに実行したときと、時間の掛かるボタンが終わったときに、そのボタンを画面の下に表示します", bundle: .module)
+    }
 
     /// JIS 配列には右⌥が無い
     static func triggerWarning(trigger: TriggerKey, isJISKeyboard: Bool) -> String? {

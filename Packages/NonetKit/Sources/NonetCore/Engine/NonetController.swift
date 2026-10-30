@@ -19,10 +19,11 @@ public enum ControllerStatus: Equatable, Sendable {
     case secureInputActive
 }
 
-/// 最後に実行したマス
+/// 実行したマス（実行しなかった・失敗したものも含む）
 public struct ExecutionRecord: Equatable, Sendable {
     public var cellTitle: String
     public var profileName: String
+    /// プロファイル内での位置
     public var address: CellAddress
     public var succeeded: Bool
     /// 失敗の理由など
@@ -30,8 +31,19 @@ public struct ExecutionRecord: Equatable, Sendable {
     /// HUD を出さずに実行した
     public var wasFastTap: Bool
     public var date: Date
+    /// マスのあるプロファイル（設定でそのマスを開くため）。分からなければ nil
+    public var profileID: UUID?
 
-    public init(cellTitle: String, profileName: String, address: CellAddress, succeeded: Bool, message: String?, wasFastTap: Bool, date: Date) {
+    public init(
+        cellTitle: String,
+        profileName: String,
+        address: CellAddress,
+        succeeded: Bool,
+        message: String?,
+        wasFastTap: Bool,
+        date: Date,
+        profileID: UUID? = nil
+    ) {
         self.cellTitle = cellTitle
         self.profileName = profileName
         self.address = address
@@ -39,6 +51,7 @@ public struct ExecutionRecord: Equatable, Sendable {
         self.message = message
         self.wasFastTap = wasFastTap
         self.date = date
+        self.profileID = profileID
     }
 }
 
@@ -58,12 +71,19 @@ public final class NonetController {
     /// トリガーで license.refresh() を呼び直さない間隔。refresh は試用の記録を保存先に書くので、トリガーのたびには呼ばない
     /// （実行してよいかは canExecuteActions がいつでも正しく答え、日付の変化などでは ui-shell が呼ぶ）
     static let licenseRefreshInterval: TimeInterval = 60
+    /// recentExecutions に残す数
+    public static let recentExecutionLimit = 10
+    /// 長く掛かるマス（ControllerExecutionPolicy.isLongRunning）がこの秒数で終わらなければ、「実行中」のトーストを出す
+    static let runningToastDelay: TimeInterval = 0.5
 
     public private(set) var configuration: NonetConfiguration
     public private(set) var status: ControllerStatus = .stopped
     /// いま前面アプリで使うプロファイルの名前
     public private(set) var activeProfileName: String?
     public private(set) var lastExecution: ExecutionRecord?
+    /// 最近の実行（新しい順、最大 recentExecutionLimit 個）。失敗・試用期間の終了などで実行しなかったものも含む。
+    /// 練習モードの記録（実際には実行していない）は含まない。メニューの「最近の実行」などで使う
+    public private(set) var recentExecutions: [ExecutionRecord] = []
     /// true の間はアクションを実行せず、lastExecution に記録だけする（初回起動の練習用）
     public var isPracticeMode = false
     /// true の間はセッションを始めない（設定画面でキーを記録しているとき）
@@ -108,12 +128,32 @@ public final class NonetController {
     /// 角の長押しを待っている指の、合図の時刻に動くタイマー
     @ObservationIgnored private var cornerHoldTask: (any ScheduledTask)?
     @ObservationIgnored private var cornerHoldDeadline: TimeInterval?
+    /// 使い始めの案内と試用期間の知らせを、何回・いつ出したか
+    @ObservationIgnored private let guidance: any HUDGuidanceStoring
+    /// HUD に知らせた、トリガーキーを押しているか（失敗のトーストを押している間は消さない）
+    @ObservationIgnored private var isTriggerHeldForHUD = false
+    /// トラックパッドに指が触れているか（キーボードモニターに知らせ、マウスのイベントを見分けてもらう）
+    @ObservationIgnored private var isTrackpadTouched = false
+    /// 「実行中」のトーストを出した実行（終わるまで）と、いま画面に出ている「実行中」のトーストの実行
+    @ObservationIgnored private var shownRunningToasts: Set<Int> = []
+    @ObservationIgnored private var visibleRunningToast: Int?
+    @ObservationIgnored private var nextRunID = 0
+    /// 今の日時（記録の日時と、試用期間の知らせを1日に1回にするため。テストで差し替える）
+    @ObservationIgnored var currentDate: () -> Date = { Date() }
 
-    public init(services: NonetServices, store: ConfigurationStore, hud: any HUDPresenting, license: LicenseManager) {
+    /// guidance は使い始めの案内と試用期間の知らせの記録（既定は UserDefaults）
+    public init(
+        services: NonetServices,
+        store: ConfigurationStore,
+        hud: any HUDPresenting,
+        license: LicenseManager,
+        guidance: any HUDGuidanceStoring = UserDefaultsHUDGuidanceStore()
+    ) {
         self.services = services
         self.store = store
         self.hud = hud
         self.license = license
+        self.guidance = guidance
         executions = ControllerExecutionQueue(scheduler: services.scheduler)
         saver = ControllerConfigurationSaver(scheduler: services.scheduler) { [store] configuration in
             try store.save(configuration)
@@ -176,6 +216,7 @@ public final class NonetController {
             engine = SessionEngine()
             session = nil
             cornerHold = CornerHoldRecognizer()
+            syncTriggerHeld()
             controllerLogger.info("停止しました")
         }
         saver.flush()
@@ -218,7 +259,13 @@ public final class NonetController {
     @discardableResult
     public func testRun(_ cell: Cell, profileID: UUID) async -> ExecutionRecord {
         let profile = configuration.profile(id: profileID)
-        let target = ControllerTarget(cell: cell, profileName: profile?.name ?? "", address: address(of: cell, in: profile))
+        let target = ControllerTarget(
+            cell: cell,
+            profileName: profile?.name ?? "",
+            address: address(of: cell, in: profile),
+            profileID: profile?.id,
+            profilePageCount: profile?.pages.count ?? 1
+        )
         guard license.canExecuteActions else {
             return refuseWithoutLicense(target, wasFastTap: false)
         }
@@ -253,7 +300,7 @@ public final class NonetController {
             return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
         }
         let context = ActionContext(frontmostApp: services.frontmostApp.current)
-        return await perform(target, context: context, turn: turn, wasFastTap: false, showsSuccessToast: false)
+        return await perform(target, context: context, turn: turn, wasFastTap: false, showsSuccessToast: false, showsSuccessAfterRunning: false)
     }
 
     /// 前面に来るまで少し待つ。起動に時間がかかるアプリは、前面に来るまで（最長で約2秒）待つ
@@ -339,6 +386,11 @@ public final class NonetController {
 
     /// トラックパッドのフレーム。エンジンに渡してから、セッションの外なら角の長押しを見る
     private func receiveTouches(_ frame: TouchFrame) {
+        let touching = !frame.touching.isEmpty
+        if touching != isTrackpadTouched {
+            isTrackpadTouched = touching
+            services.keyboard.isTrackpadTouched = touching
+        }
         send(.touches(frame))
         let fired = cornerHold.apply(frame, corner: configuration.settings.touchActivation, isSessionActive: engine.isInSession)
         cornerHoldChanged(fired: fired)
@@ -378,10 +430,14 @@ public final class NonetController {
     }
 
     /// 角の長押しで、トリガーキーと同じ道筋（beginSession）でセッションを始める。試用期間が終わっていたら始めない
-    /// （角に指を置いただけで、何も実行できない HUD と帯が出ないように。トリガーキーなら帯を出して知らせる）
+    /// （角に指を置いただけで、何も実行できない HUD と帯が出ないように）。そのときは、トリガーキーでマスを押したときと同じく、
+    /// 終わったことと次にすることをトースト1つと触覚で知らせる
     private func beginCornerHoldSession() {
         guard license.canExecuteActions else {
+            guard canBeginSession() else { return }
             controllerLogger.notice("試用期間が終わっているため、角の長押しでは始めません")
+            playHaptic(.rejected, strength: configuration.settings.haptics)
+            showToast(ControllerPresentation.trialEndedToast)
             return
         }
         guard beginSession(.cornerHold, at: services.scheduler.now) else { return }
@@ -402,6 +458,15 @@ public final class NonetController {
                 apply(effect, starting: next.starting)
             }
         }
+        syncTriggerHeld()
+    }
+
+    /// トリガーキーを押しているかを HUD に知らせる（変わったときだけ）
+    private func syncTriggerHeld() {
+        let held = engine.isTriggerHeld
+        guard held != isTriggerHeldForHUD else { return }
+        isTriggerHeldForHUD = held
+        hud.setTriggerHeld(held)
     }
 
     private func apply(_ effect: SessionEffect, starting: ControllerSession?) {
@@ -419,6 +484,7 @@ public final class NonetController {
         case .endPointerSuppression(let dropsLateClicks):
             services.keyboard.endPointerSuppression(dropsLateClicks: dropsLateClicks)
         case .showHUD(let page, let highlightedCell):
+            prepareFirstHUD()
             guard let session else { return }
             hud.show(hudModel(session, page: page, highlightedCell: highlightedCell), position: session.settings.hudPosition)
             isHUDVisible = true
@@ -472,6 +538,34 @@ public final class NonetController {
         session.hudModel(page: page, highlightedCell: highlightedCell, isPracticeMode: isPracticeMode, isTrialEnded: !license.canExecuteActions)
     }
 
+    /// セッションで最初に HUD を出すとき、使い始めの案内（最初の HUDGuidance.beginnerSessionLimit 回）と、
+    /// 試用期間の残り日数の帯（残り HUDGuidance.trialReminderDays 日から、1日に1回）を出すかを決めて記録する
+    private func prepareFirstHUD() {
+        guard var current = session, !current.hasShownHUD else { return }
+        current.hasShownHUD = true
+        let count = guidance.hudSessionCount
+        current.showsBeginnerHint = HUDGuidance.showsBeginnerHint(sessionCount: count)
+        // 数え終えたら書かない
+        if current.showsBeginnerHint {
+            guidance.hudSessionCount = count + 1
+        }
+        let now = currentDate()
+        if case .trial(let daysLeft) = license.entitlement, license.canExecuteActions,
+           HUDGuidance.isTrialReminderDue(daysLeft: daysLeft, lastShown: guidance.lastTrialReminder, now: now) {
+            current.trialReminderDays = daysLeft
+            guidance.lastTrialReminder = now
+        }
+        session = current
+    }
+
+    /// トーストを出す。大きさは設定の「HUD の大きさ」に合わせる。出ている「実行中」のトーストは置き換わる
+    private func showToast(_ toast: ToastModel) {
+        var toast = toast
+        toast.scale = configuration.settings.hudScale.factor
+        visibleRunningToast = nil
+        hud.showToast(toast)
+    }
+
     private func hideHUD() {
         guard isHUDVisible else { return }
         isHUDVisible = false
@@ -486,9 +580,15 @@ public final class NonetController {
     // MARK: - 実行
 
     private func execute(page: Int, cell: Int, wasFastTap: Bool, in session: ControllerSession) {
-        // 空きマスは何もしない（触覚も鳴らさない）
-        guard let target = session.target(page: page, cell: cell) else { return }
+        // 空きマスは何もしない（エンジンが中身を知らなかったとき）。すぐにタップしたなら、受け付けなかったことを触覚で知らせる
+        guard let target = session.target(page: page, cell: cell) else {
+            if wasFastTap {
+                playHaptic(.rejected, strength: session.settings.haptics)
+            }
+            return
+        }
         guard license.canExecuteActions else {
+            playHaptic(.rejected, strength: session.settings.haptics)
             refuseWithoutLicense(target, wasFastTap: wasFastTap)
             return
         }
@@ -496,50 +596,103 @@ public final class NonetController {
         // ページを使うが、送るキーや読む選択範囲は Nonet のウィンドウのものになる。アプリを開く・URL は実行する。
         // 練習モードは何も実行しないので、初回の案内のウィンドウがキーでも記録する
         if !isPracticeMode, ControllerExecutionPolicy.dependsOnFrontmostApp(target.cell.action), services.frontmostApp.isOwnWindowKey {
+            playHaptic(.rejected, strength: session.settings.haptics)
             refuseInOwnWindow(target, wasFastTap: wasFastTap)
             return
         }
         playHaptic(.execute, strength: session.settings.haptics)
         if isPracticeMode {
-            record(target, succeeded: true, message: nil, wasFastTap: wasFastTap)
+            record(target, succeeded: true, message: nil, wasFastTap: wasFastTap, isPractice: true)
             return
         }
         let context = ActionContext(frontmostApp: session.frontmostApp)
         let showsSuccessToast = wasFastTap && session.settings.showExecutionToast
+        let showsSuccessAfterRunning = session.settings.showExecutionToast
         executions.enqueue { [weak self] turn in
-            _ = await self?.perform(target, context: context, turn: turn, wasFastTap: wasFastTap, showsSuccessToast: showsSuccessToast)
+            _ = await self?.perform(
+                target,
+                context: context,
+                turn: turn,
+                wasFastTap: wasFastTap,
+                showsSuccessToast: showsSuccessToast,
+                showsSuccessAfterRunning: showsSuccessAfterRunning
+            )
         }
     }
 
-    /// 前の実行が順番を譲ってから呼ばれる。結果の表示と記録は、順番を譲った後でも終わったときに行う
+    /// 前の実行が順番を譲ってから呼ばれる。結果の表示と記録は、順番を譲った後でも終わったときに行う。
+    /// 長く掛かるマスは、runningToastDelay で終わらなければ「実行中」のトーストを出し、終わったら結果のパネル・失敗のトースト・
+    /// 成功のトースト（showsSuccessAfterRunning なら）に置き換えるか、消す
     private func perform(
         _ target: ControllerTarget,
         context: ActionContext,
         turn: ControllerExecutionTurn,
         wasFastTap: Bool,
-        showsSuccessToast: Bool
+        showsSuccessToast: Bool,
+        showsSuccessAfterRunning: Bool
     ) async -> ExecutionRecord {
         // 長く掛かるアクション（裏のスクリプト・ショートカット・AI）は、文脈を読み終えるころに順番を譲る。
         // 終わるまで待たせると、後のマスが数十秒後に、押したときとは別のアプリへまとめて送られる
         turn.pass(after: ControllerExecutionPolicy.hold(for: target.cell.action))
+        let run = startRunningToast(for: target)
         do {
             let output = try await services.performer.performReturningOutput(target.cell.action, context: context)
+            let didShowRunning = finishRunningToast(run)
             if let output {
+                hideRunningToast(run)
                 hud.showResult(ControllerPresentation.result(target.cell, output: output))
-            } else if showsSuccessToast {
-                hud.showToast(ControllerPresentation.successToast(target.cell))
+            } else if showsSuccessToast || (didShowRunning && showsSuccessAfterRunning) {
+                showToast(ControllerPresentation.successToast(target.cell))
+            } else {
+                hideRunningToast(run)
             }
             return record(target, succeeded: true, message: nil, wasFastTap: wasFastTap)
         } catch {
+            finishRunningToast(run)
             return fail(target, wasFastTap: wasFastTap, error: error)
         }
+    }
+
+    /// 「実行中」のトーストを出す予定
+    private struct RunningToast {
+        var id: Int
+        var task: (any ScheduledTask)?
+    }
+
+    /// 長く掛かるマスなら、runningToastDelay 後に「実行中」のトーストを出す予定を入れる
+    private func startRunningToast(for target: ControllerTarget) -> RunningToast? {
+        guard ControllerExecutionPolicy.isLongRunning(target.cell.action) else { return nil }
+        let id = nextRunID
+        nextRunID += 1
+        let task = services.scheduler.schedule(after: Self.runningToastDelay) { [weak self] in
+            guard let self else { return }
+            self.showToast(ControllerPresentation.runningToast(target.cell))
+            self.shownRunningToasts.insert(id)
+            self.visibleRunningToast = id
+        }
+        return RunningToast(id: id, task: task)
+    }
+
+    /// 実行が終わった。「実行中」のトーストを出していたか
+    @discardableResult
+    private func finishRunningToast(_ run: RunningToast?) -> Bool {
+        guard let run else { return false }
+        run.task?.cancel()
+        return shownRunningToasts.remove(run.id) != nil
+    }
+
+    /// その実行の「実行中」のトーストがまだ出ていれば消す（ほかのトーストに置き換わっていれば何もしない）
+    private func hideRunningToast(_ run: RunningToast?) {
+        guard let run, visibleRunningToast == run.id else { return }
+        visibleRunningToast = nil
+        hud.hideToast()
     }
 
     @discardableResult
     private func refuseWithoutLicense(_ target: ControllerTarget, wasFastTap: Bool) -> ExecutionRecord {
         controllerLogger.notice("試用期間が終わっているため実行しません")
         let message = NonetError.licenseRequired.localizedDescription
-        hud.showToast(ControllerPresentation.failureToast(target.cell, message: message))
+        showToast(ControllerPresentation.failureToast(target, message: message))
         return record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
     }
 
@@ -547,7 +700,7 @@ public final class NonetController {
     private func refuseInOwnWindow(_ target: ControllerTarget, wasFastTap: Bool) {
         controllerLogger.notice("Nonet のウィンドウがキーなので実行しません（\(target.cell.action.kind.rawValue, privacy: .public)）")
         let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます", bundle: .module)
-        hud.showToast(ControllerPresentation.failureToast(target.cell, message: message))
+        showToast(ControllerPresentation.failureToast(target, message: message))
         record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
     }
 
@@ -555,12 +708,13 @@ public final class NonetController {
         let message = error.localizedDescription
         // 理由にはスクリプトの出力などが入ることがあるので、ログでは伏せる
         controllerLogger.error("実行に失敗しました（\(target.cell.action.kind.rawValue, privacy: .public)）: \(message, privacy: .private)")
-        hud.showToast(ControllerPresentation.failureToast(target.cell, message: message))
+        showToast(ControllerPresentation.failureToast(target, message: message))
         return record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
     }
 
+    /// isPractice は練習モードの記録（実際には実行していない）。lastExecution にだけ残し、recentExecutions には入れない
     @discardableResult
-    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, wasFastTap: Bool) -> ExecutionRecord {
+    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, wasFastTap: Bool, isPractice: Bool = false) -> ExecutionRecord {
         let record = ExecutionRecord(
             cellTitle: target.cell.title,
             profileName: target.profileName,
@@ -568,9 +722,16 @@ public final class NonetController {
             succeeded: succeeded,
             message: message,
             wasFastTap: wasFastTap,
-            date: Date()
+            date: currentDate(),
+            profileID: target.profileID
         )
         lastExecution = record
+        if !isPractice {
+            recentExecutions.insert(record, at: 0)
+            if recentExecutions.count > Self.recentExecutionLimit {
+                recentExecutions.removeLast(recentExecutions.count - Self.recentExecutionLimit)
+            }
+        }
         return record
     }
 
@@ -665,6 +826,8 @@ public final class NonetController {
         guard !keyboard.isRunning else { return true }
         do {
             try keyboard.start()
+            // マウスやホイールのイベントを見分けられるよう、トラックパッドに触れているかを先に知らせておく
+            keyboard.isTrackpadTouched = isTrackpadTouched
             serviceSucceeded("keyboard")
             controllerLogger.info("キーボードの監視を始めました")
         } catch {
