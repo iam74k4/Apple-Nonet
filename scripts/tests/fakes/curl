@@ -1,23 +1,78 @@
 #!/bin/bash
 # テスト用の偽の curl。ネットワークには出ない。本物と同じく、HTTP のエラーでも -f が無ければ終了コードは 0 で、
-# -o の先にはエラーのページが入り、-w の %{http_code} に状態コードが出る。
+# -o の先にはエラーのページが入り、-w の %{http_code} に状態コードが出る。-D の先にはヘッダを書く。
 #   FAKE_CURL_BODY       状態コードが 200 のとき、このファイルを -o の先にコピーする
 #   FAKE_CURL_HTTP_CODE  状態コード（既定: FAKE_CURL_BODY があれば 200、無ければ 404 = 公開中の appcast がまだ無い）
 #   FAKE_CURL_STATUS     0 以外なら、つながらなかったとしてこの終了コードで終わる（状態コードは 000）
+#   FAKE_R2_DIR          あれば、nonet.astlog.dev の Worker の代わりに答える（scripts/publish.sh のテスト）:
+#                          /updates/<名前>  このフォルダの <名前> を 200（Content-Length と、R2 と同じく MD5 の ETag）。
+#                                           無ければ 404
+#                          /download        FAKE_DOWNLOAD_LOCATION があれば、そこへの 302。無ければ 404
+#                        FAKE_CURL_HTTP_CODE があれば、どの URL もその状態コード（本文なし）
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${FAKE_LOG:?}"
 
-out="" write_out="" fail=0
+out="" write_out="" dump="" url="" fail=0 head=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o) out="$2" && shift ;;
     -w) write_out="$2" && shift ;;
+    -D) dump="$2" && shift ;;
+    -H | --max-time) shift ;;
+    -I | --head) head=1 ;;
     -f | --fail | -[a-zA-Z]*f*) fail=1 ;;
+    http://* | https://*) url="$1" ;;
   esac
   shift
 done
 
+pattern='%{http_code}'
 status="${FAKE_CURL_STATUS:-0}"
+
+md5_of() {
+  if command -v md5 >/dev/null 2>&1; then md5 -q "$1"; else md5sum "$1" | cut -d ' ' -f 1; fi
+}
+
+# Worker の代わり
+if [[ -n "${FAKE_R2_DIR:-}" ]]; then
+  if [[ "$status" != 0 ]]; then
+    [[ -z "$write_out" ]] || printf '%s' "${write_out//"$pattern"/000}"
+    exit "$status"
+  fi
+  path="${url#*://}"
+  path="/${path#*/}"
+  path="${path%%[?#]*}"
+  code=404 headers="content-type: text/plain" body=""
+  if [[ -n "${FAKE_CURL_HTTP_CODE:-}" ]]; then
+    code="$FAKE_CURL_HTTP_CODE"
+  elif [[ "$path" == /updates/?* && -f "$FAKE_R2_DIR/${path#/updates/}" ]]; then
+    body="$FAKE_R2_DIR/${path#/updates/}"
+    code=200
+    headers="content-length: $(wc -c <"$body" | tr -d '[:space:]')"$'\n'"etag: \"$(md5_of "$body")\""
+  elif [[ "$path" == /download && -n "${FAKE_DOWNLOAD_LOCATION:-}" ]]; then
+    code=302
+    headers="location: $FAKE_DOWNLOAD_LOCATION"
+  fi
+  response() {
+    local line
+    printf 'HTTP/1.1 %s\r\n' "$code"
+    while IFS= read -r line; do printf '%s\r\n' "$line"; done <<<"$headers"
+    printf '\r\n'
+  }
+  [[ -z "$dump" ]] || response >"$dump"
+  if [[ -n "$out" ]]; then
+    if [[ "$head" == 1 ]]; then
+      response >"$out"
+    elif [[ -n "$body" ]]; then
+      cp "$body" "$out"
+    else
+      printf '%s\n' "$code" >"$out"
+    fi
+  fi
+  [[ -z "$write_out" ]] || printf '%s' "${write_out//"$pattern"/$code}"
+  exit 0
+fi
+
 if [[ "$status" != 0 ]]; then
   code=000
 else
@@ -34,6 +89,5 @@ else
     printf '<html><body>%s</body></html>\n' "$code" >"${out:?}"
   fi
 fi
-pattern='%{http_code}'
 [[ -z "$write_out" ]] || printf '%s' "${write_out//"$pattern"/$code}"
 exit "$status"

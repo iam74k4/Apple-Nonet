@@ -1,4 +1,5 @@
 // appcast.xml を読み、既定のチャンネルで最新の項目を選ぶ（/download が使う）。
+// scripts/publish.sh も、上げる前と後に同じ読み方で確かめる（cloudflare/scripts/appcast-info.js）。
 // 読む形は、固定した Sparkle（project.yml の 2.6.0 以上。いまは 2.10.1 に解決）の generate_appcast が書くもの:
 //
 //   <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
@@ -57,7 +58,22 @@ function readItem(item) {
     url: enclosure?.attributes.url?.trim() ?? null,
     length: enclosure?.attributes.length ?? null,
     os: enclosure?.attributes["sparkle:os"] ?? null,
+    // <sparkle:deltas> の中の enclosure（差分）。/download は使わない。scripts/publish.sh が上げるファイルを知るため
+    deltas: readDeltas(childNamed(item, "sparkle:deltas")),
   };
+}
+
+function readDeltas(deltas) {
+  if (deltas === undefined) {
+    return [];
+  }
+  return deltas.children
+    .filter((child) => child.name === "enclosure")
+    .map((enclosure) => ({
+      url: enclosure.attributes.url?.trim() ?? null,
+      length: enclosure.attributes.length ?? null,
+      deltaFrom: enclosure.attributes["sparkle:deltaFrom"] ?? null,
+    }));
 }
 
 function childNamed(element, name) {

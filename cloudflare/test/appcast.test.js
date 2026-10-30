@@ -46,6 +46,22 @@ describe("generate_appcast が書く appcast", () => {
     );
   });
 
+  test("項目ごとのデルタ（<sparkle:deltas> の enclosure）を読む。無ければ空", () => {
+    const items = parseAppcast(fixture("appcast.xml"));
+    assert.deepEqual(
+      items.map((entry) => entry.deltas),
+      [
+        [{ url: "https://nonet.astlog.dev/updates/Nonet43-42.delta", length: "612352", deltaFrom: "42" }],
+        [
+          { url: "https://nonet.astlog.dev/updates/Nonet42-41.delta", length: "524288", deltaFrom: "41" },
+          { url: "https://nonet.astlog.dev/updates/Nonet42-40.delta", length: "786432", deltaFrom: "40" },
+        ],
+        [{ url: "https://nonet.astlog.dev/updates/Nonet41-40.delta", length: "262144", deltaFrom: "40" }],
+        [],
+      ],
+    );
+  });
+
   test("既定のチャンネルで最新は 42（ベータの 43 は選ばない）", () => {
     const newest = newestDefaultItem(parseAppcast(fixture("appcast.xml")));
     assert.equal(newest.version, "42");

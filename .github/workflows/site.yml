@@ -1,0 +1,134 @@
+# 販売ページ（site/）とアップデートの配布（cloudflare/ の Worker）を確かめ、手で本番（nonet.astlog.dev）へ出す。
+# 書き方は astlog.dev（Web-AstLog の check.yml・deploy.yml）にそろえてある。全体は docs/hosting.md。
+#
+#   check   site/・cloudflare/・scripts/check-site.sh・scripts/publish.sh を変えた push とプルリクエストで動く。
+#           サイトの確認・Worker のテスト・束ねられるか（wrangler deploy --dry-run）
+#   deploy  Actions の画面から手で実行したときだけ（workflow_dispatch）。main から、check が通ってから、
+#           environment production の承認のあとに wrangler deploy
+#
+# DMG と appcast（R2）はここでは上げない。リリースのたびに手元で scripts/publish.sh を使う（docs/hosting.md）。
+name: site
+
+on:
+  push:
+    paths:
+      - "site/**"
+      - "cloudflare/**"
+      - "scripts/check-site.sh"
+      - "scripts/publish.sh"
+      - ".github/workflows/site.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "cloudflare/**"
+      - "scripts/check-site.sh"
+      - "scripts/publish.sh"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+# GITHUB_TOKEN に持たせるのは、リポジトリを読むことだけ（既定の書き込み権を渡さない）
+permissions:
+  contents: read
+
+# action は commit の SHA で固定する（タグは付け替えられる。付け替えられた action は、
+# 承認のあとの本番の job の中で動く）。SHA は Web-AstLog と同じもので、
+# `git ls-remote --tags https://github.com/actions/<名前>` で引いたもの。上げるときは
+# 同じ手で引き直し、行末のタグ名も一緒に直す
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 同じブランチに続けて push したら、前の確認は捨てる。名前に event_name を入れるのは、
+    # 手で実行した deploy の門（workflow_dispatch）を、同じ main への push の実行で取り消させないため
+    concurrency:
+      group: site-check-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare/package-lock.json
+
+      # HTML の基本・リンク切れ・外部の読み込みが無いこと。TODO（仮の値）はここでは数えるだけ
+      - name: 販売ページ
+        run: scripts/check-site.sh
+
+      # secret は使わない。check の job は install スクリプトを止める理由が無いので、ふつうの npm ci
+      - name: 依存（固定した wrangler）
+        working-directory: cloudflare
+        run: npm ci
+
+      - name: Worker のテスト
+        working-directory: cloudflare
+        run: node --test test/*.test.js
+
+      # デプロイせずに、束ねられるところまで確かめる（wrangler.toml・アセット・バインディング）
+      - name: ビルド
+        working-directory: cloudflare
+        run: npx wrangler deploy --dry-run
+
+  # Actions の画面ではどのブランチからでも実行できる。本番に出すのは main だけ。
+  # ただしこの if は**実行したブランチの** site.yml に書いてあるので、そのブランチで消せる——
+  # 守りとしては数えない（承認を頼む前に、分かりやすく止めるための1段）。守りは GitHub の側にある:
+  # environment の production の Deployment branches を main だけにし、承認者を付け、
+  # CLOUDFLARE_API_TOKEN はその environment の secret にだけ置く（docs/hosting.md「GitHub の設定」）
+  guard:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: main から実行しているか
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::本番へ出せるのは main だけです（いまは ${GITHUB_REF}）"
+          exit 1
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [guard, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 承認者と「main だけ」は Settings → Environments → production で付ける（docs/hosting.md）。
+    # トークンはその environment の secret にだけ置く——リポジトリの secret に置くと、
+    # environment を外した workflow（どのブランチにでも書ける）から承認なしで読める
+    environment: production
+    # 続けて2回押しても、出す作業が並んで走らない。後から押したほうは待つ（取り消さない）
+    concurrency:
+      group: site-deploy-production
+      cancel-in-progress: false
+    # トークンは job の env に置かない。wrangler を呼ぶ step にだけ渡す——job に置くと、
+    # npm ci も action も読める
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare/package-lock.json
+
+      # 価格・購入・ダウンロードなどの仮の値（TODO・.invalid）が1つでも残っていれば、出さずに止まる
+      - name: 販売ページに仮の値が残っていないか
+        run: scripts/check-site.sh --strict
+
+      # deploy に要るのは wrangler の JavaScript と、プラットフォームごとの optionalDependencies
+      # （esbuild・workerd の実体）だけで、install スクリプトは要らない
+      # （--ignore-scripts のまま `wrangler deploy --dry-run` が通ることを確かめてある。docs/hosting.md）
+      - name: 依存（install スクリプトを動かさない）
+        working-directory: cloudflare
+        run: npm ci --ignore-scripts
+
+      # CI は端末（TTY）ではないので、wrangler は nonet.astlog.dev に別のレコードや別の Worker が
+      # あっても、聞かずに上書きする。最初のデプロイは手元から出す（docs/hosting.md「最初のデプロイ」）
+      - name: デプロイ
+        working-directory: cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::environment production の secret に CLOUDFLARE_API_TOKEN がありません（docs/hosting.md「GitHub の設定」）"
+            exit 1
+          fi
+          npx wrangler deploy
