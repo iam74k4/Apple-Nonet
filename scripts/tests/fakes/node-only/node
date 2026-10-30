@@ -1,0 +1,6 @@
+#!/bin/bash
+# テスト用の偽の node。引数と実行したフォルダを記録する。
+#   FAKE_NODE_STATUS  終了コード（既定は 0）
+set -euo pipefail
+printf 'node %s (in %s)\n' "$*" "$(basename "$PWD")" >>"${FAKE_LOG:?}"
+exit "${FAKE_NODE_STATUS:-0}"

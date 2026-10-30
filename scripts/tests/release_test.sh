@@ -455,6 +455,7 @@ test_release_runs_the_whole_pipeline_in_order() {
   assert_not_contains "$OUT" "ファイル名を"
   assert_contains "$OUT" "できました: Nonet 1.2.0（ビルド 42）"
   assert_contains "$OUT" "https://nonet.test/updates/Nonet-1.2.0.dmg"
+  assert_contains "$OUT" "scripts/publish.sh 1.2.0"
   assert_contains "$OUT" "git tag -a v1.2.0"
 }
 
@@ -730,7 +731,7 @@ EOF
   assert_no_file "$RELEASES/nonet.xml"
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>41</sparkle:version>"
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>42</sparkle:version>"
-  assert_contains "$OUT" "appcast.xml を https://nonet.test/updates/nonet.xml にアップロード（ファイル名を nonet.xml にする）"
+  assert_contains "$OUT" "appcast.xml を https://nonet.test/updates/nonet.xml に（ファイル名を nonet.xml にする）"
 
   # 次のリリースも、手元の appcast.xml を引き継ぐ（前の appcast はアップロード済み）
   export FAKE_CURL_BODY="$RELEASES/appcast.xml"

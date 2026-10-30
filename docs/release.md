@@ -116,13 +116,14 @@ NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 
 ### 1.7 配布の場所
 
-HTTPS で静的なファイルを置ける場所なら何でもよい（Cloudflare Pages / R2、GitHub Pages ＋ Releases、Netlify、S3 ＋ CloudFront など）。決めること:
+販売ページとアップデートは `https://nonet.astlog.dev` から配る（Cloudflare の Worker と R2。astlog.dev と同じアカウント）。何がどこにあるか・最初の準備・上限と費用・戻し方は [hosting.md](hosting.md)。
 
-- appcast.xml の URL（`NONET_APPCAST_URL`。一度出したら変えない。変えるときは古い URL からリダイレクトする）。ファイル名は `appcast.xml` でなくてもよい（手元ではいつも `appcast.xml` として作るので、その URL の名前でアップロードする）
-- 無いファイルには 404 を返す設定にする。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバックなど）だと、スクリプトが公開中の appcast を確かめられずに止まる
-- DMG を置く URL。既定では appcast.xml と同じ場所（例: `https://nonet.example.com/updates/Nonet-1.0.0.dmg`）。別にするなら `NONET_DOWNLOAD_URL_PREFIX` を設定する
-- 販売ページ（`site/`）の置き場所。「ダウンロード」ボタンは最新の DMG を指すので、毎回書き換えるか、最新を指す固定の URL（例: `/download` から最新の DMG へリダイレクト）を用意する
-- `site/` には利用ガイド（`guide.html`・`en/guide.html`）とプライバシーポリシー（`privacy.html`・`en/privacy.html`）も入っている。アプリの「利用ガイド」「プライバシー」が開くページなので、販売ページと一緒にアップロードする
+- appcast.xml の URL は `https://nonet.astlog.dev/updates/appcast.xml`（`NONET_APPCAST_URL`）。一度出したら変えない。変えるときは古い URL からリダイレクトし続ける
+- DMG とデルタは appcast と同じ場所（例: `https://nonet.astlog.dev/updates/Nonet-1.0.0.dmg`）。`NONET_DOWNLOAD_URL_PREFIX` は設定しない（Worker は `/updates/` の下しか配らず、`scripts/publish.sh` も別の URL を指す appcast は上げない）
+- 無いファイルには 404 を返す（`cloudflare/wrangler.toml` の `not_found_handling = "404-page"`）。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバック）にすると、スクリプトが公開中の appcast を確かめられずに止まる
+- 販売ページの「ダウンロード」は `https://nonet.astlog.dev/download`。Worker が appcast の最新の DMG へリダイレクトするので、リリースのたびに書き換えなくてよい
+- `site/` には利用ガイド（`guide.html`・`en/guide.html`）とプライバシーポリシー（`privacy.html`・`en/privacy.html`）も入っている。アプリの「利用ガイド」「プライバシー」が開くページで、Worker が販売ページと一緒に配る
+- 最初の準備（R2・バケット `nonet-updates`・API トークン・DNS・最初のデプロイ・GitHub の environment）は hosting.md の「2. 最初の準備」
 
 ### 1.8 販売ページの仮の値を埋める
 
@@ -224,11 +225,20 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 
 ### 2.6 アップロード
 
-順番が大事（appcast が先に出ると、まだ無い DMG を指してしまう）。
+`scripts/publish.sh` で上げる（先に一度 `cd cloudflare && npm ci`）。
 
-1. `Nonet-1.2.0.dmg` と、新しくできた `*.delta` を DMG の置き場所へ
-2. そのあと `appcast.xml` を `NONET_APPCAST_URL` へ（`old_updates/` は上げない）。URL のファイル名が `appcast.xml` でなければ、その名前で上げる（スクリプトが最後に表示する）
-3. 販売ページの「ダウンロード」が新しい DMG を指すようにする
+```bash
+scripts/publish.sh --dry-run 1.2.0   # 確かめて、上げるものを表示するだけ
+scripts/publish.sh 1.2.0
+```
+
+順番が大事（appcast が先に出ると、まだ無い DMG を指してしまう）。スクリプトはこの順でしか上げない。
+
+1. `Nonet-1.2.0.dmg`
+2. appcast のその版の項目にあるデルタ（`*.delta`）のうち、まだ同じ中身が上がっていないもの
+3. 最後に `appcast.xml`（`old_updates/` は上げない）
+
+上げる前に、DMG と appcast が合っているか（URL・大きさ・最新か）と、公開中の appcast が手元より新しくないかを確かめ、公開中の appcast を `NONET_RELEASES_DIR/appcast-history/` に控える。上げたあとに、公開中の appcast にその版があること、DMG の URL が 200 で大きさが合うこと、`/download` がその DMG へ飛ぶことを確かめる。販売ページは書き換えなくてよい。詳しくは [hosting.md](hosting.md) の「3. リリースごとの手順」。
 
 ### 2.7 確かめる
 

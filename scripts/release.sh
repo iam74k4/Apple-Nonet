@@ -722,9 +722,9 @@ main() {
   feed_name="$(url_file_name "$APPCAST_URL")"
   [[ -z "$feed_name" || "$feed_name" == appcast.xml ]] || rename="（ファイル名を $feed_name にする）"
   info "次にやること（docs/release.md「リリースごとの手順」）:"
-  info "  1. Nonet-$VERSION.dmg と新しい *.delta を $prefix にアップロード"
-  info "  2. そのあと appcast.xml を $APPCAST_URL にアップロード$rename"
-  info "  3. git tag -a v$VERSION -m \"Nonet $VERSION\" && git push origin v$VERSION"
+  info "  1. scripts/publish.sh $VERSION（DMG・新しい *.delta・最後に appcast.xml の順に上げて、公開中のものを確かめる。docs/hosting.md）"
+  info "     ほかの場所に置くなら: Nonet-$VERSION.dmg と新しい *.delta を $prefix に、そのあと appcast.xml を $APPCAST_URL に$rename"
+  info "  2. git tag -a v$VERSION -m \"Nonet $VERSION\" && git push origin v$VERSION"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

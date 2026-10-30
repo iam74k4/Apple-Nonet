@@ -113,7 +113,7 @@ EOF
 # スクリプトはリポジトリの場所を自分の置き場所から決めるので、こうすると本物のリポジトリに触れずに済む
 make_fake_repo() {
   REPO="$TEST_TMP/repo"
-  mkdir -p "$REPO/scripts/lib" "$REPO/scripts/tests" "$REPO/Config" "$REPO/Packages/NonetKit"
+  mkdir -p "$REPO/scripts/lib" "$REPO/scripts/tests" "$REPO/Config" "$REPO/Packages/NonetKit" "$REPO/cloudflare/test"
   cp "$ROOT"/scripts/*.sh "$REPO/scripts/"
   cp "$ROOT"/scripts/lib/*.sh "$REPO/scripts/lib/"
   # test.sh から呼ばれる自己テストの代わり（本物を呼ぶと入れ子になる）

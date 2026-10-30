@@ -1,6 +1,6 @@
 #!/bin/bash
 # 自動テスト一式。失敗したらそこで止まり、0 以外で終わる。CI（.github/workflows/ci.yml）もこれを動かす。
-#   1. scripts/ とサイト・ドキュメントのテスト（scripts/tests/run.sh）
+#   1. scripts/ とサイト・ドキュメントのテスト（scripts/tests/run.sh）と、販売ページの Worker のテスト（cloudflare/ の node --test。依存は要らない）
 #   2. NonetKit の swift build と swift test
 #   3. コードの文言がすべて String Catalog にあり、英語の訳があるか（scripts/sync-strings.sh --check。カタログは書き換えない）
 #   4. アプリのビルド（署名なし、Apple シリコンと Intel の両方。DerivedData は build/TestDerivedData）
@@ -19,10 +19,13 @@ case "${1:-}" in
     ;;
 esac
 
-require_commands swift xcodegen xcodebuild xcrun python3
+require_commands swift xcodegen xcodebuild xcrun python3 node
 
 step "scripts/ とサイト・ドキュメントのテスト"
 "$SCRIPT_DIR/tests/run.sh"
+
+step "販売ページの Worker のテスト（cloudflare/）"
+(cd "$ROOT/cloudflare" && node --test test/*.test.js)
 
 step "NonetKit: swift build"
 (cd "$ROOT/Packages/NonetKit" && swift build)
