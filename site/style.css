@@ -1243,6 +1243,163 @@ kbd {
   margin-bottom: 28px;
 }
 
+/* MARK: 利用ガイド（guide.html。原本は docs/user-guide*.md） */
+
+.site-nav a[aria-current="page"],
+.footer-links a[aria-current="page"] {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.guide h2 {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.guide h3 {
+  font-size: 1.05rem;
+  margin: 32px 0 10px;
+}
+
+.guide h4 {
+  font-size: 1rem;
+  margin: 24px 0 8px;
+}
+
+.guide ol {
+  margin: 0 0 14px;
+  padding-left: 1.6em;
+  color: var(--fg-soft);
+}
+
+.guide li > ul,
+.guide li > ol {
+  margin: 6px 0 0;
+}
+
+.guide strong {
+  color: var(--fg);
+}
+
+.guide :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+  background: var(--bg-soft);
+}
+
+.guide pre {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: normal;
+}
+
+.guide .table-wrap {
+  margin: 0 0 14px;
+  overflow-x: auto;
+}
+
+.guide table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--fg-soft);
+}
+
+.guide th,
+.guide td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.guide th {
+  border-bottom-color: var(--line-strong);
+  color: var(--fg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 1列目（項目名・変数名）と、3列の表の2列目（既定）は狭くなりすぎないようにする */
+.guide td:first-child {
+  min-width: 10em;
+  color: var(--fg);
+  word-break: auto-phrase;
+}
+
+.guide td:first-child code {
+  white-space: nowrap;
+}
+
+.guide td:nth-child(2):nth-last-child(2) {
+  min-width: 7em;
+  word-break: auto-phrase;
+}
+
+/* 狭い画面では、説明の列が細くなりすぎないよう、表だけを横にスクロールさせる */
+@media (max-width: 600px) {
+  .guide table {
+    min-width: 36em;
+    font-size: 13px;
+  }
+}
+
+.toc {
+  margin: 28px 0 8px;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.toc-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.toc ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.toc li + li {
+  margin-top: 4px;
+}
+
+/* 節の中の見出しは、1行にまとめて並べる */
+.toc ol ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  margin: 2px 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.toc ol ol li + li {
+  margin-top: 0;
+}
+
+.toc a {
+  color: var(--fg-soft);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  color: var(--fg);
+  text-decoration: underline;
+}
+
 .icon {
   fill: none;
   stroke: currentColor;

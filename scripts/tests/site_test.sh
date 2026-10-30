@@ -23,7 +23,7 @@ write_fixture_site() {
 <a href="#main">本文</a> <a href="en/">English</a> <a href="https://nonet.test/">外部</a>
 <img src="logo.svg" alt="ロゴ">
 </main>
-<footer><a href="privacy.html">プライバシー</a> Stream Deck は Corsair Memory, Inc. の商標です。</footer>
+<footer><a href="guide.html">ガイド</a> <a href="privacy.html">プライバシー</a> Stream Deck は Corsair Memory, Inc. の商標です。</footer>
 </body>
 </html>
 EOF
@@ -31,6 +31,8 @@ EOF
     -e 's|src="logo.svg"|src="../logo.svg"|' -e 's|src="script.js"|src="../script.js"|' "$SITE/index.html" >"$SITE/en/index.html"
   cp "$SITE/index.html" "$SITE/privacy.html"
   cp "$SITE/en/index.html" "$SITE/en/privacy.html"
+  cp "$SITE/index.html" "$SITE/guide.html"
+  cp "$SITE/en/index.html" "$SITE/en/guide.html"
   printf 'body { color: black; background: url("bg.svg"); }\n' >"$SITE/style.css"
   printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' >"$SITE/logo.svg"
   cp "$SITE/logo.svg" "$SITE/bg.svg"
@@ -163,7 +165,7 @@ test_strict_mode_fails_on_placeholders() {
 
 test_pages_and_assets_exist() {
   local file
-  for file in index.html en/index.html privacy.html en/privacy.html style.css script.js favicon.svg; do
+  for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html style.css script.js favicon.svg; do
     assert_file "$ROOT/site/$file"
   done
 }
@@ -222,4 +224,129 @@ test_languages_link_to_each_other() {
   grep -q 'href="../" hreflang="ja"' "$ROOT/site/en/index.html" || fail "英語のページから日本語へのリンクがありません"
   grep -q 'href="en/privacy.html"' "$ROOT/site/privacy.html" || fail "プライバシーポリシーの英語版へのリンクがありません"
   grep -q 'href="../privacy.html"' "$ROOT/site/en/privacy.html" || fail "プライバシーポリシーの日本語版へのリンクがありません"
+  grep -q 'href="en/guide.html" hreflang="en"' "$ROOT/site/guide.html" || fail "利用ガイドの英語版へのリンクがありません"
+  grep -q 'href="../guide.html" hreflang="ja"' "$ROOT/site/en/guide.html" || fail "利用ガイドの日本語版へのリンクがありません"
+}
+
+# MARK: 利用ガイド（site/guide.html・site/en/guide.html。原本は docs/user-guide.md・docs/user-guide.en.md）
+
+# 利用ガイドの見出しに id が無い・目次に無い・id が重なっているのを見つける
+test_guide_page_problems_are_found() {
+  write_fixture_site
+  cat >>"$SITE/guide.html" <<'EOF'
+<nav><a href="#start">はじめに</a></nav>
+<h2 id="start">はじめに</h2>
+<h2 id="orphan">目次に無い節</h2>
+<h3>id の無い節</h3>
+<h3 id="start">同じ id</h3>
+EOF
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- guide.html: 目次に #orphan へのリンクがありません"
+  assert_not_contains "$OUT" "#start へのリンクがありません"
+  assert_contains "$OUT" "- guide.html: id の無い見出しがあります: <h3>"
+  assert_contains "$OUT" '- guide.html: id が重なっています: id="start"'
+  assert_not_contains "$OUT" "en/guide.html"
+}
+
+test_index_pages_must_link_to_the_guide() {
+  write_fixture_site
+  sed -i '' 's|<a href="guide.html">ガイド</a>||' "$SITE/en/index.html"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- en/index.html: 利用ガイドへのリンクがありません"
+  assert_not_contains "$OUT" "- index.html: 利用ガイドへのリンクがありません"
+}
+
+# アプリの「利用ガイド」（NONET_SUPPORT_URL）と「プライバシー」（NONET_PRIVACY_URL）が、サイトに無いページを指していない
+test_app_links_must_point_to_pages_of_the_site() {
+  local config="$TEST_TMP/Nonet.xcconfig"
+  write_fixture_site
+  write_valid_xcconfig "$config"
+  run "$ROOT/scripts/check-site.sh" --config "$config" "$SITE"
+  assert_status 0
+
+  # 拡張子つきの URL・大文字のホスト・サイトの直下（/）も行き先として読める
+  printf 'NONET_SUPPORT_URL = https:/$()/NONET.test/guide.html#troubleshooting\nNONET_PRIVACY_URL = https:/$()/nonet.test/\n' >"$config"
+  run "$ROOT/scripts/check-site.sh" --config "$config" "$SITE"
+  assert_status 0
+
+  write_valid_xcconfig "$config"
+  rm "$SITE/guide.html"
+  sed -i '' 's|<a href="guide.html">ガイド</a>||' "$SITE/index.html"
+  run "$ROOT/scripts/check-site.sh" --config "$config" "$SITE"
+  assert_status 1
+  assert_contains "$OUT" "Nonet.xcconfig の NONET_SUPPORT_URL（https://nonet.test/guide）に当たるページが site/ にありません"
+  assert_not_contains "$OUT" "NONET_PRIVACY_URL"
+
+  # ほかのホスト（ヘルプセンターなど）を指すなら、このサイトでは確かめない
+  printf 'NONET_SUPPORT_URL = https:/$()/help.nonet.test/guide\n' >"$config"
+  run "$ROOT/scripts/check-site.sh" --config "$config" "$SITE"
+  assert_not_contains "$OUT" "NONET_SUPPORT_URL"
+
+  # canonical がまだ無いサイトでは、確かめずに知らせるだけ
+  write_valid_xcconfig "$config"
+  sed -i '' '/rel="canonical"/d' "$SITE/index.html"
+  run "$ROOT/scripts/check-site.sh" --config "$config" "$SITE"
+  assert_contains "$OUT" "canonical が無いので、NONET_SUPPORT_URL（https://nonet.test/guide）の行き先は確かめていません"
+  assert_not_contains "$OUT" "に当たるページが"
+}
+
+# Markdown の見出し（## 〜 ####）を「レベル 文字」で1行ずつ出す。コードの中は除き、強調・コード・リンクの印は外す
+guide_markdown_headings() {
+  awk '/^```/ { code = !code; next } !code && /^#{2,4} / { level = index($0, " ") - 1; print level " " substr($0, level + 2) }' "$1" |
+    sed -E 's/\*\*//g; s/`//g; s/\[([^]]*)\]\([^)]*\)/\1/g'
+}
+
+# ページの見出し（h2〜h4。1行に1つ）を同じ形で出す
+guide_html_headings() {
+  grep -E '^[[:space:]]*<h[234][ >]' "$1" |
+    sed -E 's/^[[:space:]]*<h([234])[^>]*>(.*)<\/h[234]>.*$/\1 \2/; s/<[^>]+>//g; s/&lt;/</g; s/&gt;/>/g; s/&amp;/\&/g'
+}
+
+# ページは Markdown から作る。節を足したり名前を変えたりしたら、両方を直す
+test_guide_pages_match_their_markdown() {
+  local pair md page
+  for pair in "docs/user-guide.md site/guide.html" "docs/user-guide.en.md site/en/guide.html"; do
+    md="${pair% *}"
+    page="${pair#* }"
+    assert_file "$ROOT/$md"
+    [[ -n "$(guide_markdown_headings "$ROOT/$md")" ]] || fail "$md から見出しを読めません"
+    assert_eq "$(guide_markdown_headings "$ROOT/$md")" "$(guide_html_headings "$ROOT/$page")" "$page の見出しが $md と違います"
+  done
+  # 日本語と英語で節の並びと、ページのアンカーをそろえる（言語を切り替えても同じ #id で開ける）
+  assert_eq "$(guide_markdown_headings "$ROOT/docs/user-guide.md" | cut -d ' ' -f 1)" \
+    "$(guide_markdown_headings "$ROOT/docs/user-guide.en.md" | cut -d ' ' -f 1)" "日本語と英語の利用ガイドの節の並び"
+  assert_eq "$(grep -oE '<h[234] id="[^"]+"' "$ROOT/site/guide.html")" \
+    "$(grep -oE '<h[234] id="[^"]+"' "$ROOT/site/en/guide.html")" "日本語と英語の利用ガイドのアンカー"
+}
+
+# グローバルのランチャーは Page.cellCount × Profile.maxPages 個まで（PresetLibrary.makeGlobalProfile）
+test_guides_state_the_launcher_size() {
+  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total file counts
+  cells="$(sed -nE 's/.*static let cellCount = ([0-9]+).*/\1/p' "$profile")"
+  pages="$(sed -nE 's/.*static let maxPages = ([0-9]+).*/\1/p' "$profile")"
+  [[ -n "$cells" && -n "$pages" ]] || fail "Profile.swift から cellCount と maxPages を読めません"
+  total=$((cells * pages))
+  for file in docs/user-guide.md site/guide.html; do
+    grep -qF "最大${total}個（${pages}ページ）並べたランチャー" "$ROOT/$file" || fail "$file: ランチャーが最大${total}個（${pages}ページ）になっていません"
+    grep -qF "最大${pages}ページ（${total}マス）" "$ROOT/$file" || fail "$file: 1つのプロファイルが最大${pages}ページ（${total}マス）になっていません"
+    counts="$(grep -oE '最大[0-9]+個' "$ROOT/$file" | sort -u)"
+    assert_eq "最大${total}個" "$counts" "$file のランチャーの数"
+  done
+  for file in docs/user-guide.en.md site/en/guide.html; do
+    grep -qF "launcher with up to ${total} apps" "$ROOT/$file" || fail "$file: the launcher is not up to ${total} apps"
+    grep -qF "(${total} buttons)" "$ROOT/$file" || fail "$file: a profile is not up to ${total} buttons"
+  done
+}
+
+test_guides_cover_every_script_variable() {
+  local variables name file
+  variables="$(grep -oE 'NONET_[A-Z_]+' "$ROOT/Packages/NonetKit/Sources/NonetCore/Model/ScriptEnvironment.swift" | sort -u)"
+  [[ -n "$variables" ]] || fail "ScriptEnvironment.swift から変数の名前を読めません"
+  for file in docs/user-guide.en.md site/guide.html site/en/guide.html; do
+    for name in $variables PROJECT_DIR; do
+      grep -qE "<code>$name</code>|\`$name\`" "$ROOT/$file" || fail "$file に $name の説明がありません"
+    done
+  done
 }

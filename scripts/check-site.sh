@@ -1,7 +1,8 @@
 #!/bin/bash
-# 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記。
+# 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記・
+# 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページを指していること。
 # --strict を付けると、TODO（価格・URL などの仮の値）が残っていても失敗にする。公開の前に使う。
-# 使い方: scripts/check-site.sh [--strict] [サイトのフォルダ（既定: site）]
+# 使い方: scripts/check-site.sh [--strict] [--config <xcconfig（既定: Config/Nonet.xcconfig）>] [サイトのフォルダ（既定: site）]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,13 +12,19 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 STRICT=0
 SITE="$ROOT/site"
+CONFIG="$ROOT/Config/Nonet.xcconfig"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
-      sed -n '2,4p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     --strict) STRICT=1 ;;
+    --config)
+      [[ $# -ge 2 ]] || die "--config には xcconfig のファイルを指定してください"
+      CONFIG="$2"
+      shift
+      ;;
     -*) die "知らないオプションです: $1" ;;
     *) SITE="$(cd "$1" && pwd)" ;;
   esac
@@ -154,12 +161,73 @@ check_html() {
     check_reference "$file" "$rel" "$url"
   done < <(grep -oE "(href|src)=(\"[^\"]*\"|'[^']*')" "$file" | sed -E "s/^(href|src)=[\"']//; s/[\"']\$//" || true)
 
-  if [[ "$(basename "$file")" == index.html ]]; then
-    if ! grep -q 'Stream Deck' "$file" || ! grep -q 'Corsair Memory' "$file"; then
-      problem "$rel: Stream Deck の商標の表記（Corsair Memory, Inc.）がありません"
+  # 同じ id が2つあると、#id のリンクが前のほうにしか飛ばない
+  while IFS= read -r tag; do
+    problem "$rel: id が重なっています: $tag"
+  done < <(grep -oE '[[:space:]]id="[^"]*"' "$file" | sed -E 's/^[[:space:]]//' | sort | uniq -d || true)
+
+  case "$(basename "$file")" in
+    index.html)
+      if ! grep -q 'Stream Deck' "$file" || ! grep -q 'Corsair Memory' "$file"; then
+        problem "$rel: Stream Deck の商標の表記（Corsair Memory, Inc.）がありません"
+      fi
+      grep -qE 'href="privacy\.html"' "$file" || problem "$rel: プライバシーポリシーへのリンクがありません"
+      grep -qE 'href="guide\.html"' "$file" || problem "$rel: 利用ガイドへのリンクがありません"
+      ;;
+    guide.html) check_guide "$file" "$rel" ;;
+  esac
+}
+
+# 利用ガイド: 見出し（h2〜h4）にはすべて id を付け（ほかのページやアプリから #id で開けるように）、
+# h2 は目次からリンクする
+check_guide() {
+  local file="$1" rel="$2" flat tag ident id_pattern='[[:space:]]id="([^"]+)"'
+  flat="$(LC_ALL=C tr '\n\r\t' '   ' <"$file")"
+  while IFS= read -r tag; do
+    if [[ "$tag" =~ $id_pattern ]]; then
+      ident="${BASH_REMATCH[1]}"
+      if [[ "$tag" == "<h2"* ]] && ! grep -qF "href=\"#$ident\"" "$file"; then
+        problem "$rel: 目次に #$ident へのリンクがありません"
+      fi
+    else
+      problem "$rel: id の無い見出しがあります: $tag"
     fi
-    grep -qE 'href="privacy\.html"' "$file" || problem "$rel: プライバシーポリシーへのリンクがありません"
-  fi
+  done < <(LC_ALL=C grep -oE '<h[234]([[:space:]][^>]*)?>' <<<"$flat" || true)
+}
+
+# アプリの「利用ガイド」「プライバシー」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
+# そのページが site/ にあるか。ホストは site/index.html の canonical で決める（入れるまでは確かめない）
+check_app_links() {
+  local canonical host key url rest url_host path found candidate
+  [[ -f "$CONFIG" ]] || return 0
+  canonical="$(sed -nE 's/.*<link rel="canonical" href="https?:\/\/([^/"]+)[^"]*".*/\1/p' "$SITE/index.html" 2>/dev/null | head -n 1)"
+  host="$(printf '%s' "$canonical" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  for key in NONET_SUPPORT_URL NONET_PRIVACY_URL; do
+    url="$(xcconfig_value "$CONFIG" "$key")"
+    [[ "$url" == http://* || "$url" == https://* ]] || continue
+    if [[ -z "$host" ]]; then
+      info "site/index.html に canonical が無いので、$key（$url）の行き先は確かめていません"
+      continue
+    fi
+    rest="${url#*://}"
+    url_host="${rest%%[/?#]*}"
+    url_host="$(printf '%s' "$url_host" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+    [[ "$url_host" == "$host" ]] || continue
+    path="${rest#"${rest%%[/?#]*}"}"
+    path="${path%%[?#]*}"
+    path="${path#/}"
+    found=""
+    if [[ -z "$path" || "$path" == */ ]]; then
+      [[ -f "$SITE/${path}index.html" ]] && found=1
+    else
+      # 拡張子を省いた URL（/guide）を guide.html として返すホスティングもある
+      for candidate in "$path" "$path.html" "$path/index.html"; do
+        [[ -f "$SITE/$candidate" ]] && found=1
+      done
+    fi
+    [[ -n "$found" ]] || problem "$(basename "$CONFIG") の $key（$url）に当たるページが $(basename "$SITE")/ にありません"
+  done
+  return 0
 }
 
 check_css() {
@@ -191,6 +259,7 @@ done < <(find "$SITE" -type f -name '*.svg' | sort)
 while IFS= read -r file; do
   [[ -z "$file" ]] || check_js "$file"
 done < <(find "$SITE" -type f -name '*.js' | sort)
+check_app_links
 
 # 公開前に埋める仮の値。TODO の印と、届かない .invalid のドメイン
 todos="$(grep -rnE 'TODO|\.invalid' "$SITE" | sed "s|^$SITE/||" || true)"

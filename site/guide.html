@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用ガイド — Nonet</title>
+<meta name="description" content="Nonet の使い方。トリガーキーと9つのボタン、プロファイルの編集、アクションの種類、設定、ライセンス、困ったときの対処をまとめています。">
+<meta name="color-scheme" content="light dark">
+<link rel="alternate" hreflang="en" href="en/guide.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
+</svg>
+
+<a class="skip" href="#main">本文へ移動</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="サイト内の移動">
+      <ul>
+        <li><a href="./#how">使い方</a></li>
+        <li><a href="./#features">機能</a></li>
+        <li><a href="./#pricing">価格</a></li>
+        <li><a href="./#faq">よくある質問</a></li>
+        <li><a href="guide.html" aria-current="page">利用ガイド</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="en/guide.html" hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</header>
+
+<!-- 原本は docs/user-guide.md。変えるときは en/guide.html と docs/user-guide.en.md も一緒に直し、見出しをそろえる（scripts/tests/site_test.sh が確かめる） -->
+<main id="main" class="doc guide">
+  <div class="wrap">
+    <h1>Nonet 利用ガイド</h1>
+    <nav class="toc" aria-label="目次">
+      <p class="toc-title" aria-hidden="true">目次</p>
+      <ol>
+        <li><a href="#about">Nonet とは</a>
+          <ol>
+            <li><a href="#requirements">動作環境</a></li>
+          </ol>
+        </li>
+        <li><a href="#getting-started">はじめに</a>
+          <ol>
+            <li><a href="#install">インストール</a></li>
+            <li><a href="#accessibility">アクセシビリティの許可</a></li>
+            <li><a href="#welcome-guide">初回の案内</a></li>
+          </ol>
+        </li>
+        <li><a href="#basics">基本の使い方</a>
+          <ol>
+            <li><a href="#trigger-key">トリガーキー</a></li>
+            <li><a href="#quick-tap">速押し（慣れたら）</a></li>
+            <li><a href="#hud">HUD（迷ったら）</a></li>
+            <li><a href="#cancel">やめる（キャンセル）</a></li>
+            <li><a href="#while-holding">押している間のトラックパッド</a></li>
+            <li><a href="#pages">ページ</a></li>
+            <li><a href="#global-and-launcher">グローバルとランチャー</a></li>
+            <li><a href="#haptics">触覚</a></li>
+          </ol>
+        </li>
+        <li><a href="#menu-bar">メニューバー</a></li>
+        <li><a href="#profiles">プロファイルを編集する</a>
+          <ol>
+            <li><a href="#profile-list">プロファイルの一覧</a></li>
+            <li><a href="#pages-and-buttons">ページと9マス</a></li>
+            <li><a href="#inspector">インスペクタ</a></li>
+            <li><a href="#pick-from-menus">メニューから割り当て</a></li>
+          </ol>
+        </li>
+        <li><a href="#actions">アクションの種類</a>
+          <ol>
+            <li><a href="#keystrokes">キー入力</a></li>
+            <li><a href="#open-app">アプリ起動</a></li>
+            <li><a href="#url">URL</a></li>
+            <li><a href="#script">スクリプト</a></li>
+            <li><a href="#shortcut">ショートカット</a></li>
+            <li><a href="#menu-item">メニュー項目</a></li>
+            <li><a href="#ai">AI</a></li>
+          </ol>
+        </li>
+        <li><a href="#general">設定（一般）</a>
+          <ol>
+            <li><a href="#trigger-and-hud">トリガーと HUD</a></li>
+            <li><a href="#general-profiles">プロファイル</a></li>
+            <li><a href="#feedback">知らせ</a></li>
+            <li><a href="#advanced">詳細</a></li>
+            <li><a href="#startup">起動</a></li>
+            <li><a href="#export-import">書き出しと読み込み</a></li>
+          </ol>
+        </li>
+        <li><a href="#license">試用とライセンス</a></li>
+        <li><a href="#updates">アップデートと情報</a></li>
+        <li><a href="#troubleshooting">困ったとき</a>
+          <ol>
+            <li><a href="#no-accessibility">「アクセシビリティの許可が必要です」と出る</a></li>
+            <li><a href="#secure-input">「パスワードの入力中は動きません」と出る</a></li>
+            <li><a href="#no-trackpad">「トラックパッドが見つかりません」と出る</a></li>
+            <li><a href="#nothing-happens">まったく反応しない</a></li>
+            <li><a href="#menu-bar-icon-missing">メニューバーにアイコンが見えない</a></li>
+            <li><a href="#pointer-stuck">カーソルが動かない・クリックが効かない</a></li>
+            <li><a href="#jis-right-option">JIS キーボードで右⌥が見つからない</a></li>
+            <li><a href="#other-tools">右⌘の単押しを使うツールと重なる</a></li>
+            <li><a href="#wrong-button">タップしたマスと違うものが実行される</a></li>
+            <li><a href="#script-fails">スクリプトが失敗する</a></li>
+            <li><a href="#automation">オートメーションの許可を求められた</a></li>
+            <li><a href="#menu-item-fails">メニュー項目のアクションが失敗する</a></li>
+            <li><a href="#ai-unavailable">AI のアクションが使えない</a></li>
+            <li><a href="#no-haptics">振動しない</a></li>
+            <li><a href="#login-item">ログイン時に起動しない</a></li>
+            <li><a href="#damaged-settings">「設定ファイルが壊れていたため読み込めませんでした」と出る</a></li>
+            <li><a href="#reset">設定を最初に戻したい</a></li>
+          </ol>
+        </li>
+        <li><a href="#uninstall">アンインストール</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="about">Nonet とは</h2>
+    <p>キーを押している間だけ、MacBook のトラックパッドが「アプリごとに変わる 3×3 の9つのボタン」になるアプリです。</p>
+    <ul>
+      <li>トラックパッドを縦横3つずつに分け、<strong>指を置いた位置</strong>でマスが決まります（カーソルの位置は関係ありません）</li>
+      <li>慣れたら、キーを押してすぐタップするだけでその場で実行。迷ったときだけ、9マスの一覧（HUD）が画面に出ます</li>
+      <li>前面のアプリに合わせて9マスが切り替わります。1つのプロファイルに最大3ページ（27マス）まで置けます</li>
+    </ul>
+    <h3 id="requirements">動作環境</h3>
+    <ul>
+      <li>macOS 14 Sonoma 以降（Apple シリコン・Intel）</li>
+      <li>マルチタッチのトラックパッド: MacBook の内蔵トラックパッド、または Magic Trackpad。マウスだけの Mac では使えません</li>
+      <li>AI のアクションだけは、macOS 26 以降で Apple Intelligence が使える Mac が必要です</li>
+    </ul>
+
+    <h2 id="getting-started">はじめに</h2>
+    <h3 id="install">インストール</h3>
+    <ol>
+      <li>ダウンロードした <code>Nonet-&lt;バージョン&gt;.dmg</code> を開きます</li>
+      <li><code>Nonet</code> を <code>Applications</code> フォルダへドラッグします</li>
+      <li>アプリケーションフォルダから Nonet を開きます</li>
+    </ol>
+    <p>Nonet はメニューバーに常駐するアプリで、Dock には出ません。メニューバーの 3×3 のアイコン（中央が塗りつぶし）が Nonet です。このガイドでは、このアイコンを押すと開くメニューを「Nonet のメニュー」と呼びます。Nonet が動いているときにアプリケーションフォルダからもう一度開くと、設定のウィンドウが開きます。</p>
+    <h3 id="accessibility">アクセシビリティの許可</h3>
+    <p>初めて起動すると「Nonet へようこそ」のウィンドウ（初回の案内）が開きます。「システム設定を開く」を押し、<strong>システム設定 › プライバシーとセキュリティ › アクセシビリティ</strong> で Nonet をオンにしてください。許可すると、自動で次へ進みます。</p>
+    <p><strong>なぜ必要か</strong>: macOS では、ほかのアプリを使っている間のキーボードやポインタを扱うのにこの許可が要ります。Nonet は次のことにだけ使います。</p>
+    <ul>
+      <li>トリガーキーが押された・離されたことを知る</li>
+      <li>トリガーキーを押している間、カーソルの移動とクリックを前面のアプリに渡さない</li>
+      <li>設定したキー入力を送る・メニュー項目を押す・選択中のテキストを読む</li>
+    </ul>
+    <p><strong>集めないもの</strong>: 入力した文字の内容は記録も送信もしません。設定は Mac の中（<code>~/Library/Application Support/Nonet/</code>）だけに保存し、アカウントもありません。ネットワークを使うのは、アップデートの確認と購入ページを開くときだけです。トラックパッドの指の位置を読むのに許可は要りません。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+    <p>「あとで許可する」で先へ進むこともできますが、許可するまで Nonet は動きません。あとから許可するときは、Nonet のメニューの「アクセシビリティを許可…」か、設定のウィンドウの上に出る帯の「システム設定を開く」を使います。</p>
+    <p>スクリプトでブラウザの URL を使うときや、ターミナルでコマンドを実行するときは、macOS が初回に「オートメーション」の許可を求めます（「困ったとき」の「<a href="#automation">オートメーションの許可を求められた</a>」）。</p>
+    <h3 id="welcome-guide">初回の案内</h3>
+    <p>「Nonet へようこそ」のウィンドウは、上に並んだ3つの段階で進みます。</p>
+    <ol>
+      <li><strong>アクセシビリティ</strong>: 上の許可です</li>
+      <li><strong>アプリを選ぶ</strong>: Mac に入っているアプリのうち、プリセット（最初から用意した9マス）のあるものが並びます（Xcode・Visual Studio Code・Safari・Slack・Zoom など）。最初はすべて選ばれています。使うものだけを選び、「次へ：試してみる」を押します。「すべて選ぶ」「すべて外す」でまとめて切り替えられます。「あとで設定する」を押すと、選ばずに先へ進みます（初めての案内では、並んだアプリをすべて使います）</li>
+      <li><strong>試してみる</strong>: 練習モードです。案内のとおりに、トリガーキーを押しながらトラックパッドの右上をタップします。練習中は、マスを押しても何も実行されません。「スキップ」で飛ばせます</li>
+    </ol>
+    <p>最後に「準備ができました」と、使い方のこつが3つ出ます。「完了」で閉じます。「設定を開く」を押すと、そのまま設定のウィンドウが開きます。</p>
+    <p>グローバルのプロファイルには、Mac にあるよく使うアプリを並べたランチャーが入ります（「基本の使い方」の「<a href="#global-and-launcher">グローバルとランチャー</a>」）。</p>
+    <p>案内は Nonet のメニューの「初回の案内をもう一度」で何度でも見られます。もう一度見たときの「アプリを選ぶ」は、選んだアプリのプロファイルを追加するだけです。「設定済み」の印が付いたアプリはそのまま残り、編集した中身が消えることはありません。</p>
+
+    <h2 id="basics">基本の使い方</h2>
+    <h3 id="trigger-key">トリガーキー</h3>
+    <p>9マスにするためのキーです。既定は、JIS 配列のキーボードなら<strong>右⌘</strong>、それ以外なら<strong>右⌥</strong>です（JIS 配列には右⌥がありません）。設定で右⇧や fn（地球儀）にも変えられます。右側のキーだけに反応するので、左の⌘や⌥はいつもどおり使えます。</p>
+    <p>以下は右⌘の例です。</p>
+    <h3 id="quick-tap">速押し（慣れたら）</h3>
+    <ol>
+      <li>右⌘を押します</li>
+      <li>すぐに（既定では0.3秒以内に）実行したいマスの位置をタップします</li>
+    </ol>
+    <p>HUD は出ずに、その場で実行されます。実行したマスは画面の下に一瞬表示されます。右⌘を押したままなら、何度でも続けてタップできます。</p>
+    <h3 id="hud">HUD（迷ったら）</h3>
+    <ol>
+      <li>右⌘を押します</li>
+      <li>指をトラックパッドに置いたまま止めます（または、指を置かずに少し待ちます）</li>
+      <li>9マスの HUD が出て、指の下のマスが白く光ります。指を滑らせて選びます</li>
+      <li>指を置いたまま右⌘を離すと、光っているマスが実行されます</li>
+    </ol>
+    <p>HUD の上には、プロファイルの名前と「⌘を離して実行」の案内が出ます。HUD はカーソルのあるディスプレイに出ます。</p>
+    <p>設定の「実行のタイミング」を「指を離したとき」にすると、4 の代わりに、マスから指を離した時点で実行します（案内は「指を離して実行」）。このときは、やめ方も変わります（次の「やめる」）。</p>
+    <h3 id="cancel">やめる（キャンセル）</h3>
+    <p>どの設定でも:</p>
+    <ul>
+      <li>指を置かずに右⌘を離せば、何も起きません</li>
+      <li>右⌘を押している間にほかのキーを押すと、Nonet はすぐに引っ込み、何も実行しません。そのキーは普段どおりアプリに届きます（右⌘＋C なども普段どおり使えます）。やめるためだけに押すなら、<strong>左の⇧</strong>のように、単独で押しても何も起きない修飾キーが安全です</li>
+    </ul>
+    <p>「実行のタイミング」によって:</p>
+    <ul>
+      <li><strong>「キーを離したとき」（既定）</strong>: 指を先に離してから右⌘を離すと、何も実行しません</li>
+      <li><strong>「指を離したとき」</strong>: 指を離すと、その時点で光っているマスが実行されます。HUD で選んでいる途中でやめるときは、<strong>指を置いたまま左の⇧を押す</strong>か、空きマスがあれば、そこまで指を滑らせてから離します（空きマスでは何も起きません）</li>
+    </ul>
+    <h3 id="while-holding">押している間のトラックパッド</h3>
+    <p>右⌘を押している間はカーソルが止まり、クリックやスクロールも前面のアプリに届きません。2本以上の指で触れたタップは実行しません。空きマスをタップしても何も起きません。右⌘を押したまま20秒たつと、Nonet は自動で引っ込みます。</p>
+    <h3 id="pages">ページ</h3>
+    <p>右⌘を押したまま、<strong>2本指で左右にスワイプ</strong>すると前後のページに切り替わります。2本指を左へ動かすと次のページです。1回のスワイプで1ページ進み、端では止まります。HUD が出ていなければ、このとき出ます。HUD の下の点が今のページを示します。</p>
+    <p>1つのプロファイルに最大3ページまで置けます。アプリのプロファイルの後ろには、グローバルのページがつながります（設定の「グローバルのページをつなげる」）。</p>
+    <h3 id="global-and-launcher">グローバルとランチャー</h3>
+    <p>前面のアプリにプロファイルがあれば、そのアプリの9マスを使います。プロファイルの無いアプリの前では、どのアプリでも使える「グローバル」のプロファイルを使います。</p>
+    <p>グローバルのプロファイルは、最初はよく使うアプリを最大27個（3ページ）並べたランチャーです。Mac に入っているアプリから選んで並べます。macOS 26 で無くなった Launchpad の代わりに使えます。中身はほかのプロファイルと同じように自由に変えられます。</p>
+    <h3 id="haptics">触覚</h3>
+    <p>指がマスの境界をまたぐたびに、トラックパッドが軽く「コツッ」と振動します。ページが変わったときと実行したときにも振動します。強さは設定の「触覚」で選べます。</p>
+
+    <h2 id="menu-bar">メニューバー</h2>
+    <p>メニューバーの 3×3 のアイコンを押すと、Nonet のメニューが開きます。</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">項目</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>状態（いちばん上の行）</td><td>動作中なら「Xcode のプロファイル」「グローバルのプロファイル」のように、前面のアプリで使うプロファイルを表示します。問題があれば「アクセシビリティの許可が必要です」「トラックパッドが見つかりません」「パスワード入力中は使えません」「Nonet は無効です」などを表示します</td></tr>
+          <tr><td>アクセシビリティを許可…</td><td>許可が無いときだけ出ます。システム設定のアクセシビリティの欄を開きます</td></tr>
+          <tr><td>この知らせを消す</td><td>設定ファイルを読めなかったときなどに、知らせと一緒に出ます</td></tr>
+          <tr><td>Nonet を有効にする</td><td>チェックを外すと、トリガーキーに反応しなくなります</td></tr>
+          <tr><td>設定…</td><td>設定のウィンドウを「一般」のタブで開きます</td></tr>
+          <tr><td>プロファイルを編集…</td><td>設定のウィンドウを「プロファイル」のタブで開きます</td></tr>
+          <tr><td>初回の案内をもう一度</td><td>「Nonet へようこそ」のウィンドウを開きます</td></tr>
+          <tr><td>試用期間: 残り 14 日 / 登録済み / 試用期間が終了しました</td><td>ライセンスの状態です。選ぶと、設定のウィンドウを「ライセンス」のタブで開きます</td></tr>
+          <tr><td>アップデートを確認</td><td>新しい版があるか確かめます</td></tr>
+          <tr><td>終了</td><td>Nonet を終了します</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>アイコンの見た目でも状態が分かります。無効のときは薄くなり、確かめてほしいことがあるとき（許可が無い・トラックパッドが見つからない・パスワードの入力中・試用期間の終了・知らせがある）は右上に点が付きます。</p>
+
+    <h2 id="profiles">プロファイルを編集する</h2>
+    <p>Nonet のメニューの「プロファイルを編集…」で、設定のウィンドウの「プロファイル」のタブを開きます。左から、プロファイルの一覧・9マス・インスペクタの3つの列に分かれています。</p>
+    <h3 id="profile-list">プロファイルの一覧</h3>
+    <ul>
+      <li>いちばん上の「グローバル」（「既定」の印）は、プロファイルの無いアプリで使う9マスです。消すことはできません</li>
+      <li>その下の「アプリ」に、アプリのプロファイルが並びます。ドラッグで並べ替えられます</li>
+      <li>「プロファイルを追加」で、インストール済みのアプリから選んで作ります。プリセットのあるアプリは、最初から中身が入ります。一覧に無いアプリは「一覧に無いアプリを選ぶ…」で選べます</li>
+      <li>プロファイルを右クリック（Control キーを押しながらクリック）すると、「無効にする」「このプロファイルを書き出す…」「削除…」が出ます。Delete キーでも削除できます。削除する前に確かめます（元に戻せません）</li>
+      <li>無効にしたプロファイルには「オフ」の印が付き、そのアプリの前でもグローバルを使います。9マスの右上の「このプロファイルを使う」でも切り替えられます</li>
+      <li>一覧の下の「Nonet を有効にする」は、一般の設定と同じスイッチです</li>
+    </ul>
+    <h3 id="pages-and-buttons">ページと9マス</h3>
+    <p>中央に、選んだプロファイルのページと 3×3 のマスが出ます。</p>
+    <ul>
+      <li>「ページ 1」「ページ 2」…で切り替えます。「＋」（ページを追加）で増やし（最大3ページ）、「−」（このページを削除）か、ページを右クリックして「このページを削除…」で消します</li>
+      <li>マスをクリックで選び、ドラッグで入れ替えます。「ページ 2」などの上へドラッグすると、そのページの空きマスへ移ります</li>
+      <li>矢印キーで選ぶマスを移り、Delete キーで空にします</li>
+      <li>マスを右クリックすると「複製」「削除」「このマスをテスト実行」が出ます。空きマスでは「アクションを追加」から種類を選んで作れます</li>
+    </ul>
+    <h3 id="inspector">インスペクタ</h3>
+    <p>右の列で、選んだマスを設定します。変更はその場で保存されます。</p>
+    <ul>
+      <li><strong>空きマス</strong>: アクションの種類のボタンを押して作ります</li>
+      <li><strong>表示名</strong>: マスの下に出る名前です。空のときは、中身から自動で付けた名前を使います</li>
+      <li><strong>アイコン</strong>: 表示名の左のアイコンを押して選びます。「記号」（SF Symbols。英語の名前で検索します）・「アプリ」（「このアプリのアイコンを使う」。アプリ起動のマスか、アプリのプロファイルで使えます）・「文字」（1〜2文字を入れて「使う」）。「既定のアイコンに戻す」で元に戻ります</li>
+      <li><strong>アクションの種類</strong>: キー入力・アプリ起動・URL・スクリプト・ショートカット・メニュー項目・AI（次の「アクションの種類」）</li>
+      <li><strong>このマスをテスト実行</strong>: その場で実行して、「実行しました」かエラーを表示します。アプリのプロファイルでは、そのアプリを前面に出してから実行します。グローバルのマスは、設定を開く前に使っていたアプリの前で実行します</li>
+      <li><strong>このマスを空にする</strong>: 中身を消して空きマスに戻します</li>
+    </ul>
+    <h3 id="pick-from-menus">メニューから割り当て</h3>
+    <p>ショートカットを調べなくても、アプリのメニューから選んで割り当てられます。</p>
+    <ol>
+      <li>対象のアプリを起動しておきます</li>
+      <li>9マスの右上の「メニューから割り当て」を押し、ポップアップメニューからアプリを選びます</li>
+      <li>「メニューを検索」で探し、項目を空いているマスへドラッグします。ダブルクリックか、右クリックの「空いているマスに入れる」でも入ります</li>
+    </ol>
+    <p>インスペクタに戻るときは、パネルの右上の「×」（インスペクタに戻る）を押します。</p>
+
+    <h2 id="actions">アクションの種類</h2>
+    <h3 id="keystrokes">キー入力</h3>
+    <p>前面のアプリにキーを送ります。「送るキー」の欄（「クリックして記録」）を押してから、送りたいキーをそのまま押すと記録されます。</p>
+    <ul>
+      <li><code>⌘B</code>、<code>⇧⌘4</code> のような組み合わせ</li>
+      <li><code>⌘L → ⌘C</code> のような、続けて押すキー（4つまで。40ミリ秒の間隔で送ります）</li>
+    </ul>
+    <p>記録しているとき（欄に「キーを押してください…」と出ている間）は、次のように動きます。</p>
+    <ul>
+      <li>続けて押すと連続キーになります。Return や Tab もそのまま記録します</li>
+      <li>「完了」を押すか、ほかの場所をクリックすると決まります。4つ押したときも決まります</li>
+      <li>Esc を押すと、何も変えずに記録をやめます（「やめる」も同じ）。Esc キーそのものを送りたいときは「Esc を加える」を押します</li>
+      <li>押し間違えたキーは、⌫（最後のキーを消す）で消せます</li>
+    </ul>
+    <p>⌘Tab・⌘Space やスクリーンショットの ⇧⌘4 のように、macOS が先に使うキーは記録欄に届きません。そのときは、記録欄の下の「表記で入力（例: ⌘L → ⌘C）」の欄にキーを書いて「決定」を押します。<code>⇧⌘4</code> のような記号のほか、<code>cmd+shift+4</code> のような書き方も読めます。続けて押すキーは <code>→</code> か <code>,</code> で区切ります。</p>
+    <p>JIS 配列でも、<code>⌘[</code> などが正しく届きます。</p>
+    <h3 id="open-app">アプリ起動</h3>
+    <p>起動していなければ起動し、起動中なら前面に出します。「開くアプリ」の「アプリを選ぶ…」で、インストール済みのアプリから選びます。一覧に無いアプリは「一覧に無いアプリを選ぶ…」で選べます。</p>
+    <p>「前面のときは隠す」をオンにすると、もう一度押したときに隠れるので、アプリの切り替えのように使えます。</p>
+    <h3 id="url">URL</h3>
+    <p>「開く URL」を既定のアプリで開きます。<code>https://</code> を省いた場合は自動で補います（<code>localhost</code> などは <code>http://</code>）。<code>obsidian://</code> のような、アプリ独自の URL も使えます。<code>/</code> や <code>~</code> で始めると、ファイルやフォルダとして開きます。</p>
+    <h3 id="script">スクリプト</h3>
+    <p>「実行するスクリプト（zsh）」の欄に書いた zsh のスクリプトを実行します（<code>/bin/zsh -l -c</code>）。欄の右上の「?」を押すと、下の環境変数の説明が出ます。</p>
+    <ul>
+      <li><strong>実行の仕方</strong>
+        <ul>
+          <li>裏で実行: 終わるまで待ちます。「制限時間」（既定 60秒、1〜3600秒）を過ぎると止めます。失敗したら（終了コードが 0 以外）、エラー出力の最後の部分を画面に表示します</li>
+          <li>ターミナルで実行: ターミナルの新しいウィンドウで実行します。<code>claude</code> のような対話型のコマンドに向いています</li>
+        </ul>
+      </li>
+      <li><strong>作業フォルダ</strong>: プロジェクトのフォルダ（下記）。分からなければホームフォルダ</li>
+      <li><strong>環境</strong>: ログインシェルなので <code>~/.zprofile</code> は読まれますが、<code>~/.zshrc</code> は読まれません。Homebrew などの <code>PATH</code> は <code>~/.zprofile</code> に書いてください</li>
+    </ul>
+    <h4 id="script-variables">スクリプトに渡す環境変数</h4>
+    <p>実行したときの前面のアプリの情報を渡します。<strong>値が無いものは設定されません</strong>。</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">変数</th>
+            <th scope="col">中身</th>
+            <th scope="col">例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>NONET_APP_BUNDLE_ID</code></td><td>前面のアプリの bundle ID</td><td><code>com.apple.dt.Xcode</code></td></tr>
+          <tr><td><code>NONET_APP_NAME</code></td><td>前面のアプリの名前</td><td><code>Xcode</code></td></tr>
+          <tr><td><code>NONET_DOCUMENT_PATH</code></td><td>前面のウィンドウで開いている書類</td><td><code>/Users/you/dev/App/App.xcodeproj</code></td></tr>
+          <tr><td><code>NONET_PROJECT_DIR</code></td><td>書類から決めたプロジェクトのフォルダ</td><td><code>/Users/you/dev/App</code></td></tr>
+          <tr><td><code>PROJECT_DIR</code></td><td><code>NONET_PROJECT_DIR</code> と同じ</td><td><code>/Users/you/dev/App</code></td></tr>
+          <tr><td><code>NONET_BROWSER_URL</code></td><td>ブラウザで表示中のページ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）</td><td><code>https://example.com/article</code></td></tr>
+          <tr><td><code>NONET_SELECTED_TEXT</code></td><td>選択中のテキスト</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>プロジェクトのフォルダは次のように決めます。</p>
+    <ul>
+      <li>書類が <code>.xcodeproj</code>・<code>.xcworkspace</code>・<code>.swiftpm</code> なら、その入っているフォルダ</li>
+      <li>ほかのファイルなら、上へたどって <code>.git</code> か <code>Package.swift</code> のあるフォルダ。見つからなければ、そのファイルのあるフォルダ</li>
+    </ul>
+    <p>例:</p>
+    <pre><code class="language-zsh"># Claude Code をプロジェクトのフォルダで開く（「ターミナルで実行」）
+cd "$PROJECT_DIR" &amp;&amp; claude
+
+# プロジェクトを VS Code で開く
+open -a "Visual Studio Code" "${PROJECT_DIR:-$HOME}"
+
+# 表示中のページの URL をクリップボードへ
+printf '%s' "${NONET_BROWSER_URL:?ブラウザが前面にありません}" | pbcopy</code></pre>
+    <p>変数は必ず <code>"$NONET_SELECTED_TEXT"</code> のように <code>"</code> で囲んでください（空白や記号を含むことがあります）。無いかもしれない変数は <code>${変数:-既定値}</code> か <code>${変数:?メッセージ}</code> で扱うと安全です。<code>:?</code> のメッセージは失敗として画面に出ます。</p>
+    <h3 id="shortcut">ショートカット</h3>
+    <p>ショートカット.app のショートカットを実行します。「実行するショートカット」に名前を入れるか、横の一覧のボタン（ショートカットの一覧から選ぶ）から選びます。「選択中のテキストを渡す」をオンにすると、選択中のテキストを入力として渡します。</p>
+    <h3 id="menu-item">メニュー項目</h3>
+    <p>アプリのメニュー項目を押します。「メニューから割り当て」で選ぶのがかんたんです（インスペクタの「メニューから選ぶ…」でも開きます）。「押すメニュー項目」に、項目の場所・アプリ・キーが出ます。</p>
+    <ul>
+      <li>対象のアプリが前面にあり、その項目にキー（ショートカット）があれば、キーを送ります（速い）</li>
+      <li>キーが無ければ（「なし（メニューを順にたどって押します）」）、アクセシビリティの機能でメニューを順にたどって押します</li>
+      <li>対象のアプリが起動している必要があります</li>
+      <li>メニューの名前は macOS の言語で変わります。言語を変えたら割り当て直してください</li>
+    </ul>
+    <h3 id="ai">AI</h3>
+    <p>選択中のテキストと「指示文」を、Mac の中の言語モデル（Apple Intelligence）に渡します。テキストが Mac の外に送られることはありません。</p>
+    <ul>
+      <li>必要なもの: macOS 26 以降、Apple Intelligence に対応した Mac、<strong>システム設定 › Apple Intelligence と Siri</strong> で Apple Intelligence をオン（モデルのダウンロードが終わっていること）</li>
+      <li>結果の出し方:
+        <ul>
+          <li>選択範囲を置き換える: 選択中のテキストを結果で置き換えます。待っている間に前面のアプリが変わったときは、代わりにクリップボードにコピーします</li>
+          <li>クリップボードにコピー</li>
+          <li>画面に表示: 結果のパネルに出します。文を選んでコピーすることもできます。「コピー」で結果をコピーし、「閉じる」か Esc でパネルを閉じます</li>
+        </ul>
+      </li>
+      <li>使えない Mac では、インスペクタと実行したときに理由を表示します</li>
+    </ul>
+
+    <h2 id="general">設定（一般）</h2>
+    <p>Nonet のメニューの「設定…」で、設定のウィンドウの「一般」のタブが開きます。ウィンドウの上で「プロファイル」「一般」「ライセンス」「情報」のタブを切り替えます。一般のタブの項目は、次のまとまりに分かれています。</p>
+    <h3 id="trigger-and-hud">トリガーと HUD</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">設定</th>
+            <th scope="col">既定</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Nonet を有効にする</td><td>オン</td><td>オフにするとトリガーキーに反応しません。Nonet のメニューとプロファイルの一覧の下からも切り替えられます</td></tr>
+          <tr><td>トリガーキー</td><td>JIS は右⌘、ほかは右⌥</td><td>右⌘（Command）・右⌥（Option）・右⇧（Shift）・fn（地球儀）。右側のキーだけに反応します。JIS 配列で右⌥を選ぶと警告が出ます</td></tr>
+          <tr><td>実行のタイミング</td><td>キーを離したとき</td><td>HUD で選んだマスを、トリガーキーを離したときに実行するか（キーを離したとき）、指を離したときに実行するか（指を離したとき）。速押しはどちらでもその場で実行します。「指を離したとき」では、やめ方が変わります（「基本の使い方」の「やめる」）</td></tr>
+          <tr><td>HUD が出るまでの時間</td><td>0.30秒</td><td>0.15〜0.80秒。これより早いタップは、HUD を出さずにその場で実行します</td></tr>
+          <tr><td>HUD の位置</td><td>画面の中央</td><td>画面の中央 / カーソルの近く。カーソルのあるディスプレイに出ます</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="general-profiles">プロファイル</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">設定</th>
+            <th scope="col">既定</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>前面のアプリで切り替える</td><td>オン</td><td>オフにすると、いつもグローバルのプロファイルを使います</td></tr>
+          <tr><td>グローバルのページをつなげる</td><td>オン</td><td>アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにします。「前面のアプリで切り替える」がオフのときは変えられません</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="feedback">知らせ</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">設定</th>
+            <th scope="col">既定</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>触覚</td><td>中</td><td>オフ / 弱 / 中 / 強。マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します</td></tr>
+          <tr><td>実行を知らせる</td><td>オン</td><td>HUD を出さずに実行したとき、実行したマスを画面の下に一瞬表示します</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="advanced">詳細</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">設定</th>
+            <th scope="col">既定</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>トリガーキーを前面のアプリに渡す</td><td>オン</td><td>オフにすると、トリガーキーそのものを前面のアプリやほかのツールに渡しません（「困ったとき」の「右⌘の単押しを使うツールと重なる」）</td></tr>
+          <tr><td>カーソルの固定方法（詳細）</td><td>自動</td><td>自動（移動を捨て、ずれたら元の位置に戻します）/ 移動を捨てる / カーソルを切り離す / 固定しない（カーソルは指に合わせて動きます）。押している間にカーソルが動いてしまうときに変えてみてください</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="startup">起動</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">設定</th>
+            <th scope="col">既定</th>
+            <th scope="col">内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>ログイン時に起動</td><td>オフ</td><td>Mac にログインしたときに Nonet を起動します</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 id="export-import">書き出しと読み込み</h3>
+    <p>プロファイルを <code>.nonetprofile</code> のファイルに書き出して、バックアップしたり、別の Mac やほかの人と共有したりできます。書き出すのはプロファイル（9マスの中身）だけで、一般の設定やライセンスは含みません。</p>
+    <ul>
+      <li><strong>書き出す…</strong>: すべてのプロファイルを1つのファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックして「このプロファイルを書き出す…」を選びます</li>
+      <li><strong>読み込む…</strong>: ファイルのプロファイルを加えます。今の設定が置き換わるとき（ファイルにグローバルが入っている、または同じアプリのプロファイルがすでにある）は、先に「「ファイル名」を読み込みますか？」と確かめます。置き換わるものの一覧を見て、次のどれかを選びます
+        <ul>
+          <li>置き換えて読み込む: 一覧のものをファイルの中身で置き換え、新しいアプリのプロファイルも加えます。元に戻せません</li>
+          <li>新しいプロファイルだけ追加: 今のプロファイルには触れず、まだ無いアプリのプロファイルだけ加えます（加えるものがあるときだけ出ます）</li>
+          <li>キャンセル: 何も変えません</li>
+        </ul>
+      </li>
+    </ul>
+    <p>置き換わるものが無ければ、確かめずにそのまま加えます。結果（追加した数・置き換えた数・読み込まなかった数）は、ウィンドウの上の帯に出ます。</p>
+    <p><strong>ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください</strong>（スクリプトはあなたの権限で動きます）。スクリプトを含むときは、読み込んだ後の帯でも知らせます。</p>
+
+    <h2 id="license">試用とライセンス</h2>
+    <ul>
+      <li>初めて起動した日から<strong>14日間</strong>、すべての機能を無料で使えます。残り日数は Nonet のメニューと、設定の「ライセンス」のタブに出ます</li>
+      <li>試用期間が終わると、HUD に「試用期間が終了しました」と表示され、マスを押しても実行されません。設定はそのまま残ります</li>
+      <li>購入すると、ライセンスキーがメールで届きます</li>
+    </ul>
+    <p>「ライセンス」のタブ:</p>
+    <ul>
+      <li><strong>状態</strong>: 「試用期間中（残り 14 日）」「登録済み」「試用期間が終了しました」のどれかです。登録済みなら、登録者・発行日・ライセンス ID も出ます</li>
+      <li><strong>ライセンスキー</strong>: 購入時のメールに書かれたライセンスキーを欄に貼り付けて「登録」を押すと、すぐに使えるようになります。キーはこの Mac の中で確かめるので、ネットワークもアカウントも要りません</li>
+      <li><strong>購入する</strong>: 購入ページを開きます（登録していないときだけ出ます）</li>
+      <li><strong>この Mac での登録を外す</strong>: 「登録を解除…」を押し、確かめてから「登録を解除」を押すと、この Mac からライセンスキーを消します。別の Mac に移すときなどに使います。ライセンスキーを控えておけば、また登録できます</li>
+    </ul>
+
+    <h2 id="updates">アップデートと情報</h2>
+    <p>新しい版は自動で確認され、見つかると知らせが出ます。Nonet のメニューの「アップデートを確認」でいつでも確認できます。</p>
+    <p>設定の「情報」のタブには、バージョン・「アップデートを確認」・「利用ガイド」（このガイド）・「プライバシー」（プライバシーポリシー）と、Nonet が使っているサードパーティのソフトウェアのライセンスがあります。</p>
+
+    <h2 id="troubleshooting">困ったとき</h2>
+    <p>Nonet が動けないときは、Nonet のメニューのいちばん上の行と、設定のウィンドウの上の帯に理由が出ます。</p>
+    <h3 id="no-accessibility">「アクセシビリティの許可が必要です」と出る</h3>
+    <ul>
+      <li>設定のウィンドウの上の帯の「許可を求める」か「システム設定を開く」、または Nonet のメニューの「アクセシビリティを許可…」を押します</li>
+      <li><strong>システム設定 › プライバシーとセキュリティ › アクセシビリティ</strong> で Nonet をオンにします。許可されると自動で動き出します</li>
+      <li>オンになっているのに効かないとき（アップデートの後など）は、一覧から Nonet を選んで「−」で外し、もう一度追加してオンにしてください</li>
+    </ul>
+    <h3 id="secure-input">「パスワードの入力中は動きません」と出る</h3>
+    <p>パスワード欄にカーソルがあるときや、ターミナルの「セキュアキーボード入力」がオンのとき、macOS はほかのアプリにキーを見せません。パスワード欄から離れるか、ターミナル › セキュアキーボード入力 をオフにしてください。離れると自動で戻ります。帯の「もう一度確かめる」ですぐに確かめ直せます。</p>
+    <h3 id="no-trackpad">「トラックパッドが見つかりません」と出る</h3>
+    <p>MacBook の内蔵トラックパッドか Magic Trackpad が必要です。マウスだけでは使えません。Magic Trackpad をつないでも（つなぎ直しても）反応しないときは、Nonet のメニューの「終了」で Nonet を終了し、もう一度起動してください。帯の「もう一度確かめる」で確かめ直すこともできます。</p>
+    <h3 id="nothing-happens">まったく反応しない</h3>
+    <ul>
+      <li>Nonet のメニューの「Nonet を有効にする」にチェックが付いているか確かめます</li>
+      <li>試用期間が終わっていないか確かめます（Nonet のメニューに「試用期間が終了しました」と出ます）</li>
+      <li>トリガーキーが設定のとおりか確かめます。左の⌘や⌥には反応しません</li>
+      <li>上の3つ（アクセシビリティ・パスワードの入力中・トラックパッド）のどれかが出ていないか確かめます</li>
+    </ul>
+    <h3 id="menu-bar-icon-missing">メニューバーにアイコンが見えない</h3>
+    <p>メニューバーに項目が多いと、Nonet のアイコンが隠れることがあります。アプリケーションフォルダから Nonet をもう一度開くと、設定のウィンドウが開きます。</p>
+    <h3 id="pointer-stuck">カーソルが動かない・クリックが効かない</h3>
+    <p>トリガーキーを押している間は、カーソルとクリックを止めています。キーが押されたままと判断されているときは、次のどれかで戻ります。</p>
+    <ul>
+      <li>トリガーキー（右⌘など）を一度押して離す</li>
+      <li>何かほかのキーを押す（その場で中断されます）</li>
+      <li>20秒待つ（長すぎる操作は自動で終わります）</li>
+      <li>それでも戻らなければ、Nonet のメニューの「終了」</li>
+    </ul>
+    <p>押している間にカーソルが少し動いてしまうときは、設定の「カーソルの固定方法（詳細）」を変えてみてください。</p>
+    <h3 id="jis-right-option">JIS キーボードで右⌥が見つからない</h3>
+    <p>JIS 配列には右⌥がありません。トリガーキーを右⌘（既定）・右⇧・fn のどれかにしてください。</p>
+    <h3 id="other-tools">右⌘の単押しを使うツールと重なる</h3>
+    <p>⌘英かな や Karabiner-Elements などで「右⌘の単押し」を使っている場合、Nonet を使うたびにそちらも反応することがあります。トリガーキーを別のキーにするか、そのツールの設定を変えてください。設定の「トリガーキーを前面のアプリに渡す」をオフにすると、ほかのアプリやツールにトリガーキーが届かなくなります。</p>
+    <h3 id="wrong-button">タップしたマスと違うものが実行される</h3>
+    <p>マスはトラックパッドの<strong>絶対的な位置</strong>で決まります。端のマスはトラックパッドの端の方をタップしてください。迷ったら指を置いて止まり、HUD で確かめてから実行できます。速押しが速すぎて HUD が出る、または遅すぎて HUD が出ないと感じたら、「HUD が出るまでの時間」を変えてください。</p>
+    <h3 id="script-fails">スクリプトが失敗する</h3>
+    <ul>
+      <li>画面に出たエラーを確かめます。<code>command not found</code> なら、<code>PATH</code> を <code>~/.zprofile</code> に書いてください（スクリプトはログインシェルで動くので、<code>~/.zshrc</code> は読まれません）。たとえば Homebrew なら <code>eval "$(/opt/homebrew/bin/brew shellenv)"</code> を <code>~/.zprofile</code> に書きます</li>
+      <li>ターミナルで <code>zsh -l -c '&lt;スクリプト&gt;'</code> を実行すると、同じ条件で試せます</li>
+      <li>インスペクタの「このマスをテスト実行」で、結果をその場で確かめられます</li>
+      <li>時間がかかる処理は、「制限時間」を延ばすか「ターミナルで実行」にしてください</li>
+    </ul>
+    <h3 id="automation">オートメーションの許可を求められた</h3>
+    <p>スクリプトがブラウザの表示中のページ（<code>NONET_BROWSER_URL</code>）を初めて読むときや、「ターミナルで実行」のスクリプトを初めて動かすときに、macOS が、Nonet にそのブラウザやターミナルの操作を許可するか確かめます。使うなら許可してください。</p>
+    <p>拒否した後に使いたくなったら、<strong>システム設定 › プライバシーとセキュリティ › オートメーション</strong> で、Nonet の下のアプリ（ブラウザやターミナル）をオンにします。</p>
+    <h3 id="menu-item-fails">メニュー項目のアクションが失敗する</h3>
+    <ul>
+      <li>対象のアプリが起動しているか確かめます</li>
+      <li>アプリのアップデートや macOS の言語の変更で、メニューの名前が変わっていないか確かめます。変わっていたら「メニューから割り当て」で割り当て直してください</li>
+    </ul>
+    <h3 id="ai-unavailable">AI のアクションが使えない</h3>
+    <p>macOS 26 以降か、Apple Intelligence がオンでモデルのダウンロードが終わっているか、Mac が Apple Intelligence に対応しているかを確かめてください。理由はインスペクタの AI の欄にも出ます。テキストを選んでから実行してください。</p>
+    <h3 id="no-haptics">振動しない</h3>
+    <p>設定の「触覚」がオフになっていないか確かめます。振動は感圧タッチ（Force Touch）のトラックパッドでだけ感じられます。</p>
+    <h3 id="login-item">ログイン時に起動しない</h3>
+    <p>「ログイン時に起動」をオンにしたとき、macOS の確認が要ることがあります。<strong>システム設定 › 一般 › ログイン項目</strong>（macOS 15 以降は「ログイン項目と機能拡張」）で Nonet を許可してください。</p>
+    <h3 id="damaged-settings">「設定ファイルが壊れていたため読み込めませんでした」と出る</h3>
+    <p>設定のファイルが壊れていたので、最初の設定で始めました。元のファイルは、知らせに出た名前で同じフォルダ（<code>~/Library/Application Support/Nonet/</code>）に残っています。書き出しておいたファイルがあれば、「読み込む…」で戻せます。知らせは Nonet のメニューの「この知らせを消す」で消せます。</p>
+    <h3 id="reset">設定を最初に戻したい</h3>
+    <p>Nonet を終了してから <code>~/Library/Application Support/Nonet/</code> をゴミ箱に入れ、もう一度起動すると、初回の状態から始まります。</p>
+
+    <h2 id="uninstall">アンインストール</h2>
+    <ol>
+      <li>設定の一般のタブで「ログイン時に起動」をオフにします</li>
+      <li>ライセンスを別の Mac で使うなら、ライセンスキーを控えておきます</li>
+      <li>Nonet のメニューの「終了」</li>
+      <li>アプリケーションフォルダの <code>Nonet</code> をゴミ箱に入れます</li>
+      <li>次のファイルとフォルダを消します
+        <ul>
+          <li><code>~/Library/Application Support/Nonet/</code>（設定）</li>
+          <li><code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>（試用の開始日とライセンスキー）</li>
+          <li><code>~/Library/Caches/com.iam74k4.Nonet/</code>（アップデートの一時ファイル）</li>
+        </ul>
+      </li>
+      <li><strong>システム設定 › プライバシーとセキュリティ › アクセシビリティ</strong> で Nonet を選び、「−」で外します。ターミナルで <code>tccutil reset Accessibility com.iam74k4.Nonet</code> を実行しても同じです</li>
+    </ol>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+        <!-- TODO: 問い合わせ先のメールアドレス（index.html と同じ） -->
+        <li><a href="mailto:support@TODO.invalid">お問い合わせ</a></li>
+        <li><a href="en/guide.html" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Apple、Mac、MacBook、macOS、Magic Trackpad、Force Touch、Apple Intelligence、Siri、Launchpad、Xcode、Safari は Apple Inc. の商標です。そのほかの製品名は各社の商標です。</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
