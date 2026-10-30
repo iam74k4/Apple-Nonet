@@ -2210,6 +2210,16 @@
         }
       }
     },
+    "トラックパッドだけで呼び出す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with the trackpad alone"
+          }
+        }
+      }
+    },
     "トラックパッドの図。右上のマスが目標です" : {
       "localizations" : {
         "en" : {
@@ -3049,6 +3059,16 @@
         }
       }
     },
+    "使わない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        }
+      }
+    },
     "例: ⌘L → ⌘C。スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できないので、ここに入力します" : {
       "localizations" : {
         "en" : {
@@ -3339,6 +3359,16 @@
         }
       }
     },
+    "右上の角で長押し" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch and hold the top-right corner"
+          }
+        }
+      }
+    },
     "右下" : {
       "localizations" : {
         "en" : {
@@ -3526,6 +3556,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "top left"
+          }
+        }
+      }
+    },
+    "左上の角で長押し" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch and hold the top-left corner"
           }
         }
       }
@@ -4243,6 +4283,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No results"
+          }
+        }
+      }
+    },
+    "角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest a finger in the corner for a moment to show the nine buttons. Slide to a button and lift your finger to run it."
           }
         }
       }
