@@ -174,17 +174,24 @@ enum LicenseCoding {
         return (payload, signature)
     }
 
+    /// キーの JSON は「{"」で始まるので、base64url では必ずこの3文字で始まる
+    static let keyPrefix = "eyJ"
+
     /// 貼り付けた文から、検証するキーを取り出す。長すぎれば nil。
-    /// 1. 空白・改行・ゼロ幅の文字を除いた全体がキーの形なら、それ
-    /// 2. そうでなければ（「License key: …」のような前置き、引用符・かっこ、メールの引用の「>」、文末の句点などが付いている）、
+    /// 1. 空白・改行・ゼロ幅の文字を除いた全体が「eyJ」で始まるキーの形なら、それ。
+    ///    「eyJ」で始まらなければ使わない（「License Key」のような英数字だけの見出しは、空白を除くとキーの前にくっつき、
+    ///    base64url としては読めてしまうので、署名が違うと言われてしまう）
+    /// 2. そうでなければ（「License key: …」「License Key」（改行）のような見出し、引用符・かっこ、メールの引用の「>」、文末の句点などが付いている）、
     ///    全角の記号などをそろえてから（NFKC。全角の「．」は「.」になる）、キーの形の部分を探す。
-    ///    JSON は「{"」で始まるので base64url では必ず「eyJ」で始まり、署名（64 バイト）はちょうど 86 文字。
+    ///    「eyJ」で始まり、署名（64 バイト）はちょうど 86 文字。
+    ///    中身が LicenseInfo として読めるものがちょうど1種類ならそれ（メールのリンクの JWT などは読めないので除く）。
+    ///    読めるものが無く、キーの形のものが1種類だけなら、それ（壊れたキーは検証で正しく断る）。
     ///    違うキーが2つ以上あれば、どれのことか分からないので選ばない
     /// どちらでもなければ 1 の文をそのまま返す（検証で malformed になる）
     static func licenseKey(in text: String) -> String? {
         let compact = compactLicenseKey(text)
         guard compact.utf8.count <= maximumKeyLength else { return nil }
-        if keyParts(compact) != nil {
+        if compact.hasPrefix(keyPrefix), keyParts(compact) != nil {
             return compact
         }
         // 行頭の引用の印（> ）は、折り返したキーの途中にも入るので、行ごとに除いてからつなげる
@@ -193,7 +200,13 @@ enum LicenseCoding {
             .map { $0.drop { $0 == ">" || $0.isWhitespace } }
             .joined(separator: "\n")
         let candidates = Set(compactLicenseKey(unquoted).matches(of: #/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]{86}/#).map { String($0.output) })
-        if candidates.count == 1, let key = candidates.first {
+        let licenses = candidates.filter { candidate in
+            keyParts(candidate).map { (try? decode($0.payload)) != nil } ?? false
+        }
+        if licenses.count == 1, let key = licenses.first {
+            return key
+        }
+        if licenses.isEmpty, candidates.count == 1, let key = candidates.first {
             return key
         }
         return compact

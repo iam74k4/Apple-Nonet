@@ -232,6 +232,34 @@ test_project_pins_sparkle_to_an_exact_version() {
   grep -q "exactVersion: \"$pinned\"" "$ROOT/docs/release.md" || fail "docs/release.md に Sparkle の版（$pinned）の説明がありません"
 }
 
+# プライバシーポリシーが書いているキーチェーンの項目を、アプリが作らないまま出さない
+test_trial_keychain_problem() {
+  load_release
+  local root="$TEST_TMP/project" service
+  service="$(sed -nE 's/.*static let service = "([^"]+)".*/\1/p' "$ROOT/Packages/NonetKit/Sources/NonetCore/Licensing/TrialRecordKeychain.swift")"
+  [[ -n "$service" ]] || fail "キーチェーンの項目のサービス名を読めません"
+  grep -qF "service=\"$service\"" "$ROOT/scripts/release.sh" || fail "release.sh のサービス名が TrialRecordKeychain.swift（$service）と違います"
+  mkdir -p "$root/App" "$root/docs"
+  assert_eq "" "$(trial_keychain_problem "$TEST_TMP/none")" "App/ が無い（テスト用の偽のリポジトリ）"
+  printf 'storage: UserDefaultsLicenseStorage()\n' >"$root/App/AppDelegate.swift"
+  assert_eq "" "$(trial_keychain_problem "$root")" "ポリシーがキーチェーンを書いていない"
+  printf 'ログインキーチェーンの項目（%s）\n' "$service" >"$root/docs/privacy.md"
+  assert_contains "$(trial_keychain_problem "$root")" "App/ が試用の記録をキーチェーンに置いていません"
+  printf 'storage: UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain())\n' >"$root/App/AppDelegate.swift"
+  assert_eq "" "$(trial_keychain_problem "$root")"
+}
+
+test_preflight_stops_when_the_app_does_not_write_the_trial_keychain() {
+  prepare_release
+  mkdir -p "$REPO/App" "$REPO/docs"
+  printf 'storage: UserDefaultsLicenseStorage()\n' >"$REPO/App/AppDelegate.swift"
+  printf '（com.iam74k4.Nonet.license.trial）\n' >"$REPO/docs/privacy.md"
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "App/ が試用の記録をキーチェーンに置いていません"
+  assert_not_called "xcodebuild"
+}
+
 test_config_problems_reports_missing_file() {
   load_release
   assert_contains "$(config_problems "$TEST_TMP/none.xcconfig")" "がありません"
@@ -400,7 +428,7 @@ test_release_runs_the_whole_pipeline_in_order() {
     "xcodegen generate --spec $REPO/project.yml" \
     "xcodebuild -resolvePackageDependencies -project $REPO/Nonet.xcodeproj -scheme Nonet -derivedDataPath $REPO/build/DerivedData" \
     "generate_keys --account ed25519 -p" \
-    "curl -sSL --max-time 30 -o $RELEASES/appcast.xml.download -w %{http_code} $TEST_APPCAST_URL" \
+    "curl -sSL --max-time 30 -o $work/published-appcast.xml -w %{http_code} $TEST_APPCAST_URL" \
     "xcodebuild archive -project $REPO/Nonet.xcodeproj -scheme Nonet -configuration Release" \
     "export method=developer-id team=$TEST_TEAM" \
     "codesign --verify --deep --strict --verbose=2 $work/export/Nonet.app" \
@@ -443,7 +471,7 @@ test_dry_run_skips_notarization_and_leaves_releases_alone() {
   assert_not_called "notarytool"
   assert_not_called "stapler"
   # dry run でも公開中の appcast と比べる（本番の前に気づける）
-  assert_called "curl -sSL --max-time 30 -o $REPO/build/release/1.2.0/appcast-preview/appcast.xml.download"
+  assert_called "curl -sSL --max-time 30 -o $REPO/build/release/1.2.0/published-appcast.xml"
   assert_contains "$OUT" "手元の appcast は公開中のものと同じです"
   assert_contains "$OUT" "--dry-run では正常"
   assert_contains "$OUT" "この DMG は配らないでください"
@@ -465,7 +493,7 @@ test_build_number_must_increase() {
   assert_not_called "xcodebuild archive"
 }
 
-test_local_appcast_must_match_the_published_one() {
+test_local_appcast_must_have_every_published_build() {
   prepare_release
   # 別の Mac のフォルダ: 公開中の 42 を知らない
   write_appcast "$RELEASES/appcast.xml" 41
@@ -475,7 +503,8 @@ test_local_appcast_must_match_the_published_one() {
   before="$(cat "$RELEASES/appcast.xml")"
   run "$REPO/scripts/release.sh" 1.3.0 42
   assert_status 1
-  assert_contains "$OUT" "手元の appcast（最新のビルド 41）が、公開中のもの（最新のビルド 42）と違います: $RELEASES/appcast.xml"
+  assert_contains "$OUT" "手元の appcast に、公開中のビルド 42 がありません: $RELEASES/appcast.xml"
+  assert_contains "$OUT" "取ってきた公開中の appcast: $REPO/build/release/1.3.0/published-appcast.xml"
   assert_contains "$OUT" "--force-local-appcast"
   assert_not_contains "$OUT" "予期しないエラー"
   assert_not_called "xcodebuild archive"
@@ -487,6 +516,58 @@ test_local_appcast_must_match_the_published_one() {
   run "$REPO/scripts/release.sh" 1.3.0 43
   assert_status 0
   assert_eq "3" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "41・42・43"
+}
+
+# アップロードしてすぐの次のリリースで、CDN が前の appcast を返した（手元の方がビルドが多い）
+test_local_appcast_ahead_of_the_published_one_continues() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41 42
+  write_appcast "$TEST_TMP/published.xml" 41
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  run "$REPO/scripts/release.sh" 1.2.1 43
+  assert_status 0
+  assert_contains "$OUT" "手元の appcast には、公開中のものに無いビルド 42 があります。手元のものを使います"
+  assert_contains "$OUT" "CDN などが前の appcast をまだ返している"
+  assert_eq "3" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "41・42・43"
+}
+
+test_whitespace_changes_by_the_host_are_ignored() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41
+  # ホスティングが改行と字下げを書き換えた
+  sed -e 's/></>\
+  </g' "$RELEASES/appcast.xml" >"$TEST_TMP/published.xml"
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  ! cmp -s "$RELEASES/appcast.xml" "$TEST_TMP/published.xml" || fail "テストの appcast が同じになっている"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "手元の appcast は公開中のものと同じです（空白の違いだけ）"
+}
+
+test_same_builds_with_different_items_stop() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41
+  # 公開中のものはサーバーで直した（DMG の URL を差し替えたなど）
+  sed 's#<item>#<item><title>Nonet 1.1.0</title>#' "$RELEASES/appcast.xml" >"$TEST_TMP/published.xml"
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  local before
+  before="$(cat "$RELEASES/appcast.xml")"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "手元の appcast と公開中のものは、同じビルドの項目の中身が違います: $RELEASES/appcast.xml"
+  assert_not_called "xcodebuild archive"
+  assert_eq "$before" "$(cat "$RELEASES/appcast.xml")" "手元の appcast は変えない"
+}
+
+test_appcast_builds() {
+  load_release
+  write_appcast "$TEST_TMP/a.xml" 3 12 7 12
+  assert_eq "3 7 12" "$(appcast_builds "$TEST_TMP/a.xml" | tr '\n' ' ' | sed 's/ $//')"
+  write_appcast "$TEST_TMP/b.xml" 7 13
+  assert_eq "3 12" "$(appcast_builds_missing "$TEST_TMP/a.xml" "$TEST_TMP/b.xml")"
+  assert_eq "13" "$(appcast_builds_missing "$TEST_TMP/b.xml" "$TEST_TMP/a.xml")"
+  assert_eq "3 7 12" "$(appcast_builds_missing "$TEST_TMP/a.xml" "$TEST_TMP/none.xml")"
+  assert_eq "" "$(appcast_builds_missing "$TEST_TMP/none.xml" "$TEST_TMP/a.xml")"
 }
 
 test_force_local_appcast_skips_the_comparison() {
@@ -535,6 +616,23 @@ test_published_appcast_is_fetched_when_missing() {
   assert_status 0
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>50</sparkle:version>"
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>51</sparkle:version>"
+}
+
+# dry run は何も公開しないので、公開中の appcast を取れなくても（ネットワークが無いなど）続ける
+test_dry_run_continues_when_the_published_appcast_cannot_be_fetched() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41
+  export FAKE_CURL_STATUS=6
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "公開中の appcast を取得できませんでした（curl の終了コード 6）"
+  assert_contains "$OUT" "dry run なので、公開中のものと比べずに続けます"
+  assert_contains "$(cat "$REPO/build/release/1.2.0/appcast-preview/appcast.xml")" "<sparkle:version>41</sparkle:version>"
+  unset FAKE_CURL_STATUS
+  export FAKE_CURL_HTTP_CODE=503
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "公開中の appcast を取得できませんでした（HTTP 503）"
 }
 
 test_network_error_while_fetching_appcast_stops() {
@@ -627,7 +725,7 @@ EOF
   export FAKE_PLIST_FEED="https://nonet.test/updates/nonet.xml"
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 0
-  assert_called "curl -sSL --max-time 30 -o $RELEASES/appcast.xml.download -w %{http_code} https://nonet.test/updates/nonet.xml"
+  assert_called "curl -sSL --max-time 30 -o $REPO/build/release/1.2.0/published-appcast.xml -w %{http_code} https://nonet.test/updates/nonet.xml"
   assert_called "generate_appcast wrote: appcast.xml"
   assert_no_file "$RELEASES/nonet.xml"
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>41</sparkle:version>"
@@ -811,8 +909,10 @@ test_appcast_without_the_new_item_fails() {
 test_unexpected_failure_names_the_step() {
   prepare_release
   write_appcast "$RELEASES/appcast.xml" 41
+  # 公開中の appcast は作業用フォルダに取ってくるので、公開用のフォルダが書けなくても比べられる
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
   chmod 555 "$RELEASES"
-  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.0 42
+  run "$REPO/scripts/release.sh" 1.2.0 42
   chmod 755 "$RELEASES"
   assert_failed
   assert_contains "$OUT" "予期しないエラーで止まりました"

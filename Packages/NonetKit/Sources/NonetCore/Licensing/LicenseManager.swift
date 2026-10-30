@@ -105,13 +105,17 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     private static let usedSlot = Slot(key: trialUsedKey, fileName: usedFileName, isDate: false, field: \.used)
     private static let slots = [startSlot, lastSeenSlot, usedSlot]
 
+    /// 使った時間がこれだけ増えたら、キーチェーンに書き直す（起動したままの日が続いても、キーチェーンの記録を古くしない）
+    static let keychainWriteInterval: TimeInterval = 60 * 60
+
     private let defaults: UserDefaults
     private let supportDirectory: URL?
     private let keychain: (any TrialRecordKeychain)?
-    /// キーチェーンから読んだ記録。書くのはこのプロセスだけなので、読むのは一度でよい
+    /// キーチェーンから読んだ記録（書いたあとは、書いた記録）。書くのはこのプロセスだけなので、読むのは起動ごとに一度でよい
     private var keychainRecord: TrialRecord?
     private var hasReadKeychain = false
-    private var hasSavedToKeychain = false
+    /// この起動でキーチェーンに最後に書いた記録
+    private var lastKeychainWrite: TrialRecord?
 
     public convenience init(defaults: UserDefaults = .standard) {
         self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory)
@@ -123,8 +127,8 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     }
 
     /// supportDirectory は試用の記録を写すフォルダ（テスト用）。nil なら写さない。
-    /// keychain は3つ目の置き場所。UserDefaults とフォルダの両方から記録が消えたときだけ読み、起動のたびに一度だけ書く
-    /// （キーチェーンを何度も読み書きしない。試用は起動していない間も数えるので、起動したときの記録で足りる）
+    /// keychain は3つ目の置き場所。起動ごとに一度だけ読み、起動したときと、使った時間が keychainWriteInterval 増えたとき・
+    /// 時計が変わったときに書く（キーチェーンを何度も読み書きしない）。まとめ方は current() を参照
     public init(defaults: UserDefaults, supportDirectory: URL?, keychain: (any TrialRecordKeychain)? = nil) {
         self.defaults = defaults
         self.supportDirectory = supportDirectory
@@ -165,16 +169,17 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         }
     }
 
-    /// 起動して最初に試用の記録を書いたときに、キーチェーンにも写す。キーチェーンの記録は、記録を消しても消さない
+    /// 試用の記録を書いたあとに、キーチェーンにも写す（UserDefaultsLicenseStorage.needsKeychainWrite のとき）。
+    /// キーチェーンの記録は、記録を消しても消さない
     public func didSaveTrialProgress() {
-        guard let keychain, !hasSavedToKeychain else { return }
-        hasSavedToKeychain = true
+        guard let keychain else { return }
         let record = current()
-        guard !record.isEmpty else { return }
+        guard !record.isEmpty, Self.needsKeychainWrite(record, after: lastKeychainWrite) else { return }
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .sortedKeys
             keychain.writeTrialRecord(try encoder.encode(record))
+            lastKeychainWrite = record
             keychainRecord = record
             hasReadKeychain = true
         } catch {
@@ -182,16 +187,38 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         }
     }
 
+    /// キーチェーンに書くか: この起動でまだ書いていない・開始日が変わった・使った時間が keychainWriteInterval 以上増えた・
+    /// 時計が変わった（最後に数えた時刻 − 使った時間 が動いた。ふつうは両方が同じだけ進むので動かない）
+    static func needsKeychainWrite(_ record: TrialRecord, after previous: TrialRecord?) -> Bool {
+        guard let previous else { return true }
+        if record.start != previous.start || record.hasUsage != previous.hasUsage {
+            return true
+        }
+        guard let used = record.used, let lastSeen = record.lastSeen,
+              let previousUsed = previous.used, let previousLastSeen = previous.lastSeen else {
+            return record != previous
+        }
+        return used - previousUsed >= keychainWriteInterval
+            || abs((lastSeen - used) - (previousLastSeen - previousUsed)) > TrialProgress.clockTolerance
+    }
+
     // MARK: - 置き場所をまとめる
 
-    /// まとめた記録。食い違っていた置き場所は、まとめた値にそろえる
+    /// まとめた記録。食い違っていた置き場所は、まとめた値にそろえる。キーチェーンの記録は:
+    /// - UserDefaults とフォルダのどちらにも使った時間の記録が無いとき（初回・アンインストールツールで消された）は、組のまま使う
+    /// - どちらかにあるときは、使った時間だけを下限として使う（数えた量より減らさない。環境設定に「使った時間 0」と書き込んでも減らない）。
+    ///   最後に数えた時刻は使わない。キーチェーンは毎回は書かないので、時計がずれていた起動の記録が残っていることがあり、
+    ///   それを組で数えると、ずれた分を余計に数えてしまう。使った時間は数え終えた量なので、多く数えることはない
     private func current() -> TrialRecord {
         let stored = defaultsRecord()
         let mirrored = mirrorRecord()
         var records = [stored, mirrored]
-        // UserDefaults とフォルダのどちらにも使った時間の記録が無いとき（初回・アンインストールツールで消された）だけ、キーチェーンを読む
-        if !records.contains(where: \.hasUsage), let saved = readKeychain() {
-            records.append(saved)
+        if let saved = readKeychain() {
+            if records.contains(where: \.hasUsage) {
+                records.append(TrialRecord(used: saved.used))
+            } else {
+                records.append(saved)
+            }
         }
         let chosen = TrialRecord.reconciled(records)
         heal(stored, to: chosen) { value, slot in setDefaults(value, slot) }

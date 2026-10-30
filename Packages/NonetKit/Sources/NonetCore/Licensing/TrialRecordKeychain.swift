@@ -1,5 +1,6 @@
 // 担当: keys-license
-// 試用の記録の3つ目の置き場所。環境設定と Application Support/Nonet を消す（アンインストールツールなど）だけで試用をやり直せないようにする
+// 試用の記録の3つ目の置き場所。環境設定と Application Support/Nonet を消す（アンインストールツールなど）だけで試用をやり直せないようにする。
+// NonetCore で Security と LocalAuthentication を使うのはこのファイルだけ（docs/architecture.md「ライセンス」の例外）
 import Foundation
 import LocalAuthentication
 import os

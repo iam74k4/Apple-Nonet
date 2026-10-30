@@ -72,6 +72,8 @@ private final class FakeToolEnvironment {
         #expect(try LicenseTool.parse(["verify", "--public", "PK", "--", "--KEY"]) == .verify(publicKey: "PK", licenseKey: "--KEY"))
         #expect(try LicenseTool.parse(["issue", "--key", "k", "--name", "-dash"])
             == .issue(privateKeyPath: "k", licensee: "-dash", email: nil, edition: nil, licenseID: nil, publicKey: nil))
+        #expect(try LicenseTool.parse(["issue", "--skip-app-key-check", "--key", "k", "--name", "A"])
+            == .issue(privateKeyPath: "k", licensee: "A", email: nil, edition: nil, licenseID: nil, publicKey: nil, skipAppKeyCheck: true))
         for help in [["help"], ["-h"], ["--help"], ["issue", "--help"], ["keygen", "-h"]] {
             #expect(try LicenseTool.parse(help) == .help)
         }
@@ -93,6 +95,8 @@ private final class FakeToolEnvironment {
         (["verify", "--public", "PK"], "検証するライセンスキーを指定してください"),
         (["verify", "KEY"], "--public を指定してください"),
         (["verify", "--public", "PK", "A", "B"], "verify には余分な引数があります: B"),
+        (["issue", "--key", "k", "--name", "A", "--skip-app-key-check", "--skip-app-key-check"], "--skip-app-key-check が2回指定されています"),
+        (["verify", "--public", "PK", "--skip-app-key-check", "KEY"], "不明なオプションです: --skip-app-key-check"),
     ] as [([String], String)])
     func reportsUsageErrors(arguments: [String], message: String) {
         #expect(throws: LicenseToolUsageError(message)) {
@@ -395,11 +399,25 @@ private final class FakeToolEnvironment {
         #expect(environment.errorOutput.contains("注意: Config/Nonet.xcconfig が見つからないため"))
     }
 
-    @Test func issueWithAnExplicitPublicKeyWarnsWhenTheAppUsesAnother() throws {
+    @Test func issueWithAnExplicitPublicKeyRefusesWhenTheAppUsesAnother() throws {
+        // 鍵の組を作り直して --public で新しい公開鍵を渡したのに、xcconfig は前の鍵のまま（売上の自動化で毎回 --public を付けている）
         installConfig("NONET_LICENSE_PUBLIC_KEY = \(LicenseTestFixtures.otherKeys.publicKeyBase64)")
         let keys = try installKeys()
-        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", keys.publicKey]) == LicenseTool.exitSuccess)
-        #expect(environment.errorOutput.contains("警告: --public の公開鍵は、アプリに入れる公開鍵"))
+        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", keys.publicKey]) == LicenseTool.exitFailure)
+        #expect(environment.output.isEmpty)
+        #expect(environment.errorOutput.contains("--public の公開鍵が、アプリに入れる公開鍵（/work/repo/Config/Nonet.xcconfig の NONET_LICENSE_PUBLIC_KEY）と違うため、発行しません"))
+        #expect(environment.errorOutput.contains("--skip-app-key-check"))
+
+        // 古い版のアプリ向けに、分かったうえで発行する
+        let skip = ["issue", "--key", keys.privatePath, "--name", "A", "--public", keys.publicKey, "--skip-app-key-check"]
+        #expect(environment.run(skip) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("注意: --skip-app-key-check のため"))
+        _ = try LicenseVerifier(publicKeyBase64: keys.publicKey).verify(try issuedKey(environment.output))
+        // --public の鍵とは必ず照合する
+        environment.files["/other/key"] = .init(contents: LicenseTestFixtures.otherKeys.privateKeyBase64, permissions: 0o600)
+        #expect(environment.run(["issue", "--key", "/other/key", "--name", "A", "--public", keys.publicKey, "--skip-app-key-check"]) == LicenseTool.exitFailure)
+        #expect(environment.errorOutput.contains("秘密鍵と公開鍵が対応していません"))
+
         // 同じ鍵なら何も言わない（書き方が base64url でも）
         let urlForm = LicenseCoding.base64URLEncoded(try #require(Data(base64Encoded: keys.publicKey)))
         installConfig("NONET_LICENSE_PUBLIC_KEY = \(urlForm)")
@@ -421,8 +439,10 @@ private final class FakeToolEnvironment {
     @Test func verifyAcceptsAKeyPastedWithALabel() throws {
         let keys = try installKeys()
         let key = try LicenseTestFixtures.licenseKey()
-        #expect(environment.run(["verify", "--public", keys.publicKey, "License key: \(key)"]) == LicenseTool.exitSuccess)
-        #expect(environment.output.contains("購入者: 山田 太郎"))
+        for text in ["License key: \(key)", "License Key\n\(key)"] {
+            #expect(environment.run(["verify", "--public", keys.publicKey, text]) == LicenseTool.exitSuccess)
+            #expect(environment.output.contains("購入者: 山田 太郎"))
+        }
     }
 
     @Test func issueReportsKeyProblems() {

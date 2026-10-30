@@ -24,7 +24,7 @@ usage() {
   --first-release    初めてのリリース。公開中の appcast が無い（HTTP 404・410）ときに、新しく作ってよいことを示す
   --force-local-appcast
                      公開中の appcast を取ってこずに、手元の appcast.xml（NONET_RELEASES_DIR）をそのまま使う。
-                     手元のものが公開中のものと違うと止まるが、手元が正しいと分かっているときだけ付ける
+                     公開中のビルドが手元に無いと止まるが、手元が正しいと分かっているときだけ付ける
   --allow-dirty      コミットしていない変更があっても続ける
   -h, --help         この説明を表示する
 
@@ -125,18 +125,47 @@ foundation_models_problem() {
   fi
 }
 
+# プライバシーポリシー（docs/privacy.md）は、製品版が試用の記録をログインキーチェーンの項目にも置くと書いている。
+# アプリ（App/）がその置き場所を使っていなければ（UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain())）、問題を1行出す
+trial_keychain_problem() {
+  local root="$1" service="com.iam74k4.Nonet.license.trial"
+  [[ -d "$root/App" ]] || return 0
+  grep -qF "$service" "$root/docs/privacy.md" 2>/dev/null || return 0
+  grep -rqsF --include='*.swift' 'SystemTrialRecordKeychain()' "$root/App" && return 0
+  printf 'App/ が試用の記録をキーチェーンに置いていません（AppDelegate の UserDefaultsLicenseStorage() を UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain()) にする）。プライバシーポリシー（docs/privacy.md と販売ページ）は、製品版がキーチェーンの項目 %s を作ると書いています\n' "$service"
+}
+
 # Sparkle の appcast（RSS）らしい中身か。ホスティングによっては、無いファイルにも 200 で index.html を返す
 is_appcast_file() {
   grep -qE '<rss[[:space:]>]' "$1" 2>/dev/null
 }
 
-# appcast に載っている最大のビルド番号（sparkle:version）。無ければ空文字
-appcast_latest_build() {
+# appcast に載っているビルド番号（sparkle:version）を、小さい順に1行ずつ（同じものは1つ）
+appcast_builds() {
   [[ -f "$1" ]] || return 0
   grep -oE '<sparkle:version>[0-9]+</sparkle:version>|sparkle:version="[0-9]+"' "$1" |
     grep -oE '[0-9]+' |
-    sort -n |
-    tail -n 1 || true
+    sort -n -u || true
+}
+
+# appcast に載っている最大のビルド番号。無ければ空文字
+appcast_latest_build() {
+  appcast_builds "$1" | tail -n 1
+}
+
+# 1つ目の appcast にあって、2つ目に無いビルド番号（空白区切り）。無ければ空文字
+appcast_builds_missing() {
+  local build missing="" others
+  others="$(appcast_builds "$2")"
+  for build in $(appcast_builds "$1"); do
+    grep -qx "$build" <<<"$others" || missing+="${missing:+ }$build"
+  done
+  printf '%s' "$missing"
+}
+
+# 空白・改行の違いを除けば同じか（ホスティングが空白を書き換えることがある）
+same_ignoring_whitespace() {
+  cmp -s <(tr -d '[:space:]' <"$1") <(tr -d '[:space:]' <"$2")
 }
 
 # URL の最後の名前（? と # から後ろは除く）。例: https://x/updates/nonet.xml?v=1 → nonet.xml
@@ -267,6 +296,9 @@ preflight() {
     [[ -z "$line" ]] || problems+="$line"$'\n'
   fi
 
+  line="$(trial_keychain_problem "$ROOT")"
+  [[ -z "$line" ]] || problems+="$line"$'\n'
+
   while IFS= read -r line; do
     if [[ -n "$line" ]]; then
       problems+="Config/Nonet.xcconfig: $line"$'\n'
@@ -345,15 +377,20 @@ check_sparkle_key() {
     die "キーチェーンの Sparkle の鍵（公開鍵 $actual）が NONET_SPARKLE_PUBLIC_KEY と違います。このまま出すと、利用者がアップデートを受け取れなくなります"
 }
 
-# 公開中の appcast を取ってきて、手元の appcast.xml と比べる。
+# 公開中の appcast を取ってきて（作業用フォルダの published-appcast.xml）、手元の appcast.xml とビルドの番号で比べる。
 # - 手元に無ければ、公開中のものを使う
-# - 手元にあれば、公開中のものとまったく同じでなければ止まる。別の Mac やバックアップの古い appcast から作ると、
-#   公開中の項目が消えたり、公開済みと同じビルド番号を出したりしてしまう（--force-local-appcast なら取ってこずに手元のものを使う）
+# - 公開中のものにあって手元に無いビルドがあれば止まる。別の Mac やバックアップの古い appcast から作ると、
+#   公開中の項目が消えたり、公開済みと同じビルド番号を出したりしてしまう
+# - 手元のものの方がビルドが多いだけなら、警告して手元のものを使う（前のリリースの appcast をまだアップロードしていない・
+#   CDN がアップロードの前の appcast をまだ返している。どちらも手元のものが新しい）
+# - ビルドが同じで中身が違えば、空白の違いだけなら手元のものを使い、それ以外（公開中のものをサーバーで直したなど）は止まる
+# --force-local-appcast なら、手元にあるときは取ってこない。
 # 公開中のものを取れないまま新しく作ると、過去の項目が消えた appcast で公開中のものを上書きしてしまう。
 # そのため新しく作るのは「404・410（まだ無い）かつ --first-release」のときだけで、403・503 などでは止まる
+# （dry run では何も公開しないので、取れなければ警告して続ける）
 fetch_published_appcast() {
-  local dest="$1" url="$2" first_release="$3" force_local="$4" code="" status=0 retry download="$1.download"
-  local published_latest local_latest
+  local dest="$1" url="$2" first_release="$3" force_local="$4" dry_run="${5:-0}" code="" status=0 retry
+  local download="$WORK/published-appcast.xml" missing extra
   if [[ -f "$dest" && "$force_local" == 1 ]]; then
     warn "--force-local-appcast: 公開中の appcast と比べずに、手元の $dest を使います"
     return 0
@@ -361,11 +398,12 @@ fetch_published_appcast() {
   retry="ネットワークやサーバーを確かめてからやり直すか、公開中の appcast を $dest に置いて --force-local-appcast を付けてください"
   # -f は 400 以上をすべて同じ終了コード（22）にするので使わず、状態コードを受け取る。
   # curl の失敗は exit で返す（set -E の ERR トラップがコマンド置換の中で鳴らないように）
+  rm -f "$download"
   code="$(curl -sSL --max-time 30 -o "$download" -w '%{http_code}' "$url" || exit $?)" || status=$?
   if [[ "$status" != 0 ]]; then
     rm -f "$download"
-    die "公開中の appcast を取得できませんでした（curl の終了コード $status）: $url
-    $retry"
+    published_appcast_unavailable "$dry_run" "公開中の appcast を取得できませんでした（curl の終了コード $status）: $url" "$retry"
+    return 0
   fi
   case "$code" in
     200)
@@ -375,19 +413,30 @@ fetch_published_appcast() {
     サーバーが、無いファイルにも 200 で別のページ（index.html など）を返していないか確かめてください"
       fi
       if [[ ! -f "$dest" ]]; then
-        mv "$download" "$dest"
+        cp "$download" "$dest"
         info "公開中の appcast を取り込みました: $url"
       elif cmp -s "$download" "$dest"; then
-        rm -f "$download"
         info "手元の appcast は公開中のものと同じです: $url"
       else
-        published_latest="$(appcast_latest_build "$download")"
-        local_latest="$(appcast_latest_build "$dest")"
-        rm -f "$download"
-        die "手元の appcast（最新のビルド ${local_latest:-なし}）が、公開中のもの（最新のビルド ${published_latest:-なし}）と違います: $dest
-    前のリリースの appcast.xml をまだアップロードしていないなら、先に $url へアップロードしてください。
+        missing="$(appcast_builds_missing "$download" "$dest")"
+        extra="$(appcast_builds_missing "$dest" "$download")"
+        if [[ -n "$missing" ]]; then
+          die "手元の appcast に、公開中のビルド $missing がありません: $dest
     手元のものが古い（別の Mac やバックアップから戻した）なら、手元の appcast.xml を消すと公開中のものを取ってきます。
+    取ってきた公開中の appcast: $download
     手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
+        elif [[ -n "$extra" ]]; then
+          warn "手元の appcast には、公開中のものに無いビルド $extra があります。手元のものを使います（$url）
+    前のリリースの appcast.xml をまだアップロードしていないなら、今回のものと一緒に、そのビルドの DMG もアップロードしてください。
+    アップロードしたばかりなら、CDN などが前の appcast をまだ返しているだけです"
+        elif same_ignoring_whitespace "$download" "$dest"; then
+          info "手元の appcast は公開中のものと同じです（空白の違いだけ）: $url"
+        else
+          die "手元の appcast と公開中のものは、同じビルドの項目の中身が違います: $dest
+    取ってきた公開中の appcast: $download
+    公開中のものをサーバーで直したなら、手元の appcast.xml を消すと公開中のものを取ってきます。
+    手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
+        fi
       fi
       ;;
     404 | 410)
@@ -403,11 +452,22 @@ fetch_published_appcast() {
       fi
       ;;
     *)
-      rm -f "$dest.download"
-      die "公開中の appcast を取得できませんでした（HTTP ${code:-不明}）: $url
-    $retry"
+      rm -f "$download"
+      published_appcast_unavailable "$dry_run" "公開中の appcast を取得できませんでした（HTTP ${code:-不明}）: $url" "$retry"
       ;;
   esac
+}
+
+# 公開中の appcast を取れなかった。本番では止まり、dry run では警告して、手元のもの（無ければ新しい appcast）で続ける
+published_appcast_unavailable() {
+  local dry_run="$1" problem="$2" advice="$3"
+  if [[ "$dry_run" == 1 ]]; then
+    warn "$problem
+    dry run なので、公開中のものと比べずに続けます（本番ではここで止まります）"
+    return 0
+  fi
+  die "$problem
+    $advice"
 }
 
 write_export_options() {
@@ -572,7 +632,7 @@ main() {
 
   step "Sparkle の鍵とビルド番号を確かめる"
   check_sparkle_key "$SPARKLE_BIN" "$SPARKLE_PUBLIC_KEY"
-  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL" "$FIRST_RELEASE" "$FORCE_LOCAL_APPCAST"
+  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL" "$FIRST_RELEASE" "$FORCE_LOCAL_APPCAST" "$DRY_RUN"
   local latest
   latest="$(appcast_latest_build "$appcast_dir/appcast.xml")"
   if [[ -n "$latest" && "$BUILD" -le "$latest" ]]; then

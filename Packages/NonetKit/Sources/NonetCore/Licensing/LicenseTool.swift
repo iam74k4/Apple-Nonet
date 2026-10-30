@@ -6,7 +6,7 @@ import Foundation
 package enum LicenseToolCommand: Equatable {
     case help
     case keygen(outputDirectory: String)
-    case issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?, publicKey: String?)
+    case issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?, publicKey: String?, skipAppKeyCheck: Bool = false)
     case verify(publicKey: String, licenseKey: String)
 }
 
@@ -94,11 +94,12 @@ package enum LicenseTool {
       nonet-license keygen --out <フォルダ>
           Ed25519 の鍵を作る。<フォルダ>/\(privateKeyFileName)（パーミッション 600）と
           <フォルダ>/\(publicKeyFileName) を書き、公開鍵を表示する。既存のファイルは上書きしない
-      nonet-license issue --key <秘密鍵のファイル> --name <購入者> [--email <メール>] [--edition <エディション>] [--id <ライセンス ID>] [--public <公開鍵の base64 かファイル>]
+      nonet-license issue --key <秘密鍵のファイル> --name <購入者> [--email <メール>] [--edition <エディション>] [--id <ライセンス ID>] [--public <公開鍵の base64 かファイル>] [--skip-app-key-check]
           ライセンスキーを発行して表示する。エディションの既定は standard、ID の既定は新しい UUID。
           発行したキーを、アプリに入れる公開鍵（今いるフォルダから上にたどって見つけた \(configPath) の
           \(configKeyName)）と、秘密鍵と同じフォルダの \(publicKeyFileName) で検証し、どちらかと合わなければ発行しない。
-          --public を付けたときは、その公開鍵で検証する
+          --public を付けたときは、その公開鍵で検証する。それがアプリに入れる公開鍵と違うときも発行しない。
+          --skip-app-key-check を付けると、アプリに入れる公開鍵とは照合しない（前の鍵の組で作った古い版のアプリ向けに発行するときだけ）
       nonet-license verify --public <公開鍵の base64 かファイル> <ライセンスキー>
           ライセンスキーを検証して中身を表示する。キーの前後に「License key:」などの文が付いていてもよい
       nonet-license help
@@ -124,10 +125,10 @@ package enum LicenseTool {
             return exitSuccess
         case .keygen(let outputDirectory):
             return keygen(outputDirectory: outputDirectory, io: io)
-        case .issue(let privateKeyPath, let licensee, let email, let edition, let licenseID, let publicKey):
+        case .issue(let privateKeyPath, let licensee, let email, let edition, let licenseID, let publicKey, let skipAppKeyCheck):
             return issue(
                 privateKeyPath: privateKeyPath, licensee: licensee, email: email, edition: edition, licenseID: licenseID,
-                publicKey: publicKey, io: io
+                publicKey: publicKey, skipAppKeyCheck: skipAppKeyCheck, io: io
             )
         case .verify(let publicKey, let licenseKey):
             return verify(publicKey: publicKey, licenseKey: licenseKey, io: io)
@@ -154,7 +155,7 @@ package enum LicenseTool {
             }
             return .keygen(outputDirectory: outputDirectory)
         case "issue":
-            let parsed = try parseOptions(rest, allowed: ["key", "name", "email", "edition", "id", "public"])
+            let parsed = try parseOptions(rest, allowed: ["key", "name", "email", "edition", "id", "public"], flags: ["skip-app-key-check"])
             try expectPositionals(parsed.positionals, count: 0, command: name)
             return .issue(
                 privateKeyPath: try required("key", in: parsed.options),
@@ -162,7 +163,8 @@ package enum LicenseTool {
                 email: parsed.options["email"],
                 edition: parsed.options["edition"],
                 licenseID: parsed.options["id"],
-                publicKey: parsed.options["public"]
+                publicKey: parsed.options["public"],
+                skipAppKeyCheck: parsed.flags.contains("skip-app-key-check")
             )
         case "verify":
             let parsed = try parseOptions(rest, allowed: ["public"])
@@ -176,9 +178,12 @@ package enum LicenseTool {
         }
     }
 
-    /// "--name value" と "--name=value" を読む。"--" の後はすべて位置引数
-    private static func parseOptions(_ arguments: [String], allowed: Set<String>) throws(LicenseToolUsageError) -> (options: [String: String], positionals: [String]) {
+    /// "--name value" と "--name=value" を読む。flags は値を取らないオプション（"--name" だけ）。"--" の後はすべて位置引数
+    private static func parseOptions(
+        _ arguments: [String], allowed: Set<String>, flags allowedFlags: Set<String> = []
+    ) throws(LicenseToolUsageError) -> (options: [String: String], flags: Set<String>, positionals: [String]) {
         var options: [String: String] = [:]
+        var flags: Set<String> = []
         var positionals: [String] = []
         var index = 0
         var onlyPositionals = false
@@ -194,6 +199,12 @@ package enum LicenseTool {
                 continue
             }
             let body = argument.dropFirst(2)
+            if allowedFlags.contains(String(body)) {
+                guard flags.insert(String(body)).inserted else {
+                    throw LicenseToolUsageError("--\(body) が2回指定されています")
+                }
+                continue
+            }
             let name: String
             let value: String
             if let equals = body.firstIndex(of: "=") {
@@ -215,7 +226,7 @@ package enum LicenseTool {
             }
             options[name] = value
         }
-        return (options, positionals)
+        return (options, flags, positionals)
     }
 
     private static func required(_ name: String, in options: [String: String]) throws(LicenseToolUsageError) -> String {
@@ -281,7 +292,7 @@ package enum LicenseTool {
 
     private static func issue(
         privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?,
-        publicKey: String?, io: LicenseToolIO
+        publicKey: String?, skipAppKeyCheck: Bool, io: LicenseToolIO
     ) -> Int32 {
         let licensee = licensee.trimmingCharacters(in: .whitespacesAndNewlines)
         let email = email?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -314,7 +325,7 @@ package enum LicenseTool {
         // 32 バイトなら何でも秘密鍵として読めてしまう（公開鍵のファイルでも）。アプリに入れる公開鍵で検証できるキーだけを渡す
         let checks: [PublicKeyCheck]
         do {
-            checks = try publicKeyChecks(publicKey, privateKeyPath: privateKeyPath, signer: signer, io: io)
+            checks = try publicKeyChecks(publicKey, privateKeyPath: privateKeyPath, skipAppKeyCheck: skipAppKeyCheck, signer: signer, io: io)
         } catch let error as LicenseToolFailure {
             io.standardError("エラー: \(error.message)\n")
             return exitFailure
@@ -392,23 +403,30 @@ package enum LicenseTool {
     private static let pairMismatch = "秘密鍵と公開鍵が対応していません。--key に公開鍵のファイルや別の秘密鍵を指定していないか確かめてください"
 
     /// issue で照合する公開鍵:
-    /// - --public があれば、それ（アプリに入れる公開鍵と違えば警告する）
+    /// - --public があれば、それ。アプリに入れる公開鍵と違えば発行しない（--skip-app-key-check なら照合しない）
     /// - 無ければ、アプリに入れる公開鍵（Config/Nonet.xcconfig）と、秘密鍵と同じフォルダの公開鍵のファイルのうち、あるものすべて。
     ///   同じフォルダの公開鍵は秘密鍵と必ず合うので、それだけでは「アプリで使えるキーか」は分からない
     /// どれも無ければ警告して、秘密鍵自身の公開鍵で確かめる
     private static func publicKeyChecks(
-        _ publicKey: String?, privateKeyPath: String, signer: LicenseSigner, io: LicenseToolIO
+        _ publicKey: String?, privateKeyPath: String, skipAppKeyCheck: Bool, signer: LicenseSigner, io: LicenseToolIO
     ) throws -> [PublicKeyCheck] {
-        let config = findConfig(io: io)
+        let config = skipAppKeyCheck ? nil : findConfig(io: io)
         let appKey = try config.flatMap { try appPublicKey(inConfig: $0, io: io) }
-        if let config, appKey == nil {
+        if skipAppKeyCheck {
+            io.standardError("注意: --skip-app-key-check のため、アプリの公開鍵（\(configPath) の \(configKeyName)）とは照合していません\n")
+        } else if let config, appKey == nil {
             io.standardError("注意: \(config) の \(configKeyName) が空のため、アプリの公開鍵とは照合していません\n")
         }
         if let publicKey {
             let given = try readPublicKey(publicKey, io: io)
             let verifier = try LicenseVerifier(publicKeyBase64: given)
+            // 鍵の組を作り直したのに xcconfig が前の鍵のまま（またはその逆）だと、アプリで使えないキーを配ってしまう
             if let config, let appKey, LicenseCoding.decodeKeyMaterial(appKey) != LicenseCoding.decodeKeyMaterial(given) {
-                io.standardError("警告: --public の公開鍵は、アプリに入れる公開鍵（\(config) の \(configKeyName)）と違います。このキーはいまのアプリでは使えません\n")
+                throw LicenseToolFailure(
+                    message: "--public の公開鍵が、アプリに入れる公開鍵（\(config) の \(configKeyName)）と違うため、発行しません。"
+                        + "このキーはいまのアプリでは使えません。xcconfig と --public が keygen で作った同じ組かを確かめてください"
+                        + "（前の鍵の組で作った古い版のアプリ向けに発行するときだけ --skip-app-key-check を付けてください）"
+                )
             }
             return [PublicKeyCheck(verifier: verifier, mismatch: pairMismatch)]
         }
@@ -419,7 +437,7 @@ package enum LicenseTool {
                 mismatch: "秘密鍵が、アプリに入れる公開鍵（\(config) の \(configKeyName)）と対応していません。"
                     + "発行してもアプリで使えないキーになります。--key の秘密鍵と、xcconfig に入れた公開鍵が keygen で作った同じ組かを確かめてください"
             ))
-        } else if config == nil {
+        } else if config == nil, !skipAppKeyCheck {
             io.standardError("注意: \(configPath) が見つからないため、アプリの公開鍵とは照合していません（リポジトリの中で動かすか、--public で xcconfig を指定できます）\n")
         }
         let directory = (absolutePath(privateKeyPath, io: io) as NSString).deletingLastPathComponent

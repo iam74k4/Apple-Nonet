@@ -210,11 +210,31 @@ enum LicenseTestFixtures {
             key.replacingOccurrences(of: ".", with: "．"),
             // 同じキーが2回あっても、どれのことかは分かる
             "\(key)\n(\(key))",
+            // 「:」の無い英数字だけの見出し。空白を除くとキーの前にくっつく（HTML のメールの見出しとキーの枠を一緒に選んだ）
+            "License key \(key)",
+            "Your license key\n\(key)",
+            "License Key\n\n\(key)",
+            "Key \(key)",
+            "KEY\n\(key)",
+            "Nonet license key\n\(key)\n",
+            "Serial \(key)",
+            "ライセンスキー\n\(key)",
         ]
         for variant in variants {
             #expect(try verifier.verify(variant) == Fixtures.info(), "\(variant)")
             #expect(LicenseCoding.licenseKey(in: variant) == key, "\(variant)")
         }
+    }
+
+    @Test func ignoresOtherTokensThatLookLikeAKey() throws {
+        let key = try Fixtures.licenseKey()
+        // 購入のメールのダウンロードのリンクに、JWT（eyJ… で始まる）が入っている
+        let header = LicenseCoding.base64URLEncoded(Data(#"{"alg":"HS256","typ":"JWT"}"#.utf8))
+        let claims = LicenseCoding.base64URLEncoded(Data(#"{"sub":"download","order":"NONET-ORDER-12345","scope":"nonet-dmg","exp":1893456000}"#.utf8))
+        let jwt = "\(header).\(claims).\(String(repeating: "s", count: 43))"
+        let mail = "Download Nonet: https://store.example.com/d?token=\(jwt)\n\nLicense Key\n\(key)\n"
+        #expect(LicenseCoding.licenseKey(in: mail) == key)
+        #expect(try Fixtures.verifier().verify(mail) == Fixtures.info())
     }
 
     @Test func refusesTextWithTwoDifferentKeys() throws {

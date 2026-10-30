@@ -461,38 +461,112 @@ private final class StorageSandbox {
         #expect(launch(day: 7).entitlement == .trial(daysLeft: 14))
     }
 
+    /// 起動したまま時計を進めたり戻したりする（refresh で数える）
+    private final class TestClock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var date: Date
+
+        init(_ date: Date) {
+            self.date = date
+        }
+
+        var now: Date {
+            get { lock.withLock { date } }
+            set { lock.withLock { date = newValue } }
+        }
+    }
+
     @MainActor
-    @Test func theKeychainIsWrittenOncePerLaunchAndReadOnlyWhenTheOtherCopiesAreGone() throws {
+    @Test func theKeychainIsReadOncePerLaunchAndWrittenWhenTheRecordMovesOn() throws {
         let keychain = MemoryTrialKeychain()
-        let manager = launch(day: 0, keychain: keychain)
-        // 初回はほかの置き場所に記録が無いので、一度だけ読む
+        let clock = TestClock(Self.day(0))
+        let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
         #expect(keychain.reads == 1)
         #expect(keychain.writes == 1)
         #expect(keychain.record == TrialRecord(start: Self.day(0).timeIntervalSinceReferenceDate, lastSeen: Self.day(0).timeIntervalSinceReferenceDate, used: 0))
+        // 使った時間が1時間に満たない間は書かない
+        clock.now = Self.day(0).addingTimeInterval(30 * 60)
         manager.refresh()
         manager.refresh()
         #expect(keychain.reads == 1)
         #expect(keychain.writes == 1)
+        // 1時間たったら書く
+        clock.now = Self.day(0).addingTimeInterval(60 * 60)
+        manager.refresh()
+        #expect(keychain.writes == 2)
+        #expect(keychain.record?.used == 60.0 * 60)
+        // 時計を戻したときは、使った時間が増えなくても書く（最後に数えた時刻をそろえる）
+        clock.now = Self.day(-2)
+        manager.refresh()
+        #expect(keychain.writes == 3)
+        #expect(keychain.record?.used == 60.0 * 60)
+        #expect(keychain.record?.lastSeen == Self.day(-2).timeIntervalSinceReferenceDate)
 
-        // 次の起動ではほかの置き場所に記録があるので読まず、起動したときの記録を一度だけ書く
+        // 次の起動でも一度だけ読み、起動したときの記録を書く
         let next = launch(day: 2, keychain: keychain)
         next.refresh()
-        #expect(keychain.reads == 1)
-        #expect(keychain.writes == 2)
-        #expect(keychain.record?.used == 2.0 * 86_400)
+        #expect(keychain.reads == 2)
+        #expect(keychain.writes == 4)
         #expect(keychain.record?.lastSeen == Self.day(2).timeIntervalSinceReferenceDate)
     }
 
     @MainActor
-    @Test func aStaleKeychainCopyIsNotUsedWhileTheOtherCopiesExist() {
-        // 時計が30日遅れていたときに書いた記録。そのまま数えると30日余計に数える
+    @Test func theKeychainKeepsUpWhileTheAppKeepsRunning() throws {
+        // 0日目に起動し、そのまま13日使った（メニューバーのアプリは何日も起動したまま）
+        let keychain = MemoryTrialKeychain()
+        let clock = TestClock(Self.day(0))
+        let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
+        clock.now = Self.day(13)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 1))
+        #expect(keychain.record?.used == 13.0 * 86_400)
+        // 環境設定とフォルダを消し、時計を0日目に戻して起動し直しても、使った13日は減らない
+        sandbox.defaults.removePersistentDomain(forName: sandbox.suiteName)
+        try FileManager.default.removeItem(at: sandbox.directory)
+        #expect(launch(day: 0, keychain: keychain).entitlement == .trial(daysLeft: 1))
+    }
+
+    @MainActor
+    @Test func aForgedRecordInPreferencesDoesNotHideTheKeychain() throws {
+        let keychain = MemoryTrialKeychain()
+        _ = launch(day: 0, keychain: keychain)
+        #expect(launch(day: 20, keychain: keychain).entitlement == .expired)
+        // 環境設定とフォルダを消し、環境設定に「最後に数えたのは20日目で、使った時間は 0」と書き込んだ
+        sandbox.defaults.removePersistentDomain(forName: sandbox.suiteName)
+        try FileManager.default.removeItem(at: sandbox.directory)
+        sandbox.defaults.set(Self.day(20), forKey: Storage.trialLastSeenKey)
+        sandbox.defaults.set(0.0, forKey: Storage.trialUsedKey)
+        #expect(launch(day: 20, keychain: keychain).entitlement == .expired)
+        #expect(sandbox.makeStorage().trialUsedTime == 20.0 * 86_400)
+    }
+
+    @MainActor
+    @Test func aStaleKeychainCopyOnlyAddsItsUsedTimeWhileTheOtherCopiesExist() {
+        // 時計が30日遅れていたときに書いた記録。組で数えると30日余計に数える
         let keychain = MemoryTrialKeychain()
         keychain.data = Data(#"{"lastSeen":\#(Self.day(-30).timeIntervalSinceReferenceDate),"start":\#(Self.day(-30).timeIntervalSinceReferenceDate),"used":0}"#.utf8)
         sandbox.makeStorage().trialStartDate = Self.day(0)
         sandbox.makeStorage().trialLastSeenDate = Self.day(0)
         sandbox.makeStorage().trialUsedTime = 0
         #expect(launch(day: 2, keychain: keychain).entitlement == .trial(daysLeft: 12))
-        #expect(keychain.reads == 0)
+        #expect(keychain.reads == 1)
+        // 開始日と時刻は取り込まず、キーチェーンの方を書き直す
+        #expect(sandbox.makeStorage().trialStartDate == Self.day(0))
+        #expect(keychain.record?.start == Self.day(0).timeIntervalSinceReferenceDate)
+        #expect(keychain.record?.lastSeen == Self.day(2).timeIntervalSinceReferenceDate)
+    }
+
+    @Test func keychainWritesFollowTheRecord() {
+        let base = TrialRecord(start: 0, lastSeen: 1_000, used: 500)
+        #expect(Storage.needsKeychainWrite(base, after: nil))
+        #expect(Storage.needsKeychainWrite(base, after: base) == false)
+        // 使った時間と時刻が同じだけ進んだ（ふつうの経過）
+        #expect(Storage.needsKeychainWrite(TrialRecord(start: 0, lastSeen: 1_100, used: 600), after: base) == false)
+        #expect(Storage.needsKeychainWrite(TrialRecord(start: 0, lastSeen: 1_000 + 3_600, used: 500 + 3_600), after: base))
+        // 開始日が変わった・時計がずれた
+        #expect(Storage.needsKeychainWrite(TrialRecord(start: -10, lastSeen: 1_000, used: 500), after: base))
+        #expect(Storage.needsKeychainWrite(TrialRecord(start: 0, lastSeen: 1_000 + 600, used: 500), after: base))
+        #expect(Storage.needsKeychainWrite(TrialRecord(start: 0, lastSeen: 1_000 + 60, used: 500), after: base) == false)
     }
 
     @MainActor
