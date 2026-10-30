@@ -111,6 +111,42 @@ public final class SettingsWindowController {
         showInWindow(tab)
     }
 
+    /// 実行したマスを選んで開く間（秒）。それより前に実行したマスは、直したいマスとは限らない
+    static let recentExecutionWindow: TimeInterval = 60
+
+    /// メニューバーの「Xcode のボタンを編集…」「Pages のボタンを作る…」「グローバルのボタンを編集…」。
+    /// プロファイルのタブで app のプロファイルを選んで開く（無ければプリセットで作る）。app が nil ならグローバル。
+    /// 直前（recentExecutionWindow 秒以内）にそのプロファイルのマスを実行していれば、そのページとマスを選ぶ
+    public func showButtons(for app: AppReference?, now: Date = Date()) {
+        _ = loadWindow()
+        selectButtons(for: app, now: now)
+        show(tab: .profiles)
+    }
+
+    /// showButtons の、ウィンドウを出さない部分（テストする）
+    func selectButtons(for app: AppReference?, now: Date) {
+        select(.profiles)
+        let configuration = model.configuration
+        if let app, OnboardingModel.profile(forBundleID: app.bundleID, in: configuration.profiles) == nil {
+            // 作ったプロファイルを選ぶ（プリセットがあれば、その中身で作る）
+            model.addProfile(for: app)
+        } else {
+            let profile = app.flatMap { OnboardingModel.profile(forBundleID: $0.bundleID, in: configuration.profiles) }
+                ?? configuration.globalProfile
+            model.showProfile(id: profile.id, at: Self.recentAddress(of: model.controller.lastExecution, in: profile, now: now))
+        }
+    }
+
+    /// record がそのプロファイルで少し前に実行したマスなら、その場所。プロファイルは名前で見分ける（記録に id が無いため）
+    static func recentAddress(of record: ExecutionRecord?, in profile: Profile, now: Date) -> CellAddress? {
+        guard let record, record.profileName == profile.name else { return nil }
+        let elapsed = now.timeIntervalSince(record.date)
+        guard elapsed >= 0, elapsed <= recentExecutionWindow,
+              profile.pages.indices.contains(record.address.page),
+              (0..<Page.cellCount).contains(record.address.index) else { return nil }
+        return record.address
+    }
+
     /// ウィンドウの題名とツールバーの選択を合わせる（元に戻すでプロファイルのタブに移ったときも、ここを通る）
     private func showInWindow(_ tab: SettingsTab) {
         window?.title = tab.title

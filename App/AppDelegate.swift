@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 起動の途中に届いた nonet://register と .nonetlicense（設定のウィンドウができてから開く）
     private var pendingLicenseLinks: [URL] = []
     private let updater = UpdaterController()
+    /// 購入ページ・利用ガイド・プライバシーポリシー。利用ガイドとプライバシーポリシーは、画面が英語なら英語のページ（サイトの en/ の下）
+    private let links = AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL)
+        .localized(language: Bundle.main.preferredLocalizations.first)
     #if DEBUG
     private var preview: DebugPreview?
     #endif
@@ -31,9 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 画面には出ないが、設定や案内のウィンドウで ⌘C・⌘V・⌘Z・⌘W などを使えるようにする
+        // ⌘? の「Nonet ヘルプ」は利用ガイドを開く
+        let guide = links.support
         NSApplication.shared.mainMenu = ShellMainMenu.make(
             onAbout: { [weak self] in self?.showSettings(tab: .about) },
-            onOpenSettings: { [weak self] in self?.showSettings(tab: .general) }
+            onOpenSettings: { [weak self] in self?.showSettings(tab: .general) },
+            onHelp: guide.map { url in { _ = NSWorkspace.shared.open(url) } }
         )
     }
 
@@ -43,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.terminate(nil)
             return
         }
+        // 起動できたなら、ほかの Nonet はもう動いていない。前のプロセスが残した終わりかけの印を消す
+        ShellQuitMarker.removeAll()
         let services = NonetServices.live()
         let hud = HUDWindowController()
         let license = makeLicenseManager()
@@ -65,28 +73,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onOpenOnboarding: { [weak self] in self?.showOnboarding() },
             onCheckForUpdates: checkForUpdates
         )
+        // 許可の手順と「システム設定を開く」（macOS の確認とシステム設定を同時に出さない）は案内の最初の画面にあるので、そこを開く
         menuBar.onRequestAccessibility = { [weak self] in
-            guard let permissions = self?.services?.permissions else { return }
-            permissions.requestAccessibility()
-            permissions.openAccessibilitySettings()
+            self?.showOnboarding(purpose: .permission(remindsAtLaunch: false))
         }
+        menuBar.onEditButtons = { [weak self] app in self?.settingsWindow?.showButtons(for: app) }
+        let frontmost = services.frontmostApp
+        menuBar.frontmostApp = { frontmost.current?.app }
+        menuBar.links = links
         updater.onUpdateAvailableChange = { [weak menuBar] available in menuBar?.isUpdateAvailable = available }
         self.menuBar = menuBar
         settingsWindow = SettingsWindowController(
             controller: controller,
             license: license,
             services: services,
-            // 利用ガイドとプライバシーポリシーは、画面が英語なら英語のページ（サイトの en/ の下）を開く
-            links: AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL)
-                .localized(language: Bundle.main.preferredLocalizations.first),
+            links: links,
             onCheckForUpdates: checkForUpdates
         )
 
         setUpLicenseSupport(license: license)
         observeLicenseRefreshTriggers()
         controller.start()
-        if controller.isFirstLaunch {
+        // 初回起動なら案内を開く。許可しないまま終えていたら、起動のたびに許可の画面で開き直す（「今後表示しない」まで）
+        switch OnboardingLaunchGuide.decide(
+            isFirstLaunch: controller.isFirstLaunch,
+            isEnabled: controller.configuration.settings.isEnabled,
+            isAccessibilityGranted: services.permissions.isAccessibilityGranted,
+            isReminderHidden: reminderPreference.isHidden
+        ) {
+        case .firstRun:
             showOnboarding()
+        case .permissionReminder:
+            showOnboarding(purpose: .permission(remindsAtLaunch: true))
+        case .none:
+            break
         }
         #if DEBUG
         applyDebugOptions()
@@ -94,6 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // 終わりきる前にもう一度開かれたら、そちらはこれが終わるのを待ってから起動する（印が無ければ、すぐにこちらへ任せる）
+        ShellQuitMarker.mark(processID: ProcessInfo.processInfo.processIdentifier)
         for (center, observer) in licenseRefreshObservers {
             center.removeObserver(observer)
         }
@@ -121,6 +143,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         return ConfigurationStore.defaultDirectory
     }
+
+    /// 「今後表示しない」の置き場所。設定の置き場所を分けたとき（DEBUG）は UserDefaults に書かない
+    private lazy var reminderPreference: OnboardingReminderPreference = {
+        #if DEBUG
+        if options.configDirectory != nil {
+            return OnboardingReminderPreference(defaults: nil)
+        }
+        #endif
+        return OnboardingReminderPreference(defaults: .standard)
+    }()
 
     private func makeLicenseManager() -> LicenseManager {
         let verifier = AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) }
@@ -182,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.show(tab: tab)
     }
 
-    private func showOnboarding() {
+    private func showOnboarding(purpose: OnboardingPurpose = .guide) {
         if let onboardingWindow {
             onboardingWindow.show()
             return
@@ -191,7 +223,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = OnboardingWindowController(controller: controller, services: services, license: license) { [weak self] in
             self?.onboardingWindow = nil
         }
+        window.purpose = purpose
+        window.reminderPreference = reminderPreference
         window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }
+        window.isStatusItemVisible = { [weak self] in self?.menuBar?.isStatusItemVisible ?? true }
+        // 「完了」で閉じたら、メニューバーのどこに Nonet がいるかを見せる
+        window.onComplete = { [weak self] in self?.menuBar?.pointAtStatusItem() }
         onboardingWindow = window
         window.show()
     }
@@ -205,6 +242,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if options.showOnboarding {
             showOnboarding()
+            if let step = options.onboardingStep {
+                // メニューバーのアイコンが並び終えてから進める（完了の画面は、アイコンが見えているかを確かめる）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                    MainActor.assumeIsolated { self?.onboardingWindow?.previewStep(step) }
+                }
+            }
         }
         let preview = DebugPreview(controller: controller, hud: hud, license: license, services: services)
         if options.previewHUD {

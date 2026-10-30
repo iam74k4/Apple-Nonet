@@ -139,11 +139,14 @@ struct ShellRenderTests {
     func onboarding() throws {
         let allPresets = Set(PresetLibrary.apps.map(\.app.bundleID) + PresetLibrary.launcherCandidates.map(\.bundleID))
         for (suffix, appearance) in Self.appearances {
-            // 1. 許可待ち・許可済み
+            // 1. 許可待ち・許可済み・起動したときの許可の案内（トラックパッドも無い）
             let waiting = Self.onboardingModel(installed: allPresets, granted: false)
             try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-1-welcome-\(suffix)")
             let granted = Self.onboardingModel(installed: allPresets, granted: true)
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-1-granted-\(suffix)")
+            let reminder = Self.onboardingModel(installed: allPresets, granted: false, trackpad: false)
+            reminder.0.purpose = .permission(remindsAtLaunch: true)
+            try Self.renderOnboarding(reminder.0, appearance: appearance, name: "onboarding-1-reminder-\(suffix)")
 
             // 2. アプリを選ぶ（多い・もう一度見る・無い）
             granted.0.next()
@@ -165,25 +168,42 @@ struct ShellRenderTests {
             none.0.next()
             try Self.renderOnboarding(none.0, appearance: appearance, name: "onboarding-2-empty-\(suffix)")
 
-            // 3. 試してみる（待ち・違うマス・成功・試せない）
-            granted.0.skipSelection()
+            // 3. 試してみる（HUD から・違うマス・すぐにタップ・HUD から押した・成功と角の紹介・角を試す・試せない）
+            granted.0.applySelection()
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-practice-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: 6, date: Date().addingTimeInterval(60)))
+            let page = try #require(granted.0.practicePage)
+            let wrong = (0..<Page.cellCount).first { $0 != page.hudTarget.index && page.titles[$0] != nil } ?? 0
+            granted.0.handleExecution(ShellFixtures.record(index: wrong, date: Date().addingTimeInterval(60), title: page.titles[wrong] ?? "", fastTap: false))
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-wrong-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: 2, date: Date().addingTimeInterval(61)))
+            granted.0.handleExecution(ShellFixtures.record(index: page.hudTarget.index, date: Date().addingTimeInterval(61), fastTap: false))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-quicktap-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: Date().addingTimeInterval(62), fastTap: false))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-usedhud-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: Date().addingTimeInterval(63), fastTap: true))
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-success-\(suffix)")
+            granted.0.tryCornerActivation()
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-corner-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: 4, date: Date().addingTimeInterval(64), fastTap: false))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-corner-done-\(suffix)")
             waiting.0.next()
-            waiting.0.skipSelection()
+            waiting.0.applySelection()
             try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-\(suffix)")
             // 無効で、しかも許可も無い: 先に「有効にする」を出す
             waiting.1.controller.update { $0.settings.isEnabled = false }
             try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-disabled-\(suffix)")
 
-            // 4. 完了
+            // 4. 完了（アイコンが見えない・ログイン時に起動の許可待ちも）
             granted.0.next()
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-4-done-\(suffix)")
+            granted.0.back()
+            granted.0.statusItemVisibility = { false }
+            granted.0.next()
+            granted.1.loginItem.failure = NonetError.permissionDenied("")
+            _ = granted.0.finish()
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-4-done-notes-\(suffix)")
             granted.0.close()
             waiting.0.close()
+            reminder.0.close()
         }
     }
 
@@ -237,15 +257,24 @@ struct ShellRenderTests {
         )
     }
 
-    static func onboardingModel(installed: Set<String>, granted: Bool, isFirstLaunchGuide: Bool = true) -> (OnboardingModel, ShellControllerHarness) {
+    /// 前面のアプリは Xcode（練習の図に Xcode のボタンが並ぶ）
+    static func onboardingModel(installed: Set<String>, granted: Bool, isFirstLaunchGuide: Bool = true, trackpad: Bool = true) -> (OnboardingModel, ShellControllerHarness) {
         let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted)
+        harness.frontmost.current = ShellFixtures.running(ShellFixtures.xcode, name: "Xcode")
+        harness.touchSource.isAvailable = trackpad
         harness.controller.start()
         let model = OnboardingModel(
             controller: harness.controller,
+            license: harness.license,
             permissions: harness.permissions,
             installedApps: harness.installedApps,
+            frontmostApp: harness.frontmost,
+            touchSource: harness.touchSource,
+            loginItem: harness.loginItem,
             isFirstLaunchGuide: isFirstLaunchGuide
         )
+        model.announce = { _ in }
+        model.scheduleAfter = { _, _ in }
         return (model, harness)
     }
 

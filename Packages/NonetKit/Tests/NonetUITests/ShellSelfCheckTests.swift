@@ -273,6 +273,17 @@ struct ShellSelfCheckTests {
         #expect(ShellLaunchOptions.parse(["Nonet", "--show-settings", "general"]).settingsTab == .general)
     }
 
+    @Test("起動引数: --onboarding-step は初回の案内をその画面で開く（--show-onboarding も兼ねる）。値が無ければ使わない")
+    func onboardingStep() {
+        let options = ShellLaunchOptions.parse(["Nonet", "--onboarding-step", "practice"])
+        #expect(options.onboardingStep == "practice")
+        #expect(options.showOnboarding)
+        let missing = ShellLaunchOptions.parse(["Nonet", "--onboarding-step", "--preview-hud"])
+        #expect(missing.onboardingStep == nil)
+        #expect(!missing.showOnboarding)
+        #expect(missing.previewHUD)
+    }
+
     @Test("起動引数: --config-dir の値が無ければ使わない。~ は展開する")
     func configDirectory() {
         #expect(ShellLaunchOptions.parse(["Nonet", "--config-dir"]).configDirectory == nil)

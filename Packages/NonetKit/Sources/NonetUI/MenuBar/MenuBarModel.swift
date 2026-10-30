@@ -1,5 +1,52 @@
 // 担当: ui-shell
+import Foundation
 import NonetCore
+
+/// メニューの「◯◯のボタンを編集…」で開くもの。メニューを開いたときの前面のアプリで決める
+enum MenuBarEditTarget: Equatable {
+    /// 前面のアプリのプロファイルがある（無効にしたものも含む）。name はプロファイルの名前
+    case app(AppReference, name: String)
+    /// 前面のアプリのプロファイルが無い。選ぶと作る
+    case newApp(AppReference)
+    /// 前面のアプリが分からない・プロファイルを自動で切り替えない設定
+    case global
+
+    /// 開くアプリ。グローバルなら nil
+    var app: AppReference? {
+        switch self {
+        case .app(let app, _), .newApp(let app): app
+        case .global: nil
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .app(_, let name):
+            String(localized: "\(name) のボタンを編集…", bundle: .module)
+        case .newApp(let app):
+            String(localized: "\(Self.displayName(app)) のボタンを作る…", bundle: .module)
+        case .global:
+            String(localized: "グローバルのボタンを編集…", bundle: .module)
+        }
+    }
+
+    /// frontApp は Nonet を数えない前面のアプリ（メニューを開いても Nonet は前面にならない）。
+    /// プロファイルを自動で切り替えないなら、アプリのプロファイルは使われないのでグローバル
+    static func resolve(frontApp: AppReference?, configuration: NonetConfiguration) -> MenuBarEditTarget {
+        guard let frontApp, configuration.settings.autoSwitchProfiles,
+              !frontApp.bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .global }
+        if let profile = OnboardingModel.profile(forBundleID: frontApp.bundleID, in: configuration.profiles) {
+            return .app(frontApp, name: profile.name)
+        }
+        return .newApp(frontApp)
+    }
+
+    /// 名前が空なら bundle ID（プロファイルの名前と同じ決め方）
+    static func displayName(_ app: AppReference) -> String {
+        let name = app.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? app.bundleID : name
+    }
+}
 
 /// メニューバーに出すものを決める材料（NonetController と LicenseManager から集める）
 struct MenuBarState: Equatable {
@@ -13,6 +60,12 @@ struct MenuBarState: Equatable {
     var canCheckForUpdates: Bool
     /// 定期の確認で見つかったアップデートを、まだ見せていない（Sparkle の控えめな知らせ）
     var isUpdateAvailable: Bool
+    /// 「◯◯のボタンを編集…」
+    var editTarget: MenuBarEditTarget
+    /// 購入ページがある（無ければ「Nonet を購入…」を出さない）
+    var canPurchase: Bool
+    /// 利用ガイドのページがある
+    var hasGuide: Bool
 
     init(
         status: ControllerStatus,
@@ -22,7 +75,10 @@ struct MenuBarState: Equatable {
         notice: String? = nil,
         entitlement: Entitlement,
         canCheckForUpdates: Bool = false,
-        isUpdateAvailable: Bool = false
+        isUpdateAvailable: Bool = false,
+        editTarget: MenuBarEditTarget = .global,
+        canPurchase: Bool = false,
+        hasGuide: Bool = false
     ) {
         self.status = status
         self.isEnabled = isEnabled
@@ -32,10 +88,20 @@ struct MenuBarState: Equatable {
         self.entitlement = entitlement
         self.canCheckForUpdates = canCheckForUpdates
         self.isUpdateAvailable = isUpdateAvailable
+        self.editTarget = editTarget
+        self.canPurchase = canPurchase
+        self.hasGuide = hasGuide
     }
 
     @MainActor
-    init(controller: NonetController, license: LicenseManager, canCheckForUpdates: Bool, isUpdateAvailable: Bool = false) {
+    init(
+        controller: NonetController,
+        license: LicenseManager,
+        canCheckForUpdates: Bool,
+        isUpdateAvailable: Bool = false,
+        frontApp: AppReference? = nil,
+        links: AppLinks = AppLinks()
+    ) {
         let active = controller.activeProfileName
         self.init(
             status: controller.status,
@@ -45,7 +111,10 @@ struct MenuBarState: Equatable {
             notice: controller.notice,
             entitlement: license.entitlement,
             canCheckForUpdates: canCheckForUpdates,
-            isUpdateAvailable: isUpdateAvailable
+            isUpdateAvailable: isUpdateAvailable,
+            editTarget: MenuBarEditTarget.resolve(frontApp: frontApp, configuration: controller.configuration),
+            canPurchase: links.purchase != nil,
+            hasGuide: links.support != nil
         )
     }
 }
@@ -55,10 +124,24 @@ enum MenuBarIconState: Equatable, CaseIterable {
     case normal
     /// 無効にしている・止まっている
     case disabled
-    /// 権限が無い・トラックパッドが無い・パスワード入力中・試用終了・知らせたい問題がある
+    /// 権限が無い・トラックパッドが無い・パスワード入力中・試用終了（間近を含む）・知らせたい問題がある
     case attention
     /// 普段どおり動いていて、定期の確認で見つかったアップデートがある（メニューバーのアイコンだけ。メニューの状態の行には使わない）
     case updateAvailable
+}
+
+/// メニューの先頭の行に出す状態。理由ごとに分け、文とアイコンを同じ値から選ぶ
+enum MenuBarStatus: Equatable {
+    /// 自分で無効にしている
+    case off
+    case stopped
+    case needsAccessibility
+    case noTrackpad
+    case secureInput
+    case trialEnded
+    /// 試用期間の終わりが近い（MenuBarModel.trialWarningDays 日以内）
+    case trialEnding(daysLeft: Int)
+    case running
 }
 
 /// メニューの1行
@@ -70,9 +153,19 @@ enum MenuBarEntry: Equatable {
     case separator
     case toggleEnabled(isOn: Bool)
     case openSettings
-    case editProfiles
+    /// 「Xcode のボタンを編集…」「Pages のボタンを作る…」「グローバルのボタンを編集…」
+    case editButtons(MenuBarEditTarget)
     case showOnboarding
+    /// 利用ガイドのページを開く
+    case userGuide
+    /// 登録済みのとき。選ぶと設定の「ライセンス」を開く
     case license(String)
+    /// 試用中・試用の終了の知らせ（押せない行）。すぐ下の「ライセンスキーを入力…」と同じことをする項目を2つ並べない
+    case trialInfo(String)
+    /// 購入ページを開く
+    case purchase
+    /// 設定の「ライセンス」を開く
+    case enterLicenseKey
     case checkForUpdates
     /// 見つかったアップデートを見せる（「アップデートを確認」の代わり）
     case updateAvailable
@@ -88,9 +181,13 @@ enum MenuBarEntry: Equatable {
         case .separator: ""
         case .toggleEnabled: String(localized: "Nonet を有効にする", bundle: .module)
         case .openSettings: String(localized: "設定…", bundle: .module)
-        case .editProfiles: String(localized: "プロファイルを編集…", bundle: .module)
+        case .editButtons(let target): target.title
         case .showOnboarding: String(localized: "初回の案内をもう一度", bundle: .module)
+        case .userGuide: String(localized: "利用ガイド", bundle: .module)
         case .license(let text): text
+        case .trialInfo(let text): text
+        case .purchase: String(localized: "Nonet を購入…", bundle: .module)
+        case .enterLicenseKey: String(localized: "ライセンスキーを入力…", bundle: .module)
         case .checkForUpdates: String(localized: "アップデートを確認", bundle: .module)
         case .updateAvailable: String(localized: "アップデートがあります…", bundle: .module)
         case .quit: String(localized: "終了", bundle: .module)
@@ -100,37 +197,46 @@ enum MenuBarEntry: Equatable {
 
 /// メニューバーの状態の文言・アイコン・メニューの並び。AppKit に触れない
 enum MenuBarModel {
-    static func iconState(for state: MenuBarState) -> MenuBarIconState {
-        // 自分で無効にしているなら、ほかの問題より「無効」を見せる
-        if !state.isEnabled || state.status == .disabled || state.status == .stopped {
-            return .disabled
-        }
+    /// 試用期間の残りがこの日数以下なら、アイコンに印を付けて状態の行で知らせる
+    static let trialWarningDays = 3
+
+    /// 状態の行に出す理由。自分で無効にしているなら、ほかの問題より「無効」を見せる。
+    /// 動けない理由（許可・トラックパッド・パスワード入力中）は、試用期間より先に見せる（直さないと試せない）
+    static func status(for state: MenuBarState) -> MenuBarStatus {
+        if !state.isEnabled { return .off }
         switch state.status {
-        case .needsAccessibility, .noTrackpad, .secureInputActive:
-            return .attention
-        case .running, .disabled, .stopped:
-            break
+        case .disabled: return .off
+        case .stopped: return .stopped
+        case .needsAccessibility: return .needsAccessibility
+        case .noTrackpad: return .noTrackpad
+        case .secureInputActive: return .secureInput
+        case .running: break
         }
-        if state.entitlement == .expired || state.notice != nil {
-            return .attention
+        switch state.entitlement {
+        case .expired:
+            return .trialEnded
+        case .trial(let daysLeft) where daysLeft <= trialWarningDays:
+            return .trialEnding(daysLeft: daysLeft)
+        case .trial, .licensed:
+            return .running
         }
-        return .normal
     }
 
-    /// メニューの先頭に出す状態の文
-    static func statusText(for state: MenuBarState) -> String {
-        if !state.isEnabled {
-            return String(localized: "Nonet は無効です", bundle: .module)
-        }
-        switch state.status {
+    static func iconState(for state: MenuBarState) -> MenuBarIconState {
+        switch status(for: state) {
+        case .off, .stopped:
+            .disabled
+        case .needsAccessibility, .noTrackpad, .secureInput, .trialEnded, .trialEnding:
+            .attention
         case .running:
-            guard let name = state.activeProfileName, !name.isEmpty else {
-                return String(localized: "動作中", bundle: .module)
-            }
-            return state.isGlobalProfileActive
-                ? String(localized: "グローバルのプロファイル", bundle: .module)
-                : String(localized: "\(name) のプロファイル", bundle: .module)
-        case .disabled:
+            state.notice == nil ? .normal : .attention
+        }
+    }
+
+    /// メニューの先頭に出す状態の文。確かめてほしいことがあれば、その理由
+    static func statusText(for state: MenuBarState) -> String {
+        switch status(for: state) {
+        case .off:
             return String(localized: "Nonet は無効です", bundle: .module)
         case .stopped:
             return String(localized: "停止しています", bundle: .module)
@@ -138,8 +244,20 @@ enum MenuBarModel {
             return String(localized: "アクセシビリティの許可が必要です", bundle: .module)
         case .noTrackpad:
             return String(localized: "トラックパッドが見つかりません", bundle: .module)
-        case .secureInputActive:
+        case .secureInput:
             return String(localized: "パスワード入力中は使えません", bundle: .module)
+        case .trialEnded:
+            return String(localized: "試用期間が終了しました", bundle: .module)
+        case .trialEnding(let daysLeft):
+            // 数で文が変わる（1 day / 2 days）ので、文言の言語の規則で選ぶ
+            return String(localized: "試用期間は残り\(daysLeft)日です", bundle: .module, locale: .nonetUI)
+        case .running:
+            guard let name = state.activeProfileName, !name.isEmpty else {
+                return String(localized: "動作中", bundle: .module)
+            }
+            return state.isGlobalProfileActive
+                ? String(localized: "グローバルのプロファイル", bundle: .module)
+                : String(localized: "\(name) のプロファイル", bundle: .module)
         }
     }
 
@@ -173,8 +291,9 @@ enum MenuBarModel {
     }
 
     static func entries(for state: MenuBarState) -> [MenuBarEntry] {
+        let status = status(for: state)
         var entries: [MenuBarEntry] = [.status(statusText(for: state), iconState(for: state))]
-        if state.isEnabled, state.status == .needsAccessibility {
+        if status == .needsAccessibility {
             entries.append(.requestAccessibility)
         }
         if let notice = state.notice, !notice.isEmpty {
@@ -185,15 +304,38 @@ enum MenuBarModel {
             .toggleEnabled(isOn: state.isEnabled),
             .separator,
             .openSettings,
-            .editProfiles,
+            .editButtons(state.editTarget),
             .showOnboarding,
-            .separator,
-            .license(licenseText(for: state.entitlement)),
         ]
+        if state.hasGuide {
+            entries.append(.userGuide)
+        }
+        entries.append(.separator)
+        entries += licenseEntries(for: state, status: status)
         if state.canCheckForUpdates {
             entries.append(state.isUpdateAvailable ? .updateAvailable : .checkForUpdates)
         }
         entries += [.separator, .quit]
+        return entries
+    }
+
+    /// 試用中と試用の終了後は、購入とライセンスキーの入力をすぐに選べるようにする。
+    /// 状態の行がもう試用期間のことを言っていれば、同じ知らせは繰り返さない
+    private static func licenseEntries(for state: MenuBarState, status: MenuBarStatus) -> [MenuBarEntry] {
+        if case .licensed = state.entitlement {
+            return [.license(licenseText(for: state.entitlement))]
+        }
+        var entries: [MenuBarEntry] = []
+        switch status {
+        case .trialEnded, .trialEnding:
+            break
+        default:
+            entries.append(.trialInfo(licenseText(for: state.entitlement)))
+        }
+        if state.canPurchase {
+            entries.append(.purchase)
+        }
+        entries.append(.enterLicenseKey)
         return entries
     }
 }

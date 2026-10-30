@@ -12,7 +12,7 @@ enum MenuBarIconGeometry {
     static let cornerRadius: CGFloat = 1.2
     /// 塗りつぶす中央のマス
     static let centerIndex = 4
-    /// 注意の印（右上の点）と、まわりに空ける輪
+    /// 印（右上のマスの代わりに描く）と、まわりに空ける輪
     static let badgeRadius: CGFloat = 3
     static let badgeCutoutRadius: CGFloat = 4
 
@@ -46,10 +46,38 @@ enum MenuBarIconGeometry {
         }
     }
 
-    /// 印の意味（確認が必要・アップデートがある）は、ツールチップ・VoiceOver とメニューで伝える
-    static func showsBadge(for state: MenuBarIconState) -> Bool {
-        state == .attention || state == .updateAvailable
+    /// 印の形。アップデートは点、確かめてほしいことは「!」にして、「新しいものがある」と「手を貸してほしい」を見分けられるようにする
+    /// （点だけだと、右上のマスが光っているようにも見える）。意味はツールチップ・VoiceOver とメニューの状態の行で伝える
+    static func badge(for state: MenuBarIconState) -> MenuBarIconBadge? {
+        switch state {
+        case .attention: .exclamation
+        case .updateAvailable: .dot
+        case .normal, .disabled: nil
+        }
     }
+
+    static func showsBadge(for state: MenuBarIconState) -> Bool {
+        badge(for: state) != nil
+    }
+
+    /// 「!」の縦棒。右上のマスを切り抜いた輪の中に収める
+    static var exclamationBar: CGRect {
+        CGRect(x: badgeCenter.x - 0.85, y: 0, width: 1.7, height: 3.9)
+    }
+
+    /// 「!」の点
+    static var exclamationDot: CGRect {
+        let radius: CGFloat = 0.95
+        return CGRect(x: badgeCenter.x - radius, y: 5.6 - radius, width: radius * 2, height: radius * 2)
+    }
+}
+
+/// メニューバーのアイコンの右上に付ける印
+enum MenuBarIconBadge: Equatable {
+    /// アップデートがある
+    case dot
+    /// 確かめてほしいことがある
+    case exclamation
 }
 
 /// メニューバーのアイコンをコードで描く（テンプレート画像なので、明暗はシステムが合わせる）
@@ -84,14 +112,21 @@ enum MenuBarIconRenderer {
                 path.stroke()
             }
         }
-        guard geometry.showsBadge(for: state), let context = NSGraphicsContext.current else { return }
+        guard let badge = geometry.badge(for: state), let context = NSGraphicsContext.current else { return }
         let center = geometry.badgeCenter
         context.saveGraphicsState()
         context.compositingOperation = .clear
         circle(center: center, radius: geometry.badgeCutoutRadius).fill()
         context.restoreGraphicsState()
         NSColor.black.set()
-        circle(center: center, radius: geometry.badgeRadius).fill()
+        switch badge {
+        case .dot:
+            circle(center: center, radius: geometry.badgeRadius).fill()
+        case .exclamation:
+            let bar = geometry.exclamationBar
+            NSBezierPath(roundedRect: bar, xRadius: bar.width / 2, yRadius: bar.width / 2).fill()
+            NSBezierPath(ovalIn: geometry.exclamationDot).fill()
+        }
     }
 
     private static func circle(center: CGPoint, radius: CGFloat) -> NSBezierPath {

@@ -8,6 +8,23 @@ import SwiftUI
 public final class OnboardingWindowController {
     /// 完了の画面の「設定を開く」と、練習の画面の「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
+    /// 完了の画面の「完了」で閉じたとき（途中で閉じたときは呼ばない）。メニューバーのアイコンの場所を見せる
+    public var onComplete: (() -> Void)?
+    /// メニューバーのアイコンが見えているか（完了の画面で、見えなければ見つけ方を文で伝える）
+    public var isStatusItemVisible: () -> Bool {
+        get { model.statusItemVisibility }
+        set { model.statusItemVisibility = newValue }
+    }
+    /// 案内をどうして開いたか。show() の前に入れる
+    public var purpose: OnboardingPurpose {
+        get { model.purpose }
+        set { model.purpose = newValue }
+    }
+    /// 「今後表示しない」を覚える場所（purpose が .permission(remindsAtLaunch: true) のときに出す）
+    public var reminderPreference: OnboardingReminderPreference? {
+        get { model.reminder }
+        set { model.reminder = newValue }
+    }
     /// アクセシビリティが許可されたときにウィンドウを前に出す（テストではウィンドウを出さずに数える）
     var raiseWindow: () -> Void = {}
     /// ウィンドウを閉じたときに、ほかに Nonet のウィンドウが無ければ前面を前のアプリに返す（テストでは数える）
@@ -43,6 +60,9 @@ public final class OnboardingWindowController {
             permissions: services.permissions,
             installedApps: services.installedApps,
             presetEnvironment: services.presetEnvironment,
+            frontmostApp: services.frontmostApp,
+            touchSource: services.touchSource,
+            loginItem: services.loginItem,
             isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
         )
         raiseWindow = { [weak self] in self?.bringToFront() }
@@ -78,7 +98,7 @@ public final class OnboardingWindowController {
         let view = OnboardingView(
             model: model,
             onOpenSettings: { [weak self] in self?.openSettings() },
-            onFinish: { [weak self] in self?.window?.close() }
+            onFinish: { [weak self] in self?.complete() }
         )
         window.contentView = NSHostingView(rootView: view)
         window.setContentSize(OnboardingLayout.windowSize)
@@ -119,11 +139,30 @@ public final class OnboardingWindowController {
         model.setWindowKey(window.isKeyWindow)
     }
 
-    private func openSettings() {
+    /// 「設定を開く」。「ログイン時に起動」を反映できなければ、知らせを出して開いたままにする
+    func openSettings() {
+        guard model.finish() else { return }
         let open = onOpenSettings
         window?.close()
         open?(.profiles)
     }
+
+    /// 「完了」。「ログイン時に起動」を反映して閉じ、メニューバーのアイコンの場所を見せる
+    func complete() {
+        guard model.finish() else { return }
+        let done = onComplete
+        window?.close()
+        done?()
+    }
+
+    #if DEBUG
+    /// 見た目の確認用（App の --onboarding-step）。welcome・apps・practice・done のどれか
+    public func previewStep(_ name: String) {
+        let steps: [String: OnboardingStep] = ["welcome": .welcome, "apps": .apps, "practice": .practice, "done": .done]
+        guard let step = steps[name] else { return }
+        model.preview(step)
+    }
+    #endif
 
     /// ウィンドウが閉じたとき（テストからはウィンドウを出さずに呼ぶ）
     func windowDidClose() {

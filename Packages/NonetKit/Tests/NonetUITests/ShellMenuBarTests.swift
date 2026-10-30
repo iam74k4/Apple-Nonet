@@ -17,7 +17,10 @@ enum ShellMenuState {
         notice: String? = nil,
         entitlement: Entitlement = .trial(daysLeft: 12),
         updates: Bool = false,
-        updateAvailable: Bool = false
+        updateAvailable: Bool = false,
+        editTarget: MenuBarEditTarget = .global,
+        purchase: Bool = false,
+        guide: Bool = false
     ) -> MenuBarState {
         MenuBarState(
             status: status,
@@ -27,9 +30,14 @@ enum ShellMenuState {
             notice: notice,
             entitlement: entitlement,
             canCheckForUpdates: updates,
-            isUpdateAvailable: updateAvailable
+            isUpdateAvailable: updateAvailable,
+            editTarget: editTarget,
+            canPurchase: purchase,
+            hasGuide: guide
         )
     }
+
+    static let licensed = Entitlement.licensed(LicenseInfo(licenseID: "1", licensee: "A", email: nil, issuedAt: Date(timeIntervalSince1970: 0)))
 }
 
 @Suite("メニューバー")
@@ -46,9 +54,26 @@ struct ShellMenuBarTests {
         (ShellMenuState.make(.noTrackpad), L10n.ui("トラックパッドが見つかりません")),
         (ShellMenuState.make(.secureInputActive), L10n.ui("パスワード入力中は使えません")),
         (ShellMenuState.make(.stopped), L10n.ui("停止しています")),
+        // 試用期間が終わった・終わりが近いことは、プロファイルの名前の代わりに状態の行で知らせる
+        (ShellMenuState.make(profile: "Xcode", entitlement: .expired), L10n.ui("試用期間が終了しました")),
+        (ShellMenuState.make(profile: "Xcode", entitlement: .trial(daysLeft: 4)), L10n.ui("\("Xcode") のプロファイル")),
+        // 動けない理由の方を先に言う
+        (ShellMenuState.make(.needsAccessibility, entitlement: .expired), L10n.ui("アクセシビリティの許可が必要です")),
+        (ShellMenuState.make(.disabled, enabled: false, entitlement: .trial(daysLeft: 1)), L10n.ui("Nonet は無効です")),
     ])
     func statusText(state: MenuBarState, expected: String) {
         #expect(MenuBarModel.statusText(for: state) == expected)
+    }
+
+    @Test("試用期間の残りが3日以下なら、状態の行で残りの日数を言う（文言の言語の規則で数える）")
+    func trialEndingText() {
+        for days in 1...MenuBarModel.trialWarningDays {
+            let state = ShellMenuState.make(profile: "Xcode", entitlement: .trial(daysLeft: days))
+            #expect(MenuBarModel.status(for: state) == .trialEnding(daysLeft: days))
+            #expect(MenuBarModel.statusText(for: state)
+                == String(localized: "試用期間は残り\(days)日です", bundle: .nonetUI, locale: Self.textLanguage))
+        }
+        #expect(MenuBarModel.trialWarningDays == 3)
     }
 
     @Test("アイコン: 普段・無効・確認が必要", arguments: [
@@ -62,8 +87,13 @@ struct ShellMenuBarTests {
         (ShellMenuState.make(.secureInputActive), .attention),
         (ShellMenuState.make(entitlement: .expired), .attention),
         (ShellMenuState.make(notice: "設定ファイルを保存できません"), .attention),
+        // 試用期間の終わりが近い（3日以下）
+        (ShellMenuState.make(entitlement: .trial(daysLeft: 3)), .attention),
+        (ShellMenuState.make(entitlement: .trial(daysLeft: 1)), .attention),
+        (ShellMenuState.make(entitlement: .trial(daysLeft: 4)), .normal),
         // 自分で無効にしているなら、試用切れや知らせより「無効」を見せる
         (ShellMenuState.make(.disabled, enabled: false, notice: "壊れていました", entitlement: .expired), .disabled),
+        (ShellMenuState.make(.disabled, enabled: false, entitlement: .trial(daysLeft: 2)), .disabled),
     ])
     func iconState(state: MenuBarState, expected: MenuBarIconState) {
         #expect(MenuBarModel.iconState(for: state) == expected)
@@ -152,35 +182,80 @@ struct ShellMenuBarTests {
         #expect(Locale.nonetUI.language.languageCode?.identifier == Bundle.nonetUI.preferredLocalizations.first)
     }
 
-    @Test("メニューの並び（普段）。アップデートの確認が無ければ出さない")
+    @Test("メニューの並び（普段・試用中）。購入ページ・利用ガイド・アップデートの確認が無ければ出さない")
     func entries() {
-        let entries = MenuBarModel.entries(for: ShellMenuState.make(profile: "Xcode"))
+        let xcode = AppReference(bundleID: ShellFixtures.xcode, name: "Xcode")
+        let entries = MenuBarModel.entries(for: ShellMenuState.make(profile: "Xcode", editTarget: .app(xcode, name: "Xcode")))
         #expect(entries == [
             .status(L10n.ui("\("Xcode") のプロファイル"), .normal),
             .separator,
             .toggleEnabled(isOn: true),
             .separator,
             .openSettings,
-            .editProfiles,
+            .editButtons(.app(xcode, name: "Xcode")),
             .showOnboarding,
             .separator,
-            .license(L10n.ui("試用期間: 残り \(12) 日")),
+            .trialInfo(L10n.ui("試用期間: 残り \(12) 日")),
+            .enterLicenseKey,
             .separator,
             .quit,
         ])
     }
 
-    @Test("アップデートの確認はライセンスの次")
+    @Test("購入ページがあれば「Nonet を購入…」、利用ガイドがあれば「利用ガイド」を出す")
+    func purchaseAndGuideEntries() {
+        let entries = MenuBarModel.entries(for: ShellMenuState.make(purchase: true, guide: true))
+        #expect(Array(entries[4...]) == [
+            .openSettings,
+            .editButtons(.global),
+            .showOnboarding,
+            .userGuide,
+            .separator,
+            .trialInfo(L10n.ui("試用期間: 残り \(12) 日")),
+            .purchase,
+            .enterLicenseKey,
+            .separator,
+            .quit,
+        ])
+    }
+
+    @Test("登録済みなら購入とライセンスキーの入力は出さず、「登録済み」から設定の「ライセンス」を開く")
+    func licensedEntries() {
+        let entries = MenuBarModel.entries(for: ShellMenuState.make(entitlement: ShellMenuState.licensed, purchase: true))
+        #expect(entries.contains(.license(L10n.ui("登録済み"))))
+        #expect(!entries.contains(.purchase))
+        #expect(!entries.contains(.enterLicenseKey))
+        #expect(!entries.contains { if case .trialInfo = $0 { true } else { false } })
+    }
+
+    @Test("試用期間が終わった・終わりが近いときは状態の行で知らせ、同じことを下の行で繰り返さない。購入とライセンスキーの入力は出す")
+    func trialEndedEntries() {
+        let ended = MenuBarModel.entries(for: ShellMenuState.make(profile: "Xcode", entitlement: .expired, purchase: true))
+        #expect(ended.first == .status(L10n.ui("試用期間が終了しました"), .attention))
+        #expect(!ended.contains { if case .trialInfo = $0 { true } else { false } })
+        #expect(ended.contains(.purchase))
+        #expect(ended.contains(.enterLicenseKey))
+
+        let ending = MenuBarModel.entries(for: ShellMenuState.make(entitlement: .trial(daysLeft: 2)))
+        #expect(!ending.contains { if case .trialInfo = $0 { true } else { false } })
+        #expect(ending.contains(.enterLicenseKey))
+
+        // 状態の行がほかの理由を言っているときは、試用期間の行も出す
+        let blocked = MenuBarModel.entries(for: ShellMenuState.make(.noTrackpad, entitlement: .expired))
+        #expect(blocked.contains(.trialInfo(L10n.ui("試用期間が終了しました"))))
+    }
+
+    @Test("アップデートの確認はライセンスキーの入力の次")
     func updatesEntry() throws {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(updates: true))
-        let license = try #require(entries.firstIndex(of: .license(L10n.ui("試用期間: 残り \(12) 日"))))
+        let license = try #require(entries.firstIndex(of: .enterLicenseKey))
         #expect(entries[license + 1] == .checkForUpdates)
     }
 
     @Test("定期の確認で見つかったアップデートは「アップデートがあります…」で知らせる")
     func updateAvailableEntry() throws {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(updates: true, updateAvailable: true))
-        let license = try #require(entries.firstIndex(of: .license(L10n.ui("試用期間: 残り \(12) 日"))))
+        let license = try #require(entries.firstIndex(of: .enterLicenseKey))
         #expect(entries[license + 1] == .updateAvailable)
         #expect(!entries.contains(.checkForUpdates))
         #expect(MenuBarEntry.updateAvailable.title == L10n.ui("アップデートがあります…"))
@@ -215,10 +290,41 @@ struct ShellMenuBarTests {
     func titles() {
         #expect(MenuBarEntry.toggleEnabled(isOn: true).title == L10n.ui("Nonet を有効にする"))
         #expect(MenuBarEntry.openSettings.title == L10n.ui("設定…"))
-        #expect(MenuBarEntry.editProfiles.title == L10n.ui("プロファイルを編集…"))
+        #expect(MenuBarEntry.editButtons(.app(AppReference(bundleID: ShellFixtures.xcode, name: "Xcode"), name: "Xcode")).title
+            == L10n.ui("\("Xcode") のボタンを編集…"))
+        #expect(MenuBarEntry.editButtons(.newApp(AppReference(bundleID: "com.apple.iWork.Pages", name: "Pages"))).title
+            == L10n.ui("\("Pages") のボタンを作る…"))
+        // 名前が分からなければ bundle ID
+        #expect(MenuBarEntry.editButtons(.newApp(AppReference(bundleID: "com.example.app", name: " "))).title
+            == L10n.ui("\("com.example.app") のボタンを作る…"))
+        #expect(MenuBarEntry.editButtons(.global).title == L10n.ui("グローバルのボタンを編集…"))
         #expect(MenuBarEntry.showOnboarding.title == L10n.ui("初回の案内をもう一度"))
+        #expect(MenuBarEntry.userGuide.title == L10n.ui("利用ガイド"))
+        #expect(MenuBarEntry.purchase.title == L10n.ui("Nonet を購入…"))
+        #expect(MenuBarEntry.enterLicenseKey.title == L10n.ui("ライセンスキーを入力…"))
         #expect(MenuBarEntry.checkForUpdates.title == L10n.ui("アップデートを確認"))
         #expect(MenuBarEntry.quit.title == L10n.ui("終了"))
+    }
+
+    @Test("「◯◯のボタンを編集…」は前面のアプリで決める: プロファイルがあれば編集（無効でも）、無ければ作る、分からなければグローバル")
+    func editTarget() throws {
+        var configuration = NonetConfiguration(profiles: [Profile(kind: .global, pages: [.empty])])
+        let xcode = AppReference(bundleID: ShellFixtures.xcode, name: "Xcode")
+        let xcodeID = configuration.addAppProfile(for: xcode, preset: nil)
+        let pages = AppReference(bundleID: "com.apple.iWork.Pages", name: "Pages")
+        #expect(MenuBarEditTarget.resolve(frontApp: xcode, configuration: configuration) == .app(xcode, name: "Xcode"))
+        #expect(MenuBarEditTarget.resolve(frontApp: AppReference(bundleID: " COM.apple.dt.xcode", name: "Xcode"), configuration: configuration)
+            == .app(AppReference(bundleID: " COM.apple.dt.xcode", name: "Xcode"), name: "Xcode"))
+        #expect(MenuBarEditTarget.resolve(frontApp: pages, configuration: configuration) == .newApp(pages))
+        #expect(MenuBarEditTarget.resolve(frontApp: nil, configuration: configuration) == .global)
+        #expect(MenuBarEditTarget.resolve(frontApp: AppReference(bundleID: "", name: "?"), configuration: configuration) == .global)
+        configuration.updateProfile(id: xcodeID) { $0.isEnabled = false }
+        #expect(MenuBarEditTarget.resolve(frontApp: xcode, configuration: configuration) == .app(xcode, name: "Xcode"))
+        // アプリのプロファイルに切り替えない設定なら、使われるのはグローバル
+        configuration.settings.autoSwitchProfiles = false
+        #expect(MenuBarEditTarget.resolve(frontApp: xcode, configuration: configuration) == .global)
+        #expect(MenuBarEditTarget.global.app == nil)
+        #expect(MenuBarEditTarget.newApp(pages).app == pages)
     }
 
     @Test("メニューの項目を押すと動く（宛先の selector が NSObject の performSelector: にならない）")
@@ -229,6 +335,8 @@ struct ShellMenuBarTests {
         var opened: [SettingsTab] = []
         var onboarding = 0
         var updates = 0
+        var edited: [AppReference?] = []
+        var urls: [URL] = []
         let menuBar = MenuBarController(
             controller: harness.controller,
             license: harness.license,
@@ -236,6 +344,14 @@ struct ShellMenuBarTests {
             onOpenOnboarding: { onboarding += 1 },
             onCheckForUpdates: { updates += 1 }
         )
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+        let pages = AppReference(bundleID: "com.apple.iWork.Pages", name: "Pages")
+        let purchase = try #require(URL(string: "https://example.com/buy"))
+        let guide = try #require(URL(string: "https://example.com/guide.html"))
+        menuBar.frontmostApp = { pages }
+        menuBar.onEditButtons = { edited.append($0) }
+        menuBar.links = AppLinks(purchase: purchase, support: guide)
+        menuBar.openURL = { urls.append($0) }
         menuBar.isUpdateAvailable = true
         let menu = menuBar.menu
         menu.delegate?.menuNeedsUpdate?(menu)
@@ -245,26 +361,56 @@ struct ShellMenuBarTests {
             #expect(app.sendAction(try #require(item.action), to: item.target, from: item))
         }
         try press(L10n.ui("設定…"))
-        try press(L10n.ui("プロファイルを編集…"))
+        try press(L10n.ui("\("Pages") のボタンを作る…"))
         try press(L10n.ui("初回の案内をもう一度"))
+        try press(L10n.ui("利用ガイド"))
+        try press(L10n.ui("Nonet を購入…"))
+        try press(L10n.ui("ライセンスキーを入力…"))
         try press(L10n.ui("アップデートがあります…"))
-        #expect(opened == [.general, .profiles])
+        #expect(opened == [.general, .license])
+        #expect(edited == [pages])
+        #expect(urls == [guide, purchase])
         #expect(onboarding == 1)
         #expect(updates == 1)
+        // 試用期間の行は知らせだけ（押せない）
+        #expect(menu.items.first { $0.title == L10n.ui("試用期間: 残り \(14) 日") }?.isEnabled == false)
         try press(L10n.ui("Nonet を有効にする"))
         #expect(!harness.controller.configuration.settings.isEnabled)
+
+        // 開くものを受け取らなければ、設定の「プロファイル」を開く
+        menuBar.onEditButtons = nil
+        menuBar.frontmostApp = nil
+        menu.delegate?.menuNeedsUpdate?(menu)
+        try press(L10n.ui("グローバルのボタンを編集…"))
+        #expect(opened == [.general, .license, .profiles])
     }
 
     @Test("NonetController と LicenseManager から状態を集める")
-    func stateFromController() {
-        let harness = ShellControllerHarness(accessibilityGranted: false)
+    func stateFromController() throws {
+        let harness = ShellControllerHarness(installed: [ShellFixtures.xcode], accessibilityGranted: false)
         harness.controller.start()
         let state = MenuBarState(controller: harness.controller, license: harness.license, canCheckForUpdates: true)
         #expect(state.status == .needsAccessibility)
         #expect(state.isEnabled)
         #expect(state.entitlement == .trial(daysLeft: 14))
         #expect(state.canCheckForUpdates)
+        #expect(state.editTarget == .global)
+        #expect(!state.canPurchase)
+        #expect(!state.hasGuide)
         #expect(MenuBarModel.iconState(for: state) == .attention)
+
+        let xcode = AppReference(bundleID: ShellFixtures.xcode, name: "Xcode")
+        let linked = MenuBarState(
+            controller: harness.controller,
+            license: harness.license,
+            canCheckForUpdates: false,
+            frontApp: xcode,
+            links: AppLinks(purchase: try #require(URL(string: "https://example.com/buy")), support: try #require(URL(string: "https://example.com/guide")))
+        )
+        let xcodeName = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)).name
+        #expect(linked.editTarget == .app(xcode, name: xcodeName))
+        #expect(linked.canPurchase)
+        #expect(linked.hasGuide)
 
         harness.controller.update { $0.settings.isEnabled = false }
         let disabled = MenuBarState(controller: harness.controller, license: harness.license, canCheckForUpdates: false)
@@ -313,16 +459,34 @@ struct ShellMenuBarTests {
         #expect(cells[MenuBarIconGeometry.centerIndex].midX == grid.midX)
     }
 
-    @Test("アイコンの形: 中央の塗りと注意の印")
+    @Test("アイコンの形: 中央の塗りと印。確かめてほしいことは「!」、アップデートは点（見分けられるように）")
     func iconVariants() {
         #expect(MenuBarIconGeometry.filledCells(for: .normal) == [4])
         #expect(MenuBarIconGeometry.filledCells(for: .attention) == [4])
         #expect(MenuBarIconGeometry.filledCells(for: .updateAvailable) == [4])
         #expect(MenuBarIconGeometry.filledCells(for: .disabled).isEmpty)
+        #expect(MenuBarIconGeometry.badge(for: .attention) == .exclamation)
+        #expect(MenuBarIconGeometry.badge(for: .updateAvailable) == .dot)
+        #expect(MenuBarIconGeometry.badge(for: .normal) == nil)
+        #expect(MenuBarIconGeometry.badge(for: .disabled) == nil)
         #expect(MenuBarIconGeometry.showsBadge(for: .attention))
         #expect(MenuBarIconGeometry.showsBadge(for: .updateAvailable))
         #expect(!MenuBarIconGeometry.showsBadge(for: .normal))
         #expect(!MenuBarIconGeometry.showsBadge(for: .disabled))
+        #expect(MenuBarIconRenderer.image(for: .attention) !== MenuBarIconRenderer.image(for: .updateAvailable))
+
+        // 「!」は右上のマスを切り抜いた輪の中に収まり、キャンバスからはみ出さない
+        let canvasRect = CGRect(origin: .zero, size: MenuBarIconGeometry.canvas)
+        let cutout = MenuBarIconGeometry.badgeCutoutRadius
+        let mark = MenuBarIconGeometry.exclamationBar.union(MenuBarIconGeometry.exclamationDot)
+        #expect(canvasRect.contains(mark))
+        for corner in [CGPoint(x: mark.minX, y: mark.minY), CGPoint(x: mark.maxX, y: mark.minY), CGPoint(x: mark.minX, y: mark.maxY), CGPoint(x: mark.maxX, y: mark.maxY)] {
+            let dx = corner.x - MenuBarIconGeometry.badgeCenter.x
+            let dy = corner.y - MenuBarIconGeometry.badgeCenter.y
+            #expect((dx * dx + dy * dy).squareRoot() <= cutout)
+        }
+        // 縦棒と点は離れている（「!」に見える）
+        #expect(MenuBarIconGeometry.exclamationBar.maxY < MenuBarIconGeometry.exclamationDot.minY)
 
         // 印は右上のマスに重なり、キャンバスからはみ出さず、ほかのマスには触れない
         let center = MenuBarIconGeometry.badgeCenter
@@ -353,7 +517,46 @@ struct ShellMenuBarTests {
         #expect(ShellText.triggerName(.rightOption) == L10n.ui("右⌥"))
         #expect(ShellText.triggerName(.rightShift) == L10n.ui("右⇧"))
         #expect(ShellText.triggerName(.function) == L10n.ui("fn"))
-        #expect(ShellText.practiceInstruction(.rightCommand) == L10n.ui("\(L10n.ui("右⌘"))を押しながら、トラックパッドの右上をタップ"))
+    }
+
+    @Test("メニューバーのアイコンが見えているか: 画面の中で、ノッチのある画面ではノッチの右のメニューバーにあるとき")
+    func statusItemVisibility() {
+        typealias Screen = MenuBarItemVisibility.Screen
+        let plain = Screen(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), hasNotch: false, auxiliaryTopRightArea: nil)
+        let item = CGRect(x: 1200, y: 876, width: 24, height: 24)
+        #expect(MenuBarItemVisibility.isVisible(itemFrame: item, screens: [plain]))
+        #expect(!MenuBarItemVisibility.isVisible(itemFrame: CGRect(x: -100, y: 876, width: 24, height: 24), screens: [plain]))
+        #expect(!MenuBarItemVisibility.isVisible(itemFrame: .zero, screens: [plain]))
+        #expect(!MenuBarItemVisibility.isVisible(itemFrame: item, screens: []))
+
+        // ノッチの右（x 840〜1512）にあれば見える。ノッチの陰（x 670〜840）なら見えない
+        let notched = Screen(
+            frame: CGRect(x: 0, y: 0, width: 1512, height: 982),
+            hasNotch: true,
+            auxiliaryTopRightArea: CGRect(x: 840, y: 950, width: 672, height: 32)
+        )
+        #expect(MenuBarItemVisibility.isVisible(itemFrame: CGRect(x: 1000, y: 954, width: 24, height: 24), screens: [notched]))
+        #expect(!MenuBarItemVisibility.isVisible(itemFrame: CGRect(x: 740, y: 954, width: 24, height: 24), screens: [notched]))
+        // 主画面でない画面で、画面の中の座標で返っても合わせる
+        let second = Screen(
+            frame: CGRect(x: 1512, y: 0, width: 1512, height: 982),
+            hasNotch: true,
+            auxiliaryTopRightArea: CGRect(x: 840, y: 950, width: 672, height: 32)
+        )
+        #expect(MenuBarItemVisibility.isVisible(itemFrame: CGRect(x: 2600, y: 954, width: 24, height: 24), screens: [notched, second]))
+        #expect(!MenuBarItemVisibility.isVisible(itemFrame: CGRect(x: 2250, y: 954, width: 24, height: 24), screens: [notched, second]))
+    }
+
+    @Test("見えていなければ、メニューバーのアイコンの場所を見せない（テストではアイコンが画面に出ない）")
+    func pointAtHiddenStatusItem() {
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        let menuBar = MenuBarController(controller: harness.controller, license: harness.license, onOpenSettings: { _ in }, onOpenOnboarding: {}, onCheckForUpdates: nil)
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+        menuBar.statusItem.isVisible = false
+        #expect(!menuBar.isStatusItemVisible)
+        menuBar.pointAtStatusItem()
+        #expect(menuBar.statusItem.button?.isHighlighted != true)
     }
 
     static func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {

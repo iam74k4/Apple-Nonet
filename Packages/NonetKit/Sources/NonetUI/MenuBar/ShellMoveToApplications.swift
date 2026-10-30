@@ -86,7 +86,7 @@ public enum ShellMoveToApplications {
         }
         guard ask(
             String(localized: "Nonet をアプリケーションフォルダに移しますか？", bundle: .module),
-            String(localized: "ディスクイメージやダウンロードしたままの場所から開いているため、アップデートを入れられません。アプリケーションフォルダに移して開き直します。", bundle: .module),
+            moveMessage,
             buttons: [
                 String(localized: "アプリケーションフォルダに移す", bundle: .module),
                 String(localized: "今は移さない", bundle: .module),
@@ -116,6 +116,11 @@ public enum ShellMoveToApplications {
             explainManualMove()
             return false
         }
+    }
+
+    /// 移すかを尋ねるときの説明。移さないとどうなるか（使えなくなる・アップデートが届かない）を先に言う
+    static var moveMessage: String {
+        String(localized: "このままだと、ディスクイメージを取り出したり Mac を再起動したりすると Nonet が使えなくなり、アップデートも届きません。移すと自動で開き直します。", bundle: .module)
     }
 
     // MARK: - 決め方と写し方（テストする）

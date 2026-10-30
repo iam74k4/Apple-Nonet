@@ -7,8 +7,16 @@ import SwiftUI
 /// メニューは開くたびに今の状態から作り直す
 @MainActor
 public final class MenuBarController {
-    /// 「アクセシビリティを許可…」で呼ぶ（App が設定アプリを開く）。nil なら初回の案内を開く
+    /// 「アクセシビリティを許可…」で呼ぶ（App は案内の許可の画面を開く）。nil なら初回の案内を開く
     public var onRequestAccessibility: (() -> Void)?
+    /// 「◯◯のボタンを編集…」で呼ぶ。開くアプリ（グローバルなら nil）を渡す。nil なら設定の「プロファイル」を開く
+    public var onEditButtons: ((AppReference?) -> Void)?
+    /// 前面のアプリ（Nonet を数えない）。「◯◯のボタンを編集…」の◯◯を決める。nil ならいつもグローバル
+    public var frontmostApp: (@MainActor () -> AppReference?)?
+    /// 購入ページ（「Nonet を購入…」）と利用ガイド（「利用ガイド」）。無いページの項目は出さない
+    public var links = AppLinks()
+    /// ページを開く（テストでは数える）
+    var openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
     /// 定期の確認でアップデートが見つかった（App が Sparkle から受けて入れる）。
     /// アイコンに印を付け、メニューに「アップデートがあります…」を出す
     public var isUpdateAvailable = false {
@@ -33,6 +41,7 @@ public final class MenuBarController {
     private let menuDelegate = MenuBarMenuDelegate()
     private let actionTarget = MenuBarActionTarget()
     private var observer: ShellObserver<MenuBarState>?
+    private let callout = MenuBarCallout()
 
     public init(
         controller: NonetController,
@@ -66,8 +75,35 @@ public final class MenuBarController {
             controller: controller,
             license: license,
             canCheckForUpdates: onCheckForUpdates != nil,
-            isUpdateAvailable: isUpdateAvailable
+            isUpdateAvailable: isUpdateAvailable,
+            frontApp: frontmostApp?(),
+            links: links
         )
+    }
+
+    // MARK: - アイコンの場所を見せる
+
+    /// メニューバーのアイコンが見えているか（項目が多くてノッチの陰に隠れたり、メニューバーを整理するアプリに隠されたりしていない）
+    public var isStatusItemVisible: Bool {
+        guard statusItem.isVisible, let button = statusItem.button, let window = button.window, window.isVisible,
+              window.occlusionState.contains(.visible) else { return false }
+        let frame = window.frame
+        let screens = NSScreen.screens.map { screen in
+            MenuBarItemVisibility.Screen(
+                frame: screen.frame,
+                hasNotch: screen.safeAreaInsets.top > 0,
+                auxiliaryTopRightArea: screen.auxiliaryTopRightArea
+            )
+        }
+        return MenuBarItemVisibility.isVisible(itemFrame: frame, screens: screens)
+    }
+
+    /// 初回の案内を終えたときに、メニューバーのアイコンを数回光らせ、その下に短い吹き出しを出す
+    public func pointAtStatusItem() {
+        guard let button = statusItem.button, isStatusItemVisible else { return }
+        let text = String(localized: "Nonet はここにいます", bundle: .module)
+        callout.show(text: text, below: button)
+        HUDAccessibility.announce(text)
     }
 
     private func applyIcon(_ state: MenuBarState) {
@@ -127,12 +163,33 @@ public final class MenuBarController {
             let item = actionItem(entry) { [weak self] in self?.onOpenSettings(.general) }
             item.keyEquivalent = ","
             return item
-        case .editProfiles:
-            return actionItem(entry) { [weak self] in self?.onOpenSettings(.profiles) }
+        case .editButtons(let target):
+            return actionItem(entry) { [weak self] in
+                guard let self else { return }
+                if let edit = self.onEditButtons {
+                    edit(target.app)
+                } else {
+                    self.onOpenSettings(.profiles)
+                }
+            }
         case .showOnboarding:
             return actionItem(entry) { [weak self] in self?.onOpenOnboarding() }
-        case .license:
+        case .userGuide:
+            return actionItem(entry) { [weak self] in
+                guard let self, let url = self.links.support else { return }
+                self.openURL(url)
+            }
+        case .license, .enterLicenseKey:
             return actionItem(entry) { [weak self] in self?.onOpenSettings(.license) }
+        case .trialInfo(let text):
+            let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            return item
+        case .purchase:
+            return actionItem(entry) { [weak self] in
+                guard let self, let url = self.links.purchase else { return }
+                self.openURL(url)
+            }
         case .checkForUpdates, .updateAvailable:
             // 見つかっているときは、Sparkle がその知らせの画面を出す
             return actionItem(entry) { [weak self] in self?.onCheckForUpdates?() }

@@ -11,6 +11,8 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var settingsTab: SettingsTab?
     /// --show-onboarding
     public var showOnboarding = false
+    /// --onboarding-step <welcome|apps|practice|done>: 初回の案内をその画面まで進めて出す（--show-onboarding も兼ねる）
+    public var onboardingStep: String?
     /// --preview-hud: 最初のページの HUD を出したままにする
     public var previewHUD = false
     /// --preview-toast: トーストを繰り返し出す
@@ -48,6 +50,12 @@ public struct ShellLaunchOptions: Equatable, Sendable {
                 }
             case "--show-onboarding":
                 options.showOnboarding = true
+            case "--onboarding-step":
+                if let next, !next.hasPrefix("--") {
+                    options.onboardingStep = next
+                    options.showOnboarding = true
+                    index += 1
+                }
             case "--preview-hud":
                 options.previewHUD = true
             case "--preview-toast":

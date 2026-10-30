@@ -95,7 +95,15 @@ final class ShellFakeAI: AIAvailabilityProviding {
 @MainActor
 final class ShellFakeLoginItem: LoginItemControlling {
     var isEnabled = false
-    func setEnabled(_ enabled: Bool) throws { isEnabled = enabled }
+    /// 投げるエラー（システム設定での許可待ちなど）
+    var failure: (any Error)?
+    private(set) var setCount = 0
+
+    func setEnabled(_ enabled: Bool) throws {
+        setCount += 1
+        if let failure { throw failure }
+        isEnabled = enabled
+    }
 }
 
 @MainActor
@@ -167,6 +175,9 @@ final class ShellControllerHarness {
     let controller: NonetController
     let services: NonetServices
     let permissions: ShellFakePermissions
+    let touchSource = ShellFakeTouchSource()
+    let frontmost = ShellFakeFrontmost()
+    let loginItem = ShellFakeLoginItem()
     let installedApps: ShellFakeInstalledApps
     let license: LicenseManager
     let scheduler = ShellFakeScheduler()
@@ -177,17 +188,17 @@ final class ShellControllerHarness {
         permissions = ShellFakePermissions(granted: accessibilityGranted)
         installedApps = ShellFakeInstalledApps(installed)
         services = NonetServices(
-            touchSource: ShellFakeTouchSource(),
+            touchSource: touchSource,
             keyboard: ShellFakeKeyboard(),
             haptics: ShellFakeHaptics(),
             performer: ShellFakePerformer(),
-            frontmostApp: ShellFakeFrontmost(),
+            frontmostApp: frontmost,
             menus: ShellFakeMenus(),
             permissions: permissions,
             installedApps: installedApps,
             shortcuts: ShellFakeShortcuts(),
             ai: ShellFakeAI(),
-            loginItem: ShellFakeLoginItem(),
+            loginItem: loginItem,
             scheduler: scheduler,
             isJISKeyboard: isJIS
         )
@@ -214,16 +225,21 @@ final class ShellControllerHarness {
 }
 
 enum ShellFixtures {
-    static func record(index: Int, page: Int = 0, date: Date, title: String = "マス") -> ExecutionRecord {
+    /// fastTap が false なら、HUD を出してから実行した（HUD のマスをタップしたときも）
+    static func record(index: Int, page: Int = 0, date: Date, title: String = "マス", fastTap: Bool = true, profile: String = "Xcode") -> ExecutionRecord {
         ExecutionRecord(
             cellTitle: title,
-            profileName: "Xcode",
+            profileName: profile,
             address: CellAddress(page: page, index: index),
             succeeded: true,
             message: nil,
-            wasFastTap: true,
+            wasFastTap: fastTap,
             date: date
         )
+    }
+
+    static func running(_ bundleID: String, name: String) -> RunningAppInfo {
+        RunningAppInfo(app: AppReference(bundleID: bundleID, name: name), processID: 4242)
     }
 
     static let xcode = "com.apple.dt.Xcode"

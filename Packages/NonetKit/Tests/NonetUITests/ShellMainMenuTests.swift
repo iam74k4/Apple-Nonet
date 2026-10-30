@@ -83,6 +83,23 @@ struct ShellMainMenuTests {
         #expect(edit.items.allSatisfy { $0.target == nil })
     }
 
+    @Test("ヘルプのメニュー: 「Nonet ヘルプ」（⌘?）で利用ガイドを開く。開くものが無ければメニューを出さない")
+    func helpMenu() throws {
+        _ = NSApplication.shared
+        var help = 0
+        let menu = ShellMainMenu.make(onAbout: {}, onOpenSettings: {}, onHelp: { help += 1 })
+        #expect(menu.items.count == 4)
+        let helpMenu = try #require(menu.items.last?.submenu)
+        #expect(helpMenu.title == L10n.ui("ヘルプ"))
+        let items = Self.items(helpMenu)
+        #expect(items.map(\.title) == [L10n.ui("Nonet ヘルプ")])
+        #expect(items.map(\.key) == ["?"])
+        #expect(items.allSatisfy { $0.modifiers == .command })
+        helpMenu.performActionForItem(at: 0)
+        #expect(help == 1)
+        #expect(Self.make().items.count == 3)
+    }
+
     @Test("ウインドウのメニュー: 閉じる（⌘W）・しまう（⌘M）")
     func windowMenu() throws {
         let window = try #require(Self.make().items[2].submenu)
