@@ -78,6 +78,45 @@ test_privacy_policy_dates_match_the_site() {
   grep -qF "Last updated: $en" "$ROOT/site/en/privacy.html" || fail "site/en/privacy.html の最終更新日が docs/privacy.md（$en）と違います"
 }
 
+# Mac の中に保存するものを、プライバシーポリシーの3つ（docs と販売ページの日英）がすべて書いている
+test_privacy_policy_lists_what_is_stored() {
+  local file item service
+  service="$(sed -nE 's/.*static let service = "([^"]+)".*/\1/p' "$ROOT/Packages/NonetKit/Sources/NonetCore/Licensing/TrialRecordKeychain.swift")"
+  [[ -n "$service" ]] || fail "キーチェーンの項目のサービス名を読めません"
+  for file in docs/privacy.md site/privacy.html site/en/privacy.html; do
+    for item in configuration.json configuration.backup.json com.iam74k4.Nonet.plist Application\ Support/Nonet "$service" .command \
+      Nonet/Terminal Nonet/Shortcuts input-; do
+      grep -qF "$item" "$ROOT/$file" || fail "$file に保存するもの（$item）の説明がありません"
+    done
+  done
+}
+
+# プライバシーポリシーが書いているスクリプトの変数（それがあるときだけ読むもの）が、本当にある
+test_privacy_policy_names_real_script_variables() {
+  local file name variables
+  variables="$(grep -oE 'NONET_[A-Z_]+' "$ROOT/Packages/NonetKit/Sources/NonetCore/Model/ScriptEnvironment.swift" | sort -u)"
+  [[ -n "$variables" ]] || fail "ScriptEnvironment.swift から変数の名前を読めません"
+  for file in docs/privacy.md site/privacy.html site/en/privacy.html; do
+    for name in NONET_SELECTED_TEXT NONET_BROWSER_URL; do
+      grep -qF "$name" "$ROOT/$file" || fail "$file に $name の説明がありません"
+    done
+    for name in $(grep -oE 'NONET_[A-Z_]+' "$ROOT/$file" | sort -u); do
+      grep -qx "$name" <<<"$variables" || fail "$file のスクリプトの変数 $name が ScriptEnvironment.swift にありません"
+    done
+  done
+}
+
+# NonetCore は純粋なロジック（docs/architecture.md §2）。Security・LocalAuthentication は、ライセンスの節に書いた例外のファイルだけが使う
+test_core_uses_system_frameworks_only_where_documented() {
+  local core="$ROOT/Packages/NonetKit/Sources/NonetCore" exception="Licensing/TrialRecordKeychain.swift" files
+  files="$(grep -rlE '^import (AppKit|Security|LocalAuthentication)$' "$core" | sed "s#^$core/##" || true)"
+  [[ -z "$files" || "$files" == "$exception" ]] || fail "NonetCore で AppKit・Security・LocalAuthentication を使うファイルが増えました: $files"
+  if [[ -n "$files" ]]; then
+    sed -n '/^### ライセンス/,/^### /p' "$ROOT/docs/architecture.md" | grep -qF "$exception" ||
+      fail "docs/architecture.md のライセンスの節に、$exception の例外の説明がありません"
+  fi
+}
+
 test_ci_runs_the_test_script() {
   local ci="$ROOT/.github/workflows/ci.yml"
   assert_file "$ci"

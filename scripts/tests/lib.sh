@@ -91,6 +91,9 @@ use_fakes() {
   export FAKE_PLIST_ED_KEY="$TEST_SPARKLE_KEY"
   export FAKE_PLIST_PURCHASE="$TEST_PURCHASE_URL"
   export FAKE_PLIST_LICENSE_KEY="$TEST_LICENSE_KEY"
+  # AI のアクションに要る FoundationModels の入った偽の macOS SDK
+  export FAKE_SDK_PATH="$TEST_TMP/sdk/MacOSX.sdk"
+  mkdir -p "$FAKE_SDK_PATH/System/Library/Frameworks/FoundationModels.framework"
   unset NONET_NOTARY_PROFILE NONET_RELEASES_DIR NONET_DOWNLOAD_URL_PREFIX NONET_SPARKLE_KEY_ACCOUNT NONET_NOTARY_TIMEOUT
 }
 

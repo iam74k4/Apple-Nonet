@@ -169,8 +169,12 @@ site/                       販売ページ（静的）
 ### ライセンス（keys-license）
 - 試用は初回起動から14日。残り日数は日付の切り上げ
 - キーは `base64url(JSON).base64url(署名)`。JSON は `LicenseInfo`。公開鍵は Info.plist の `NonetLicensePublicKey`
-- `nonet-license keygen` で鍵を作り、秘密鍵はリポジトリの外に置く
+- `nonet-license keygen` で鍵を作り、秘密鍵はリポジトリの外に置く。`issue` は発行したキーを `Config/Nonet.xcconfig` の `NONET_LICENSE_PUBLIC_KEY`（アプリに入る公開鍵。`//` で切れていれば止まる）と秘密鍵の隣の公開鍵（または `--public`）で検証してから出す。`--public` がアプリの公開鍵と違えば、`--skip-app-key-check` が無い限り出さない
+- 貼り付けたキーは、空白・改行を除いた全体が `eyJ` で始まるキーの形ならそれを使う。そうでなければ前後の文（「License key:」「License Key」（改行）・引用符・メールの「>」・句点など）を除いて、キーの形（`eyJ…` と 86 文字の署名）の部分を探し、中身が `LicenseInfo` として読めるものがちょうど1種類あるとき（読めるものが無ければ、キーの形のものがちょうど1種類あるとき）だけそれを使う（`LicenseCoding.licenseKey(in:)`）。保存するのはキーの部分だけ
 - 試用は使った時間を数える（時計を戻しても増えない）。`canExecuteActions` はいつでも正しいが、表示用の `entitlement` は `refresh()` でしか変わらない。`NonetController` はセッション開始時、ui-shell はメニューを開いたとき・スリープ解除・日付の変化・時計の変更で `refresh()` を呼ぶ
+- 試用の記録（開始日・最後に数えた時刻・使った時間）は `UserDefaultsLicenseStorage` が UserDefaults と `Application Support/Nonet/` の隠しファイルに置き、アプリ本体（`UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain())`）では `SystemTrialRecordKeychain`（ログインキーチェーンの汎用パスワード `com.iam74k4.Nonet.license.trial`。Developer ID で署名した製品版でだけ動く）にも置く。キーチェーンは起動ごとに1回読み、ほかの2か所の両方に (時刻, 使った時間) の組が無ければその組で、あれば使った時間だけを下限として数える。書くのは起動したとき・使った時間が1時間増えたとき・時計が変わったとき（`didSaveTrialProgress`・`needsKeychainWrite`）。`--self-check` と Debug の `--config-dir` はキーチェーンを使わない
+- NonetCore は Foundation と Observation だけ（§2）だが、`Licensing/TrialRecordKeychain.swift` だけは例外として Security と LocalAuthentication を使う（キーチェーンの読み書きと、署名の身元の確認。`TrialRecordKeychain` の protocol で差し替えられ、テストでは本物のキーチェーンに触れない）。ライセンスのロジックと同じ場所に置き、App が1行で使えるようにするため
+- 置き場所の記録が食い違ったら `TrialRecord.reconciled` でまとめる: 開始日は最も早いもの、(最後に数えた時刻, 使った時間) は置き場所ごとの組として、次に数えたときに最も多くなる組 (U, V + U)（U = 使った時間の最大、V = 時刻 − 使った時間 の最小）にする。古い記録（バックアップから戻したフォルダ・書けないファイル）で同じ時間を二重に数えず、1か所だけ書き換えても延びず、時計を戻しても減らない
 
 ### 起動オプション（App/main.swift・`ShellLaunchOptions`）
 - `--self-check`（すべてのビルド）: 画面もイベントタップも作らずに、プリセット・ランチャーの候補・設定の保存と読み直し・MultitouchSupport の読み込みを確かめ、JSON を出して終わる（失敗なら終了コード 1）。試用の記録は書かない。`scripts/test.sh` が最後に動かす

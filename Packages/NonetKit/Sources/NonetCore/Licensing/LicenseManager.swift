@@ -19,6 +19,8 @@ public protocol LicenseStorage: AnyObject {
     var trialLastSeenDate: Date? { get set }
     /// 数えた試用の時間（秒）。時計を戻しても減らない
     var trialUsedTime: TimeInterval? { get set }
+    /// refresh で試用の記録を書き終えたときに呼ぶ。まとめて写す置き場所（キーチェーン）のため
+    func didSaveTrialProgress()
 }
 
 extension LicenseStorage {
@@ -32,10 +34,55 @@ extension LicenseStorage {
         get { nil }
         set {}
     }
+
+    public func didSaveTrialProgress() {}
 }
 
-/// UserDefaults に保存し、試用の記録は Application Support のファイルにも写す。
-/// 2か所の値が食い違ったら試用に厳しい方を使う（UserDefaults を消すだけで試用をやり直せないようにする）
+/// 1つの置き場所にある試用の記録。値は timeIntervalSinceReferenceDate（日付）と秒（使った時間）
+struct TrialRecord: Codable, Equatable, Sendable {
+    var start: Double?
+    var lastSeen: Double?
+    var used: Double?
+
+    /// 最後に数えた時刻と使った時間がそろっている
+    var hasUsage: Bool {
+        lastSeen != nil && used != nil
+    }
+
+    var isEmpty: Bool {
+        start == nil && lastSeen == nil && used == nil
+    }
+
+    /// 置き場所ごとの記録を1つにまとめる。どれかが古い・消された・書き換えられたときに、試用を延ばしも縮めもしないための決まり:
+    /// - 開始日: いちばん早いもの。どこにも無ければ、使った時間から逆算した日（下の V）
+    /// - 最後に数えた時刻（lastSeen）と使った時間（used）は、置き場所ごとに組で扱う。次に起動したとき now までに使った時間は
+    ///   used + max(0, now - lastSeen) で、これは max(used, now - (lastSeen - used)) と同じ。
+    ///   そのため置き場所のうち最も厳しい（大きい）ものは max(U, now - V)（U = used の最大、V = lastSeen - used の最小）になり、
+    ///   組 (U, V + U) を返せば、時計がどこにあっても、最も厳しい置き場所とちょうど同じだけ数える。
+    ///   - 古い記録（バックアップから戻したフォルダ・書けなくなったファイル）は、その後の時間を「起動していなかった間」として数えるので、
+    ///     ほかの置き場所と同じ量になり、二重には数えない（used の最大と lastSeen の最小を別々に取ると、同じ時間を二度数えてしまう）
+    ///   - 1か所だけ lastSeen を先に進めたり used を減らしたりしても、ほかの置き場所がその分を数えるので延びない
+    ///   - 時計を戻すと now - V が小さくなるだけで、U は減らない（試用はやり直しにならず、戻した分は数えない）
+    /// - used だけの置き場所は U にだけ加える（数えた量の下限になる）。lastSeen だけの置き場所は使わない
+    static func reconciled(_ records: [TrialRecord]) -> TrialRecord {
+        let pairs = records.compactMap { record -> (lastSeen: Double, used: Double)? in
+            guard let lastSeen = record.lastSeen, let used = record.used else { return nil }
+            return (lastSeen, used)
+        }
+        let used = records.compactMap(\.used).max()
+        let virtualStart = pairs.map { $0.lastSeen - $0.used }.min()
+        var result = TrialRecord(start: records.compactMap(\.start).min() ?? virtualStart, used: used)
+        if let used, let virtualStart {
+            // ふつうはすべて同じ組。そのときは計算し直さずにその値を返す（足し引きで最後の桁が変わらないように）
+            let exact = pairs.first { $0.used == used && $0.lastSeen - $0.used == virtualStart }
+            result.lastSeen = exact?.lastSeen ?? virtualStart + used
+        }
+        return result
+    }
+}
+
+/// UserDefaults に保存し、試用の記録は Application Support のファイルにも写す（keychain を渡せば、キーチェーンにも）。
+/// 置き場所ごとの記録が食い違ったら TrialRecord.reconciled でまとめる（UserDefaults やフォルダを消すだけで試用をやり直せないようにする）
 public final class UserDefaultsLicenseStorage: LicenseStorage {
     static let trialStartKey = "com.iam74k4.Nonet.license.trialStart"
     static let trialLastSeenKey = "com.iam74k4.Nonet.license.trialLastSeen"
@@ -50,42 +97,61 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         var key: String
         var fileName: String
         var isDate: Bool
-        /// 食い違ったら小さい方（早い日付）を使う。false なら大きい方
-        var keepsSmaller: Bool
+        var field: WritableKeyPath<TrialRecord, Double?> & Sendable
     }
 
-    private static let startSlot = Slot(key: trialStartKey, fileName: mirrorFileName, isDate: true, keepsSmaller: true)
-    // 最後に数えた時刻が遅いほど、次に数える時間が短くなる
-    private static let lastSeenSlot = Slot(key: trialLastSeenKey, fileName: lastSeenFileName, isDate: true, keepsSmaller: true)
-    private static let usedSlot = Slot(key: trialUsedKey, fileName: usedFileName, isDate: false, keepsSmaller: false)
+    private static let startSlot = Slot(key: trialStartKey, fileName: mirrorFileName, isDate: true, field: \.start)
+    private static let lastSeenSlot = Slot(key: trialLastSeenKey, fileName: lastSeenFileName, isDate: true, field: \.lastSeen)
+    private static let usedSlot = Slot(key: trialUsedKey, fileName: usedFileName, isDate: false, field: \.used)
+    private static let slots = [startSlot, lastSeenSlot, usedSlot]
+
+    /// 使った時間がこれだけ増えたら、キーチェーンに書き直す（起動したままの日が続いても、キーチェーンの記録を古くしない）
+    static let keychainWriteInterval: TimeInterval = 60 * 60
 
     private let defaults: UserDefaults
     private let supportDirectory: URL?
+    private let keychain: (any TrialRecordKeychain)?
+    /// キーチェーンから読んだ記録（書いたあとは、書いた記録）。書くのはこのプロセスだけなので、読むのは起動ごとに一度でよい
+    private var keychainRecord: TrialRecord?
+    private var hasReadKeychain = false
+    /// この起動でキーチェーンに最後に書いた記録
+    private var lastKeychainWrite: TrialRecord?
 
     public convenience init(defaults: UserDefaults = .standard) {
-        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("Nonet", isDirectory: true)
-        self.init(defaults: defaults, supportDirectory: directory)
+        self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory)
     }
 
-    /// supportDirectory は試用の記録を写すフォルダ（テスト用）。nil なら写さない
-    public init(defaults: UserDefaults, supportDirectory: URL?) {
+    /// 試用の記録をキーチェーンにも写す（アプリ本体だけ。--self-check や Debug の --config-dir では使わない）
+    public convenience init(defaults: UserDefaults = .standard, keychain: (any TrialRecordKeychain)?) {
+        self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory, keychain: keychain)
+    }
+
+    /// supportDirectory は試用の記録を写すフォルダ（テスト用）。nil なら写さない。
+    /// keychain は3つ目の置き場所。起動ごとに一度だけ読み、起動したときと、使った時間が keychainWriteInterval 増えたとき・
+    /// 時計が変わったときに書く（キーチェーンを何度も読み書きしない）。まとめ方は current() を参照
+    public init(defaults: UserDefaults, supportDirectory: URL?, keychain: (any TrialRecordKeychain)? = nil) {
         self.defaults = defaults
         self.supportDirectory = supportDirectory
+        self.keychain = keychain
+    }
+
+    private static var defaultSupportDirectory: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Nonet", isDirectory: true)
     }
 
     public var trialStartDate: Date? {
-        get { value(Self.startSlot).map(Date.init(timeIntervalSinceReferenceDate:)) }
+        get { current().start.map(Date.init(timeIntervalSinceReferenceDate:)) }
         set { setValue(newValue?.timeIntervalSinceReferenceDate, Self.startSlot) }
     }
 
     public var trialLastSeenDate: Date? {
-        get { value(Self.lastSeenSlot).map(Date.init(timeIntervalSinceReferenceDate:)) }
+        get { current().lastSeen.map(Date.init(timeIntervalSinceReferenceDate:)) }
         set { setValue(newValue?.timeIntervalSinceReferenceDate, Self.lastSeenSlot) }
     }
 
     public var trialUsedTime: TimeInterval? {
-        get { value(Self.usedSlot) }
+        get { current().used }
         set { setValue(newValue, Self.usedSlot) }
     }
 
@@ -103,21 +169,77 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         }
     }
 
-    // MARK: - 2か所の値
+    /// 試用の記録を書いたあとに、キーチェーンにも写す（UserDefaultsLicenseStorage.needsKeychainWrite のとき）。
+    /// キーチェーンの記録は、記録を消しても消さない
+    public func didSaveTrialProgress() {
+        guard let keychain else { return }
+        let record = current()
+        guard !record.isEmpty, Self.needsKeychainWrite(record, after: lastKeychainWrite) else { return }
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            keychain.writeTrialRecord(try encoder.encode(record))
+            lastKeychainWrite = record
+            keychainRecord = record
+            hasReadKeychain = true
+        } catch {
+            logger.error("試用の記録をキーチェーン用にまとめられません: \(error.localizedDescription, privacy: .public)")
+        }
+    }
 
-    private func value(_ slot: Slot) -> Double? {
-        let stored = defaultsValue(slot)
-        let mirrored = readMirror(slot)
-        let candidates = [stored, mirrored].compactMap { $0 }
-        guard let chosen = slot.keepsSmaller ? candidates.min() : candidates.max() else { return nil }
-        // 片方が消された・書き換えられたときは、両方をそろえておく
-        if stored != chosen {
-            setDefaults(chosen, slot)
+    /// キーチェーンに書くか: この起動でまだ書いていない・開始日が変わった・使った時間が keychainWriteInterval 以上増えた・
+    /// 時計が変わった（最後に数えた時刻 − 使った時間 が動いた。ふつうは両方が同じだけ進むので動かない）
+    static func needsKeychainWrite(_ record: TrialRecord, after previous: TrialRecord?) -> Bool {
+        guard let previous else { return true }
+        if record.start != previous.start || record.hasUsage != previous.hasUsage {
+            return true
         }
-        if mirrored != chosen {
-            writeMirror(chosen, slot)
+        guard let used = record.used, let lastSeen = record.lastSeen,
+              let previousUsed = previous.used, let previousLastSeen = previous.lastSeen else {
+            return record != previous
         }
+        return used - previousUsed >= keychainWriteInterval
+            || abs((lastSeen - used) - (previousLastSeen - previousUsed)) > TrialProgress.clockTolerance
+    }
+
+    // MARK: - 置き場所をまとめる
+
+    /// まとめた記録。食い違っていた置き場所は、まとめた値にそろえる。キーチェーンの記録は:
+    /// - UserDefaults とフォルダのどちらにも使った時間の記録が無いとき（初回・アンインストールツールで消された）は、組のまま使う
+    /// - どちらかにあるときは、使った時間だけを下限として使う（数えた量より減らさない。環境設定に「使った時間 0」と書き込んでも減らない）。
+    ///   最後に数えた時刻は使わない。キーチェーンは毎回は書かないので、時計がずれていた起動の記録が残っていることがあり、
+    ///   それを組で数えると、ずれた分を余計に数えてしまう。使った時間は数え終えた量なので、多く数えることはない
+    private func current() -> TrialRecord {
+        let stored = defaultsRecord()
+        let mirrored = mirrorRecord()
+        var records = [stored, mirrored]
+        if let saved = readKeychain() {
+            if records.contains(where: \.hasUsage) {
+                records.append(TrialRecord(used: saved.used))
+            } else {
+                records.append(saved)
+            }
+        }
+        let chosen = TrialRecord.reconciled(records)
+        heal(stored, to: chosen) { value, slot in setDefaults(value, slot) }
+        heal(mirrored, to: chosen) { value, slot in writeMirror(value, slot) }
         return chosen
+    }
+
+    /// 開始日はそのまま、使った時間は最後に数えた時刻と組で書く（片方だけ書くと、別の置き場所の値と組になって数え方が変わる）
+    private func heal(_ record: TrialRecord, to chosen: TrialRecord, write: (Double, Slot) -> Void) {
+        if let start = chosen.start, record.start != start {
+            write(start, Self.startSlot)
+        }
+        guard let used = chosen.used else { return }
+        if let lastSeen = chosen.lastSeen {
+            if record.used != used || record.lastSeen != lastSeen {
+                write(lastSeen, Self.lastSeenSlot)
+                write(used, Self.usedSlot)
+            }
+        } else if record.lastSeen == nil, record.used != used {
+            write(used, Self.usedSlot)
+        }
     }
 
     private func setValue(_ value: Double?, _ slot: Slot) {
@@ -132,6 +254,16 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
 
     private static func isValid(_ value: Double, _ slot: Slot) -> Bool {
         value.isFinite && (slot.isDate || value >= 0)
+    }
+
+    // MARK: - UserDefaults
+
+    private func defaultsRecord() -> TrialRecord {
+        var record = TrialRecord()
+        for slot in Self.slots {
+            record[keyPath: slot.field] = defaultsValue(slot)
+        }
+        return record
     }
 
     private func defaultsValue(_ slot: Slot) -> Double? {
@@ -149,6 +281,14 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     }
 
     // MARK: - ファイル
+
+    private func mirrorRecord() -> TrialRecord {
+        var record = TrialRecord()
+        for slot in Self.slots {
+            record[keyPath: slot.field] = readMirror(slot)
+        }
+        return record
+    }
 
     private func mirrorURL(_ slot: Slot) -> URL? {
         supportDirectory?.appendingPathComponent(slot.fileName, isDirectory: false)
@@ -181,6 +321,32 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         } catch {
             logger.error("試用の記録のファイルを削除できません: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - キーチェーン
+
+    /// 読めない・壊れているときは nil（試用は残りの置き場所で数える）
+    private func readKeychain() -> TrialRecord? {
+        guard let keychain else { return nil }
+        if !hasReadKeychain {
+            hasReadKeychain = true
+            keychainRecord = keychain.readTrialRecord().flatMap(Self.decodeKeychainRecord)
+        }
+        return keychainRecord
+    }
+
+    static func decodeKeychainRecord(_ data: Data) -> TrialRecord? {
+        guard var record = try? JSONDecoder().decode(TrialRecord.self, from: data) else {
+            logger.error("キーチェーンの試用の記録を読めないため無視します")
+            return nil
+        }
+        // 不正な値は、無いものとして扱う
+        for slot in slots {
+            if let value = record[keyPath: slot.field], !isValid(value, slot) {
+                record[keyPath: slot.field] = nil
+            }
+        }
+        return record.isEmpty ? nil : record
     }
 }
 
@@ -301,11 +467,12 @@ public final class LicenseManager {
         }
     }
 
-    /// 検証してから保存する。失敗したら LicenseError を投げ、保存済みのキーはそのまま
+    /// 検証してから保存する。失敗したら LicenseError を投げ、保存済みのキーはそのまま。
+    /// 貼り付けた文に「License key:」などが付いていれば、キーの部分だけを保存する
     @discardableResult
     public func activate(licenseKey: String) throws -> LicenseInfo {
         guard let verifier else { throw LicenseError.invalidPublicKey }
-        let key = LicenseCoding.compactLicenseKey(licenseKey)
+        guard let key = LicenseCoding.licenseKey(in: licenseKey) else { throw LicenseError.malformed }
         let info = try verifier.verify(key)
         storage.licenseKey = key
         checkedKey = (key, .success(info))
@@ -360,6 +527,7 @@ public final class LicenseManager {
         }
         storage.trialLastSeenDate = progress.lastSeen
         storage.trialUsedTime = progress.used
+        storage.didSaveTrialProgress()
         return progress
     }
 

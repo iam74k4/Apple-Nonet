@@ -1,4 +1,4 @@
-# プッシュとプルリクエストで scripts/test.sh（スクリプトのテスト・swift build / swift test・署名なしのアプリのビルド）を動かす。
+# プッシュとプルリクエストで scripts/test.sh（スクリプトのテスト・swift build / swift test・文言が String Catalog にあるかの確認・署名なしのアプリのビルド）を動かす。
 # このプロジェクトは Swift 6 のツールを含む Xcode が要る（Package.swift は swift-tools-version: 6.0、設計は Xcode 27 / Swift 6.4）。
 # そのため、ランナーに入っている Xcode のうち、いちばん新しいものを選ぶ。
 name: CI
