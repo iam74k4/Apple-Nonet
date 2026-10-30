@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Shown for missing paths under /en/ (Cloudflare not_found_handling = "404-page"; the rest of the site uses ../404.html).
+     It can appear at any depth such as /en/a/b/c, so relative URLs always start from the top of the site.
+     Links start with ../ so that scripts/check-site.sh finds them from site/en/; under <base href="/">
+     a leading ../ stops at the top, so browsers read ../style.css as /style.css and ../en/ as /en/.
+     With <base>, a #-only link would point at the top page, so this page has none -->
+<base href="/">
+<title>Page not found — Nonet</title>
+<meta name="description" content="The page you were looking for could not be found. Start again from the Nonet home page.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../en/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="../" hreflang="ja" lang="ja">日本語</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="doc">
+  <div class="wrap">
+    <h1>Page not found</h1>
+    <p>The address may have changed, or the page is not published yet.</p>
+    <p><a class="btn" href="../en/">Go to the home page</a></p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

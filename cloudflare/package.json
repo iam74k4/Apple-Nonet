@@ -1,0 +1,17 @@
+{
+  "name": "nonet-site",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "wrangler dev --local",
+    "check": "wrangler deploy --dry-run",
+    "smoke": "scripts/smoke.sh"
+  },
+  "devDependencies": {
+    "wrangler": "4.133.0"
+  }
+}

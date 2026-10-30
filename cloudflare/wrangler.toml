@@ -1,0 +1,48 @@
+# nonet.astlog.dev の Worker。販売ページ（../site）とアップデートの配布（R2 の nonet-updates）を1つで出す。
+# 何がどこにあるか、最初の準備、リリースごとの手順は docs/hosting.md。
+# astlog.dev（/Users/iam74k4/Git/Web-AstLog）と同じアカウント・同じ書き方にしてある。
+name = "nonet"
+account_id = "360a84624267a606e9d58788216eb46d"
+main = "src/index.js"
+# 固定した wrangler（package.json の 4.133.0）が持つ workerd が対応する最新の日付。
+# wrangler dev・テスト・本番が同じ挙動になるよう、ここだけ新しくしない。上げるときは wrangler と一緒に上げる
+compatibility_date = "2026-09-16"
+
+# 本番は独自ドメイン。astlog.dev の DNS は Cloudflare にあるので custom domain として割り当てる
+# （初めてのデプロイで DNS のレコードと証明書を Cloudflare が作る。docs/hosting.md「DNS」）。
+routes = [{ pattern = "nonet.astlog.dev", custom_domain = true }]
+# 正規のドメイン以外から同じ内容を出さない。appcast や DMG が別の URL からも取れると、
+# どれが本物かを利用者が見分けられなくなる
+workers_dev = false
+preview_urls = false
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# ../site の中身は Worker を通さずに配る（静的なアセットへの要求は無料で、回数の上限も無い）。
+# Worker が先に動くのは run_worker_first に書いたパスだけ。
+[assets]
+directory = "../site"
+binding = "ASSETS"
+# アプリと docs は /privacy.html のように .html つきの URL を指す。既定の auto-trailing-slash では
+# /privacy.html が /privacy へ 307 で飛ぶので、none にして .html のまま 200 で返す。
+# none ではフォルダの URL（/ と /en/）が index.html を引かないので、そこだけ Worker が引く（src/site.js）
+html_handling = "none"
+# 無いパスには、いちばん近い 404.html（/en/ の下なら en/404.html）を 404 で返す。
+# index.html を 200 で返す SPA のフォールバックにはしない。scripts/release.sh が公開中の appcast を
+# 確かめられなくなり、無い DMG の URL もページとして 200 になってしまう（docs/release.md 1.7）
+not_found_handling = "404-page"
+# ここに無いパスは Worker を呼ばない（_headers が付くのはアセットの応答だけなので、
+# Worker が返すものには src/ で同じヘッダを付けている）。
+#   /・/en/      フォルダの index.html を引く
+#   /en          /en/ へリダイレクト（none では自動で付かない）
+#   /updates/*   R2 のリリースのファイル（appcast.xml・DMG・デルタ）
+#   /download    appcast の最新の DMG へリダイレクト
+run_worker_first = ["/", "/en", "/en/", "/updates", "/updates/*", "/download"]
+
+# リリースのファイル。中身は scripts/publish.sh が上げる（docs/hosting.md「リリースごとの手順」）。
+# バケットは公開しない（r2.dev の URL も独自ドメインも付けない）。外からは Worker の /updates/* だけで読む
+[[r2_buckets]]
+binding = "UPDATES"
+bucket_name = "nonet-updates"

@@ -8,3 +8,7 @@ Packages/NonetKit/.swiftpm/
 # ライセンスの秘密鍵は絶対にコミットしない
 *.private-key
 secrets/
+# Cloudflare の Worker（cloudflare/）の依存と、wrangler dev の手元の状態
+cloudflare/node_modules/
+.wrangler/
+cloudflare/.wrangler/
