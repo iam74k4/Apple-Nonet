@@ -169,8 +169,11 @@ site/                       販売ページ（静的）
 ### ライセンス（keys-license）
 - 試用は初回起動から14日。残り日数は日付の切り上げ
 - キーは `base64url(JSON).base64url(署名)`。JSON は `LicenseInfo`。公開鍵は Info.plist の `NonetLicensePublicKey`
-- `nonet-license keygen` で鍵を作り、秘密鍵はリポジトリの外に置く
+- `nonet-license keygen` で鍵を作り、秘密鍵はリポジトリの外に置く。`issue` は発行したキーを `Config/Nonet.xcconfig` の `NONET_LICENSE_PUBLIC_KEY`（アプリに入る公開鍵。`//` で切れていれば止まる）と秘密鍵の隣の公開鍵で検証してから出す
+- 貼り付けたキーは、空白・改行を除いた全体がキーの形でなければ、前後の文（「License key:」・引用符・メールの「>」・句点など）を除いて、キーの形（`eyJ…` と 86 文字の署名）の部分がちょうど1種類あるときだけそれを使う（`LicenseCoding.licenseKey(in:)`）。保存するのはキーの部分だけ
 - 試用は使った時間を数える（時計を戻しても増えない）。`canExecuteActions` はいつでも正しいが、表示用の `entitlement` は `refresh()` でしか変わらない。`NonetController` はセッション開始時、ui-shell はメニューを開いたとき・スリープ解除・日付の変化・時計の変更で `refresh()` を呼ぶ
+- 試用の記録（開始日・最後に数えた時刻・使った時間）は `UserDefaultsLicenseStorage` が UserDefaults と `Application Support/Nonet/` の隠しファイルに置き、アプリ本体では `SystemTrialRecordKeychain`（ログインキーチェーンの汎用パスワード `com.iam74k4.Nonet.license.trial`。Developer ID で署名した製品版でだけ動く）にも置く。キーチェーンはほかの2か所の両方に記録が無いときだけ読み、起動ごとに1回だけ書く（`didSaveTrialProgress`）。`--self-check` と Debug の `--config-dir` はキーチェーンを使わない
+- 置き場所の記録が食い違ったら `TrialRecord.reconciled` でまとめる: 開始日は最も早いもの、(最後に数えた時刻, 使った時間) は置き場所ごとの組として、次に数えたときに最も多くなる組 (U, V + U)（U = 使った時間の最大、V = 時刻 − 使った時間 の最小）にする。古い記録（バックアップから戻したフォルダ・書けないファイル）で同じ時間を二重に数えず、1か所だけ書き換えても延びず、時計を戻しても減らない
 
 ### 起動オプション（App/main.swift・`ShellLaunchOptions`）
 - `--self-check`（すべてのビルド）: 画面もイベントタップも作らずに、プリセット・ランチャーの候補・設定の保存と読み直し・MultitouchSupport の読み込みを確かめ、JSON を出して終わる（失敗なら終了コード 1）。試用の記録は書かない。`scripts/test.sh` が最後に動かす

@@ -71,10 +71,25 @@ test_test_sh_runs_every_stage_in_order() {
     "tests/run.sh" \
     "swift build (in NonetKit)" \
     "swift test (in NonetKit)" \
+    "swift build --package-path $REPO/Packages/NonetKit --build-path" \
+    "xcrun xcstringstool sync" \
+    "xcrun xcstringstool extract" \
     "xcodegen generate --spec $REPO/project.yml" \
     "xcodebuild build -project $REPO/Nonet.xcodeproj -scheme Nonet -configuration Debug -destination generic/platform=macOS -derivedDataPath $REPO/build/TestDerivedData -quiet CODE_SIGNING_ALLOWED=NO" \
     "Nonet --self-check"
   assert_contains "$OUT" "すべて通りました"
+}
+
+test_test_sh_fails_when_a_string_is_missing_from_its_catalog() {
+  use_fakes
+  make_fake_repo
+  export FAKE_XCSTRINGS_NEW_KEY="新しいボタン"
+  run "$REPO/scripts/test.sh"
+  assert_failed
+  assert_contains "$OUT" "Packages/NonetKit/Sources/NonetUI/Resources/Localizable.xcstrings"
+  assert_contains "$OUT" "カタログに無い: 新しいボタン"
+  assert_not_called "xcodegen"
+  assert_not_contains "$OUT" "すべて通りました"
 }
 
 test_test_sh_fails_when_the_self_check_fails() {

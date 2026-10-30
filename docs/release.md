@@ -17,7 +17,7 @@ Nonet は Mac App Store ではなく直販する（非公開の `MultitouchSuppo
 ### 1.1 道具
 
 - Apple Developer Program のメンバーシップ（チーム ID `NL9ZXK2SGR`。`project.yml` の `DEVELOPMENT_TEAM`）
-- Xcode 27 以降（Swift 6 のツールが要る）
+- Xcode 27 以降（Swift 6 のツールと、AI のアクションに要る FoundationModels の入った macOS SDK が要る）。`xcode-select -p` で選ばれている Xcode を確かめる。古い Xcode（26 より前）でもビルドは通ってしまい、AI のアクションが「macOS 26 以降が必要です」で失敗するアプリになるので、`scripts/release.sh` は SDK に FoundationModels が無ければビルドの前に止まる
 - XcodeGen: `brew install xcodegen`
 - 一度 `scripts/build.sh` を動かして、Sparkle のパッケージを取ってくる（`build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/` に `generate_keys` と `generate_appcast` が入る）
 
@@ -63,7 +63,7 @@ SPARKLE_BIN=build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin
 "$SPARKLE_BIN/generate_keys" -x ~/sparkle-private-key.txt   # 秘密鍵を書き出す（バックアップ用）
 ```
 
-- 表示された公開鍵を `Config/Nonet.xcconfig` の `NONET_SPARKLE_PUBLIC_KEY` に入れる
+- 表示された公開鍵を `Config/Nonet.xcconfig` の `NONET_SPARKLE_PUBLIC_KEY` に入れる。**公開鍵に `//` が含まれていたら**（base64 の鍵の約1%）、xcconfig では `//` から後ろがコメントになって切れるので、`//` を `/$()/` と書く（例: `abc…xy/$()/z…=`。`$()` は空文字に展開される）。そのまま書くと、`scripts/release.sh` が「「//」の所で切れています」と言って止まる。Xcode の Organizer から直接書き出すと、切れた鍵が入って、どの利用者もアップデートを確かめられなくなる
 - 書き出した秘密鍵はパスワードマネージャーとオフラインの媒体の2か所に保管し、元のファイルは消す。別の Mac では `generate_keys -f <ファイル>` で取り込む
 - **秘密鍵を失うと、配布済みのアプリにアップデートを届けられなくなる**。漏れると偽のアップデートを作られる
 - 複数の製品で鍵を分けたいときは `--account nonet` のように名前を付け、`NONET_SPARKLE_KEY_ACCOUNT=nonet` を設定する
@@ -83,12 +83,16 @@ swift run nonet-license keygen --out ~/Nonet-secrets
 - 秘密鍵はパスワードマネージャーとオフラインの媒体にバックアップする。失うと、今のアプリが受け付けるキーを新しく発行できなくなる
 - 漏れたら誰でもキーを作れる。鍵を作り直して公開鍵を差し替えた版を出すことになるが、アプリが受け付ける公開鍵は1つなので、それまでに発行したキーはすべて使えなくなる（再発行が要る）。そうならないよう厳重に扱う
 
-発行と確認:
+発行と確認（`Packages/NonetKit` で動かす）:
 
 ```bash
 swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> --name "山田 太郎" --email taro@example.com
-swift run nonet-license verify --public "<公開鍵>" "<発行したキー>"
+swift run nonet-license verify --public ../../Config/Nonet.xcconfig "<発行したキー>"
 ```
+
+- `issue` は発行したキーを、今いるフォルダから上にたどって見つけた `Config/Nonet.xcconfig` の `NONET_LICENSE_PUBLIC_KEY`（アプリに入る公開鍵）と、秘密鍵と同じフォルダの `nonet-license.public-key` で検証し、どちらかと合わなければ発行しない。鍵を作り直したのに xcconfig の公開鍵が古いまま、といった間違いで、だれも登録できないキーを配らないためである。xcconfig の公開鍵が `//` の所で切れていても止まる（1.6）
+- リポジトリの外で動かすときは、`--public <リポジトリ>/Config/Nonet.xcconfig` でアプリの公開鍵を渡す（`--public` には base64 の公開鍵か、そのファイルか、`.xcconfig` を渡せる）
+- `verify` とアプリは、キーの前後に付いた「License key:」のような文・引用符・かっこ・メールの引用の「>」・文末の句点を無視して、キーの部分を取り出す（キーの形の部分がちょうど1つのとき）
 
 ### 1.6 Config/Nonet.xcconfig
 
@@ -105,7 +109,7 @@ NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 
 `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブのリンクになる。
 
-**xcconfig では `//` から後ろがコメントになる**。URL は `https:/$()/…` と書く（`$()` は空文字に展開される）。`https://…` と書くと `https:` で切れ、アップデートの確認も購入ページも動かない。`scripts/release.sh` はこの間違いを見つけて止まる。
+**xcconfig では `//` から後ろがコメントになる**。URL は `https:/$()/…` と書く（`$()` は空文字に展開される）。`https://…` と書くと `https:` で切れ、アップデートの確認も購入ページも動かない。公開鍵（base64）にも `//` が入ることがあり（約1%）、そのときも `//` を `/$()/` と書く。`scripts/release.sh` と `nonet-license issue` は、これらの切れ方を見つけて止まる。
 
 ### 1.7 配布の場所
 
@@ -123,6 +127,15 @@ HTTPS で静的なファイルを置ける場所なら何でもよい（Cloudfla
 ```bash
 scripts/check-site.sh --strict   # TODO が1つでも残っていれば失敗
 ```
+
+### 1.9 Sparkle の版を上げる
+
+`project.yml` は Sparkle を `exactVersion: "2.10.1"` で固定している（Package.resolved は Nonet.xcodeproj の中にできてコミットしないので、固定しないと新しい Mac や CI で、試していない版のアップデートの仕組みと `generate_appcast` になる）。`scripts/release.sh` は解決した版を表示する。上げるときは:
+
+1. Sparkle のリリースノートで、変わったところ（設定のキー・appcast の書き方・最低の macOS）を確かめる
+2. `project.yml` の `exactVersion` を書き換え、`scripts/build.sh` でパッケージを解決し直す（`generate_appcast` と `generate_keys` も新しい版になる）
+3. `scripts/test.sh` を通し、dry run（2.4）の後、一つ前の版から新しい版へ Sparkle でアップデートできることを確かめる
+4. `project.yml` をコミットする
 
 ---
 
@@ -143,7 +156,16 @@ scripts/check-site.sh --strict   # TODO が1つでも残っていれば失敗
 
 `--notes` に渡したファイルは、リポジトリの中にあってもコミットしていなくてよい（本番の「コミットしていない変更」の確認から、このファイルだけは外す。アプリには入らないため）。残しておくなら、本番の後、タグを付ける前にコミットする。ほかのファイルに変更があれば、これまでどおり本番は止まる。
 
-### 2.3 試しに通す（dry run）
+### 2.3 文言の英語
+
+画面の文言を足したり変えたりしたら、カタログに集めて英語の訳を入れる。`scripts/test.sh`（CI も）は `scripts/sync-strings.sh --check` で、コードの文言がカタログに無いか英語の訳が無いと失敗する（入れ忘れると、英語の利用者に日本語のまま出る）。
+
+```bash
+scripts/sync-strings.sh          # 各ターゲットの Localizable.xcstrings に集める
+scripts/sync-strings.sh --check  # カタログを書き換えずに、足りない文言を表示する
+```
+
+### 2.4 試しに通す（dry run）
 
 ```bash
 scripts/release.sh --dry-run 1.2.0 42
@@ -151,7 +173,7 @@ scripts/release.sh --dry-run 1.2.0 42
 
 公証とステープルを飛ばし、署名した DMG と appcast の試し版を `build/release/1.2.0/` に作る。公開用のフォルダには触れない。**この DMG は公証していないので配らない**。
 
-### 2.4 本番
+### 2.5 本番
 
 ```bash
 NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.0 42
@@ -165,9 +187,9 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 
 スクリプトがすること:
 
-1. 準備の確認（コマンド・Developer ID 証明書・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く）。足りないものをまとめて表示して止まる
-2. XcodeGen でプロジェクトを作り、パッケージを解決する
-3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。手元に appcast.xml が無ければ、公開中のもの（`NONET_APPCAST_URL`）を取ってくる。取れなければ（403・503・ネットワークのエラーなど）止まる。404・410 で新しく作るのは `--first-release` のときだけ
+1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く）。足りないものをまとめて表示して止まる
+2. XcodeGen でプロジェクトを作り、パッケージを解決する（Sparkle は `project.yml` で固定した版。1.9）
+3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。appcast は毎回、公開中のもの（`NONET_APPCAST_URL`）を取ってきて、手元の appcast.xml と比べる。手元に無ければ公開中のものを使い、手元のものと少しでも違えば止まる（別の Mac やバックアップの古い appcast から作って、公開中の項目を消したり、公開済みと同じビルド番号を出したりしないため）。取れなければ（403・503・ネットワークのエラーなど）止まる。404・410 で新しく作る（または手元のものを引き継ぐ）のは `--first-release` のときだけ
 4. `xcodebuild archive`（Release・Developer ID Application・hardened runtime・`--timestamp`）
 5. `ExportOptions.plist`（`method` は `developer-id`）で書き出す
 6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の実行ファイル（Sparkle の XPC サービスなど）、Info.plist の版と販売用の値
@@ -185,11 +207,11 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 | `NONET_SPARKLE_KEY_ACCOUNT` | `ed25519` | Sparkle の秘密鍵のキーチェーンのアカウント名 |
 | `NONET_NOTARY_TIMEOUT` | `1h` | 公証の結果を待つ上限 |
 
-オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--first-release`（初めてのリリース。公開中の appcast が無ければ新しく作る）、`--allow-dirty`（コミットしていない変更があっても続ける）、`--help`。
+オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--first-release`（初めてのリリース。公開中の appcast が無ければ新しく作る）、`--force-local-appcast`（公開中の appcast と比べずに、手元の appcast.xml をそのまま使う。手元のものが正しいと分かっているときだけ）、`--allow-dirty`（コミットしていない変更があっても続ける）、`--help`。
 
-`NONET_RELEASES_DIR` には過去の DMG と appcast.xml が貯まる。Sparkle は古い版との差分（`*.delta`）をここで作り、古い項目は `old_updates/` に移す。`build/` は消しても困らないよう、公開中の appcast.xml はスクリプトが取ってくるが、差分を作るには過去の DMG が要るので、バックアップされる場所を指定しておくとよい。
+`NONET_RELEASES_DIR` には過去の DMG と appcast.xml が貯まる。Sparkle は古い版との差分（`*.delta`）をここで作り、古い項目は `old_updates/` に移す。公開中の appcast.xml はスクリプトが毎回取ってきて比べるので `build/` を消しても困らないが、差分を作るには過去の DMG が要るので、バックアップされる場所を指定しておくとよい。
 
-### 2.5 アップロード
+### 2.6 アップロード
 
 順番が大事（appcast が先に出ると、まだ無い DMG を指してしまう）。
 
@@ -197,28 +219,31 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 2. そのあと `appcast.xml` を `NONET_APPCAST_URL` へ（`old_updates/` は上げない）。URL のファイル名が `appcast.xml` でなければ、その名前で上げる（スクリプトが最後に表示する）
 3. 販売ページの「ダウンロード」が新しい DMG を指すようにする
 
-### 2.6 確かめる
+### 2.7 確かめる
 
 - 公開した URL から DMG をダウンロードし、別のユーザーか別の Mac で開く。Gatekeeper の警告が出ずに起動すること
 - 一つ前の版を起動し、メニューの「アップデートを確認」で新しい版が見つかり、入れ替わること
 - `curl -I <appcast の URL>` が 200 を返すこと
 
-### 2.7 タグを付ける
+### 2.8 タグを付ける
 
 ```bash
 git tag -a v1.2.0 -m "Nonet 1.2.0"
 git push origin v1.2.0
 ```
 
-### 2.8 困ったとき
+### 2.9 困ったとき
 
 | 症状 | 確かめること |
 |---|---|
 | 公証が `Invalid` | スクリプトが出すログを見る。よくあるのは、署名の無い実行ファイル・タイムスタンプが無い・hardened runtime が無い。`xcrun notarytool log <ID> --keychain-profile "$NONET_NOTARY_PROFILE"` でもう一度見られる |
 | `spctl` が `rejected` | 公証とステープルが済んでいるか（`xcrun stapler validate`）。dry run では rejected が正常 |
 | 「ビルド番号は…より大きく」 | 公開済みより大きい番号にする。公開していない試しの項目なら appcast.xml から消す |
-| 「公開中の appcast が見つかりません（HTTP 404）」 | 初めてのリリースなら `--first-release` を付ける。公開済みなら `NONET_APPCAST_URL` が公開中の URL と同じか確かめる。分からなければ、公開中の appcast をダウンロードして `NONET_RELEASES_DIR/appcast.xml` に置く |
-| 「公開中の appcast を取得できませんでした（HTTP 403 など）」 | ホスティングのアクセス制限（ボット対策・権限）や一時的な障害。`curl -I <appcast の URL>` で確かめる。直せなければ、公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置いてからやり直す |
+| 「公開中の appcast が見つかりません（HTTP 404）」 | 初めてのリリースなら `--first-release` を付ける。公開済みなら `NONET_APPCAST_URL` が公開中の URL と同じか確かめる。分からなければ、公開中の appcast をダウンロードして `NONET_RELEASES_DIR/appcast.xml` に置き、`--force-local-appcast` を付ける |
+| 「公開中の appcast を取得できませんでした（HTTP 403 など）」 | ホスティングのアクセス制限（ボット対策・権限）や一時的な障害。`curl -I <appcast の URL>` で確かめる。直せなければ、公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`--force-local-appcast` を付けてやり直す |
+| 「手元の appcast（…）が、公開中のもの（…）と違います」 | 前のリリースの appcast.xml をまだアップロードしていないなら、先にアップロードする。手元のものが古い（別の Mac・バックアップ）なら、手元の appcast.xml を消してやり直す（公開中のものを取ってくる）。手元が正しいと分かっているときだけ `--force-local-appcast` |
+| 「macOS SDK … に FoundationModels がありません」 | `xcode-select -p` が古い Xcode を指している。`sudo xcode-select -s /Applications/Xcode.app` で Xcode 26 以降を選ぶ |
+| 「… が「//」の所で切れています」 | 公開鍵の `//` を `/$()/` と書く（1.4・1.6） |
 | 「中身が appcast（RSS）ではありません」 | 無いファイルにも 200 でページを返す設定になっていないか（1.7） |
 | 「コミットしていない変更があります」 | `git status` で確かめる。`--notes` のファイルは数えない |
 | Sparkle の鍵が一致しない | 別の Mac や別のアカウント名で鍵を作っていないか。バックアップから `generate_keys -f` で取り込む |
@@ -267,7 +292,23 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 
 決めることは、どのサービスを使うか、秘密鍵をクラウドの秘密の変数に置くことを受け入れるか（置けば漏れる経路が増える）、メールをどこから送るか。決まるまでは手動で届ける。
 
-### 3.3 販売ページに要るもの
+### 3.3 試用の記録（方針）
+
+試用は「初めて起動してから使った時間が14日」で終わる。どれだけ使ったかの記録は、Mac の中の3か所に置く。
+
+| 置き場所 | 中身 | 消えるとき |
+|---|---|---|
+| 環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`） | 開始日・最後に数えた時刻・使った時間 | 環境設定を消したとき、アンインストールツール |
+| `~/Library/Application Support/Nonet/` の隠しファイル | 同じ | フォルダを消したとき、アンインストールツール |
+| ログインキーチェーンの項目（サービス `com.iam74k4.Nonet.license.trial`） | 同じ（起動したときに1回書く） | キーチェーンアクセスで消したとき |
+
+- 食い違ったら、どの記録で数えても試用が最も短くなるように1つにまとめる（バックアップから戻した古いフォルダで同じ日を二重に数えたり、1か所だけ書き換えて延ばしたりできない）。決まりは `TrialRecord.reconciled`（`NonetCore/Licensing/LicenseManager.swift`）のコメント
+- キーチェーンは、ほかの2か所の両方から記録が消えたときだけ読む。アンインストールツール（環境設定と Application Support をまとめて消す）で入れ直しても、試用はやり直しにならない
+- キーチェーンを使うのは、Developer ID で署名した製品版だけ（開発用の署名やアドホックのビルド、`--self-check` と Debug の `--config-dir` では使わない。署名の身元が違うと、キーチェーンが許可を聞いてくるため）。iCloud キーチェーンとは同期しない
+- それでも、キーチェーンアクセスで項目も消す・macOS の別のユーザーで使う・Mac を初期化する、といった方法で試用はやり直せる。サーバー無しの試用では防ぎきれないので、手間をかける人は止めない、という割り切り
+- 利用者がアンインストールで消すものは、利用ガイド（[user-guide.md](user-guide.md#アンインストール)）とプライバシーポリシー（[privacy.md](privacy.md)）に書く
+
+### 3.4 販売ページに要るもの
 
 - 価格・購入ページ・ダウンロードの URL（`site/` の TODO）
 - プライバシーポリシー（`site/privacy.html`。原本は [privacy.md](privacy.md)）
@@ -282,13 +323,16 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 **鍵とアカウント**
 - [ ] Developer ID Application 証明書（`.p12`）・Sparkle の秘密鍵・ライセンスの秘密鍵を、それぞれ2か所にバックアップした
 - [ ] どの秘密鍵もリポジトリに入っていない（`git log -p | grep -i private` などで確かめる）
-- [ ] `Config/Nonet.xcconfig` の6つの値を入れ、コミットした
+- [ ] `Config/Nonet.xcconfig` の6つの値を入れ、コミットした（公開鍵の `//` は `/$()/`）
+- [ ] `Packages/NonetKit` で `nonet-license issue` を動かし、アプリの公開鍵（xcconfig）との照合が通った（「注意」が出ない）
 
 **アプリ**
 - [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプは [architecture.md](architecture.md) §7 の未確認の点
 - [ ] JIS と US のキーボード、内蔵トラックパッドと Magic Trackpad で試した
 - [ ] 新しいユーザーで、初回起動 → アクセシビリティの許可 → プリセット → 練習まで通した
 - [ ] 試用の終了（HUD の帯・実行の代わりのトースト）と、キーの登録で元に戻ることを確かめた
+- [ ] `scripts/sync-strings.sh` で文言を集め、英語の訳を入れた（`scripts/test.sh` の `--check` が通る）
+- [ ] Developer ID で署名したビルド（dry run の `build/release/<版>/export/Nonet.app`）で、環境設定と `~/Library/Application Support/Nonet/` を消して起動し直しても試用が続き、キーチェーンの許可を聞かれない
 - [ ] `scripts/test.sh` が通る（CI も緑）
 
 **配布**

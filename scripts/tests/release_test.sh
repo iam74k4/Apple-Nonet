@@ -156,6 +156,82 @@ EOF
   assert_not_contains "$problems" "NONET_LICENSE_PUBLIC_KEY"
 }
 
+test_config_problems_explains_a_key_cut_by_double_slash() {
+  load_release
+  local file="$TEST_TMP/bad.xcconfig" problems slashed
+  # base64 の公開鍵の約1%は「//」を含む（Sparkle の generate_keys は選び直さない）
+  slashed="AAAAAAAAAAAAAAAAAAAA//AAAAAAAAAAAAAAAAAAAAA="
+  is_ed25519_public_key "$slashed" || fail "テストの鍵が 44 文字の base64 ではありません"
+  write_valid_xcconfig "$file"
+  printf 'NONET_SPARKLE_PUBLIC_KEY = %s\n' "$slashed" >>"$file"
+  problems="$(config_problems "$file")"
+  assert_contains "$problems" "NONET_SPARKLE_PUBLIC_KEY が「//」の所で切れています"
+  assert_contains "$problems" "「/\$()/」と書いてください"
+  assert_not_contains "$problems" "NONET_LICENSE_PUBLIC_KEY"
+
+  # /$()/ と書けば通る
+  printf 'NONET_SPARKLE_PUBLIC_KEY = %s\n' "AAAAAAAAAAAAAAAAAAAA/\$()/AAAAAAAAAAAAAAAAAAAAA=" >>"$file"
+  assert_eq "" "$(config_problems "$file")"
+  assert_eq "$slashed" "$(xcconfig_value "$file" NONET_SPARKLE_PUBLIC_KEY)"
+
+  # 鍵の後ろのコメントは問題ない
+  printf 'NONET_LICENSE_PUBLIC_KEY = %s // ライセンスの鍵\n' "$TEST_LICENSE_KEY" >>"$file"
+  assert_eq "" "$(config_problems "$file")"
+}
+
+test_xcconfig_raw_value_keeps_comments_and_expansions() {
+  # shellcheck source=../lib/common.sh
+  source "$ROOT/scripts/lib/common.sh"
+  printf 'KEY = abc/$()/def // memo\nOTHER=1\n  KEY=last//x  \n' >"$TEST_TMP/raw.xcconfig"
+  assert_eq "last//x" "$(xcconfig_raw_value "$TEST_TMP/raw.xcconfig" KEY)"
+  assert_eq "1" "$(xcconfig_raw_value "$TEST_TMP/raw.xcconfig" OTHER)"
+  assert_eq "" "$(xcconfig_raw_value "$TEST_TMP/raw.xcconfig" NONE)"
+}
+
+test_release_needs_an_sdk_with_foundation_models() {
+  prepare_release
+  export FAKE_SDK_PATH="$TEST_TMP/old-sdk/MacOSX15.5.sdk" FAKE_SDK_VERSION=15.5
+  mkdir -p "$FAKE_SDK_PATH/System/Library/Frameworks"
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "リリースの準備が足りません"
+  assert_contains "$OUT" "macOS SDK 15.5 に FoundationModels がありません。Xcode 26 以降を選んでください"
+  assert_not_called "xcodegen"
+  assert_not_called "xcodebuild"
+}
+
+test_sparkle_resolved_version() {
+  load_release
+  local project="$TEST_TMP/Nonet.xcodeproj"
+  assert_eq "" "$(sparkle_resolved_version "$project")" "まだ解決していない"
+  mkdir -p "$project/project.xcworkspace/xcshareddata/swiftpm"
+  cat >"$project/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" <<'EOF'
+{
+  "pins" : [
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle",
+      "state" : {
+        "revision" : "ab7d71291238df6e0492143b120c9b696a35f603",
+        "version" : "2.10.1"
+      }
+    }
+  ],
+  "version" : 3
+}
+EOF
+  assert_eq "2.10.1" "$(sparkle_resolved_version "$project")"
+}
+
+# 新しい Mac や CI で、試していない Sparkle の版に変わらないよう、版を固定している
+test_project_pins_sparkle_to_an_exact_version() {
+  local pinned
+  pinned="$(sed -n '/^  Sparkle:/,/^[^ ]/p' "$ROOT/project.yml" | sed -nE 's/^[[:space:]]*exactVersion:[[:space:]]*"?([0-9.]+)"?.*$/\1/p')"
+  [[ -n "$pinned" ]] || fail "project.yml の Sparkle に exactVersion がありません"
+  grep -q "exactVersion: \"$pinned\"" "$ROOT/docs/release.md" || fail "docs/release.md に Sparkle の版（$pinned）の説明がありません"
+}
+
 test_config_problems_reports_missing_file() {
   load_release
   assert_contains "$(config_problems "$TEST_TMP/none.xcconfig")" "がありません"
@@ -359,13 +435,16 @@ test_dry_run_skips_notarization_and_leaves_releases_alone() {
   unset NONET_NOTARY_PROFILE
   export FAKE_SPCTL_STATUS=3
   write_appcast "$RELEASES/appcast.xml" 10
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
   local before
   before="$(cat "$RELEASES/appcast.xml")"
   run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
   assert_status 0
   assert_not_called "notarytool"
   assert_not_called "stapler"
-  assert_not_called "curl"
+  # dry run でも公開中の appcast と比べる（本番の前に気づける）
+  assert_called "curl -sSL --max-time 30 -o $REPO/build/release/1.2.0/appcast-preview/appcast.xml.download"
+  assert_contains "$OUT" "手元の appcast は公開中のものと同じです"
   assert_contains "$OUT" "--dry-run では正常"
   assert_contains "$OUT" "この DMG は配らないでください"
   assert_eq "$before" "$(cat "$RELEASES/appcast.xml")" "公開用の appcast は変わらない"
@@ -379,10 +458,70 @@ test_dry_run_skips_notarization_and_leaves_releases_alone() {
 test_build_number_must_increase() {
   prepare_release
   write_appcast "$RELEASES/appcast.xml" 41 42
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 1
   assert_contains "$OUT" "ビルド番号 42 は、appcast に載っている最大の 42 より大きくしてください"
   assert_not_called "xcodebuild archive"
+}
+
+test_local_appcast_must_match_the_published_one() {
+  prepare_release
+  # 別の Mac のフォルダ: 公開中の 42 を知らない
+  write_appcast "$RELEASES/appcast.xml" 41
+  write_appcast "$TEST_TMP/published.xml" 41 42
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  local before
+  before="$(cat "$RELEASES/appcast.xml")"
+  run "$REPO/scripts/release.sh" 1.3.0 42
+  assert_status 1
+  assert_contains "$OUT" "手元の appcast（最新のビルド 41）が、公開中のもの（最新のビルド 42）と違います: $RELEASES/appcast.xml"
+  assert_contains "$OUT" "--force-local-appcast"
+  assert_not_contains "$OUT" "予期しないエラー"
+  assert_not_called "xcodebuild archive"
+  assert_eq "$before" "$(cat "$RELEASES/appcast.xml")" "手元の appcast は変えない"
+  assert_no_file "$RELEASES/appcast.xml.download"
+
+  # 手元のものを消せば、公開中のものを取ってくる
+  rm "$RELEASES/appcast.xml"
+  run "$REPO/scripts/release.sh" 1.3.0 43
+  assert_status 0
+  assert_eq "3" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "41・42・43"
+}
+
+test_force_local_appcast_skips_the_comparison() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41
+  write_appcast "$TEST_TMP/published.xml" 40
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.0 42
+  assert_status 0
+  assert_not_called "curl"
+  assert_contains "$OUT" "--force-local-appcast: 公開中の appcast と比べずに、手元の $RELEASES/appcast.xml を使います"
+  assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>41</sparkle:version>"
+  assert_not_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>40</sparkle:version>"
+
+  # 手元に無ければ、付けていても公開中のものを取ってくる
+  rm "$RELEASES/appcast.xml"
+  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.0 43
+  assert_status 0
+  assert_called "curl -sSL"
+  assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>40</sparkle:version>"
+}
+
+test_local_appcast_without_a_published_one_needs_a_flag() {
+  prepare_release
+  no_published_appcast
+  write_appcast "$RELEASES/appcast.xml" 1
+  run "$REPO/scripts/release.sh" 1.0.1 2
+  assert_status 1
+  assert_contains "$OUT" "公開中の appcast が見つかりません（HTTP 404）"
+  assert_not_called "xcodebuild archive"
+  # 初めてのリリースの appcast をまだアップロードしていない
+  run "$REPO/scripts/release.sh" --first-release 1.0.1 2
+  assert_status 0
+  assert_contains "$OUT" "手元の appcast を引き継ぎます"
+  assert_eq "2" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "1・2"
 }
 
 test_published_appcast_is_fetched_when_missing() {
@@ -495,7 +634,8 @@ EOF
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>42</sparkle:version>"
   assert_contains "$OUT" "appcast.xml を https://nonet.test/updates/nonet.xml にアップロード（ファイル名を nonet.xml にする）"
 
-  # 次のリリースも、手元の appcast.xml を引き継ぐ
+  # 次のリリースも、手元の appcast.xml を引き継ぐ（前の appcast はアップロード済み）
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
   run "$REPO/scripts/release.sh" 1.2.1 43
   assert_status 0
   assert_eq "3" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "41・42・43"
@@ -604,6 +744,7 @@ test_nested_code_must_be_signed_for_notarization() {
 
   export FAKE_CODESIGN_NESTED_DETAILS="Authority=(unavailable)
 Signature=adhoc"
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
   run "$REPO/scripts/release.sh" 1.2.0 43
   assert_status 1
   assert_contains "$OUT" "Sparkle.framework/Versions/B/Autoupdate が Developer ID Application で署名されていません"
@@ -671,7 +812,7 @@ test_unexpected_failure_names_the_step() {
   prepare_release
   write_appcast "$RELEASES/appcast.xml" 41
   chmod 555 "$RELEASES"
-  run "$REPO/scripts/release.sh" 1.2.0 42
+  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.0 42
   chmod 755 "$RELEASES"
   assert_failed
   assert_contains "$OUT" "予期しないエラーで止まりました"

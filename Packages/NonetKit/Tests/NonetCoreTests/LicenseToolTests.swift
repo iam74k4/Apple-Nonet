@@ -305,6 +305,126 @@ private final class FakeToolEnvironment {
         _ = try LicenseVerifier(publicKeyBase64: keys.publicKey).verify(try issuedKey(environment.output))
     }
 
+    // MARK: - アプリに入れる公開鍵（Config/Nonet.xcconfig）
+
+    /// リポジトリの中（/work/repo）に xcconfig を置き、swift run と同じく Packages/NonetKit で動かす
+    private func installConfig(_ lines: String) {
+        environment.files["/work/repo/Config/Nonet.xcconfig"] = .init(contents: "// 販売時に埋める値\n\(lines)\n", permissions: 0o644)
+        environment.directories.formUnion(["/work/repo", "/work/repo/Packages", "/work/repo/Packages/NonetKit"])
+        environment.currentDirectory = "/work/repo/Packages/NonetKit"
+    }
+
+    /// base64 が「//」を含む本物の鍵の組（約1%）
+    private static let slashedKeys: (privateKeyBase64: String, publicKeyBase64: String) = {
+        while true {
+            let keys = LicenseSigner.generateKeyPair()
+            if keys.publicKeyBase64.contains("//") { return keys }
+        }
+    }()
+
+    @Test func readsXcconfigValuesLikeXcode() throws {
+        let text = """
+        // NONET_LICENSE_PUBLIC_KEY = commented
+        NONET_LICENSE_PUBLIC_KEY_OLD = old
+          NONET_LICENSE_PUBLIC_KEY =  first
+        NONET_LICENSE_PUBLIC_KEY=abc/$()/def= // 末尾のコメント\r
+        """
+        let entry = try #require(LicenseTool.xcconfigValue("NONET_LICENSE_PUBLIC_KEY", in: text))
+        #expect(entry.value == "abc//def=")
+        #expect(entry.raw == "abc/$()/def= // 末尾のコメント")
+        #expect(LicenseTool.xcconfigValue("NONET_LICENSE_PUBLIC_KEY", in: "NONET_LICENSE_PUBLIC_KEY = abc//def")?.value == "abc")
+        #expect(LicenseTool.xcconfigValue("NONET_LICENSE_PUBLIC_KEY", in: "NONET_LICENSE_PUBLIC_KEY =")?.value == "")
+        #expect(LicenseTool.xcconfigValue("NONET_LICENSE_PUBLIC_KEY", in: "OTHER = 1") == nil)
+    }
+
+    @Test func issueRefusesAKeyTheAppCannotVerify() {
+        // xcconfig には最初に作った鍵を入れ、そのあと別の組を作って発行した
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(LicenseTestFixtures.otherKeys.publicKeyBase64)")
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitFailure)
+        #expect(environment.output.isEmpty)
+        #expect(environment.errorOutput.contains("アプリに入れる公開鍵（/work/repo/Config/Nonet.xcconfig の NONET_LICENSE_PUBLIC_KEY）と対応していません"))
+    }
+
+    @Test func issueChecksTheKeyAgainstTheAppPublicKey() throws {
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(LicenseTestFixtures.keys.publicKeyBase64)")
+        // 同じフォルダに公開鍵のファイルが無くても、アプリの公開鍵で確かめる
+        environment.files["/secrets/key"] = .init(contents: LicenseTestFixtures.keys.privateKeyBase64, permissions: 0o600)
+        #expect(environment.run(["issue", "--key", "/secrets/key", "--name", "A"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("警告") == false)
+        #expect(environment.errorOutput.contains("注意") == false)
+        _ = try LicenseVerifier(publicKeyBase64: LicenseTestFixtures.keys.publicKeyBase64).verify(try issuedKey(environment.output))
+    }
+
+    @Test func issueReadsAPublicKeyWrittenWithTheEmptyExpansion() throws {
+        let keys = Self.slashedKeys
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(keys.publicKeyBase64.replacingOccurrences(of: "//", with: "/$()/"))")
+        environment.files["/secrets/key"] = .init(contents: keys.privateKeyBase64, permissions: 0o600)
+        #expect(environment.run(["issue", "--key", "/secrets/key", "--name", "A"]) == LicenseTool.exitSuccess)
+        _ = try LicenseVerifier(publicKeyBase64: keys.publicKeyBase64).verify(try issuedKey(environment.output))
+    }
+
+    @Test func issueRefusesAPublicKeyTruncatedByTheComment() {
+        let keys = Self.slashedKeys
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(keys.publicKeyBase64)")
+        environment.files["/secrets/key"] = .init(contents: keys.privateKeyBase64, permissions: 0o600)
+        #expect(environment.run(["issue", "--key", "/secrets/key", "--name", "A"]) == LicenseTool.exitFailure)
+        #expect(environment.output.isEmpty)
+        #expect(environment.errorOutput.contains("「//」の所で切れています"))
+        #expect(environment.errorOutput.contains("「/$()/」と書いてください"))
+    }
+
+    @Test func issueRefusesAnInvalidAppPublicKey() throws {
+        installConfig("NONET_LICENSE_PUBLIC_KEY = not-a-key")
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitFailure)
+        #expect(environment.errorOutput.contains("Ed25519 の公開鍵（base64 で 44 文字）になっていません: not-a-key"))
+        #expect(environment.output.isEmpty)
+    }
+
+    @Test func issueNotesAnEmptyAppPublicKey() throws {
+        installConfig("NONET_LICENSE_PUBLIC_KEY =")
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("注意: /work/repo/Config/Nonet.xcconfig の NONET_LICENSE_PUBLIC_KEY が空のため"))
+    }
+
+    @Test func issueNotesWhenTheConfigIsNotFound() throws {
+        let paths = installStandardKeys()
+        #expect(environment.run(["issue", "--key", paths.privatePath, "--name", "A"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("注意: Config/Nonet.xcconfig が見つからないため"))
+    }
+
+    @Test func issueWithAnExplicitPublicKeyWarnsWhenTheAppUsesAnother() throws {
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(LicenseTestFixtures.otherKeys.publicKeyBase64)")
+        let keys = try installKeys()
+        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", keys.publicKey]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("警告: --public の公開鍵は、アプリに入れる公開鍵"))
+        // 同じ鍵なら何も言わない（書き方が base64url でも）
+        let urlForm = LicenseCoding.base64URLEncoded(try #require(Data(base64Encoded: keys.publicKey)))
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(urlForm)")
+        #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--public", keys.publicKey]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("警告") == false)
+    }
+
+    @Test func publicKeyCanBeReadFromAnXcconfig() throws {
+        installConfig("NONET_LICENSE_PUBLIC_KEY = \(LicenseTestFixtures.keys.publicKeyBase64)")
+        let key = try LicenseTestFixtures.licenseKey()
+        #expect(environment.run(["verify", "--public", "/work/repo/Config/Nonet.xcconfig", key]) == LicenseTool.exitSuccess)
+        #expect(environment.output.contains("有効なライセンスです"))
+
+        installConfig("NONET_LICENSE_PUBLIC_KEY =")
+        #expect(environment.run(["verify", "--public", "/work/repo/Config/Nonet.xcconfig", key]) == LicenseTool.exitFailure)
+        #expect(environment.errorOutput.contains("NONET_LICENSE_PUBLIC_KEY が空です"))
+    }
+
+    @Test func verifyAcceptsAKeyPastedWithALabel() throws {
+        let keys = try installKeys()
+        let key = try LicenseTestFixtures.licenseKey()
+        #expect(environment.run(["verify", "--public", keys.publicKey, "License key: \(key)"]) == LicenseTool.exitSuccess)
+        #expect(environment.output.contains("購入者: 山田 太郎"))
+    }
+
     @Test func issueReportsKeyProblems() {
         #expect(environment.run(["issue", "--key", "/missing", "--name", "A"]) == LicenseTool.exitFailure)
         #expect(environment.errorOutput.contains("秘密鍵を読めません"))
@@ -374,6 +494,8 @@ private final class FakeToolEnvironment {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("NonetLicenseToolTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }
         var io = LicenseToolIO.live
+        // リポジトリの Config/Nonet.xcconfig（販売用の公開鍵が入っていることがある）を見つけないよう、外で動かす
+        io.currentDirectory = { directory.path }
         var output = ""
         io.standardOutput = { output += $0 }
         io.standardError = { _ in }

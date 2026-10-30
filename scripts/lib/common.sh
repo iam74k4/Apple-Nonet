@@ -67,6 +67,21 @@ xcconfig_value() {
   printf '%s' "$found"
 }
 
+# xcconfig の = から後ろを、// で切らずにそのまま読む（値が // で切れているかを見分けるため）。
+# 同じキーが何度もあれば最後のもの。無ければ空文字
+xcconfig_raw_value() {
+  local file="$1" key="$2" line found=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="$(trim "$line")"
+    case "$line" in
+      "$key"=* | "$key"[[:space:]]*=*) ;;
+      *) continue ;;
+    esac
+    found="$(trim "${line#*=}")"
+  done <"$file"
+  printf '%s' "$found"
+}
+
 # project.yml の DEVELOPMENT_TEAM（チーム ID）
 project_team_id() {
   sed -nE 's/^[[:space:]]*DEVELOPMENT_TEAM:[[:space:]]*"?([A-Z0-9]{10})"?.*$/\1/p' "$1" | head -n 1

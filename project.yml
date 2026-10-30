@@ -19,9 +19,11 @@ settings:
 packages:
   NonetKit:
     path: Packages/NonetKit
+  # 版を固定する（Package.resolved は Nonet.xcodeproj の中にできてコミットしないので、固定しないと新しい Mac や CI で
+  # 試していない版になる）。上げ方は docs/release.md「Sparkle の版を上げる」
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: "2.6.0"
+    exactVersion: "2.10.1"
 targets:
   Nonet:
     type: application

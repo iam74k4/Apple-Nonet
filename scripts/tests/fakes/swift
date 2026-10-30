@@ -1,10 +1,24 @@
 #!/bin/bash
 # テスト用の偽の swift。引数と実行したフォルダを記録する。
 #   FAKE_SWIFT_BUILD_STATUS / FAKE_SWIFT_TEST_STATUS  swift build / swift test の終了コード
+# --build-path を付けた swift build（scripts/sync-strings.sh の抽出）では、各ターゲットの空の .stringsdata を置く
 set -euo pipefail
 printf 'swift %s (in %s)\n' "$*" "$(basename "$PWD")" >>"${FAKE_LOG:?}"
 
 case "${1:-}" in
-  build) exit "${FAKE_SWIFT_BUILD_STATUS:-0}" ;;
+  build)
+    build_path=""
+    while [[ $# -gt 0 ]]; do
+      [[ "$1" != --build-path ]] || build_path="$2"
+      shift
+    done
+    if [[ -n "$build_path" && "${FAKE_SWIFT_BUILD_STATUS:-0}" == 0 ]]; then
+      for target in NonetCore NonetPlatform NonetUI; do
+        mkdir -p "$build_path/debug/$target.build"
+        : >"$build_path/debug/$target.build/$target.stringsdata"
+      done
+    fi
+    exit "${FAKE_SWIFT_BUILD_STATUS:-0}"
+    ;;
   test) exit "${FAKE_SWIFT_TEST_STATUS:-0}" ;;
 esac

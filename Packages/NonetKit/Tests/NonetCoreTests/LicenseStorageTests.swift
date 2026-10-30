@@ -2,6 +2,27 @@ import Foundation
 import Testing
 @testable import NonetCore
 
+/// メモリの上のキーチェーン。読み書きの回数を数える
+private final class MemoryTrialKeychain: TrialRecordKeychain {
+    var data: Data?
+    var reads = 0
+    var writes = 0
+
+    func readTrialRecord() -> Data? {
+        reads += 1
+        return data
+    }
+
+    func writeTrialRecord(_ data: Data) {
+        writes += 1
+        self.data = data
+    }
+
+    var record: TrialRecord? {
+        data.flatMap(UserDefaultsLicenseStorage.decodeKeychainRecord)
+    }
+}
+
 /// 専用の UserDefaults と一時フォルダ。テストごとに作って消す
 private final class StorageSandbox {
     let suiteName = "com.iam74k4.Nonet.tests.\(UUID().uuidString)"
@@ -20,8 +41,41 @@ private final class StorageSandbox {
         try? FileManager.default.removeItem(at: directory.deletingLastPathComponent())
     }
 
-    func makeStorage() -> UserDefaultsLicenseStorage {
-        UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: directory)
+    func makeStorage(keychain: (any TrialRecordKeychain)? = nil) -> UserDefaultsLicenseStorage {
+        UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: directory, keychain: keychain)
+    }
+
+    private static let mirrorFileNames = [
+        UserDefaultsLicenseStorage.mirrorFileName, UserDefaultsLicenseStorage.lastSeenFileName, UserDefaultsLicenseStorage.usedFileName,
+    ]
+
+    /// フォルダの試用の記録（バックアップの代わり）
+    func snapshotFolder() throws -> [String: Data] {
+        var files: [String: Data] = [:]
+        for name in Self.mirrorFileNames {
+            files[name] = try Data(contentsOf: directory.appendingPathComponent(name))
+        }
+        return files
+    }
+
+    func restoreFolder(_ files: [String: Data]) throws {
+        for (name, data) in files {
+            try data.write(to: directory.appendingPathComponent(name))
+        }
+    }
+
+    /// フォルダとファイルを書けなくする（復元で持ち主や権限が変わったとき）
+    func setFolderWritable(_ writable: Bool) throws {
+        let fileManager = FileManager.default
+        if writable {
+            try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+        }
+        for name in Self.mirrorFileNames where fileExists(name) {
+            try fileManager.setAttributes([.posixPermissions: writable ? 0o644 : 0o444], ofItemAtPath: directory.appendingPathComponent(name).path)
+        }
+        if !writable {
+            try fileManager.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        }
     }
 
     var mirrorFile: URL {
@@ -266,5 +320,203 @@ private final class StorageSandbox {
         let later = start.addingTimeInterval(20 * 86_400)
         let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(), now: { later })
         #expect(manager.entitlement == .expired)
+    }
+
+    // MARK: - 食い違った記録
+
+    private static let trialStart = Date(timeIntervalSinceReferenceDate: 815_000_000)
+
+    private static func day(_ count: Double) -> Date {
+        trialStart.addingTimeInterval(count * 86_400)
+    }
+
+    /// その日に起動する
+    @MainActor
+    private func launch(day: Double, keychain: (any TrialRecordKeychain)? = nil) -> LicenseManager {
+        let now = Self.day(day)
+        return LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { now })
+    }
+
+    @MainActor
+    @Test func aStaleFolderFromABackupDoesNotCountTheSameDaysTwice() throws {
+        _ = launch(day: 0)
+        _ = launch(day: 1)
+        let backup = try sandbox.snapshotFolder()
+        _ = launch(day: 6)
+        // 設定を戻すために、1日目の Application Support/Nonet をバックアップから戻した
+        try sandbox.restoreFolder(backup)
+        #expect(launch(day: 6).entitlement == .trial(daysLeft: 8))
+        #expect(sandbox.makeStorage().trialUsedTime == 6.0 * 86_400)
+        // 古い記録はそろえ直したので、次の起動も同じ
+        #expect(launch(day: 6).entitlement == .trial(daysLeft: 8))
+        #expect(sandbox.mirrorText(Storage.usedFileName) == String(6.0 * 86_400))
+    }
+
+    @MainActor
+    @Test func aFolderThatCannotBeWrittenDoesNotShortenTheTrial() throws {
+        _ = launch(day: 0)
+        try sandbox.setFolderWritable(false)
+        defer { try? sandbox.setFolderWritable(true) }
+        // ファイルは0日目のまま。毎日起動し直しても、実際の日数だけ減る
+        for day in 1...5 {
+            #expect(launch(day: Double(day)).entitlement == .trial(daysLeft: 14 - day))
+        }
+        #expect(sandbox.mirrorText(Storage.usedFileName) == "0.0")
+    }
+
+    @MainActor
+    @Test func turningTheClockBackWithAStaleFolderNeitherRestartsNorExtendsTheTrial() throws {
+        _ = launch(day: 0)
+        _ = launch(day: 1)
+        let backup = try sandbox.snapshotFolder()
+        _ = launch(day: 6)
+        try sandbox.restoreFolder(backup)
+        // 日付を30日前に戻して起動する: 戻した分は数えないが、使った6日は減らない
+        #expect(launch(day: -30).entitlement == .trial(daysLeft: 8))
+        #expect(sandbox.makeStorage().trialUsedTime == 6.0 * 86_400)
+        #expect(launch(day: -29).entitlement == .trial(daysLeft: 7))
+    }
+
+    @Test func oneCopyMovedForwardOrReducedIsIgnored() {
+        let storage = sandbox.makeStorage()
+        storage.trialStartDate = Self.day(0)
+        storage.trialLastSeenDate = Self.day(5)
+        storage.trialUsedTime = 5 * 86_400
+        // UserDefaults だけ「最後に数えたのは20日後で、使ったのは1日」に書き換える
+        sandbox.defaults.set(Self.day(20), forKey: Storage.trialLastSeenKey)
+        sandbox.defaults.set(86_400.0, forKey: Storage.trialUsedKey)
+        // ファイルの組（5日目に5日）が、どの時刻でも厳しい
+        #expect(storage.trialUsedTime == 5.0 * 86_400)
+        #expect(storage.trialLastSeenDate == Self.day(5))
+        #expect(sandbox.defaults.object(forKey: Storage.trialLastSeenKey) as? Date == Self.day(5))
+    }
+
+    /// (最後に数えた日, 使った日数) の組。nil はその値が無い
+    nonisolated static let recordCases: [[(lastSeen: Double?, used: Double?)]] = [
+        [(5, 5), (5, 5)],
+        [(6, 6), (1, 1)],
+        [(6, 6), (1, 0.5)],
+        [(20, 1), (5, 5)],
+        [(3, 10), (6, 6)],
+        [(6, 6), (nil, 8)],
+        [(6, 6), (9, nil)],
+        [(6, 6), (1, 1), (-30, 6)],
+        [(nil, 4)],
+    ]
+
+    @Test(arguments: recordCases.indices)
+    func reconciledRecordCountsLikeTheStrictestCopy(index: Int) throws {
+        let records = Self.recordCases[index].map { TrialRecord(start: 0, lastSeen: $0.lastSeen, used: $0.used) }
+        let chosen = TrialRecord.reconciled(records)
+        // 時計を戻したとき（-40）から、ずっと後まで
+        for now in [-40.0, 0, 1, 3, 5.5, 6, 10, 30] {
+            let strictest = try #require(records.compactMap { record -> Double? in
+                guard let used = record.used else { return nil }
+                return record.lastSeen.map { used + max(0, now - $0) } ?? used
+            }.max())
+            let used = try #require(chosen.used)
+            let counted = chosen.lastSeen.map { used + max(0, now - $0) } ?? used
+            #expect(abs(counted - strictest) < 1e-9, "組 \(Self.recordCases[index])・時刻 \(now)")
+        }
+    }
+
+    @Test func reconciledKeepsTheExactValuesWhenTheCopiesAgree() {
+        let record = TrialRecord(start: 815_000_000.123_456_789, lastSeen: 815_400_000.987_654_321, used: 12_345.678_9)
+        #expect(TrialRecord.reconciled([record, record]) == record)
+        #expect(TrialRecord.reconciled([record, TrialRecord()]) == record)
+        #expect(TrialRecord.reconciled([]) == TrialRecord())
+    }
+
+    @Test func aMissingStartIsWorkedOutFromTheUsage() {
+        // 開始日だけが消されていても、試用をやり直さない
+        let chosen = TrialRecord.reconciled([TrialRecord(lastSeen: 10, used: 4), TrialRecord(lastSeen: 12, used: 5)])
+        #expect(chosen.start == 6)
+        #expect(TrialRecord.reconciled([TrialRecord(start: 2, lastSeen: 10, used: 4)]).start == 2)
+    }
+
+    // MARK: - キーチェーン
+
+    @MainActor
+    @Test func theKeychainCopyKeepsTheTrialWhenPreferencesAndFolderAreDeleted() throws {
+        let keychain = MemoryTrialKeychain()
+        _ = launch(day: 0, keychain: keychain)
+        _ = launch(day: 5, keychain: keychain)
+        // アンインストールツールで環境設定と Application Support/Nonet を消してから、入れ直した
+        sandbox.defaults.removePersistentDomain(forName: sandbox.suiteName)
+        try FileManager.default.removeItem(at: sandbox.directory)
+        #expect(launch(day: 7, keychain: keychain).entitlement == .trial(daysLeft: 7))
+        // 消された置き場所も戻す
+        #expect(sandbox.storedDefaultsDate == Self.day(0))
+        #expect(sandbox.mirrorText(Storage.usedFileName) == String(7.0 * 86_400))
+        #expect(launch(day: 15, keychain: keychain).entitlement == .expired)
+    }
+
+    @MainActor
+    @Test func withoutTheKeychainDeletingBothRestartsTheTrial() throws {
+        // --self-check と Debug の --config-dir はキーチェーンを使わない（この挙動のまま）
+        _ = launch(day: 0)
+        _ = launch(day: 5)
+        sandbox.defaults.removePersistentDomain(forName: sandbox.suiteName)
+        try FileManager.default.removeItem(at: sandbox.directory)
+        #expect(launch(day: 7).entitlement == .trial(daysLeft: 14))
+    }
+
+    @MainActor
+    @Test func theKeychainIsWrittenOncePerLaunchAndReadOnlyWhenTheOtherCopiesAreGone() throws {
+        let keychain = MemoryTrialKeychain()
+        let manager = launch(day: 0, keychain: keychain)
+        // 初回はほかの置き場所に記録が無いので、一度だけ読む
+        #expect(keychain.reads == 1)
+        #expect(keychain.writes == 1)
+        #expect(keychain.record == TrialRecord(start: Self.day(0).timeIntervalSinceReferenceDate, lastSeen: Self.day(0).timeIntervalSinceReferenceDate, used: 0))
+        manager.refresh()
+        manager.refresh()
+        #expect(keychain.reads == 1)
+        #expect(keychain.writes == 1)
+
+        // 次の起動ではほかの置き場所に記録があるので読まず、起動したときの記録を一度だけ書く
+        let next = launch(day: 2, keychain: keychain)
+        next.refresh()
+        #expect(keychain.reads == 1)
+        #expect(keychain.writes == 2)
+        #expect(keychain.record?.used == 2.0 * 86_400)
+        #expect(keychain.record?.lastSeen == Self.day(2).timeIntervalSinceReferenceDate)
+    }
+
+    @MainActor
+    @Test func aStaleKeychainCopyIsNotUsedWhileTheOtherCopiesExist() {
+        // 時計が30日遅れていたときに書いた記録。そのまま数えると30日余計に数える
+        let keychain = MemoryTrialKeychain()
+        keychain.data = Data(#"{"lastSeen":\#(Self.day(-30).timeIntervalSinceReferenceDate),"start":\#(Self.day(-30).timeIntervalSinceReferenceDate),"used":0}"#.utf8)
+        sandbox.makeStorage().trialStartDate = Self.day(0)
+        sandbox.makeStorage().trialLastSeenDate = Self.day(0)
+        sandbox.makeStorage().trialUsedTime = 0
+        #expect(launch(day: 2, keychain: keychain).entitlement == .trial(daysLeft: 12))
+        #expect(keychain.reads == 0)
+    }
+
+    @MainActor
+    @Test(arguments: ["garbage", "{}", #"{"used":-5,"lastSeen":"x"}"#, #"{"used":1e999}"#])
+    func unreadableKeychainDataIsIgnored(text: String) {
+        let keychain = MemoryTrialKeychain()
+        keychain.data = Data(text.utf8)
+        #expect(launch(day: 0, keychain: keychain).entitlement == .trial(daysLeft: 14))
+        // 読めるものに書き直す
+        #expect(keychain.record?.used == 0)
+    }
+
+    @Test func keychainValuesAreCheckedLikeTheOtherCopies() {
+        let record = UserDefaultsLicenseStorage.decodeKeychainRecord(Data(#"{"start":100,"lastSeen":200,"used":-1}"#.utf8))
+        #expect(record == TrialRecord(start: 100, lastSeen: 200, used: nil))
+    }
+
+    @Test func theSystemKeychainIsOnlyUsedByTheDistributedApp() {
+        // テストは Developer ID で署名した Nonet ではないので、本物のキーチェーンに触れない
+        #expect(SystemTrialRecordKeychain.isDistributedApp() == false)
+        let keychain = SystemTrialRecordKeychain()
+        #expect(keychain.isEnabled == false)
+        #expect(keychain.readTrialRecord() == nil)
+        keychain.writeTrialRecord(Data("{}".utf8))
+        #expect(keychain.readTrialRecord() == nil)
     }
 }

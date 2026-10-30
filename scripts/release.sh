@@ -22,6 +22,9 @@ usage() {
   --notes <ファイル>  リリースノート（.html / .md / .txt）。appcast に埋め込まれる。
                      リポジトリの中に置いても、このファイルはコミットしていなくてよい
   --first-release    初めてのリリース。公開中の appcast が無い（HTTP 404・410）ときに、新しく作ってよいことを示す
+  --force-local-appcast
+                     公開中の appcast を取ってこずに、手元の appcast.xml（NONET_RELEASES_DIR）をそのまま使う。
+                     手元のものが公開中のものと違うと止まるが、手元が正しいと分かっているときだけ付ける
   --allow-dirty      コミットしていない変更があっても続ける
   -h, --help         この説明を表示する
 
@@ -72,7 +75,7 @@ is_placeholder() {
 
 # Config/Nonet.xcconfig の販売用の値の問題を1行ずつ出す。問題が無ければ何も出さない
 config_problems() {
-  local file="$1" key value
+  local file="$1" key value uncut
   if [[ ! -f "$file" ]]; then
     printf '%s がありません\n' "$file"
     return 0
@@ -92,12 +95,34 @@ config_problems() {
   done
   for key in NONET_SPARKLE_PUBLIC_KEY NONET_LICENSE_PUBLIC_KEY; do
     value="$(xcconfig_value "$file" "$key")"
-    if [[ -z "$value" ]]; then
+    # base64 の公開鍵の約1%は「//」を含み、xcconfig ではそこから後ろがコメントになって切れる
+    uncut="$(xcconfig_raw_value "$file" "$key")"
+    uncut="${uncut//"\$()"/}"
+    if is_ed25519_public_key "$value"; then
+      continue
+    elif [[ "$uncut" == *//* ]] && is_ed25519_public_key "$uncut"; then
+      printf '%s が「//」の所で切れています。xcconfig では // から後ろがコメントになるので、公開鍵の「//」を「%s」と書いてください\n' \
+        "$key" "/\$()/"
+    elif [[ -z "$value" ]]; then
       printf '%s が空です\n' "$key"
-    elif ! is_ed25519_public_key "$value"; then
+    else
       printf '%s が Ed25519 の公開鍵（base64 で 44 文字）になっていません\n' "$key"
     fi
   done
+}
+
+# AI のアクションは FoundationModels（macOS 26 の SDK から）が無いとビルドから外れ、古い Xcode でもビルドは通ってしまう。
+# そのまま配ると AI のアクションがすべて「macOS 26 以降が必要」で失敗するので、選ばれている SDK に無ければ問題を1行出す
+foundation_models_problem() {
+  local sdk version
+  sdk="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+  version="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null || true)"
+  if [[ -z "$sdk" ]]; then
+    printf 'macOS の SDK が見つかりません（xcode-select -p で、選ばれている Xcode を確かめてください）\n'
+  elif [[ ! -d "$sdk/System/Library/Frameworks/FoundationModels.framework" ]]; then
+    printf 'macOS SDK %s に FoundationModels がありません。Xcode 26 以降を選んでください（sudo xcode-select -s /Applications/Xcode.app）。古い SDK でビルドすると、AI のアクションが動かないアプリになります\n' \
+      "${version:-（版が不明）}"
+  fi
 }
 
 # Sparkle の appcast（RSS）らしい中身か。ホスティングによっては、無いファイルにも 200 で index.html を返す
@@ -181,6 +206,7 @@ uncommitted_changes() {
 parse_args() {
   DRY_RUN=0
   FIRST_RELEASE=0
+  FORCE_LOCAL_APPCAST=0
   ALLOW_DIRTY=0
   NOTES=""
   VERSION=""
@@ -194,6 +220,7 @@ parse_args() {
         ;;
       --dry-run) DRY_RUN=1 ;;
       --first-release) FIRST_RELEASE=1 ;;
+      --force-local-appcast) FORCE_LOCAL_APPCAST=1 ;;
       --allow-dirty) ALLOW_DIRTY=1 ;;
       --notes)
         [[ $# -ge 2 && -n "$2" ]] || usage_error "--notes にはファイルを指定してください"
@@ -233,6 +260,11 @@ preflight() {
   elif [[ -z "$missing" ]]; then
     IDENTITY="$(developer_id_identity "$TEAM")"
     [[ -n "$IDENTITY" ]] || problems+="チーム $TEAM の有効な Developer ID Application 証明書がキーチェーンにありません（docs/release.md「Developer ID 証明書」）"$'\n'
+  fi
+
+  if [[ -z "$missing" ]]; then
+    line="$(foundation_models_problem)"
+    [[ -z "$line" ]] || problems+="$line"$'\n'
   fi
 
   while IFS= read -r line; do
@@ -297,6 +329,13 @@ find_sparkle_bin() {
   SPARKLE_BIN="$(dirname "$tool")"
 }
 
+# 解決した Sparkle の版（Package.resolved）。分からなければ空文字
+sparkle_resolved_version() {
+  local resolved="$1/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+  [[ -f "$resolved" ]] || return 0
+  grep -A 6 '"identity" *: *"sparkle"' "$resolved" | sed -nE 's/.*"version" *: *"([^"]+)".*/\1/p' | head -n 1 || true
+}
+
 check_sparkle_key() {
   local bin="$1" expected="$2" actual
   actual="$("$bin/generate_keys" --account "$SPARKLE_ACCOUNT" -p 2>/dev/null | tail -n 1 || true)"
@@ -306,38 +345,62 @@ check_sparkle_key() {
     die "キーチェーンの Sparkle の鍵（公開鍵 $actual）が NONET_SPARKLE_PUBLIC_KEY と違います。このまま出すと、利用者がアップデートを受け取れなくなります"
 }
 
-# appcast.xml が手元に無ければ、公開中のものを取ってくる。
+# 公開中の appcast を取ってきて、手元の appcast.xml と比べる。
+# - 手元に無ければ、公開中のものを使う
+# - 手元にあれば、公開中のものとまったく同じでなければ止まる。別の Mac やバックアップの古い appcast から作ると、
+#   公開中の項目が消えたり、公開済みと同じビルド番号を出したりしてしまう（--force-local-appcast なら取ってこずに手元のものを使う）
 # 公開中のものを取れないまま新しく作ると、過去の項目が消えた appcast で公開中のものを上書きしてしまう。
 # そのため新しく作るのは「404・410（まだ無い）かつ --first-release」のときだけで、403・503 などでは止まる
 fetch_published_appcast() {
-  local dest="$1" url="$2" first_release="$3" code="" status=0 retry
-  [[ ! -f "$dest" ]] || return 0
-  retry="ネットワークやサーバーを確かめるか、公開中の appcast を $dest に置いてからやり直してください"
+  local dest="$1" url="$2" first_release="$3" force_local="$4" code="" status=0 retry download="$1.download"
+  local published_latest local_latest
+  if [[ -f "$dest" && "$force_local" == 1 ]]; then
+    warn "--force-local-appcast: 公開中の appcast と比べずに、手元の $dest を使います"
+    return 0
+  fi
+  retry="ネットワークやサーバーを確かめてからやり直すか、公開中の appcast を $dest に置いて --force-local-appcast を付けてください"
   # -f は 400 以上をすべて同じ終了コード（22）にするので使わず、状態コードを受け取る。
   # curl の失敗は exit で返す（set -E の ERR トラップがコマンド置換の中で鳴らないように）
-  code="$(curl -sSL --max-time 30 -o "$dest.download" -w '%{http_code}' "$url" || exit $?)" || status=$?
+  code="$(curl -sSL --max-time 30 -o "$download" -w '%{http_code}' "$url" || exit $?)" || status=$?
   if [[ "$status" != 0 ]]; then
-    rm -f "$dest.download"
+    rm -f "$download"
     die "公開中の appcast を取得できませんでした（curl の終了コード $status）: $url
     $retry"
   fi
   case "$code" in
     200)
-      if ! is_appcast_file "$dest.download"; then
-        rm -f "$dest.download"
+      if ! is_appcast_file "$download"; then
+        rm -f "$download"
         die "公開中の appcast の中身が appcast（RSS）ではありません: $url
     サーバーが、無いファイルにも 200 で別のページ（index.html など）を返していないか確かめてください"
       fi
-      mv "$dest.download" "$dest"
-      info "公開中の appcast を取り込みました: $url"
+      if [[ ! -f "$dest" ]]; then
+        mv "$download" "$dest"
+        info "公開中の appcast を取り込みました: $url"
+      elif cmp -s "$download" "$dest"; then
+        rm -f "$download"
+        info "手元の appcast は公開中のものと同じです: $url"
+      else
+        published_latest="$(appcast_latest_build "$download")"
+        local_latest="$(appcast_latest_build "$dest")"
+        rm -f "$download"
+        die "手元の appcast（最新のビルド ${local_latest:-なし}）が、公開中のもの（最新のビルド ${published_latest:-なし}）と違います: $dest
+    前のリリースの appcast.xml をまだアップロードしていないなら、先に $url へアップロードしてください。
+    手元のものが古い（別の Mac やバックアップから戻した）なら、手元の appcast.xml を消すと公開中のものを取ってきます。
+    手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
+      fi
       ;;
     404 | 410)
-      rm -f "$dest.download"
+      rm -f "$download"
       [[ "$first_release" == 1 ]] || die "公開中の appcast が見つかりません（HTTP $code）: $url
     初めてのリリースなら --first-release を付けてください。
-    公開済みなら、NONET_APPCAST_URL が公開中の URL と同じかを確かめるか、公開中の appcast を $dest に置いてからやり直してください
+    公開済みなら、NONET_APPCAST_URL が公開中の URL と同じかを確かめるか、公開中の appcast を $dest に置き、--force-local-appcast を付けてやり直してください
     （このまま新しく作ると、過去の版の項目が消えた appcast になり、利用者にアップデートが届かなくなります）"
-      info "公開中の appcast はまだありません（HTTP $code）。初めてのリリースとして新しく作ります"
+      if [[ -f "$dest" ]]; then
+        info "公開中の appcast はまだありません（HTTP $code）。手元の appcast を引き継ぎます"
+      else
+        info "公開中の appcast はまだありません（HTTP $code）。初めてのリリースとして新しく作ります"
+      fi
       ;;
     *)
       rm -f "$dest.download"
@@ -503,10 +566,13 @@ main() {
   run_logged "$WORK/resolve.log" xcodebuild -resolvePackageDependencies \
     -project "$ROOT/Nonet.xcodeproj" -scheme Nonet -derivedDataPath "$DERIVED"
   find_sparkle_bin "$DERIVED"
+  local sparkle_version
+  sparkle_version="$(sparkle_resolved_version "$ROOT/Nonet.xcodeproj")"
+  [[ -z "$sparkle_version" ]] || info "Sparkle $sparkle_version（project.yml の exactVersion で固定）"
 
   step "Sparkle の鍵とビルド番号を確かめる"
   check_sparkle_key "$SPARKLE_BIN" "$SPARKLE_PUBLIC_KEY"
-  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL" "$FIRST_RELEASE"
+  fetch_published_appcast "$appcast_dir/appcast.xml" "$APPCAST_URL" "$FIRST_RELEASE" "$FORCE_LOCAL_APPCAST"
   local latest
   latest="$(appcast_latest_build "$appcast_dir/appcast.xml")"
   if [[ -n "$latest" && "$BUILD" -le "$latest" ]]; then

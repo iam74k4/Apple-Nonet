@@ -19,10 +19,13 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 ### 2. Mac の中だけに保存する情報
 
-- **設定**（プロファイル・マス・アクション・全体の設定）: `~/Library/Application Support/Nonet/` に保存します。
-- **試用の開始日とライセンスキー**: 本アプリの環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`）に保存します。ライセンスキーには、購入時の名前とメールアドレスが含まれます。
+- **設定**（プロファイル・マス・アクション・全体の設定）: `~/Library/Application Support/Nonet/configuration.json` に保存します。保存するたびに1つ前の版を同じフォルダの `configuration.backup.json` に残します。読めなかったファイルや別の版のファイルは、上書きせずに名前を変えて同じフォルダに残します。
+- **試用の記録**（開始日・最後に確かめた時刻・使った時間）: 本アプリの環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`）と `~/Library/Application Support/Nonet/` に保存し、製品版ではログインキーチェーンにも項目（`com.iam74k4.Nonet.license.trial`）として保存します。試用期間を正しく数えるためだけに使います。キーチェーンの項目は iCloud キーチェーンと同期しません。
+- **ライセンスキー**: 本アプリの環境設定に保存します。ライセンスキーには、購入時の名前とメールアドレスが含まれます。
+- **そのほかの環境設定**: 設定ウインドウの位置と大きさ、アップデートの確認の設定と最後に確認した日時（Sparkle）を、本アプリの環境設定に保存します。
+- **ターミナル用の一時ファイル**: スクリプトをターミナルで実行するとき、スクリプトとそれに渡す情報を書いた一時ファイル（`nonet-….command`）を、Mac の一時フォルダ（`$TMPDIR/Nonet/Terminal/`）に本人だけが読める権限で作ります。実行が始まると消し、開かれずに残ったものは、次にターミナルで実行するときに消します。
 
-どちらも Mac の外には送りません。本アプリを削除するときにまとめて消せます（手順は[利用ガイド](user-guide.md#アンインストール)）。
+どれも Mac の外には送りません。本アプリを削除するときにまとめて消せます（手順は[利用ガイド](user-guide.md#アンインストール)。キーチェーンの項目は、キーチェーンアクセスで消せます）。
 
 ### 3. アクセシビリティの許可の使い方
 
@@ -32,13 +35,13 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 - トリガーキーを押している間、カーソルの移動・クリック・スクロールを前面のアプリに渡さない。
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。
 - 設定画面で、起動中のアプリのメニューの一覧を読む。
-- あなたが設定したアクションが必要とするときだけ、選択中のテキストと、前面のウィンドウで開いている書類の場所を読む。
+- あなたが設定したアクション（スクリプト・ショートカット・AI）がそれを使うときだけ、実行する直前に、選択中のテキストと、前面のウィンドウで開いている書類の場所を読む。選択中のテキストを直接読めないアプリでは、⌘C でクリップボードを使って読み、クリップボードを元に戻す。読んだ内容はそのアクションに渡すだけで、保存も送信もしません。
 
 トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み、どのマスかを決めるためにメモリの中だけで使います。保存も送信もしません。
 
 ### 4. オートメーション（Apple Events）
 
-スクリプトのアクションでブラウザに表示中のページの URL を使うとき、またはスクリプトをターミナルで実行するときに、そのブラウザやターミナルに問い合わせます。macOS が初回に許可を確認します。
+スクリプトのアクションがブラウザに表示中のページの URL を使うときだけ、実行する直前にそのブラウザに URL を問い合わせます。スクリプトをターミナルで実行するときは、ターミナルに実行を頼みます。macOS が初回に許可を確認します。読んだ URL はそのスクリプトに渡すだけで、保存も送信もしません。
 
 ### 5. あなたが設定するアクション
 
@@ -86,10 +89,13 @@ Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is
 
 ### 2. What stays on your Mac
 
-- **Settings** (profiles, buttons, actions and preferences) are stored in `~/Library/Application Support/Nonet/`.
-- **Trial start date and license key** are stored in the app's preferences (`~/Library/Preferences/com.iam74k4.Nonet.plist`). A license key contains the name and email address used for the purchase.
+- **Settings** (profiles, buttons, actions and preferences) are stored in `~/Library/Application Support/Nonet/configuration.json`. Each save keeps the previous version as `configuration.backup.json` in the same folder. Files that cannot be read, or that come from another version, are kept in the same folder under a new name instead of being overwritten.
+- **Trial records** (start date, last check time and time used) are stored in the app's preferences (`~/Library/Preferences/com.iam74k4.Nonet.plist`) and in `~/Library/Application Support/Nonet/`. The release version also stores them as an item in your login keychain (`com.iam74k4.Nonet.license.trial`). They are used only to count the trial period correctly. The keychain item is not synced with iCloud Keychain.
+- **License key** is stored in the app's preferences. A license key contains the name and email address used for the purchase.
+- **Other preferences**: the position and size of the settings window, and the update-check settings and last check time (Sparkle), are stored in the app's preferences.
+- **Temporary files for Terminal**: when a script runs in Terminal, the app writes the script and the information passed to it to a temporary file (`nonet-….command`) in your Mac's temporary folder (`$TMPDIR/Nonet/Terminal/`) that only you can read. The file is deleted when the script starts; any file left unopened is deleted the next time a script runs in Terminal.
 
-Neither leaves your Mac. You can remove both when you uninstall the app (see the [user guide](user-guide.md#アンインストール)).
+None of this leaves your Mac. You can remove all of it when you uninstall the app (see the [user guide](user-guide.md#アンインストール); remove the keychain item with Keychain Access).
 
 ### 3. How the Accessibility permission is used
 
@@ -99,13 +105,13 @@ The app uses the macOS Accessibility permission only to:
 - Keep pointer movement, clicks and scrolling from reaching the front app while you hold the trigger key.
 - Send the keystrokes you configured to the front app and choose menu items.
 - Read the menus of running apps in the settings window.
-- Read the selected text and the location of the document open in the front window, only when an action you configured needs them.
+- Read the selected text and the location of the document open in the front window, just before an action you configured (a script, shortcut or AI action) runs, and only when that action uses them. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.
 
 Finger positions on the trackpad are read through macOS's multi-touch support and used only in memory to decide which button you are on. They are never stored or sent.
 
 ### 4. Automation (Apple Events)
 
-When a script action uses the URL of the page shown in your browser, or runs a script in Terminal, the app asks that browser or Terminal. macOS asks for your permission the first time.
+Only when a script action uses the URL of the page shown in your browser does the app ask that browser for the URL, just before the script runs. To run a script in Terminal, the app asks Terminal to run it. macOS asks for your permission the first time. The URL is passed only to that script and is never stored or sent.
 
 ### 5. Actions you configure
 

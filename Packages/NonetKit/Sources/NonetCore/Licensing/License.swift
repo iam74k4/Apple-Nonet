@@ -61,15 +61,9 @@ public struct LicenseVerifier: Sendable {
         self.publicKey = publicKey
     }
 
-    /// 前後や途中の空白・改行は無視する。失敗したら LicenseError
+    /// 前後や途中の空白・改行は無視し、前後に文が付いていればキーの部分を取り出す（LicenseCoding.licenseKey(in:)）。失敗したら LicenseError
     public func verify(_ licenseKey: String) throws -> LicenseInfo {
-        let compact = LicenseCoding.compactLicenseKey(licenseKey)
-        guard compact.utf8.count <= LicenseCoding.maximumKeyLength else { throw LicenseError.malformed }
-        let parts = compact.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 2,
-              let payload = LicenseCoding.base64URLDecoded(parts[0]),
-              let signature = LicenseCoding.base64URLDecoded(parts[1]),
-              signature.count == LicenseCoding.signatureLength else {
+        guard let key = LicenseCoding.licenseKey(in: licenseKey), let (payload, signature) = LicenseCoding.keyParts(key) else {
             throw LicenseError.malformed
         }
         guard publicKey.isValidSignature(signature, for: payload) else {
@@ -166,6 +160,43 @@ enum LicenseCoding {
         default: break
         }
         return Data(base64Encoded: base64)
+    }
+
+    /// キーの2つの部分（JSON と署名）。キーの形でなければ nil
+    static func keyParts(_ key: String) -> (payload: Data, signature: Data)? {
+        let parts = key.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let payload = base64URLDecoded(parts[0]),
+              let signature = base64URLDecoded(parts[1]),
+              signature.count == signatureLength else {
+            return nil
+        }
+        return (payload, signature)
+    }
+
+    /// 貼り付けた文から、検証するキーを取り出す。長すぎれば nil。
+    /// 1. 空白・改行・ゼロ幅の文字を除いた全体がキーの形なら、それ
+    /// 2. そうでなければ（「License key: …」のような前置き、引用符・かっこ、メールの引用の「>」、文末の句点などが付いている）、
+    ///    全角の記号などをそろえてから（NFKC。全角の「．」は「.」になる）、キーの形の部分を探す。
+    ///    JSON は「{"」で始まるので base64url では必ず「eyJ」で始まり、署名（64 バイト）はちょうど 86 文字。
+    ///    違うキーが2つ以上あれば、どれのことか分からないので選ばない
+    /// どちらでもなければ 1 の文をそのまま返す（検証で malformed になる）
+    static func licenseKey(in text: String) -> String? {
+        let compact = compactLicenseKey(text)
+        guard compact.utf8.count <= maximumKeyLength else { return nil }
+        if keyParts(compact) != nil {
+            return compact
+        }
+        // 行頭の引用の印（> ）は、折り返したキーの途中にも入るので、行ごとに除いてからつなげる
+        let unquoted = text.precomposedStringWithCompatibilityMapping
+            .components(separatedBy: .newlines)
+            .map { $0.drop { $0 == ">" || $0.isWhitespace } }
+            .joined(separator: "\n")
+        let candidates = Set(compactLicenseKey(unquoted).matches(of: #/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]{86}/#).map { String($0.output) })
+        if candidates.count == 1, let key = candidates.first {
+            return key
+        }
+        return compact
     }
 
     /// 貼り付けで混ざる空白・改行・ゼロ幅の文字を除き、標準の base64 の文字（+ / =）も base64url にそろえる

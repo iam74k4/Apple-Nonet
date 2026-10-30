@@ -78,6 +78,18 @@ test_privacy_policy_dates_match_the_site() {
   grep -qF "Last updated: $en" "$ROOT/site/en/privacy.html" || fail "site/en/privacy.html の最終更新日が docs/privacy.md（$en）と違います"
 }
 
+# Mac の中に保存するものを、プライバシーポリシーの3つ（docs と販売ページの日英）がすべて書いている
+test_privacy_policy_lists_what_is_stored() {
+  local file item service
+  service="$(sed -nE 's/.*static let service = "([^"]+)".*/\1/p' "$ROOT/Packages/NonetKit/Sources/NonetCore/Licensing/TrialRecordKeychain.swift")"
+  [[ -n "$service" ]] || fail "キーチェーンの項目のサービス名を読めません"
+  for file in docs/privacy.md site/privacy.html site/en/privacy.html; do
+    for item in configuration.json configuration.backup.json com.iam74k4.Nonet.plist Application\ Support/Nonet "$service" .command; do
+      grep -qF "$item" "$ROOT/$file" || fail "$file に保存するもの（$item）の説明がありません"
+    done
+  done
+}
+
 test_ci_runs_the_test_script() {
   local ci="$ROOT/.github/workflows/ci.yml"
   assert_file "$ci"

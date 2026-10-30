@@ -428,6 +428,19 @@ private final class ManualClock: @unchecked Sendable {
         #expect(manager.canExecuteActions)
     }
 
+    @Test func activateStoresOnlyTheKeyFromPastedText() throws {
+        let manager = try makeManager(verifier: verifier())
+        let key = try LicenseTestFixtures.licenseKey()
+        let info = try manager.activate(licenseKey: "License key: “\(key)”\nThank you!")
+        #expect(info == LicenseTestFixtures.info())
+        #expect(storage.licenseKey == key)
+        // 長すぎる貼り付けは調べない
+        #expect(throws: LicenseError.malformed) {
+            try manager.activate(licenseKey: key + String(repeating: " x", count: 10_000))
+        }
+        #expect(storage.licenseKey == key)
+    }
+
     @Test func activateAfterTheTrialExpired() throws {
         let manager = try makeManager(verifier: verifier())
         clock.advance(days: 30)
