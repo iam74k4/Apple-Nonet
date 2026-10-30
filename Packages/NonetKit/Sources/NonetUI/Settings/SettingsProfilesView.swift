@@ -51,7 +51,8 @@ struct SettingsSidebar: View {
                     }
                     .onMove { model.moveProfiles(fromOffsets: $0, toOffset: $1) }
                 } header: {
-                    Text("アプリ", bundle: .module)
+                    // アイコンの種類やメニュー項目の「アプリ」と違い、複数のアプリの一覧の見出し
+                    Text(String(localized: "settings.sidebar.appsHeader", defaultValue: "アプリ", bundle: .module))
                 }
             }
             .listStyle(.sidebar)
@@ -225,6 +226,21 @@ struct SettingsEditorCenter: View {
     private var footer: some View {
         if let message = model.gridMessage {
             SettingsNote(text: message, symbol: "exclamationmark.triangle", isWarning: true)
+        } else if let notice = model.undoNotice {
+            // 編集メニューの「取り消す」（⌘Z）が無くても、空にしたマスや置き換えたマスを戻せるように
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(notice.text)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    model.undoFromNotice()
+                } label: {
+                    Text("元に戻す", bundle: .module)
+                }
+                .buttonStyle(.link)
+                Spacer(minLength: 8)
+            }
+            .font(.system(size: 11))
         } else {
             HStack(alignment: .firstTextBaseline) {
                 Text("マスを選んで右側で設定。ドラッグで入れ替え、Delete で空にする", bundle: .module)

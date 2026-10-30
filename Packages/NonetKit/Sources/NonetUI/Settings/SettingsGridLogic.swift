@@ -111,18 +111,28 @@ enum SettingsGrid {
 
     /// マスに出す説明（"⌘B" など）。中身が未設定なら「未設定」。名前と同じになるときは種類の名前
     static func subtitle(for cell: Cell) -> String {
+        subtitleContent(for: cell).text
+    }
+
+    /// マスに出す説明と、それがキーの表記か（キーの表記だけ等幅で出す。言葉まで等幅にするとターミナルの出力のように見える）
+    static func subtitleContent(for cell: Cell) -> (text: String, isKeys: Bool) {
         if SettingsCellEditing.isIncomplete(cell.action) {
-            return String(localized: "未設定", bundle: .module)
+            return (String(localized: "未設定", bundle: .module), false)
         }
         var detail = cell.action.summary
+        var isKeys = false
+        if case .keystroke = cell.action {
+            isKeys = true
+        }
         if case .menuItem(let menu) = cell.action, let keys = menu.keyEquivalent, !keys.chords.isEmpty {
             detail = keys.displayString
+            isKeys = true
         }
         let title = displayTitle(for: cell).trimmingCharacters(in: .whitespacesAndNewlines)
         if detail.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(title) == .orderedSame {
-            return SettingsActionKinds.name(cell.action.kind)
+            return (SettingsActionKinds.name(cell.action.kind), false)
         }
-        return detail
+        return (detail, isKeys)
     }
 
     /// マスに出す名前。表示名が空ならアクションの説明

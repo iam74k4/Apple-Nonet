@@ -36,7 +36,8 @@ struct SettingsLicenseView: View {
                 .accessibilityElement(children: .combine)
                 if case .licensed(let info) = model.license.entitlement {
                     LabeledContent {
-                        Text(info.issuedAt.formatted(date: .long, time: .omitted))
+                        // 文言と同じ言語で出す（Locale.current のままだと、英語の画面で日付だけ日本語になることがある）
+                        Text(SettingsText.issuedDate(info.issuedAt))
                     } label: {
                         Text("発行日", bundle: .module)
                     }

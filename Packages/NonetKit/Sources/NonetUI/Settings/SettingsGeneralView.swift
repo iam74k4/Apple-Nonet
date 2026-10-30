@@ -102,7 +102,8 @@ struct SettingsGeneralView: View {
                         Text(SettingsText.name(method)).tag(method)
                     }
                 } label: {
-                    Text("カーソルの固定方法（詳細）", bundle: .module)
+                    // 「詳細」の見出しの中なので、名前に「（詳細）」は付けない
+                    Text("カーソルの固定方法", bundle: .module)
                     Text(SettingsText.detail(model.settings.cursorLock))
                 }
             } header: {

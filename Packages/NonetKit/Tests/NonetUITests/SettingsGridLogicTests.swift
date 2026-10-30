@@ -107,6 +107,24 @@ import UniformTypeIdentifiers
         #expect(SettingsGrid.subtitle(for: withoutKey) == L10n.ui("メニュー項目"))
     }
 
+    /// 等幅で出すのはキーの表記だけ。「スクリプト」「アプリ起動」などの言葉は普通の字で出す
+    @Test func onlyKeyStringsAreMarkedAsKeys() {
+        #expect(SettingsGrid.subtitleContent(for: SettingsFixtures.key("ビルド", .key("b", .command))) == ("⌘B", true))
+        let menu = Cell(title: "自動レイアウトを追加", icon: .symbol("filemenu.and.selection"),
+                        action: .menuItem(MenuItemAction(path: ["オブジェクト", "自動レイアウトを追加"], keyEquivalent: .key("a", .shift))))
+        #expect(SettingsGrid.subtitleContent(for: menu) == ("⇧A", true))
+        let menuWithoutKey = Cell(title: "揃える", icon: .symbol("filemenu.and.selection"),
+                                  action: .menuItem(MenuItemAction(path: ["オブジェクト", "整列"])))
+        #expect(SettingsGrid.subtitleContent(for: menuWithoutKey) == ("整列", false))
+        let script = Cell(title: "Claude Code", icon: .symbol("sparkles"), action: .script(ScriptAction(source: "claude", runMode: .terminal)))
+        #expect(SettingsGrid.subtitleContent(for: script) == (L10n.core("ターミナル"), false))
+        #expect(SettingsGrid.subtitleContent(for: SettingsFixtures.launch(SettingsFixtures.safari)) == (L10n.ui("アプリ起動"), false))
+        let unset = Cell(title: "", icon: .symbol("keyboard"), action: .keystroke(KeySequence([])))
+        #expect(SettingsGrid.subtitleContent(for: unset) == (L10n.ui("未設定"), false))
+        // 名前と同じキーの表記は種類の名前に変わるので、等幅にしない
+        #expect(SettingsGrid.subtitleContent(for: SettingsFixtures.key("⌘B", .key("b", .command))) == (L10n.ui("キー入力"), false))
+    }
+
     @Test func dragPayloadRoundTrips() {
         let id = UUID()
         let cell = SettingsDragPayload.cell(profileID: id, address: CellAddress(page: 2, index: 8))
