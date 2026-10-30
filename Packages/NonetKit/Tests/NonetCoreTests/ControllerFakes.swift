@@ -230,6 +230,16 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         isSuppressingPointer = false
     }
 
+    /// endPointerSuppression で抑止をやめたときの dropsLateClicks（抑止していなかったときは数えない）
+    private(set) var lateClickGraces: [Bool] = []
+
+    func endPointerSuppression(dropsLateClicks: Bool) {
+        if isSuppressingPointer {
+            lateClickGraces.append(dropsLateClicks)
+        }
+        isSuppressingPointer = false
+    }
+
     /// 本物のモニターは動いている間だけイベントを渡す
     func send(_ event: KeyboardEvent) {
         guard isRunning else { return }
@@ -242,8 +252,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
 final class ControllerFakeFrontmostApp: FrontmostAppObserving {
     var current: RunningAppInfo?
     var onChange: ((RunningAppInfo?) -> Void)?
-    /// Nonet の設定ウィンドウなどが前面（current は変えない）
-    var isOwnAppActive = false
+    /// Nonet の設定ウィンドウなどがキー（current は変えない）
+    var isOwnWindowKey = false
     private(set) var isRunning = false
 
     func start() {

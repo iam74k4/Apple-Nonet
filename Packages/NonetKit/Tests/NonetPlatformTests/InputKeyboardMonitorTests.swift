@@ -45,6 +45,8 @@ final class FakeCursor: CursorControlling {
     @MainActor
     final class Recorder {
         var events: [KeyboardEvent] = []
+        /// セッションを終えるときに、エンジンが遅れて届くクリックを捨てるよう頼むか（終わる直前に指が離れた）
+        var dropsLateClicks = false
     }
 
     init() {
@@ -64,7 +66,11 @@ final class FakeCursor: CursorControlling {
         // エンジンと同じく、トリガーを押したらすぐに抑止を始め、終わったら止める
         monitor.onEvent = { event in
             recorder.events.append(event)
-            monitor.isSuppressingPointer = event == .triggerDown
+            if event == .triggerDown {
+                monitor.isSuppressingPointer = true
+            } else {
+                monitor.endPointerSuppression(dropsLateClicks: recorder.dropsLateClicks)
+            }
         }
     }
 
@@ -310,6 +316,7 @@ final class FakeCursor: CursorControlling {
     }
 
     @Test func pointerTapIsEnabledOnlyDuringSuppressionAndTheClickGrace() throws {
+        recorder.dropsLateClicks = true
         #expect(!monitor.isPointerTapEnabled)
         _ = try pressTrigger()
         #expect(monitor.isPointerTapEnabled)
@@ -326,11 +333,31 @@ final class FakeCursor: CursorControlling {
         // 中断で抑止が終わっても止める
         _ = try pressTrigger()
         monitor.isSuppressingPointer = false
-        passClickGrace()
         #expect(!monitor.isPointerTapEnabled)
+        #expect(!monitor.isWaitingForClickGrace)
+    }
+
+    @Test func aClickRightAfterASessionWithoutARecentLiftPasses() throws {
+        // 指に触れていないセッション（右⌘＋C のようにトリガーをほかのキーと組み合わせただけ など）
+        recorder.dropsLateClicks = false
+        _ = try pressTrigger()
+        #expect(send(.keyDown, try #require(CGEvent(keyboardEventSource: nil, virtualKey: 8, keyDown: true))))
+        #expect(!monitor.isPointerTapEnabled)
+        #expect(!monitor.isWaitingForClickGrace)
+        clock.now += 0.03
+        #expect(send(.leftMouseDown, try mouse(.leftMouseDown)))
+        #expect(send(.leftMouseUp, try mouse(.leftMouseUp)))
+        // トリガーを離して終えたときも同じ
+        _ = try releaseTrigger()
+        _ = try pressTrigger()
+        _ = try releaseTrigger()
+        #expect(!monitor.isPointerTapEnabled)
+        clock.now += 0.03
+        #expect(send(.rightMouseDown, try mouse(.rightMouseDown, button: .right)))
     }
 
     @Test func aTapToClickThatArrivesJustAfterTheSessionEndsIsDropped() throws {
+        recorder.dropsLateClicks = true
         _ = try pressTrigger()
         // セッションは指を離したフレームで終わり、そのタップが作ったクリックが後から届く
         _ = try releaseTrigger()
@@ -348,6 +375,7 @@ final class FakeCursor: CursorControlling {
     }
 
     @Test func aClickWhoseUpComesAfterTheGraceKeepsTheTapUntilTheUp() throws {
+        recorder.dropsLateClicks = true
         _ = try pressTrigger()
         _ = try releaseTrigger()
         clock.now += 0.05
@@ -361,6 +389,7 @@ final class FakeCursor: CursorControlling {
     }
 
     @Test func aNewSessionDuringTheGraceStopsWaitingForIt() throws {
+        recorder.dropsLateClicks = true
         _ = try pressTrigger()
         _ = try releaseTrigger()
         #expect(monitor.isWaitingForClickGrace)

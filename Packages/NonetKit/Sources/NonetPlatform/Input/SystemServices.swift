@@ -66,11 +66,12 @@ public final class WorkspaceFrontmostAppObserver: FrontmostAppObserving {
         observations = []
     }
 
-    /// 設定ウィンドウなどで Nonet 自身が前面になっている
-    public var isOwnAppActive: Bool {
-        if NSRunningApplication.current.isActive { return true }
-        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
-        return FrontmostAppFilter.isOwn(bundleID: app.bundleIdentifier, processID: app.processIdentifier, own: own)
+    /// 設定ウィンドウ・初回の案内・結果のパネル（クリックしてキーにしたとき）など、Nonet のウィンドウがキーで、
+    /// 送ったキーがそこに届く。Nonet が前面のアプリでも、ウィンドウを閉じた後や Finder から開いた直後のように
+    /// キーのウィンドウが無ければ false（キーはどのウィンドウにも届かない）
+    public var isOwnWindowKey: Bool {
+        let window = NSApplication.shared.keyWindow
+        return FrontmostAppFilter.receivesKeys(keyWindowIsKey: window?.isKeyWindow, isVisible: window?.isVisible)
     }
 
     private func activated(_ app: NSRunningApplication?) {
@@ -112,6 +113,12 @@ enum FrontmostAppFilter {
         if processID == own.processID { return true }
         if let bundleID, let ownBundleID = own.bundleID, bundleID == ownBundleID { return true }
         return false
+    }
+
+    /// NSApplication.keyWindow の様子から、送ったキーが Nonet のウィンドウに届くか。キーのウィンドウが無い（nil）・
+    /// 閉じた・隠れたウィンドウには届かない。Nonet が前面のアプリかどうかでは決めない（ウィンドウを閉じた後も前面に残るため）
+    static func receivesKeys(keyWindowIsKey: Bool?, isVisible: Bool?) -> Bool {
+        keyWindowIsKey == true && isVisible == true
     }
 
     enum Decision: Equatable {

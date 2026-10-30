@@ -193,7 +193,7 @@ import NonetCore
         #expect(!s.engine.isTriggerHeld)
         #expect(s.lift(at: 0.2) == [
             .execute(page: 0, cell: 6, wasFastTap: true),
-            .endPointerSuppression,
+            .endPointerSuppression(dropsLateClicks: true),
             .sessionEnded(.released),
         ])
         #expect(!s.log.showsHUD)
@@ -205,7 +205,7 @@ import NonetCore
         s.touch(on: 6, at: 0.1)
         s.releaseTrigger(at: 0.15)
         // HUD は出さない（トリガーはもう離れている）
-        #expect(s.tick(at: 0.1 + 0.3) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.tick(at: 0.1 + 0.3) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(s.lift(at: 0.5).isEmpty)
         #expect(s.log.executions.isEmpty)
     }
@@ -219,7 +219,7 @@ import NonetCore
         #expect(s.touch(2, x: 0.4, y: 0.5, at: 0.16).isEmpty)
         #expect(s.setFingers([(1, 0.0, 0.5), (2, 0.2, 0.5)], at: 0.18).isEmpty)
         // 2本目が触れたので実行しない
-        #expect(s.liftAll(at: 0.2) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.liftAll(at: 0.2) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
     }
 
     @Test func secondTriggerReleaseWhileWaitingIsIgnored() {
@@ -236,7 +236,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 1, at: 0.1)
         s.releaseTrigger(at: 0.15)
-        #expect(s.interrupt(at: 0.17) == [.endPointerSuppression, .sessionEnded(.interrupted)])
+        #expect(s.interrupt(at: 0.17) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.interrupted)])
         #expect(s.lift(at: 0.2).isEmpty)
     }
 
@@ -248,7 +248,7 @@ import NonetCore
         s.lift(at: 0.1)
         s.touch(on: 1, at: 0.9)
         s.releaseTrigger(at: 0.95)
-        #expect(s.tick(at: 1) == [.endPointerSuppression, .sessionEnded(.timeout)])
+        #expect(s.tick(at: 1) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.timeout)])
         #expect(s.log.executions.count == 1)
     }
 
@@ -258,7 +258,7 @@ import NonetCore
         s.tick(at: 0.3)
         s.touch(on: 4, at: 0.35)
         #expect(s.releaseTrigger(at: 0.4).visible == [.hideHUD, .execute(page: 0, cell: 4, wasFastTap: false)])
-        #expect(s.lift(at: 0.45) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.lift(at: 0.45) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(s.log.executions.count == 1)
     }
 
@@ -268,7 +268,7 @@ import NonetCore
         s.tick(at: 0.3)
         s.touch(on: 4, at: 0.35)
         #expect(s.releaseTrigger(at: 0.4).visible == [.hideHUD])
-        #expect(s.lift(at: 0.45) == [.endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.lift(at: 0.45) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -276,14 +276,14 @@ import NonetCore
         var old = SessionScenario()
         old.touch(on: 4, at: 1)
         old.pressTrigger(at: 2)
-        #expect(old.releaseTrigger(at: 2.1) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(old.releaseTrigger(at: 2.1) == [.endPointerSuppression(dropsLateClicks: false), .sessionEnded(.released)])
 
         var fresh = SessionScenario()
         fresh.touch(on: 4, at: 1.95)
         fresh.pressTrigger(at: 2)
         #expect(fresh.releaseTrigger(at: 2.1) == [.requestTick(at: 1.95 + 0.3)])
         // トリガーより前に置いた指は速押しにならない
-        #expect(fresh.lift(at: 2.15) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(fresh.lift(at: 2.15) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
     }
 
     // MARK: トリガーの押し直し
@@ -305,7 +305,7 @@ import NonetCore
         s.touch(on: 4, at: 0.1)
         s.releaseTrigger(at: 0.15)
         #expect(s.pressTrigger(at: 0.2) == [
-            .endPointerSuppression,
+            .endPointerSuppression(dropsLateClicks: true),
             .sessionEnded(.released),
             .beginPointerSuppression,
             .requestTick(at: 0.2 + 0.3),
@@ -323,7 +323,7 @@ import NonetCore
         s.liftAll(at: 0.2)
         #expect(s.pressTrigger(at: 1) == [
             .hideHUD,
-            .endPointerSuppression,
+            .endPointerSuppression(dropsLateClicks: false),
             .sessionEnded(.interrupted),
             .beginPointerSuppression,
             .requestTick(at: 1 + 0.3),
@@ -341,5 +341,72 @@ import NonetCore
         s.touch(on: 3, at: 1.1)
         s.tick(at: 1.1 + 0.5)
         #expect(s.lift(at: 1.7).visible == [.hideHUD, .execute(page: 0, cell: 3, wasFastTap: false)])
+    }
+
+    // MARK: 遅れて届くクリック
+
+    /// その出力の endPointerSuppression の dropsLateClicks
+    private func dropsLateClicks(_ effects: [SessionEffect]) -> Bool? {
+        effects.lazy.compactMap { effect -> Bool? in
+            if case .endPointerSuppression(let drops) = effect { return drops }
+            return nil
+        }.first
+    }
+
+    @Test func aSessionWithoutATouchDoesNotDropLateClicks() {
+        // トリガーをほかのキーと組み合わせただけ（右⌘＋C など）。直後のクリックは前面アプリに渡す
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        #expect(dropsLateClicks(s.interrupt(at: 0.1)) == false)
+        s.releaseTrigger(at: 0.2)
+        s.pressTrigger(at: 1)
+        #expect(dropsLateClicks(s.releaseTrigger(at: 1.05)) == false)
+        // 時間切れも同じ
+        s.pressTrigger(at: 2)
+        #expect(dropsLateClicks(s.tick(at: 22)) == false)
+    }
+
+    @Test func aLiftShortlyBeforeTheEndDropsLateClicks() {
+        let window = SessionEngine.lateClickWindow
+        // 速押しで指を離した直後にトリガーを離した。その指の「タップでクリック」はトリガーの後に届きうる
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        s.touch(on: 2, at: 0.05)
+        s.lift(at: 0.1)
+        #expect(dropsLateClicks(s.releaseTrigger(at: 0.1 + window - 0.01)) == true)
+        // 離してから lateClickWindow 経っていれば、クリックはもう抑止の間に届いている
+        s.pressTrigger(at: 2)
+        s.touch(on: 2, at: 2.05)
+        s.lift(at: 2.1)
+        #expect(dropsLateClicks(s.releaseTrigger(at: 2.1 + window)) == false)
+    }
+
+    @Test func aFingerStillTouchingAtTheEndDropsLateClicksOnlyIfJustPlaced() {
+        let window = SessionEngine.lateClickWindow
+        // 親指を前から置いたまま、右⌘＋C を押した。長く置いた指はタップにならない
+        var resting = SessionScenario()
+        resting.touch(on: 7, at: 0)
+        resting.pressTrigger(at: 1)
+        #expect(dropsLateClicks(resting.interrupt(at: 1.1)) == false)
+
+        // 置いたばかりの指が触れたまま中断した。離すとタップでクリックになりうる
+        var fresh = SessionScenario()
+        fresh.pressTrigger(at: 0)
+        fresh.touch(on: 2, at: 0.05)
+        #expect(dropsLateClicks(fresh.interrupt(at: 0.05 + window - 0.01)) == true)
+
+        var long = SessionScenario()
+        long.pressTrigger(at: 0)
+        long.touch(on: 2, at: 0.05)
+        #expect(dropsLateClicks(long.interrupt(at: 0.05 + window)) == false)
+    }
+
+    @Test func aDrainEndedByTheLiftDropsLateClicks() {
+        // トリガーを指より少し先に離した速押し。セッションは指を離したフレームで終わる
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        s.touch(on: 4, at: 0.05)
+        s.releaseTrigger(at: 0.08)
+        #expect(dropsLateClicks(s.lift(at: 0.1)) == true)
     }
 }

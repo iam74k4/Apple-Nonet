@@ -113,8 +113,10 @@ public struct SessionHUDState: Equatable, Sendable {
 public enum SessionEffect: Equatable, Sendable {
     /// セッションが始まった。ポインタの抑止を始める
     case beginPointerSuppression
-    /// ポインタの抑止をやめる。必ず sessionEnded の直前に来る
-    case endPointerSuppression
+    /// ポインタの抑止をやめる。必ず sessionEnded の直前に来る。dropsLateClicks なら、やめた直後の短い間に届く
+    /// クリックの「押す」も捨ててもらう（終わる直前に指が離れた・置いたばかりの指がまだ触れているとき。
+    /// その指の「タップでクリック」が抑止の後に届くことがある。SessionEngine.lateClickWindow）
+    case endPointerSuppression(dropsLateClicks: Bool)
     /// HUD を出す。page は resolvedPages での位置、highlightedCell は指の下のマス
     case showHUD(page: Int, highlightedCell: Int?)
     /// 表示中の HUD のページかハイライトが変わった
@@ -148,6 +150,11 @@ public enum SessionEffect: Equatable, Sendable {
 ///   6 の (a) の HUD を止めない。HUD で選んだ空きマスは選ばなかったことにする）。
 ///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
 public struct SessionEngine: Sendable {
+    /// セッションの終わりの前のこの秒数のうちに指が離れたか、この秒数より新しい指がまだ触れていれば、
+    /// その指の「タップでクリック」が抑止の後に届きうるとみなす（endPointerSuppression の dropsLateClicks）。
+    /// 指に触れていないセッション（トリガーをほかのキーと組み合わせただけ など）の後のクリックは捨てない
+    public static let lateClickWindow: TimeInterval = 0.5
+
     /// 入力で受け取った最新の時刻。時刻が戻った入力は、この時刻に起きたものとして扱う
     private var clock: TimeInterval = -.infinity
     private var tracker = FingerTracker()
@@ -175,7 +182,7 @@ public struct SessionEngine: Sendable {
         case .triggerDown(let time, let configuration):
             advance(to: time, effects: &effects)
             if let session {
-                self.session?.end(session.isDraining ? session.releaseReason : .interrupted, effects: &effects)
+                self.session?.end(session.isDraining ? session.releaseReason : .interrupted, now: clock, effects: &effects)
                 finishIfEnded()
             }
             if !clock.isFinite { clock = 0 }
@@ -186,7 +193,7 @@ public struct SessionEngine: Sendable {
             session?.releaseTrigger(now: clock, effects: &effects)
         case .interrupted(let time):
             advance(to: time, effects: &effects)
-            session?.end(.interrupted, effects: &effects)
+            session?.end(.interrupted, now: clock, effects: &effects)
         case .touches(let frame):
             advance(to: frame.timestamp, effects: &effects)
             let change = tracker.apply(frame.points, at: clock)

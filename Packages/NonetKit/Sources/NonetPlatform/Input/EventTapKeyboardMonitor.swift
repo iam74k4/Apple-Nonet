@@ -5,8 +5,8 @@ import ApplicationServices
 import NonetCore
 
 /// イベントタップでトリガーキーを検出し、セッション中はポインタ系のイベントを止める。
-/// タップはキーボード用とポインタ用に分ける。ポインタ用は抑止中とその後片付け（抑止の直後に遅れて届くクリックを
-/// 捨てる短い間を含む）の間だけ有効にして、ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない
+/// タップはキーボード用とポインタ用に分ける。ポインタ用は抑止中とその後片付け（指が離れた直後などに終えたときに、
+/// 遅れて届くクリックを捨てる短い間を含む）の間だけ有効にして、ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない
 /// （メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
 @MainActor
 public final class EventTapKeyboardMonitor: KeyboardMonitor {
@@ -22,6 +22,13 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     public var onEvent: ((KeyboardEvent) -> Void)?
 
     public var isRunning: Bool { keyboardTap != nil }
+
+    /// 抑止をやめる。dropsLateClicks なら、その直後の clickGraceInterval の間に届く「押す」も捨てる
+    public func endPointerSuppression(dropsLateClicks: Bool) {
+        endsWithClickGrace = dropsLateClicks
+        defer { endsWithClickGrace = false }
+        isSuppressingPointer = false
+    }
 
     /// トリガーを押している間、取りこぼしが無いか物理的な状態を確かめる間隔
     static let watchdogInterval: TimeInterval = 0.3
@@ -43,6 +50,8 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private var sweeper: Timer?
     /// 抑止の直後にクリックを捨てる間が終わったら、ポインタのタップを止めるか確かめ直す
     private var clickGraceTimer: Timer?
+    /// endPointerSuppression(dropsLateClicks: true) で抑止をやめているところ
+    private var endsWithClickGrace = false
     private let cursor: any CursorControlling
     private let association: CursorAssociationGuard
     private let physicalFlags: () -> CGEventFlags
@@ -314,7 +323,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         association.restore()
         activePlan = nil
         anchor = nil
-        suppressor.suppressionEnded(at: now())
+        suppressor.suppressionEnded(at: now(), dropsLateClicks: endsWithClickGrace)
         updatePointerTap()
     }
 

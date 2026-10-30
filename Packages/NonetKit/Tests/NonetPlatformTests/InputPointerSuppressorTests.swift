@@ -287,7 +287,7 @@ private extension PointerSuppressor {
         // 指を離したタップで「タップでクリック」が作ったクリックが、抑止を終えた後に届いた
         var suppressor = PointerSuppressor()
         suppressor.suppressionBegan()
-        suppressor.suppressionEnded(at: 10)
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
         #expect(suppressor.decide(event(Kind.leftMouseDown), suppressing: false, dropsMoves: false, now: 10.05) == .drop)
         #expect(suppressor.droppedButtons == [0])
         #expect(suppressor.decide(event(Kind.leftMouseDragged), suppressing: false, dropsMoves: false, now: 10.08) == .passAsMove)
@@ -298,7 +298,7 @@ private extension PointerSuppressor {
 
     @Test func theGraceDropsEveryButtonButNothingElse() {
         var suppressor = PointerSuppressor()
-        suppressor.suppressionEnded(at: 10)
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
         #expect(suppressor.decide(event(Kind.rightMouseDown), suppressing: false, dropsMoves: true, now: 10.01) == .drop)
         #expect(suppressor.decide(event(Kind.otherMouseDown, button: 4), suppressing: false, dropsMoves: true, now: 10.02) == .drop)
         #expect(suppressor.droppedButtons == [1, 4])
@@ -314,7 +314,7 @@ private extension PointerSuppressor {
 
     @Test func clicksPassOnceTheGraceIsOver() {
         var suppressor = PointerSuppressor()
-        suppressor.suppressionEnded(at: 10)
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
         let end = 10 + PointerSuppressor.clickGraceInterval
         #expect(suppressor.isInClickGrace(at: end - 0.001))
         #expect(!suppressor.isInClickGrace(at: end))
@@ -325,7 +325,7 @@ private extension PointerSuppressor {
     @Test func thePointerEventsAreNeededDuringTheGraceOnly() {
         var suppressor = PointerSuppressor()
         #expect(PointerSuppressor.clickGraceInterval > 0.1 && PointerSuppressor.clickGraceInterval < 0.5)
-        suppressor.suppressionEnded(at: 10)
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
         #expect(suppressor.needsEvents(suppressing: false, now: 10))
         #expect(suppressor.needsEvents(suppressing: false, now: 10 + PointerSuppressor.clickGraceInterval - 0.001))
         #expect(!suppressor.needsEvents(suppressing: false, now: 10 + PointerSuppressor.clickGraceInterval))
@@ -334,13 +334,35 @@ private extension PointerSuppressor {
 
     @Test func aNewSuppressionEndsTheGrace() {
         var suppressor = PointerSuppressor()
-        suppressor.suppressionEnded(at: 10)
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
         suppressor.suppressionBegan()
         #expect(!suppressor.isInClickGrace(at: 10.05))
         #expect(suppressor.clickGraceDeadline == nil)
         // その抑止が終われば、また間を置く
-        suppressor.suppressionEnded(at: 11)
+        suppressor.suppressionEnded(at: 11, dropsLateClicks: true)
         #expect(suppressor.isInClickGrace(at: 11.05))
+    }
+
+    @Test func aSessionWithoutARecentLiftKeepsNoGrace() {
+        // 指に触れていないセッション（右⌘＋C など）の直後のクリックは、すぐに渡す
+        var suppressor = PointerSuppressor()
+        suppressor.suppressionBegan()
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: false)
+        #expect(suppressor.clickGraceDeadline == nil)
+        #expect(!suppressor.isInClickGrace(at: 10))
+        #expect(!suppressor.needsEvents(suppressing: false, now: 10))
+        #expect(suppressor.decide(event(Kind.leftMouseDown), suppressing: false, dropsMoves: false, now: 10.01) == .pass)
+        #expect(suppressor.decide(event(Kind.leftMouseUp), suppressing: false, dropsMoves: false, now: 10.05) == .pass)
+        #expect(suppressor.droppedButtons.isEmpty)
+    }
+
+    @Test func aLaterEndWithoutAGraceReplacesTheGrace() {
+        var suppressor = PointerSuppressor()
+        suppressor.suppressionEnded(at: 10, dropsLateClicks: true)
+        suppressor.suppressionBegan()
+        suppressor.suppressionEnded(at: 10.05, dropsLateClicks: false)
+        #expect(!suppressor.isInClickGrace(at: 10.1))
+        #expect(suppressor.decide(event(Kind.leftMouseDown), suppressing: false, dropsMoves: false, now: 10.1) == .pass)
     }
 
     @Test func cursorLockPlans() {

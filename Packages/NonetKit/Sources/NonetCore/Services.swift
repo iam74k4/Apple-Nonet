@@ -66,8 +66,7 @@ public protocol KeyboardMonitor: AnyObject {
     var passTriggerToApps: Bool { get set }
     var cursorLock: CursorLockMethod { get set }
     /// true の間、ポインタの移動・クリック・スクロール・ジェスチャーを前面アプリに渡さない。
-    /// 捨てた「押す」に対応する「離す」は、false に戻した後でも捨てる。false に戻した直後の短い間は、
-    /// 遅れて届くクリック（タップでクリック）の「押す」も捨てる
+    /// 捨てた「押す」に対応する「離す」は、false に戻した後でも捨てる
     var isSuppressingPointer: Bool { get set }
     /// メインスレッドで呼ばれる
     var onEvent: ((KeyboardEvent) -> Void)? { get set }
@@ -75,6 +74,16 @@ public protocol KeyboardMonitor: AnyObject {
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
     func stop()
+    /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
+    /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
+    func endPointerSuppression(dropsLateClicks: Bool)
+}
+
+extension KeyboardMonitor {
+    /// 遅れて届くクリックを捨てない実装の既定
+    public func endPointerSuppression(dropsLateClicks: Bool) {
+        isSuppressingPointer = false
+    }
 }
 
 // MARK: - 触覚
@@ -134,13 +143,14 @@ public protocol FrontmostAppObserving: AnyObject {
     var onChange: ((RunningAppInfo?) -> Void)? { get set }
     func start()
     func stop()
-    /// Nonet 自身（設定ウィンドウなど）がいま前面か。current は Nonet を数えないので、別に聞く
-    var isOwnAppActive: Bool { get }
+    /// Nonet のウィンドウ（設定・初回の案内・結果のパネルなど）がいまキーで、送ったキーがそこに届くか。
+    /// current は Nonet を数えないので、別に聞く。Nonet が前面のアプリでも、キーのウィンドウが無ければ false
+    var isOwnWindowKey: Bool { get }
 }
 
 extension FrontmostAppObserving {
-    /// Nonet 自身が前面になることの無い実装の既定
-    public var isOwnAppActive: Bool { false }
+    /// Nonet のウィンドウがキーになることの無い実装の既定
+    public var isOwnWindowKey: Bool { false }
 }
 
 // MARK: - 設定画面で使うもの

@@ -278,8 +278,9 @@ struct PointerSuppressor {
         case passAsMove
     }
 
-    /// 抑止が終わってから、押すイベントも捨て続ける秒数。セッションを終えたタップの指が離れたときに
-    /// 「タップでクリック」が作るクリックは、抑止を終えた後に届くことがあり、そのままだと止めていたカーソルの下でクリックになる
+    /// 抑止が終わってから、押すイベントも捨て続ける秒数（終わる直前に指が離れた・置いたばかりの指がまだ触れているときだけ。
+    /// SessionEngine.lateClickWindow）。セッションを終えたタップの指が離れたときに「タップでクリック」が作るクリックは、
+    /// 抑止を終えた後に届くことがあり、そのままだと止めていたカーソルの下でクリックになる
     static let clickGraceInterval: TimeInterval = 0.2
     /// 離すイベントが届かない捨てたボタンを、物理的に離れて見えても忘れずに待つ秒数
     static let staleButtonAge: TimeInterval = 2
@@ -324,9 +325,10 @@ struct PointerSuppressor {
         clickGraceDeadline = nil
     }
 
-    /// 抑止をやめた。しばらくは押すイベントを捨てる（移動・スクロールは渡す）
-    mutating func suppressionEnded(at now: TimeInterval) {
-        clickGraceDeadline = now + Self.clickGraceInterval
+    /// 抑止をやめた。dropsLateClicks なら、しばらくは押すイベントを捨てる（移動・スクロールは渡す）。
+    /// 指に触れていないセッション（トリガーをほかのキーと組み合わせただけ など）の直後のクリックは捨てない
+    mutating func suppressionEnded(at now: TimeInterval, dropsLateClicks: Bool) {
+        clickGraceDeadline = dropsLateClicks ? now + Self.clickGraceInterval : nil
     }
 
     mutating func decide(_ event: PointerEventInfo, suppressing: Bool, dropsMoves: Bool, now: TimeInterval) -> Decision {

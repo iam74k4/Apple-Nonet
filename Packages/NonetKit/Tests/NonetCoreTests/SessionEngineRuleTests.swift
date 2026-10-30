@@ -47,7 +47,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         #expect(s.touch(on: 2, at: 0.1) == [.requestTick(at: 0.1 + 0.3)])
         #expect(s.lift(at: 0.2) == [.execute(page: 0, cell: 2, wasFastTap: true), .requestTick(at: 20)])
-        #expect(s.releaseTrigger(at: 0.25) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.releaseTrigger(at: 0.25) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(!s.log.showsHUD)
     }
 
@@ -123,7 +123,7 @@ import NonetCore
         #expect(s.releaseTrigger(at: 1) == [
             .hideHUD,
             .execute(page: 0, cell: 5, wasFastTap: false),
-            .endPointerSuppression,
+            .endPointerSuppression(dropsLateClicks: false),
             .sessionEnded(.released),
         ])
         #expect(!s.engine.isInSession)
@@ -135,7 +135,7 @@ import NonetCore
         s.touch(on: 4, at: 0.1)
         s.tick(at: 0.4)
         #expect(s.lift(at: 0.5) == [.updateHUD(page: 0, highlightedCell: nil)])
-        #expect(s.releaseTrigger(at: 0.6) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.releaseTrigger(at: 0.6) == [.hideHUD, .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -143,7 +143,7 @@ import NonetCore
         var s = SessionScenario()
         s.pressTrigger(at: 0)
         s.tick(at: 0.3)
-        #expect(s.releaseTrigger(at: 2) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.releaseTrigger(at: 2) == [.hideHUD, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.cancelled)])
     }
 
     @Test func onTriggerReleaseDoesNotExecuteWhenLiftingInTheHUD() {
@@ -164,7 +164,7 @@ import NonetCore
         s.touch(on: 7, at: 0.5)
         #expect(s.lift(at: 0.6) == [.hideHUD, .execute(page: 0, cell: 7, wasFastTap: false)])
         #expect(s.engine.hud == nil)
-        #expect(s.releaseTrigger(at: 0.7) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.releaseTrigger(at: 0.7) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
     }
 
     @Test func onFingerLiftCancelsWhenTheTriggerIsReleasedWithAFingerDown() {
@@ -172,7 +172,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 4, at: 0.1)
         s.tick(at: 0.4)
-        #expect(s.releaseTrigger(at: 1) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.releaseTrigger(at: 1) == [.hideHUD, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.cancelled)])
         #expect(s.lift(at: 1.1).isEmpty)
         #expect(s.log.executions.isEmpty)
     }
@@ -462,7 +462,7 @@ import NonetCore
         // 2本目を離しても、このタッチでは実行しない
         #expect(s.lift(2, at: 0.6).isEmpty)
         #expect(s.touch(1, on: 5, at: 0.7).isEmpty)
-        #expect(s.releaseTrigger(at: 1) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.releaseTrigger(at: 1) == [.hideHUD, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.cancelled)])
     }
 
     @Test func multiFingerTouchInOnFingerLiftModeDoesNotExecute() {
@@ -486,7 +486,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 4, at: 0.1)
         s.tick(at: 0.4)
-        #expect(s.interrupt(at: 0.5) == [.hideHUD, .endPointerSuppression, .sessionEnded(.interrupted)])
+        #expect(s.interrupt(at: 0.5) == [.hideHUD, .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.interrupted)])
         #expect(s.releaseTrigger(at: 0.6).isEmpty)
         #expect(s.log.executions.isEmpty)
     }
@@ -495,7 +495,7 @@ import NonetCore
         var s = SessionScenario()
         s.pressTrigger(at: 0)
         s.touch(on: 2, at: 0.05)
-        #expect(s.interrupt(at: 0.1) == [.endPointerSuppression, .sessionEnded(.interrupted)])
+        #expect(s.interrupt(at: 0.1) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.interrupted)])
         #expect(s.lift(at: 0.15).isEmpty)
         #expect(s.log.executions.isEmpty)
     }
@@ -516,7 +516,7 @@ import NonetCore
         s.touch(on: 4, at: 0.1)
         s.tick(at: 0.4)
         #expect(s.tick(at: 19.9) == [.requestTick(at: 20)])
-        #expect(s.tick(at: 20) == [.hideHUD, .endPointerSuppression, .sessionEnded(.timeout)])
+        #expect(s.tick(at: 20) == [.hideHUD, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.timeout)])
         // 指を置いたままでも実行しない
         #expect(s.releaseTrigger(at: 21).isEmpty)
         #expect(s.log.executions.isEmpty)
@@ -525,7 +525,7 @@ import NonetCore
     @Test func timeoutBeforeAnyTickDoesNotFlashTheHUD() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        #expect(s.tick(at: 25) == [.endPointerSuppression, .sessionEnded(.timeout)])
+        #expect(s.tick(at: 25) == [.endPointerSuppression(dropsLateClicks: false), .sessionEnded(.timeout)])
     }
 
     @Test func timeoutUsesTheConfiguredMaximum() {
@@ -540,8 +540,8 @@ import NonetCore
     @Test func releasingWithoutATouchDoesNothing() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        #expect(s.releaseTrigger(at: 0.1) == [.endPointerSuppression, .sessionEnded(.released)])
-        #expect(s.log.visible == [.beginPointerSuppression, .endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.releaseTrigger(at: 0.1) == [.endPointerSuppression(dropsLateClicks: false), .sessionEnded(.released)])
+        #expect(s.log.visible == [.beginPointerSuppression, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.released)])
     }
 
     // MARK: 12. 空きマス
@@ -586,7 +586,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 1, at: 0.05)
         #expect(s.releaseTrigger(at: 0.08).visible.isEmpty)
-        #expect(s.lift(at: 0.1) == [.endPointerSuppression, .sessionEnded(.released)])
+        #expect(s.lift(at: 0.1) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -607,7 +607,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 1, at: 0.05)
         s.tick(at: 0.35)
-        #expect(s.releaseTrigger(at: 0.5) == [.hideHUD, .endPointerSuppression, .sessionEnded(.cancelled)])
+        #expect(s.releaseTrigger(at: 0.5) == [.hideHUD, .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
         #expect(s.log.executions.isEmpty)
     }
 

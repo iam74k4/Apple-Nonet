@@ -297,12 +297,6 @@ public final class NonetController {
 
     private func canBeginSession() -> Bool {
         guard isStarted, !isRecordingKeys else { return false }
-        // Nonet 自身（設定ウィンドウ）が前面なら始めない。セッションは直前のアプリのページを使うが、キーは前面の
-        // 設定ウィンドウに届いてしまう。設定画面からは「テスト実行」で試せる。練習モードは何も実行しないので、
-        // 初回起動の案内のウィンドウが前面でも始める
-        if !isPracticeMode, services.frontmostApp.isOwnAppActive {
-            return false
-        }
         // セキュア入力は2秒ごとにしか確かめないので、トリガーのたびに確かめ直す
         // （パスワード欄に入った直後に始めないため・離れた直後から使えるようにするため）
         if status == .secureInputActive || services.permissions.isSecureInputActive {
@@ -348,8 +342,8 @@ public final class NonetController {
                 session = starting
             }
             services.keyboard.isSuppressingPointer = true
-        case .endPointerSuppression:
-            services.keyboard.isSuppressingPointer = false
+        case .endPointerSuppression(let dropsLateClicks):
+            services.keyboard.endPointerSuppression(dropsLateClicks: dropsLateClicks)
         case .showHUD(let page, let highlightedCell):
             guard let session else { return }
             hud.show(hudModel(session, page: page, highlightedCell: highlightedCell), position: session.settings.hudPosition)
@@ -421,6 +415,13 @@ public final class NonetController {
             refuseWithoutLicense(target, wasFastTap: wasFastTap)
             return
         }
+        // Nonet のウィンドウ（設定など）がキーなら、前面アプリに働きかけるマスは実行しない。セッションは直前のアプリの
+        // ページを使うが、送るキーや読む選択範囲は Nonet のウィンドウのものになる。アプリを開く・URL は実行する。
+        // 練習モードは何も実行しないので、初回の案内のウィンドウがキーでも記録する
+        if !isPracticeMode, ControllerExecutionPolicy.dependsOnFrontmostApp(target.cell.action), services.frontmostApp.isOwnWindowKey {
+            refuseInOwnWindow(target, wasFastTap: wasFastTap)
+            return
+        }
         playHaptic(.execute, strength: session.settings.haptics)
         if isPracticeMode {
             record(target, succeeded: true, message: nil, wasFastTap: wasFastTap)
@@ -463,6 +464,14 @@ public final class NonetController {
         let message = NonetError.licenseRequired.localizedDescription
         hud.showToast(ControllerPresentation.failureToast(target.cell, message: message))
         return record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
+    }
+
+    /// 設定画面からは「このマスをテスト実行」で試せる（直前のアプリを前面に戻してから実行する）
+    private func refuseInOwnWindow(_ target: ControllerTarget, wasFastTap: Bool) {
+        controllerLogger.notice("Nonet のウィンドウがキーなので実行しません（\(target.cell.action.kind.rawValue, privacy: .public)）")
+        let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます", bundle: .module)
+        hud.showToast(ControllerPresentation.failureToast(target.cell, message: message))
+        record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
     }
 
     private func fail(_ target: ControllerTarget, wasFastTap: Bool, error: any Error) -> ExecutionRecord {

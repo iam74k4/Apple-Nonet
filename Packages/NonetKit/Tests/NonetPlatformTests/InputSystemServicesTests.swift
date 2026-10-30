@@ -35,14 +35,29 @@ import Testing
         #expect(FrontmostAppFilter.decide(bundleID: "com.apple.Safari", name: "Safari", processID: 2, own: unbundled) != .ignore)
     }
 
-    @Test func recognizesNonetAsTheActiveApp() {
-        // セッションを始めないかどうか（設定ウィンドウが前面）を決めるのに使う
+    @Test func recognizesNonet() {
         #expect(FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 500, own: own))
         #expect(FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 501, own: own))
         #expect(FrontmostAppFilter.isOwn(bundleID: nil, processID: 500, own: own))
         #expect(!FrontmostAppFilter.isOwn(bundleID: "com.apple.Safari", processID: 42, own: own))
         #expect(!FrontmostAppFilter.isOwn(bundleID: nil, processID: 42, own: own))
         #expect(!FrontmostAppFilter.isOwn(bundleID: "com.iam74k4.Nonet", processID: 42, own: FrontmostAppFilter.Own(bundleID: nil, processID: 1)))
+    }
+
+    @Test func keysReachNonetOnlyThroughAVisibleKeyWindow() {
+        // 設定ウィンドウ・初回の案内・クリックした結果のパネル
+        #expect(FrontmostAppFilter.receivesKeys(keyWindowIsKey: true, isVisible: true))
+        // Nonet が前面のまま、ウィンドウを閉じた・Finder から開いた直後（キーのウィンドウが無い）
+        #expect(!FrontmostAppFilter.receivesKeys(keyWindowIsKey: nil, isVisible: nil))
+        // 閉じている途中・隠れたウィンドウ
+        #expect(!FrontmostAppFilter.receivesKeys(keyWindowIsKey: true, isVisible: false))
+        #expect(!FrontmostAppFilter.receivesKeys(keyWindowIsKey: false, isVisible: true))
+    }
+
+    @MainActor
+    @Test func noNonetWindowIsKeyInAProcessWithoutWindows() {
+        // テストのプロセスにはウィンドウが無い。前面のアプリかどうかでは決めない
+        #expect(!WorkspaceFrontmostAppObserver().isOwnWindowKey)
     }
 }
 
