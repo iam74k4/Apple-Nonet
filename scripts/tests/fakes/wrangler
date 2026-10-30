@@ -1,0 +1,38 @@
+#!/bin/bash
+# テスト用の偽の wrangler（scripts/publish.sh のテスト）。呼ばれた引数を記録し、Cloudflare には何も送らない。
+# r2 object put <バケット>/<キー> --file <ファイル> … --remote のときだけ、ファイルを FAKE_R2_DIR/<キー> に置く
+# （本物も --remote が無ければ手元の Miniflare に書くだけで、公開中のものは変わらない）。
+#   FAKE_WRANGLER_FAIL  このキーの put を失敗させる（認証切れ・バケットが無いなど）
+#   FAKE_WRANGLER_DROP  このキーの put は「Upload complete.」と言うが、どこにも置かない（上げた先が違う、の再現）
+set -euo pipefail
+printf 'wrangler %s\n' "$*" >>"${FAKE_LOG:?}"
+
+[[ "${1:-} ${2:-} ${3:-}" == "r2 object put" && $# -ge 4 ]] || exit 0
+target="$4"
+shift 4
+file="" remote=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f | --file) file="$2" && shift ;;
+    --remote) remote=1 ;;
+    --content-type | --ct | -c | --config | --cwd) shift ;;
+  esac
+  shift
+done
+key="${target#*/}"
+
+if [[ "$key" == "${FAKE_WRANGLER_FAIL:-}" ]]; then
+  printf '✘ [ERROR] A request to the Cloudflare API (/accounts/…/r2/buckets/%s/objects/%s) failed.\n' "${target%%/*}" "$key" >&2
+  printf '  Authentication error [code: 10000]\n' >&2
+  exit 1
+fi
+[[ -f "${file:?}" ]] || {
+  printf '✘ [ERROR] ENOENT: no such file or directory: %s\n' "$file" >&2
+  exit 1
+}
+printf 'Creating object "%s" in bucket "%s".\n' "$key" "${target%%/*}"
+if [[ "$remote" == 1 && "$key" != "${FAKE_WRANGLER_DROP:-}" && -n "${FAKE_R2_DIR:-}" ]]; then
+  mkdir -p "$FAKE_R2_DIR"
+  cp "$file" "$FAKE_R2_DIR/$key"
+fi
+printf 'Upload complete.\n'

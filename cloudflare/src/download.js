@@ -14,7 +14,7 @@ import { isDiskImageName, updateFileType } from "./updates.js";
 
 export const APPCAST_KEY = "appcast.xml";
 // 無料プランの CPU は1回 10ms。ふつうの appcast は数十 KB なので、桁違いに大きければ読まずに止める
-const MAX_APPCAST_BYTES = 1024 * 1024;
+export const MAX_APPCAST_BYTES = 1024 * 1024;
 
 export async function handleDownload(request, env) {
   if (!isReadMethod(request.method)) {

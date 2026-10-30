@@ -169,6 +169,7 @@ expect "/en/no-such-page（英語の 404）" 404 "$BASE/en/no-such-page"
 expect_body "Page not found"
 expect "/index.html.bak" 404 "$BASE/index.html.bak"
 expect "/_headers（配らない）" 404 "$BASE/_headers"
+expect "/.assetsignore（配らない）" 404 "$BASE/.assetsignore"
 
 step "/updates/*"
 expect "/updates/appcast.xml" 200 "$BASE/updates/appcast.xml"
@@ -215,6 +216,10 @@ expect "/download" 302 "$BASE/download"
 expect_header "/updates/nonet-1.2.0.dmg"
 expect_header "cache-control: no-store"
 expect "HEAD /download" 302 -I "$BASE/download"
+# ブラウザでボタンを押したときの要求。404-page のアセットに取られず、Worker が答えること
+expect "/download（ブラウザの移動 Sec-Fetch-Mode: navigate）" 302 -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Dest: document" "$BASE/download"
+expect "DMG（ブラウザの移動）" 200 -I -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Dest: document" "$BASE/updates/Nonet-1.2.0.dmg"
+expect_header "content-type: application/x-apple-diskimage"
 expect "POST /download（405）" 405 -X POST "$BASE/download"
 
 if [[ "$FAILED" != 0 ]]; then

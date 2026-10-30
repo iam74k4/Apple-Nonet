@@ -1,0 +1,3 @@
+# wrangler deploy でアップロードしないファイル（gitignore と同じ書き方）。_headers とこのファイル自身は wrangler が除く。
+# Finder が作る .DS_Store を、手元からのデプロイで公開しない
+.DS_Store
