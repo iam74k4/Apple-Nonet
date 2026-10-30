@@ -100,15 +100,17 @@ swift run nonet-license verify --public ../../Config/Nonet.xcconfig "<発行し�
 販売用の6つの値を入れてコミットする（公開鍵と URL なので、公開されても問題ない）。
 
 ```
-NONET_APPCAST_URL = https:/$()/nonet.example.com/updates/appcast.xml
+NONET_APPCAST_URL = https:/$()/nonet.astlog.dev/updates/appcast.xml
 NONET_SPARKLE_PUBLIC_KEY = <generate_keys の公開鍵>
 NONET_PURCHASE_URL = https:/$()/nonet.example.com/buy
-NONET_SUPPORT_URL = https:/$()/nonet.example.com/guide
-NONET_PRIVACY_URL = https:/$()/nonet.example.com/privacy.html
+NONET_SUPPORT_URL = https:/$()/nonet.astlog.dev/guide.html
+NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
 NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 ```
 
-`NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブのリンクになる。
+`NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブの「利用ガイド」「プライバシー」のリンクになる。日本語のページ（`site/guide.html`・`site/privacy.html`）を指しておく。アプリが英語で動いているときは、最後の要素の前に `en/` を入れた英語のページ（`https://nonet.astlog.dev/en/guide.html`。`site/en/guide.html`）を開く。`#troubleshooting` のような節へのリンクは、日本語と英語で同じ id にしてある。
+
+`.html` は省かない（`…/guide` ではなく `…/guide.html`）。S3 ＋ CloudFront のように `.html` を補わないホストでは、省いた URL は 404 になる。`scripts/check-site.sh` は、ホストが `site/index.html` の canonical と同じなら、`.html` を省いた URL を問題として知らせる（1.8）。
 
 **xcconfig では `//` から後ろがコメントになる**。URL は `https:/$()/…` と書く（`$()` は空文字に展開される）。`https://…` と書くと `https:` で切れ、アップデートの確認も購入ページも動かない。公開鍵（base64）にも `//` が入ることがあり（約1%）、そのときも `//` を `/$()/` と書く。`scripts/release.sh` と `nonet-license issue` は、これらの切れ方を見つけて止まる。
 
@@ -120,6 +122,7 @@ HTTPS で静的なファイルを置ける場所なら何でもよい（Cloudfla
 - 無いファイルには 404 を返す設定にする。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバックなど）だと、スクリプトが公開中の appcast を確かめられずに止まる
 - DMG を置く URL。既定では appcast.xml と同じ場所（例: `https://nonet.example.com/updates/Nonet-1.0.0.dmg`）。別にするなら `NONET_DOWNLOAD_URL_PREFIX` を設定する
 - 販売ページ（`site/`）の置き場所。「ダウンロード」ボタンは最新の DMG を指すので、毎回書き換えるか、最新を指す固定の URL（例: `/download` から最新の DMG へリダイレクト）を用意する
+- `site/` には利用ガイド（`guide.html`・`en/guide.html`）とプライバシーポリシー（`privacy.html`・`en/privacy.html`）も入っている。アプリの「利用ガイド」「プライバシー」が開くページなので、販売ページと一緒にアップロードする
 
 ### 1.8 販売ページの仮の値を埋める
 
@@ -128,6 +131,8 @@ HTTPS で静的なファイルを置ける場所なら何でもよい（Cloudfla
 ```bash
 scripts/check-site.sh --strict   # TODO が1つでも残っていれば失敗
 ```
+
+`scripts/check-site.sh` は、`Config/Nonet.xcconfig`（`--config <xcconfig>` でほかのファイルも選べる）の `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` のホストが `site/index.html` の canonical と同じなら、そのページが `site/` にあるか、英語で動くアプリが開くページ（最後の要素の前に `en/` を入れたもの）もあるか、`.html` を省いていないかを確かめる。`--strict` では、これらの URL を入れたのに `site/index.html` に canonical が無い（確かめられない）ときも失敗にする。
 
 ### 1.9 Sparkle の版を上げる
 
@@ -317,8 +322,10 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - ほかの2か所に記録があるときは、キーチェーンの「使った時間」だけを下限として使う（環境設定に「使った時間 0」と書き込んでも減らない）。最後に数えた時刻は使わない（キーチェーンは毎回は書かないので、時計がずれていた起動の記録が残っていることがあり、それで数えるとずれた分を余計に数えるため）
 - 起動したままの日が続いても、キーチェーンは使った時間が1時間増えるごとに書き直す（ほかの2か所を消して入れ直し、時計を戻して起動しても、減るのは最後の1時間ほどだけ）
 - キーチェーンを使うのは、Developer ID で署名した製品版だけ（開発用の署名やアドホックのビルド、`--self-check` と Debug の `--config-dir` では使わない。署名の身元が違うと、キーチェーンが許可を聞いてくるため）。iCloud キーチェーンとは同期しない
+- 動いている間に、ほかの置き場所の使った時間の方が多くなっていたら（ほかの Nonet が数えた）、使った時間が最も多く残る数え方を取り、同じ経過を二重には数えない（[architecture.md](architecture.md) §6「ライセンス」）
+- ライセンスが登録されている間は、試用の記録を書き換えない（残っている記録はそのまま）
 - それでも、キーチェーンアクセスで項目も消す・macOS の別のユーザーで使う・Mac を初期化する、といった方法で試用はやり直せる。サーバー無しの試用では防ぎきれないので、手間をかける人は止めない、という割り切り
-- 利用者がアンインストールで消すものは、利用ガイド（[user-guide.md](user-guide.md#アンインストール)）とプライバシーポリシー（[privacy.md](privacy.md)）に書く
+- 利用者がアンインストールで消すものは、利用ガイド（[user-guide.md](user-guide.md#アンインストール)・[user-guide.en.md](user-guide.en.md#uninstalling)）とプライバシーポリシー（[privacy.md](privacy.md)）に書く。利用ガイドの原本はこの2つの Markdown で、販売ページの `site/guide.html`・`site/en/guide.html` は `python3 -I scripts/build-guide.py` で作る（手で直さない。作り直し忘れは `scripts/tests/site_test.sh` が見つける）
 
 ### 3.4 販売ページに要るもの
 
@@ -340,7 +347,7 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] プライバシーポリシーに書いた試用の記録のキーチェーンの項目を、アプリが本当に作る（`App/AppDelegate.swift` が `SystemTrialRecordKeychain()` を渡している。`scripts/release.sh` も確かめる）
 
 **アプリ**
-- [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプは [architecture.md](architecture.md) §7 の未確認の点
+- [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプ・「タップでクリック」の抑止と、トラックパッドの開始し直し（スリープ・蓋の開け閉め・Magic Trackpad のつなぎ直し・ファストユーザスイッチ）は [architecture.md](architecture.md) §7 の未確認の点
 - [ ] JIS と US のキーボード、内蔵トラックパッドと Magic Trackpad で試した
 - [ ] 新しいユーザーで、初回起動 → アクセシビリティの許可 → プリセット → 練習まで通した
 - [ ] 試用の終了（HUD の帯・実行の代わりのトースト）と、キーの登録で元に戻ることを確かめた
@@ -359,5 +366,6 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] 販売サービスの商品・価格・税の設定をした
 - [ ] テスト購入 → キーが届く → アプリで登録できる、を通した
 - [ ] `scripts/check-site.sh --strict` が通る（価格・URL・問い合わせ先が埋まっている）
+- [ ] 利用ガイド（`site/guide.html`・`site/en/guide.html`）を公開し、`NONET_SUPPORT_URL` が `…/guide.html` を指している
 - [ ] プライバシーポリシー・返金の方針・（必要なら）特定商取引法に基づく表記を公開した
 - [ ] 問い合わせのメールを受け取れる

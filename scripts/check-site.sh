@@ -1,6 +1,6 @@
 #!/bin/bash
 # 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記・
-# 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページを指していること。
+# 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページとその英語版（en/）を指していること。
 # --strict を付けると、TODO（価格・URL などの仮の値）が残っているときと、canonical が無くてアプリの URL を確かめられないときも失敗にする。公開の前に使う。
 # 使い方: scripts/check-site.sh [--strict] [--config <xcconfig（既定: Config/Nonet.xcconfig）>] [サイトのフォルダ（既定: site）]
 set -euo pipefail
@@ -212,11 +212,36 @@ canonical_host() {
   return 0
 }
 
+# site/ の中の path（先頭の / は無し）に当たるページがあるか。空か / で終わるなら、そのフォルダの index.html
+site_page_exists() {
+  local path="$1"
+  if [[ -z "$path" || "$path" == */ ]]; then
+    [[ -f "$SITE/${path}index.html" ]]
+  else
+    [[ -f "$SITE/$path" || -f "$SITE/$path/index.html" ]]
+  fi
+}
+
+# 英語で動くアプリが開く path。最後の要素の前に en/ を入れる（guide.html → en/guide.html、docs/ → en/docs/）。サイトの直下は en/
+english_path() {
+  local path="$1" trailing="" parent=""
+  if [[ "$path" == */ ]]; then
+    trailing=/
+    path="${path%/}"
+  fi
+  if [[ -z "$path" ]]; then
+    printf 'en/'
+    return 0
+  fi
+  [[ "$path" != */* ]] || parent="${path%/*}/"
+  printf '%sen/%s%s' "$parent" "${path##*/}" "$trailing"
+}
+
 # アプリの「利用ガイド」「プライバシー」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
-# そのページが site/ にあるか。ホストは site/index.html の canonical で決める。
+# そのページと、英語で動くアプリが開く en/ のページが site/ にあるか。ホストは site/index.html の canonical で決める。
 # canonical が無いと確かめられないので、--strict では問題にする（ふだんは知らせるだけ）
 check_app_links() {
-  local host key url rest url_host path found
+  local host key url rest url_host path en_path
   [[ -f "$CONFIG" ]] || return 0
   host="$(canonical_host "$SITE/index.html")"
   for key in NONET_SUPPORT_URL NONET_PRIVACY_URL; do
@@ -237,17 +262,20 @@ check_app_links() {
     path="${rest#"${rest%%[/?#]*}"}"
     path="${path%%[?#]*}"
     path="${path#/}"
-    found=""
-    if [[ -z "$path" || "$path" == */ ]]; then
-      [[ -f "$SITE/${path}index.html" ]] && found=1
-    elif [[ -f "$SITE/$path" || -f "$SITE/$path/index.html" ]]; then
-      found=1
-    elif [[ -f "$SITE/$path.html" ]]; then
-      # 拡張子を省いた URL（/guide）は、S3 ＋ CloudFront のように .html を補わないホストでは 404 になる
-      problem "$(basename "$CONFIG") の $key（$url）は .html を省いています。補わないホストでは開けないので、/$path.html と書いてください"
+    if ! site_page_exists "$path"; then
+      if [[ -n "$path" && "$path" != */ && -f "$SITE/$path.html" ]]; then
+        # 拡張子を省いた URL（/guide）は、S3 ＋ CloudFront のように .html を補わないホストでは 404 になる
+        problem "$(basename "$CONFIG") の $key（$url）は .html を省いています。補わないホストでは開けないので、/$path.html と書いてください"
+      else
+        problem "$(basename "$CONFIG") の $key（$url）に当たるページが $(basename "$SITE")/ にありません"
+      fi
       continue
     fi
-    [[ -n "$found" ]] || problem "$(basename "$CONFIG") の $key（$url）に当たるページが $(basename "$SITE")/ にありません"
+    # アプリは英語で動いているとき、最後の要素の前に en/ を入れたページを開く（…/guide.html → …/en/guide.html）
+    en_path="$(english_path "$path")"
+    if ! site_page_exists "$en_path"; then
+      problem "$(basename "$CONFIG") の $key（$url）の英語のページ（${url%%://*}://${rest%%[/?#]*}/$en_path。英語で動くアプリが開く）が $(basename "$SITE")/ にありません"
+    fi
   done
   return 0
 }

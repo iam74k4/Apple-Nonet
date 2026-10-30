@@ -11,10 +11,10 @@
 | 場所 | 中身 |
 |---|---|
 | `project.yml` | XcodeGen の設定。`Nonet.xcodeproj` は生成物でコミットしない |
-| `Config/Nonet.xcconfig` | 販売用の値（appcast の URL・Sparkle の公開鍵・購入ページ・ライセンスの公開鍵） |
+| `Config/Nonet.xcconfig` | 販売用の値（appcast の URL・Sparkle の公開鍵・購入ページ・利用ガイドとプライバシーポリシーのページ・ライセンスの公開鍵） |
 | `App/` | アプリ本体の組み立て（AppDelegate・Sparkle） |
 | `Packages/NonetKit/` | それ以外のすべて（ロジック・macOS の実装・画面・`nonet-license`）。`swift build` と `swift test` で動く |
-| `scripts/` | ビルド・テスト・リリース・販売ページの確認。`scripts/tests/` はそのテスト |
+| `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの確認（`check-site.sh`）。`scripts/tests/` はそのテスト |
 | `site/` | 販売ページ（静的な HTML。日本語と `en/`） |
 | `docs/` | 設計・リリースの手順・利用ガイド・プライバシーポリシー |
 | `Spikes/NonetSpike/` | フェーズ0の技術検証アプリ（使い捨て） |
@@ -31,7 +31,8 @@ scripts/test.sh                   # テスト一式（CI と同じ）。失敗�
 ```
 
 - `scripts/build.sh` は Apple Development 証明書で署名する（再ビルドしてもアクセシビリティの許可が消えない）。証明書が無ければアドホック署名にする。引数は xcodebuild に渡る（例: `scripts/build.sh CODE_SIGNING_ALLOWED=NO`）
-- `scripts/test.sh` は `scripts/tests/run.sh`（スクリプト・販売ページ・ドキュメントのテスト）→ `swift build` / `swift test` → 署名なしのアプリのビルド（build/TestDerivedData）の順に動かす
+- `scripts/test.sh` は `scripts/tests/run.sh`（スクリプト・販売ページ・ドキュメントのテスト）→ `swift build` / `swift test` → `scripts/sync-strings.sh --check`（コードの文言がカタログにあり英語の訳があるか）→ 署名なしのアプリのビルド（build/TestDerivedData）→ ビルドしたアプリの自己診断（`--self-check`）の順に動かす
+- 利用ガイドの原本は `docs/user-guide.md`（日本語）と `docs/user-guide.en.md`（英語）。直したら `python3 -I scripts/build-guide.py` で `site/guide.html`・`site/en/guide.html` を作り直す（作り直し忘れは `scripts/tests/site_test.sh` が見つける）
 - パッケージだけなら `cd Packages/NonetKit && swift test`。スクリプトのテストだけなら `scripts/tests/run.sh [名前の一部]`
 - スクリプトのテストは外部のツール（xcodebuild・notarytool・hdiutil など）を `scripts/tests/fakes/` の偽物に差し替えて動くので、証明書もネットワークも要らない。`shellcheck` と `node` があれば、それを使うテスト（シェルの静的解析・販売ページのデモの動き）も動く（無ければ飛ばす）
 - どのスクリプトも、どのフォルダから動かしてもよい
@@ -57,6 +58,8 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 - [docs/spike-results.md](docs/spike-results.md): フェーズ0の技術検証の結果
 - [docs/release.md](docs/release.md): リリースと販売の手順、公開前のチェックリスト
 - [docs/user-guide.md](docs/user-guide.md): 利用ガイド（利用者向け）
+- [docs/user-guide.en.md](docs/user-guide.en.md): User guide (English)
+- [docs/glossary.md](docs/glossary.md): 英語用語集（英語にするときの訳語の基準）
 - [docs/privacy.md](docs/privacy.md): プライバシーポリシー（日本語・英語）
 
 © 2026 Takanari Okazaki

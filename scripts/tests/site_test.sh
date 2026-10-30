@@ -278,6 +278,16 @@ check_app_links_fixture() {
   run "$ROOT/scripts/check-site.sh" "$@" --config "$TEST_TMP/Nonet.xcconfig" "$SITE"
 }
 
+# フォルダの URL を確かめるためのページ: help/（日本語）と en/help/（英語）。リンクが切れないよう、同じフォルダに guide.html と privacy.html も置く
+write_help_pages() {
+  local name
+  mkdir -p "$SITE/help" "$SITE/en/help"
+  for name in index guide privacy; do
+    sed 's/lang="en"/lang="ja"/' "$SITE/en/index.html" >"$SITE/help/$name.html"
+    sed 's|"\.\./|"../../|g' "$SITE/en/index.html" >"$SITE/en/help/$name.html"
+  done
+}
+
 # アプリの「利用ガイド」と「プライバシー」が、サイトに無いページを指していない
 test_app_links_must_point_to_pages_of_the_site() {
   local config="$TEST_TMP/Nonet.xcconfig"
@@ -286,14 +296,12 @@ test_app_links_must_point_to_pages_of_the_site() {
   check_app_links_fixture
   assert_status 0
 
-  # 大文字のホスト・#節・サイトの直下（/）・フォルダ（/en と /en/）も行き先として読める
+  # 大文字のホスト・#節・サイトの直下（/。英語は /en/）・フォルダ（/help と /help/。英語は /en/help）も行き先として読める
   write_app_links_config "$config" https://NONET.test/guide.html#troubleshooting https://nonet.test/
   check_app_links_fixture
   assert_status 0
-  write_app_links_config "$config" https://nonet.test/en/guide.html https://nonet.test/en
-  check_app_links_fixture
-  assert_status 0
-  write_app_links_config "$config" https://nonet.test/en/guide.html https://nonet.test/en/
+  write_help_pages
+  write_app_links_config "$config" https://nonet.test/help https://nonet.test/help/
   check_app_links_fixture
   assert_status 0
 
@@ -321,6 +329,38 @@ test_app_links_must_not_drop_the_html_extension() {
   assert_contains "$OUT" "NONET_SUPPORT_URL（https://nonet.test/guide）は .html を省いています。補わないホストでは開けないので、/guide.html と書いてください"
   assert_contains "$OUT" "NONET_PRIVACY_URL（https://nonet.test/en/privacy）は .html を省いています。補わないホストでは開けないので、/en/privacy.html と書いてください"
   assert_not_contains "$OUT" "に当たるページが"
+}
+
+# 英語で動くアプリは、最後の要素の前に en/ を入れたページ（…/guide.html → …/en/guide.html）を開くので、それもサイトに要る
+test_app_links_need_the_english_page() {
+  local config="$TEST_TMP/Nonet.xcconfig"
+  write_fixture_site
+  cp "$SITE/index.html" "$SITE/help.html"
+  write_app_links_config "$config" https://nonet.test/help.html#start https://nonet.test/privacy.html
+  check_app_links_fixture
+  assert_status 1
+  assert_contains "$OUT" "- Nonet.xcconfig の NONET_SUPPORT_URL（https://nonet.test/help.html#start）の英語のページ（https://nonet.test/en/help.html。英語で動くアプリが開く）が site/ にありません"
+  assert_not_contains "$OUT" "NONET_PRIVACY_URL"
+  assert_not_contains "$OUT" "に当たるページが"
+
+  cp "$SITE/en/index.html" "$SITE/en/help.html"
+  check_app_links_fixture
+  assert_status 0
+
+  # 英語のページを指すと、英語で動くアプリは en/en/ を開いてしまう
+  write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/en/privacy.html
+  check_app_links_fixture
+  assert_status 1
+  assert_contains "$OUT" "NONET_PRIVACY_URL（https://nonet.test/en/privacy.html）の英語のページ（https://nonet.test/en/en/privacy.html。英語で動くアプリが開く）が site/ にありません"
+  assert_not_contains "$OUT" "NONET_SUPPORT_URL"
+
+  # フォルダの URL は、フォルダの名前の前に en/ が入る
+  write_help_pages
+  rm -r "$SITE/en/help"
+  write_app_links_config "$config" https://nonet.test/help/ https://nonet.test/privacy.html
+  check_app_links_fixture
+  assert_status 1
+  assert_contains "$OUT" "NONET_SUPPORT_URL（https://nonet.test/help/）の英語のページ（https://nonet.test/en/help/。英語で動くアプリが開く）が site/ にありません"
 }
 
 # canonical は属性の順や大文字・小文字にかかわらず読む

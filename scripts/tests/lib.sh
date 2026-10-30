@@ -103,7 +103,7 @@ write_valid_xcconfig() {
 NONET_APPCAST_URL = https:/\$()/nonet.test/updates/appcast.xml
 NONET_SPARKLE_PUBLIC_KEY = $TEST_SPARKLE_KEY
 NONET_PURCHASE_URL = https:/\$()/store.nonet.test/buy
-NONET_SUPPORT_URL = https:/\$()/nonet.test/guide
+NONET_SUPPORT_URL = https:/\$()/nonet.test/guide.html
 NONET_PRIVACY_URL = https:/\$()/nonet.test/privacy.html
 NONET_LICENSE_PUBLIC_KEY = $TEST_LICENSE_KEY
 EOF
