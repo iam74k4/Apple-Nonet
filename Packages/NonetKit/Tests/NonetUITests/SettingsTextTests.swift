@@ -81,6 +81,54 @@ import Testing
         #expect(text.hasSuffix(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")))
     }
 
+    /// 読み込みを確かめる文の名前や中身は1行にする。改行・制御文字・文字の向きを変える文字は空白に、長ければ切る
+    @Test func textFromAFileIsShownOnOneLine() {
+        #expect(SettingsText.singleLine("  Figma\n\n  安全です\t\r\n", limit: 40) == "Figma 安全です")
+        #expect(SettingsText.singleLine("a\u{202E}b\u{2066}c\u{0}d\u{2029}e", limit: 40) == "a b c d e")
+        // 絵文字をつなぐ ZWJ と旗のタグ文字は残す
+        let family = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}"
+        let scotland = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"
+        #expect(SettingsText.singleLine("\(family) \(scotland)", limit: 40) == "\(family) \(scotland)")
+        #expect(SettingsText.singleLine("abcdefghij", limit: 5) == "abcd…")
+        #expect(SettingsText.singleLine("abcde", limit: 5) == "abcde")
+    }
+
+    /// 打つ文字は「」でまとめ、修飾キーのある打鍵は表記で並べる。長ければ真ん中を省いて、最後の Return を見せる
+    @Test func keysToTypeAreShownAsText() {
+        let save = KeySequence([KeyChord(.character("s"), modifiers: .command)])
+        let typing = KeySequence(
+            [KeyChord(.character("l"), modifiers: .command)]
+                + "ls -la".map { $0 == " " ? KeyChord(.special(.space)) : KeyChord(.character(String($0))) }
+                + [KeyChord(.special(.returnKey))]
+        )
+        let enter = KeyChord(.special(.returnKey)).displayString
+        #expect(SettingsText.keysPreview(save) == save.displayString)
+        #expect(SettingsText.keysPreview(typing) == [
+            KeyChord(.character("l"), modifiers: .command).displayString,
+            L10n.ui("「\("ls -la")」"),
+            enter,
+        ].joined(separator: " → "))
+
+        let long = KeySequence(String(repeating: "a", count: 300).map { KeyChord(.character(String($0))) } + [KeyChord(.special(.returnKey))])
+        let preview = SettingsText.keysPreview(long)
+        #expect(preview.count <= SettingsText.importContentLimit + 3)
+        #expect(preview.contains(" … "))
+        #expect(preview.hasSuffix(" → " + enter))
+    }
+
+    /// スクリプトは最初の数行と行数を見せる（空の行は数えない）
+    @Test func longScriptsShowTheFirstLines() {
+        let source = "# 準備\n\ncd ~/src\nmake\nmake install\necho done\n"
+        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: source))) == [
+            L10n.ui("スクリプト（\(5)行）:"),
+            "# 準備",
+            "cd ~/src",
+            "make",
+            L10n.ui("…ほか\(2)行"),
+        ])
+        #expect(SettingsText.reviewLines(for: .launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Notes", name: "メモ")))).isEmpty)
+    }
+
     @Test func fileErrorsUseTheStoreDescription() {
         #expect(SettingsText.fileError(ConfigurationStoreError.notAProfileDocument, reading: true) == L10n.core("Nonet のプロファイルのファイルではありません"))
         #expect(SettingsText.fileError(CocoaError(.fileReadNoPermission), reading: true) == L10n.ui("ファイルを読み込めませんでした"))

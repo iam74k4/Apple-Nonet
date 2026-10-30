@@ -71,6 +71,11 @@ public final class SettingsWindowController {
 
     func select(_ tab: SettingsTab) {
         model.selectTab(tab)
+        showInWindow(tab)
+    }
+
+    /// ウィンドウの題名とツールバーの選択を合わせる（元に戻すでプロファイルのタブに移ったときも、ここを通る）
+    private func showInWindow(_ tab: SettingsTab) {
         window?.title = tab.title
         window?.toolbar?.selectedItemIdentifier = SettingsWindowCoordinator.identifier(for: tab)
     }
@@ -113,6 +118,7 @@ public final class SettingsWindowController {
         window.toolbar = toolbar
         window.toolbarStyle = .preference
         model.files = coordinator
+        model.onTabChange = { [weak self] tab in self?.showInWindow(tab) }
 
         self.coordinator = coordinator
         self.window = window

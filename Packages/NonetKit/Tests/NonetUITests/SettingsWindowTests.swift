@@ -55,6 +55,37 @@ import Testing
         #expect(window.contentView?.undoManager === controller.model.undoManager)
     }
 
+    /// 編集メニューの「取り消す」（宛先なしの undo:）は、ウィンドウからマスの変更の取り消しに届く
+    @Test func theWindowsUndoActionUndoesCellChanges() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.model.undoManager.groupsByEvent = false
+        let safari = try #require(controller.model.selectedCell)
+        controller.model.clearCell(at: 0)
+        #expect(window.tryToPerform(Selector(("undo:")), with: nil))
+        #expect(controller.model.selectedCell == safari)
+        #expect(window.tryToPerform(Selector(("redo:")), with: nil))
+        #expect(controller.model.selectedCell == nil)
+    }
+
+    /// ほかのタブで元に戻すとプロファイルのタブに移る。ウィンドウの題名とツールバーの選択も合わせる
+    @Test func undoingFromAnotherTabSelectsTheProfilesTab() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.model.undoManager.groupsByEvent = false
+        controller.model.clearCell(at: 0)
+        controller.select(.general)
+        #expect(window.title == L10n.ui("一般"))
+        controller.model.undoManager.undo()
+        #expect(controller.model.tab == .profiles)
+        #expect(window.title == L10n.ui("プロファイル"))
+        #expect(window.toolbar?.selectedItemIdentifier == SettingsWindowCoordinator.identifier(for: .profiles))
+    }
+
     @Test func selectingATabUpdatesTitleAndToolbar() throws {
         _ = NSApplication.shared
         let h = try SettingsHarness()

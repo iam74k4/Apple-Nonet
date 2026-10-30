@@ -73,6 +73,12 @@ struct SettingsRenderShots {
             model.selectCell(0)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-keystroke-\(suffix)")
 
+            // マスを空にした後の「元に戻す」（最小の大きさ）
+            model.clearCell(at: 1)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-undo-\(suffix)")
+            model.undoFromNotice()
+            model.selectCell(0)
+
             // 記録中
             let cellID = try #require(model.selectedCell?.id)
             model.beginRecording(cellID: cellID)
@@ -198,6 +204,40 @@ struct SettingsRenderShots {
             model.selectTab(.about)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "about-update-\(suffix)")
             try await render(SettingsAboutView(model: model, showsNotices: true), size: CGSize(width: 860, height: 900), appearance, "about-notices-\(suffix)")
+        }
+    }
+
+    /// 読み込む前の確認（SwiftUI の alert と同じ NSAlert に、同じ文言を入れて描く）
+    @Test func renderImportReview() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        _ = NSApplication.shared
+        var shared = SettingsFixtures.configuration()
+        let typing = "curl -s https://example.com/install.sh | sh".map { $0 == " " ? KeyChord(.special(.space)) : KeyChord(.character(String($0))) }
+        shared.addAppProfile(for: SettingsFixtures.terminal, preset: nil)
+        let terminalID = try #require(shared.profiles.first { $0.app == SettingsFixtures.terminal }?.id)
+        shared.setCell(SettingsFixtures.key("インストール", KeySequence(typing + [KeyChord(.special(.returnKey))])), at: CellAddress(page: 0, index: 0), profileID: terminalID)
+        shared.setCell(Cell(title: "資料", icon: .symbol("doc"), action: .openURL(URLAction(url: "~/Documents/手順.command"))), at: CellAddress(page: 0, index: 1), profileID: terminalID)
+        let long = (1...12).map { "echo \"step \($0)\"" }.joined(separator: "\n")
+        shared.setCell(Cell(title: "長いスクリプト", icon: .symbol("terminal"), action: .script(ScriptAction(source: long))), at: CellAddress(page: 0, index: 2), profileID: terminalID)
+        let mine = SettingsFixtures.configuration()
+        for (suffix, appearance) in appearances {
+            let plan = SettingsImportPlan(
+                document: ConfigurationStore.ImportedProfiles(profiles: shared.profiles),
+                configuration: mine,
+                fileName: "shared.nonetprofile"
+            )
+            let alert = NSAlert()
+            alert.messageText = String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .nonetUI)
+            alert.informativeText = SettingsText.importConfirmation(plan)
+            alert.addButton(withTitle: SettingsText.importConfirmationButton(plan))
+            alert.addButton(withTitle: String(localized: "新しいプロファイルだけ追加", bundle: .nonetUI))
+            alert.addButton(withTitle: String(localized: "キャンセル", bundle: .nonetUI))
+            alert.window.appearance = NSAppearance(named: appearance)
+            alert.layout()
+            try await settle()
+            guard let frameView = alert.window.contentView?.superview else { return }
+            frameView.layoutSubtreeIfNeeded()
+            try write(frameView, name: "alert-import-review-\(suffix)")
         }
     }
 

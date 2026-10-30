@@ -127,10 +127,18 @@ enum SettingsText {
         return lines.joined(separator: "\n")
     }
 
-    /// 確かめるときに名前を並べる数（多いときは残りを数で伝える）
+    /// 確かめるときに名前やマスを並べる数（多いときは残りを数で伝える）
     static let importConfirmationNameLimit = 6
+    /// 確かめるときに出すスクリプトの行数（多いときは残りを行数で伝える）
+    static let importScriptLineLimit = 3
+    /// 確かめるときの、プロファイルやマスの名前の長さ
+    static let importNameLimit = 40
+    /// 確かめるときの、ファイル名の長さ
+    static let importFileNameLimit = 60
+    /// 確かめるときの、スクリプトの1行・キー入力・URL の長さ
+    static let importContentLimit = 100
 
-    /// 読み込む前に確かめる文。置き換わるものと、スクリプトを含むプロファイル（両方あれば空行で分ける）
+    /// 読み込む前に確かめる文。置き換わるものと、何かを実行するマスとその中身（両方あれば空行で分ける）
     static func importConfirmation(_ plan: SettingsImportPlan) -> String {
         var sections: [[String]] = []
         if plan.replacesExisting {
@@ -146,13 +154,114 @@ enum SettingsText {
             }
             sections.append(lines)
         }
-        if plan.containsScripts {
-            sections.append(
-                [String(localized: "次のプロファイルには、スクリプトを実行するマスがあります。スクリプトはあなたの権限で動くので、信頼できるファイルだけを読み込んでください。", bundle: .module)]
-                    + importConfirmationNames(plan.scriptProfileNames)
-            )
+        if plan.hasReviewedCells {
+            var lines = [String(localized: "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。", bundle: .module)]
+            for reviewed in plan.reviewedCells.prefix(importConfirmationNameLimit) {
+                let profile = singleLine(reviewed.profileName, limit: importNameLimit)
+                let title = singleLine(SettingsGrid.displayTitle(for: reviewed.cell), limit: importNameLimit)
+                lines.append(String(localized: "・\(profile) › \(title)", bundle: .module))
+                lines += reviewLines(for: reviewed.cell.action)
+            }
+            let rest = plan.reviewedCells.count - importConfirmationNameLimit
+            if rest > 0 {
+                lines.append(String(localized: "ほか\(rest)個", bundle: .module))
+            }
+            sections.append(lines)
         }
         return sections.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
+    }
+
+    /// 確かめるときに出す、マスの中身（スクリプトは最初の数行、キー入力は打つ文字、URL は開くファイル）
+    static func reviewLines(for action: Action) -> [String] {
+        switch action {
+        case .script(let script):
+            let lines = script.source.components(separatedBy: .newlines)
+                .map { singleLine($0, limit: importContentLimit) }
+                .filter { !$0.isEmpty }
+            var result = [String(localized: "スクリプト（\(lines.count)行）:", bundle: .module)]
+            result += lines.prefix(importScriptLineLimit)
+            let rest = lines.count - importScriptLineLimit
+            if rest > 0 {
+                result.append(String(localized: "…ほか\(rest)行", bundle: .module))
+            }
+            return result
+        case .keystroke(let keys):
+            return [String(localized: "キー入力: \(keysPreview(keys))", bundle: .module)]
+        case .openURL(let url):
+            return [String(localized: "開くファイル: \(singleLine(url.url, limit: importContentLimit))", bundle: .module)]
+        case .launchApp, .shortcut, .menuItem, .ai:
+            return []
+        }
+    }
+
+    /// 打つキーを読める形に。修飾キーの無い文字は続けて「」でくくり、ほかは表記で並べる（例: 「curl -s x | sh」 → ↩）。
+    /// 長ければ真ん中を省き、最後の Return が見えるようにする
+    static func keysPreview(_ keys: KeySequence) -> String {
+        var parts: [String] = []
+        var typed = ""
+        for chord in keys.chords {
+            if chord.modifiers.isEmpty, let character = typedCharacter(chord.key) {
+                typed += character
+                continue
+            }
+            if !typed.isEmpty {
+                parts.append(String(localized: "「\(typed)」", bundle: .module))
+                typed = ""
+            }
+            parts.append(singleLine(chord.displayString, limit: importContentLimit))
+        }
+        if !typed.isEmpty {
+            parts.append(String(localized: "「\(typed)」", bundle: .module))
+        }
+        let text = parts.joined(separator: " → ")
+        guard text.count > importContentLimit else { return text }
+        let tail = importContentLimit / 3
+        return String(text.prefix(importContentLimit - tail)) + " … " + String(text.suffix(tail))
+    }
+
+    /// 修飾キーなしで打つと、そのまま文字が入るキー（空白を含む）。見えない文字は nil（表記で出す）
+    private static func typedCharacter(_ key: Key) -> String? {
+        switch key {
+        case .special(.space):
+            return " "
+        case .character(let character):
+            guard character.count == 1, !character.unicodeScalars.contains(where: isHidden) else { return nil }
+            return character
+        case .special, .keyCode:
+            return nil
+        }
+    }
+
+    /// ファイルから来た名前や中身を1行で見せる。改行・制御文字・書式文字（文字の向きを変えるものなど）は空白にし、
+    /// 続く空白は1つにまとめ、長ければ切る。確かめる文の中に、ファイルを作った人が自分の段落を差し込めないように
+    static func singleLine(_ text: String, limit: Int) -> String {
+        var result = ""
+        var pendingSpace = false
+        for character in text {
+            if character.isWhitespace || character.unicodeScalars.contains(where: isHidden) {
+                pendingSpace = !result.isEmpty
+                continue
+            }
+            if pendingSpace {
+                result.append(" ")
+                pendingSpace = false
+            }
+            result.append(character)
+        }
+        guard result.count > limit else { return result }
+        return String(result.prefix(max(limit - 1, 0))) + "…"
+    }
+
+    /// 改行・制御文字・書式文字。絵文字をつなぐ ZWJ・ZWNJ と、旗の絵文字のタグ文字は残す
+    private static func isHidden(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .control, .lineSeparator, .paragraphSeparator:
+            return true
+        case .format:
+            return !(scalar.value == 0x200C || scalar.value == 0x200D || (0xE0020...0xE007F).contains(scalar.value))
+        default:
+            return false
+        }
     }
 
     /// 読み込みを確かめるときの、読み込むボタン
@@ -163,9 +272,11 @@ enum SettingsText {
             : String(localized: "settings.import.confirmButton", defaultValue: "読み込む", bundle: .module)
     }
 
-    /// 「・名前」の行。多いときは残りを数で伝える
+    /// 「・名前」の行（1行にして長ければ切る）。多いときは残りを数で伝える
     private static func importConfirmationNames(_ names: [String]) -> [String] {
-        var lines = names.prefix(importConfirmationNameLimit).map { String(localized: "・\($0)", bundle: .module) }
+        var lines = names.prefix(importConfirmationNameLimit).map { name in
+            String(localized: "・\(singleLine(name, limit: importNameLimit))", bundle: .module)
+        }
         let rest = names.count - importConfirmationNameLimit
         if rest > 0 {
             lines.append(String(localized: "ほか\(rest)個", bundle: .module))
