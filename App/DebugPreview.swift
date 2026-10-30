@@ -41,7 +41,7 @@ final class DebugPreview {
         guard let page = pages.first else { return }
         let trigger = configuration.settings.trigger
         let model = HUDModel(
-            title: page.profileName,
+            title: page.title,
             pageIndex: 0,
             pageCount: pages.count,
             cells: page.cells.map { cell in

@@ -24,12 +24,21 @@ public struct ResolvedPage: Equatable, Sendable {
     /// プロファイル内でのページ番号
     public var pageIndex: Int
     public var cells: [Cell?]
+    /// ページの名前（Page.name）。無ければ nil
+    public var pageName: String?
 
-    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?]) {
+    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil) {
         self.profileID = profileID
         self.profileName = profileName
         self.pageIndex = pageIndex
         self.cells = cells
+        self.pageName = pageName
+    }
+
+    /// HUD の題名。ページに名前があれば「Xcode · デバッグ」、無ければプロファイルの名前だけ
+    public var title: String {
+        guard let name = Page.normalizedName(pageName) else { return profileName }
+        return "\(profileName) · \(name)"
     }
 }
 
@@ -69,7 +78,7 @@ extension NonetConfiguration {
         profiles.first { $0.id == id }
     }
 
-    /// 有効なアプリのプロファイル
+    /// 有効な（mode が .profile の）アプリのプロファイル
     public func appProfile(forBundleID bundleID: String) -> Profile? {
         let key = Self.bundleIDKey(bundleID)
         guard !key.isEmpty else { return nil }
@@ -171,9 +180,106 @@ extension NonetConfiguration {
         profiles[index].pages.remove(at: pageIndex)
     }
 
+    /// 消したページを pageIndex に戻す（元に戻す）。ページが上限なら何もしないで false
+    @discardableResult
+    public mutating func insertPage(_ page: Page, at pageIndex: Int, profileID: UUID) -> Bool {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return false }
+        profiles[index].normalizePages()
+        let position = min(max(pageIndex, 0), profiles[index].pages.count)
+        profiles[index].pages.insert(Page(cells: page.cells, name: page.name), at: position)
+        // ほかで同じ id のマスが作られていれば振り直す
+        self = validated()
+        return true
+    }
+
+    /// ページの名前を変える。空や nil なら名前を外す（Page.normalizedName(_:) で揃える）
+    public mutating func renamePage(at pageIndex: Int, profileID: UUID, to name: String?) {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return }
+        profiles[index].pages[pageIndex].name = Page.normalizedName(name)
+    }
+
+    // MARK: - アプリごとの使い方（ProfileMode）
+
+    /// そのアプリのプロファイルの使い方。プロファイルが無ければ nil（グローバルを使う）
+    public func appMode(forBundleID bundleID: String) -> ProfileMode? {
+        appProfileIndex(forBundleID: bundleID).map { profiles[$0].mode }
+    }
+
+    /// このアプリでは Nonet を使わない（そのアプリのプロファイルが ProfileMode.off）。bundleID が nil や空なら false。
+    /// 「前面のアプリで切り替える」（autoSwitchProfiles）がオフでも使わない（どのページを使うかではなく、そのアプリで Nonet を使うかどうか）
+    public func isTurnedOff(forBundleID bundleID: String?) -> Bool {
+        guard let bundleID, !Self.bundleIDKey(bundleID).isEmpty else { return false }
+        return appMode(forBundleID: bundleID) == .off
+    }
+
+    /// アプリの使い方を変える。プロファイルが無ければ作る（preset があればその中身で。後で「このプロファイル」に戻したときに使える）。
+    /// プロファイルの id を返す。bundleID が空なら何もしないで nil
+    @discardableResult
+    public mutating func setAppMode(_ mode: ProfileMode, for app: AppReference, preset: AppPreset? = nil) -> UUID? {
+        guard !Self.bundleIDKey(app.bundleID).isEmpty else { return nil }
+        let id = addAppProfile(for: app, preset: preset)
+        updateProfile(id: id) { $0.mode = mode }
+        return id
+    }
+
+    // MARK: - 複製・プリセット・元に戻す
+
+    /// プロファイルのページ（名前を含む）を写した、別のアプリのプロファイルを後ろに作る。マスの id は新しくする。
+    /// 元のアプリのメニュー項目を押すマスは、新しいアプリのメニューを押すようにする（VS Code → Cursor のように、同じメニューのアプリへ写すため）。
+    /// 元が無い・app のプロファイルがすでにある・bundleID が空なら何もしないで nil
+    @discardableResult
+    public mutating func duplicateProfile(id: UUID, for app: AppReference) -> UUID? {
+        guard let source = profile(id: id),
+              !Self.bundleIDKey(app.bundleID).isEmpty,
+              appProfileIndex(forBundleID: app.bundleID) == nil else { return nil }
+        let sourceKey = source.app.map { Self.bundleIDKey($0.bundleID) }
+        var copy = Profile(kind: .app(app), pages: source.pages, mode: .profile)
+        copy.normalizePages()
+        for page in copy.pages.indices {
+            copy.pages[page].cells = copy.pages[page].cells.map { cell in
+                cell.map { cell in
+                    var cell = cell
+                    cell.id = UUID()
+                    if case .menuItem(var menu) = cell.action, let target = menu.app,
+                       let sourceKey, Self.bundleIDKey(target.bundleID) == sourceKey {
+                        menu.app = app
+                        cell.action = .menuItem(menu)
+                    }
+                    return cell
+                }
+            }
+        }
+        profiles.append(copy)
+        self = validated()
+        return copy.id
+    }
+
+    /// プロファイルのページをプリセットの中身に戻す（ページの名前も外す）。id と使い方（mode）は変えない
+    public mutating func resetProfile(id: UUID, to preset: AppPreset) {
+        updateProfile(id: id) { profile in
+            // makeProfile() はマスの id を振り直すので、ほかのプロファイルと重ならない
+            profile.pages = preset.makeProfile().pages
+        }
+    }
+
+    /// 消したアプリのプロファイルを、アプリのプロファイルの並びの position に戻す（元に戻す）。
+    /// 同じアプリのプロファイルか同じ id のプロファイルがすでにある・グローバルなら、何もしないで false
+    @discardableResult
+    public mutating func restoreAppProfile(_ profile: Profile, at position: Int) -> Bool {
+        guard let app = profile.app, !Self.bundleIDKey(app.bundleID).isEmpty,
+              appProfileIndex(forBundleID: app.bundleID) == nil,
+              profileIndex(id: profile.id) == nil else { return false }
+        var apps = profiles.filter { !$0.isGlobal }
+        apps.insert(profile, at: min(max(position, 0), apps.count))
+        profiles = profiles.filter(\.isGlobal) + apps
+        self = validated()
+        return true
+    }
+
     /// 前面アプリで使うページの並び。
     /// autoSwitchProfiles が true でアプリのプロファイルがあればそのページ、appendGlobalPages ならその後ろにグローバルのページ。
-    /// それ以外はグローバルのページだけ
+    /// それ以外はグローバルのページだけ。使い方が global・off のプロファイルは使わない
+    /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）
     public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
         let globalPages = Self.resolve(globalProfile)
         guard settings.autoSwitchProfiles,
@@ -200,8 +306,8 @@ extension NonetConfiguration {
                     modelLogger.warning("グローバルのプロファイルが2つ以上あったので、2つ目以降を外した")
                     continue
                 }
-                // グローバルは無効にできない（アプリのプロファイルが無いときに使うページが無くなる）
-                profile.isEnabled = true
+                // グローバルは無効にも「使わない」にもできない（アプリのプロファイルが無いときに使うページが無くなる）
+                profile.mode = .profile
             case .app(let app):
                 guard seenBundleIDs.insert(Self.bundleIDKey(app.bundleID)).inserted else {
                     modelLogger.warning("同じアプリのプロファイルが2つ以上あったので、2つ目以降を外した")
@@ -367,7 +473,7 @@ extension NonetConfiguration {
         profile.normalizePages()
         let name = profile.name
         return profile.pages.enumerated().map { pageIndex, page in
-            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells)
+            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name)
         }
     }
 

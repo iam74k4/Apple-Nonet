@@ -87,7 +87,8 @@ struct SettingsCellEditor: View {
                     SettingsCommitTextField(
                         value: cell.title,
                         placeholder: SettingsCellEditing.automaticTitle(for: cell.action),
-                        accessibilityLabel: String(localized: "表示名", bundle: .module)
+                        accessibilityLabel: String(localized: "表示名", bundle: .module),
+                        focusRequest: model.nameFieldFocusRequest
                     ) { title in
                         model.updateCell(id: cell.id) { $0.title = title }
                     }

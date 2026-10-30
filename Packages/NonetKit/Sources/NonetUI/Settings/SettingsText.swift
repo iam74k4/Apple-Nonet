@@ -111,6 +111,78 @@ enum SettingsText {
         date.formatted(.dateTime.year().month(.wide).day().locale(locale))
     }
 
+    /// 以前の設定の控えの日時（「2026年10月31日 10:15」）
+    static func backupDate(_ date: Date, locale: Locale = uiLocale) -> String {
+        date.formatted(.dateTime.year().month(.abbreviated).day().hour().minute().locale(locale))
+    }
+
+    // MARK: プロファイルとページ
+
+    /// ページの見出し。名前があればその名前、無ければ「ページ 2」
+    static func pageTitle(index: Int, name: String?) -> String {
+        Page.normalizedName(name) ?? String(localized: "ページ \(index + 1)", bundle: .module)
+    }
+
+    /// VoiceOver のページの名前。名前があれば「ページ 2、デバッグ」
+    static func pageAccessibilityLabel(index: Int, name: String?) -> String {
+        guard let name = Page.normalizedName(name) else { return String(localized: "ページ \(index + 1)", bundle: .module) }
+        return String(localized: "ページ \(index + 1)、\(name)", bundle: .module)
+    }
+
+    /// 隣のマスと入れ替える操作の名前（右クリック・VoiceOver）
+    static func swapName(_ direction: SettingsGridDirection) -> String {
+        switch direction {
+        case .up: String(localized: "上と入れ替え", bundle: .module)
+        case .down: String(localized: "下と入れ替え", bundle: .module)
+        case .left: String(localized: "左と入れ替え", bundle: .module)
+        case .right: String(localized: "右と入れ替え", bundle: .module)
+        }
+    }
+
+    /// プロファイルの見出しの選択肢（前面にあるときの使い方）
+    static func name(_ mode: ProfileMode) -> String {
+        switch mode {
+        case .profile: String(localized: "このプロファイル", bundle: .module)
+        case .global: String(localized: "グローバルを使う", bundle: .module)
+        case .off: String(localized: "このアプリでは Nonet を使わない", bundle: .module)
+        }
+    }
+
+    /// プロファイルの見出しの下の説明
+    static func profileDescription(_ profile: Profile) -> String {
+        if profile.isGlobal {
+            return String(localized: "プロファイルの無いアプリで使う9マス", bundle: .module)
+        }
+        switch profile.mode {
+        case .profile:
+            return String(localized: "\(profile.name) が前面にあるときに使う9マス", bundle: .module)
+        case .global:
+            return String(localized: "\(profile.name) ではグローバルのボタンを使います。このプロファイルのボタンは残しています", bundle: .module)
+        case .off:
+            return String(localized: "\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます", bundle: .module)
+        }
+    }
+
+    /// 控えを残した理由
+    static func name(_ reason: ConfigurationBackup.Reason) -> String {
+        switch reason {
+        case .automatic: String(localized: "変更中の自動の控え", bundle: .module)
+        case .beforeDeletingProfile: String(localized: "プロファイルを削除する前", bundle: .module)
+        case .beforeDeletingPage: String(localized: "ページを削除する前", bundle: .module)
+        case .beforeImport: String(localized: "読み込む前", bundle: .module)
+        case .beforeResettingProfile: String(localized: "プリセットに戻す前", bundle: .module)
+        case .beforeRestoring: String(localized: "以前の設定に戻す前", bundle: .module)
+        }
+    }
+
+    /// 控えの中身（「アプリのプロファイル 12個」）。読めなければその旨
+    static func backupSummary(_ entry: SettingsBackupEntry) -> String {
+        guard let count = entry.appProfileCount else {
+            return String(localized: "この控えは読み込めません", bundle: .module)
+        }
+        return String(localized: "アプリのプロファイル \(count)個", bundle: .module, locale: .nonetUI)
+    }
+
     /// 読み込みの結果（1行に1つ）。
     /// 数の入る文は locale: .nonetUI で、文言の言語の規則で単数・複数を選ぶ（地域が日本でアプリが英語のとき「1 profiles」にしない）
     static func importSummary(_ result: NonetConfiguration.ImportResult, containsScripts: Bool) -> String {

@@ -62,6 +62,8 @@ struct MenuBarState: Equatable {
     var isUpdateAvailable: Bool
     /// 「◯◯のボタンを編集…」
     var editTarget: MenuBarEditTarget
+    /// 前面のアプリで Nonet を使わない設定にしている（メニューの「このアプリでは使わない」の印）
+    var isTurnedOffInFrontApp: Bool
     /// 購入ページがある（無ければ「Nonet を購入…」を出さない）
     var canPurchase: Bool
     /// 利用ガイドのページがある
@@ -77,6 +79,7 @@ struct MenuBarState: Equatable {
         canCheckForUpdates: Bool = false,
         isUpdateAvailable: Bool = false,
         editTarget: MenuBarEditTarget = .global,
+        isTurnedOffInFrontApp: Bool = false,
         canPurchase: Bool = false,
         hasGuide: Bool = false
     ) {
@@ -89,6 +92,7 @@ struct MenuBarState: Equatable {
         self.canCheckForUpdates = canCheckForUpdates
         self.isUpdateAvailable = isUpdateAvailable
         self.editTarget = editTarget
+        self.isTurnedOffInFrontApp = isTurnedOffInFrontApp
         self.canPurchase = canPurchase
         self.hasGuide = hasGuide
     }
@@ -113,6 +117,7 @@ struct MenuBarState: Equatable {
             canCheckForUpdates: canCheckForUpdates,
             isUpdateAvailable: isUpdateAvailable,
             editTarget: MenuBarEditTarget.resolve(frontApp: frontApp, configuration: controller.configuration),
+            isTurnedOffInFrontApp: controller.configuration.isTurnedOff(forBundleID: frontApp?.bundleID),
             canPurchase: links.purchase != nil,
             hasGuide: links.support != nil
         )
@@ -155,6 +160,8 @@ enum MenuBarEntry: Equatable {
     case openSettings
     /// 「Xcode のボタンを編集…」「Pages のボタンを作る…」「グローバルのボタンを編集…」
     case editButtons(MenuBarEditTarget)
+    /// 前面のアプリでだけ Nonet を使わない（押すと切り替える）。アプリが分からないときは出さない
+    case turnOffInApp(AppReference, isOn: Bool)
     case showOnboarding
     /// 利用ガイドのページを開く
     case userGuide
@@ -182,6 +189,7 @@ enum MenuBarEntry: Equatable {
         case .toggleEnabled: String(localized: "Nonet を有効にする", bundle: .module)
         case .openSettings: String(localized: "設定…", bundle: .module)
         case .editButtons(let target): target.title
+        case .turnOffInApp: String(localized: "このアプリでは使わない", bundle: .module)
         case .showOnboarding: String(localized: "初回の案内をもう一度", bundle: .module)
         case .userGuide: String(localized: "利用ガイド", bundle: .module)
         case .license(let text): text
@@ -305,8 +313,11 @@ enum MenuBarModel {
             .separator,
             .openSettings,
             .editButtons(state.editTarget),
-            .showOnboarding,
         ]
+        if let app = state.editTarget.app {
+            entries.append(.turnOffInApp(app, isOn: state.isTurnedOffInFrontApp))
+        }
+        entries.append(.showOnboarding)
         if state.hasGuide {
             entries.append(.userGuide)
         }

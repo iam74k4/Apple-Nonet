@@ -8,12 +8,14 @@ import UniformTypeIdentifiers
 
 let settingsLog = Logger(subsystem: "com.iam74k4.Nonet", category: "ui-settings")
 
-enum SettingsGridDirection: Equatable, Sendable {
+enum SettingsGridDirection: Hashable, Sendable {
     case up, down, left, right
 }
 
 enum SettingsGrid {
     static let columns = 3
+    /// 隣と入れ替えるメニュー・VoiceOver の並び
+    static let swapDirections: [SettingsGridDirection] = [.up, .down, .left, .right]
 
     /// 矢印キーで移る先。端では止まる
     static func neighbor(of index: Int, _ direction: SettingsGridDirection) -> Int {

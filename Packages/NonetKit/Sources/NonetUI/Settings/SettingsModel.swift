@@ -24,8 +24,25 @@ struct SettingsUndoNotice: Equatable {
     var actionName: String
 }
 
-/// 元に戻す操作の受け手。プロファイルごとに分け、ページやプロファイルを消したときにそのプロファイルの分だけ忘れる
+/// 元に戻す操作の受け手。プロファイルごとに分け、読み込みでプロファイルを置き換えたときにそのプロファイルの分だけ忘れる
 final class SettingsUndoTarget {}
+
+/// インスペクタでの変更を、マスごとに1つの取り消しにまとめたもの。after は変えるたびに新しくする
+final class SettingsCellEditGroup {
+    let cellID: UUID
+    let profileID: UUID
+    let before: SettingsCellSnapshot
+    var after: SettingsCellSnapshot
+    /// undoManager に登録した（文字の欄を打っている間は、打ち終わるまで登録を待つ）
+    var isRegistered = false
+
+    init(cellID: UUID, profileID: UUID, before: SettingsCellSnapshot, after: SettingsCellSnapshot) {
+        self.cellID = cellID
+        self.profileID = profileID
+        self.before = before
+        self.after = after
+    }
+}
 
 /// 書き出し・読み込みのファイルを選ぶ（テストでは偽物にする）
 @MainActor
@@ -52,6 +69,8 @@ final class SettingsModel {
         case deactivateLicense
         /// 読み込むと今のプロファイルやグローバルのページが置き換わるか、スクリプトや Return を押すキー入力など、何かを実行するマスを含む
         case importProfiles(SettingsImportPlan)
+        /// プロファイルの中身をプリセットに戻す
+        case resetProfile(id: UUID, name: String)
 
         var id: String {
             switch self {
@@ -59,6 +78,7 @@ final class SettingsModel {
             case .removePage(let id, let index): "page-\(id)-\(index)"
             case .deactivateLicense: "license"
             case .importProfiles(let plan): "import-\(plan.id)"
+            case .resetProfile(let id, _): "reset-\(id)"
             }
         }
     }
@@ -87,13 +107,38 @@ final class SettingsModel {
     private(set) var selectedPage = 0
     private(set) var selectedIndex: Int? = 0
     var rightPanel: RightPanel = .inspector
-    var isAddingProfile = false
+    /// プロファイルを追加するシート。閉じたら複製の元も忘れる
+    var isAddingProfile = false {
+        didSet {
+            if !isAddingProfile { duplicatingProfileID = nil }
+        }
+    }
+    /// プロファイルを追加するシートで、このプロファイルのページを写す（「複製して別のアプリに使う…」）。nil なら普通の追加
+    var duplicatingProfileID: UUID?
+    /// 名前を変えているページ（ページの見出しのダブルクリック）
+    var renamingPage: Int?
     var confirmation: Confirmation?
     private(set) var lastTestRun: TestRun?
     /// グリッドの下に出す短い知らせ（「空いているマスがありません」など）
     var gridMessage: String?
     /// 書き出し・読み込みの結果
     var fileMessage: SettingsMessage?
+
+    // MARK: 絞り込みとキーボード
+    /// プロファイルの一覧の絞り込み（プロファイルの名前と、どのプロファイルのボタンの名前・キーでも）
+    var profileQuery = ""
+    /// ⌘F で絞り込みの欄を出した（アプリのプロファイルが少なくても出す）
+    var isFilterRequested = false
+    /// 絞り込みの欄に移るたびに増やす（⌘F）
+    var filterFocusRequest = 0
+    /// 表示名の欄に移るたびに増やす（グリッドで Return）
+    var nameFieldFocusRequest = 0
+
+    // MARK: 以前の設定に戻す
+    var isShowingBackups = false
+    /// 「以前の設定に戻す」の一覧（シートを開いたときに読む）
+    var backupEntries: [SettingsBackupEntry] = []
+    @ObservationIgnored private var explicitBackupStore: ConfigurationStore?
 
     // MARK: キーの記録
     private(set) var recorder = SettingsKeyRecorder()
@@ -105,8 +150,16 @@ final class SettingsModel {
     @ObservationIgnored let undoManager = UndoManager()
     /// 元に戻す操作の受け手（プロファイルの id ごと）。undoManager は受け手を強く持たないので、ここで持っておく
     @ObservationIgnored private var undoTargets: [UUID: SettingsUndoTarget] = [:]
-    /// グリッドの下の「元に戻す」。マスを空にしたときと、中身のあるマスをメニュー項目で置き換えたときに出す
-    private(set) var undoNotice: SettingsUndoNotice?
+    /// グリッドの下の「元に戻す」。マスを空にしたとき・中身のあるマスを置き換えたとき・プロファイルやページを消したときなどに出す
+    var undoNotice: SettingsUndoNotice?
+    /// インスペクタでの変更のまとまり（選んでいるマスを変えている間）。別のマスを選ぶ・ほかの操作を元に戻せるようにする・元に戻すと閉じる
+    @ObservationIgnored var editGroup: SettingsCellEditGroup?
+    /// 文字の欄を打っている最中か。打っている間の変更は、打ち終わってから1つの取り消しにする
+    /// （欄の打ち込みの取り消しより上に積むと、⌘Z で欄の中身だけ先に戻り、欄の取り消しが食い違う）
+    @ObservationIgnored var isEditingText: () -> Bool = {
+        NSApp?.keyWindow?.firstResponder is NSText
+    }
+    @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
     // MARK: 一般
     private(set) var loginItemEnabled = false
@@ -161,6 +214,34 @@ final class SettingsModel {
         menuBrowser = SettingsMenuBrowser(menus: services.menus)
         shortcutList = SettingsShortcutList(shortcuts: services.shortcuts)
         loginItemEnabled = services.loginItem.isEnabled
+        observeUndoAndTextEditing()
+    }
+
+    deinit {
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    /// 文字の欄を打ち終えたら、待っていたインスペクタの変更を取り消しに積む。元に戻す・やり直すと、まとまりを閉じる
+    private func observeUndoAndTextEditing() {
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: NSText.didEndEditingNotification, object: nil, queue: .main) { [weak self] _ in
+            // 欄の確定（SwiftUI の onChange）が先に届くよう、次の回りで行う
+            Task { @MainActor in self?.textEditingDidEnd() }
+        })
+        for name in [Notification.Name.NSUndoManagerWillUndoChange, .NSUndoManagerWillRedoChange] {
+            observers.append(center.addObserver(forName: name, object: undoManager, queue: nil) { [weak self] _ in
+                MainActor.assumeIsolated { self?.undoManagerWillChange() }
+            })
+        }
+    }
+
+    /// 控えの読み書き先。決めていなければ、NonetController が読み込んだ設定の場所（ConfigurationStore.lastLoadedDirectory）。
+    /// どちらも無ければ控えは使わない（テストで本物の場所に書かないように）
+    var backupStore: ConfigurationStore? {
+        get { explicitBackupStore ?? ConfigurationStore.lastLoadedDirectory.map { ConfigurationStore(directory: $0) } }
+        set { explicitBackupStore = newValue }
     }
 
     // MARK: - 見ているもの
@@ -201,6 +282,7 @@ final class SettingsModel {
         // 記録中のまま離れると、ほかのタブで打ったキー（ライセンスキーの貼り付けなど）が記録に入ってしまう
         pendingEdits.flushAll()
         finishRecording()
+        closeEditGroup()
         self.tab = tab
         undoNotice = nil
         if tab == .license {
@@ -215,11 +297,13 @@ final class SettingsModel {
         let id = id ?? configuration.globalProfile.id
         guard id != selectedProfile.id || selectedProfileID == nil else { return }
         finishRecording()
+        closeEditGroup()
         selectedProfileID = id
         selectedPage = 0
         selectedIndex = 0
         gridMessage = nil
         undoNotice = nil
+        renamingPage = nil
         if rightPanel == .menus {
             menuBrowser.refreshApps(preferredBundleID: selectedProfile.app?.bundleID)
         }
@@ -246,7 +330,13 @@ final class SettingsModel {
         return configuration.resolvedPages(frontmostBundleID: services.frontmostApp.current?.app.bundleID).first?.profileID
     }
 
+    /// プロファイルを追加するシートでアプリを選んだ。「複製して別のアプリに使う…」から開いたときは、元のプロファイルを写す
     func addProfile(for app: AppReference) {
+        if let source = duplicatingProfileID {
+            isAddingProfile = false
+            duplicateProfile(source, for: app)
+            return
+        }
         var added: UUID?
         let preset = PresetLibrary.preset(forBundleID: app.bundleID, capabilities: services.presetEnvironment.capabilities)
         controller.update { added = $0.addAppProfile(for: app, preset: preset) }
@@ -261,24 +351,74 @@ final class SettingsModel {
         confirmation = .deleteProfile(id: id, name: profile.name)
     }
 
-    func deleteProfile(_ id: UUID) {
+    /// プロファイルを消す。消す前の設定を控えに残し、元に戻せるようにする（そのプロファイルのマスの変更も、戻した後なら戻せる）
+    func deleteProfile(_ id: UUID, actionName: String? = nil, makesBackup: Bool = true) {
         let before = appProfiles
         guard let position = before.firstIndex(where: { $0.id == id }) else { return }
+        let removed = before[position]
+        let actionName = actionName ?? String(localized: "プロファイルの削除", bundle: .module)
+        pendingEdits.flushAll()
+        finishRecording()
+        closeEditGroup()
+        if makesBackup {
+            backupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
+        }
         let wasSelected = selectedProfile.id == id
         controller.update { $0.removeProfile(id: id) }
-        discardCellUndo(forProfiles: [id])
-        rememberedActions = rememberedActions.filter { cellID, _ in
-            configuration.profiles.contains { SettingsGrid.address(ofCell: cellID, in: $0) != nil }
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: id)) { [weak self] _ in
+            self?.restoreProfile(removed, at: position, actionName: actionName)
         }
-        guard wasSelected else { return }
-        let remaining = appProfiles
-        let next = remaining.isEmpty ? nil : remaining[min(position, remaining.count - 1)]
-        selectedProfileID = nil
-        selectProfile(next?.id)
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
+        if wasSelected {
+            let remaining = appProfiles
+            let next = remaining.isEmpty ? nil : remaining[min(position, remaining.count - 1)]
+            selectedProfileID = nil
+            selectProfile(next?.id)
+        }
+        undoNotice = SettingsUndoNotice(
+            text: String(localized: "「\(removed.name)」のプロファイルを削除しました", bundle: .module),
+            actionName: actionName
+        )
     }
 
-    func setProfileEnabled(_ id: UUID, _ enabled: Bool) {
-        controller.update { $0.updateProfile(id: id) { $0.isEnabled = enabled } }
+    /// 消したプロファイルを元の位置に戻す（元に戻す）。同じアプリのプロファイルをその後に作っていれば戻さずに知らせる
+    private func restoreProfile(_ profile: Profile, at position: Int, actionName: String) {
+        pendingEdits.flushAll()
+        finishRecording()
+        undoNotice = nil
+        var restored = false
+        controller.update { restored = $0.restoreAppProfile(profile, at: position) }
+        guard restored else {
+            gridMessage = String(localized: "「\(profile.name)」のプロファイルがすでにあるため、元に戻せませんでした", bundle: .module)
+            return
+        }
+        undoManager.registerUndo(withTarget: undoTarget(for: profile.id)) { [weak self] _ in
+            self?.deleteProfile(profile.id, actionName: actionName, makesBackup: false)
+        }
+        undoManager.setActionName(actionName)
+        if tab != .profiles {
+            selectTab(.profiles)
+        }
+        selectProfile(profile.id)
+    }
+
+    /// 前面にあるときの使い方（このプロファイル・グローバルを使う・このアプリでは Nonet を使わない）
+    func setProfileMode(_ id: UUID, _ mode: ProfileMode) {
+        guard configuration.profile(id: id)?.isGlobal == false else { return }
+        controller.update { $0.updateProfile(id: id) { $0.mode = mode } }
+    }
+
+    /// 選択を初めに戻す（グローバルの1ページ目の左上。以前の設定に戻したときなど）
+    func resetSelection() {
+        finishRecording()
+        closeEditGroup()
+        selectedProfileID = nil
+        selectedPage = 0
+        selectedIndex = 0
+        gridMessage = nil
+        renamingPage = nil
     }
 
     func moveProfiles(fromOffsets offsets: IndexSet, toOffset destination: Int) {
@@ -290,6 +430,7 @@ final class SettingsModel {
     func selectPage(_ index: Int) {
         guard selectedProfile.pages.indices.contains(index), index != pageIndex else { return }
         finishRecording()
+        closeEditGroup()
         selectedPage = index
         gridMessage = nil
         undoNotice = nil
@@ -317,14 +458,51 @@ final class SettingsModel {
         }
     }
 
-    func removePage(_ index: Int, profileID: UUID) {
+    /// ページを消す。マスがあれば消す前の設定を控えに残す。元に戻せるようにする
+    func removePage(_ index: Int, profileID: UUID, makesBackup: Bool = true) {
+        guard let profile = configuration.profile(id: profileID), profile.pages.count > 1,
+              profile.pages.indices.contains(index) else { return }
+        let removed = profile.pages[index]
+        let actionName = String(localized: "ページの削除", bundle: .module)
+        pendingEdits.flushAll()
         finishRecording()
+        closeEditGroup()
+        if makesBackup, removed.cells.contains(where: { $0 != nil }) {
+            backupStore?.makeBackup(of: configuration, reason: .beforeDeletingPage)
+        }
         controller.update { $0.removePage(at: index, profileID: profileID) }
-        discardCellUndo(forProfiles: [profileID])
-        guard profileID == selectedProfile.id else { return }
-        if selectedPage > index || selectedPage >= selectedProfile.pages.count {
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.restorePage(removed, at: index, profileID: profileID)
+        }
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
+        renamingPage = nil
+        if profileID == selectedProfile.id, selectedPage > index || selectedPage >= selectedProfile.pages.count {
             selectedPage = max(selectedPage - 1, 0)
         }
+        undoNotice = SettingsUndoNotice(
+            text: String(localized: "「\(SettingsText.pageTitle(index: index, name: removed.name))」を削除しました", bundle: .module),
+            actionName: actionName
+        )
+    }
+
+    /// 消したページを元の位置に戻す（元に戻す）。その後にページを足して上限なら戻さずに知らせる
+    private func restorePage(_ page: Page, at index: Int, profileID: UUID) {
+        pendingEdits.flushAll()
+        finishRecording()
+        undoNotice = nil
+        var restored = false
+        controller.update { restored = $0.insertPage(page, at: index, profileID: profileID) }
+        guard restored else {
+            gridMessage = String(localized: "ページが \(Profile.maxPages) 枚あるため、消したページを元に戻せませんでした", bundle: .module)
+            return
+        }
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.removePage(index, profileID: profileID, makesBackup: false)
+        }
+        undoManager.setActionName(String(localized: "ページの削除", bundle: .module))
+        reveal(CellAddress(page: index, index: selectedIndex ?? 0), profileID: profileID)
     }
 
     // MARK: - マス
@@ -333,6 +511,7 @@ final class SettingsModel {
         let index = index.map { min(max($0, 0), Page.cellCount - 1) }
         guard index != selectedIndex else { return }
         finishRecording()
+        closeEditGroup()
         selectedIndex = index
         gridMessage = nil
         undoNotice = nil
@@ -470,13 +649,15 @@ final class SettingsModel {
 
     /// マスを変え、元に戻せるようにする。addresses は change で中身が変わる場所（変える前と後の中身を覚える）。
     /// notice があれば、グリッドの下に「元に戻す」と一緒に出す
-    private func changeCells(
+    func changeCells(
         _ actionName: String,
         notice: String? = nil,
         profileID: UUID,
         at addresses: [CellAddress],
         _ change: (inout NonetConfiguration) -> Void
     ) {
+        // インスペクタの変更のまとまりは、ここで閉じる（先に変えたものが下に積まれるように）
+        closeEditGroup()
         let before = cellSnapshots(at: addresses, profileID: profileID)
         controller.update(change)
         let after = cellSnapshots(at: addresses, profileID: profileID)
@@ -494,7 +675,7 @@ final class SettingsModel {
     /// 覚えておいた中身に戻す（元に戻す・やり直す）。今の中身が変えた後のものと違えば（間にほかの変更があれば）戻さずに知らせる。
     /// 入れ替えで別の場所へ動いたマスは今の中身を使い、その後にインスペクタで変えたものを失わない。
     /// 戻すと消えたり上書きされたりするマスは、変えた後のままのときだけ戻す（作ったマスに書き足したスクリプトなどを消さない）
-    private func restoreCells(_ snapshots: [SettingsCellSnapshot], expecting expected: [SettingsCellSnapshot], profileID: UUID, actionName: String) {
+    func restoreCells(_ snapshots: [SettingsCellSnapshot], expecting expected: [SettingsCellSnapshot], profileID: UUID, actionName: String) {
         // 打ちかけの欄と記録中のキーを先に保存してから、今の中身を読む
         pendingEdits.flushAll()
         finishRecording()
@@ -534,13 +715,13 @@ final class SettingsModel {
         }
     }
 
-    private func cellSnapshots(at addresses: [CellAddress], profileID: UUID) -> [SettingsCellSnapshot] {
+    func cellSnapshots(at addresses: [CellAddress], profileID: UUID) -> [SettingsCellSnapshot] {
         guard let profile = configuration.profile(id: profileID) else { return [] }
         return addresses.map { SettingsCellSnapshot(address: $0, cell: SettingsGrid.cell(at: $0, in: profile)) }
     }
 
     /// 元に戻したマスを選んで見せる。ほかのタブにいれば、プロファイルのタブに移る（見えないところで変わらないように）
-    private func reveal(_ address: CellAddress, profileID: UUID) {
+    func reveal(_ address: CellAddress, profileID: UUID) {
         if tab != .profiles {
             selectTab(.profiles)
         }
@@ -561,7 +742,7 @@ final class SettingsModel {
         undoManager.undo()
     }
 
-    private func undoTarget(for profileID: UUID) -> SettingsUndoTarget {
+    func undoTarget(for profileID: UUID) -> SettingsUndoTarget {
         if let target = undoTargets[profileID] {
             return target
         }
@@ -570,9 +751,13 @@ final class SettingsModel {
         return target
     }
 
-    /// ページやプロファイルを消したり、読み込みで置き換えたりした後は、覚えた場所がずれるので、
-    /// そのプロファイルのマスの変更だけ元に戻せなくする（ほかのプロファイルの変更は残す）
-    private func discardCellUndo(forProfiles profileIDs: [UUID]) {
+    /// 読み込みでプロファイルを置き換えた後は、覚えた中身が合わなくなるので、
+    /// そのプロファイルのマスの変更だけ元に戻せなくする（ほかのプロファイルの変更は残す）。
+    /// プロファイルやページを消したときは、それも元に戻せるので忘れない（取り消しは積んだ順に戻るので、場所はずれない）
+    func discardCellUndo(forProfiles profileIDs: [UUID]) {
+        if let group = editGroup, profileIDs.contains(group.profileID) {
+            editGroup = nil
+        }
         for id in profileIDs {
             guard let target = undoTargets.removeValue(forKey: id) else { continue }
             undoManager.removeAllActions(withTarget: target)
@@ -594,6 +779,7 @@ final class SettingsModel {
             controller.update { $0.setCell(cell, at: address, profileID: profile.id) }
             // 書き足した後に知らせから戻すと、その分まで消えるように見えるので知らせは閉じる（⌘Z では確かめてから戻す）
             undoNotice = nil
+            recordInspectorEdit(cellID: id, profileID: profile.id, address: address, before: original)
             return
         }
     }
@@ -875,7 +1061,10 @@ final class SettingsModel {
     }
 
     private func applyImport(_ document: ConfigurationStore.ImportedProfiles) {
+        pendingEdits.flushAll()
         finishRecording()
+        closeEditGroup()
+        backupStore?.makeBackup(of: configuration, reason: .beforeImport)
         let before = configuration.profiles
         var result = NonetConfiguration.ImportResult()
         controller.update { result = $0.importProfiles(document) }
@@ -1084,6 +1273,8 @@ final class SettingsModel {
             deactivateLicense()
         case .importProfiles(let plan):
             applyImport(plan.document)
+        case .resetProfile(let id, _):
+            resetProfileToPreset(id)
         }
     }
 
@@ -1108,6 +1299,7 @@ final class SettingsModel {
     /// ほかのアプリに移ったら記録を終える（記録中はトリガーキーが効かないため）
     func windowDidResignKey() {
         finishRecording()
+        closeEditGroup()
     }
 
     func windowWillClose() {
@@ -1118,6 +1310,9 @@ final class SettingsModel {
         shortcutList.cancel()
         confirmation = nil
         isAddingProfile = false
+        isShowingBackups = false
+        renamingPage = nil
+        closeEditGroup()
     }
 }
 

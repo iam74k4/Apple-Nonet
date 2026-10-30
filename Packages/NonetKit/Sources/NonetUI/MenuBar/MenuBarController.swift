@@ -172,6 +172,21 @@ public final class MenuBarController {
                     self.onOpenSettings(.profiles)
                 }
             }
+        case .turnOffInApp(let app, let isOn):
+            let item = actionItem(entry) { [weak self] in
+                self?.controller.update { configuration in
+                    if isOn {
+                        // 戻すときは、ボタンのあるプロファイルならそれを、無ければグローバルを使う
+                        let hasButtons = OnboardingModel.profile(forBundleID: app.bundleID, in: configuration.profiles)?
+                            .pages.contains { page in page.cells.contains { $0 != nil } } ?? false
+                        configuration.setAppMode(hasButtons ? .profile : .global, for: app)
+                    } else {
+                        configuration.setAppMode(.off, for: app, preset: PresetLibrary.preset(forBundleID: app.bundleID))
+                    }
+                }
+            }
+            item.state = isOn ? NSControl.StateValue.on : NSControl.StateValue.off
+            return item
         case .showOnboarding:
             return actionItem(entry) { [weak self] in self?.onOpenOnboarding() }
         case .userGuide:

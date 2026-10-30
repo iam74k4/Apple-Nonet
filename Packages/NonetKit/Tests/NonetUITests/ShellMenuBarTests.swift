@@ -193,6 +193,7 @@ struct ShellMenuBarTests {
             .separator,
             .openSettings,
             .editButtons(.app(xcode, name: "Xcode")),
+            .turnOffInApp(xcode, isOn: false),
             .showOnboarding,
             .separator,
             .trialInfo(L10n.ui("試用期間: 残り \(12) 日")),

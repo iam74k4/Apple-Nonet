@@ -291,6 +291,9 @@ final class SettingsHarness {
         model = SettingsModel(controller: controller, license: license, services: services, links: links, onCheckForUpdates: nil)
         model.files = files
         model.openURL = { [weak self] url in self?.openedURLs.append(url) }
+        // 控えはこのテストのフォルダに（ほかのテストが最後に読み込んだ場所に書かない）
+        model.backupStore = store
+        model.isEditingText = { false }
     }
 
     deinit {

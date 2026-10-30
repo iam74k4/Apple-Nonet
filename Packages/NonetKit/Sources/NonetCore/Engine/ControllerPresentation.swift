@@ -11,7 +11,7 @@ public enum ControllerPresentation {
         let cells = Page(cells: resolved?.cells ?? []).cells.map { $0.map(hudCell) }
         let highlight = highlightedCell.flatMap { (0..<Page.cellCount).contains($0) ? $0 : nil }
         return HUDModel(
-            title: resolved?.profileName ?? "",
+            title: resolved?.title ?? "",
             pageIndex: index,
             pageCount: max(pages.count, 1),
             cells: cells,

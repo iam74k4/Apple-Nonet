@@ -143,6 +143,7 @@ struct SettingsGeneralView: View {
                         } label: {
                             Text("読み込む…", bundle: .module)
                         }
+                        SettingsRestoreBackupButton(model: model)
                     }
                 } label: {
                     Text("プロファイルの書き出し / 読み込み", bundle: .module)
