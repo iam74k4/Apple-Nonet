@@ -23,53 +23,53 @@ struct SettingsProfilesView: View {
             .frame(width: 310)
             .frame(maxHeight: .infinity)
         }
+        .background { SettingsProfileShortcuts(model: model) }
         .sheet(isPresented: $model.isAddingProfile) {
             SettingsAddProfileSheet(model: model)
         }
     }
 }
 
-// MARK: - サイドバー
-
-struct SettingsSidebar: View {
+/// プロファイルのタブのキー（⌘F で絞り込み、⌘1〜⌘3 でページ）。文字の欄で使うキーとは重ならない。
+/// グリッドだけのキー（Return・⌘D・⌘⌫・⌥⌘＋矢印キー）は SettingsGridView が受ける
+struct SettingsProfileShortcuts: View {
     let model: SettingsModel
 
     var body: some View {
+        ZStack {
+            Button(String(localized: "プロファイルを絞り込む", bundle: .module)) { model.focusFilter() }
+                .keyboardShortcut("f", modifiers: .command)
+            ForEach(1...Profile.maxPages, id: \.self) { number in
+                Button(String(localized: "ページ \(number)", bundle: .module)) { model.selectPageByShortcut(number) }
+                    .keyboardShortcut(KeyEquivalent(Character(String(number))), modifiers: .command)
+            }
+        }
+        .buttonStyle(.plain)
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - サイドバー
+
+struct SettingsSidebar: View {
+    @Bindable var model: SettingsModel
+    @FocusState private var isFilterFocused: Bool
+
+    var body: some View {
         VStack(spacing: 0) {
-            List(selection: Binding(get: { model.selectedProfile.id }, set: { model.selectProfile($0) })) {
-                Section {
-                    globalRow
-                        .tag(model.configuration.globalProfile.id)
-                } header: {
-                    Text("プロファイル", bundle: .module)
-                }
-                Section {
-                    ForEach(model.appProfiles) { profile in
-                        SettingsProfileRow(profile: profile)
-                            .tag(profile.id)
-                            .contextMenu { contextMenu(for: profile) }
-                    }
-                    .onMove { model.moveProfiles(fromOffsets: $0, toOffset: $1) }
-                } header: {
-                    // アイコンの種類やメニュー項目の「アプリ」と違い、複数のアプリの一覧の見出し
-                    Text(String(localized: "settings.sidebar.appsHeader", defaultValue: "アプリ", bundle: .module))
-                }
+            if model.showsProfileFilter {
+                filterField
+                    .padding(.horizontal, 10)
+                    .padding(.top, 10)
+                    .padding(.bottom, 4)
             }
-            .listStyle(.sidebar)
-            .onDeleteCommand {
-                let profile = model.selectedProfile
-                if !profile.isGlobal {
-                    model.requestDeleteProfile(profile.id)
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if model.appProfiles.isEmpty {
-                    Text("「プロファイルを追加」で、アプリごとの9マスを作れます", bundle: .module)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(16)
-                }
+            if model.profileQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+                profileList
+            } else {
+                SettingsSearchResultsList(model: model)
             }
             Divider()
             VStack(alignment: .leading, spacing: 10) {
@@ -94,6 +94,82 @@ struct SettingsSidebar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .onChange(of: model.filterFocusRequest) {
+            // 欄はこの変更で出てくるので、出てから移る
+            Task { @MainActor in isFilterFocused = true }
+        }
+    }
+
+    private var filterField: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(text: $model.profileQuery, prompt: Text("名前・ボタン・キーで絞り込み", bundle: .module)) {
+                Text("プロファイルを絞り込む", bundle: .module)
+            }
+            .textFieldStyle(.plain)
+            .focused($isFilterFocused)
+            .onExitCommand {
+                model.clearFilter()
+                isFilterFocused = false
+            }
+            if !model.profileQuery.isEmpty {
+                Button {
+                    model.clearFilter()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(String(localized: "絞り込みをやめる", bundle: .module))
+                .accessibilityLabel(String(localized: "絞り込みをやめる", bundle: .module))
+            }
+        }
+        .font(.system(size: 12))
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+    }
+
+    private var profileList: some View {
+        List(selection: Binding(get: { model.selectedProfile.id }, set: { model.selectProfile($0) })) {
+            Section {
+                globalRow
+                    .tag(model.configuration.globalProfile.id)
+                    .contextMenu { SettingsProfileContextMenu(model: model, profile: model.configuration.globalProfile) }
+            } header: {
+                Text("プロファイル", bundle: .module)
+            }
+            Section {
+                ForEach(model.appProfiles) { profile in
+                    SettingsProfileRow(profile: profile)
+                        .tag(profile.id)
+                        .contextMenu { SettingsProfileContextMenu(model: model, profile: profile) }
+                }
+                .onMove { model.moveProfiles(fromOffsets: $0, toOffset: $1) }
+            } header: {
+                // アイコンの種類やメニュー項目の「アプリ」と違い、複数のアプリの一覧の見出し
+                Text(String(localized: "settings.sidebar.appsHeader", defaultValue: "アプリ", bundle: .module))
+            }
+        }
+        .listStyle(.sidebar)
+        .onDeleteCommand {
+            let profile = model.selectedProfile
+            if !profile.isGlobal {
+                model.requestDeleteProfile(profile.id)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if model.appProfiles.isEmpty {
+                Text("「プロファイルを追加」で、アプリごとの9マスを作れます", bundle: .module)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(16)
+            }
+        }
     }
 
     private var globalRow: some View {
@@ -110,16 +186,35 @@ struct SettingsSidebar: View {
                 .foregroundStyle(.secondary)
         }
     }
+}
 
-    @ViewBuilder
-    private func contextMenu(for profile: Profile) -> some View {
+/// プロファイルの右クリック: 使い方・複製・プリセットに戻す・書き出し・削除
+struct SettingsProfileContextMenu: View {
+    let model: SettingsModel
+    let profile: Profile
+
+    var body: some View {
+        if !profile.isGlobal {
+            Picker(selection: Binding(get: { profile.mode }, set: { model.setProfileMode(profile.id, $0) })) {
+                ForEach(ProfileMode.allCases, id: \.self) { mode in
+                    Text(SettingsText.name(mode)).tag(mode)
+                }
+            } label: {
+                Text("前面にあるとき", bundle: .module)
+            }
+            .pickerStyle(.inline)
+            Divider()
+        }
         Button {
-            model.setProfileEnabled(profile.id, !profile.isEnabled)
+            model.beginDuplicatingProfile(profile.id)
         } label: {
-            if profile.isEnabled {
-                Text("無効にする", bundle: .module)
-            } else {
-                Text("有効にする", bundle: .module)
+            Text("複製して別のアプリに使う…", bundle: .module)
+        }
+        if model.preset(forProfile: profile.id) != nil {
+            Button {
+                model.requestResetProfile(profile.id)
+            } label: {
+                Text("プリセットに戻す…", bundle: .module)
             }
         }
         Button {
@@ -127,11 +222,13 @@ struct SettingsSidebar: View {
         } label: {
             Text("このプロファイルを書き出す…", bundle: .module)
         }
-        Divider()
-        Button(role: .destructive) {
-            model.requestDeleteProfile(profile.id)
-        } label: {
-            Text("削除…", bundle: .module)
+        if !profile.isGlobal {
+            Divider()
+            Button(role: .destructive) {
+                model.requestDeleteProfile(profile.id)
+            } label: {
+                Text("削除…", bundle: .module)
+            }
         }
     }
 }
@@ -140,19 +237,22 @@ struct SettingsProfileRow: View {
     let profile: Profile
 
     var body: some View {
+        let isUsed = profile.mode == .profile
         HStack(spacing: 8) {
             CellIconView(.app(bundleID: profile.app?.bundleID ?? ""), size: 14)
-                .saturation(profile.isEnabled ? 1 : 0)
-                .opacity(profile.isEnabled ? 1 : 0.45)
+                .saturation(isUsed ? 1 : 0)
+                .opacity(isUsed ? 1 : 0.45)
                 .accessibilityHidden(true)
             Text(profile.name)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(profile.isEnabled ? Color.primary : Color.secondary)
+                .foregroundStyle(isUsed ? Color.primary : Color.secondary)
             Spacer(minLength: 4)
-            if !profile.isEnabled {
-                Text("オフ", bundle: .module)
+            if let badge = Self.badge(profile.mode) {
+                Text(badge)
                     .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+                    .fixedSize()
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
@@ -160,7 +260,89 @@ struct SettingsProfileRow: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(profile.isEnabled ? "" : String(localized: "無効", bundle: .module))
+        .accessibilityValue(isUsed ? "" : SettingsText.name(profile.mode))
+    }
+
+    /// 一覧の右の小さな印。グローバルを使うプロファイルは「グローバル」、使わないアプリは「オフ」
+    static func badge(_ mode: ProfileMode) -> String? {
+        switch mode {
+        case .profile: nil
+        case .global: String(localized: "settings.sidebar.usesGlobalBadge", defaultValue: "グローバル", bundle: .module)
+        case .off: String(localized: "オフ", bundle: .module)
+        }
+    }
+}
+
+/// 絞り込みの結果: 名前の合うプロファイルと、名前・説明・送るキーの合うボタン（「Xcode › ページ 1 › ビルド ⌘B」）
+struct SettingsSearchResultsList: View {
+    let model: SettingsModel
+
+    var body: some View {
+        let results = model.searchResults
+        List {
+            if !results.profiles.isEmpty {
+                Section {
+                    ForEach(results.profiles) { profile in
+                        Button {
+                            model.selectProfile(profile.id)
+                        } label: {
+                            SettingsProfileRow(profile: profile)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(profile.id == model.selectedProfile.id ? Color.accentColor.opacity(0.15) : Color.clear)
+                    }
+                } header: {
+                    Text("プロファイル", bundle: .module)
+                }
+            }
+            if !results.cells.isEmpty {
+                Section {
+                    ForEach(results.cells) { match in
+                        Button {
+                            model.reveal(match)
+                        } label: {
+                            row(match)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(isSelected(match) ? Color.accentColor.opacity(0.15) : Color.clear)
+                    }
+                } header: {
+                    Text("ボタン", bundle: .module)
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .overlay {
+            if results.isEmpty {
+                Text("見つかりません", bundle: .module)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func isSelected(_ match: SettingsCellMatch) -> Bool {
+        match.profileID == model.selectedProfile.id && match.address == model.selectedAddress
+    }
+
+    private func row(_ match: SettingsCellMatch) -> some View {
+        HStack(spacing: 6) {
+            Text(match.path)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 4)
+            if match.detailIsKeys {
+                Text(match.detail)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+        }
+        .font(.system(size: 12))
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -173,12 +355,12 @@ struct SettingsEditorCenter: View {
         let profile = model.selectedProfile
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                // 名前が長くて入らないときは、スイッチの説明を省いて名前に場所を譲る（説明はヘルプと VoiceOver に残す）
+                // 名前が長くて入らないときは、使い方の見出しを省いて名前に場所を譲る（見出しはヘルプと VoiceOver に残す）
                 ViewThatFits(in: .horizontal) {
-                    header(profile, showsToggleLabel: true)
-                    header(profile, showsToggleLabel: false)
+                    header(profile, showsModeLabel: true)
+                    header(profile, showsModeLabel: false)
                 }
-                Text(description(of: profile))
+                Text(SettingsText.profileDescription(profile))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -186,7 +368,7 @@ struct SettingsEditorCenter: View {
             }
             SettingsPageBar(model: model)
             SettingsGridView(model: model)
-                .opacity(profile.isEnabled ? 1 : 0.55)
+                .opacity(profile.mode == .profile ? 1 : 0.55)
             footer
             Spacer(minLength: 0)
         }
@@ -194,30 +376,35 @@ struct SettingsEditorCenter: View {
         .padding(.vertical, 20)
     }
 
-    private func header(_ profile: Profile, showsToggleLabel: Bool) -> some View {
+    private func header(_ profile: Profile, showsModeLabel: Bool) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Text(profile.name)
                 .font(.system(size: 22, weight: .bold))
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .layoutPriority(1)
             Spacer(minLength: 8)
             if !profile.isGlobal {
-                let title = String(localized: "このプロファイルを使う", bundle: .module)
-                let toggle = Toggle(isOn: Binding(get: { profile.isEnabled }, set: { model.setProfileEnabled(profile.id, $0) })) {
-                    Text(title)
+                let title = String(localized: "\(profile.name) が前面にあるとき", bundle: .module)
+                let picker = Picker(selection: Binding(get: { profile.mode }, set: { model.setProfileMode(profile.id, $0) })) {
+                    ForEach(ProfileMode.allCases, id: \.self) { mode in
+                        Text(SettingsText.name(mode)).tag(mode)
+                    }
+                } label: {
+                    Text("前面にあるとき", bundle: .module)
                         .font(.system(size: 12))
                 }
-                .toggleStyle(.switch)
+                .pickerStyle(.menu)
                 .controlSize(.small)
                 .help(title)
-                Group {
-                    if showsToggleLabel {
-                        toggle
-                    } else {
-                        toggle.labelsHidden()
-                    }
+                .accessibilityLabel(title)
+                // 狭いときは見出しを省き、選択肢の幅も縮めて名前を先に出す（名前の方を優先する）
+                if showsModeLabel {
+                    picker.fixedSize()
+                } else {
+                    picker.labelsHidden()
+                        .frame(minWidth: 110, maxWidth: 190)
                 }
-                .fixedSize()
             }
         }
     }
@@ -227,7 +414,7 @@ struct SettingsEditorCenter: View {
         if let message = model.gridMessage {
             SettingsNote(text: message, symbol: "exclamationmark.triangle", isWarning: true)
         } else if let notice = model.undoNotice {
-            // 編集メニューの「取り消す」（⌘Z）が無くても、空にしたマスや置き換えたマスを戻せるように
+            // 編集メニューの「取り消す」（⌘Z）が見えなくても、空にしたマスや消したプロファイルなどを戻せるように
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(notice.text)
                     .foregroundStyle(.secondary)
@@ -243,7 +430,7 @@ struct SettingsEditorCenter: View {
             .font(.system(size: 11))
         } else {
             HStack(alignment: .firstTextBaseline) {
-                Text("マスを選んで右側で設定。ドラッグで入れ替え、Delete で空にする", bundle: .module)
+                Text("マスを選んで右側で設定。ドラッグか ⌥⌘＋矢印キーで入れ替え、Delete で空にする", bundle: .module)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 Text(verbatim: "3×3")
@@ -252,19 +439,9 @@ struct SettingsEditorCenter: View {
             .foregroundStyle(.secondary)
         }
     }
-
-    private func description(of profile: Profile) -> String {
-        if profile.isGlobal {
-            return String(localized: "プロファイルの無いアプリで使う9マス", bundle: .module)
-        }
-        if !profile.isEnabled {
-            return String(localized: "無効になっています。\(profile.name) でもグローバルを使います", bundle: .module)
-        }
-        return String(localized: "\(profile.name) が前面にあるときに使う9マス", bundle: .module)
-    }
 }
 
-/// ページの切り替え（最大3）と、メニューから割り当て
+/// ページの切り替え（最大3）と、メニューから割り当て。ページの見出しのダブルクリックで名前を変える
 struct SettingsPageBar: View {
     let model: SettingsModel
 
@@ -283,6 +460,7 @@ struct SettingsPageBar: View {
             ForEach(profile.pages.indices, id: \.self) { index in
                 pageButton(
                     index,
+                    name: profile.pages[index].name,
                     isSelected: index == model.pageIndex,
                     compact: compactPages
                 )
@@ -334,14 +512,17 @@ struct SettingsPageBar: View {
         .accessibilityLabel(title)
     }
 
-    private func pageButton(_ index: Int, isSelected: Bool, compact: Bool) -> some View {
-        let title = String(localized: "ページ \(index + 1)", bundle: .module)
+    private func pageButton(_ index: Int, name: String?, isSelected: Bool, compact: Bool) -> some View {
+        let title = SettingsText.pageTitle(index: index, name: name)
+        let rename = String(localized: "名前を変更…", bundle: .module)
         return Button {
             model.selectPage(index)
         } label: {
             Text(compact ? "\(index + 1)" : title)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: compact ? nil : 140)
                 .fixedSize()
                 .padding(.horizontal, compact ? 8 : 10)
                 .padding(.vertical, 4)
@@ -352,9 +533,24 @@ struct SettingsPageBar: View {
                 .contentShape(Capsule(style: .circular))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title)
+        // ダブルクリックで名前を変える（1回目のクリックでそのページを選ぶ）
+        .simultaneousGesture(TapGesture(count: 2).onEnded { model.beginRenamingPage(index) })
+        .help(String(localized: "ダブルクリックで名前を変更", bundle: .module))
+        .accessibilityLabel(SettingsText.pageAccessibilityLabel(index: index, name: name))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAction(named: rename) { model.beginRenamingPage(index) }
+        .popover(
+            isPresented: Binding(get: { model.renamingPage == index }, set: { if !$0, model.renamingPage == index { model.renamingPage = nil } }),
+            arrowEdge: .bottom
+        ) {
+            SettingsPageNameEditor(model: model, index: index, name: name ?? "")
+        }
         .contextMenu {
+            Button {
+                model.beginRenamingPage(index)
+            } label: {
+                Text(rename)
+            }
             if model.canRemovePage {
                 Button(role: .destructive) {
                     model.requestRemovePage(index)
@@ -368,5 +564,56 @@ struct SettingsPageBar: View {
             guard let item = items.first else { return false }
             return model.handleDrop(item.payload, ontoPage: index)
         }
+    }
+}
+
+/// ページの名前の欄（吹き出し）。Return で決め、Esc でやめる。空にすると「ページ 2」に戻る
+struct SettingsPageNameEditor: View {
+    let model: SettingsModel
+    let index: Int
+    @State private var text: String
+    @FocusState private var isFocused: Bool
+
+    init(model: SettingsModel, index: Int, name: String) {
+        self.model = model
+        self.index = index
+        _text = State(initialValue: name)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("ページの名前", bundle: .module)
+                .font(.system(size: 12, weight: .semibold))
+            TextField(text: $text, prompt: Text(String(localized: "ページ \(index + 1)", bundle: .module))) {
+                Text("ページの名前", bundle: .module)
+            }
+            .textFieldStyle(.roundedBorder)
+            .focused($isFocused)
+            .onSubmit { model.renamePage(index, to: text) }
+            .onExitCommand { model.renamingPage = nil }
+            Text("「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります", bundle: .module)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button {
+                    model.renamingPage = nil
+                } label: {
+                    Text("キャンセル", bundle: .module)
+                }
+                .keyboardShortcut(.cancelAction)
+                Button {
+                    model.renamePage(index, to: text)
+                } label: {
+                    Text("決定", bundle: .module)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .controlSize(.small)
+        }
+        .padding(14)
+        .frame(width: 260)
+        .onAppear { isFocused = true }
     }
 }

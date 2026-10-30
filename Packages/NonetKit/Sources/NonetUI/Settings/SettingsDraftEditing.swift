@@ -116,17 +116,27 @@ struct SettingsCommitTextField: View {
     let placeholder: String
     var monospaced = false
     var accessibilityLabel: String?
+    /// 増えたらこの欄に移る（グリッドで Return を押したときの表示名の欄など）
+    var focusRequest = 0
     let commit: (String) -> Void
 
     @State private var buffer: SettingsDraftBuffer
     @FocusState private var isFocused: Bool
     @Environment(\.settingsPendingEdits) private var pendingEdits
 
-    init(value: String, placeholder: String, monospaced: Bool = false, accessibilityLabel: String? = nil, commit: @escaping (String) -> Void) {
+    init(
+        value: String,
+        placeholder: String,
+        monospaced: Bool = false,
+        accessibilityLabel: String? = nil,
+        focusRequest: Int = 0,
+        commit: @escaping (String) -> Void
+    ) {
         self.value = value
         self.placeholder = placeholder
         self.monospaced = monospaced
         self.accessibilityLabel = accessibilityLabel
+        self.focusRequest = focusRequest
         self.commit = commit
         _buffer = State(initialValue: SettingsDraftBuffer(value: value, delay: .milliseconds(450)))
     }
@@ -146,11 +156,13 @@ struct SettingsCommitTextField: View {
         .onSubmit { buffer.flush() }
         .onChange(of: isFocused) { if !isFocused { buffer.flush() } }
         .onChange(of: value) { _, newValue in buffer.valueChanged(newValue) }
+        .onChange(of: focusRequest) { isFocused = true }
         .onDisappear { buffer.flush() }
     }
 }
 
-/// 打ち終わってから書き込む複数行の欄。code ならスクリプト用（等幅で、スマート引用符などの置き換えをしない）
+/// 打ち終わってから書き込む複数行の欄。code ならスクリプト用（等幅で、スマート引用符などの置き換えをしない）。
+/// どちらも NSTextView を直接使い、打ち込みの取り消しは欄の中だけで効くようにする（SettingsCodeTextView）
 struct SettingsCommitTextEditor: View {
     let value: String
     var code = false
@@ -159,8 +171,7 @@ struct SettingsCommitTextEditor: View {
     let commit: (String) -> Void
 
     @State private var buffer: SettingsDraftBuffer
-    @State private var isCodeFocused = false
-    @FocusState private var isProseFocused: Bool
+    @State private var isFocused = false
     @Environment(\.settingsPendingEdits) private var pendingEdits
 
     init(value: String, code: Bool = false, minHeight: CGFloat = 100, accessibilityLabel: String, commit: @escaping (String) -> Void) {
@@ -176,7 +187,6 @@ struct SettingsCommitTextEditor: View {
         let buffer = buffer
         buffer.commit = commit
         buffer.registry = pendingEdits
-        let isFocused = code ? isCodeFocused : isProseFocused
         return editor
             .frame(minHeight: minHeight)
             .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
@@ -188,33 +198,27 @@ struct SettingsCommitTextEditor: View {
             .onDisappear { buffer.flush() }
     }
 
-    @ViewBuilder
     private var editor: some View {
-        if code {
-            SettingsCodeTextView(
-                text: buffer.draft,
-                accessibilityLabel: accessibilityLabel,
-                edit: { [buffer] in buffer.edit($0) },
-                endEditing: { [buffer] in buffer.flush() },
-                focusChanged: { isCodeFocused = $0 }
-            )
-            .padding(1)
-        } else {
-            TextEditor(text: Binding(get: { buffer.draft }, set: { buffer.edit($0) }))
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .padding(6)
-                .focused($isProseFocused)
-                .accessibilityLabel(accessibilityLabel)
-                .onChange(of: isProseFocused) { if !isProseFocused { buffer.flush() } }
-        }
+        SettingsCodeTextView(
+            text: buffer.draft,
+            code: code,
+            accessibilityLabel: accessibilityLabel,
+            edit: { [buffer] in buffer.edit($0) },
+            endEditing: { [buffer] in buffer.flush() },
+            focusChanged: { isFocused = $0 }
+        )
+        .padding(code ? 1 : 4)
     }
 }
 
-/// スクリプトの欄。SwiftUI の TextEditor は macOS の「スマート引用符」「スマートダッシュ」「ユーザ辞書の置き換え」を
-/// 止められず、打った " が “ に、-- が — に変わって zsh で動かなくなるため、NSTextView を直接使う
+/// 複数行の欄。SwiftUI の TextEditor は macOS の「スマート引用符」「スマートダッシュ」「ユーザ辞書の置き換え」を
+/// 止められず、打った " が “ に、-- が — に変わって zsh で動かなくなるため、NSTextView を直接使う（code が false の指示文などは置き換えを残す）。
+/// 打ち込みの取り消しはこの欄だけの undoManager に積み、欄を離れたら捨てる。欄で変えた中身は、離れたときに
+/// 設定の取り消し（SettingsModel のマスごとのまとまり）に1つで積む。窓の undoManager に打ち込みを積むと、
+/// マスの中身を元に戻した後に、合わなくなった打ち込みの取り消しが残る
 struct SettingsCodeTextView: NSViewRepresentable {
     let text: String
+    var code = true
     let accessibilityLabel: String
     let edit: (String) -> Void
     let endEditing: () -> Void
@@ -223,6 +227,8 @@ struct SettingsCodeTextView: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: SettingsCodeTextView
+        /// この欄の打ち込みだけの取り消し
+        let typingUndoManager = UndoManager()
 
         init(parent: SettingsCodeTextView) {
             self.parent = parent
@@ -236,7 +242,12 @@ struct SettingsCodeTextView: NSViewRepresentable {
         }
 
         func textDidEndEditing(_ notification: Notification) {
+            typingUndoManager.removeAllActions()
             parent.endEditing()
+        }
+
+        func undoManager(for view: NSTextView) -> UndoManager? {
+            typingUndoManager
         }
     }
 
@@ -246,7 +257,11 @@ struct SettingsCodeTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let textView = SettingsCodeNSTextView(frame: .zero)
-        Self.configureForCode(textView)
+        if code {
+            Self.configureForCode(textView)
+        } else {
+            Self.configureForProse(textView)
+        }
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
@@ -278,6 +293,8 @@ struct SettingsCodeTextView: NSViewRepresentable {
         // ほかで値が変わったときだけ入れ替える（打っている最中に入れ替えるとカーソルが飛ぶ）
         if textView.string != text, !textView.hasMarkedText() {
             let selection = textView.selectedRanges
+            // 入れ替えた後の文字に、前の打ち込みの取り消しは合わない
+            context.coordinator.typingUndoManager.removeAllActions()
             textView.string = text
             let length = (text as NSString).length
             textView.selectedRanges = selection.map { value in
@@ -308,6 +325,15 @@ struct SettingsCodeTextView: NSViewRepresentable {
         textView.isAutomaticDataDetectionEnabled = false
         textView.isAutomaticTextCompletionEnabled = false
         textView.smartInsertDeleteEnabled = false
+    }
+
+    /// 指示文など、ふつうの文の欄（置き換えや綴りの確かめは、利用者の設定のまま）
+    static func configureForProse(_ textView: NSTextView) {
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.allowsUndo = true
+        textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+        textView.textColor = .textColor
     }
 }
 

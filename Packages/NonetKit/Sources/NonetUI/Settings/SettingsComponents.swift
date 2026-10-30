@@ -4,18 +4,50 @@ import AppKit
 import NonetCore
 import SwiftUI
 
-/// モックに合わせた白黒の色。ダークモードでも同じ明暗の関係にする
+/// モックに合わせた白黒の色。ダークモードでも同じ明暗の関係にする。
+/// アクセシビリティの「コントラストを上げる」では、枠をはっきりさせた色にする（ハイコントラストの外観）
 enum SettingsPalette {
-    static let gridBackground = dynamic(light: 0.957, dark: 0.165)
-    static let cellBackground = dynamic(light: 1.0, dark: 0.235)
-    static let cellBorder = dynamic(light: 0.878, dark: 0.33)
-    static let emptyBorder = dynamic(light: 0.72, dark: 0.45)
-    static let panelBorder = dynamic(light: 0.898, dark: 0.26)
+    /// 明るさ（0 が黒、1 が白）。ライト・ダークと、それぞれのハイコントラスト
+    struct Shades: Equatable {
+        var light: CGFloat
+        var dark: CGFloat
+        var lightHighContrast: CGFloat
+        var darkHighContrast: CGFloat
+    }
 
-    private static func dynamic(light: CGFloat, dark: CGFloat) -> Color {
+    static let gridBackgroundShades = Shades(light: 0.957, dark: 0.165, lightHighContrast: 0.93, darkHighContrast: 0.1)
+    static let cellBackgroundShades = Shades(light: 1.0, dark: 0.235, lightHighContrast: 1.0, darkHighContrast: 0.2)
+    /// ライトの枠は白いマスとの差が 3:1 ほどになる濃さ（0.878 ではほとんど見えなかった）
+    static let cellBorderShades = Shades(light: 0.55, dark: 0.33, lightHighContrast: 0.2, darkHighContrast: 0.82)
+    static let emptyBorderShades = Shades(light: 0.72, dark: 0.45, lightHighContrast: 0.3, darkHighContrast: 0.75)
+    static let panelBorderShades = Shades(light: 0.898, dark: 0.26, lightHighContrast: 0.4, darkHighContrast: 0.7)
+
+    static let gridBackground = dynamic(gridBackgroundShades)
+    static let cellBackground = dynamic(cellBackgroundShades)
+    static let cellBorder = dynamic(cellBorderShades)
+    static let emptyBorder = dynamic(emptyBorderShades)
+    static let panelBorder = dynamic(panelBorderShades)
+
+    /// 外観に合う明るさ。ハイコントラストの外観か、「コントラストを上げる」がオンならハイコントラストの色
+    static func white(
+        _ shades: Shades,
+        for appearance: NSAppearance,
+        increaseContrast: Bool = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    ) -> CGFloat {
+        let match = appearance.bestMatch(from: [.aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua])
+        let isDark = match == .darkAqua || match == .accessibilityHighContrastDarkAqua
+        let isHighContrast = increaseContrast || match == .accessibilityHighContrastAqua || match == .accessibilityHighContrastDarkAqua
+        switch (isDark, isHighContrast) {
+        case (false, false): return shades.light
+        case (true, false): return shades.dark
+        case (false, true): return shades.lightHighContrast
+        case (true, true): return shades.darkHighContrast
+        }
+    }
+
+    private static func dynamic(_ shades: Shades) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            return NSColor(white: isDark ? dark : light, alpha: 1)
+            NSColor(white: white(shades, for: appearance), alpha: 1)
         })
     }
 }

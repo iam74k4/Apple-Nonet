@@ -1,7 +1,9 @@
 // 担当: core-model（公開 API は契約）
 import Foundation
+import os
 
-/// 設定を JSON で保存する。書き込みはアトミックで、直前の版を1つバックアップとして残す
+/// 設定を JSON で保存する。書き込みはアトミックで、直前の版を1つバックアップとして残す。
+/// ほかに、以前の設定の控え（ConfigurationBackup）を Backups フォルダに maxBackups 個まで残す
 public struct ConfigurationStore: Sendable {
     /// プロファイルの書き出しファイルの拡張子
     public static let profileDocumentExtension = "nonetprofile"
@@ -32,10 +34,24 @@ public struct ConfigurationStore: Sendable {
     /// 読めても、保存すると失う値（知らない種類のマスやプロファイル、知らない設定など）があれば、原本を
     /// configuration.lossy-<日時>.json に残す。版の違うファイルは configuration.v<版>.json に残す
     public func load() throws -> NonetConfiguration? {
-        try load(currentVersion: NonetConfiguration.currentVersion, steps: ConfigurationMigration.steps)
+        Self.loadedDirectory.withLock { $0 = directory }
+        return try load(currentVersion: NonetConfiguration.currentVersion, steps: ConfigurationMigration.steps)
     }
 
+    /// この処理の中で最後に load() した設定の置き場所。アプリでは NonetController が持つ1つだけなので、
+    /// 設定画面はここから「以前の設定に戻す」の控えを読み書きする（Debug の --config-dir で場所を変えても同じ場所を指す）
+    public static var lastLoadedDirectory: URL? {
+        loadedDirectory.withLock { $0 }
+    }
+
+    private static let loadedDirectory = OSAllocatedUnfairLock<URL?>(initialState: nil)
+
     public func save(_ configuration: NonetConfiguration) throws {
+        try save(configuration, now: Date())
+    }
+
+    /// now は控えの日時と「1時間に1回まで」の判断に使う（テストでは時計を渡す）
+    func save(_ configuration: NonetConfiguration, now: Date) throws {
         // 読み込むときと同じ形で書く（範囲外の値があると JSON にできないこともある）
         let data: Data
         do {
@@ -71,6 +87,8 @@ public struct ConfigurationStore: Sendable {
                 // バックアップが作れなくても保存は続ける
                 modelLogger.error("バックアップを作れない: \(error.localizedDescription, privacy: .public)")
             }
+            // 変えている間、1時間に1回まで、変える前の設定を控えに残す
+            makeAutomaticBackupIfDue(current, now: now)
         }
 
         do {
@@ -109,6 +127,170 @@ public struct ConfigurationStore: Sendable {
             self.profiles = profiles
             self.unreadableCount = unreadableCount
         }
+    }
+}
+
+// MARK: - 以前の設定の控え
+
+/// 以前の設定の控え（Backups フォルダの configuration-<UTC の日時>-<理由>.json。中身は configuration.json と同じ書式）
+public struct ConfigurationBackup: Equatable, Identifiable, Sendable {
+    /// 控えを残した理由。ファイル名に入れる
+    public enum Reason: String, CaseIterable, Sendable {
+        /// 設定を変えている間に、1時間に1回まで（変える前の設定）
+        case automatic = "auto"
+        case beforeDeletingProfile = "delete-profile"
+        case beforeDeletingPage = "delete-page"
+        case beforeImport = "import"
+        case beforeResettingProfile = "reset-profile"
+        /// 以前の設定に戻す前（戻したことも元に戻せるように）
+        case beforeRestoring = "restore"
+    }
+
+    public var url: URL
+    public var date: Date
+    public var reason: Reason
+
+    public init(url: URL, date: Date, reason: Reason) {
+        self.url = url
+        self.date = date
+        self.reason = reason
+    }
+
+    public var id: String { url.lastPathComponent }
+}
+
+extension ConfigurationStore {
+    /// 残す控えの数
+    public static let maxBackups = 10
+    /// 変えている間に自動で控えを残す間隔
+    public static let automaticBackupInterval: TimeInterval = 60 * 60
+
+    /// ~/Library/Application Support/Nonet/Backups
+    public var backupsDirectory: URL {
+        directory.appending(path: "Backups", directoryHint: .isDirectory)
+    }
+
+    /// 残っている控え。新しいものから
+    public func backups() -> [ConfigurationBackup] {
+        let fileManager = FileManager.default
+        let names = (try? fileManager.contentsOfDirectory(atPath: backupsDirectory.path(percentEncoded: false))) ?? []
+        return names.compactMap { name -> ConfigurationBackup? in
+            let url = backupsDirectory.appending(path: name, directoryHint: .notDirectory)
+            guard let parsed = Self.parseBackupName(name) else { return nil }
+            let date = parsed.date
+                ?? (try? fileManager.attributesOfItem(atPath: url.path(percentEncoded: false))[.modificationDate] as? Date)
+                ?? .distantPast
+            return ConfigurationBackup(url: url, date: date, reason: parsed.reason)
+        }
+        .sorted { $0.date != $1.date ? $0.date > $1.date : $0.id > $1.id }
+    }
+
+    /// 設定を控えに残す（削除や読み込みの前など）。いちばん新しい控えと同じ中身なら、新しく書かずにそれを返す。
+    /// 書けなければ nil（控えが作れなくても、続く操作は止めない）
+    @discardableResult
+    public func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason) -> ConfigurationBackup? {
+        makeBackup(of: configuration, reason: reason, now: Date())
+    }
+
+    @discardableResult
+    func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason, now: Date) -> ConfigurationBackup? {
+        guard let data = try? ModelJSON.makeEncoder().encode(configuration.validated()) else {
+            modelLogger.error("控えに残す設定を JSON にできない")
+            return nil
+        }
+        return writeBackup(data, reason: reason, now: now)
+    }
+
+    /// 控えの設定。古い版のものは移行し、validated() してから返す
+    public func loadBackup(_ backup: ConfigurationBackup) throws -> NonetConfiguration {
+        let data: Data
+        do {
+            data = try Data(contentsOf: backup.url)
+        } catch {
+            throw ConfigurationStoreError.readFailed(reason: error.localizedDescription)
+        }
+        do {
+            return try Self.decodeConfiguration(from: data).configuration.validated()
+        } catch {
+            throw ConfigurationStoreError.corrupted(movedTo: nil, reason: Self.describe(error))
+        }
+    }
+
+    /// save() で今のファイル（変える前の設定）を控えに残す。いちばん新しい控えから automaticBackupInterval 経っていなければ残さない
+    /// （時計が戻っていたら残す）
+    func makeAutomaticBackupIfDue(_ current: Data, now: Date) {
+        if let newest = backups().first, now >= newest.date, now.timeIntervalSince(newest.date) < Self.automaticBackupInterval {
+            return
+        }
+        writeBackup(current, reason: .automatic, now: now)
+    }
+
+    @discardableResult
+    private func writeBackup(_ data: Data, reason: ConfigurationBackup.Reason, now: Date) -> ConfigurationBackup? {
+        let existing = backups()
+        if let newest = existing.first, (try? Data(contentsOf: newest.url)) == data {
+            return newest
+        }
+        do {
+            try FileManager.default.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
+            let base = "configuration-\(Self.backupTimestamp(for: now))-\(reason.rawValue)"
+            var url = backupsDirectory.appending(path: "\(base).json", directoryHint: .notDirectory)
+            var suffix = 2
+            while FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
+                url = backupsDirectory.appending(path: "\(base)-\(suffix).json", directoryHint: .notDirectory)
+                suffix += 1
+            }
+            try data.write(to: url, options: .atomic)
+            modelLogger.info("設定の控えを残した: \(url.lastPathComponent, privacy: .public)")
+            pruneBackups()
+            return ConfigurationBackup(url: url, date: Self.parseBackupName(url.lastPathComponent)?.date ?? now, reason: reason)
+        } catch {
+            modelLogger.error("設定の控えを残せない: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// 古い控えを消し、maxBackups 個にする
+    private func pruneBackups() {
+        for old in backups().dropFirst(Self.maxBackups) {
+            do {
+                try FileManager.default.removeItem(at: old.url)
+            } catch {
+                modelLogger.error("古い控えを消せない: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    /// 控えのファイル名に入れる日時（UTC。時刻帯を変えても並びが変わらないように）
+    static func backupTimestamp(for date: Date) -> String {
+        backupDateFormatter().string(from: date)
+    }
+
+    private static func backupDateFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+        return formatter
+    }
+
+    /// configuration-<日時>-<理由>[-<番号>].json の日時と理由。控えのファイルでなければ nil。日時が読めなければ date は nil
+    static func parseBackupName(_ name: String) -> (date: Date?, reason: ConfigurationBackup.Reason)? {
+        let prefix = "configuration-"
+        guard name.hasPrefix(prefix), name.hasSuffix(".json") else { return nil }
+        let body = name.dropFirst(prefix.count).dropLast(".json".count)
+        let stamp = body.prefix(16)
+        let rest = body.dropFirst(stamp.count)
+        // 長い名前から比べる（"delete-profile" を "delete-page" などと取り違えないように）
+        let reasons = ConfigurationBackup.Reason.allCases.sorted { $0.rawValue.count > $1.rawValue.count }
+        guard let reason = reasons.first(where: { reason in
+            let tag = "-\(reason.rawValue)"
+            guard rest.hasPrefix(tag) else { return false }
+            let tail = rest.dropFirst(tag.count)
+            return tail.isEmpty || (tail.hasPrefix("-") && Int(tail.dropFirst()) != nil)
+        }) else { return nil }
+        return (backupDateFormatter().date(from: String(stamp)), reason)
     }
 }
 

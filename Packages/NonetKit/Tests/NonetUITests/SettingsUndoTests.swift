@@ -60,8 +60,11 @@ import Testing
         let payload = SettingsDragPayload.cell(profileID: h.model.selectedProfile.id, address: CellAddress(page: 0, index: 0))
         #expect(h.model.handleDrop(payload, onto: 2))
         #expect(h.model.undoManager.undoActionName == L10n.ui("マスの入れ替え"))
-        // 入れ替えた後に名前を変えても、元に戻すと変えた名前のまま元の場所へ戻る
-        h.model.updateCell(id: safari.id) { $0.title = "ブラウザ" }
+        // 入れ替えた後に（取り消しに積まれないところで）名前を変えても、元に戻すと変えた名前のまま元の場所へ戻る
+        var renamed = safari
+        renamed.title = "ブラウザ"
+        let profileID = h.model.selectedProfile.id
+        h.controller.update { $0.setCell(renamed, at: CellAddress(page: 0, index: 2), profileID: profileID) }
         h.model.undoManager.undo()
         #expect(cell(h, 0)?.id == safari.id)
         #expect(cell(h, 0)?.title == "ブラウザ")
@@ -69,6 +72,23 @@ import Testing
         h.model.undoManager.redo()
         #expect(cell(h, 2)?.id == safari.id)
         #expect(cell(h, 0) == terminal)
+    }
+
+    /// 入れ替えた後にインスペクタで変えたものは、それだけ先に戻る（その次に入れ替えが戻る）
+    @Test func inspectorEditsAfterASwapAreUndoneFirst() throws {
+        let h = try harness()
+        let safari = try #require(cell(h, 0))
+        let terminal = try #require(cell(h, 2))
+        h.model.swapCells(CellAddress(page: 0, index: 0), CellAddress(page: 0, index: 2))
+        h.model.updateCell(id: safari.id) { $0.title = "ブラウザ" }
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        h.model.undoManager.undo()
+        #expect(cell(h, 2) == safari)
+        #expect(cell(h, 0) == terminal)
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの入れ替え"))
+        h.model.undoManager.undo()
+        #expect(cell(h, 0) == safari)
+        #expect(cell(h, 2) == terminal)
     }
 
     @Test func movingToAnEmptyCellIsUndoneAsAMove() throws {
@@ -122,23 +142,44 @@ import Testing
         #expect(h.model.selectedCell == original)
     }
 
-    /// ページやプロファイルを消すと場所がずれるので、それより前の変更は元に戻せなくする
-    @Test func removingAPageOrProfileForgetsEarlierChanges() throws {
+    /// ページやプロファイルを消しても元に戻せる。取り消しは積んだ順に戻るので、それより前の変更も、戻した後なら戻せる
+    @Test func removingAPageOrProfileCanBeUndoneAndKeepsEarlierChanges() throws {
         let h = try harness()
+        let safari = try #require(cell(h, 0))
         h.model.addPage()
         h.model.createCell(kind: .ai, at: 3)
+        let ai = try #require(cell(h, 3, page: 1))
         h.model.selectPage(0)
         h.model.clearCell(at: 0)
-        #expect(h.model.undoManager.canUndo)
         h.model.removePage(1, profileID: h.model.selectedProfile.id)
-        #expect(!h.model.undoManager.canUndo)
+        #expect(h.model.selectedProfile.pages.count == 1)
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ページの削除"))
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages.count == 2)
+        #expect(cell(h, 3, page: 1) == ai)
+        h.model.undoManager.undo()
+        #expect(cell(h, 0) == safari)
+        h.model.undoManager.undo()
+        #expect(cell(h, 3, page: 1) == nil)
 
         let xcode = try #require(h.xcodeProfile)
         h.model.selectProfile(xcode.id)
+        let original = try #require(cell(h, 0))
         h.model.clearCell(at: 0)
-        #expect(h.model.undoManager.canUndo)
         h.model.deleteProfile(xcode.id)
-        #expect(!h.model.undoManager.canUndo)
+        #expect(h.xcodeProfile == nil)
+        #expect(h.model.undoManager.undoActionName == L10n.ui("プロファイルの削除"))
+        h.model.undoManager.undo()
+        #expect(h.xcodeProfile?.id == xcode.id)
+        #expect(h.model.appProfiles.first?.id == xcode.id)
+        #expect(h.model.selectedProfile.id == xcode.id)
+        h.model.undoManager.undo()
+        #expect(cell(h, 0) == original)
+        // やり直すと、また消える
+        h.model.undoManager.redo()
+        h.model.undoManager.redo()
+        #expect(h.xcodeProfile == nil)
+        #expect(try h.saved()?.profiles.contains { $0.id == xcode.id } == false)
     }
 
     /// 間にほかの変更（元に戻せない変更）があって、覚えた中身と合わなければ何もしない
@@ -153,22 +194,41 @@ import Testing
         #expect(h.controller.configuration == before)
     }
 
-    /// 作ったマスに書き足した後で元に戻しても、書き足したもの（スクリプト）ごと消さない。戻せない理由を知らせる
+    /// インスペクタで書き足したもの（スクリプトと名前）は1つの取り消しで戻り、その次にマスを作ったことが戻る
+    @Test func inspectorEditsAreUndoneAsOneStep() throws {
+        let h = try harness()
+        h.model.createCell(kind: .script, at: 1)
+        let created = try #require(cell(h, 1))
+        let source = (1...20).map { "echo \($0)" }.joined(separator: "\n")
+        h.model.updateAction(ofCell: created.id, as: ScriptAction.self) { $0.source = source }
+        h.model.updateCell(id: created.id) { $0.title = "ビルド" }
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        h.model.selectCell(4)
+        h.model.undoManager.undo()
+        #expect(cell(h, 1) == created)
+        #expect(h.model.selectedIndex == 1)
+        h.model.undoManager.undo()
+        #expect(cell(h, 1) == nil)
+        #expect(!h.model.undoManager.canUndo)
+    }
+
+    /// 作ったマスに（文字の欄を打っている間で、まだ取り消しに積んでいない）書き足しがあれば、元に戻してもそれごと消さない。戻せない理由を知らせる
     @Test func undoingKeepsWhatWasWrittenInTheInspectorSince() throws {
         let h = try harness()
         h.model.createCell(kind: .script, at: 1)
         let id = try #require(cell(h, 1)?.id)
         let source = (1...20).map { "echo \($0)" }.joined(separator: "\n")
+        h.model.isEditingText = { true }
         h.model.updateAction(ofCell: id, as: ScriptAction.self) { $0.source = source }
         h.model.updateCell(id: id) { $0.title = "ビルド" }
         let written = try #require(cell(h, 1))
-        h.model.selectCell(4)
         h.model.undoManager.undo()
         #expect(cell(h, 1) == written)
         #expect(try h.saved()?.globalProfile.pages[0].cells[1] == written)
         #expect(h.model.selectedIndex == 1)
         #expect(h.model.gridMessage == L10n.ui("マスがその後に変わったため、元に戻せませんでした"))
         // 次の変更の後でも、書き足したものは残っている
+        h.model.isEditingText = { false }
         h.model.clearCell(at: 0)
         #expect(cell(h, 1) == written)
     }
@@ -183,11 +243,13 @@ import Testing
         await h.model.menuBrowser.waitUntilLoaded()
         let node = MenuItemNode(title: "自動レイアウトを追加", path: ["オブジェクト", "自動レイアウトを追加"], keyEquivalent: .key("a", .shift))
         #expect(h.model.handleDrop(.menuItem(id: node.id), onto: 0))
-        let id = try #require(cell(h, 0)?.id)
-        h.model.updateCell(id: id) { $0.title = "レイアウト" }
+        let assigned = try #require(cell(h, 0))
+        h.model.updateCell(id: assigned.id) { $0.title = "レイアウト" }
+        // 名前の変更が先に戻り、その次に置き換える前の中身に戻る
         h.model.undoManager.undo()
-        #expect(cell(h, 0)?.title == "レイアウト")
-        #expect(cell(h, 0)?.action.kind == .menuItem)
+        #expect(cell(h, 0) == assigned)
+        h.model.undoManager.undo()
+        #expect(cell(h, 0)?.action.kind == .launchApp)
     }
 
     /// ほかのタブで元に戻すと、プロファイルのタブに移って変わったマスを見せる
@@ -215,7 +277,9 @@ import Testing
         h.model.requestRemovePage(1)
         #expect(h.model.confirmation == nil)
         #expect(h.model.selectedProfile.pages.count == 1)
-        #expect(h.model.undoManager.canUndo)
+        // 消したページが先に戻る
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages.count == 2)
         h.model.undoManager.undo()
         #expect(h.model.selectedProfile.id == xcode.id)
         #expect(cell(h, 0) == original)

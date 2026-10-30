@@ -715,9 +715,15 @@ import Testing
     @Test func enablingAndReordering() throws {
         let h = try SettingsHarness()
         let safari = try #require(h.safariProfile)
-        #expect(!safari.isEnabled)
-        h.model.setProfileEnabled(safari.id, true)
+        #expect(safari.mode == .global)
+        h.model.setProfileMode(safari.id, .profile)
         #expect(h.safariProfile?.isEnabled == true)
+        h.model.setProfileMode(safari.id, .off)
+        #expect(try h.saved()?.isTurnedOff(forBundleID: SettingsFixtures.safari.bundleID) == true)
+        // グローバルには使い方が無い
+        h.model.setProfileMode(h.controller.configuration.globalProfile.id, .off)
+        #expect(h.controller.configuration.globalProfile.mode == .profile)
+        h.model.setProfileMode(safari.id, .profile)
         h.model.moveProfiles(fromOffsets: IndexSet(integer: 1), toOffset: 0)
         #expect(h.model.appProfiles.map(\.name) == ["Safari", "Xcode"])
         #expect(try h.saved()?.profiles.map(\.name) == [L10n.globalName, "Safari", "Xcode"])

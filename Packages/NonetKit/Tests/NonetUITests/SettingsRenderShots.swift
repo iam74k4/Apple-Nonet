@@ -109,6 +109,28 @@ struct SettingsRenderShots {
             try await render(SettingsInspectorView(model: model), size: CGSize(width: 310, height: 560), appearance, "inspector-launch-\(suffix)")
             model.selectProfile(try profile(named: "Safari", in: h).id)
             try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-disabled-\(suffix)")
+            // このアプリでは Nonet を使わない（最小の大きさでも見出しが入ること）
+            model.setProfileMode(model.selectedProfile.id, .off)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-turned-off-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-turned-off-\(suffix)")
+            model.setProfileMode(model.selectedProfile.id, .global)
+
+            // ページの名前・絞り込み・消した後の「元に戻す」
+            let xcodeID = try profile(named: "Xcode", in: h).id
+            model.selectProfile(xcodeID)
+            model.addPage()
+            model.renamePage(0, to: "ビルド")
+            model.renamePage(1, to: "デバッグとプロファイル")
+            model.selectPage(0)
+            model.selectCell(0)
+            model.profileQuery = "⌘B"
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-filter-pages-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-filter-pages-\(suffix)")
+            model.clearFilter()
+            model.removePage(1, profileID: xcodeID)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-page-deleted-\(suffix)")
+            model.undoFromNotice()
+            try await render(SettingsPageNameEditor(model: model, index: 1, name: "デバッグ"), size: CGSize(width: 260, height: 190), appearance, "popover-page-name-\(suffix)")
 
             // ショートカット・メニュー項目
             model.selectProfile(nil)
@@ -170,6 +192,13 @@ struct SettingsRenderShots {
             // シートと吹き出しの中身
             model.loadInstalledAppsIfNeeded()
             try await render(SettingsAddProfileSheet(model: model), size: CGSize(width: 460, height: 520), appearance, "sheet-add-profile-\(suffix)")
+            model.beginDuplicatingProfile(try profile(named: "Xcode", in: h).id)
+            try await render(SettingsAddProfileSheet(model: model), size: CGSize(width: 460, height: 520), appearance, "sheet-duplicate-profile-\(suffix)")
+            model.isAddingProfile = false
+            model.backupStore?.makeBackup(of: h.controller.configuration, reason: .beforeImport)
+            model.showBackups()
+            try await render(SettingsBackupsSheet(model: model), size: CGSize(width: 480, height: 420), appearance, "sheet-backups-\(suffix)")
+            model.isShowingBackups = false
             try await render(
                 SettingsIconPicker(icon: .symbol("hammer"), suggestedAppBundleID: "com.apple.dt.Xcode", defaultIcon: .symbol("keyboard")) { _ in },
                 size: CGSize(width: 340, height: 360), appearance, "popover-icons-\(suffix)"

@@ -305,6 +305,8 @@ public final class NonetController {
     /// 始めたら true
     private func beginSession(_ activation: SessionActivation, at now: TimeInterval) -> Bool {
         guard canBeginSession() else { return false }
+        // 「このアプリでは Nonet を使わない」アプリが前面なら始めない。ポインタを止めず、HUD も出さない（トリガーキーはそのまま渡る）
+        guard !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID) else { return false }
         let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current, activation: activation)
         // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
         send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)

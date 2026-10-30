@@ -42,6 +42,10 @@ struct SettingsRootView: View {
         .frame(minWidth: 860, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
         .environment(\.settingsPendingEdits, model.pendingEdits)
+        // どのタブからでも開ける（一般の「書き出しと読み込み」の「以前の設定に戻す…」）
+        .sheet(isPresented: $model.isShowingBackups) {
+            SettingsBackupsSheet(model: model)
+        }
         .alert(
             confirmationTitle,
             isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
@@ -79,6 +83,8 @@ struct SettingsRootView: View {
             String(localized: "ライセンスの登録を解除しますか？", bundle: .module)
         case .importProfiles(let plan)?:
             String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .module)
+        case .resetProfile(_, let name)?:
+            String(localized: "「\(name)」をプリセットに戻しますか？", bundle: .module)
         case nil:
             ""
         }
@@ -87,9 +93,11 @@ struct SettingsRootView: View {
     private func confirmationMessage(_ confirmation: SettingsModel.Confirmation) -> String {
         switch confirmation {
         case .deleteProfile:
-            String(localized: "このプロファイルの9マスはすべて消えます。元に戻せません。", bundle: .module)
+            String(localized: "このプロファイルのボタンもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
         case .removePage:
-            String(localized: "このページのマスはすべて消えます。元に戻せません。", bundle: .module)
+            String(localized: "このページのボタンもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
+        case .resetProfile:
+            String(localized: "今のボタンはすべて、プリセットの中身に置き換わります。⌘Z で元に戻せます。", bundle: .module)
         case .deactivateLicense:
             String(localized: "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。", bundle: .module)
         case .importProfiles(let plan):
@@ -102,6 +110,7 @@ struct SettingsRootView: View {
         case .deleteProfile, .removePage: String(localized: "削除", bundle: .module)
         case .deactivateLicense: String(localized: "登録を解除", bundle: .module)
         case .importProfiles(let plan): SettingsText.importConfirmationButton(plan)
+        case .resetProfile: String(localized: "プリセットに戻す", bundle: .module)
         }
     }
 

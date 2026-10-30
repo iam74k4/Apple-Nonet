@@ -1,5 +1,6 @@
 // 担当: ui-settings
-// 3×3 のグリッド。クリックで選ぶ・ドラッグで入れ替える・Delete で空にする・矢印キーで移る・右クリックで複製など
+// 3×3 のグリッド。クリックで選ぶ・ドラッグで入れ替える・Delete で空にする・矢印キーで移る・右クリックで複製など。
+// グリッドにいるときのキー: Return で表示名の欄へ、⌘D で複製、⌘⌫ で空にする、⌥⌘＋矢印キーで隣と入れ替え、⌘C・⌘V でコピーと貼り付け
 import NonetCore
 import SwiftUI
 
@@ -44,6 +45,28 @@ struct SettingsGridView: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
+        .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { press in
+            // ⌥⌘＋矢印キーで隣のマスと入れ替える（矢印キーだけなら、下の onMoveCommand で選ぶマスを移る）
+            guard Self.isOptionCommand(press.modifiers), let index = model.selectedIndex,
+                  let direction = Self.direction(press.key) else { return .ignored }
+            model.swapCell(at: index, direction)
+            return .handled
+        }
+        .onKeyPress(keys: [.return, .delete, "d"]) { press in
+            guard let index = model.selectedIndex else { return .ignored }
+            switch press.key {
+            case .return where press.modifiers.isDisjoint(with: [.command, .option, .control, .shift]):
+                return model.focusNameField() ? .handled : .ignored
+            case .delete where press.modifiers.contains(.command):
+                model.clearCell(at: index)
+                return .handled
+            case "d" where press.modifiers.contains(.command):
+                model.duplicateCell(at: index)
+                return .handled
+            default:
+                return .ignored
+            }
+        }
         .onMoveCommand { direction in
             switch direction {
             case .up: model.moveSelection(.up)
@@ -58,8 +81,31 @@ struct SettingsGridView: View {
                 model.clearCell(at: index)
             }
         }
+        .onCopyCommand {
+            model.selectedIndex.map(model.cellItemProviders(at:)) ?? []
+        }
+        .onPasteCommand(of: [.nonetCell]) { _ in
+            // 中身はペーストボードから同期で読む（受け取った NSItemProvider は非同期でしか読めない）
+            if let index = model.selectedIndex {
+                model.pasteCell(at: index)
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(localized: "\(profile.name) のページ \(model.pageIndex + 1)", bundle: .module))
+    }
+
+    static func isOptionCommand(_ modifiers: EventModifiers) -> Bool {
+        modifiers.contains(.option) && modifiers.contains(.command) && !modifiers.contains(.shift) && !modifiers.contains(.control)
+    }
+
+    static func direction(_ key: KeyEquivalent) -> SettingsGridDirection? {
+        switch key {
+        case .upArrow: .up
+        case .downArrow: .down
+        case .leftArrow: .left
+        case .rightArrow: .right
+        default: nil
+        }
     }
 }
 
@@ -72,6 +118,7 @@ struct SettingsGridCell: View {
     let onSelect: () -> Void
 
     @State private var isDropTarget = false
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         content
@@ -93,6 +140,7 @@ struct SettingsGridCell: View {
             .contextMenu { contextMenu }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
+            .accessibilityHint(String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))
             .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
             .accessibilityActions {
@@ -100,6 +148,11 @@ struct SettingsGridCell: View {
                     Button(String(localized: "複製", bundle: .module)) { model.duplicateCell(at: index) }
                     Button(String(localized: "削除", bundle: .module)) { model.clearCell(at: index) }
                     Button(String(localized: "このマスをテスト実行", bundle: .module)) { model.startTestRun(cellID: cell.id) }
+                }
+                ForEach(SettingsGrid.swapDirections, id: \.self) { direction in
+                    if model.canSwapCell(at: index, direction) {
+                        Button(SettingsText.swapName(direction)) { model.swapCell(at: index, direction) }
+                    }
                 }
             }
     }
@@ -125,7 +178,7 @@ struct SettingsGridCell: View {
             Image(systemName: "plus")
                 .font(.system(size: 15, weight: .light))
                 .foregroundStyle(.secondary)
-                .opacity(isSelected ? 0.9 : 0.4)
+                .opacity(isSelected ? 0.9 : (contrast == .increased ? 0.75 : 0.4))
         }
     }
 
@@ -151,20 +204,23 @@ struct SettingsGridCell: View {
             .truncationMode(.middle)
     }
 
+    /// 「コントラストを上げる」のときは枠を太くする（色は SettingsPalette が濃くする）
     @ViewBuilder
     private var border: some View {
+        let increased = contrast == .increased
         if cell == nil {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(
                     isSelected ? Color.primary : SettingsPalette.emptyBorder,
-                    style: StrokeStyle(lineWidth: isSelected ? 2 : 1.2, dash: [5, 4])
+                    style: StrokeStyle(lineWidth: isSelected ? 2 : (increased ? 1.8 : 1.2), dash: [5, 4])
                 )
         } else {
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(isSelected ? Color.primary : SettingsPalette.cellBorder, lineWidth: isSelected ? 2 : 1)
+                .strokeBorder(isSelected ? Color.primary : SettingsPalette.cellBorder, lineWidth: isSelected ? 2 : (increased ? 1.5 : 1))
         }
     }
 
+    /// キーの印（⌘D など）は付けない。右クリックのメニューの項目に付けると、文字の欄を打っている間のキーまで取られることがあるため
     @ViewBuilder
     private var contextMenu: some View {
         if let cell {
@@ -173,6 +229,22 @@ struct SettingsGridCell: View {
             } label: {
                 Text("複製", bundle: .module)
             }
+            Button {
+                model.selectCell(index)
+                model.copyCell(at: index)
+            } label: {
+                Text("コピー", bundle: .module)
+            }
+            pasteButton
+            swapMenu
+            Menu {
+                ForEach(model.copyTargets) { target in
+                    Button(target.name) { model.copyCell(at: index, toProfile: target.id) }
+                }
+            } label: {
+                Text("ほかのプロファイルにコピー", bundle: .module)
+            }
+            Divider()
             Button(role: .destructive) {
                 model.clearCell(at: index)
             } label: {
@@ -193,6 +265,29 @@ struct SettingsGridCell: View {
             } label: {
                 Text("アクションを追加", bundle: .module)
             }
+            pasteButton
+            swapMenu
+        }
+    }
+
+    private var pasteButton: some View {
+        Button {
+            model.pasteCell(at: index)
+        } label: {
+            Text("ペースト", bundle: .module)
+        }
+        .disabled(!model.canPasteCell())
+    }
+
+    /// 隣のマスと入れ替え（端の向きは選べない）。空きマスとなら移動になる
+    private var swapMenu: some View {
+        Menu {
+            ForEach(SettingsGrid.swapDirections, id: \.self) { direction in
+                Button(SettingsText.swapName(direction)) { model.swapCell(at: index, direction) }
+                    .disabled(!model.canSwapCell(at: index, direction))
+            }
+        } label: {
+            Text("隣と入れ替え", bundle: .module)
         }
     }
 }

@@ -28,17 +28,42 @@ public struct Cell: Codable, Equatable, Identifiable, Sendable {
 /// 3×3 の1ページ。cells は常に9個で、左上から右へ、上の行から並ぶ。nil は空きマス
 public struct Page: Codable, Equatable, Sendable {
     public static let cellCount = 9
+    /// ページの名前の長さの上限（文字数）。HUD の題名に添えるので短くする
+    public static let maxNameLength = 24
 
     public var cells: [Cell?]
+    /// ページの名前（「デバッグ」など）。無ければ nil で、画面では「ページ 2」と出す。HUD の題名にも添える（ResolvedPage.title）
+    public var name: String?
 
-    /// 9個に満たなければ空きマスで埋め、多ければ切り捨てる
-    public init(cells: [Cell?] = []) {
+    /// 9個に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
+    public init(cells: [Cell?] = [], name: String? = nil) {
         var normalized = Array(cells.prefix(Page.cellCount))
         normalized += Array(repeating: nil, count: Page.cellCount - normalized.count)
         self.cells = normalized
+        self.name = Page.normalizedName(name)
     }
 
     public static var empty: Page { Page() }
+
+    /// 前後の空白を除き、改行は空白にし、maxNameLength 文字までにした名前。空なら nil
+    public static func normalizedName(_ name: String?) -> String? {
+        guard let name else { return nil }
+        let singleLine = name.components(separatedBy: .newlines).joined(separator: " ")
+        let trimmed = singleLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(maxNameLength)).trimmingCharacters(in: .whitespaces)
+    }
+}
+
+/// アプリのプロファイルを、そのアプリが前面にあるときにどう使うか。グローバルのプロファイルはいつも profile
+public enum ProfileMode: String, Codable, CaseIterable, Sendable {
+    /// このプロファイルのページを使う
+    case profile
+    /// このプロファイルは使わず、グローバルのページを使う（中身は残す。以前の「無効」）
+    case global
+    /// このアプリでは Nonet を使わない。トリガーキーでも角の長押しでもセッションを始めず、
+    /// キーとポインタはそのまま前面アプリに届く（NonetConfiguration.isTurnedOff(forBundleID:)）
+    case off
 }
 
 public enum ProfileKind: Codable, Hashable, Sendable {
@@ -55,13 +80,24 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
     public var kind: ProfileKind
     /// 1〜maxPages ページ
     public var pages: [Page]
-    public var isEnabled: Bool
+    /// 前面にあるときの使い方。グローバルは validated() でいつも profile にする
+    public var mode: ProfileMode
+
+    /// このプロファイルのページを使う（mode == .profile）。false にすると .global（グローバルを使う）
+    public var isEnabled: Bool {
+        get { mode == .profile }
+        set { mode = newValue ? .profile : .global }
+    }
 
     public init(id: UUID = UUID(), kind: ProfileKind, pages: [Page] = [.empty], isEnabled: Bool = true) {
+        self.init(id: id, kind: kind, pages: pages, mode: isEnabled ? .profile : .global)
+    }
+
+    public init(id: UUID = UUID(), kind: ProfileKind, pages: [Page] = [.empty], mode: ProfileMode) {
         self.id = id
         self.kind = kind
         self.pages = pages.isEmpty ? [.empty] : Array(pages.prefix(Profile.maxPages))
-        self.isEnabled = isEnabled
+        self.mode = mode
     }
 
     public var isGlobal: Bool {
@@ -169,22 +205,26 @@ extension Cell {
 
 extension Page {
     private enum CodingKeys: String, CodingKey {
-        case cells
+        case cells, name
     }
 
-    /// cells は 9 個に揃える。読めないマスは空きマス
+    /// cells は 9 個に揃える。読めないマスは空きマス。名前が無い・読めなければ nil
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let cells = container.decodeLossy([LossyElement<Cell>].self, forKey: .cells, default: [])
         if cells.count != Page.cellCount {
             DecodingIssue.log("マスの数（\(cells.count)）", at: container.codingPath + [CodingKeys.cells])
         }
-        self.init(cells: cells.map(\.value))
+        self.init(cells: cells.map(\.value), name: container.decodeLossy(String?.self, forKey: .name, default: nil))
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(Page(cells: cells).cells, forKey: .cells)
+        // 名前の無いページは書かない（名前を付けられるようになる前と同じ書式のまま）
+        if let name = Page.normalizedName(name) {
+            try container.encode(name, forKey: .name)
+        }
     }
 }
 
@@ -219,27 +259,36 @@ extension ProfileKind {
 
 extension Profile {
     private enum CodingKeys: String, CodingKey {
-        case id, kind, pages, isEnabled
+        case id, kind, pages, isEnabled, mode
     }
 
+    /// 使い方は isEnabled（true ならこのプロファイル、false ならグローバル）で読み、mode があればそちらを使う。
+    /// 知らない mode（新しい版の Nonet の使い方）は isEnabled で読む
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // 読めないページは空きページにして、ページの位置を保つ
         let pages = container.decodeLossy([LossyElement<Page>].self, forKey: .pages, default: [])
+        let isEnabled = container.decodeLossy(Bool.self, forKey: .isEnabled, default: true)
+        let mode = container.decodeLossy(ProfileMode?.self, forKey: .mode, default: nil)
         self.init(
             id: container.decodeLossy(UUID.self, forKey: .id, default: UUID()),
             kind: try container.decode(ProfileKind.self, forKey: .kind),
             pages: pages.map { $0.value ?? .empty },
-            isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: true)
+            mode: mode ?? (isEnabled ? .profile : .global)
         )
     }
 
+    /// isEnabled はいつも書く（mode を知らない前の版の Nonet は、使わないアプリを「グローバルを使う」として読む）。
+    /// mode は isEnabled で表せない off のときだけ書き、それ以外は前の版と同じ書式のままにする
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(kind, forKey: .kind)
         try container.encode(pages, forKey: .pages)
         try container.encode(isEnabled, forKey: .isEnabled)
+        if mode == .off {
+            try container.encode(mode, forKey: .mode)
+        }
     }
 }
 
@@ -252,7 +301,7 @@ extension Profile {
             pages = Array(pages.prefix(Profile.maxPages))
         }
         for index in pages.indices where pages[index].cells.count != Page.cellCount {
-            pages[index] = Page(cells: pages[index].cells)
+            pages[index] = Page(cells: pages[index].cells, name: pages[index].name)
         }
     }
 }

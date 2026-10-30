@@ -219,7 +219,9 @@ struct SettingsMenuRow: View {
         }
         .opacity(entry.node.isEnabled ? 1 : 0.45)
         .accessibilityElement(children: .combine)
-        .accessibilityHint(String(localized: "ダブルクリックで空いているマスに入れます", bundle: .module))
+        // 薄くしただけでは VoiceOver に伝わらないので、使えない項目は「使用不可」と読ませる
+        .accessibilityValue(entry.node.isEnabled ? "" : String(localized: "使用不可", bundle: .module))
+        .accessibilityHint(String(localized: "空いているマスに入れます", bundle: .module))
     }
 }
 
@@ -233,21 +235,33 @@ struct SettingsAddProfileSheet: View {
 
     var body: some View {
         let existing = Set(model.appProfiles.compactMap(\.app?.bundleID))
-        let entries = SettingsAppCatalog.entries(apps: model.installedApps, query: query, existingBundleIDs: existing, presetsFirst: true)
+        // 複製するときは、プロファイルのあるアプリを出さない（1つのアプリに1つまで）。プリセットは使わないので印も出さない
+        let source = model.duplicatingProfileID.flatMap(model.configuration.profile(id:))
+        let all = SettingsAppCatalog.entries(apps: model.installedApps, query: query, existingBundleIDs: existing, presetsFirst: source == nil)
+        let entries = source == nil ? all : all.filter { !$0.hasProfile }
         VStack(alignment: .leading, spacing: 12) {
-            // 開くボタン（「プロファイルを追加…」）と違い、シートの見出しには「…」を付けない
-            Text(String(localized: "settings.addProfileSheet.title", defaultValue: "プロファイルを追加", bundle: .module))
-                .font(.headline)
-            Text("アプリを選ぶと、そのアプリが前面にあるときの9マスを作ります。プリセットのあるアプリは、最初から中身が入ります。", bundle: .module)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if let source {
+                Text("「\(source.name)」を複製して使うアプリ", bundle: .module)
+                    .font(.headline)
+                Text("選んだアプリに、「\(source.name)」のページとボタンをすべて写した新しいプロファイルを作ります。", bundle: .module)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                // 開くボタン（「プロファイルを追加…」）と違い、シートの見出しには「…」を付けない
+                Text(String(localized: "settings.addProfileSheet.title", defaultValue: "プロファイルを追加", bundle: .module))
+                    .font(.headline)
+                Text("アプリを選ぶと、そのアプリが前面にあるときの9マスを作ります。プリセットのあるアプリは、最初から中身が入ります。", bundle: .module)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             TextField(text: $query, prompt: Text("アプリを検索", bundle: .module)) {
                 Text("アプリを検索", bundle: .module)
             }
             .labelsHidden()
             .textFieldStyle(.roundedBorder)
-            SettingsAppList(entries: entries, selection: $selection) { entry in
+            SettingsAppList(entries: entries, selection: $selection, showsBadges: source == nil) { entry in
                 model.addProfile(for: entry.app)
             }
             .frame(minHeight: 280)
@@ -279,7 +293,11 @@ struct SettingsAddProfileSheet: View {
                         model.addProfile(for: entry.app)
                     }
                 } label: {
-                    Text("追加", bundle: .module)
+                    if source == nil {
+                        Text("追加", bundle: .module)
+                    } else {
+                        Text("複製", bundle: .module)
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(selection == nil || !entries.contains { $0.id == selection })

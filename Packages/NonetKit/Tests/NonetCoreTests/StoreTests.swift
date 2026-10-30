@@ -92,7 +92,9 @@ struct StoreFileTests {
             try store.save(third)
             #expect(try Self.decode(store.backupFileURL) == second)
             #expect(try store.load() == third)
-            #expect(try ModelFixtures.fileNames(in: directory) == ["configuration.backup.json", "configuration.json"])
+            // 以前の設定の控えは Backups の中（1時間に1回までなので、変える前の first だけ）
+            #expect(try ModelFixtures.fileNames(in: directory) == ["Backups", "configuration.backup.json", "configuration.json"])
+            #expect(try store.backups().map { try store.loadBackup($0) } == [first])
         }
     }
 
