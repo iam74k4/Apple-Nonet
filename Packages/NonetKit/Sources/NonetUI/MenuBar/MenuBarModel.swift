@@ -57,6 +57,8 @@ enum MenuBarIconState: Equatable, CaseIterable {
     case disabled
     /// 権限が無い・トラックパッドが無い・パスワード入力中・試用終了・知らせたい問題がある
     case attention
+    /// 普段どおり動いていて、定期の確認で見つかったアップデートがある（メニューバーのアイコンだけ。メニューの状態の行には使わない）
+    case updateAvailable
 }
 
 /// メニューの1行
@@ -153,12 +155,20 @@ enum MenuBarModel {
         }
     }
 
+    /// メニューバーのアイコン。普段どおりのときだけ、見つかったアップデートを印で知らせる
+    /// （Nonet は前に出ないので、Sparkle の画面の代わりにここで気づいてもらう。問題や無効の見た目の方を優先する）
+    static func buttonIconState(for state: MenuBarState) -> MenuBarIconState {
+        let base = iconState(for: state)
+        return base == .normal && state.canCheckForUpdates && state.isUpdateAvailable ? .updateAvailable : base
+    }
+
     /// アイコンの説明（VoiceOver とツールチップ）
     static func accessibilityDescription(for state: MenuBarState) -> String {
-        switch iconState(for: state) {
+        switch buttonIconState(for: state) {
         case .normal: String(localized: "Nonet", bundle: .module)
         case .disabled: String(localized: "Nonet（無効）", bundle: .module)
         case .attention: String(localized: "Nonet（確認が必要）", bundle: .module)
+        case .updateAvailable: String(localized: "Nonet（アップデートがあります）", bundle: .module)
         }
     }
 

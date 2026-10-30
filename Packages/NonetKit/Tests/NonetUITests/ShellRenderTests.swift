@@ -14,7 +14,8 @@ private let shotsDirectory = ProcessInfo.processInfo.environment["NONET_RENDER_S
 struct ShellRenderTests {
     static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
 
-    static let releaseHint = ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false)
+    /// 既定の引数に使うので、メインアクターに縛らない
+    nonisolated static let releaseHint = ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false)
 
     @Test("HUD")
     func hud() throws {

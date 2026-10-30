@@ -20,16 +20,24 @@ public final class OnboardingWindowController {
     private var executionObserver: ShellObserver<ExecutionRecord?>?
     private var didFinish = false
 
+    /// license: 練習のタップが試用期間の終了で断られた後、ライセンスキーを登録したら知らせを消すために見る。
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
-    public convenience init(controller: NonetController, services: NonetServices, onFinish: @escaping () -> Void) {
-        self.init(controller: controller, services: services, history: .shared, onFinish: onFinish)
+    public convenience init(controller: NonetController, services: NonetServices, license: LicenseManager? = nil, onFinish: @escaping () -> Void) {
+        self.init(controller: controller, services: services, license: license, history: .shared, onFinish: onFinish)
     }
 
-    init(controller: NonetController, services: NonetServices, history: OnboardingGuideHistory, onFinish: @escaping () -> Void) {
+    init(
+        controller: NonetController,
+        services: NonetServices,
+        license: LicenseManager? = nil,
+        history: OnboardingGuideHistory,
+        onFinish: @escaping () -> Void
+    ) {
         self.controller = controller
         self.onFinish = onFinish
         model = OnboardingModel(
             controller: controller,
+            license: license,
             permissions: services.permissions,
             installedApps: services.installedApps,
             isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)

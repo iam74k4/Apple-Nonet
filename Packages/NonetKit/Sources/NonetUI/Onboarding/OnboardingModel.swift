@@ -108,12 +108,15 @@ final class OnboardingModel {
     private(set) var isWindowKey = true
     /// 初回起動の案内として開いた。選んだアプリだけのプロファイルで作り直してよい
     let isFirstLaunchGuide: Bool
-    /// 練習のタップが試用期間の終了で断られた（ライセンスを登録して、もう一度押せば消える）
+    /// 練習のタップが試用期間の終了で断られた（もう一度押して実行されれば消える）。
+    /// 知らせは、ライセンスを登録して実行できるようになった時点で出さなくなる（practiceBlocker）
     private(set) var isPracticeRefusedForLicense = false
     /// 設定を開く（ライセンスの登録など）。ウィンドウの側が入れる
     @ObservationIgnored var onOpenSettings: ((SettingsTab) -> Void)?
 
     @ObservationIgnored private let controller: NonetController
+    /// 実行できるか（ライセンス・試用）を見る。@Observable なので、登録すると練習の画面も変わる
+    @ObservationIgnored private let license: LicenseManager?
     @ObservationIgnored private let permissions: any PermissionsProviding
     @ObservationIgnored private let presets: [AppPreset]
     @ObservationIgnored private let installedLauncherIDs: Set<String>
@@ -127,14 +130,17 @@ final class OnboardingModel {
     /// ここから変わっていれば利用者が編集したので、作り直さずに足すだけにする
     private var profilesSnapshot: [Profile]
 
+    /// license が nil なら、断られた後は次に実行されるまで知らせを出し続ける
     init(
         controller: NonetController,
+        license: LicenseManager? = nil,
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
         isFirstLaunchGuide: Bool,
         now: @escaping () -> Date = Date.init
     ) {
         self.controller = controller
+        self.license = license
         self.permissions = permissions
         self.isFirstLaunchGuide = isFirstLaunchGuide
         self.now = now
@@ -193,7 +199,9 @@ final class OnboardingModel {
         case .secureInputActive: return .secureInput
         case .running, .disabled, .stopped: break
         }
-        return isPracticeRefusedForLicense ? .licenseRequired : nil
+        // 断られた後でも、ライセンスキーを登録して実行できるようになっていれば、もう知らせない
+        guard isPracticeRefusedForLicense, license?.canExecuteActions != true else { return nil }
+        return .licenseRequired
     }
 
     /// 練習モードにしてよいか。見えていても、ほかのアプリを使っている間は本物を実行する

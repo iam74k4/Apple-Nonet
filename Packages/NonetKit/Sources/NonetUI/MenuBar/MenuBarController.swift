@@ -9,8 +9,16 @@ import SwiftUI
 public final class MenuBarController {
     /// 「アクセシビリティを許可…」で呼ぶ（App が設定アプリを開く）。nil なら初回の案内を開く
     public var onRequestAccessibility: (() -> Void)?
-    /// 定期の確認でアップデートが見つかった（App が Sparkle から受けて入れる）。メニューに「アップデートがあります…」を出す
-    public var isUpdateAvailable = false
+    /// 定期の確認でアップデートが見つかった（App が Sparkle から受けて入れる）。
+    /// アイコンに印を付け、メニューに「アップデートがあります…」を出す
+    public var isUpdateAvailable = false {
+        didSet {
+            // @Observable ではないので、見張りに頼らずここでアイコンを描き直す
+            if isUpdateAvailable != oldValue {
+                applyIcon(currentState())
+            }
+        }
+    }
 
     private let controller: NonetController
     private let license: LicenseManager
@@ -18,7 +26,8 @@ public final class MenuBarController {
     private let onOpenOnboarding: () -> Void
     private let onCheckForUpdates: (() -> Void)?
 
-    private let statusItem: NSStatusItem
+    /// メニューバーのアイコン（テストから見た目を確かめる）
+    let statusItem: NSStatusItem
     /// メニューバーのメニュー（テストから項目を押す）
     let menu = NSMenu()
     private let menuDelegate = MenuBarMenuDelegate()
@@ -63,7 +72,7 @@ public final class MenuBarController {
 
     private func applyIcon(_ state: MenuBarState) {
         guard let button = statusItem.button else { return }
-        let iconState = MenuBarModel.iconState(for: state)
+        let iconState = MenuBarModel.buttonIconState(for: state)
         button.image = MenuBarIconRenderer.image(for: iconState)
         button.appearsDisabled = iconState == .disabled
         let description = MenuBarModel.accessibilityDescription(for: state)
@@ -144,7 +153,7 @@ public final class MenuBarController {
 
     private static func statusSymbol(_ state: MenuBarIconState) -> String {
         switch state {
-        case .normal: "checkmark.circle"
+        case .normal, .updateAvailable: "checkmark.circle"
         case .disabled: "pause.circle"
         case .attention: "exclamationmark.triangle"
         }

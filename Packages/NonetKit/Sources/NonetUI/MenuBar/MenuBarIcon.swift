@@ -41,13 +41,14 @@ enum MenuBarIconGeometry {
 
     static func filledCells(for state: MenuBarIconState) -> Set<Int> {
         switch state {
-        case .normal, .attention: [centerIndex]
+        case .normal, .attention, .updateAvailable: [centerIndex]
         case .disabled: []
         }
     }
 
+    /// 印の意味（確認が必要・アップデートがある）は、ツールチップ・VoiceOver とメニューで伝える
     static func showsBadge(for state: MenuBarIconState) -> Bool {
-        state == .attention
+        state == .attention || state == .updateAvailable
     }
 }
 

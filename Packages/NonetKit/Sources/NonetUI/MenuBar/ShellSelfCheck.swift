@@ -108,22 +108,52 @@ public enum ShellSelfCheck {
         }
     }
 
-    /// 自己診断で使う試用の記録。本物の UserDefaults から読んだ値をメモリに写して使い、どこにも書かない
+    /// 自己診断で使う試用の記録。本物の記録から読んだ値をメモリに写して使い、どこにも書かない
     /// （LicenseManager が試用を数えて書くのも、このメモリの中だけ）。
-    /// Application Support の写し（.install など）は読まない。UserDefaultsLicenseStorage は2か所が食い違うと、
-    /// 読むだけでもそろえるために書くので、写しの無い置き方（supportDirectory: nil）で読む
+    /// アプリと同じく、UserDefaults と Application Support の写し（.install など）で食い違えば試用に厳しい方を使う。
+    /// UserDefaultsLicenseStorage は食い違うと読むだけでもそろえるために書くので、UserDefaults は写しの無い置き方
+    /// （supportDirectory: nil）で読み、写しのファイルはここで読むだけにする
     public final class LicenseSnapshot: LicenseStorage {
+        /// 写しのファイルの名前（NonetCore の UserDefaultsLicenseStorage と同じ。テストで本物が書いたものを読めるか確かめる）
+        static let startFileName = ".install"
+        static let lastSeenFileName = ".install-seen"
+        static let usedFileName = ".install-used"
+
         public var trialStartDate: Date?
         public var licenseKey: String?
         public var trialLastSeenDate: Date?
         public var trialUsedTime: TimeInterval?
 
-        public init(defaults: UserDefaults) {
+        /// アプリが使う本物の記録（UserDefaults.standard と ~/Library/Application Support/Nonet）
+        public convenience init() {
+            let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+                .appendingPathComponent("Nonet", isDirectory: true)
+            self.init(defaults: .standard, supportDirectory: directory)
+        }
+
+        /// supportDirectory は写しのあるフォルダ。無ければ UserDefaults だけを読む
+        public init(defaults: UserDefaults, supportDirectory: URL?) {
             let stored = UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: nil)
-            trialStartDate = stored.trialStartDate
+            func mirrored(_ name: String) -> Double? {
+                guard let url = supportDirectory?.appendingPathComponent(name, isDirectory: false),
+                      let data = try? Data(contentsOf: url), let text = String(data: data, encoding: .utf8),
+                      let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)), value.isFinite else {
+                    return nil
+                }
+                return value
+            }
+            // 開始日と最後に数えた時刻は早い方、使った時間は長い方（アプリと同じ）
+            trialStartDate = Self.stricter(stored.trialStartDate?.timeIntervalSinceReferenceDate, mirrored(Self.startFileName), keepsSmaller: true)
+                .map(Date.init(timeIntervalSinceReferenceDate:))
+            trialLastSeenDate = Self.stricter(stored.trialLastSeenDate?.timeIntervalSinceReferenceDate, mirrored(Self.lastSeenFileName), keepsSmaller: true)
+                .map(Date.init(timeIntervalSinceReferenceDate:))
+            trialUsedTime = Self.stricter(stored.trialUsedTime, mirrored(Self.usedFileName).flatMap { $0 >= 0 ? $0 : nil }, keepsSmaller: false)
             licenseKey = stored.licenseKey
-            trialLastSeenDate = stored.trialLastSeenDate
-            trialUsedTime = stored.trialUsedTime
+        }
+
+        static func stricter(_ stored: Double?, _ mirrored: Double?, keepsSmaller: Bool) -> Double? {
+            let candidates = [stored, mirrored].compactMap { $0 }
+            return keepsSmaller ? candidates.min() : candidates.max()
         }
     }
 

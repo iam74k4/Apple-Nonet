@@ -147,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard let controller, let services else { return }
-        let window = OnboardingWindowController(controller: controller, services: services) { [weak self] in
+        let window = OnboardingWindowController(controller: controller, services: services, license: license) { [weak self] in
             self?.onboardingWindow = nil
         }
         window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }

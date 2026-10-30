@@ -172,7 +172,8 @@ final class ShellControllerHarness {
     let scheduler = ShellFakeScheduler()
     let directory: URL
 
-    init(installed: Set<String> = [], accessibilityGranted: Bool = true, isJIS: Bool = true) {
+    /// license を渡さなければ、試用の初日（残り14日）
+    init(installed: Set<String> = [], accessibilityGranted: Bool = true, isJIS: Bool = true, license: LicenseManager? = nil) {
         permissions = ShellFakePermissions(granted: accessibilityGranted)
         installedApps = ShellFakeInstalledApps(installed)
         services = NonetServices(
@@ -193,12 +194,12 @@ final class ShellControllerHarness {
         directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("nonet-shell-tests-\(UUID().uuidString)", isDirectory: true)
         let now = Self.now
-        license = LicenseManager(verifier: nil, storage: ShellFakeLicenseStorage(), now: { now })
+        self.license = license ?? LicenseManager(verifier: nil, storage: ShellFakeLicenseStorage(), now: { now })
         controller = NonetController(
             services: services,
             store: ConfigurationStore(directory: directory),
             hud: ShellFakeHUD(),
-            license: license
+            license: self.license
         )
     }
 

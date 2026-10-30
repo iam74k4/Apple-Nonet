@@ -99,6 +99,11 @@ final class HUDResultPanel: NSPanel {
         case "w":
             onClose?()
             return true
+        case "q" where !NSApplication.shared.isActive:
+            // Nonet は前面ではない（メニューバーは前面のアプリのもの）。メインメニューの「終了」に回すと Nonet が終わってしまうので、
+            // このパネルだけを閉じる
+            onClose?()
+            return true
         default:
             return super.performKeyEquivalent(with: event)
         }

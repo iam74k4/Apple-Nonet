@@ -3,21 +3,6 @@ import AppKit
 @testable import NonetUI
 import Testing
 
-/// ⌘V などを受けたかを数える文字の欄
-private final class ShellPasteSpyTextView: NSTextView {
-    private(set) var pasteCount = 0
-    private(set) var selectAllCount = 0
-
-    override func paste(_ sender: Any?) {
-        pasteCount += 1
-    }
-
-    override func selectAll(_ sender: Any?) {
-        selectAllCount += 1
-        super.selectAll(sender)
-    }
-}
-
 @Suite("メインメニュー", .serialized)
 @MainActor
 struct ShellMainMenuTests {
@@ -108,8 +93,10 @@ struct ShellMainMenuTests {
         #expect(window.items.allSatisfy { $0.target == nil })
     }
 
-    @Test("メニューを入れると ⌘V・⌘A・⌘Z をメニューが受け、文字の欄の paste: などに渡す。無ければ誰も受けない")
-    func keyEquivalentsReachTextView() throws {
+    // 宛先が nil の項目は、キーのウインドウで選ばれている文字の欄に届く。テストのプロセスはキーのウインドウを持てないので、
+    // そこから先（AppKit の responder chain）は確かめない（実機の確認: ライセンスキーを ⌘V で貼る）
+    @Test("メニューを入れると ⌘V・⌘A・⌘Z をメニューが受け、宛先を決めずに paste: などを送る。無ければ誰も受けない")
+    func menuClaimsEditKeys() throws {
         let app = NSApplication.shared
         let saved = app.mainMenu
         defer { app.mainMenu = saved }
@@ -117,7 +104,7 @@ struct ShellMainMenuTests {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         defer { window.close() }
-        let textView = ShellPasteSpyTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
         textView.string = "license"
         window.contentView?.addSubview(textView)
         #expect(window.makeFirstResponder(textView))
@@ -136,14 +123,22 @@ struct ShellMainMenuTests {
         let items = ["v", "a", "z"].compactMap { Self.item(in: mainMenu, key: $0, modifiers: .command) }
         #expect(items.map { $0.action.map(NSStringFromSelector) } == ["paste:", "selectAll:", "undo:"])
         #expect(items.allSatisfy { $0.target == nil })
+    }
 
-        // 宛先が nil なので、キーのウインドウで選ばれている文字の欄が受ける。
-        // テストのプロセスはキーのウインドウを持てないので、AppKit が選ぶはずの宛先へ直接送る
-        for item in items.prefix(2) {
-            #expect(app.sendAction(try #require(item.action), to: textView, from: item))
-        }
-        #expect(textView.pasteCount == 1)
-        #expect(textView.selectAllCount == 1)
+    @Test("Nonet が前面でないとき、結果のパネルで ⌘Q を押しても Nonet は終わらず、パネルだけを閉じる")
+    func resultPanelKeepsQuitFromNonet() {
+        // テストのプロセスは前面にならない（結果のパネルをクリックしてキーにしたときと同じ）
+        #expect(!NSApplication.shared.isActive)
+        let panel = HUDResultPanel()
+        defer { panel.close() }
+        var closed = 0
+        panel.onClose = { closed += 1 }
+        #expect(panel.performKeyEquivalent(with: Self.commandKey("q", keyCode: 12, window: panel)))
+        #expect(closed == 1)
+        // ほかのキーはそのまま（⌘W は閉じる、⌘Z はメインメニューへ）
+        #expect(panel.performKeyEquivalent(with: Self.commandKey("w", keyCode: 13, window: panel)))
+        #expect(closed == 2)
+        #expect(!panel.performKeyEquivalent(with: Self.commandKey("z", keyCode: 6, window: panel)))
     }
 
     static func item(in menu: NSMenu, key: String, modifiers: NSEvent.ModifierFlags) -> NSMenuItem? {

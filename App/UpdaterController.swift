@@ -3,10 +3,11 @@ import Sparkle
 
 /// Sparkle によるアップデート。配信先が未設定なら何もしない。
 /// Nonet はメニューバーに常駐して前面にならないので、定期の確認で見つかったアップデートは
-/// Sparkle の画面（ほかのアプリの後ろに隠れてしまう）ではなく、メニューバーのメニューで控えめに知らせる
+/// Sparkle の画面（ほかのアプリの後ろに隠れてしまう）ではなく、メニューバーのアイコンの印と
+/// メニューの「アップデートがあります…」で控えめに知らせる（Sparkle がそのまま前に出せるのは、起動の直後だけ）
 @MainActor
 final class UpdaterController: NSObject {
-    /// 控えめな知らせを出す・消す（メニューの「アップデートがあります…」）
+    /// 控えめな知らせを出す・消す（アイコンの印と、メニューの「アップデートがあります…」）
     var onUpdateAvailableChange: ((Bool) -> Void)?
 
     private var controller: SPUStandardUpdaterController?

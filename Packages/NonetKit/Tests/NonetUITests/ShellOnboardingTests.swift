@@ -30,12 +30,14 @@ struct ShellOnboardingTests {
         installed: Set<String> = installed,
         granted: Bool = true,
         isFirstLaunchGuide: Bool = true,
-        clock: Clock = Clock()
+        clock: Clock = Clock(),
+        license: LicenseManager? = nil
     ) -> (OnboardingModel, ShellControllerHarness) {
-        let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted)
+        let harness = ShellControllerHarness(installed: installed, accessibilityGranted: granted, license: license)
         harness.controller.start()
         let model = OnboardingModel(
             controller: harness.controller,
+            license: harness.license,
             permissions: harness.permissions,
             installedApps: harness.installedApps,
             isFirstLaunchGuide: isFirstLaunchGuide,
@@ -674,10 +676,21 @@ struct ShellOnboardingTests {
         #expect(model.practice == .succeeded)
     }
 
-    @Test("試用期間の終了で断られたタップは成功にせず、ライセンスの知らせと「ライセンスキーを入力…」を出す")
+    @Test("試用期間の終了で断られたタップは成功にせず、ライセンスの知らせと「ライセンスキーを入力…」を出す。登録したら知らせを消す")
     func practiceRefusedForLicense() throws {
+        let pair = LicenseSigner.generateKeyPair()
+        let signer = try LicenseSigner(privateKeyBase64: pair.privateKeyBase64)
+        let key = try signer.sign(LicenseInfo(licenseID: "NONET-SHELL-1", licensee: "Test", email: nil, issuedAt: Date(timeIntervalSince1970: 1_800_000_000)))
+        let now = ShellControllerHarness.now
+        // 30日前に試用を始めた（期限切れ）
+        let license = LicenseManager(
+            verifier: try LicenseVerifier(publicKeyBase64: pair.publicKeyBase64),
+            storage: ShellFakeLicenseStorage(trialStartDate: now.addingTimeInterval(-30 * 24 * 60 * 60)),
+            now: { now }
+        )
+        #expect(license.entitlement == .expired)
         let clock = Clock()
-        let (model, _) = Self.make(clock: clock)
+        let (model, _) = Self.make(clock: clock, license: license)
         var opened: [SettingsTab] = []
         model.onOpenSettings = { opened.append($0) }
         model.next()
@@ -700,9 +713,36 @@ struct ShellOnboardingTests {
         model.resolve(.openLicense)
         #expect(opened == [.license])
 
-        // 登録してから押し直せば成功（知らせは消える）
+        // 設定でライセンスキーを登録して戻ってきたら、押し直す前から知らせは出さない
+        try license.activate(licenseKey: key)
+        #expect(model.practiceBlocker == nil)
+
+        // 押し直せば成功
         model.handleExecution(ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(2)))
         #expect(model.practice == .succeeded)
+        #expect(model.practiceBlocker == nil)
+    }
+
+    @Test("ライセンスを見ないときは、断られた後に実行されるまで知らせを出す")
+    func practiceRefusedWithoutLicense() throws {
+        let clock = Clock()
+        let harness = ShellControllerHarness(installed: Self.installed)
+        harness.controller.start()
+        let model = OnboardingModel(
+            controller: harness.controller,
+            permissions: harness.permissions,
+            installedApps: harness.installedApps,
+            isFirstLaunchGuide: true,
+            now: { clock.now }
+        )
+        model.next()
+        model.skipSelection()
+        var refused = ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(1))
+        refused.succeeded = false
+        refused.message = NonetError.licenseRequired.localizedDescription
+        model.handleExecution(refused)
+        #expect(model.practiceBlocker == .licenseRequired)
+        model.handleExecution(ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(2)))
         #expect(model.practiceBlocker == nil)
     }
 

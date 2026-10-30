@@ -67,6 +67,58 @@ struct ShellMenuBarTests {
     ])
     func iconState(state: MenuBarState, expected: MenuBarIconState) {
         #expect(MenuBarModel.iconState(for: state) == expected)
+        // アップデートが無ければ、メニューバーのアイコンも同じ
+        #expect(MenuBarModel.buttonIconState(for: state) == expected)
+    }
+
+    @Test("見つかったアップデートは、普段どおりのときだけアイコンの印で知らせる（問題・無効の見た目を優先）", arguments: [
+        (ShellMenuState.make(updates: true, updateAvailable: true), MenuBarIconState.updateAvailable),
+        (ShellMenuState.make(.needsAccessibility, updates: true, updateAvailable: true), .attention),
+        (ShellMenuState.make(entitlement: .expired, updates: true, updateAvailable: true), .attention),
+        (ShellMenuState.make(.disabled, enabled: false, updates: true, updateAvailable: true), .disabled),
+        // アップデートを確認できないなら出さない
+        (ShellMenuState.make(updates: false, updateAvailable: true), .normal),
+        (ShellMenuState.make(updates: true, updateAvailable: false), .normal),
+    ])
+    func updateBadge(state: MenuBarState, expected: MenuBarIconState) {
+        #expect(MenuBarModel.buttonIconState(for: state) == expected)
+        // メニューの状態の行はアップデートで変えない
+        #expect(MenuBarModel.iconState(for: state) != .updateAvailable)
+    }
+
+    @Test("アイコンの説明: アップデートがあることも伝える")
+    func accessibilityDescriptions() {
+        #expect(MenuBarModel.accessibilityDescription(for: ShellMenuState.make()) == L10n.ui("Nonet"))
+        #expect(MenuBarModel.accessibilityDescription(for: ShellMenuState.make(updates: true, updateAvailable: true))
+            == L10n.ui("Nonet（アップデートがあります）"))
+        #expect(MenuBarModel.accessibilityDescription(for: ShellMenuState.make(.noTrackpad, updates: true, updateAvailable: true))
+            == L10n.ui("Nonet（確認が必要）"))
+    }
+
+    @Test("Sparkle からアップデートを受けたら、メニューを開かなくてもアイコンに印が付き、見せたら消える")
+    func updateRedrawsIcon() throws {
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        let menuBar = MenuBarController(
+            controller: harness.controller,
+            license: harness.license,
+            onOpenSettings: { _ in },
+            onOpenOnboarding: {},
+            onCheckForUpdates: {}
+        )
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+        let button = try #require(menuBar.statusItem.button)
+        #expect(button.image === MenuBarIconRenderer.image(for: .normal))
+        #expect(button.toolTip == L10n.ui("Nonet"))
+
+        menuBar.isUpdateAvailable = true
+        #expect(button.image === MenuBarIconRenderer.image(for: .updateAvailable))
+        #expect(button.toolTip == L10n.ui("Nonet（アップデートがあります）"))
+        #expect(button.accessibilityLabel() == L10n.ui("Nonet（アップデートがあります）"))
+
+        menuBar.isUpdateAvailable = false
+        #expect(button.image === MenuBarIconRenderer.image(for: .normal))
+        #expect(button.toolTip == L10n.ui("Nonet"))
     }
 
     @Test("ライセンスの行")
@@ -265,8 +317,10 @@ struct ShellMenuBarTests {
     func iconVariants() {
         #expect(MenuBarIconGeometry.filledCells(for: .normal) == [4])
         #expect(MenuBarIconGeometry.filledCells(for: .attention) == [4])
+        #expect(MenuBarIconGeometry.filledCells(for: .updateAvailable) == [4])
         #expect(MenuBarIconGeometry.filledCells(for: .disabled).isEmpty)
         #expect(MenuBarIconGeometry.showsBadge(for: .attention))
+        #expect(MenuBarIconGeometry.showsBadge(for: .updateAvailable))
         #expect(!MenuBarIconGeometry.showsBadge(for: .normal))
         #expect(!MenuBarIconGeometry.showsBadge(for: .disabled))
 

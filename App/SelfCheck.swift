@@ -12,7 +12,7 @@ enum SelfCheck {
         let license = LicenseManager(
             verifier: AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) },
             // 試用の記録は読むだけ。試用を始めたり、時間を数えたり、2か所の記録をそろえたりもしない
-            storage: ShellSelfCheck.LicenseSnapshot(defaults: .standard)
+            storage: ShellSelfCheck.LicenseSnapshot()
         )
         let report = ShellSelfCheck.run(
             version: AppInfo.fullVersion,

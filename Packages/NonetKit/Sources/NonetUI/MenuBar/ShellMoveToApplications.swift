@@ -25,22 +25,27 @@ public enum ShellInstallLocation: Equatable, Sendable {
         return .installed
     }
 
-    /// 今動いているアプリの場所
-    public static func current(bundleURL: URL) -> ShellInstallLocation {
+    /// bundleURL のアプリの場所（自分のものも、ほかに動いている Nonet のものも）
+    public static func of(bundleURL: URL) -> ShellInstallLocation {
         let readOnly = (try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
         return classify(bundlePath: bundleURL.path, isTranslocated: isTranslocated(bundleURL), isReadOnlyVolume: readOnly)
     }
 
-    /// Security.framework の SecTranslocateIsTranslocatedURL（ヘッダーが公開されていないので dlsym で引く）
     static func isTranslocated(_ url: URL) -> Bool {
+        translocationStatus(url) ?? false
+    }
+
+    /// Security.framework の SecTranslocateIsTranslocatedURL（ヘッダーが公開されていないので dlsym で引く）の答え。
+    /// 関数が見つからない・答えられなかったときは nil（そのときはパスの /AppTranslocation/ だけで見分ける）
+    static func translocationStatus(_ url: URL) -> Bool? {
         typealias IsTranslocated = @convention(c) (CFURL, UnsafeMutablePointer<Bool>, UnsafeMutablePointer<Unmanaged<CFError>?>?) -> DarwinBoolean
         guard let handle = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_NOW),
               let symbol = dlsym(handle, "SecTranslocateIsTranslocatedURL") else {
-            return false
+            return nil
         }
         let function = unsafeBitCast(symbol, to: IsTranslocated.self)
         var translocated = false
-        guard function(url as CFURL, &translocated, nil).boolValue else { return false }
+        guard function(url as CFURL, &translocated, nil).boolValue else { return nil }
         return translocated
     }
 }
@@ -53,7 +58,7 @@ public enum ShellMoveToApplications {
         case copy
         /// すでにあるものを置き換えてよいか尋ねてから写す
         case confirmReplace
-        /// アプリケーションフォルダに書き込めないので、自分で移す方法を伝える
+        /// 移す先に書き込めないので、移すかを尋ねずに、自分で移す方法を伝える
         case explain
     }
 
@@ -62,9 +67,23 @@ public enum ShellMoveToApplications {
     /// 移して開き直すことにしたら true。呼んだ側はそのまま終わる（開き直した方は、このプロセスが終わるのを待ってから起動する）
     public static func offerIfNeeded(bundle: Bundle = .main) -> Bool {
         let source = bundle.bundleURL
-        guard ShellInstallLocation.current(bundleURL: source) == .temporary else { return false }
+        guard ShellInstallLocation.of(bundleURL: source) == .temporary else { return false }
         logger.notice("一時的な場所から開かれています: \(source.path, privacy: .private)")
-        NSApplication.shared.activate()
+        let fileManager = FileManager.default
+        let directory = targetDirectory(
+            isSystemWritable: fileManager.isWritableFile(atPath: applicationsDirectory.path),
+            home: fileManager.homeDirectoryForCurrentUser
+        )
+        let destination = destination(for: source, in: directory)
+        let plan = plan(
+            destinationExists: fileManager.fileExists(atPath: destination.path),
+            directoryWritable: isWritable(directory)
+        )
+        // 移せないと分かっているなら、移すかを尋ねてから失敗を伝えることはしない
+        guard plan != .explain else {
+            explainManualMove()
+            return false
+        }
         guard ask(
             String(localized: "Nonet をアプリケーションフォルダに移しますか？", bundle: .module),
             String(localized: "ディスクイメージやダウンロードしたままの場所から開いているため、アップデートを入れられません。アプリケーションフォルダに移して開き直します。", bundle: .module),
@@ -74,28 +93,20 @@ public enum ShellMoveToApplications {
             ]
         ) else { return false }
 
-        let destination = destination(for: source, in: applicationsDirectory)
-        let fileManager = FileManager.default
-        switch plan(
-            destinationExists: fileManager.fileExists(atPath: destination.path),
-            applicationsWritable: fileManager.isWritableFile(atPath: applicationsDirectory.path)
-        ) {
-        case .explain:
-            explainManualMove()
-            return false
-        case .confirmReplace:
+        if plan == .confirmReplace {
             guard ask(
                 String(localized: "アプリケーションフォルダの Nonet を置き換えますか？", bundle: .module),
                 String(localized: "アプリケーションフォルダにある Nonet（\(versionText(of: destination))）をゴミ箱に入れ、この Nonet（\(versionText(of: source))）に置き換えます。", bundle: .module),
                 buttons: [String(localized: "置き換える", bundle: .module), String(localized: "キャンセル", bundle: .module)]
             ) else { return false }
-        case .copy:
-            break
         }
 
         do {
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
             try install(from: source, to: destination) { existing in
-                try FileManager.default.trashItem(at: existing, resultingItemURL: nil)
+                var trashed: NSURL?
+                try FileManager.default.trashItem(at: existing, resultingItemURL: &trashed)
+                return trashed as URL?
             }
             try relaunch(destination)
             logger.info("アプリケーションフォルダに移したので開き直す")
@@ -109,29 +120,56 @@ public enum ShellMoveToApplications {
 
     // MARK: - 決め方と写し方（テストする）
 
+    /// 移す先のフォルダ。/Applications に書き込めない（管理者でない）ときは、ホームの「アプリケーション」
+    /// （Sparkle もそこならアップデートを入れられる）
+    static func targetDirectory(isSystemWritable: Bool, home: URL) -> URL {
+        isSystemWritable ? applicationsDirectory : home.appendingPathComponent("Applications", isDirectory: true)
+    }
+
+    /// directory に書き込めるか。まだ無ければ、作る場所に書き込めるか
+    static func isWritable(_ directory: URL, fileManager: FileManager = .default) -> Bool {
+        guard fileManager.fileExists(atPath: directory.path) else {
+            return fileManager.isWritableFile(atPath: directory.deletingLastPathComponent().path)
+        }
+        return fileManager.isWritableFile(atPath: directory.path)
+    }
+
     static func destination(for source: URL, in applications: URL) -> URL {
         applications.appendingPathComponent(source.lastPathComponent, isDirectory: true)
     }
 
-    static func plan(destinationExists: Bool, applicationsWritable: Bool) -> Plan {
-        guard applicationsWritable else { return .explain }
+    static func plan(destinationExists: Bool, directoryWritable: Bool) -> Plan {
+        guard directoryWritable else { return .explain }
         return destinationExists ? .confirmReplace : .copy
     }
 
-    /// 同じフォルダの一時的な名前に写してから入れ替える。写せなかったときは、すでにあったものを残す
-    static func install(from source: URL, to destination: URL, removeExisting: (URL) throws -> Void) throws {
-        let fileManager = FileManager.default
+    /// 同じフォルダの一時的な名前に写してから入れ替える。すでにあったものは moveExistingAside で退け（ゴミ箱へ。退けた先を返す）、
+    /// 入れ替えられなかったら元の場所に戻す。失敗したときは、写しかけの一時的なものも残さない
+    static func install(
+        from source: URL,
+        to destination: URL,
+        fileManager: FileManager = .default,
+        moveExistingAside: (URL) throws -> URL?
+    ) throws {
         let staging = destination.deletingLastPathComponent()
             .appendingPathComponent(".\(destination.deletingPathExtension().lastPathComponent)-\(UUID().uuidString).\(destination.pathExtension)", isDirectory: true)
-        try fileManager.copyItem(at: source, to: staging)
+        var movedAside: URL?
         do {
+            try fileManager.copyItem(at: source, to: staging)
             removeQuarantine(at: staging)
             if fileManager.fileExists(atPath: destination.path) {
-                try removeExisting(destination)
+                movedAside = try moveExistingAside(destination)
             }
             try fileManager.moveItem(at: staging, to: destination)
         } catch {
             try? fileManager.removeItem(at: staging)
+            if let movedAside, !fileManager.fileExists(atPath: destination.path) {
+                do {
+                    try fileManager.moveItem(at: movedAside, to: destination)
+                } catch {
+                    logger.error("ゴミ箱に入れた Nonet を戻せません: \(error.localizedDescription, privacy: .public)")
+                }
+            }
             throw error
         }
     }
