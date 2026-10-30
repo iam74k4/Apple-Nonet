@@ -141,12 +141,14 @@ final class ControllerFakeClock: @unchecked Sendable {
 final class ControllerFakeLicenseStorage: LicenseStorage {
     var trialStartDate: Date?
     var licenseKey: String?
-    var trialLastSeenDate: Date? {
-        didSet { trialWrites += 1 }
-    }
+    var trialLastSeenDate: Date?
     var trialUsedTime: TimeInterval?
-    /// 試用の経過を書いた回数（license.refresh() のたびに書く）
+    /// 試用を数えて保存先に渡した回数（ライセンスが無いときの license.refresh() のたびに1回。記録そのものは変わったときだけ書く）
     private(set) var trialWrites = 0
+
+    func didSaveTrialProgress() {
+        trialWrites += 1
+    }
 }
 
 // MARK: - 入力

@@ -4,14 +4,28 @@ import Testing
 @testable import NonetCore
 
 private final class MemoryLicenseStorage: LicenseStorage {
-    var trialStartDate: Date?
+    var trialStartDate: Date? {
+        didSet { trialWrites += 1 }
+    }
     var licenseKey: String?
-    var trialLastSeenDate: Date?
-    var trialUsedTime: TimeInterval?
+    var trialLastSeenDate: Date? {
+        didSet { trialWrites += 1 }
+    }
+    var trialUsedTime: TimeInterval? {
+        didSet { trialWrites += 1 }
+    }
+    /// 試用の記録（開始日・最後に数えた時刻・使った時間）を書いた回数
+    private(set) var trialWrites = 0
+    /// didSaveTrialProgress が呼ばれた回数
+    private(set) var savedProgressCount = 0
 
     init(trialStartDate: Date? = nil, licenseKey: String? = nil) {
         self.trialStartDate = trialStartDate
         self.licenseKey = licenseKey
+    }
+
+    func didSaveTrialProgress() {
+        savedProgressCount += 1
     }
 }
 
@@ -46,9 +60,13 @@ private final class ManualClock: @unchecked Sendable {
 
     /// 実際に時間が経つ
     func advance(days: Double) {
+        advance(seconds: days * 86_400)
+    }
+
+    func advance(seconds: TimeInterval) {
         lock.withLock {
-            current = current.addingTimeInterval(days * 86_400)
-            monotonic += days * 86_400
+            current = current.addingTimeInterval(seconds)
+            monotonic += seconds
         }
     }
 
@@ -308,8 +326,13 @@ private final class ManualClock: @unchecked Sendable {
         clock.set(clock.now.addingTimeInterval(120))
         manager.refresh()
         #expect(manager.entitlement == .trial(daysLeft: 13))
+        // 小さなずれだけでは記録を書き直さない
+        #expect(storage.trialUsedTime == 86_400.0)
+        // 次に書くときには、進めた120秒も数えてある
+        clock.advance(days: 1)
+        manager.refresh()
         let used = try #require(storage.trialUsedTime)
-        #expect(abs(used - (86_400 + 120)) < 0.001)
+        #expect(abs(used - (2 * 86_400 + 120)) < 0.001)
     }
 
     @Test func canExecuteActionsChecksTheClockEvenWithoutRefresh() throws {
@@ -402,6 +425,118 @@ private final class ManualClock: @unchecked Sendable {
         storage.trialUsedTime = nil
         #expect(makeManager().entitlement == .trial(daysLeft: 14))
         #expect(storage.trialStartDate == days(20))
+    }
+
+    // MARK: - 同時に動く別のコピー
+
+    @Test(arguments: [false, true])
+    func twoCopiesRunningAtTheSameTimeCountEachMomentOnce(monotonic: Bool) throws {
+        // 同じ記録を使う2つのコピー（別の場所に置いたアプリを両方起動した）が、交互に数える
+        let first = makeManager(monotonic: monotonic)
+        let second = makeManager(monotonic: monotonic)
+        for day in 1...13 {
+            clock.advance(days: 0.25)
+            first.refresh()
+            clock.advance(days: 0.5)
+            second.refresh()
+            clock.advance(days: 0.25)
+            first.refresh()
+            second.refresh()
+            #expect(first.entitlement == .trial(daysLeft: 14 - day), "\(day)日目")
+            #expect(second.entitlement == .trial(daysLeft: 14 - day), "\(day)日目")
+            #expect(storage.trialUsedTime == Double(day) * 86_400, "\(day)日目")
+        }
+        clock.advance(days: 1)
+        second.refresh()
+        first.refresh()
+        #expect(first.entitlement == .expired)
+        #expect(second.entitlement == .expired)
+    }
+
+    @Test(arguments: [false, true])
+    func aCopyThatCountedFurtherIsNeitherCountedTwiceNorLostWhenTheClockIsTurnedBack(monotonic: Bool) throws {
+        let first = makeManager(monotonic: monotonic)
+        let second = makeManager(monotonic: monotonic)
+        clock.advance(days: 5)
+        first.refresh()
+        #expect(first.entitlement == .trial(daysLeft: 9))
+        // もう一方が数える前に、日付を2日戻した（保存された記録の lastSeen は now より先）
+        clock.set(days(3))
+        second.refresh()
+        #expect(second.entitlement == .trial(daysLeft: 9))
+        #expect(storage.trialUsedTime == 5.0 * 86_400)
+        #expect(storage.trialStartDate == start)
+        // 戻した後の1日は、どちらも1回だけ数える
+        clock.advance(days: 1)
+        second.refresh()
+        first.refresh()
+        #expect(second.entitlement == .trial(daysLeft: 8))
+        #expect(first.entitlement == .trial(daysLeft: 8))
+        #expect(storage.trialUsedTime == 6.0 * 86_400)
+    }
+
+    // MARK: - 保存する回数
+
+    @Test(arguments: [false, true])
+    func aLicensedRefreshWritesNothing(monotonic: Bool) throws {
+        storage.trialStartDate = days(-3)
+        storage.trialLastSeenDate = days(-1)
+        storage.trialUsedTime = 2 * 86_400
+        storage.licenseKey = try LicenseTestFixtures.licenseKey()
+        let writes = storage.trialWrites
+        let manager = try makeManager(verifier: verifier(), monotonic: monotonic)
+        clock.advance(days: 1)
+        manager.refresh()
+        clock.set(days(-30))
+        manager.refresh()
+        #expect(manager.entitlement == .licensed(LicenseTestFixtures.info()))
+        #expect(manager.canExecuteActions)
+        #expect(storage.trialWrites == writes)
+        #expect(storage.savedProgressCount == 0)
+        // ライセンスを外すと、保存してある記録から数え直す（ライセンスがあった間も時計のとおりに数える）
+        clock.set(days(1))
+        manager.deactivate()
+        #expect(manager.entitlement == .trial(daysLeft: 10))
+        #expect(storage.trialUsedTime == 4.0 * 86_400)
+    }
+
+    @Test(arguments: [false, true])
+    func refreshRewritesTheRecordOnlyWhenItMeaningfullyChanges(monotonic: Bool) throws {
+        let manager = makeManager(monotonic: monotonic)
+        let launched = storage.trialWrites
+        // 同じ時刻にもう一度・時間がふつうに進んだだけ（保存してある記録からでも同じだけ数えられる）
+        manager.refresh()
+        clock.advance(seconds: TrialProgress.saveInterval - 60)
+        manager.refresh()
+        #expect(storage.trialWrites == launched)
+        #expect(storage.trialUsedTime == 0)
+        // キーチェーンのような置き場所が書くかを決められるように、数えるたびに知らせる
+        #expect(storage.savedProgressCount == 3)
+        // 使った時間が saveInterval 増えたら書く
+        clock.advance(seconds: 60)
+        manager.refresh()
+        #expect(storage.trialWrites == launched + 2)
+        #expect(storage.trialUsedTime == TrialProgress.saveInterval)
+        // 時計を戻したら、使った時間が増えなくても書く
+        clock.set(days(-1))
+        manager.refresh()
+        #expect(storage.trialWrites == launched + 4)
+        #expect(storage.trialLastSeenDate == days(-1))
+        #expect(storage.trialUsedTime == TrialProgress.saveInterval)
+        // 期限が切れたら、使った時間の増え方が saveInterval に満たなくても書く
+        clock.advance(seconds: TrialProgress.duration - TrialProgress.saveInterval - 60)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 1))
+        #expect(storage.trialWrites == launched + 6)
+        clock.advance(seconds: 60)
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+        #expect(storage.trialWrites == launched + 8)
+        #expect(storage.trialUsedTime == TrialProgress.duration)
+        // 期限が切れた後も、意味のある変化が無ければ書かない
+        clock.advance(seconds: 60)
+        manager.refresh()
+        #expect(storage.trialWrites == launched + 8)
     }
 
     @Test func liveInitializerUsesTheRealClocks() throws {

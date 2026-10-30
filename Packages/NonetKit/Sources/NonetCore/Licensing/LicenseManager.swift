@@ -19,7 +19,8 @@ public protocol LicenseStorage: AnyObject {
     var trialLastSeenDate: Date? { get set }
     /// 数えた試用の時間（秒）。時計を戻しても減らない
     var trialUsedTime: TimeInterval? { get set }
-    /// refresh で試用の記録を書き終えたときに呼ぶ。まとめて写す置き場所（キーチェーン）のため
+    /// refresh で試用を数え終えたときに呼ぶ（記録は変わったときだけ書くので、書かなかったときも呼ぶ。ライセンスがあれば呼ばない）。
+    /// まとめて写す置き場所（キーチェーン）は、ここで書くかを決める
     func didSaveTrialProgress()
 }
 
@@ -169,7 +170,7 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         }
     }
 
-    /// 試用の記録を書いたあとに、キーチェーンにも写す（UserDefaultsLicenseStorage.needsKeychainWrite のとき）。
+    /// refresh で試用を数えたあとに、キーチェーンにも写す（UserDefaultsLicenseStorage.needsKeychainWrite のとき）。
     /// キーチェーンの記録は、記録を消しても消さない
     public func didSaveTrialProgress() {
         guard let keychain else { return }
@@ -356,6 +357,8 @@ struct TrialProgress: Equatable, Sendable {
     static let duration = TimeInterval(LicenseManager.trialDays) * secondsPerDay
     /// これより小さい時計のずれ（NTP の補正など）は、時計の変更とみなさない
     static let clockTolerance: TimeInterval = 5 * 60
+    /// 使った時間がこれだけ増えたら、時計が変わっていなくても保存し直す（needsSaving）
+    static let saveInterval: TimeInterval = 60 * 60
 
     /// 初めて起動した時刻
     var start: Date
@@ -399,6 +402,20 @@ struct TrialProgress: Equatable, Sendable {
         next.lastSeen = now
         next.used += max(0, elapsed)
         return next
+    }
+
+    /// 保存してある (lastSeen, used) を書き直すか。時間がふつうに進んだだけなら、保存してある組からでも
+    /// used + max(0, now − lastSeen) で同じだけ数えられる（lastSeen − used が変わらない）ので、refresh のたびには書かない。書くのは:
+    /// - 記録が無い・不正なとき
+    /// - 時計が変わったとき（lastSeen − used が clockTolerance より動いた。書かないと、起動し直したときに戻した分・進めた分を数え違える）
+    /// - 残り日数が変わった・期限が切れたとき
+    /// - 使った時間が saveInterval 以上増えたとき（書かずにいて時計を戻して起動し直されると、その分を数え損なうため）
+    func needsSaving(over lastSeen: Date?, used: TimeInterval?) -> Bool {
+        guard let lastSeen, let used, used.isFinite, used >= 0 else { return true }
+        let saved = TrialProgress(start: start, lastSeen: lastSeen, used: used)
+        return saved.entitlement != entitlement
+            || self.used - used >= Self.saveInterval
+            || abs(self.lastSeen.timeIntervalSince(lastSeen) - (self.used - used)) > Self.clockTolerance
     }
 }
 
@@ -452,19 +469,20 @@ public final class LicenseManager {
         }
     }
 
-    /// 日付の変化を反映する
+    /// 日付の変化を反映する。有効なライセンスがあれば試用は数えず、保存先にも何も書かない
+    /// （ライセンスを外すと、保存してある記録から数え直す。ライセンスがあった間も時計のとおりに数える）
     public func refresh() {
+        if let info = storedLicense() {
+            update(.licensed(info))
+            return
+        }
         let current = now()
         let currentUptime = uptime?()
         let progress = advancedTrial(now: current, uptime: currentUptime)
         if let progress {
             trial = (progress, currentUptime)
         }
-        if let info = storedLicense() {
-            update(.licensed(info))
-        } else {
-            update(progress?.entitlement ?? .expired)
-        }
+        update(progress?.entitlement ?? .expired)
     }
 
     /// 検証してから保存する。失敗したら LicenseError を投げ、保存済みのキーはそのまま。
@@ -499,23 +517,36 @@ public final class LicenseManager {
         return end - start
     }
 
-    /// 試用を now まで数えて保存する。数えられなければ nil
+    /// 試用を now まで数え、記録が変わっていれば保存する（TrialProgress.needsSaving）。数えられなければ nil
     private func advancedTrial(now current: Date, uptime currentUptime: TimeInterval?) -> TrialProgress? {
         let storedStart = storage.trialStartDate
+        let storedLastSeen = storage.trialLastSeenDate
         let storedUsed = storage.trialUsedTime
         let progress: TrialProgress?
         if let trial {
             // このプロセスで数えてきた値を正とする。保存先が消されたり書き換えられたりしても、試用を延ばさない
-            var base = trial.progress
+            var next = trial.progress.advanced(to: current, realElapsed: Self.elapsed(from: trial.uptime, to: currentUptime))
             if let storedStart {
-                base.start = min(base.start, storedStart)
+                next.start = min(next.start, storedStart)
             }
-            if let storedUsed, storedUsed.isFinite {
-                base.used = max(base.used, storedUsed)
+            // 保存先の記録がこのプロセスより多く数えている（同時に動いている別のコピーが書いた・ほかの置き場所から戻った）ときは、
+            // 2つの記録をそれぞれ now まで数え、大きい方にする:
+            //   max(自分の used + 自分の経過, 保存先の used + max(0, now − 保存先の lastSeen))
+            // - どちらの項も1つの記録だけを数えた量なので、同じ時間を二度数えない。
+            //   保存先の used に自分の経過を足すと、保存先が lastSeen までに数えた時間を、自分の経過としてもう一度数えてしまう
+            // - 保存先の項は、その記録から起動し直したときに数える量（TrialProgress.resumed）と同じで、それより多くは数えない
+            //   （lastSeen が無ければ used だけ。数えた量の下限として使う）
+            // - 結果は自分の項以上で、保存先の used 以上なので、古い記録でも時計を戻した記録でも減らず、やり直しにもならない
+            //   （保存先の lastSeen が now より先なら、その記録は used だけになる）
+            // - 保存先の used が自分以下なら使わない。自分が前に書いた記録か、自分より遅れている記録で、
+            //   それを時計どおりに数え直すと、単調な時計で除いた時計の変更（時計を進めた分）を数えてしまう
+            if let storedUsed, storedUsed.isFinite, storedUsed > trial.progress.used {
+                let sinceStored = storedLastSeen.map { max(0, current.timeIntervalSince($0)) } ?? 0
+                next.used = max(next.used, storedUsed + sinceStored)
             }
-            progress = base.advanced(to: current, realElapsed: Self.elapsed(from: trial.uptime, to: currentUptime))
+            progress = next
         } else {
-            progress = TrialProgress.resumed(start: storedStart, lastSeen: storage.trialLastSeenDate, used: storedUsed, now: current)
+            progress = TrialProgress.resumed(start: storedStart, lastSeen: storedLastSeen, used: storedUsed, now: current)
             if progress == nil {
                 logger.notice("時計が試用の開始日より前に戻されていて、使った時間の記録もありません")
             }
@@ -525,8 +556,10 @@ public final class LicenseManager {
         if storedStart != progress.start {
             storage.trialStartDate = progress.start
         }
-        storage.trialLastSeenDate = progress.lastSeen
-        storage.trialUsedTime = progress.used
+        if progress.needsSaving(over: storedLastSeen, used: storedUsed) {
+            storage.trialLastSeenDate = progress.lastSeen
+            storage.trialUsedTime = progress.used
+        }
         storage.didSaveTrialProgress()
         return progress
     }
