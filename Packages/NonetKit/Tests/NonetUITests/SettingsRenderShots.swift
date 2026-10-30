@@ -150,11 +150,18 @@ struct SettingsRenderShots {
             model.setLoginItemEnabled(true)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 1300), appearance, "general-\(suffix)")
 
-            // ライセンス（試用・エラー）
+            // ライセンス（試用: 購入が先・キーの欄が空、エラーとお問い合わせ）
+            model.supportEmail = "support@example.com"
             model.selectTab(.license)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-trial-empty-\(suffix)")
             model.licenseKeyInput = "eyJsaWNlbnNlSUQiOiJ.broken"
             model.activateLicense()
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-trial-\(suffix)")
+            model.licenseKeyInput = "NONET-2026-000123"
+            model.activateLicense()
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-trial-id-\(suffix)")
+            model.licenseKeyInput = ""
+            model.licenseMessage = nil
 
             // 情報
             model.selectTab(.about)
@@ -190,19 +197,33 @@ struct SettingsRenderShots {
         for (suffix, appearance) in appearances {
             _ = NSApplication.shared
             let h = try SettingsHarness(verifier: try LicenseVerifier(publicKeyBase64: pair.publicKeyBase64), links: AppLinks(purchase: URL(string: "https://example.com/buy")))
+            h.model.supportEmail = "support@example.com"
+            h.model.copyToPasteboard = { _ in }
             h.model.selectTab(.license)
             h.model.licenseKeyInput = key
             h.model.activateLicense()
             try await render(SettingsRootView(model: h.model), size: CGSize(width: 860, height: 640), appearance, "license-licensed-\(suffix)")
+            h.model.copyLicenseKey()
+            try await render(SettingsRootView(model: h.model), size: CGSize(width: 860, height: 640), appearance, "license-licensed-copied-\(suffix)")
+            h.model.setEnteringAnotherKey(true)
+            try await render(SettingsRootView(model: h.model), size: CGSize(width: 860, height: 720), appearance, "license-licensed-another-\(suffix)")
+            h.model.setEnteringAnotherKey(false)
 
             let storage = SettingsFakeLicenseStorage()
             storage.trialStartDate = Date(timeIntervalSinceReferenceDate: 700_000_000)
             let expired = LicenseManager(verifier: nil, storage: storage, now: { Date(timeIntervalSinceReferenceDate: 800_000_000) })
             let model = SettingsModel(controller: h.controller, license: expired, services: h.services, links: AppLinks(purchase: URL(string: "https://example.com/buy")), onCheckForUpdates: {})
+            model.supportEmail = "support@example.com"
             model.selectTab(.license)
-            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "license-expired-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-expired-\(suffix)")
             model.selectTab(.about)
-            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "about-update-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "about-update-\(suffix)")
+            // ほかのタブの上の「試用期間が終了しました」の帯
+            model.selectTab(.general)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 420), appearance, "banners-expired-\(suffix)")
+            // 試用期間が終わったときのウィンドウ（購入のページがあるとき・無いとき）
+            try await render(TrialEndedView(showsPurchase: true, onBuy: {}, onRegister: {}, onLater: {}), size: CGSize(width: TrialEndedView.width, height: 150), appearance, "trial-ended-\(suffix)")
+            try await render(TrialEndedView(showsPurchase: false, onBuy: {}, onRegister: {}, onLater: {}), size: CGSize(width: TrialEndedView.width, height: 150), appearance, "trial-ended-no-purchase-\(suffix)")
             try await render(SettingsAboutView(model: model, showsNotices: true), size: CGSize(width: 860, height: 900), appearance, "about-notices-\(suffix)")
         }
     }
@@ -238,6 +259,38 @@ struct SettingsRenderShots {
             guard let frameView = alert.window.contentView?.superview else { return }
             frameView.layoutSubtreeIfNeeded()
             try write(frameView, name: "alert-import-review-\(suffix)")
+        }
+    }
+
+    /// アンインストールの確認と、ゴミ箱に入れた後の知らせ（SwiftUI の alert と同じ NSAlert に、同じ文言を入れて描く）
+    @Test func renderUninstallAlerts() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        _ = NSApplication.shared
+        let leftovers = SettingsUninstallResult(
+            leftovers: [URL(fileURLWithPath: NSHomeDirectory()).appending(path: "Library/Caches/com.iam74k4.Nonet")],
+            loginItemFailed: true
+        )
+        let alerts: [(String, String, String, [String])] = [
+            ("alert-uninstall-confirm", String(localized: "Nonet をアンインストールしますか？", bundle: .nonetUI), SettingsText.uninstallConfirmation,
+             [String(localized: "アンインストール", bundle: .nonetUI), String(localized: "キャンセル", bundle: .nonetUI)]),
+            ("alert-uninstall-finished", String(localized: "Nonet をゴミ箱に入れました", bundle: .nonetUI), SettingsText.uninstallFinished(leftovers),
+             [String(localized: "システム設定を開いて終了", bundle: .nonetUI)]),
+        ]
+        for (suffix, appearance) in appearances {
+            for (name, title, message, buttons) in alerts {
+                let alert = NSAlert()
+                alert.messageText = title
+                alert.informativeText = message
+                for button in buttons {
+                    alert.addButton(withTitle: button)
+                }
+                alert.window.appearance = NSAppearance(named: appearance)
+                alert.layout()
+                try await settle()
+                guard let frameView = alert.window.contentView?.superview else { return }
+                frameView.layoutSubtreeIfNeeded()
+                try write(frameView, name: "\(name)-\(suffix)")
+            }
         }
     }
 

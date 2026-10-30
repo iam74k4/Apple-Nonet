@@ -76,7 +76,7 @@ struct SettingsRootView: View {
         case .removePage(_, let index)?:
             String(localized: "ページ \(index + 1) を削除しますか？", bundle: .module)
         case .deactivateLicense?:
-            String(localized: "ライセンスの登録を解除しますか？", bundle: .module)
+            String(localized: "この Mac から登録を消しますか？", bundle: .module)
         case .importProfiles(let plan)?:
             String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .module)
         case nil:
@@ -91,7 +91,7 @@ struct SettingsRootView: View {
         case .removePage:
             String(localized: "このページのマスはすべて消えます。元に戻せません。", bundle: .module)
         case .deactivateLicense:
-            String(localized: "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。", bundle: .module)
+            String(localized: "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。", bundle: .module)
         case .importProfiles(let plan):
             SettingsText.importConfirmation(plan)
         }
@@ -100,7 +100,7 @@ struct SettingsRootView: View {
     private func confirmationButton(_ confirmation: SettingsModel.Confirmation) -> String {
         switch confirmation {
         case .deleteProfile, .removePage: String(localized: "削除", bundle: .module)
-        case .deactivateLicense: String(localized: "登録を解除", bundle: .module)
+        case .deactivateLicense: String(localized: "登録を消す", bundle: .module)
         case .importProfiles(let plan): SettingsText.importConfirmationButton(plan)
         }
     }
@@ -114,7 +114,7 @@ struct SettingsRootView: View {
     }
 }
 
-/// どのタブでも上に出す帯: 設定の問題（notice）・権限などの状態・書き出しと読み込みの結果
+/// どのタブでも上に出す帯: 設定の問題（notice）・権限などの状態・試用期間の終了・書き出しと読み込みの結果
 struct SettingsBannerStack: View {
     let model: SettingsModel
 
@@ -137,6 +137,7 @@ struct SettingsBannerStack: View {
                     }
                 }
             }
+            SettingsExpiredBanner(model: model)
             if let message = model.fileMessage {
                 SettingsBanner(
                     symbol: message.isError ? "exclamationmark.triangle" : "checkmark.circle",

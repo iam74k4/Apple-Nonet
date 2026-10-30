@@ -18,6 +18,11 @@ enum AppInfo {
         string("NonetLicensePublicKey")
     }
 
+    /// お問い合わせのメールの宛先（設定の「お問い合わせ…」。メールアドレスの形でなければ、設定がボタンを出さない）
+    static var supportEmail: String? {
+        string("NonetSupportEmail")
+    }
+
     /// アップデートの配信先が設定されているか
     static var hasUpdateFeed: Bool {
         string("SUFeedURL") != nil && string("SUPublicEDKey") != nil

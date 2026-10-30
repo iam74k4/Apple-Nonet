@@ -120,6 +120,7 @@ test_config_problems_lists_every_empty_value() {
   assert_contains "$problems" "NONET_PRIVACY_URL が空です"
   assert_contains "$problems" "NONET_SPARKLE_PUBLIC_KEY が空です"
   assert_contains "$problems" "NONET_LICENSE_PUBLIC_KEY が空です"
+  assert_contains "$problems" "NONET_SUPPORT_EMAIL が空です"
 }
 
 test_config_problems_accepts_valid_values() {
@@ -154,6 +155,21 @@ EOF
   assert_contains "$problems" "NONET_PURCHASE_URL が仮の値のままです"
   assert_contains "$problems" "NONET_SPARKLE_PUBLIC_KEY が Ed25519 の公開鍵"
   assert_not_contains "$problems" "NONET_LICENSE_PUBLIC_KEY"
+}
+
+test_config_problems_checks_the_support_email() {
+  load_release
+  local file="$TEST_TMP/bad.xcconfig" problems value
+  write_valid_xcconfig "$file"
+  for value in "mailto:support@nonet.test" "support" "support@nonet" "a b@nonet.test" "support@nonet.test?cc=x@y.test"; do
+    printf 'NONET_SUPPORT_EMAIL = %s\n' "$value" >>"$file"
+    problems="$(config_problems "$file")"
+    assert_contains "$problems" "NONET_SUPPORT_EMAIL は support@example.com のようなメールアドレスにしてください（いまは $value）"
+  done
+  printf 'NONET_SUPPORT_EMAIL = %s\n' "support@example.com" >>"$file"
+  assert_contains "$(config_problems "$file")" "NONET_SUPPORT_EMAIL が仮の値のままです（support@example.com）"
+  printf 'NONET_SUPPORT_EMAIL = %s\n' "help+nonet@mail.astlog.dev" >>"$file"
+  assert_eq "" "$(config_problems "$file")"
 }
 
 test_config_problems_explains_a_key_cut_by_double_slash() {
@@ -813,10 +829,12 @@ test_wrong_info_plist_values_are_caught() {
   prepare_release
   export FAKE_PLIST_FEED="https://wrong.nonet.test/appcast.xml"
   export FAKE_PLIST_LICENSE_KEY=""
+  export FAKE_PLIST_SUPPORT_EMAIL="old@nonet.test"
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 1
   assert_contains "$OUT" "Info.plist の SUFeedURL が「https://wrong.nonet.test/appcast.xml」です"
   assert_contains "$OUT" "Info.plist の NonetLicensePublicKey が「」です"
+  assert_contains "$OUT" "Info.plist の NonetSupportEmail が「old@nonet.test」です（期待: $TEST_SUPPORT_EMAIL）"
   assert_not_called "notarytool submit"
 }
 

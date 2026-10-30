@@ -312,13 +312,18 @@ enum SettingsText {
         var isProblem: Bool
     }
 
-    static func summary(_ entitlement: Entitlement) -> EntitlementSummary {
+    /// 状態の欄。試用中は残り日数と終わる日（trialEnd。分からなければ日数だけ）を、文言の言語で出す
+    static func summary(_ entitlement: Entitlement, trialEnd: Date? = nil, locale: Locale = uiLocale) -> EntitlementSummary {
         switch entitlement {
         case .trial(let daysLeft):
             EntitlementSummary(
                 symbol: "clock",
-                title: String(localized: "試用期間中（残り \(daysLeft) 日）", bundle: .module, locale: .nonetUI),
-                detail: String(localized: "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、ずっと使えます。", bundle: .module),
+                title: trialEnd.map { end in
+                    let day = trialEndDay(end, locale: locale)
+                    return String(localized: "試用期間中（残り \(daysLeft) 日・\(day)まで）", bundle: .module, locale: .nonetUI)
+                } ?? String(localized: "試用期間中（残り \(daysLeft) 日）", bundle: .module, locale: .nonetUI),
+                // 何をすれば試用期間のあとも使えるのかを言う（「ずっと使えます」だけでは、何が続くのか分からない）
+                detail: String(localized: "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、試用期間のあとも使い続けられます。", bundle: .module),
                 isProblem: false
             )
         case .licensed(let info):
@@ -338,6 +343,11 @@ enum SettingsText {
         }
     }
 
+    /// 試用期間が終わる日（「11月14日」「November 14」）。14日より先にはならないので年は出さない
+    static func trialEndDay(_ date: Date, locale: Locale = uiLocale) -> String {
+        date.formatted(.dateTime.month(.wide).day().locale(locale))
+    }
+
     /// 「山田 太郎（taro@example.com）」
     static func licenseeLine(_ info: LicenseInfo) -> String {
         let name = info.licensee.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -345,6 +355,38 @@ enum SettingsText {
             return String(localized: "登録者: \(name)", bundle: .module)
         }
         return String(localized: "登録者: \(name)（\(email)）", bundle: .module)
+    }
+
+    /// ライセンスキーを登録できなかった理由と、次にすること。input は貼り付けた文（ライセンス ID を貼り付けたかを見る）。
+    /// NonetCore の説明（LicenseError.errorDescription）は発行ツールと共通なので使わず、購入した人に向けた文にする
+    static func licenseError(_ error: any Error, input: String) -> String {
+        let licenseError = error as? LicenseError
+        // 公開鍵が無い・壊れたビルド。キーをどう直しても登録できないので、先に言う（「公開鍵」のような開発者の言葉は使わない）
+        if licenseError == .invalidPublicKey {
+            return String(localized: "この Nonet ではライセンスキーを確かめられません。最新の Nonet をダウンロードし直してください。", bundle: .module)
+        }
+        if looksLikeLicenseID(input) {
+            return String(localized: "これはライセンス ID です。メールにある長いライセンスキーを貼り付けてください。", bundle: .module)
+        }
+        switch licenseError {
+        case .malformed?:
+            return String(localized: "ライセンスキーの形式が正しくありません。購入時のメールから、キー全体をもう一度コピーしてください。それでも登録できないときは、お問い合わせください。", bundle: .module)
+        case .invalidSignature?, .invalidPrivateKey?, .invalidPublicKey?:
+            return String(localized: "ライセンスキーを確かめられませんでした。購入時のメールからキー全体をもう一度コピーしてください。それでも登録できないときは、お問い合わせください。", bundle: .module)
+        case .wrongProduct?:
+            return String(localized: "このライセンスキーは Nonet のものではありません。購入時のメールにある、Nonet のライセンスキーを貼り付けてください。", bundle: .module)
+        case nil:
+            return error.localizedDescription
+        }
+    }
+
+    /// ライセンス ID（「NONET-2026-000123」。発行ツールの既定は UUID）を貼り付けたらしいか。
+    /// 設定に出ているライセンス ID を、キーと思って貼り付けることがある。キーの一部（eyJ…）を含む長い文は数えない
+    static func looksLikeLicenseID(_ input: String) -> Bool {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, text.count <= 100, !text.contains("eyJ") else { return false }
+        return text.contains(#/(?i)NONET-[0-9]{4}-[0-9]{3,}/#)
+            || text.contains(#/[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/#)
     }
 
     // MARK: 情報
@@ -365,6 +407,33 @@ enum SettingsText {
         }
     }
 
+    /// アンインストールを確かめる文。何をするか・何を残すか・元に戻せるかを言う
+    static var uninstallConfirmation: String {
+        [
+            String(localized: "ログイン時に起動しないようにし、Nonet の設定フォルダとキャッシュと Nonet 本体をゴミ箱に入れて終了します。最後に、アクセシビリティの許可を外せるようにシステム設定を開きます。", bundle: .module),
+            String(localized: "ライセンスキーは残すので、入れ直せば登録し直さずに使えます。試用期間もやり直しにはなりません。ゴミ箱を空にするまでは元に戻せます。", bundle: .module),
+        ].joined(separator: "\n\n")
+    }
+
+    /// ゴミ箱に入れた後の知らせ。アクセシビリティの一覧から外すのは利用者にしかできない（外せる API が無い）ので、手順を言う。
+    /// ゴミ箱に入れられなかったものと、ログイン時の起動を止められなかったときは、その外し方も
+    static func uninstallFinished(_ result: SettingsUninstallResult, home: String = NSHomeDirectory()) -> String {
+        var sections = [String(localized: "最後に、システム設定 › プライバシーとセキュリティ › アクセシビリティ の一覧で Nonet を選び、「−」で外してください。", bundle: .module)]
+        if result.loginItemFailed {
+            sections.append(String(localized: "ログイン時の起動を止められませんでした。システム設定 › 一般 › ログイン項目 で Nonet を外してください。", bundle: .module))
+        }
+        if !result.leftovers.isEmpty {
+            var lines = [String(localized: "次のフォルダはゴミ箱に入れられませんでした。Finder でゴミ箱に入れてください。", bundle: .module)]
+            lines += result.leftovers.map { url in
+                let path = url.path
+                let shown = path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
+                return String(localized: "・\(singleLine(shown, limit: importContentLimit))", bundle: .module)
+            }
+            sections.append(lines.joined(separator: "\n"))
+        }
+        return sections.joined(separator: "\n\n")
+    }
+
     // MARK: テスト実行
 
     static func testResult(_ record: ExecutionRecord) -> String {
@@ -378,7 +447,7 @@ enum SettingsText {
 /// 状態の帯（権限が無い・トラックパッドが無い など）
 struct SettingsStatusBanner: Equatable {
     enum Action: Equatable {
-        case requestAccessibility
+        /// 最初に押したときは macOS の許可のダイアログだけを出し、2回目からはシステム設定だけを開く（SettingsModel.perform）
         case openAccessibilitySettings
         case recheck
         case enable
@@ -402,10 +471,8 @@ struct SettingsStatusBanner: Equatable {
             symbol = "lock.shield"
             title = String(localized: "アクセシビリティの許可が必要です", bundle: .module)
             message = String(localized: "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。許可されると自動で動き出します。", bundle: .module)
-            buttons = [
-                Button(action: .requestAccessibility, title: String(localized: "許可を求める", bundle: .module)),
-                Button(action: .openAccessibilitySettings, title: String(localized: "システム設定を開く", bundle: .module)),
-            ]
+            // ほぼ同じことをするボタンを2つ並べない（「許可を求める」はダイアログとシステム設定が重なって出ていた）
+            buttons = [Button(action: .openAccessibilitySettings, title: String(localized: "システム設定を開く", bundle: .module))]
         case .noTrackpad:
             symbol = "hand.point.up.left"
             title = String(localized: "マルチタッチのトラックパッドが見つかりません", bundle: .module)

@@ -26,6 +26,17 @@ public struct LicenseInfo: Codable, Equatable, Sendable {
     }
 }
 
+/// 検証したライセンスキー（前後の文を除いたキーの部分）と、その中身
+public struct VerifiedLicense: Equatable, Sendable {
+    public var key: String
+    public var info: LicenseInfo
+
+    public init(key: String, info: LicenseInfo) {
+        self.key = key
+        self.info = info
+    }
+}
+
 public enum LicenseError: Error, Equatable, LocalizedError, Sendable {
     case malformed
     case invalidSignature

@@ -699,3 +699,48 @@ private final class ChangeCounter: @unchecked Sendable {
         lock.withLock { value += 1 }
     }
 }
+
+// MARK: - 終わる日・登録済みのキー・保存しない検証
+
+extension LicenseManagerTests {
+    /// 時計どおりに進む限り、終わる日は変わらない（起動していない間も数える）
+    @Test func trialEndDateStaysPut() throws {
+        let manager = makeManager()
+        #expect(manager.trialEndDate == days(14))
+        clock.advance(days: 3.5)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 11))
+        #expect(manager.trialEndDate == days(14))
+        let restarted = makeManager()
+        #expect(restarted.trialEndDate == days(14))
+        clock.advance(days: 11)
+        manager.refresh()
+        #expect(manager.entitlement == .expired)
+        #expect(manager.trialEndDate == nil)
+    }
+
+    /// リンクから開いたキーは、尋ねる前に検証するだけで、保存しない
+    @Test func verifyDoesNotSave() throws {
+        let manager = makeManager(verifier: try verifier())
+        let key = try LicenseTestFixtures.licenseKey()
+        let verified = try manager.verify(licenseKey: "License key: \(key)\n")
+        #expect(verified == VerifiedLicense(key: key, info: LicenseTestFixtures.info()))
+        #expect(storage.licenseKey == nil)
+        #expect(manager.entitlement == .trial(daysLeft: 14))
+        #expect(manager.registeredLicenseKey == nil)
+        #expect(throws: LicenseError.malformed) { try manager.verify(licenseKey: "not a key") }
+        #expect(throws: LicenseError.invalidPublicKey) { try makeManager(storage: MemoryLicenseStorage()).verify(licenseKey: key) }
+    }
+
+    /// 登録したキーは、ほかの Mac に登録するためにコピーできる（登録していないときは無い）
+    @Test func registeredLicenseKeyIsTheStoredKey() throws {
+        let manager = makeManager(verifier: try verifier())
+        let key = try LicenseTestFixtures.licenseKey()
+        try manager.activate(licenseKey: "  \(key)  ")
+        #expect(manager.registeredLicenseKey == key)
+        #expect(manager.trialEndDate == nil)
+        manager.deactivate()
+        #expect(manager.registeredLicenseKey == nil)
+        #expect(manager.trialEndDate == days(14))
+    }
+}

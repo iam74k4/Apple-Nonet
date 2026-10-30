@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 情報のタブ: バージョン・アップデートの確認・利用ガイド・プライバシー・サードパーティのライセンス
+// 情報のタブ: バージョン・アップデートの確認・利用ガイド・プライバシー・お問い合わせ・アンインストール・サードパーティのライセンス
 import AppKit
 import NonetCore
 import SwiftUI
@@ -67,12 +67,29 @@ struct SettingsAboutView: View {
                             }
                         }
                     }
+                    if model.supportEmail != nil {
+                        Button {
+                            model.contactSupport()
+                        } label: {
+                            Label {
+                                Text("お問い合わせ…", bundle: .module)
+                            } icon: {
+                                Image(systemName: "envelope")
+                            }
+                        }
+                    }
                 }
                 if let copyright = bundle.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String, !copyright.isEmpty {
                     Text(copyright)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
+                Button {
+                    model.requestUninstall()
+                } label: {
+                    Text("Nonet をアンインストール…", bundle: .module)
+                }
+                .controlSize(.small)
                 DisclosureGroup(isExpanded: $showsNotices) {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(SettingsThirdPartyNotices.notices) { notice in
@@ -105,5 +122,54 @@ struct SettingsAboutView: View {
             .padding(.vertical, 36)
             .frame(maxWidth: .infinity)
         }
+        .alert(
+            String(localized: "Nonet をアンインストールしますか？", bundle: .module),
+            isPresented: Binding(get: { model.uninstallStep == .confirm }, set: { if !$0, model.uninstallStep == .confirm { model.uninstallStep = nil } })
+        ) {
+            Button(role: .destructive) {
+                model.uninstall()
+            } label: {
+                Text("アンインストール", bundle: .module)
+            }
+            Button(role: .cancel) {
+                model.uninstallStep = nil
+            } label: {
+                Text("キャンセル", bundle: .module)
+            }
+        } message: {
+            Text(SettingsText.uninstallConfirmation)
+        }
+        .alert(
+            String(localized: "Nonet をゴミ箱に入れました", bundle: .module),
+            isPresented: Binding(get: { finishedResult != nil }, set: { if !$0, finishedResult != nil { model.finishUninstall() } }),
+            presenting: finishedResult
+        ) { _ in
+            // アプリはもうゴミ箱にあるので、閉じ方にかかわらず終了する
+            Button {
+                model.finishUninstall()
+            } label: {
+                Text("システム設定を開いて終了", bundle: .module)
+            }
+            .keyboardShortcut(.defaultAction)
+        } message: { result in
+            Text(SettingsText.uninstallFinished(result))
+        }
+        .alert(
+            String(localized: "Nonet をゴミ箱に入れられませんでした", bundle: .module),
+            isPresented: Binding(get: { model.uninstallStep == .failed }, set: { if !$0, model.uninstallStep == .failed { model.uninstallStep = nil } })
+        ) {
+            Button(role: .cancel) {
+                model.uninstallStep = nil
+            } label: {
+                Text("閉じる", bundle: .module)
+            }
+        } message: {
+            Text("何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。", bundle: .module)
+        }
+    }
+
+    private var finishedResult: SettingsUninstallResult? {
+        if case .finished(let result) = model.uninstallStep { return result }
+        return nil
     }
 }

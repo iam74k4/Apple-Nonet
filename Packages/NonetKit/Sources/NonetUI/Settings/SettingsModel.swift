@@ -118,6 +118,28 @@ final class SettingsModel {
     // MARK: ライセンス
     var licenseKeyInput = ""
     var licenseMessage: SettingsMessage?
+    /// 登録済みのときに「別のキーを登録…」で、ライセンスキーの欄を出している
+    var isEnteringAnotherKey = false
+    /// リンクやファイルから開いた、検証済みのキー。登録してよいか尋ねている間だけ入る（黙って登録しない）
+    var pendingLicense: VerifiedLicense?
+    /// ライセンスキーの欄に入力できるようにしてほしい（帯の「ライセンスキーを入力…」など。欄が受け取ったら false に戻す）
+    var wantsLicenseKeyFocus = false
+    /// コピーする（テストでは偽物にする）
+    @ObservationIgnored var copyToPasteboard: (String) -> Void = SettingsModel.copyConcealed
+
+    // MARK: 情報
+    /// お問い合わせのメールの宛先（Info.plist の NonetSupportEmail）。nil なら「お問い合わせ…」を出さない
+    var supportEmail: String?
+    /// 「Nonet をアンインストール…」の確認と、その後の知らせ
+    var uninstallStep: SettingsUninstallStep?
+    /// ゴミ箱に入れるもの（テストでは偽物にする）
+    @ObservationIgnored var uninstaller = SettingsUninstaller(trash: SettingsFileTrash(), targets: .current())
+    /// アンインストールの最後に終了する（テストでは数える）
+    @ObservationIgnored var terminate: () -> Void = { NSApplication.shared.terminate(nil) }
+
+    // MARK: 状態の帯
+    /// アクセシビリティの帯の「システム設定を開く」で、macOS の許可のダイアログをもう出した（このプロセスで）
+    @ObservationIgnored private var hasRequestedAccessibility = false
 
     // MARK: 読み込みに時間のかかる一覧
     let menuBrowser: SettingsMenuBrowser
@@ -760,10 +782,15 @@ final class SettingsModel {
 
     func perform(_ action: SettingsStatusBanner.Action) {
         switch action {
-        case .requestAccessibility:
-            services.permissions.requestAccessibility()
         case .openAccessibilitySettings:
-            services.permissions.openAccessibilitySettings()
+            // 最初はダイアログだけ（一覧に Nonet が載り、ダイアログの「システム設定を開く」で開ける）。
+            // ダイアログとシステム設定を同時に出すと、システム設定の上に「拒否」のあるダイアログが重なる
+            if hasRequestedAccessibility {
+                services.permissions.openAccessibilitySettings()
+            } else {
+                hasRequestedAccessibility = true
+                services.permissions.requestAccessibility()
+            }
         case .recheck:
             break
         case .enable:
@@ -868,22 +895,158 @@ final class SettingsModel {
 
     // MARK: - ライセンス
 
+    var isLicensed: Bool {
+        if case .licensed = license.entitlement { return true }
+        return false
+    }
+
+    /// ライセンスキーの欄を出すか（登録していないとき、または「別のキーを登録…」を押したとき）
+    var showsLicenseKeyField: Bool {
+        !isLicensed || isEnteringAnotherKey
+    }
+
+    /// どのタブでも上に出す「試用期間が終了しました」の帯。ライセンスのタブには同じことが書いてあるので出さない
+    var showsExpiredBanner: Bool {
+        license.entitlement == .expired && tab != .license
+    }
+
     func activateLicense() {
-        let key = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return }
+        let input = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return }
         do {
-            try license.activate(licenseKey: key)
+            try license.activate(licenseKey: input)
             licenseKeyInput = ""
+            isEnteringAnotherKey = false
+            pendingLicense = nil
             licenseMessage = SettingsMessage(text: String(localized: "登録しました。ご購入ありがとうございます。", bundle: .module), isError: false)
         } catch {
-            let text = (error as? LicenseError)?.errorDescription ?? error.localizedDescription
-            licenseMessage = SettingsMessage(text: text, isError: true)
+            licenseMessage = SettingsMessage(text: SettingsText.licenseError(error, input: input), isError: true)
         }
     }
 
     func deactivateLicense() {
         license.deactivate()
-        licenseMessage = SettingsMessage(text: String(localized: "登録を解除しました。", bundle: .module), isError: false)
+        isEnteringAnotherKey = false
+        licenseMessage = SettingsMessage(text: String(localized: "この Mac から登録を消しました。", bundle: .module), isError: false)
+    }
+
+    /// 登録済みのキーをコピーする（同じキーを、自分のほかの Mac にも登録できる）
+    func copyLicenseKey() {
+        guard let key = license.registeredLicenseKey else { return }
+        copyToPasteboard(key)
+        licenseMessage = SettingsMessage(text: String(localized: "ライセンスキーをコピーしました。", bundle: .module), isError: false)
+    }
+
+    /// 「別のキーを登録…」と、そのやめる
+    func setEnteringAnotherKey(_ entering: Bool) {
+        isEnteringAnotherKey = entering
+        licenseKeyInput = ""
+        licenseMessage = nil
+        wantsLicenseKeyFocus = entering
+    }
+
+    /// ライセンスのタブに移り、ライセンスキーの欄に入力できるようにする
+    func showLicenseKeyEntry() {
+        selectTab(.license)
+        if isLicensed {
+            isEnteringAnotherKey = true
+        }
+        wantsLicenseKeyFocus = true
+    }
+
+    /// リンクやファイルから開いたキー。欄に入れて検証し、正しければ登録者を見せて尋ねる（pendingLicense）。
+    /// 正しくなければ、手で貼り付けたときと同じ理由を出す
+    func openLicenseLink(_ content: SettingsLicenseLink.Content) {
+        selectTab(.license)
+        pendingLicense = nil
+        guard case .text(let text) = content else {
+            licenseMessage = SettingsMessage(
+                text: String(localized: "リンクからライセンスキーを読み取れませんでした。購入時のメールからキーをコピーして、ここに貼り付けてください。", bundle: .module),
+                isError: true
+            )
+            return
+        }
+        if isLicensed {
+            isEnteringAnotherKey = true
+        }
+        licenseKeyInput = text
+        do {
+            let verified = try license.verify(licenseKey: text)
+            licenseKeyInput = verified.key
+            if verified.key == license.registeredLicenseKey {
+                licenseKeyInput = ""
+                isEnteringAnotherKey = false
+                licenseMessage = SettingsMessage(text: String(localized: "このライセンスキーは登録済みです。", bundle: .module), isError: false)
+                return
+            }
+            licenseMessage = nil
+            pendingLicense = verified
+        } catch {
+            licenseMessage = SettingsMessage(text: SettingsText.licenseError(error, input: text), isError: true)
+        }
+    }
+
+    /// 尋ねたキーを登録する
+    func confirmPendingLicense() {
+        guard let pending = pendingLicense else { return }
+        pendingLicense = nil
+        licenseKeyInput = pending.key
+        activateLicense()
+    }
+
+    /// 登録しない。キーは欄に残すので、後から「登録」を押せる
+    func cancelPendingLicense() {
+        pendingLicense = nil
+    }
+
+    /// クリップボードの履歴を残すアプリに覚えさせない印を付けて、文字としてコピーする（ライセンスキーには名前とメールアドレスが入る）
+    static func copyConcealed(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        pasteboard.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
+    }
+
+    // MARK: - お問い合わせ
+
+    /// 「お問い合わせ…」のメール。宛先が無ければ nil
+    var supportMail: SettingsSupportMail? {
+        guard let supportEmail else { return nil }
+        return SettingsSupportMail(
+            address: supportEmail,
+            details: SettingsSupportMail.currentDetails(trigger: settings.trigger, isJISKeyboard: services.isJISKeyboard)
+        )
+    }
+
+    /// メールのアプリで、宛先・件名・本文を入れたメールを開く
+    func contactSupport() {
+        guard let url = supportMail?.url else { return }
+        openURL(url)
+    }
+
+    // MARK: - アンインストール
+
+    func requestUninstall() {
+        uninstallStep = .confirm
+    }
+
+    /// 確かめた後。ゴミ箱に入れ終えたら、最後にすること（アクセシビリティの許可を外す）を伝える
+    func uninstall() {
+        pendingEdits.flushAll()
+        finishRecording()
+        do {
+            let result = try uninstaller.run(loginItem: services.loginItem) { controller.stop() }
+            uninstallStep = .finished(result)
+        } catch {
+            uninstallStep = .failed
+        }
+    }
+
+    /// アクセシビリティの欄を開いて終了する（ゴミ箱に入れた後の知らせを閉じたとき）
+    func finishUninstall() {
+        uninstallStep = nil
+        services.permissions.openAccessibilitySettings()
+        terminate()
     }
 
     // MARK: - 確認
