@@ -784,7 +784,7 @@ final class SettingsModel {
             let data = try ConfigurationStore.exportData(profiles: profiles)
             try data.write(to: url, options: .atomic)
             fileMessage = SettingsMessage(
-                text: String(localized: "\(profiles.count)個のプロファイルを「\(url.lastPathComponent)」に書き出しました。", bundle: .module),
+                text: String(localized: "\(profiles.count)個のプロファイルを「\(url.lastPathComponent)」に書き出しました。", bundle: .module, locale: .nonetUI),
                 isError: false
             )
         } catch {

@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 設定画面の文言。項目名は docs/user-guide.md に合わせる
+// 設定画面の文言。項目名は docs/user-guide.md の「設定（一般）」に合わせる
 import Foundation
 import NonetCore
 
@@ -103,14 +103,15 @@ enum SettingsText {
         date.formatted(.dateTime.year().month(.wide).day().locale(locale))
     }
 
-    /// 読み込みの結果（1行に1つ）
+    /// 読み込みの結果（1行に1つ）。
+    /// 数の入る文は locale: .nonetUI で、文言の言語の規則で単数・複数を選ぶ（地域が日本でアプリが英語のとき「1 profiles」にしない）
     static func importSummary(_ result: NonetConfiguration.ImportResult, containsScripts: Bool) -> String {
         var lines: [String] = []
         if result.added > 0 {
-            lines.append(String(localized: "\(result.added)個のプロファイルを追加しました。", bundle: .module))
+            lines.append(String(localized: "\(result.added)個のプロファイルを追加しました。", bundle: .module, locale: .nonetUI))
         }
         if result.replaced > 0 {
-            lines.append(String(localized: "\(result.replaced)個のプロファイルを同じアプリのものと置き換えました。", bundle: .module))
+            lines.append(String(localized: "\(result.replaced)個のプロファイルを同じアプリのものと置き換えました。", bundle: .module, locale: .nonetUI))
         }
         if result.replacedGlobal {
             lines.append(String(localized: "グローバルのページを置き換えました。", bundle: .module))
@@ -119,7 +120,7 @@ enum SettingsText {
             lines.append(String(localized: "読み込めるプロファイルがありませんでした。", bundle: .module))
         }
         if result.skipped > 0 {
-            lines.append(String(localized: "\(result.skipped)個は重なっていたか読めなかったため、読み込みませんでした。", bundle: .module))
+            lines.append(String(localized: "\(result.skipped)個は重なっていたか読めなかったため、読み込みませんでした。", bundle: .module, locale: .nonetUI))
         }
         if containsScripts, result.appliedCount > 0 {
             lines.append(String(localized: "スクリプトを含むマスがあります。実行する前に中身を確かめてください。", bundle: .module))
@@ -150,7 +151,7 @@ enum SettingsText {
             var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
             lines += importConfirmationNames(targets)
             if plan.result.added > 0 {
-                lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module))
+                lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module, locale: .nonetUI))
             }
             sections.append(lines)
         }
@@ -164,7 +165,7 @@ enum SettingsText {
             }
             let rest = plan.reviewedCells.count - importConfirmationNameLimit
             if rest > 0 {
-                lines.append(String(localized: "ほか\(rest)個", bundle: .module))
+                lines.append(String(localized: "ほか\(rest)個", bundle: .module, locale: .nonetUI))
             }
             sections.append(lines)
         }
@@ -178,11 +179,11 @@ enum SettingsText {
             let lines = script.source.components(separatedBy: .newlines)
                 .map { singleLine($0, limit: importContentLimit) }
                 .filter { !$0.isEmpty }
-            var result = [String(localized: "スクリプト（\(lines.count)行）:", bundle: .module)]
+            var result = [String(localized: "スクリプト（\(lines.count)行）:", bundle: .module, locale: .nonetUI)]
             result += lines.prefix(importScriptLineLimit)
             let rest = lines.count - importScriptLineLimit
             if rest > 0 {
-                result.append(String(localized: "…ほか\(rest)行", bundle: .module))
+                result.append(String(localized: "…ほか\(rest)行", bundle: .module, locale: .nonetUI))
             }
             return result
         case .keystroke(let keys):
@@ -279,7 +280,7 @@ enum SettingsText {
         }
         let rest = names.count - importConfirmationNameLimit
         if rest > 0 {
-            lines.append(String(localized: "ほか\(rest)個", bundle: .module))
+            lines.append(String(localized: "ほか\(rest)個", bundle: .module, locale: .nonetUI))
         }
         return lines
     }
@@ -308,7 +309,7 @@ enum SettingsText {
         case .trial(let daysLeft):
             EntitlementSummary(
                 symbol: "clock",
-                title: String(localized: "試用期間中（残り \(daysLeft) 日）", bundle: .module),
+                title: String(localized: "試用期間中（残り \(daysLeft) 日）", bundle: .module, locale: .nonetUI),
                 detail: String(localized: "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、ずっと使えます。", bundle: .module),
                 isProblem: false
             )

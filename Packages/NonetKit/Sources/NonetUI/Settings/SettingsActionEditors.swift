@@ -465,6 +465,17 @@ struct SettingsScriptHelp: View {
         ]
     }
 
+    /// 説明の最後の段落（それぞれ1つの Text）
+    static var notes: [String] {
+        [
+            String(localized: "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。", bundle: .module),
+            // 選択中のテキストとブラウザの URL は、読むのに ⌘C を送ったりブラウザに問い合わせたりするので、名前を書いたスクリプトでだけ読む
+            String(localized: "NONET_SELECTED_TEXT と NONET_BROWSER_URL は、スクリプトの中（コメントでもかまいません）にその名前があるときだけ設定されます。", bundle: .module),
+            // 「ターミナルで実行」は .command のファイルを開くだけで、Apple Events を送らない（許可を求めない）
+            String(localized: "スクリプトに NONET_BROWSER_URL を書くと、ブラウザの URL を初めて読むときに、macOS が「オートメーション」の許可を求めます。", bundle: .module),
+        ]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("スクリプトに渡す環境変数", bundle: .module)
@@ -493,8 +504,9 @@ struct SettingsScriptHelp: View {
                 SettingsCodeLine(code: "\"$NONET_SELECTED_TEXT\"")
                 Text(String(localized: "無いかもしれない変数は、次のように既定値を付けると安全です。", bundle: .module))
                 SettingsCodeLine(code: "${PROJECT_DIR:-$HOME}")
-                Text(String(localized: "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。", bundle: .module))
-                Text(String(localized: "ブラウザの URL を初めて読むときや、ターミナルで初めて実行するときは、macOS が「オートメーション」の許可を求めます。", bundle: .module))
+                ForEach(Self.notes, id: \.self) { note in
+                    Text(note)
+                }
             }
             .font(.system(size: 11))
             .foregroundStyle(.secondary)

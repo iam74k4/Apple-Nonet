@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 一般のタブ: 全体の設定（項目名は docs/user-guide.md の「設定」の表と同じ）
+// 一般のタブ: 全体の設定（項目名は docs/user-guide.md の「設定（一般）」と同じ）
 import NonetCore
 import SwiftUI
 

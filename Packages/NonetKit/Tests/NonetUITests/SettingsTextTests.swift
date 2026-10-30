@@ -5,7 +5,7 @@ import NonetCore
 import Testing
 
 @Suite struct SettingsTextTests {
-    /// docs/user-guide.md の「設定」の表と同じ選択肢の名前
+    /// docs/user-guide.md の「設定（一般）」と同じ選択肢の名前
     @Test func choiceNamesMatchTheUserGuide() {
         #expect(SettingsText.name(FireMode.onTriggerRelease) == L10n.ui("キーを離したとき"))
         #expect(SettingsText.name(FireMode.onFingerLift) == L10n.ui("指を離したとき"))
@@ -64,16 +64,16 @@ import Testing
         let result = NonetConfiguration.ImportResult(added: 2, replaced: 1, replacedGlobal: true, skipped: 3)
         let lines = SettingsText.importSummary(result, containsScripts: false).components(separatedBy: "\n")
         #expect(lines == [
-            L10n.ui("\(2)個のプロファイルを追加しました。"),
-            L10n.ui("\(1)個のプロファイルを同じアプリのものと置き換えました。"),
+            L10n.uiCounted("\(2)個のプロファイルを追加しました。"),
+            L10n.uiCounted("\(1)個のプロファイルを同じアプリのものと置き換えました。"),
             L10n.ui("グローバルのページを置き換えました。"),
-            L10n.ui("\(3)個は重なっていたか読めなかったため、読み込みませんでした。"),
+            L10n.uiCounted("\(3)個は重なっていたか読めなかったため、読み込みませんでした。"),
         ])
     }
 
     @Test func importSummaryWhenNothingWasApplied() {
         let text = SettingsText.importSummary(NonetConfiguration.ImportResult(skipped: 2), containsScripts: true)
-        #expect(text == L10n.ui("読み込めるプロファイルがありませんでした。") + "\n" + L10n.ui("\(2)個は重なっていたか読めなかったため、読み込みませんでした。"))
+        #expect(text == L10n.ui("読み込めるプロファイルがありませんでした。") + "\n" + L10n.uiCounted("\(2)個は重なっていたか読めなかったため、読み込みませんでした。"))
     }
 
     @Test func importSummaryWarnsAboutScripts() {
@@ -120,13 +120,36 @@ import Testing
     @Test func longScriptsShowTheFirstLines() {
         let source = "# 準備\n\ncd ~/src\nmake\nmake install\necho done\n"
         #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: source))) == [
-            L10n.ui("スクリプト（\(5)行）:"),
+            L10n.uiCounted("スクリプト（\(5)行）:"),
             "# 準備",
             "cd ~/src",
             "make",
-            L10n.ui("…ほか\(2)行"),
+            L10n.uiCounted("…ほか\(2)行"),
         ])
         #expect(SettingsText.reviewLines(for: .launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Notes", name: "メモ")))).isEmpty)
+    }
+
+    /// 数の入る文は、地域の設定ではなく文言の言語の規則で単数・複数を選ぶ（地域が日本でアプリが英語でも「1 profile」）
+    @Test func countsUseTheRulesOfTheTextLanguage() {
+        let one = NonetConfiguration.ImportResult(added: 1, replaced: 1, skipped: 1)
+        #expect(SettingsText.importSummary(one, containsScripts: false).components(separatedBy: "\n") == [
+            L10n.uiCounted("\(1)個のプロファイルを追加しました。"),
+            L10n.uiCounted("\(1)個のプロファイルを同じアプリのものと置き換えました。"),
+            L10n.uiCounted("\(1)個は重なっていたか読めなかったため、読み込みませんでした。"),
+        ])
+        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "make"))) == [L10n.uiCounted("スクリプト（\(1)行）:"), "make"])
+        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "a\nb\nc\nd"))).last == L10n.uiCounted("…ほか\(1)行"))
+        #expect(SettingsText.summary(.trial(daysLeft: 1)).title == L10n.uiCounted("試用期間中（残り \(1) 日）"))
+    }
+
+    /// スクリプトの説明。「ターミナルで実行」は Apple Events を送らないので、オートメーションの許可を求めるのはブラウザの URL だけ。
+    /// 選択中のテキストとブラウザの URL は、スクリプトに名前があるときだけ読む
+    @Test @MainActor func scriptHelpNotes() {
+        #expect(SettingsScriptHelp.notes == [
+            L10n.ui("作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。"),
+            L10n.ui("NONET_SELECTED_TEXT と NONET_BROWSER_URL は、スクリプトの中（コメントでもかまいません）にその名前があるときだけ設定されます。"),
+            L10n.ui("スクリプトに NONET_BROWSER_URL を書くと、ブラウザの URL を初めて読むときに、macOS が「オートメーション」の許可を求めます。"),
+        ])
     }
 
     @Test func fileErrorsUseTheStoreDescription() {
@@ -137,7 +160,7 @@ import Testing
 
     @Test func entitlementSummaries() {
         let trial = SettingsText.summary(.trial(daysLeft: 3))
-        #expect(trial.title == L10n.ui("試用期間中（残り \(3) 日）"))
+        #expect(trial.title == L10n.uiCounted("試用期間中（残り \(3) 日）"))
         #expect(!trial.isProblem)
         let expired = SettingsText.summary(.expired)
         #expect(expired.title == L10n.ui("試用期間が終了しました"))

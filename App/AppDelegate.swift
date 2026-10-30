@@ -72,7 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller: controller,
             license: license,
             services: services,
-            links: AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL),
+            // 利用ガイドとプライバシーポリシーは、画面が英語なら英語のページ（サイトの en/ の下）を開く
+            links: AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL)
+                .localized(language: Bundle.main.preferredLocalizations.first),
             onCheckForUpdates: checkForUpdates
         )
 
@@ -120,7 +122,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return DebugPreview.temporaryLicense(verifier: verifier)
         }
         #endif
-        return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage())
+        // 試用の記録はキーチェーンにも置く（Developer ID で署名したビルドでだけ働く。docs/privacy.md）
+        return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain()))
     }
 
     /// 試用の残り日数の表示は refresh() でしか変わらないので、日付や時計が変わりうるときに呼ぶ

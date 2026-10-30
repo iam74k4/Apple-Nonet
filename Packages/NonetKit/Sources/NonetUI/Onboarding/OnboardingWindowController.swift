@@ -10,6 +10,8 @@ public final class OnboardingWindowController {
     public var onOpenSettings: ((SettingsTab) -> Void)?
     /// アクセシビリティが許可されたときにウィンドウを前に出す（テストではウィンドウを出さずに数える）
     var raiseWindow: () -> Void = {}
+    /// ウィンドウを閉じたときに、ほかに Nonet のウィンドウが無ければ前面を前のアプリに返す（テストでは数える）
+    var handBackActivation: () -> Void = { ShellActivation.handBackAfterClosingWindow() }
 
     let model: OnboardingModel
     private let controller: NonetController
@@ -131,6 +133,7 @@ public final class OnboardingWindowController {
         model.close()
         window?.delegate = nil
         window = nil
+        handBackActivation()
         guard !didFinish else { return }
         didFinish = true
         onFinish()
