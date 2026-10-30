@@ -136,6 +136,12 @@ describe("site/_headers", () => {
     test(`${page} は CSP で止まるものを使っていない`, () => {
       const html = readFileSync(file, "utf8").replace(/<!--[\s\S]*?-->/g, "");
       for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+        // 検索エンジン向けの構造化データ（JSON-LD）は、ブラウザが実行しないデータなので script-src に関係しない。
+        // その形のものだけを許し、中身が JSON として読めることを確かめる
+        if (/^\s+type="application\/ld\+json"$/.test(attributes)) {
+          assert.doesNotThrow(() => JSON.parse(body), `${page}: JSON-LD が JSON として読めません`);
+          continue;
+        }
         const src = /\ssrc="([^"]+)"/.exec(attributes);
         assert.ok(src !== null && body.trim() === "", `${page}: インラインのスクリプトは使えない（script-src 'self'）`);
         assert.ok(isSameOrigin(src[1], page) && sourcesFor("script-src-elem").includes("'self'"), `${page}: ${src[1]}`);
@@ -149,7 +155,7 @@ describe("site/_headers", () => {
         assert.ok(sourcesFor("style-src-attr").includes("'unsafe-inline'"), `${page}: style 属性が style-src-attr で止まる`);
       }
       for (const [, rel, href] of html.matchAll(/<link\b[^>]*\brel="([^"]+)"[^>]*\bhref="([^"]+)"/g)) {
-        const directive = { stylesheet: "style-src-elem", icon: "img-src" }[rel];
+        const directive = { stylesheet: "style-src-elem", icon: "img-src", "apple-touch-icon": "img-src" }[rel];
         if (directive !== undefined) {
           assert.ok(isSameOrigin(href, page) && sourcesFor(directive).includes("'self'"), `${page}: <link rel=${rel}> ${href}`);
         }
@@ -225,5 +231,131 @@ describe("404 ページ", () => {
     assert.match(en, /<a class="btn" href="\.\.\/en\/">/);
     assert.match(ja, /<meta name="robots" content="noindex">/);
     assert.match(en, /<meta name="robots" content="noindex">/);
+  });
+});
+
+// --- 検索と共有: robots.txt・sitemap.xml・構造化データ・og:image が、Worker とアセットの決まりのまま届くこと
+
+function workerFirstPaths() {
+  const toml = readFileSync(join(SITE_DIR, "..", "cloudflare", "wrangler.toml"), "utf8");
+  const line = /^run_worker_first\s*=\s*\[(.*)\]$/m.exec(toml);
+  assert.ok(line !== null, "wrangler.toml に run_worker_first がありません");
+  return [...line[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+}
+
+function isNoindex(html) {
+  return /<meta name="robots" content="[^"]*noindex/.test(html);
+}
+
+// site/ の中の HTML のパス（index.html はフォルダの URL）
+function pagePath(file) {
+  const rel = relative(SITE_DIR, file).split("\\").join("/");
+  return `/${rel.replace(/(^|\/)index\.html$/, "$1")}`;
+}
+
+describe("検索と共有", () => {
+  test("robots.txt は Worker が DMG・appcast を返すパスをクロールさせず、sitemap.xml を絶対の URL で指す", () => {
+    const robots = readFileSync(join(SITE_DIR, "robots.txt"), "utf8");
+    assert.match(robots, /^User-agent: \*$/m);
+    assert.match(robots, /^Disallow: \/download$/m);
+    assert.match(robots, /^Disallow: \/updates\/$/m);
+    assert.match(robots, new RegExp(`^Sitemap: ${ORIGIN}/sitemap.xml$`, "m"));
+    // 隠すのは Worker のパスだけ（ページはクロールさせる）
+    for (const [, path] of robots.matchAll(/^Disallow: (\S+)$/gm)) {
+      assert.ok(workerFirstPaths().some((worker) => worker === path || worker === `${path}*`), `Disallow: ${path} は Worker のパスではありません`);
+    }
+  });
+
+  test("sitemap.xml の URL はどれも、Worker とアセットから 200 の HTML で返る（リダイレクトしない）", async () => {
+    const sitemap = readFileSync(join(SITE_DIR, "sitemap.xml"), "utf8");
+    const urls = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g), ...sitemap.matchAll(/\shref="([^"]+)"/g)].map((match) => match[1]));
+    assert.ok(urls.size >= 9, "sitemap.xml の URL が少なすぎます");
+    for (const url of urls) {
+      assert.ok(url.startsWith(`${ORIGIN}/`), url);
+      const response = await call(makeEnv(), new URL(url).pathname);
+      assert.equal(response.status, 200, url);
+      assert.match(response.headers.get("content-type"), /^text\/html/, url);
+      assert.equal(isNoindex(await response.text()), false, `${url} は noindex なので sitemap.xml に入れない`);
+    }
+  });
+
+  test("検索に出すページは、すべて sitemap.xml にある", () => {
+    const listed = new Set([...readFileSync(join(SITE_DIR, "sitemap.xml"), "utf8").matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
+    for (const file of siteFiles(".html")) {
+      if (!isNoindex(readFileSync(file, "utf8"))) {
+        assert.ok(listed.has(ORIGIN + pagePath(file)), `${relative(SITE_DIR, file)} が sitemap.xml にありません`);
+      }
+    }
+  });
+
+  for (const page of ["index.html", "en/index.html"]) {
+    test(`${page} の構造化データ（SoftwareApplication）はページと同じ言語・URL で、価格が決まるまで offers を書かない`, () => {
+      const html = readFileSync(join(SITE_DIR, page), "utf8");
+      const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+      assert.equal(blocks.length, 1, `${page}: JSON-LD は1つ`);
+      const data = JSON.parse(blocks[0][1]);
+      const lang = /<html lang="([a-z]+)">/.exec(html)[1];
+      const canonical = /<link rel="canonical" href="([^"]+)">/.exec(html)[1];
+      assert.equal(data["@context"], "https://schema.org");
+      assert.equal(data["@type"], "SoftwareApplication");
+      assert.equal(data.name, "Nonet");
+      assert.equal(data.inLanguage, lang);
+      assert.equal(data.url, canonical);
+      assert.equal(data.applicationCategory, "UtilitiesApplication");
+      assert.match(data.operatingSystem, /macOS 14/);
+      assert.equal(data.downloadUrl, `${ORIGIN}/download`);
+      assert.ok(existsSync(join(SITE_DIR, new URL(data.image).pathname)), `${page}: ${data.image} がありません`);
+      if ("offers" in data) {
+        // 価格を足したら、仮の値ではなく本物の値段と通貨を書く
+        assert.match(String(data.offers.price), /^\d+(\.\d+)?$/);
+        assert.match(data.offers.priceCurrency, /^[A-Z]{3}$/);
+      }
+    });
+  }
+
+  test("共有の画像（og:image）と apple-touch-icon は、このサイトの PNG", async () => {
+    for (const file of siteFiles(".html")) {
+      const html = readFileSync(file, "utf8");
+      const image = /<meta property="og:image" content="([^"]+)">/.exec(html);
+      if (image === null) {
+        continue;
+      }
+      assert.ok(image[1].startsWith(`${ORIGIN}/images/`), `${relative(SITE_DIR, file)}: ${image[1]}`);
+      const response = await call(makeEnv(), new URL(image[1]).pathname);
+      assert.equal(response.status, 200, image[1]);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      assert.deepEqual([...bytes.slice(0, 4)], [0x89, 0x50, 0x4e, 0x47], `${image[1]} は PNG`);
+    }
+    const icon = await call(makeEnv(), "/apple-touch-icon.png");
+    assert.equal(icon.status, 200);
+  });
+});
+
+// --- ダウンロードのページ（thanks.html）: 開くのは Worker の /download だけ（ほかのサイトへは飛ばない）
+
+describe("ダウンロードのページ", () => {
+  for (const page of ["thanks.html", "en/thanks.html"]) {
+    test(`${page} は検索に出さず、Worker の /download だけを開く`, async () => {
+      const html = readFileSync(join(SITE_DIR, page), "utf8");
+      assert.ok(isNoindex(html), `${page} は noindex`);
+      const refresh = /<noscript><meta http-equiv="refresh" content="(\d+); url=([^"]+)"><\/noscript>/.exec(html);
+      assert.ok(refresh !== null, `${page}: JavaScript が無いときのダウンロード（noscript の meta refresh）がありません`);
+      const link = /<a href="([^"]+)" data-download-link>/.exec(html);
+      assert.ok(link !== null, `${page}: data-download-link がありません`);
+      for (const url of [refresh[2], link[1]]) {
+        assert.equal(url, `${ORIGIN}/download`);
+      }
+      assert.ok(workerFirstPaths().includes("/download"), "/download は Worker が答える（run_worker_first）");
+      const response = await call(makeEnv(), `/${page}`);
+      assert.equal(response.status, 200);
+    });
+  }
+
+  test("販売ページのボタンはダウンロードのページを指し、DMG を直に落とさない", () => {
+    for (const page of ["index.html", "en/index.html"]) {
+      const html = readFileSync(join(SITE_DIR, page), "utf8");
+      assert.doesNotMatch(html, /href="https:\/\/nonet\.astlog\.dev\/(download|updates\/)/, page);
+      assert.match(html, /<a class="btn" href="thanks\.html">/, page);
+    }
   });
 });

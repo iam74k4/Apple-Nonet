@@ -6,9 +6,23 @@
 <title>Privacy Policy — Nonet</title>
 <meta name="description" content="Nonet's privacy policy. Nonet collects no information and keeps settings on your Mac. It uses the network only to check for updates and to open the purchase page.">
 <meta name="color-scheme" content="light dark">
-<link rel="alternate" hreflang="ja" href="../privacy.html">
+<link rel="canonical" href="https://nonet.astlog.dev/en/privacy.html">
+<link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/privacy.html">
+<link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/privacy.html">
+<link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/privacy.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Nonet">
+<meta property="og:title" content="Privacy Policy — Nonet">
+<meta property="og:url" content="https://nonet.astlog.dev/en/privacy.html">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://nonet.astlog.dev/images/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../style.css">
+<script src="../script.js" defer></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -16,6 +30,15 @@
 </svg>
 
 <a class="skip" href="#main">Skip to content</a>
+
+<div class="lang-bar" data-lang-bar lang="ja" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>日本語のページもあります。<a href="../privacy.html" hreflang="ja">日本語で読む →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="閉じる">×</button>
+    </div>
+  </div>
+</div>
 
 <header class="site-header">
   <div class="wrap header-inner">
@@ -43,7 +66,7 @@
     <h2>2. What stays on your Mac</h2>
     <ul>
       <li><strong>Settings</strong> (profiles, buttons, actions and preferences) are stored in <code>~/Library/Application Support/Nonet/configuration.json</code>. Each save keeps the previous version as <code>configuration.backup.json</code> in the same folder. Files that cannot be read, or that come from another version, are kept in the same folder under a new name instead of being overwritten.</li>
-      <li><strong>Trial records</strong> (start date, last check time and time used) are stored in the app's preferences (<code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>) and in <code>~/Library/Application Support/Nonet/</code>. The release version also stores them as an item in your login keychain (<code>com.iam74k4.Nonet.license.trial</code>). They are used only to count the trial period correctly. The keychain item is not synced with iCloud Keychain.</li>
+      <li><strong>Trial records</strong> (the start date, the last check time and how much time has passed since the trial started) are stored in the app's preferences (<code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>) and in <code>~/Library/Application Support/Nonet/</code>. The release version also stores them as an item in your login keychain (<code>com.iam74k4.Nonet.license.trial</code>). They are used only to count the trial period correctly. The keychain item is not synced with iCloud Keychain.</li>
       <li><strong>License key</strong> is stored in the app's preferences. A license key contains the name and email address used for the purchase.</li>
       <li><strong>Other preferences</strong>: the position and size of the settings window, and the update-check settings and last check time (Sparkle), are stored in the app's preferences.</li>
       <li><strong>Temporary files</strong>: when a script runs in Terminal, the app writes the script and the information passed to it (such as the selected text) to a temporary file (<code>nonet-….command</code>) in your Mac's temporary folder (<code>$TMPDIR/Nonet/Terminal/</code>). When a shortcut is set to receive the selected text, the app writes that text to a temporary file (<code>input-….txt</code>) in <code>$TMPDIR/Nonet/Shortcuts/</code>. Only you can read these files. The Terminal file is deleted when the script starts; if it is never opened, the app deletes it after 5 minutes or the next time the app opens. The shortcut file is deleted when the shortcut finishes.</li>
@@ -80,21 +103,33 @@
 
     <h2>7. Purchase information</h2>
     <p>The store handles checkout and payment; we never receive your card details. To issue license keys and provide support, we receive the buyer's name, email address and order details from the store. We use them only to issue and reissue license keys, answer your questions and keep records required by law. We never sell them or use them for advertising.</p>
+    <p>Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the <a href="https://TODO.invalid/privacy">privacy policy</a> of the store (<span class="todo">TODO: store name</span>).</p>
 
     <h2>8. Website</h2>
     <p>The website uses no cookies, analytics, or external fonts or scripts. The hosting provider may keep standard access logs, such as IP addresses.</p>
+    <p>If you close the language suggestion (such as “日本語のページもあります”), the site remembers only that you closed it, in your browser's localStorage, so it doesn't show again. This stays in your browser and is never sent anywhere.</p>
 
     <h2>9. Changes</h2>
     <p>When this policy changes, we update this page and its "Last updated" date.</p>
 
     <h2>10. Contact</h2>
-    <!-- TODO: support email address -->
     <p>Takanari Okazaki (<a href="mailto:support@TODO.invalid">support@TODO.invalid</a>)</p>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">User guide</a></li>
+        <li><a href="privacy.html" aria-current="page">Privacy policy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="mailto:support@TODO.invalid">Contact</a></li>
+        <li><a href="../privacy.html" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
     <div class="legal">
       <p>© 2026 Takanari Okazaki</p>
     </div>

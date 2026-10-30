@@ -1,0 +1,8 @@
+# nonet.astlog.dev
+# /download と /updates/ は Worker が DMG・appcast を返す場所（ページではない）なので、クロールさせない。
+# ページを足したら sitemap.xml にも足す（scripts/check-site.sh が確かめる）
+User-agent: *
+Disallow: /download
+Disallow: /updates/
+
+Sitemap: https://nonet.astlog.dev/sitemap.xml

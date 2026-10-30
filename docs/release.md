@@ -121,16 +121,30 @@ NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
 - appcast.xml の URL は `https://nonet.astlog.dev/updates/appcast.xml`（`NONET_APPCAST_URL`）。一度出したら変えない。変えるときは古い URL からリダイレクトし続ける
 - DMG とデルタは appcast と同じ場所（例: `https://nonet.astlog.dev/updates/Nonet-1.0.0.dmg`）。`NONET_DOWNLOAD_URL_PREFIX` は設定しない（Worker は `/updates/` の下しか配らず、`scripts/publish.sh` も別の URL を指す appcast は上げない）
 - 無いファイルには 404 を返す（`cloudflare/wrangler.toml` の `not_found_handling = "404-page"`）。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバック）にすると、スクリプトが公開中の appcast を確かめられずに止まる
-- 販売ページの「ダウンロード」は `https://nonet.astlog.dev/download`。Worker が appcast の最新の DMG へリダイレクトするので、リリースのたびに書き換えなくてよい
+- 販売ページの「ダウンロード」は、ダウンロードのページ（`thanks.html`・`en/thanks.html`。インストールの3つの手順つき）を指し、そのページが `https://nonet.astlog.dev/download` を開く。Worker が appcast の最新の DMG へリダイレクトするので、リリースのたびに書き換えなくてよい
 - `site/` には利用ガイド（`guide.html`・`en/guide.html`）とプライバシーポリシー（`privacy.html`・`en/privacy.html`）も入っている。アプリの「利用ガイド」「プライバシー」が開くページで、Worker が販売ページと一緒に配る
 - 最初の準備（R2・バケット `nonet-updates`・API トークン・DNS・最初のデプロイ・GitHub の environment）は hosting.md の「2. 最初の準備」
 
 ### 1.8 販売ページの仮の値を埋める
 
-`site/` には価格・ダウンロード・購入・問い合わせ先などの仮の値（`TODO` と `TODO.invalid`）がある。埋めたら確かめる:
+`site/` には、販売サービスを決めるまで埋められない仮の値（`TODO` と `TODO.invalid`）が3種類ある。どれも同じ書き方なので、検索して置き換える:
+
+| 仮の値 | 場所 | 埋めるもの |
+|---|---|---|
+| 価格: `¥TODO`・`$TODO` | `index.html`・`en/index.html` の価格 | 税込の価格。決めたら、両方の head の JSON-LD に `offers`（`"@type": "Offer"`・`price`・`priceCurrency`）を足す（決まるまでは書かない） |
+| 販売サービス: `TODO: 販売サービス名`・`TODO: store name`・`https://TODO.invalid/buy`・`https://TODO.invalid/legal`・`https://TODO.invalid/privacy` | 価格の注記・購入のボタン（`NONET_PURCHASE_URL` と同じ URL）・`tokushoho.html`（名前と同社の特定商取引法に基づく表記）・`privacy.html`・`en/privacy.html` の 7（同社のプライバシーポリシー） | Paddle か Lemon Squeezy（どちらも販売代理店 = Merchant of Record。`tokushoho.html` はどちらでも正しいように書いてある） |
+| 問い合わせ先: `support@TODO.invalid` | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー | サポートのメールアドレス（利用ガイドのフッターは `scripts/build-guide.py` で直す） |
 
 ```bash
-scripts/check-site.sh --strict   # TODO が1つでも残っていれば失敗
+scripts/check-site.sh --strict   # 上の仮の値が1つでも残っていれば失敗
+```
+
+`--strict` でも止めないものが1つある。よくある質問の「確認済みの macOS」（`data-placeholder="tested-macos"`）で、リリースのたびに実物で確かめた版を書く（「2.7 確かめる」）。`scripts/check-site.sh` は、残っていれば知らせる。
+
+見出し（`index.html` の h1）や HUD のデモを変えたら、共有の画像を作り直す（Google Chrome と sips を使う）:
+
+```bash
+python3 -I scripts/make-site-images.py   # site/images/og-ja.png・og-en.png（1200×630）と site/apple-touch-icon.png（180×180）
 ```
 
 `scripts/check-site.sh` は、`Config/Nonet.xcconfig`（`--config <xcconfig>` でほかのファイルも選べる）の `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` のホストが `site/index.html` の canonical と同じなら、そのページが `site/` にあるか、英語で動くアプリが開くページ（最後の要素の前に `en/` を入れたもの）もあるか、`.html` を省いていないかを確かめる。`--strict` では、これらの URL を入れたのに `site/index.html` に canonical が無い（確かめられない）ときも失敗にする。
@@ -245,6 +259,7 @@ scripts/publish.sh 1.2.0
 - 公開した URL から DMG をダウンロードし、別のユーザーか別の Mac で開く。Gatekeeper の警告が出ずに起動すること
 - 一つ前の版を起動し、メニューの「アップデートを確認」で新しい版が見つかり、入れ替わること
 - `curl -I <appcast の URL>` が 200 を返すこと
+- **確認済みの macOS**: 試した macOS の版（例: `macOS 14.7・15.6・26.1`）を、販売ページのよくある質問「macOS のアップデートで使えなくなることはありますか？」（`site/index.html`・`site/en/index.html` の `data-placeholder="tested-macos"`）に書き、`data-placeholder` と `class="todo"` を外す。実際に試した版だけを書く。新しい macOS のベータが出たら、ベータのうちに試して直す（ページでそう約束している）。直せないまま使えない状態が続くなら、購入からの日数にかかわらず返金する（利用規約の 6）
 
 ### 2.8 タグを付ける
 
@@ -339,11 +354,19 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 
 ### 3.4 販売ページに要るもの
 
-- 価格・購入ページ・ダウンロードの URL（`site/` の TODO）
-- プライバシーポリシー（`site/privacy.html`。原本は [privacy.md](privacy.md)）
-- 返金の方針と利用規約（販売サービスのものを使うか、自分で書くか）
-- 日本で自分が販売事業者になるなら「特定商取引法に基づく表記」のページ。Merchant of Record を使う場合も、表示が要るかを確かめる
+決めたこと（ページに事実として書いてある。変えるときは `index.html`・`en/index.html` の価格とよくある質問、`terms.html`・`en/terms.html`、`tokushoho.html` をそろえて直す）:
+
+- 返金: 購入から30日以内なら、理由を問わず全額。macOS のアップデートで動かなくなり直せないときは、購入からの日数にかかわらず返金
+- ライセンス: 1人に1つ。その人が使うすべての Mac で使える（キーは Mac の中で確かめるので、台数の登録や解除は無い）
+- アップデート: 1.x はすべて無料
+- 販売: Paddle か Lemon Squeezy（販売代理店 = Merchant of Record）。売主は販売サービスなので、`tokushoho.html` は「販売事業者は販売サービス」と書き、同社の表記へリンクし、開発者の問い合わせ先も載せる
+- 利用規約（`terms.html`・`en/terms.html`）: 1人に1つのライセンス・返金・保証の否認と責任の範囲（軽過失は支払った金額まで）・準拠法は日本法
+
+まだ埋めていないもの（1.8 の仮の値）:
+
+- 価格・購入ページの URL・販売サービスの名前と URL（`site/` の TODO）
 - 問い合わせ先のメールアドレス
+- プライバシーポリシー（`site/privacy.html`。原本は [privacy.md](privacy.md)）の販売サービスの名前とプライバシーポリシーの URL
 
 ---
 
@@ -377,5 +400,6 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] テスト購入 → キーが届く → アプリで登録できる、を通した
 - [ ] `scripts/check-site.sh --strict` が通る（価格・URL・問い合わせ先が埋まっている）
 - [ ] 利用ガイド（`site/guide.html`・`site/en/guide.html`）を公開し、`NONET_SUPPORT_URL` が `…/guide.html` を指している
-- [ ] プライバシーポリシー・返金の方針・（必要なら）特定商取引法に基づく表記を公開した
+- [ ] プライバシーポリシー・利用規約（返金の方針）・特定商取引法に基づく表記を公開した（どのページのフッターからも開ける。`scripts/check-site.sh` が確かめる）
+- [ ] よくある質問の「確認済みの macOS」に、実際に試した版を書いた（2.7）
 - [ ] 問い合わせのメールを受け取れる

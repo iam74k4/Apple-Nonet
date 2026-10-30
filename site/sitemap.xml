@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 検索エンジンに知らせるページ（noindex の thanks.html・404.html は入れない）。日本語と英語の組は、
+     ページの <link rel="alternate" hreflang> と同じ組を xhtml:link で書く。scripts/check-site.sh が、ページの増減とずれていないかを確かめる -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://nonet.astlog.dev/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/en/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/guide.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/guide.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/guide.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/guide.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/en/guide.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/guide.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/guide.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/guide.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/privacy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/privacy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/privacy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/privacy.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/en/privacy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/privacy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/privacy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/privacy.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/terms.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/terms.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/terms.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/terms.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/en/terms.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/terms.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/terms.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/terms.html"/>
+  </url>
+  <url>
+    <loc>https://nonet.astlog.dev/tokushoho.html</loc>
+  </url>
+</urlset>

@@ -11,7 +11,10 @@
 | URL | 中身 | 置き場所 | 出し方 |
 |---|---|---|---|
 | `/`・`/en/` | 販売ページ（日本語・英語） | `site/index.html`・`site/en/index.html` | GitHub Actions の site（手で実行） |
-| `/privacy.html`・`/guide.html`（`/en/` の下も） | プライバシーポリシー・使い方 | `site/` | 同上 |
+| `/privacy.html`・`/guide.html`・`/terms.html`（`/en/` の下も）・`/tokushoho.html`（日本語だけ） | プライバシーポリシー・使い方・利用規約・特定商取引法に基づく表記 | `site/` | 同上 |
+| `/thanks.html`・`/en/thanks.html` | ダウンロードのページ。販売ページの「ダウンロード」「無料で試す」がここを指し、ここが `/download` を開く（Mac でだけ。JavaScript が無ければ `noscript` の meta refresh）。`noindex` | `site/` | 同上 |
+| `/robots.txt`・`/sitemap.xml` | 検索エンジン向け。`/download` と `/updates/` はクロールさせない。ページを足したら sitemap.xml にも足す（`scripts/check-site.sh` が確かめる） | `site/` | 同上 |
+| `/images/og-ja.png`・`/images/og-en.png`・`/apple-touch-icon.png` | 共有の画像（1200×630）とホーム画面のアイコン（180×180） | `site/`（`python3 -I scripts/make-site-images.py` で作る） | 同上 |
 | 無いページ | `site/404.html`（`/en/` の下は `site/en/404.html`）を 404 で | `site/` | 同上 |
 | `/updates/appcast.xml` | Sparkle のフィード | R2 の `nonet-updates/appcast.xml` | `scripts/publish.sh` |
 | `/updates/Nonet-<版>.dmg` | 配る DMG | R2 | `scripts/publish.sh` |
@@ -23,7 +26,7 @@
 - appcast: `https://nonet.astlog.dev/updates/appcast.xml`（`Config/Nonet.xcconfig` の `NONET_APPCAST_URL`）
 - プライバシーポリシー: `https://nonet.astlog.dev/privacy.html`（`NONET_PRIVACY_URL`）
 - 使い方: `https://nonet.astlog.dev/guide.html`（`NONET_SUPPORT_URL`）
-- ダウンロードのボタン: `https://nonet.astlog.dev/download`
+- ダウンロード: `https://nonet.astlog.dev/download`（ページのボタンは `thanks.html` を指し、そこからこの URL を開く）
 
 `.html` を付けない URL（`/privacy`・`/guide`）は 404 になる。リンクには必ず `.html` を付ける。
 
@@ -47,7 +50,7 @@
 | URL | 状態 | Cache-Control | ほか |
 |---|---|---|---|
 | `/`・`/en/` | 200（Worker が `index.html` を引く） | `public, max-age=0, must-revalidate` | ETag。`If-None-Match` が合えば 304。ヘッダは `site/_headers`（CSP・`nosniff` など） |
-| `/privacy.html` などのページ・`style.css`・`script.js`・`favicon.svg` | 200（`.html` のまま。リダイレクトしない） | 同上 | 同上 |
+| `/privacy.html` などのページ・`style.css`・`script.js`・`favicon.svg`・`robots.txt`・`sitemap.xml`・画像 | 200（`.html` のまま。リダイレクトしない） | 同上 | 同上 |
 | `/en` | 301 → `/en/` | `public, max-age=86400` | |
 | 無いパス（`/privacy`・`/_headers`・`/.DS_Store` も） | 404 と、いちばん近い `404.html` | `public, max-age=0, must-revalidate` | |
 | `/updates/appcast.xml` | 200。`If-None-Match`・`If-Modified-Since` が合えば 304 | `no-cache`（使う前に毎回確かめる） | `application/xml; charset=utf-8`、ETag・Last-Modified、CSP `sandbox`、`nosniff` |
@@ -171,7 +174,7 @@ site.yml の中でも、トークンは wrangler を呼ぶ step の env にだ�
   NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
   ```
 
-- `site/` の「ダウンロード」のボタンは `/download` を指す（リリースのたびに書き換えなくてよい）
+- `site/` の「ダウンロード」のボタンは `thanks.html` を指し、そのページが `/download` を開く（リリースのたびに書き換えなくてよい）
 
 `scripts/publish.sh` は、`NONET_APPCAST_URL` がこの URL でなければ止まる（アプリが別の場所を見ているなら、ここに上げても届かない）。
 

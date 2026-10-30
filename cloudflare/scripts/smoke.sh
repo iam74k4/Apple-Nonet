@@ -147,7 +147,9 @@ expect "/en/" 200 "$BASE/en/"
 expect_body '<html lang="en">'
 expect "/en（/en/ へ）" 301 "$BASE/en"
 expect_header "location: /en/"
-for page in /privacy.html /en/privacy.html /guide.html /en/guide.html /style.css /script.js /favicon.svg; do
+for page in /privacy.html /en/privacy.html /guide.html /en/guide.html /terms.html /en/terms.html /tokushoho.html \
+  /thanks.html /en/thanks.html /style.css /script.js /favicon.svg /apple-touch-icon.png /images/og-ja.png /images/og-en.png \
+  /robots.txt /sitemap.xml; do
   if [[ -f "$ROOT/site$page" ]]; then
     expect "$page" 200 "$BASE$page"
     expect_header "x-content-type-options: nosniff"
@@ -155,6 +157,16 @@ for page in /privacy.html /en/privacy.html /guide.html /en/guide.html /style.css
     printf 'skip  %-58s site%s がまだ無い\n' "$page" "$page"
   fi
 done
+expect "/robots.txt" 200 "$BASE/robots.txt"
+expect_header "content-type: text/plain"
+expect_body "Sitemap: https://nonet.astlog.dev/sitemap.xml"
+expect "/sitemap.xml" 200 "$BASE/sitemap.xml"
+expect_header "content-type: application/xml"
+expect "/images/og-ja.png" 200 -I "$BASE/images/og-ja.png"
+expect_header "content-type: image/png"
+expect "/thanks.html（ダウンロードのページ。/download を開く）" 200 "$BASE/thanks.html"
+expect_body "url=https://nonet.astlog.dev/download"
+expect "/thanks（.html なしは無いページ）" 404 "$BASE/thanks"
 expect "/privacy.html は .html のまま（リダイレクトしない）" 200 -I "$BASE/privacy.html"
 expect "/privacy（.html なしは無いページ）" 404 "$BASE/privacy"
 expect "HEAD /" 200 -I "$BASE/"

@@ -20,7 +20,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 ### 2. Mac の中だけに保存する情報
 
 - **設定**（プロファイル・マス・アクション・全体の設定）: `~/Library/Application Support/Nonet/configuration.json` に保存します。保存するたびに1つ前の版を同じフォルダの `configuration.backup.json` に残します。読めなかったファイルや別の版のファイルは、上書きせずに名前を変えて同じフォルダに残します。
-- **試用の記録**（開始日・最後に確かめた時刻・使った時間）: 本アプリの環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`）と `~/Library/Application Support/Nonet/` に保存し、製品版ではログインキーチェーンにも項目（`com.iam74k4.Nonet.license.trial`）として保存します。試用期間を正しく数えるためだけに使います。キーチェーンの項目は iCloud キーチェーンと同期しません。
+- **試用の記録**（開始日・最後に確かめた時刻・試用を始めてから経った時間）: 本アプリの環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`）と `~/Library/Application Support/Nonet/` に保存し、製品版ではログインキーチェーンにも項目（`com.iam74k4.Nonet.license.trial`）として保存します。試用期間を正しく数えるためだけに使います。キーチェーンの項目は iCloud キーチェーンと同期しません。
 - **ライセンスキー**: 本アプリの環境設定に保存します。ライセンスキーには、購入時の名前とメールアドレスが含まれます。
 - **そのほかの環境設定**: 設定ウインドウの位置と大きさ、アップデートの確認の設定と最後に確認した日時（Sparkle）を、本アプリの環境設定に保存します。
 - **一時ファイル**: スクリプトをターミナルで実行するとき、スクリプトとそれに渡す情報（選択中のテキストなど）を書いた一時ファイル（`nonet-….command`）を、Mac の一時フォルダ（`$TMPDIR/Nonet/Terminal/`）に作ります。ショートカットに選択中のテキストを渡すときは、そのテキストを書いた一時ファイル（`input-….txt`）を `$TMPDIR/Nonet/Shortcuts/` に作ります。どちらも本人だけが読める権限で作ります。ターミナルのファイルは実行が始まると消し、開かれずに残ったものは5分後か、次に本アプリを起動したときに消します。ショートカットのファイルは、ショートカットが終わると消します。
@@ -66,9 +66,13 @@ AI のアクションは、Apple の Foundation Models フレームワークを�
 
 購入の手続きと支払いは販売サービスが行い、カード番号などの支払いの情報を私たちが受け取ることはありません。私たちは、ライセンスキーの発行とサポートのために、販売サービスから購入者の名前・メールアドレス・注文の情報を受け取ります。これらは、ライセンスキーの発行と再発行、問い合わせへの対応、法令で求められる記録のためだけに使い、第三者に売ったり広告に使ったりしません。
 
+購入の記録は、法令で求められる期間保存し、その後消します。ご自身の情報の開示・訂正・削除を求めるときは、お問い合わせ先までご連絡ください。販売サービスが持つ情報は、販売サービス（TODO: 販売サービス名）のプライバシーポリシー（TODO: その URL）に従って扱われます。
+
 ### 8. 販売ページ
 
 販売ページは、Cookie・アクセス解析・外部のフォントやスクリプトを使っていません。ページを置いているホスティング事業者が、一般的なアクセスログ（IP アドレスなど）を記録することがあります。
+
+ページの言語の案内（「This page is also available in English」など）を閉じると、閉じたことだけをブラウザの localStorage に記録し、次からは出しません。この記録はお使いのブラウザの中にだけあり、送信しません。
 
 ### 9. このポリシーの変更
 
@@ -94,7 +98,7 @@ Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is
 ### 2. What stays on your Mac
 
 - **Settings** (profiles, buttons, actions and preferences) are stored in `~/Library/Application Support/Nonet/configuration.json`. Each save keeps the previous version as `configuration.backup.json` in the same folder. Files that cannot be read, or that come from another version, are kept in the same folder under a new name instead of being overwritten.
-- **Trial records** (start date, last check time and time used) are stored in the app's preferences (`~/Library/Preferences/com.iam74k4.Nonet.plist`) and in `~/Library/Application Support/Nonet/`. The release version also stores them as an item in your login keychain (`com.iam74k4.Nonet.license.trial`). They are used only to count the trial period correctly. The keychain item is not synced with iCloud Keychain.
+- **Trial records** (the start date, the last check time and how much time has passed since the trial started) are stored in the app's preferences (`~/Library/Preferences/com.iam74k4.Nonet.plist`) and in `~/Library/Application Support/Nonet/`. The release version also stores them as an item in your login keychain (`com.iam74k4.Nonet.license.trial`). They are used only to count the trial period correctly. The keychain item is not synced with iCloud Keychain.
 - **License key** is stored in the app's preferences. A license key contains the name and email address used for the purchase.
 - **Other preferences**: the position and size of the settings window, and the update-check settings and last check time (Sparkle), are stored in the app's preferences.
 - **Temporary files**: when a script runs in Terminal, the app writes the script and the information passed to it (such as the selected text) to a temporary file (`nonet-….command`) in your Mac's temporary folder (`$TMPDIR/Nonet/Terminal/`). When a shortcut is set to receive the selected text, the app writes that text to a temporary file (`input-….txt`) in `$TMPDIR/Nonet/Shortcuts/`. Only you can read these files. The Terminal file is deleted when the script starts; if it is never opened, the app deletes it after 5 minutes or the next time the app opens. The shortcut file is deleted when the shortcut finishes.
@@ -140,9 +144,13 @@ License keys are verified on your Mac without using the network.
 
 The store handles checkout and payment; we never receive your card details. To issue license keys and provide support, we receive the buyer's name, email address and order details from the store. We use them only to issue and reissue license keys, answer your questions and keep records required by law. We never sell them or use them for advertising.
 
+Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the privacy policy of the store (TODO: store name and the URL of its privacy policy).
+
 ### 8. Website
 
 The website uses no cookies, analytics, or external fonts or scripts. The hosting provider may keep standard access logs, such as IP addresses.
+
+If you close the language suggestion (such as “日本語のページもあります”), the site remembers only that you closed it, in your browser's localStorage, so it doesn't show again. This stays in your browser and is never sent anywhere.
 
 ### 9. Changes
 

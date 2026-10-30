@@ -14,8 +14,8 @@
 | `Config/Nonet.xcconfig` | 販売用の値（appcast の URL・Sparkle の公開鍵・購入ページ・利用ガイドとプライバシーポリシーのページ・ライセンスの公開鍵） |
 | `App/` | アプリ本体の組み立て（AppDelegate・Sparkle） |
 | `Packages/NonetKit/` | それ以外のすべて（ロジック・macOS の実装・画面・`nonet-license`）。`swift build` と `swift test` で動く |
-| `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの確認（`check-site.sh`）。`scripts/tests/` はそのテスト |
-| `site/` | 販売ページ（静的な HTML。日本語と `en/`） |
+| `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの共有の画像作り（`make-site-images.py`）・販売ページの確認（`check-site.sh`）。`scripts/tests/` はそのテスト |
+| `site/` | 販売ページ（静的な HTML。日本語と `en/`）。利用規約・特定商取引法に基づく表記・プライバシーポリシー・ダウンロードのページ（`thanks.html`）・`robots.txt`・`sitemap.xml` も |
 | `docs/` | 設計・リリースの手順・利用ガイド・プライバシーポリシー |
 | `Spikes/NonetSpike/` | フェーズ0の技術検証アプリ（使い捨て） |
 | `.github/workflows/ci.yml` | プッシュとプルリクエストで `scripts/test.sh` を動かす |

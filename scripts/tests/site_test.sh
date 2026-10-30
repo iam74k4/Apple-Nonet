@@ -1,42 +1,98 @@
 # 販売ページ（site/）と、それを確かめる scripts/check-site.sh のテスト
 
-# 問題の無い最小のサイトを TEST_TMP/site に作る
-write_fixture_site() {
-  SITE="$TEST_TMP/site"
-  mkdir -p "$SITE/en"
-  cat >"$SITE/index.html" <<'EOF'
+# 問題の無い最小のページを SITE に1つ書く: 自分の URL の canonical、日本語と英語の組の hreflang（ja・en・x-default）、
+# フッターから法的な文書（プライバシー・利用規約・特商法）へのリンク。書いたら sitemap.xml も作り直す。
+# 使い方: fixture_page <site/ の中の相対パス（help/index.html など）> [noindex]
+fixture_page() {
+  local rel="$1" robots="" lang=ja up="" lang_root="" depth ja_path en_path other_home i
+  [[ "${2:-}" != noindex ]] || robots='<meta name="robots" content="noindex">'
+  depth="$(printf '%s' "$rel" | tr -cd '/' | wc -c | tr -d ' ')"
+  for ((i = 0; i < depth; i++)); do up+="../"; done
+  case "$rel" in
+    en/*)
+      lang=en
+      for ((i = 1; i < depth; i++)); do lang_root+="../"; done
+      ja_path="${rel#en/}"
+      en_path="$rel"
+      other_home="$up"
+      ;;
+    *)
+      lang_root="$up"
+      ja_path="$rel"
+      en_path="en/$rel"
+      other_home="${up}en/"
+      ;;
+  esac
+  url() {
+    case "$1" in
+      index.html) printf 'https://nonet.test/' ;;
+      */index.html) printf 'https://nonet.test/%s' "${1%index.html}" ;;
+      *) printf 'https://nonet.test/%s' "$1" ;;
+    esac
+  }
+  mkdir -p "$(dirname "$SITE/$rel")"
+  cat >"$SITE/$rel" <<EOF
 <!doctype html>
-<html lang="ja">
+<html lang="$lang">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>テスト</title>
 <meta name="description" content="テスト用のページ">
-<link rel="stylesheet" href="style.css">
-<link rel="canonical" href="https://nonet.test/">
-<link rel="alternate" hreflang="en" href="https://nonet.test/en/">
-<script src="script.js" defer></script>
+$robots
+<link rel="stylesheet" href="${up}style.css">
+<link rel="canonical" href="$(url "$rel")">
+<link rel="alternate" hreflang="ja" href="$(url "$ja_path")">
+<link rel="alternate" hreflang="en" href="$(url "$en_path")">
+<link rel="alternate" hreflang="x-default" href="$(url "$en_path")">
+<script src="${up}script.js" defer></script>
 </head>
 <body>
 <main id="main">
 <h1>見出し</h1>
-<a href="#main">本文</a> <a href="en/">English</a> <a href="https://nonet.test/">外部</a>
-<img src="logo.svg" alt="ロゴ">
+<a href="#main">本文</a> <a href="$other_home">English</a> <a href="https://nonet.test/">外部</a>
+<img src="${up}logo.svg" alt="ロゴ">
 </main>
-<footer><a href="guide.html">ガイド</a> <a href="privacy.html">プライバシー</a> Stream Deck は Corsair Memory, Inc. の商標です。</footer>
+<footer><a href="${lang_root}guide.html">ガイド</a> <a href="${lang_root}privacy.html">プライバシー</a> <a href="${lang_root}terms.html">利用規約</a> <a href="${up}tokushoho.html">特商法</a> Stream Deck は Corsair Memory, Inc. の商標です。</footer>
 </body>
 </html>
 EOF
-  sed -e 's/lang="ja"/lang="en"/' -e 's|href="en/"|href="../"|' -e 's|href="style.css"|href="../style.css"|' \
-    -e 's|src="logo.svg"|src="../logo.svg"|' -e 's|src="script.js"|src="../script.js"|' "$SITE/index.html" >"$SITE/en/index.html"
-  cp "$SITE/index.html" "$SITE/privacy.html"
-  cp "$SITE/en/index.html" "$SITE/en/privacy.html"
-  cp "$SITE/index.html" "$SITE/guide.html"
-  cp "$SITE/en/index.html" "$SITE/en/guide.html"
+  write_fixture_sitemap
+}
+
+# SITE の検索に出すページ（noindex でないもの）を並べた sitemap.xml
+write_fixture_sitemap() {
+  local file rel
+  {
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    while IFS= read -r file; do
+      if grep -q 'content="noindex"' "$file"; then
+        continue
+      fi
+      rel="${file#"$SITE/"}"
+      case "$rel" in
+        index.html) rel="" ;;
+        */index.html) rel="${rel%index.html}" ;;
+      esac
+      printf '  <url><loc>https://nonet.test/%s</loc></url>\n' "$rel"
+    done < <(find "$SITE" -type f -name '*.html' | sort)
+    printf '</urlset>\n'
+  } >"$SITE/sitemap.xml"
+}
+
+# 問題の無い最小のサイトを TEST_TMP/site に作る
+write_fixture_site() {
+  local rel
+  SITE="$TEST_TMP/site"
+  mkdir -p "$SITE/en"
   printf 'body { color: black; background: url("bg.svg"); }\n' >"$SITE/style.css"
   printf '<svg xmlns="http://www.w3.org/2000/svg"/>\n' >"$SITE/logo.svg"
   cp "$SITE/logo.svg" "$SITE/bg.svg"
   printf '// コメントの // は URL ではない\nconst a = "x"; // 終わり\n' >"$SITE/script.js"
+  printf 'User-agent: *\nDisallow: /download\n\nSitemap: https://nonet.test/sitemap.xml\n' >"$SITE/robots.txt"
+  for rel in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html terms.html en/terms.html tokushoho.html; do
+    fixture_page "$rel"
+  done
 }
 
 check_fixture() {
@@ -163,33 +219,262 @@ test_strict_mode_fails_on_placeholders() {
   assert_contains "$OUT" "TODO.invalid/buy"
 }
 
+# 検索に出すページは、自分の URL の canonical と、日英の組の hreflang（ja・en・x-default。どれも絶対の URL）を持つ
+test_head_needs_canonical_and_hreflang() {
+  write_fixture_site
+  check_fixture
+  assert_status 0
+  # ページを写して作ったときの写し忘れ・相対の URL・x-default の抜け
+  sed -i '' 's|<link rel="canonical" href="https://nonet.test/terms.html">|<link rel="canonical" href="https://nonet.test/privacy.html">|' "$SITE/terms.html"
+  sed -i '' 's|hreflang="ja" href="https://nonet.test/privacy.html"|hreflang="ja" href="../privacy.html"|' "$SITE/en/privacy.html"
+  sed -i '' '/hreflang="x-default"/d' "$SITE/en/index.html"
+  # 組の無いページ（特商法）は canonical だけでよく、noindex のページは検索に出さないので何も要らない
+  sed -i '' '/hreflang=/d' "$SITE/tokushoho.html"
+  fixture_page thanks.html noindex
+  sed -i '' '/rel="canonical"/d; /hreflang=/d' "$SITE/thanks.html"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- terms.html: canonical が https://nonet.test/terms.html ではありません（いまは https://nonet.test/privacy.html）"
+  assert_contains "$OUT" "- en/privacy.html: <link rel=\"alternate\" hreflang=\"ja\" href=\"https://nonet.test/privacy.html\"> がありません"
+  assert_contains "$OUT" "- en/index.html: <link rel=\"alternate\" hreflang=\"x-default\" href=\"https://nonet.test/en/\"> がありません"
+  assert_not_contains "$OUT" "tokushoho.html: "
+  assert_not_contains "$OUT" "thanks.html: "
+}
+
+# 利用ガイドは scripts/build-guide.py が作るので、足りないものは知らせるだけ（止めない）。ほかのページは止める
+test_generated_guide_pages_are_reported_not_failed() {
+  write_fixture_site
+  sed -i '' '/rel="canonical"/d; s|<a href="terms.html">利用規約</a>||' "$SITE/guide.html"
+  check_fixture --strict
+  assert_status 0
+  assert_contains "$OUT" "guide.html は scripts/build-guide.py が作るページなので止めません。scripts/build-guide.py で直すこと: <link rel=\"canonical\" href=\"https://nonet.test/guide.html\"> がありません"
+  assert_contains "$OUT" "guide.html は scripts/build-guide.py が作るページなので止めません。scripts/build-guide.py でフッターに足すリンク: terms.html"
+  sed -i '' 's|<a href="terms.html">利用規約</a>||' "$SITE/privacy.html"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- privacy.html: フッターに terms.html へのリンクがありません"
+}
+
+# 法的な文書（プライバシー・利用規約・特商法）は、どのページのフッターからも開ける
+test_footer_links_to_the_legal_pages() {
+  write_fixture_site
+  sed -i '' 's|<a href="../tokushoho.html">特商法</a>||' "$SITE/en/terms.html"
+  sed -i '' 's|<footer>.*</footer>|<footer>© 2026</footer>|' "$SITE/en/privacy.html"
+  rm "$SITE/terms.html"
+  write_fixture_sitemap
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- en/terms.html: フッターに tokushoho.html へのリンクがありません"
+  assert_contains "$OUT" "- en/privacy.html: フッターに privacy.html terms.html tokushoho.html へのリンクがありません"
+  assert_contains "$OUT" "- 法的な文書のページがありません: terms.html"
+}
+
+# robots.txt は sitemap.xml を絶対の URL で指し、sitemap.xml は検索に出すページをすべて・それだけ並べる
+test_robots_and_sitemap_match_the_pages() {
+  write_fixture_site
+  fixture_page thanks.html noindex
+  printf 'User-agent: *\nDisallow: /download\n' >"$SITE/robots.txt"
+  sed -i '' 's|  <url><loc>https://nonet.test/terms.html</loc></url>|  <url><loc>https://nonet.test/old.html</loc></url><url><loc>https://nonet.test/thanks.html</loc></url><url><loc>https://other.test/</loc></url>|' "$SITE/sitemap.xml"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- robots.txt に「Sitemap: https://nonet.test/sitemap.xml」の行がありません"
+  assert_contains "$OUT" "- sitemap.xml: ページがありません: https://nonet.test/old.html"
+  assert_contains "$OUT" "- sitemap.xml: このサイト（https://nonet.test/）の外の URL です: https://other.test/"
+  assert_contains "$OUT" "- sitemap.xml: 検索に出さない（noindex の）ページが入っています: https://nonet.test/thanks.html"
+  assert_contains "$OUT" "- sitemap.xml に terms.html（https://nonet.test/terms.html）がありません"
+  rm "$SITE/sitemap.xml"
+  check_fixture
+  assert_contains "$OUT" "- sitemap.xml がありません"
+}
+
+# 共有の画像は、このサイトにあり、og:image:width・height と同じ大きさ。apple-touch-icon は 180×180 の PNG
+test_share_images_exist_with_the_declared_size() {
+  write_fixture_site
+  mkdir -p "$SITE/images"
+  cp "$ROOT/site/images/og-ja.png" "$SITE/images/og.png"
+  cp "$ROOT/site/apple-touch-icon.png" "$SITE/apple-touch-icon.png"
+  cp "$ROOT/site/apple-touch-icon.png" "$SITE/images/small.png"
+  sed -i '' 's|</head>|<meta property="og:image" content="https://nonet.test/images/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head>|' "$SITE/index.html"
+  check_fixture
+  assert_status 0
+  sed -i '' 's|images/og.png|images/small.png|' "$SITE/index.html"
+  sed -i '' 's|</head>|<meta property="og:image" content="https://nonet.test/images/missing.png"><link rel="apple-touch-icon" href="../images/og.png"></head>|' "$SITE/en/index.html"
+  sed -i '' 's|</head>|<meta property="og:image" content="https://cdn.other.test/og.png"></head>|' "$SITE/privacy.html"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- index.html: og:image（site/images/small.png）の大きさが 1200×630 ではありません（いまは 180×180）"
+  assert_contains "$OUT" "- en/index.html: og:image の画像がありません: site/images/missing.png"
+  assert_contains "$OUT" "- en/index.html: apple-touch-icon（../images/og.png）が 180×180 の PNG ではありません（いまは 1200×630）"
+  assert_contains "$OUT" "- privacy.html: og:image がこのサイト（https://nonet.test/）の画像ではありません: https://cdn.other.test/og.png"
+}
+
+# 実物で確かめて埋めるところ（data-placeholder。確認済みの macOS の版）は、--strict でも止めずに知らせる
+test_release_placeholders_are_reported_but_not_strict() {
+  write_fixture_site
+  printf '<p>確認済みの macOS: <span class="todo" data-placeholder="tested-macos">確かめた版</span></p>\n' >>"$SITE/index.html"
+  check_fixture --strict
+  assert_status 0
+  assert_contains "$OUT" "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: index.html tested-macos"
+}
+
+# 公開前の --strict が止まるのは、価格・販売サービス（名前と URL）・問い合わせ先の仮の値だけ。どれも1つは残っている
+test_strict_mode_on_the_real_site_stops_only_on_price_store_and_contact() {
+  local line others="" price=0 store=0 contact=0
+  run "$ROOT/scripts/check-site.sh" --strict
+  assert_status 1
+  while IFS= read -r line; do
+    case "$line" in
+      *"仮の値が残っています: "*) ;;
+      *) others+="$line"$'\n' && continue ;;
+    esac
+    if [[ "$line" == *"¥TODO"* || "$line" == *"\$TODO"* ]]; then
+      price=$((price + 1))
+    elif [[ "$line" == *"TODO: 販売サービス名"* || "$line" == *"TODO: store name"* || "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO.invalid/legal"* || "$line" == *"TODO.invalid/privacy"* ]]; then
+      store=$((store + 1))
+    elif [[ "$line" == *"support@TODO.invalid"* || "$line" == *"TODO: 問い合わせ先のメールアドレス"* || "$line" == *"TODO: support email address"* ]]; then
+      contact=$((contact + 1))
+    else
+      others+="$line"$'\n'
+    fi
+  done < <(grep -E '^ +- ' <<<"$OUT")
+  [[ -z "$others" ]] || fail "--strict が価格・販売サービス・問い合わせ先のほかでも止まります" "$others"
+  [[ "$price" -ge 2 && "$store" -ge 2 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（価格 $price・販売サービス $store・問い合わせ先 $contact）"
+}
+
 test_pages_and_assets_exist() {
   local file
-  for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html style.css script.js favicon.svg; do
+  for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html terms.html en/terms.html \
+    tokushoho.html thanks.html en/thanks.html 404.html en/404.html style.css script.js favicon.svg robots.txt sitemap.xml \
+    apple-touch-icon.png images/og-ja.png images/og-en.png; do
     assert_file "$ROOT/site/$file"
   done
 }
 
-test_japanese_page_carries_the_concept() {
-  local page
-  page="$(cat "$ROOT/site/index.html")"
-  assert_contains "$page" "Stream Deckは、"
-  assert_contains "$page" "もう手元にある。"
-  assert_contains "$page" "買わなくていい"
-  assert_contains "$page" "覚えなくていい"
-  assert_contains "$page" "設定しなくていい"
-  assert_contains "$page" "14日間"
-  assert_contains "$page" "macOS 14"
+# 見出しは日英で同じ話（トラックパッドが9つのボタンになる）。ほかの会社の商標（Stream Deck）は見出しと共有のタイトルに使わず、
+# 説明の文とよくある質問で比べるだけにする
+test_headlines_tell_the_same_story_without_a_trademark() {
+  local ja en page
+  ja="$(cat "$ROOT/site/index.html")"
+  en="$(cat "$ROOT/site/en/index.html")"
+  assert_contains "$ja" "<h1><span class=\"nowrap\">トラックパッドが、</span><span class=\"nowrap\">9つのボタンになる。</span></h1>"
+  assert_contains "$en" "<h1>Your trackpad becomes nine buttons.</h1>"
+  assert_contains "$ja" "<meta property=\"og:title\" content=\"Nonet — トラックパッドが、9つのボタンになる\">"
+  assert_contains "$en" "<meta property=\"og:title\" content=\"Nonet — Your trackpad becomes nine buttons\">"
+  for page in index.html en/index.html; do
+    if grep -E '<h1|<title>|og:title|og:image:alt' "$ROOT/site/$page" | grep -q 'Stream Deck'; then
+      fail "$page: 見出し・タイトル・共有の文に Stream Deck が入っています"
+    fi
+  done
+  # 約束は、買う・設定するものが要らないかのような言い方をしない（値段も許可も要る）
+  assert_contains "$ja" "機材はいらない"
+  assert_contains "$ja" "覚えなくていい"
+  assert_contains "$ja" "すぐに使える"
+  assert_not_contains "$ja" "買わなくていい"
+  assert_not_contains "$ja" "設定しなくていい"
+  assert_contains "$en" "No extra hardware"
+  assert_contains "$en" "Ready from the start"
+  assert_not_contains "$en" "Nothing to buy"
+  assert_not_contains "$en" "Nothing to set up"
+  assert_contains "$ja" "カードもメールアドレスも不要"
+  assert_contains "$en" "No card or email needed"
+  assert_contains "$ja" "9マスの一覧（HUD）"
+  assert_contains "$en" "The HUD, an overlay that shows all nine"
+  assert_contains "$ja" "14日間"
+  assert_contains "$ja" "macOS 14"
+}
+
+# 持ち主が決めた販売の条件（返金・台数・アップデート・macOS の更新）を、価格・よくある質問・利用規約・特商法の表記がそろえて書く
+test_pages_state_the_sales_terms() {
+  local ja en terms en_terms legal
+  ja="$(cat "$ROOT/site/index.html")"
+  en="$(cat "$ROOT/site/en/index.html")"
+  terms="$(cat "$ROOT/site/terms.html")"
+  en_terms="$(cat "$ROOT/site/en/terms.html")"
+  legal="$(cat "$ROOT/site/tokushoho.html")"
+  for text in "購入から30日以内なら、理由を問わず全額返金" "1つのライセンスで、あなたが使うすべての Mac に" "バージョン 1.x のアップデートはすべて無料" \
+    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "トラックパッドの上の角の長押し" \
+    "⌥ドラッグには左の⌥" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
+    assert_contains "$ja" "$text" "index.html"
+  done
+  for text in "Full refund within 30 days, no questions asked" "One license covers every Mac you use" "All 1.x updates are free" \
+    "tested from the first beta" "you get a refund no matter when you bought it" "Each person needs their own license" \
+    "touching and holding a top corner of the trackpad" "for ⌥-drag use left ⌥" "guide.html#uninstall" "On Force Touch trackpads" \
+    "Recorded shortcuts work the same on JIS, US and other layouts" "an independent Mac developer" "https://astlog.dev"; do
+    assert_contains "$en" "$text" "en/index.html"
+  done
+  assert_not_contains "$en" "any keyboard layout"
+  for text in "1つのライセンスは、1人の利用者のためのもの" "購入から30日以内なら、理由を問わず全額を返金" "購入からの日数にかかわらず返金" \
+    "バージョン 1.x のアップデートは、すべて無料" "保証するものではありません" "軽過失" "日本の法律に従って" "id=\"refunds\""; do
+    assert_contains "$terms" "$text" "terms.html"
+  done
+  for text in "One license is for one person" "Within 30 days of purchase, you get a full refund for any reason" \
+    "no matter when you bought it" "Every 1.x update is free" "provided as is" "slight negligence" "governed by the laws of Japan" "id=\"refunds\""; do
+    assert_contains "$en_terms" "$text" "en/terms.html"
+  done
+  # 販売サービスが売主（Merchant of Record）。どちらの販売サービスに決めても正しいよう、名前は仮の値1つにする
+  for text in "販売事業者" "販売代理店（Merchant of Record）" "同社の特定商取引法に基づく表記" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
+    assert_contains "$legal" "$text" "tokushoho.html"
+  done
+  assert_eq 1 "$(grep -c 'TODO: 販売サービス名' "$ROOT/site/tokushoho.html")" "tokushoho.html の販売サービス名の仮の値"
+}
+
+# 「ダウンロード」「無料で試す」はダウンロードのページ（thanks.html）へ。そのページが /download（Worker が最新の DMG へ飛ばす）を開く。
+# JavaScript が無いときは noscript の meta refresh で始める。検索には出さない
+test_download_buttons_open_the_download_page() {
+  local page thanks
+  for page in index.html en/index.html; do
+    if grep -q 'href="https://nonet.astlog.dev/download"' "$ROOT/site/$page"; then
+      fail "$page: /download を直に指すボタンがあります（thanks.html を指す）"
+    fi
+    [[ "$(grep -c 'href="thanks.html"' "$ROOT/site/$page")" -ge 4 ]] || fail "$page: thanks.html を指すボタンが足りません（ヘッダー・ヒーロー・価格・最後）"
+  done
+  for thanks in thanks.html en/thanks.html; do
+    page="$(cat "$ROOT/site/$thanks")"
+    assert_contains "$page" "<meta name=\"robots\" content=\"noindex\">" "$thanks"
+    assert_contains "$page" "<noscript><meta http-equiv=\"refresh\" content=\"1; url=https://nonet.astlog.dev/download\"></noscript>" "$thanks"
+    assert_contains "$page" "<a href=\"https://nonet.astlog.dev/download\" data-download-link>" "$thanks"
+    assert_contains "$page" "data-not-mac hidden" "$thanks"
+    assert_contains "$page" "id=\"install\"" "$thanks"
+    assert_eq 3 "$(grep -c '<li class="install-step">' "$ROOT/site/$thanks")" "$thanks の手順の数"
+  done
+}
+
+# script.js が読む data-* と要素は、どれかのページにある（読まれない印や、ページに無い印を残さない）
+test_script_hooks_exist_in_the_pages() {
+  local attr page
+  for attr in $(grep -oE '\[data-[a-z-]+\]' "$ROOT/site/script.js" | tr -d '[]' | sort -u); do
+    grep -lq -- "$attr" "$ROOT"/site/*.html "$ROOT"/site/en/*.html || fail "script.js の $attr を使うページがありません"
+  done
+  # 言語の案内は、もう一方の言語のページを指し、自分と違う言語の印（lang）を持つ
+  for page in index.html privacy.html terms.html thanks.html en/index.html en/privacy.html en/terms.html en/thanks.html; do
+    case "$page" in
+      en/*) grep -q 'data-lang-bar lang="ja"' "$ROOT/site/$page" || fail "$page: 言語の案内（日本語）がありません" ;;
+      *) grep -q 'data-lang-bar lang="en"' "$ROOT/site/$page" || fail "$page: 言語の案内（英語）がありません" ;;
+    esac
+    grep -q 'data-lang-bar-content hidden' "$ROOT/site/$page" || fail "$page: 言語の案内は、JavaScript が無いときは隠しておく"
+  done
+}
+
+# 言語の案内・Mac 以外の端末の案内・ダウンロードの開始・メニューの動き（偽の DOM で script.js を動かす）。node が無ければ飛ばす
+test_page_script_behaves() {
+  if ! command -v node >/dev/null 2>&1; then
+    printf 'node が無いので飛ばしました\n'
+    return 0
+  fi
+  run node "$ROOT/scripts/tests/page_script_harness.js" "$ROOT/site/script.js"
+  assert_status 0
 }
 
 test_demo_markup_matches_the_script() {
   local page attr name
-  # script.js が読む data-* を、両方のページが持っていること
-  local attrs
+  # script.js の HUD のデモ（setUpDemo）が読む data-* を、両方のページが持っていること
+  local attrs demo
+  demo="$(awk '/const setUpDemo = /, /^  \/\/ MARK: 言語の案内/' "$ROOT/site/script.js")"
+  [[ -n "$demo" ]] || fail "script.js に setUpDemo がありません"
   attrs="$(
     {
-      grep -oE 'dataset\.[a-zA-Z]+' "$ROOT/site/script.js" | sed -E 's/^dataset\.//; s/([A-Z])/-\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^/data-/'
-      grep -oE '\[data-[a-z-]+\]' "$ROOT/site/script.js" | tr -d '[]'
+      grep -oE 'dataset\.[a-zA-Z]+' <<<"$demo" | sed -E 's/^dataset\.//; s/([A-Z])/-\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^/data-/'
+      grep -oE '\[data-[a-z-]+\]' <<<"$demo" | tr -d '[]'
     } | sort -u
   )"
   [[ -n "$attrs" ]] || fail "script.js から data-* を読めません"
@@ -220,6 +505,11 @@ test_demo_script_behaves_in_both_languages() {
 }
 
 test_languages_link_to_each_other() {
+  local name
+  for name in terms thanks; do
+    grep -q "href=\"en/$name.html[^\"]*\" hreflang=\"en\"" "$ROOT/site/$name.html" || fail "$name.html から英語版へのリンクがありません"
+    grep -q "href=\"../$name.html[^\"]*\" hreflang=\"ja\"" "$ROOT/site/en/$name.html" || fail "en/$name.html から日本語版へのリンクがありません"
+  done
   grep -q 'href="en/" hreflang="en"' "$ROOT/site/index.html" || fail "日本語のページから英語へのリンクがありません"
   grep -q 'href="../" hreflang="ja"' "$ROOT/site/en/index.html" || fail "英語のページから日本語へのリンクがありません"
   grep -q 'href="en/privacy.html"' "$ROOT/site/privacy.html" || fail "プライバシーポリシーの英語版へのリンクがありません"
@@ -278,13 +568,12 @@ check_app_links_fixture() {
   run "$ROOT/scripts/check-site.sh" "$@" --config "$TEST_TMP/Nonet.xcconfig" "$SITE"
 }
 
-# フォルダの URL を確かめるためのページ: help/（日本語）と en/help/（英語）。リンクが切れないよう、同じフォルダに guide.html と privacy.html も置く
+# フォルダの URL を確かめるためのページ: help/（日本語）と en/help/（英語）
 write_help_pages() {
   local name
-  mkdir -p "$SITE/help" "$SITE/en/help"
   for name in index guide privacy; do
-    sed 's/lang="en"/lang="ja"/' "$SITE/en/index.html" >"$SITE/help/$name.html"
-    sed 's|"\.\./|"../../|g' "$SITE/en/index.html" >"$SITE/en/help/$name.html"
+    fixture_page "help/$name.html"
+    fixture_page "en/help/$name.html"
   done
 }
 
@@ -335,7 +624,7 @@ test_app_links_must_not_drop_the_html_extension() {
 test_app_links_need_the_english_page() {
   local config="$TEST_TMP/Nonet.xcconfig"
   write_fixture_site
-  cp "$SITE/index.html" "$SITE/help.html"
+  fixture_page help.html
   write_app_links_config "$config" https://nonet.test/help.html#start https://nonet.test/privacy.html
   check_app_links_fixture
   assert_status 1
@@ -343,7 +632,7 @@ test_app_links_need_the_english_page() {
   assert_not_contains "$OUT" "NONET_PRIVACY_URL"
   assert_not_contains "$OUT" "に当たるページが"
 
-  cp "$SITE/en/index.html" "$SITE/en/help.html"
+  fixture_page en/help.html
   check_app_links_fixture
   assert_status 0
 
@@ -375,26 +664,31 @@ test_app_links_use_the_canonical_in_any_form() {
   assert_not_contains "$OUT" "canonical が無い"
 }
 
-# canonical がまだ無いサイトでは確かめられない。ふだんは知らせるだけで、--strict（公開の前）では失敗にする
+# canonical の無いサイトでは、アプリの URL を確かめられない。canonical が無いこと自体はいつも問題にし（公開する URL が決まらない）、
+# アプリの URL のほうは、ふだんは知らせるだけで、--strict（公開の前）では失敗にする
 test_app_links_without_a_canonical_fail_in_strict_mode() {
   local config="$TEST_TMP/Nonet.xcconfig"
   write_fixture_site
   sed -i '' '/rel="canonical"/d' "$SITE/index.html"
   write_app_links_config "$config" https://nonet.test/help.html https://nonet.test/privacy.html
   check_app_links_fixture
-  assert_status 0
+  assert_status 1
+  assert_contains "$OUT" "- index.html: <link rel=\"canonical\"> がありません"
   assert_contains "$OUT" "site/index.html に canonical が無いので、NONET_SUPPORT_URL（https://nonet.test/help.html）の行き先は確かめていません"
   assert_not_contains "$OUT" "に当たるページが"
+  assert_not_contains "$OUT" "- site/index.html に canonical が無いので"
 
   check_app_links_fixture --strict
   assert_status 1
   assert_contains "$OUT" "- site/index.html に canonical が無いので、NONET_SUPPORT_URL（https://nonet.test/help.html）がこのサイトのページを指しているか確かめられません"
   assert_contains "$OUT" "- site/index.html に canonical が無いので、NONET_PRIVACY_URL（https://nonet.test/privacy.html）がこのサイトのページを指しているか確かめられません"
 
-  # URL がまだ空（http(s) でない）なら、確かめるものが無い
+  # URL がまだ空（http(s) でない）なら、アプリの URL は確かめるものが無い
   printf 'NONET_SUPPORT_URL =\nNONET_PRIVACY_URL =\n' >"$config"
   check_app_links_fixture --strict
-  assert_status 0
+  assert_status 1
+  assert_not_contains "$OUT" "NONET_SUPPORT_URL"
+  assert_not_contains "$OUT" "NONET_PRIVACY_URL"
 }
 
 # Markdown の見出し（## 〜 ####）を「レベル 文字」で1行ずつ出す。コードの中は除き、強調・コード・リンクの印は外す

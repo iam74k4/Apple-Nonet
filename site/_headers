@@ -4,14 +4,17 @@
 #
 # CSP は、いまのページが実際に読むものだけを許す（scripts/check-site.sh が外部の読み込みを禁じているので、
 # どれも同じオリジン）。
-#   - script-src 'self': script.js だけ。インラインのスクリプトとイベント属性（onclick など）は使わない
+#   - script-src 'self': script.js だけ。インラインのスクリプトとイベント属性（onclick など）は使わない。
+#     index.html の <script type="application/ld+json">（検索エンジン向けのデータ）はブラウザが実行しないので、ここには関係しない
 #   - style-src: style.css と、SVG のアイコンの style 属性（style="fill: var(--bg)" など）。
 #     style-src-elem と style-src-attr を分けられるブラウザでは <style> を許さず、属性だけを許す。
 #     分けられない古いブラウザは style-src を見るので、そちらにも 'unsafe-inline' を置く（属性が要るため）
-#   - img-src 'self': favicon.svg
+#   - img-src 'self': favicon.svg・apple-touch-icon.png・images/（共有の画像）。どれも同じオリジン
 #   - base-uri 'self': 404.html が <base href="/"> を使う（どの深さの URL で出ても、相対のリンクを効かせるため）
 #   - form-action 'none'・frame-ancestors 'none': フォームは無く、ほかのサイトの枠には入れさせない
 # 外のものを読むようにしたら（動画・決済のウィジェットなど）、ここも一緒に直す。
+# ヒーローに動画（site/images/ の mp4 と poster）を置くなら media-src 'self' を足す（default-src 'none' のままでは止まる）。
+# thanks.html の <meta http-equiv="refresh">（JavaScript が無いときのダウンロード）は、CSP では止まらない
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

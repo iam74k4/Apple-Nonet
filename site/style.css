@@ -157,6 +157,11 @@ kbd {
   display: inline-block;
 }
 
+/* script.js が出し入れする要素（言語の案内・Mac 以外の端末の案内など）。display を指定したクラスより強くする */
+[hidden] {
+  display: none !important;
+}
+
 /* 公開前に埋める仮の値。見落とさないよう目立たせる */
 .todo {
   outline: 1.5px dashed currentColor;
@@ -241,6 +246,75 @@ kbd {
   text-decoration: none;
 }
 
+/* 狭い画面では、ナビゲーションを「メニュー」（<details>。JavaScript なしで開け閉めできる）にまとめる */
+.menu {
+  position: relative;
+  display: none;
+}
+
+.menu summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--fg);
+  font-size: 14px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.menu[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+}
+
+.menu-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-panel a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--fg);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.menu-panel a:hover {
+  background: var(--bg-soft);
+}
+
 @media (max-width: 760px) {
   .site-nav {
     display: none;
@@ -249,6 +323,104 @@ kbd {
   .header-actions {
     margin-left: auto;
   }
+
+  .menu {
+    display: block;
+  }
+
+  /* 言語の切り替えはメニューの中にもある */
+  .header-actions > .lang-link {
+    display: none;
+  }
+
+  /* ロゴ・ダウンロード・メニューを1行に。文字の途中で折り返さない */
+  .header-inner {
+    gap: 12px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-inner .brand,
+  .header-actions .btn,
+  .menu summary {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
+/* とても狭い画面（幅 360px 未満）では、ヘッダーのダウンロードを省く（ヒーローのボタンとメニューで足りる） */
+@media (max-width: 359px) {
+  .header-actions .btn-small {
+    display: none;
+  }
+}
+
+/* MARK: 言語の案内（script.js が、ページの言語を読まないブラウザにだけ出す。自動では移動しない） */
+
+.lang-bar-inner {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--fg-soft);
+  font-size: 14px;
+}
+
+.lang-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding-block: 6px;
+}
+
+.lang-bar-row a {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.lang-bar-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-soft);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lang-bar-close:hover {
+  background: var(--line);
+  color: var(--fg);
+}
+
+/* MARK: Mac 以外の端末の案内（script.js が出す） */
+
+.not-mac {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  color: var(--fg-soft);
+  font-size: 15px;
+}
+
+.not-mac p {
+  margin: 0;
+}
+
+.share-status:empty {
+  display: none;
 }
 
 /* MARK: ボタン */
@@ -349,6 +521,16 @@ kbd {
 .hero h1 {
   font-size: clamp(2.25rem, 1.35rem + 3.8vw, 3.5rem);
   letter-spacing: 0.01em;
+}
+
+/* 日本語の見出しは2つの句（「トラックパッドが、」「9つのボタンになる。」。どちらも約10文字）をそれぞれ1行に収める。
+   列の幅（cqi）に合わせて小さくする。cqi を知らないブラウザは上の clamp のまま */
+.hero-copy {
+  container-type: inline-size;
+}
+
+.hero h1:lang(ja) {
+  font-size: min(3.5rem, 9.8cqi);
 }
 
 .lead {
@@ -999,6 +1181,17 @@ kbd {
   font-size: 11px;
 }
 
+/* 塗りの上に抜きで描くもの（アイコンの中の 3×3・スイッチのつまみなど） */
+.ill .knock {
+  fill: var(--bg);
+}
+
+.ill .knock-line {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.3;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -1090,6 +1283,19 @@ kbd {
   flex: 1 1 160px;
 }
 
+.price-card .fine a {
+  color: inherit;
+}
+
+.price-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: -8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
 /* MARK: よくある質問 */
 
 .faq {
@@ -1137,6 +1343,22 @@ kbd {
   padding: 0 0 22px;
   color: var(--fg-soft);
   font-size: 15px;
+}
+
+/* MARK: 作っている人 */
+
+.maker-inner {
+  display: grid;
+  gap: 12px;
+  max-width: 44em;
+}
+
+.maker h2 {
+  font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+}
+
+.maker p {
+  color: var(--fg-soft);
 }
 
 /* MARK: 最後の呼びかけ */
@@ -1241,6 +1463,122 @@ kbd {
   font-size: 14px;
   color: var(--fg-muted);
   margin-bottom: 28px;
+}
+
+.doc ol {
+  margin: 0 0 14px;
+  padding-left: 1.6em;
+  color: var(--fg-soft);
+}
+
+/* 項目と内容の表（特定商取引法に基づく表記）。狭い画面では縦に並べる */
+.facts {
+  width: 100%;
+  margin: 8px 0 28px;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--fg-soft);
+}
+
+.facts th,
+.facts td {
+  padding: 14px 16px 14px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.facts th {
+  width: 12em;
+  color: var(--fg);
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .facts,
+  .facts tbody,
+  .facts tr,
+  .facts th,
+  .facts td {
+    display: block;
+    width: auto;
+  }
+
+  .facts th {
+    padding-bottom: 2px;
+    border-bottom: 0;
+  }
+
+  .facts td {
+    padding-top: 0;
+  }
+}
+
+/* MARK: ダウンロードのページ（thanks.html） */
+
+.thanks {
+  padding-block: 56px 88px;
+}
+
+.thanks h1 {
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.25rem);
+}
+
+.thanks-head {
+  display: grid;
+  gap: 14px;
+  max-width: 44em;
+  margin-bottom: 48px;
+}
+
+.thanks-head p {
+  color: var(--fg-soft);
+}
+
+.thanks h2 {
+  font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+  margin-bottom: 20px;
+}
+
+.install-steps {
+  display: grid;
+  gap: 20px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .install-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.install-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.install-step h3 {
+  font-size: 1.0625rem;
+}
+
+.install-step p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--fg-soft);
+}
+
+.thanks-after {
+  display: grid;
+  gap: 8px;
+  max-width: 44em;
+  color: var(--fg-soft);
 }
 
 /* MARK: 利用ガイド（guide.html。原本は docs/user-guide*.md） */
