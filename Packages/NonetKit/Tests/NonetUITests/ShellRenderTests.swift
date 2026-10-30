@@ -1,4 +1,5 @@
-// 担当: ui-shell。見た目の確認用。NONET_RENDER_SHOTS=<フォルダ> のときだけ PNG を書き出す（普段の swift test では動かない）
+// 担当: ui-shell。見た目の確認用。NONET_RENDER_SHOTS=<フォルダ> のときだけ PNG を書き出す（普段の swift test では動かない）。
+// 文言は実際の画面と同じところ（ControllerPresentation・プリセット・カタログ）から引く。日本語をそのまま書くと、英語で描いても日本語のまま出る
 import AppKit
 import Foundation
 import NonetCore
@@ -13,13 +14,23 @@ private let shotsDirectory = ProcessInfo.processInfo.environment["NONET_RENDER_S
 struct ShellRenderTests {
     static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
 
+    static let releaseHint = ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false)
+
     @Test("HUD")
     func hud() throws {
         let xcode = try #require(PresetLibrary.preset(forBundleID: ShellFixtures.xcode))
         let global = PresetLibrary.makeGlobalProfile(installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID)))
         let models: [(String, HUDModel)] = [
             ("hud-xcode", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 4, pageCount: 1)),
-            ("hud-launcher-pages", Self.hudModel(title: "グローバル", page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
+            ("hud-launcher-pages", Self.hudModel(title: L10n.globalName, page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
+            // 長い方の案内（練習中・指を離して実行）
+            ("hud-practice", Self.hudModel(
+                title: "Xcode",
+                page: xcode.pages[0],
+                highlighted: 2,
+                pageCount: 1,
+                hint: ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: true)
+            )),
             ("hud-empty-banner", HUDModel(
                 title: "とても長い名前のアプリケーションのプロファイル（テスト用の長いタイトル）",
                 pageIndex: 0,
@@ -30,8 +41,8 @@ struct ShellRenderTests {
                     HUDCell(title: "T", icon: .text("あ"), detail: nil),
                 ],
                 highlightedIndex: 5,
-                hint: "⌘を離して実行",
-                banner: "試用期間が終了しました"
+                hint: Self.releaseHint,
+                banner: ControllerPresentation.trialEndedBanner
             )),
         ]
         for (name, model) in models {
@@ -50,14 +61,32 @@ struct ShellRenderTests {
 
     @Test("トースト")
     func toasts() throws {
+        let xcode = try #require(PresetLibrary.preset(forBundleID: ShellFixtures.xcode))
+        let cells = xcode.pages[0].cells.compactMap { $0 }
+        let build = try #require(cells.first { $0.title == L10n.core("ビルド") })
+        let script = try #require(cells.first { $0.action.kind == .script })
         let toasts: [(String, ToastModel)] = [
-            ("toast-success", ToastModel(title: "ビルド", detail: "⌘B", icon: .symbol("play.fill"), style: .success)),
-            ("toast-info", ToastModel(title: "Nonet を無効にしました", style: .info)),
+            ("toast-success", ToastModel(title: build.title, detail: "⌘B", icon: build.icon, style: .success)),
+            ("toast-info", ToastModel(title: L10n.ui("Nonet は無効です"), style: .info)),
             ("toast-app", ToastModel(title: "Safari", icon: .app(bundleID: ShellFixtures.safari), style: .success)),
+            // スクリプトのエラー出力は zsh のまま（訳さない）
             ("toast-failure", ToastModel(
-                title: "スクリプトが失敗しました",
-                detail: "zsh:1: command not found: claude\nPATH を ~/.zprofile に書いてください。ログインシェルなので ~/.zshrc は読まれません",
-                icon: .symbol("terminal"),
+                title: script.title,
+                detail: "zsh:1: command not found: claude\n" + NonetError.timedOut.localizedDescription,
+                icon: script.icon,
+                style: .failure
+            )),
+            // 試用期間が終わったあとにマスを押したとき（NonetController と同じ文言）
+            ("toast-failure-license", ToastModel(
+                title: build.title,
+                detail: NonetError.licenseRequired.localizedDescription,
+                icon: build.icon,
+                style: .failure
+            )),
+            ("toast-failure-menu", ToastModel(
+                title: build.title,
+                detail: NonetError.menuItemNotFound("Product › Build").localizedDescription,
+                icon: build.icon,
                 style: .failure
             )),
         ]
@@ -92,7 +121,7 @@ struct ShellRenderTests {
         for (suffix, appearance) in Self.appearances {
             for (name, body) in [("result", text), ("result-long", String(repeating: text + "\n\n", count: 6))] {
                 let store = HUDResultStore()
-                store.model = ResultModel(title: "ページを要約", text: body, icon: .symbol("sparkles"))
+                store.model = ResultModel(title: L10n.core("要約"), text: body, icon: .symbol("sparkles"))
                 let size = HUDResultLayout.panelSize(textHeight: HUDResultLayout.textHeight(of: body), screen: screen)
                 try Self.render(
                     HUDResultView(store: store, onCopy: {}, onClose: {})
@@ -191,7 +220,7 @@ struct ShellRenderTests {
 
     // MARK: - 部品
 
-    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int) -> HUDModel {
+    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int, hint: String = releaseHint) -> HUDModel {
         HUDModel(
             title: title,
             pageIndex: pageIndex,
@@ -203,7 +232,7 @@ struct ShellRenderTests {
                 }
             },
             highlightedIndex: highlighted,
-            hint: "⌘を離して実行"
+            hint: hint
         )
     }
 

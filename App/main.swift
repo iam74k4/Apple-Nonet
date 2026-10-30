@@ -10,6 +10,15 @@ if launchOptions.selfCheck {
 }
 
 MainActor.assumeIsolated {
+    // 同じ Nonet が2つ動くと、1回のタップでマスが2回実行される。もう動いていたらそちらに任せて終わる。
+    // DEBUG ビルドで設定の置き場所を分けたとき（見た目の確認）は、配布版と並べて動かしてよい
+    #if DEBUG
+    let allowsMultiple = launchOptions.configDirectory != nil
+    #else
+    let allowsMultiple = false
+    #endif
+    SingleInstance.handOffIfAlreadyRunning(allowsMultiple: allowsMultiple)
+
     let app = NSApplication.shared
     let delegate = AppDelegate(options: launchOptions)
     app.delegate = delegate

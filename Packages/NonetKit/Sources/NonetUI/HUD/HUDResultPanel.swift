@@ -78,7 +78,8 @@ final class HUDResultPanel: NSPanel {
         onClose?()
     }
 
-    /// Nonet にはメインメニューが無いので、⌘C・⌘A・⌘W をここで受ける
+    /// ⌘C・⌘A・⌘W はここで受ける。メインメニュー（ShellMainMenu）の「コピー」は選択が無いと使えないが、
+    /// この画面では選択が無ければ全文をコピーする
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard flags == .command, let key = event.charactersIgnoringModifiers?.lowercased() else {

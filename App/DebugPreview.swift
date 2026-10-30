@@ -48,8 +48,9 @@ final class DebugPreview {
                 cell.map { HUDCell(title: $0.title, icon: $0.icon, detail: Self.detail(for: $0.action)) }
             },
             highlightedIndex: 4,
-            hint: String(localized: "\(trigger.symbol)を離して実行"),
-            banner: license.canExecuteActions ? nil : String(localized: "試用期間が終了しました")
+            // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く
+            hint: ControllerPresentation.hint(fireMode: configuration.settings.fireMode, trigger: trigger, isPracticeMode: controller.isPracticeMode),
+            banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner
         )
         hud.show(model, position: configuration.settings.hudPosition)
     }

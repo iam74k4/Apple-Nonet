@@ -148,6 +148,46 @@ struct ShellSelfCheckTests {
 
     // MARK: - 起動引数
 
+    @Test("自己診断の試用の記録: 本物から読むだけで、数えても、写しが消えていても、どこにも書かない")
+    func licenseSnapshotWritesNothing() throws {
+        let suiteName = "com.iam74k4.Nonet.tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nonet-self-check-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let day: TimeInterval = 24 * 60 * 60
+        let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        // アプリが書いた記録（UserDefaults と Application Support の両方）
+        let app = UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: directory)
+        app.trialStartDate = start
+        app.trialLastSeenDate = start.addingTimeInterval(3 * day)
+        app.trialUsedTime = 3 * day
+        app.licenseKey = "not-a-valid-key"
+        // 利用ガイドのとおりに Application Support/Nonet を消してから自己診断を動かす
+        try FileManager.default.removeItem(at: directory)
+        let before = defaults.persistentDomain(forName: suiteName) as NSDictionary?
+
+        let snapshot = ShellSelfCheck.LicenseSnapshot(defaults: defaults)
+        #expect(snapshot.trialStartDate == start)
+        #expect(snapshot.trialUsedTime == 3 * day)
+        let now = start.addingTimeInterval(4 * day)
+        let license = LicenseManager(verifier: nil, storage: snapshot, now: { now })
+        license.refresh()
+        #expect(license.entitlement == .trial(daysLeft: 10))
+        // 数えた分はメモリの中だけ
+        #expect(snapshot.trialUsedTime == 4 * day)
+
+        #expect(defaults.persistentDomain(forName: suiteName) as NSDictionary? == before)
+        #expect(!FileManager.default.fileExists(atPath: directory.path))
+
+        // 比べるため: 写しを読むふつうの読み方は、読むだけでフォルダを作り直す（これまでの --self-check）
+        _ = UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: directory).trialStartDate
+        #expect(FileManager.default.fileExists(atPath: directory.path))
+    }
+
     @Test("起動引数: 何も無ければすべて既定")
     func noArguments() {
         #expect(ShellLaunchOptions.parse(["/Applications/Nonet.app/Contents/MacOS/Nonet"]) == ShellLaunchOptions())

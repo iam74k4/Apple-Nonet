@@ -96,6 +96,44 @@ struct ShellOnboardingTests {
         #expect(harness.controller.status == .needsAccessibility)
     }
 
+    @Test("許可されたときだけ true を返す（ウィンドウを前に出す合図）")
+    func pollPermissionReportsGrant() {
+        let (model, harness) = Self.make(granted: false)
+        #expect(!model.pollPermission())
+        harness.permissions.isAccessibilityGranted = true
+        #expect(model.pollPermission())
+        #expect(!model.pollPermission())
+        harness.permissions.isAccessibilityGranted = false
+        #expect(!model.pollPermission())
+    }
+
+    @Test("許可されたら、システム設定の後ろに隠れた案内のウィンドウを前に出す（どの画面でも）")
+    func raisesWindowWhenGranted() {
+        let harness = ShellControllerHarness(installed: Self.installed, accessibilityGranted: false)
+        harness.controller.start()
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services, history: OnboardingGuideHistory()) {}
+        var raised = 0
+        window.raiseWindow = { raised += 1 }
+        window.checkPermission()
+        #expect(raised == 0)
+        harness.permissions.isAccessibilityGranted = true
+        window.checkPermission()
+        #expect(raised == 1)
+        #expect(window.model.step == .apps)
+        window.checkPermission()
+        #expect(raised == 1)
+
+        // 練習の画面で「システム設定を開く」から許可したときも
+        harness.permissions.isAccessibilityGranted = false
+        window.checkPermission()
+        window.model.skipSelection()
+        harness.permissions.isAccessibilityGranted = true
+        window.checkPermission()
+        #expect(raised == 2)
+        #expect(window.model.step == .practice)
+        window.windowDidClose()
+    }
+
     @Test("「システム設定を開く」は許可のダイアログと設定アプリの両方")
     func requestAccessibility() {
         let (model, harness) = Self.make(granted: false)
@@ -591,6 +629,28 @@ struct ShellOnboardingTests {
         #expect(ShellText.practiceInstruction(model.trigger) == L10n.ui("\(L10n.ui("右⌥"))を押しながら、トラックパッドの右上をタップ"))
     }
 
+    @Test("足すアプリの数の文は、文言の言語の規則で数を数える（1 app profile）")
+    func additionNotePlural() {
+        let language = Locale(identifier: Bundle.nonetUI.preferredLocalizations.first ?? "ja")
+        for count in [1, 3] {
+            #expect(ShellText.additionNote(count) == String(localized: "\(count)個のアプリのプロファイルを追加します", bundle: .nonetUI, locale: language))
+        }
+    }
+
+    @Test("違うマスの知らせは、名詞の前に置く位置の呼び方を使う（英語は bottom-left）")
+    func wrongCellMessage() {
+        let bottomLeft = String(localized: "attributivePosition.bottomLeft", defaultValue: "左下", bundle: .nonetUI)
+        #expect(HUDAnnouncement.attributivePositionName(6) == bottomLeft)
+        #expect(ShellText.wrongCellMessage(6) == L10n.ui("いまのは「\(bottomLeft)」のマスです。右上をタップしてみてください"))
+        #expect(HUDAnnouncement.attributivePositionName(0) == String(localized: "attributivePosition.topLeft", defaultValue: "左上", bundle: .nonetUI))
+        #expect(HUDAnnouncement.attributivePositionName(2) == String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .nonetUI))
+        #expect(HUDAnnouncement.attributivePositionName(8) == String(localized: "attributivePosition.bottomRight", defaultValue: "右下", bundle: .nonetUI))
+        // 角でなければ読み上げと同じ
+        for index in [1, 3, 4, 5, 7] {
+            #expect(HUDAnnouncement.attributivePositionName(index) == HUDAnnouncement.positionName(index))
+        }
+    }
+
     @Test("右上（どのページでも）を押したら成功。練習を始めた後の記録だけを数える")
     func practiceSuccess() {
         let clock = Clock()
@@ -612,6 +672,64 @@ struct ShellOnboardingTests {
         // 成功の後に違うマスを押しても成功のまま
         model.handleExecution(ShellFixtures.record(index: 7, date: started.addingTimeInterval(3)))
         #expect(model.practice == .succeeded)
+    }
+
+    @Test("試用期間の終了で断られたタップは成功にせず、ライセンスの知らせと「ライセンスキーを入力…」を出す")
+    func practiceRefusedForLicense() throws {
+        let clock = Clock()
+        let (model, _) = Self.make(clock: clock)
+        var opened: [SettingsTab] = []
+        model.onOpenSettings = { opened.append($0) }
+        model.next()
+        model.skipSelection()
+        let refused = ExecutionRecord(
+            cellTitle: "マス",
+            profileName: "Xcode",
+            address: CellAddress(page: 0, index: OnboardingModel.practiceTargetIndex),
+            succeeded: false,
+            message: NonetError.licenseRequired.localizedDescription,
+            wasFastTap: true,
+            date: clock.now.addingTimeInterval(1)
+        )
+        model.handleExecution(refused)
+        #expect(model.practice == .waiting)
+        let blocker = try #require(model.practiceBlocker)
+        #expect(blocker == .licenseRequired)
+        #expect(blocker.message == L10n.ui("試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます"))
+        #expect(blocker.remedy?.title == L10n.ui("ライセンスキーを入力…"))
+        model.resolve(.openLicense)
+        #expect(opened == [.license])
+
+        // 登録してから押し直せば成功（知らせは消える）
+        model.handleExecution(ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(2)))
+        #expect(model.practice == .succeeded)
+        #expect(model.practiceBlocker == nil)
+    }
+
+    @Test("ほかの理由で失敗した記録も成功にしない")
+    func failedRecordIsNotSuccess() {
+        let clock = Clock()
+        let (model, _) = Self.make(clock: clock)
+        model.next()
+        model.skipSelection()
+        var record = ShellFixtures.record(index: OnboardingModel.practiceTargetIndex, date: clock.now.addingTimeInterval(1))
+        record.succeeded = false
+        record.message = "失敗"
+        model.handleExecution(record)
+        #expect(model.practice == .waiting)
+        #expect(model.practiceBlocker == nil)
+    }
+
+    @Test("上の段の印: 許可しないまま進んだら「アクセシビリティ」に済みの印を付けない")
+    func stepMarks() {
+        func marks(_ current: OnboardingStep, granted: Bool) -> [OnboardingStepMark] {
+            [OnboardingStep.welcome, .apps, .practice].map { OnboardingStepMark.mark(for: $0, current: current, isAccessibilityGranted: granted) }
+        }
+        #expect(marks(.welcome, granted: false) == [.current, .upcoming, .upcoming])
+        #expect(marks(.apps, granted: true) == [.done, .current, .upcoming])
+        #expect(marks(.apps, granted: false) == [.skipped, .current, .upcoming])
+        #expect(marks(.practice, granted: false) == [.skipped, .done, .current])
+        #expect(marks(.done, granted: true) == [.done, .done, .done])
     }
 
     @Test("練習の画面を開いたときにすでにあった記録は、時刻が後でも数えない")
@@ -686,7 +804,7 @@ struct ShellOnboardingTests {
         #expect(disabled == .disabled)
         #expect(disabled.message == L10n.ui("Nonet が無効になっています。有効にすると試せます"))
         #expect(disabled.remedy == .enableNonet)
-        #expect(disabled.remedy?.title == L10n.ui("有効にする"))
+        #expect(disabled.remedy?.title == L10n.ui("Nonet を有効にする"))
 
         model.resolve(.enableNonet)
         #expect(harness.controller.configuration.settings.isEnabled)
@@ -709,6 +827,7 @@ struct ShellOnboardingTests {
         (.needsAccessibility, .openAccessibilitySettings),
         (.noTrackpad, nil),
         (.secureInput, nil),
+        (.licenseRequired, .openLicense),
     ])
     func practiceBlockerRemedies(blocker: OnboardingPracticeBlocker, remedy: OnboardingPracticeRemedy?) {
         #expect(!blocker.message.isEmpty)

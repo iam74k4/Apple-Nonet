@@ -108,6 +108,25 @@ public enum ShellSelfCheck {
         }
     }
 
+    /// 自己診断で使う試用の記録。本物の UserDefaults から読んだ値をメモリに写して使い、どこにも書かない
+    /// （LicenseManager が試用を数えて書くのも、このメモリの中だけ）。
+    /// Application Support の写し（.install など）は読まない。UserDefaultsLicenseStorage は2か所が食い違うと、
+    /// 読むだけでもそろえるために書くので、写しの無い置き方（supportDirectory: nil）で読む
+    public final class LicenseSnapshot: LicenseStorage {
+        public var trialStartDate: Date?
+        public var licenseKey: String?
+        public var trialLastSeenDate: Date?
+        public var trialUsedTime: TimeInterval?
+
+        public init(defaults: UserDefaults) {
+            let stored = UserDefaultsLicenseStorage(defaults: defaults, supportDirectory: nil)
+            trialStartDate = stored.trialStartDate
+            licenseKey = stored.licenseKey
+            trialLastSeenDate = stored.trialLastSeenDate
+            trialUsedTime = stored.trialUsedTime
+        }
+    }
+
     /// 確かめて結果をまとめる。workDirectory の下に一時フォルダを作り、終わったら消す
     @MainActor
     public static func run(

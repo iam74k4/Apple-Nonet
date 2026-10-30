@@ -1,4 +1,5 @@
 // 担当: ui-shell
+import AppKit
 import CoreGraphics
 import Foundation
 import NonetCore
@@ -15,7 +16,8 @@ enum ShellMenuState {
         global: Bool = false,
         notice: String? = nil,
         entitlement: Entitlement = .trial(daysLeft: 12),
-        updates: Bool = false
+        updates: Bool = false,
+        updateAvailable: Bool = false
     ) -> MenuBarState {
         MenuBarState(
             status: status,
@@ -24,7 +26,8 @@ enum ShellMenuState {
             isGlobalProfileActive: global,
             notice: notice,
             entitlement: entitlement,
-            canCheckForUpdates: updates
+            canCheckForUpdates: updates,
+            isUpdateAvailable: updateAvailable
         )
     }
 }
@@ -74,6 +77,29 @@ struct ShellMenuBarTests {
         #expect(MenuBarModel.licenseText(for: .licensed(info)) == L10n.ui("登録済み"))
     }
 
+    /// 文言の言語（地域は付けない）。複数形の期待値はこの規則で選ぶ
+    static var textLanguage: Locale {
+        Locale(identifier: Bundle.nonetUI.preferredLocalizations.first ?? "ja")
+    }
+
+    @Test("試用の残り日数は、地域の設定ではなく文言の言語の規則で数を数える（日本の地域でアプリが英語でも「1 day」）")
+    func licenseTextPlural() {
+        for days in [1, 2] {
+            #expect(MenuBarModel.licenseText(for: .trial(daysLeft: days))
+                == String(localized: "試用期間: 残り \(days) 日", bundle: .nonetUI, locale: Self.textLanguage))
+        }
+    }
+
+    @Test("文言のロケール: 言語は文言のもの、地域は今の設定")
+    func textLocale() {
+        let locale = Locale.localization("en", region: Locale.Region("JP"))
+        #expect(locale.language.languageCode == .english)
+        #expect(locale.region == Locale.Region("JP"))
+        #expect(Locale.localization("ja", region: nil).language.languageCode == .japanese)
+        #expect(Locale.localization(nil, region: nil) == Locale.current)
+        #expect(Locale.nonetUI.language.languageCode?.identifier == Bundle.nonetUI.preferredLocalizations.first)
+    }
+
     @Test("メニューの並び（普段）。アップデートの確認が無ければ出さない")
     func entries() {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(profile: "Xcode"))
@@ -97,6 +123,17 @@ struct ShellMenuBarTests {
         let entries = MenuBarModel.entries(for: ShellMenuState.make(updates: true))
         let license = try #require(entries.firstIndex(of: .license(L10n.ui("試用期間: 残り \(12) 日"))))
         #expect(entries[license + 1] == .checkForUpdates)
+    }
+
+    @Test("定期の確認で見つかったアップデートは「アップデートがあります…」で知らせる")
+    func updateAvailableEntry() throws {
+        let entries = MenuBarModel.entries(for: ShellMenuState.make(updates: true, updateAvailable: true))
+        let license = try #require(entries.firstIndex(of: .license(L10n.ui("試用期間: 残り \(12) 日"))))
+        #expect(entries[license + 1] == .updateAvailable)
+        #expect(!entries.contains(.checkForUpdates))
+        #expect(MenuBarEntry.updateAvailable.title == L10n.ui("アップデートがあります…"))
+        // アップデートを確認できないなら出さない
+        #expect(!MenuBarModel.entries(for: ShellMenuState.make(updates: false, updateAvailable: true)).contains(.updateAvailable))
     }
 
     @Test("許可が無ければ「アクセシビリティを許可…」を出す。無効のときは出さない")
@@ -130,6 +167,40 @@ struct ShellMenuBarTests {
         #expect(MenuBarEntry.showOnboarding.title == L10n.ui("初回の案内をもう一度"))
         #expect(MenuBarEntry.checkForUpdates.title == L10n.ui("アップデートを確認"))
         #expect(MenuBarEntry.quit.title == L10n.ui("終了"))
+    }
+
+    @Test("メニューの項目を押すと動く（宛先の selector が NSObject の performSelector: にならない）")
+    func menuItemsRun() throws {
+        let app = NSApplication.shared
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        var opened: [SettingsTab] = []
+        var onboarding = 0
+        var updates = 0
+        let menuBar = MenuBarController(
+            controller: harness.controller,
+            license: harness.license,
+            onOpenSettings: { opened.append($0) },
+            onOpenOnboarding: { onboarding += 1 },
+            onCheckForUpdates: { updates += 1 }
+        )
+        menuBar.isUpdateAvailable = true
+        let menu = menuBar.menu
+        menu.delegate?.menuNeedsUpdate?(menu)
+        func press(_ title: String) throws {
+            let item = try #require(menu.items.first { $0.title == title })
+            #expect(item.action.map(NSStringFromSelector) != "performSelector:")
+            #expect(app.sendAction(try #require(item.action), to: item.target, from: item))
+        }
+        try press(L10n.ui("設定…"))
+        try press(L10n.ui("プロファイルを編集…"))
+        try press(L10n.ui("初回の案内をもう一度"))
+        try press(L10n.ui("アップデートがあります…"))
+        #expect(opened == [.general, .profiles])
+        #expect(onboarding == 1)
+        #expect(updates == 1)
+        try press(L10n.ui("Nonet を有効にする"))
+        #expect(!harness.controller.configuration.settings.isEnabled)
     }
 
     @Test("NonetController と LicenseManager から状態を集める")

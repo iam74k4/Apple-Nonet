@@ -6,8 +6,10 @@ import SwiftUI
 /// 初回起動のウィンドウ（権限 → アプリを選ぶ → 試してみる → 完了）
 @MainActor
 public final class OnboardingWindowController {
-    /// 完了の画面の「設定を開く」。nil ならボタンを出さない
+    /// 完了の画面の「設定を開く」と、練習の画面の「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
+    /// アクセシビリティが許可されたときにウィンドウを前に出す（テストではウィンドウを出さずに数える）
+    var raiseWindow: () -> Void = {}
 
     let model: OnboardingModel
     private let controller: NonetController
@@ -32,6 +34,9 @@ public final class OnboardingWindowController {
             installedApps: services.installedApps,
             isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
         )
+        raiseWindow = { [weak self] in self?.bringToFront() }
+        // ライセンスの登録は設定で行い、案内は開いたまま戻ってこられるようにする
+        model.onOpenSettings = { [weak self] tab in self?.onOpenSettings?(tab) }
     }
 
     public func show() {
@@ -76,7 +81,7 @@ public final class OnboardingWindowController {
     /// 許可を1秒ごとに確かめ、練習の記録を見張る
     private func startWatching() {
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.model.pollPermission() }
+            MainActor.assumeIsolated { self?.checkPermission() }
         }
         permissionTimer = timer
         RunLoop.main.add(timer, forMode: .common)
@@ -85,6 +90,22 @@ public final class OnboardingWindowController {
         }, onChange: { [weak self] record in
             self?.model.handleExecution(record)
         })
+    }
+
+    /// 許可されたら、システム設定の後ろに隠れたウィンドウを前に出す（Nonet は Dock にも ⌘Tab にも出ないので、自分では探せない）
+    func checkPermission() {
+        if model.pollPermission() {
+            raiseWindow()
+        }
+    }
+
+    private func bringToFront() {
+        guard let window else { return }
+        // ほかのアプリが前面のときは前面にしてもらえないことがあるので、まずウィンドウだけでも前に出す
+        window.orderFrontRegardless()
+        NSApplication.shared.activate()
+        window.makeKeyAndOrderFront(nil)
+        model.setWindowKey(window.isKeyWindow)
     }
 
     private func openSettings() {

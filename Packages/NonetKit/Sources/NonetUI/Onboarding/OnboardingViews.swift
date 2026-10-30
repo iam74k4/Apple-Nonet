@@ -16,7 +16,7 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            OnboardingStepIndicator(step: model.step)
+            OnboardingStepIndicator(step: model.step, isAccessibilityGranted: model.isAccessibilityGranted)
                 .padding(.horizontal, OnboardingLayout.horizontalPadding)
                 .padding(.top, 22)
                 .padding(.bottom, 18)
@@ -35,6 +35,8 @@ struct OnboardingView: View {
                 .frame(height: 64)
         }
         .frame(width: OnboardingLayout.windowSize.width, height: OnboardingLayout.windowSize.height)
+        // 数で変わる文（1 app profile / 2 app profiles）を、文言の言語の規則で選ぶ
+        .environment(\.locale, .nonetUI)
     }
 
     @ViewBuilder
@@ -65,7 +67,7 @@ struct OnboardingView: View {
             } else if model.replacesProfiles {
                 Text("\(model.choices.count)個中\(model.selectedCount)個を選択中", bundle: .module)
             } else if model.additionCount > 0 {
-                Text("\(model.additionCount)個のアプリのプロファイルを追加します", bundle: .module)
+                Text(ShellText.additionNote(model.additionCount))
             } else {
                 Text("追加するアプリはありません", bundle: .module)
             }
@@ -124,8 +126,24 @@ struct OnboardingView: View {
 
 // MARK: - 上の段の進み具合
 
+/// 上の段の印
+enum OnboardingStepMark: Equatable {
+    case current
+    case done
+    /// 通り過ぎたが済んでいない（アクセシビリティを「あとで許可する」にした）
+    case skipped
+    case upcoming
+
+    static func mark(for step: OnboardingStep, current: OnboardingStep, isAccessibilityGranted: Bool) -> OnboardingStepMark {
+        if step == current { return .current }
+        guard step < current else { return .upcoming }
+        return step == .welcome && !isAccessibilityGranted ? .skipped : .done
+    }
+}
+
 struct OnboardingStepIndicator: View {
     let step: OnboardingStep
+    let isAccessibilityGranted: Bool
 
     private static let steps: [(OnboardingStep, LocalizedStringKey)] = [
         (.welcome, "アクセシビリティ"),
@@ -150,20 +168,28 @@ struct OnboardingStepIndicator: View {
     }
 
     private func stepLabel(number: Int, step: OnboardingStep, title: LocalizedStringKey) -> some View {
-        let isCurrent = step == self.step
-        let isDone = step < self.step
+        let mark = OnboardingStepMark.mark(for: step, current: self.step, isAccessibilityGranted: isAccessibilityGranted)
+        let isCurrent = mark == .current
         return HStack(spacing: 8) {
             ZStack {
-                if isCurrent {
+                switch mark {
+                case .current:
                     Circle().fill(Color.primary)
                     Text(verbatim: "\(number)")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color(nsColor: .windowBackgroundColor))
-                } else if isDone {
+                case .done:
                     Circle().strokeBorder(Color.primary, lineWidth: 1)
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
-                } else {
+                case .skipped:
+                    // 許可しないまま進んだ。済んだように見せない
+                    Circle().strokeBorder(Color.orange, lineWidth: 1)
+                    Image(systemName: "exclamationmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.orange)
+                        .accessibilityLabel(Text("許可されていません", bundle: .module))
+                case .upcoming:
                     Circle().strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
                     Text(verbatim: "\(number)")
                         .font(.system(size: 12))
@@ -280,8 +306,15 @@ struct OnboardingAppsStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Mac にあるアプリから、9マスを用意しました", bundle: .module)
-                    .font(.system(size: 22, weight: .bold))
+                Group {
+                    if model.choices.isEmpty {
+                        // 用意できるアプリが無いのに「用意しました」とは言わない
+                        Text("グローバルのプロファイルから始めましょう", bundle: .module)
+                    } else {
+                        Text("Mac にあるアプリから、9マスを用意しました", bundle: .module)
+                    }
+                }
+                .font(.system(size: 22, weight: .bold))
                 if !model.choices.isEmpty {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -362,21 +395,28 @@ struct OnboardingAppCard: View {
     var body: some View {
         Button(action: onToggle) {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
                     CellIconView(.app(bundleID: choice.app.bundleID), size: 24)
                     VStack(alignment: .leading, spacing: 1) {
+                        // 長い名前（Microsoft PowerPoint など）は縮めずに2行まで折り返す。ほかのカードと文字の大きさをそろえる
                         Text(choice.app.name)
                             .font(.system(size: 13, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .truncationMode(.tail)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(choice.category)
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                        // 設定済みの印は名前の行に置かない（名前が切れる）
+                        if choice.isConfigured {
+                            configuredBadge
+                                .padding(.top, 4)
+                        }
                     }
                     Spacer(minLength: 4)
-                    checkmark
+                    if !choice.isConfigured {
+                        selectionMark
+                    }
                 }
                 Text(choice.summary)
                     .font(.system(size: 11))
@@ -386,7 +426,8 @@ struct OnboardingAppCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // 同じ行のカードの高さをそろえる（名前が2行のカードがあっても）
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -420,17 +461,21 @@ struct OnboardingAppCard: View {
         }
     }
 
+    /// 無効のプロファイルも残す（案内では有効に戻さない）ので、そうと分かるように出す。読み上げと同じ文言
+    private var configuredBadge: some View {
+        (choice.isProfileDisabled ? Text("設定済み（無効）", bundle: .module) : Text("設定済み", bundle: .module))
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().strokeBorder(Color.secondary.opacity(0.5)))
+    }
+
     @ViewBuilder
-    private var checkmark: some View {
-        if choice.isConfigured {
-            // 無効のプロファイルも残す（案内では有効に戻さない）ので、そうと分かるように出す
-            (choice.isProfileDisabled ? Text("無効", bundle: .module) : Text("設定済み", bundle: .module))
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Capsule().strokeBorder(Color.secondary.opacity(0.5)))
-        } else if choice.isSelected {
+    private var selectionMark: some View {
+        if choice.isSelected {
             ZStack {
                 Circle().fill(Color.primary)
                 Image(systemName: "checkmark")
@@ -454,7 +499,8 @@ struct OnboardingPracticeStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("試してみる", bundle: .module)
+                // 上の段の「試してみる」（Try It Out）とは別の文言（見出しは sentence case）
+                Text("試してみよう", bundle: .module)
                     .font(.system(size: 22, weight: .bold))
                 Text(ShellText.practiceInstruction(model.trigger))
                     .font(.system(size: 17, weight: .semibold))
@@ -500,7 +546,7 @@ struct OnboardingPracticeFeedback: View {
             case .wrongCell(let index):
                 Image(systemName: "arrow.up.right.circle")
                     .font(.system(size: 18))
-                Text("いまのは「\(HUDAnnouncement.positionName(index))」のマスです。右上をタップしてみてください", bundle: .module)
+                Text(ShellText.wrongCellMessage(index))
                     .fixedSize(horizontal: false, vertical: true)
             case .succeeded:
                 Image(systemName: "checkmark.circle.fill")
