@@ -64,6 +64,7 @@
             <li><a href="#pages">Pages</a></li>
             <li><a href="#global-and-launcher">Global profile and launcher</a></li>
             <li><a href="#haptics">Haptic feedback</a></li>
+            <li><a href="#trackpad-alone">Using the trackpad alone</a></li>
           </ol>
         </li>
         <li><a href="#menu-bar">Menu bar</a></li>
@@ -209,7 +210,21 @@
     <p>If the front app has a profile, Nonet uses that app's buttons. In apps without a profile, Nonet uses the Global profile, which works in every app.</p>
     <p>The Global profile starts as a launcher with up to 27 apps on three pages, chosen from the apps on your Mac. It's a handy stand-in for Launchpad, which macOS 26 no longer has. You can change it like any other profile.</p>
     <h3 id="haptics">Haptic feedback</h3>
-    <p>Each time your finger crosses into another button, the trackpad gives a light tick. It also ticks when the page changes and when a button runs. You can choose the strength with the <strong>Haptic feedback</strong> setting.</p>
+    <p>Each time your finger crosses into another button, the trackpad gives a light tick. It also ticks when the page changes, when a button runs and when a corner hold brings up the nine buttons. You can choose the strength with the <strong>Haptic feedback</strong> setting.</p>
+    <h3 id="trackpad-alone">Using the trackpad alone</h3>
+    <p>You can also bring up the nine buttons without the trigger key, using only the trackpad. In the General tab of Settings, set <strong>Open with the trackpad alone</strong> to <strong>Touch and hold the top-left corner</strong> or <strong>Touch and hold the top-right corner</strong> (the default is <strong>Off</strong>). The trigger key keeps working as usual either way.</p>
+    <ol>
+      <li>Rest one finger in the corner you chose (the far left or far right corner of the trackpad) and keep it still for a moment (0.4 seconds)</li>
+      <li>The trackpad gives a light tick, the HUD appears, and the corner button under your finger is highlighted. The pointer stays put</li>
+      <li>Slide to the button you want and lift your finger to run the highlighted button</li>
+    </ol>
+    <ul>
+      <li>To cancel, lift your finger without sliding</li>
+      <li>Swipe left or right with two fingers to change pages. After a swipe, slide one finger again before you lift it (lifting right away runs nothing)</li>
+      <li>If you press any other key, Nonet steps aside without running anything. Pressing the trigger key switches to the usual trigger key controls</li>
+      <li>Nothing appears if your finger slides into the corner from elsewhere, if you touch with two or more fingers, or if your finger moves while you wait, so moving the pointer through a corner doesn't bring it up</li>
+      <li>Nothing appears once your trial has ended</li>
+    </ul>
 
     <h2 id="menu-bar">Menu bar</h2>
     <p>Click the 3×3 icon in the menu bar to open the Nonet menu.</p>
@@ -398,6 +413,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
         <tbody>
           <tr><td>Enable Nonet</td><td>On</td><td>When off, Nonet ignores the trigger key. You can also switch it in the Nonet menu and under the profile list</td></tr>
           <tr><td>Trigger key</td><td>Right ⌘ on JIS keyboards, right ⌥ on others</td><td>Right Command (⌘), Right Option (⌥), Right Shift (⇧) or fn. Nonet responds only to the right-side key. On a JIS keyboard, choosing right ⌥ shows a warning</td></tr>
+          <tr><td>Open with the trackpad alone</td><td>Off</td><td>Off, Touch and hold the top-left corner, or Touch and hold the top-right corner. Rest a finger in the corner for a moment to show the nine buttons, slide to a button, and lift your finger to run it (see <a href="#trackpad-alone">Using the trackpad alone</a> under Basics)</td></tr>
           <tr><td>Run on</td><td>Key Release</td><td>Whether a button you choose in the HUD runs when you release the trigger key (Key Release) or when you lift your finger (Finger Lift). Quick taps always run right away. Finger Lift changes how you cancel (see <a href="#cancel">Canceling</a> under Basics)</td></tr>
           <tr><td>HUD delay</td><td>0.30 s</td><td>0.15–0.80 s. Taps faster than this run right away, without the HUD</td></tr>
           <tr><td>HUD position</td><td>Center of Screen</td><td>Center of Screen or Near Pointer. The HUD appears on the display with the pointer</td></tr>

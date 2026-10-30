@@ -103,6 +103,11 @@ public final class NonetController {
     @ObservationIgnored private var saveFailureNotice: String?
     /// トリガーで最後に license.refresh() を頼んだ時刻（Scheduler.now）
     @ObservationIgnored private var lastLicenseRefresh: TimeInterval?
+    /// トラックパッドの角の長押し（GlobalSettings.touchActivation）。フレームはセッションの外の分もすべて渡す
+    @ObservationIgnored private var cornerHold = CornerHoldRecognizer()
+    /// 角の長押しを待っている指の、合図の時刻に動くタイマー
+    @ObservationIgnored private var cornerHoldTask: (any ScheduledTask)?
+    @ObservationIgnored private var cornerHoldDeadline: TimeInterval?
 
     public init(services: NonetServices, store: ConfigurationStore, hud: any HUDPresenting, license: LicenseManager) {
         self.services = services
@@ -131,9 +136,9 @@ public final class NonetController {
         services.keyboard.onEvent = { [weak self] event in
             self?.handleKeyboard(event)
         }
-        // セッションの外のフレームも渡す（トリガーより前から置いていた指を速押しと間違えないため）
+        // セッションの外のフレームも渡す（トリガーより前から置いていた指を速押しと間違えないため。角の長押しを見分けるため）
         services.touchSource.onFrame = { [weak self] frame in
-            self?.send(.touches(frame))
+            self?.receiveTouches(frame)
         }
         services.frontmostApp.onChange = { [weak self] _ in
             self?.updateActiveProfile()
@@ -154,6 +159,7 @@ public final class NonetController {
             tickTask = nil
             pollTask?.cancel()
             pollTask = nil
+            cancelCornerHoldTimer()
             services.keyboard.onEvent = nil
             services.touchSource.onFrame = nil
             services.frontmostApp.onChange = nil
@@ -164,8 +170,12 @@ public final class NonetController {
             if services.keyboard.isSuppressingPointer {
                 services.keyboard.isSuppressingPointer = false
             }
+            if services.keyboard.interruptsWithoutTrigger {
+                services.keyboard.interruptsWithoutTrigger = false
+            }
             engine = SessionEngine()
             session = nil
+            cornerHold = CornerHoldRecognizer()
             controllerLogger.info("停止しました")
         }
         saver.flush()
@@ -281,11 +291,7 @@ public final class NonetController {
         let now = services.scheduler.now
         switch event {
         case .triggerDown:
-            guard canBeginSession() else { return }
-            let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current)
-            // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
-            send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)
-            refreshLicenseAfterTrigger()
+            guard beginSession(.triggerKey, at: now) else { return }
             // フレームが届かなくなったトラックパッドを、利用者が触れる前に開始し直す（すぐに戻る）
             services.touchSource.revalidate()
         case .triggerUp:
@@ -293,6 +299,17 @@ public final class NonetController {
         case .interrupted:
             send(.interrupted(at: now))
         }
+    }
+
+    /// セッションを始める。トリガーキーと角の長押しのどちらもここを通る（同じ条件で始め、同じ前面アプリのページを使う）。
+    /// 始めたら true
+    private func beginSession(_ activation: SessionActivation, at now: TimeInterval) -> Bool {
+        guard canBeginSession() else { return false }
+        let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current, activation: activation)
+        // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
+        send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)
+        refreshLicenseAfterTrigger()
+        return true
     }
 
     private func canBeginSession() -> Bool {
@@ -316,6 +333,59 @@ public final class NonetController {
         services.scheduler.schedule(after: 0) { [weak self] in
             self?.license.refresh()
         }
+    }
+
+    // MARK: - 角の長押し
+
+    /// トラックパッドのフレーム。エンジンに渡してから、セッションの外なら角の長押しを見る
+    private func receiveTouches(_ frame: TouchFrame) {
+        send(.touches(frame))
+        let fired = cornerHold.apply(frame, corner: configuration.settings.touchActivation, isSessionActive: engine.isInSession)
+        cornerHoldChanged(fired: fired)
+    }
+
+    /// 長押しを待っている指があれば、合図の時刻にタイマーを置く（指を止めている間にフレームが来なくても始められるように）
+    private func cornerHoldChanged(fired: Bool) {
+        if fired {
+            cancelCornerHoldTimer()
+            beginCornerHoldSession()
+            return
+        }
+        guard let deadline = cornerHold.deadline else {
+            cancelCornerHoldTimer()
+            return
+        }
+        guard deadline != cornerHoldDeadline else { return }
+        cancelCornerHoldTimer()
+        cornerHoldDeadline = deadline
+        cornerHoldTask = services.scheduler.schedule(after: max(0, deadline - services.scheduler.now)) { [weak self] in
+            guard let self else { return }
+            self.cornerHoldTask = nil
+            self.cornerHoldDeadline = nil
+            let fired = self.cornerHold.tick(
+                at: self.services.scheduler.now,
+                corner: self.configuration.settings.touchActivation,
+                isSessionActive: self.engine.isInSession
+            )
+            self.cornerHoldChanged(fired: fired)
+        }
+    }
+
+    private func cancelCornerHoldTimer() {
+        cornerHoldTask?.cancel()
+        cornerHoldTask = nil
+        cornerHoldDeadline = nil
+    }
+
+    /// 角の長押しで、トリガーキーと同じ道筋（beginSession）でセッションを始める。試用期間が終わっていたら始めない
+    /// （角に指を置いただけで、何も実行できない HUD と帯が出ないように。トリガーキーなら帯を出して知らせる）
+    private func beginCornerHoldSession() {
+        guard license.canExecuteActions else {
+            controllerLogger.notice("試用期間が終わっているため、角の長押しでは始めません")
+            return
+        }
+        guard beginSession(.cornerHold, at: services.scheduler.now) else { return }
+        controllerLogger.debug("角の長押しでセッションを始めました")
     }
 
     // MARK: - エンジン
@@ -342,6 +412,10 @@ public final class NonetController {
                 session = starting
             }
             services.keyboard.isSuppressingPointer = true
+            // 角の長押しのセッションはトリガーを押していないので、ほかのキーで終えられるよう、モニターに見てもらう
+            if session?.activation == .cornerHold {
+                services.keyboard.interruptsWithoutTrigger = true
+            }
         case .endPointerSuppression(let dropsLateClicks):
             services.keyboard.endPointerSuppression(dropsLateClicks: dropsLateClicks)
         case .showHUD(let page, let highlightedCell):
@@ -365,6 +439,9 @@ public final class NonetController {
             tickTask = nil
             if services.keyboard.isSuppressingPointer {
                 services.keyboard.isSuppressingPointer = false
+            }
+            if services.keyboard.interruptsWithoutTrigger {
+                services.keyboard.interruptsWithoutTrigger = false
             }
             hideHUD()
             session = nil
@@ -579,7 +656,7 @@ public final class NonetController {
         services.touchSource.stop()
         isTouchSourceRunning = false
         // 止めた後はフレームが来ないので、触れていた指は離れたことにする
-        send(.touches(TouchFrame(timestamp: services.scheduler.now, points: [])))
+        receiveTouches(TouchFrame(timestamp: services.scheduler.now, points: []))
     }
 
     /// 動いていなければ始める。動いているか

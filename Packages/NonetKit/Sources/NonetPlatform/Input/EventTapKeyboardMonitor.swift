@@ -20,6 +20,11 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         }
     }
     public var onEvent: ((KeyboardEvent) -> Void)?
+    /// 角の長押しで始めたセッションの間、トリガーを押していなくてもキーで .interrupted を送る
+    public var interruptsWithoutTrigger: Bool {
+        get { detector.interruptsWithoutTrigger }
+        set { detector.interruptsWithoutTrigger = newValue }
+    }
 
     public var isRunning: Bool { keyboardTap != nil }
 

@@ -116,7 +116,21 @@ The Global profile starts as a launcher with up to 27 apps on three pages, chose
 
 ### Haptic feedback
 
-Each time your finger crosses into another button, the trackpad gives a light tick. It also ticks when the page changes and when a button runs. You can choose the strength with the **Haptic feedback** setting.
+Each time your finger crosses into another button, the trackpad gives a light tick. It also ticks when the page changes, when a button runs and when a corner hold brings up the nine buttons. You can choose the strength with the **Haptic feedback** setting.
+
+### Using the trackpad alone
+
+You can also bring up the nine buttons without the trigger key, using only the trackpad. In the General tab of Settings, set **Open with the trackpad alone** to **Touch and hold the top-left corner** or **Touch and hold the top-right corner** (the default is **Off**). The trigger key keeps working as usual either way.
+
+1. Rest one finger in the corner you chose (the far left or far right corner of the trackpad) and keep it still for a moment (0.4 seconds)
+2. The trackpad gives a light tick, the HUD appears, and the corner button under your finger is highlighted. The pointer stays put
+3. Slide to the button you want and lift your finger to run the highlighted button
+
+- To cancel, lift your finger without sliding
+- Swipe left or right with two fingers to change pages. After a swipe, slide one finger again before you lift it (lifting right away runs nothing)
+- If you press any other key, Nonet steps aside without running anything. Pressing the trigger key switches to the usual trigger key controls
+- Nothing appears if your finger slides into the corner from elsewhere, if you touch with two or more fingers, or if your finger moves while you wait, so moving the pointer through a corner doesn't bring it up
+- Nothing appears once your trial has ended
 
 ## Menu bar
 
@@ -300,6 +314,7 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 |---|---|---|
 | Enable Nonet | On | When off, Nonet ignores the trigger key. You can also switch it in the Nonet menu and under the profile list |
 | Trigger key | Right ⌘ on JIS keyboards, right ⌥ on others | Right Command (⌘), Right Option (⌥), Right Shift (⇧) or fn. Nonet responds only to the right-side key. On a JIS keyboard, choosing right ⌥ shows a warning |
+| Open with the trackpad alone | Off | Off, Touch and hold the top-left corner, or Touch and hold the top-right corner. Rest a finger in the corner for a moment to show the nine buttons, slide to a button, and lift your finger to run it (see [Using the trackpad alone](#using-the-trackpad-alone) under Basics) |
 | Run on | Key Release | Whether a button you choose in the HUD runs when you release the trigger key (Key Release) or when you lift your finger (Finger Lift). Quick taps always run right away. Finger Lift changes how you cancel (see [Canceling](#canceling) under Basics) |
 | HUD delay | 0.30 s | 0.15–0.80 s. Taps faster than this run right away, without the HUD |
 | HUD position | Center of Screen | Center of Screen or Near Pointer. The HUD appears on the display with the pointer |

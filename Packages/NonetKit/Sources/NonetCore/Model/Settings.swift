@@ -53,6 +53,16 @@ public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     case none
 }
 
+/// トリガーキーを使わずに、トラックパッドだけで9マスを出す方法。トリガーキーはどれを選んでもいつもどおり使える
+public enum TouchActivation: String, Codable, CaseIterable, Sendable {
+    /// 使わない
+    case off
+    /// 左上の角に1本指を置いて、少し待つ（CornerHoldRecognizer）
+    case topLeft
+    /// 右上の角に1本指を置いて、少し待つ
+    case topRight
+}
+
 public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
     public var trigger: TriggerKey
@@ -70,6 +80,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     /// HUD を出さずに実行したとき、実行したマスを一瞬表示する
     public var showExecutionToast: Bool
     public var cursorLock: CursorLockMethod
+    /// トラックパッドの角の長押しで9マスを出す。既定は使わない
+    public var touchActivation: TouchActivation
 
     public init(
         isEnabled: Bool = true,
@@ -82,7 +94,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         haptics: HapticStrength = .medium,
         passTriggerToApps: Bool = true,
         showExecutionToast: Bool = true,
-        cursorLock: CursorLockMethod = .automatic
+        cursorLock: CursorLockMethod = .automatic,
+        touchActivation: TouchActivation = .off
     ) {
         self.isEnabled = isEnabled
         self.trigger = trigger
@@ -95,6 +108,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         self.passTriggerToApps = passTriggerToApps
         self.showExecutionToast = showExecutionToast
         self.cursorLock = cursorLock
+        self.touchActivation = touchActivation
     }
 
     public static let hudDelayRange: ClosedRange<Double> = 0.15...0.8
@@ -106,7 +120,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
 extension GlobalSettings {
     private enum CodingKeys: String, CodingKey {
         case isEnabled, trigger, fireMode, hudDelay, hudPosition, autoSwitchProfiles
-        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock
+        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock, touchActivation
     }
 
     public init(from decoder: any Decoder) throws {
@@ -123,7 +137,8 @@ extension GlobalSettings {
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             passTriggerToApps: container.decodeLossy(Bool.self, forKey: .passTriggerToApps, default: defaults.passTriggerToApps),
             showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
-            cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock)
+            cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock),
+            touchActivation: container.decodeLossy(TouchActivation.self, forKey: .touchActivation, default: defaults.touchActivation)
         )
     }
 
@@ -140,6 +155,10 @@ extension GlobalSettings {
         try container.encode(passTriggerToApps, forKey: .passTriggerToApps)
         try container.encode(showExecutionToast, forKey: .showExecutionToast)
         try container.encode(cursorLock, forKey: .cursorLock)
+        // 使わない（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ使わないとして読む）
+        if touchActivation != .off {
+            try container.encode(touchActivation, forKey: .touchActivation)
+        }
     }
 
     /// 範囲外の値を直したもの
