@@ -392,13 +392,13 @@ test_pages_state_the_sales_terms() {
   en_terms="$(cat "$ROOT/site/en/terms.html")"
   legal="$(cat "$ROOT/site/tokushoho.html")"
   for text in "購入から30日以内なら、理由を問わず全額返金" "1つのライセンスで、あなたが使うすべての Mac に" "バージョン 1.x のアップデートはすべて無料" \
-    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "トラックパッドのその角に指を置いて少し待つ" \
-    "⌥ドラッグには左の⌥" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
+    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "外枠（9マスの外側の帯）まで滑らせて離します" \
+    "通り過ぎながら離しても実行しません" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
     assert_contains "$ja" "$text" "index.html"
   done
   for text in "Full refund within 30 days, no questions asked" "One license covers every Mac you use" "All 1.x updates are free" \
     "tested from the first beta" "you get a refund no matter when you bought it" "Each person needs their own license" \
-    "rest a finger in a top corner of the trackpad" "for ⌥-drag use left ⌥" "guide.html#uninstall" "On Force Touch trackpads" \
+    "Slide your finger out to the frame" "Lifting while you slide past doesn't run it" "guide.html#uninstall" "On Force Touch trackpads" \
     "Recorded shortcuts work the same on JIS, US and other layouts" "an independent Mac developer" "https://astlog.dev"; do
     assert_contains "$en" "$text" "en/index.html"
   done
@@ -416,6 +416,36 @@ test_pages_state_the_sales_terms() {
     assert_contains "$legal" "$text" "tokushoho.html"
   done
   assert_eq 1 "$(grep -c 'TODO: 販売サービス名' "$ROOT/site/tokushoho.html")" "tokushoho.html の販売サービス名の仮の値"
+}
+
+# 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、マスで離すと実行、外枠で離すとやめる）。
+# なくなった操作（トリガーキー・すぐにタップ・角に指を置く）を販売ページとダウンロードのページに書かない
+test_pages_describe_only_the_trackpad_controls() {
+  local page text
+  for page in index.html thanks.html terms.html; do
+    text="$(cat "$ROOT/site/$page")"
+    case "$page" in
+      terms.html) ;;
+      *) assert_contains "$text" "上の縁" "$page" ;;
+    esac
+    for old in "トリガー" "右⌘" "右⌥" "タップ" "角に指" "長押し" "キーを押している間" "キーを押したまま" "マスを押"; do
+      assert_not_contains "$text" "$old" "$page"
+    done
+  done
+  for page in en/index.html en/thanks.html en/terms.html; do
+    text="$(cat "$ROOT/site/$page")"
+    case "$page" in
+      en/terms.html) ;;
+      *) assert_contains "$text" "top edge" "$page" ;;
+    esac
+    for old in "trigger" "Trigger" "right ⌘" "Right ⌘" "right ⌥" "Right ⌥" "Hold the key" "hold a key" "Hold a key" "while you hold" "corner of the trackpad" " tap"; do
+      assert_not_contains "$text" "$old" "$page"
+    done
+  done
+  assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドの上の縁から指を下へ滑らせると"
+  assert_contains "$(cat "$ROOT/site/en/index.html")" "Slide a finger down from the top edge"
+  assert_contains "$(cat "$ROOT/site/thanks.html")" "外枠（9マスの外側）まで滑らせて離すと、何も実行せずに閉じます"
+  assert_contains "$(cat "$ROOT/site/en/thanks.html")" "slide out to the frame around the buttons and lift"
 }
 
 # 「ダウンロード」「無料で試す」はダウンロードのページ（thanks.html）へ。そのページが /download（Worker が最新の DMG へ飛ばす）を開く。
@@ -489,6 +519,38 @@ test_demo_markup_matches_the_script() {
     done
     assert_eq 9 "$(grep -c 'data-cell ' "$ROOT/site/$page")" "$page のマスの数"
     assert_eq 1 "$(grep -c 'class="cell on"' "$ROOT/site/$page")" "$page の静止画で光らせるマス"
+    # setUpDemo が探すクラス（.finger など）の要素もある
+    for name in $(grep -oE 'querySelector\("\.[a-z-]+"\)' <<<"$demo" | sed -E 's/.*"\.([a-z-]+)".*/\1/' | sort -u); do
+      grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません（script.js が使う）"
+    done
+    # トラックパッドの外枠（9マスの外側の帯）と、HUD の外枠・「離すとやめる」を描く。キーの絵はもう無い
+    for name in trackpad-cells trackpad-label hud-pad hud-cancel; do
+      grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません"
+    done
+    if grep -q 'class="key"' "$ROOT/site/$page"; then
+      fail "$page にキーの絵が残っています"
+    fi
+  done
+  if grep -qE 'key-down|captionTap|captionHud' <<<"$demo"; then
+    fail "script.js のデモに、キーを使っていたころの状態が残っています"
+  fi
+}
+
+# デモのトラックパッドの外枠の幅（style.css の .trackpad-cells と script.js の FRAME）は、アプリの外枠（GridMapper.cancelFrame）と同じ割合
+test_demo_frame_matches_the_app() {
+  local mapper="$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/GridMapper.swift" frame side css js ratio percent
+  frame="$(grep -E 'static let cancelFrame = GridInsets\(' "$mapper")"
+  [[ -n "$frame" ]] || fail "GridMapper.swift から cancelFrame を読めません"
+  css="$(awk '/^\.trackpad-cells \{/, /^\}/' "$ROOT/site/style.css")"
+  [[ -n "$css" ]] || fail "style.css に .trackpad-cells がありません"
+  js="$(grep -E 'const FRAME = \{' "$ROOT/site/script.js")"
+  [[ -n "$js" ]] || fail "script.js に FRAME がありません"
+  for side in left right top bottom; do
+    ratio="$(sed -nE "s/.*[(, ]$side: ([0-9.]+).*/\1/p" <<<"$frame")"
+    [[ -n "$ratio" ]] || fail "cancelFrame の $side を読めません: $frame"
+    percent="$(awk -v ratio="$ratio" 'BEGIN { printf "%g", ratio * 100 }')"
+    assert_contains "$css" "  $side: $percent%;" "style.css の .trackpad-cells（$side）"
+    assert_contains "$js" "$side: $percent" "script.js の FRAME（$side）"
   done
 }
 
@@ -751,23 +813,23 @@ test_guide_build_finds_stale_pages_and_broken_links() {
   assert_status 0
 
   # 見出しは同じで、本文の既定値だけが変わった
-  sed -i '' 's/| 0.30 s |/| 0.25 s |/' "$repo/docs/user-guide.en.md"
+  sed -i '' 's/| Haptic feedback | Medium |/| Haptic feedback | Strong |/' "$repo/docs/user-guide.en.md"
   build_guide --check --root "$repo"
   assert_status 1
   assert_contains "$OUT" "site/en/guide.html が Markdown と違います"
-  assert_contains "$OUT" "0.25 s"
+  assert_contains "$OUT" "<td>Strong</td>"
   assert_not_contains "$OUT" "--- site/guide.html"
   build_guide --root "$repo"
   assert_status 0
   build_guide --check --root "$repo"
   assert_status 0
-  assert_contains "$(cat "$repo/site/en/guide.html")" "<td>0.25 s</td>"
+  assert_contains "$(cat "$repo/site/en/guide.html")" "<td>Strong</td>"
 
   # 見出しの名前を変えると、それを指す #… のリンクが切れる
-  sed -i '' 's/^### Canceling$/### Cancelling a session/' "$repo/docs/user-guide.en.md"
+  sed -i '' 's/^### Opening the buttons$/### Opening Nonet/' "$repo/docs/user-guide.en.md"
   build_guide --check --root "$repo"
   assert_status 1
-  assert_contains "$OUT" "docs/user-guide.en.md: リンク先の見出しがありません: #canceling"
+  assert_contains "$OUT" "docs/user-guide.en.md: リンク先の見出しがありません: #opening-the-buttons"
 
   cp "$ROOT/docs/user-guide.en.md" "$repo/docs/"
   printf '\nSee [the FAQ](faq.md).\n' >>"$repo/docs/user-guide.md"

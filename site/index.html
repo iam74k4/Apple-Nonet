@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nonet — トラックパッドが、アプリごとの9つのボタンに</title>
-<meta name="description" content="キーを押している間だけ、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。迷ったときだけ9マスの一覧（HUD）が出る。14日間無料、買い切り、購入から30日以内なら全額返金。">
+<meta name="description" content="トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。9マスの一覧（HUD）を見ながら指で選び、マスで離すと実行。14日間無料、買い切り、購入から30日以内なら全額返金。">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nonet">
 <meta property="og:title" content="Nonet — トラックパッドが、9つのボタンになる">
-<meta property="og:description" content="キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンに。機器の買い足しも、ショートカットの暗記もいりません。">
+<meta property="og:description" content="上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンに。機器の買い足しも、ショートカットの暗記もいりません。">
 <meta property="og:url" content="https://nonet.astlog.dev/">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:locale:alternate" content="en_US">
@@ -38,7 +38,7 @@
   "name": "Nonet",
   "url": "https://nonet.astlog.dev/",
   "inLanguage": "ja",
-  "description": "キーを押している間だけ、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。",
+  "description": "トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "macOS 14 以降",
   "softwareRequirements": "マルチタッチのトラックパッド（MacBook の内蔵トラックパッドまたは Magic Trackpad）",
@@ -60,6 +60,7 @@
   <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
   <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
   <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
 </svg>
 
@@ -112,7 +113,7 @@
       <div class="hero-copy">
         <p class="eyebrow" lang="en">Trackpad macro pad for Mac</p>
         <h1><span class="nowrap">トラックパッドが、</span><span class="nowrap">9つのボタンになる。</span></h1>
-        <p class="lead">キーを押している間だけ、MacBook のトラックパッドが、アプリごとに変わる3×3のボタンに。Stream Deck のような機器を買い足さなくても、ショートカットを覚えなくても使えます。</p>
+        <p class="lead">トラックパッドの上の縁から指を下へ滑らせると、MacBook のトラックパッドが、アプリごとに変わる3×3のボタンに。キーは使わず、指1本で選んで、離すと実行します。Stream Deck のような機器を買い足さなくても、ショートカットを覚えなくても使えます。</p>
         <div class="cta">
           <a class="btn" href="thanks.html">14日間無料で試す</a>
           <a class="btn btn-secondary" href="#how">使い方を見る</a>
@@ -129,39 +130,43 @@
       </div>
 
       <figure class="demo" data-demo
-        data-caption-hud="迷ったら、指を置いて止まる。9マスの一覧（HUD）を見ながら選んで、キーを離すと実行。"
-        data-caption-tap="慣れたら、押してすぐタップ。HUD を出さずにその場で実行。"
+        data-caption-run="上の縁から指を下へ滑らせると、9マスの一覧（HUD）が開く。指を滑らせて選び、マスで離すと実行。"
+        data-caption-cancel="やめるときは、外枠（9マスの外側）まで滑らせて離す。何も実行せずに閉じる。"
         data-label-pause="動きを止める"
         data-label-play="動かす">
         <div class="demo-stage" aria-hidden="true">
           <div class="screen">
             <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
             <div class="hud">
-              <div class="hud-head"><span class="hud-title">Xcode</span><span>⌘を離して実行</span></div>
-              <div class="hud-grid">
-                <div class="cell" data-cell data-label="ビルド"><svg class="icon"><use href="#i-play"/></svg>ビルド</div>
-                <div class="cell" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg>テスト</div>
-                <div class="cell" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg>シミュレータ</div>
-                <div class="cell" data-cell data-label="ターミナル"><svg class="icon"><use href="#i-terminal"/></svg>ターミナル</div>
-                <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
-                <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
-                <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
-                <div class="cell" data-cell data-label="ミュート"><svg class="icon"><use href="#i-micoff"/></svg>ミュート</div>
-                <div class="cell" data-cell data-label="スクショ"><svg class="icon"><use href="#i-capture"/></svg>スクショ</div>
+              <div class="hud-head"><span class="hud-title">Xcode</span><span>マスで指を離すと実行</span></div>
+              <div class="hud-pad">
+                <div class="hud-grid">
+                  <div class="cell" data-cell data-label="ビルド"><svg class="icon"><use href="#i-play"/></svg>ビルド</div>
+                  <div class="cell" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg>テスト</div>
+                  <div class="cell" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg>シミュレータ</div>
+                  <div class="cell" data-cell data-label="ターミナル"><svg class="icon"><use href="#i-terminal"/></svg>ターミナル</div>
+                  <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                  <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
+                  <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
+                  <div class="cell" data-cell data-label="ミュート"><svg class="icon"><use href="#i-micoff"/></svg>ミュート</div>
+                  <div class="cell" data-cell data-label="スクショ"><svg class="icon"><use href="#i-capture"/></svg>スクショ</div>
+                </div>
+                <div class="hud-cancel"><svg class="icon"><use href="#i-cross"/></svg>離すとやめる</div>
               </div>
             </div>
             <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>ビルド</span></div>
           </div>
-          <div class="controls">
-            <div class="key">右⌘</div>
-            <div class="trackpad">
-              <svg class="trackpad-lines" viewBox="0 0 208 130" preserveAspectRatio="none"><path d="M69.3 0V130 M138.7 0V130 M0 43.3H208 M0 86.7H208" vector-effect="non-scaling-stroke"/></svg>
-              <span class="ripple"></span>
-              <span class="finger"></span>
+          <div class="trackpad">
+            <div class="trackpad-cells">
+              <svg class="trackpad-lines" viewBox="0 0 162 88" preserveAspectRatio="none"><path d="M54 0V88 M108 0V88 M0 29.3H162 M0 58.7H162" vector-effect="non-scaling-stroke"/></svg>
             </div>
+            <span class="trackpad-label">外枠</span>
+            <span class="trail"></span>
+            <span class="ripple"></span>
+            <span class="finger"></span>
           </div>
         </div>
-        <figcaption data-demo-caption>右⌘を押している間、トラックパッドが9つのボタンになる。迷ったときだけ、9マスの一覧（HUD）が出る。</figcaption>
+        <figcaption data-demo-caption>トラックパッドの上の縁から指を下へ滑らせると、9つのボタンが開く。9マスの一覧（HUD）を見ながら指を滑らせて選び、マスで離すと実行。</figcaption>
         <button class="demo-toggle" type="button" data-demo-toggle hidden>動きを止める</button>
       </figure>
     </div>
@@ -179,7 +184,7 @@
         <li>
           <span class="num">02</span>
           <h3>覚えなくていい</h3>
-          <p>押す前に9マスが見える。迷ったときだけ出るから、慣れても邪魔にならない。</p>
+          <p>開くとすぐに9マスの一覧が出るから、見ながら選べる。迷ったら外枠で指を離せば、何も実行しない。</p>
         </li>
         <li>
           <span class="num">03</span>
@@ -193,36 +198,37 @@
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
       <div class="section-head">
-        <h2 id="how-title">迷ったときだけ、HUDが出る</h2>
-        <p>キーを押してから指を置くまでの時間で、表示を切り替える。慣れた人の速さと、初めての人の安心を両立する。トラックパッドを縦横3つずつに分け、指を置いた位置でマスが決まる。</p>
+        <h2 id="how-title">上の縁から滑らせて、マスで離す</h2>
+        <p>キーもクリックも使いません。トラックパッドの上の縁に指を置いて下へ滑らせると9マスの一覧（HUD）が開き、そのまま指を滑らせて選んで、マスで離すと実行します。トラックパッドは、縦横3つずつのマスと、その周りの外枠に分かれています。</p>
       </div>
       <div class="flows">
         <div class="flow">
-          <h3>慣れたら：見ないで実行</h3>
+          <h3>実行する</h3>
           <ol class="steps">
-            <li class="step"><b>右⌘を押す</b><span>トリガーキー</span></li>
-            <li class="step"><b>すぐ指でタップ</b><span>0.3秒以内</span></li>
-            <li class="step is-goal"><b>その場で実行</b><span>HUD なしで最速</span></li>
+            <li class="step"><b>上の縁に指を置く</b><span>指は1本</span></li>
+            <li class="step is-hud"><b>下へ滑らせる</b><span>9マスの一覧（HUD）が開く</span></li>
+            <li class="step"><b>指を滑らせて選ぶ</b><span>指の下のマスが白く光る</span></li>
+            <li class="step is-goal"><b>マスで離す</b><span>選んだマスを実行する</span></li>
           </ol>
         </div>
         <div class="flow">
-          <h3>迷ったら：見て確かめる</h3>
+          <h3>やめる：何も実行しない</h3>
           <ol class="steps">
-            <li class="step"><b>右⌘を押す</b><span>トリガーキー</span></li>
-            <li class="step"><b>指を置いて止まる</b><span>どのマスだっけ？</span></li>
-            <li class="step is-hud"><b>HUD が出る</b><span>見ながらマスを選ぶ</span></li>
-            <li class="step is-goal"><b>⌘を離して実行</b><span>選んだマスが動く</span></li>
+            <li class="step"><b>上の縁から開く</b><span>実行するときと同じ</span></li>
+            <li class="step is-hud"><b>外枠まで滑らせる</b><span>「✕ 離すとやめる」が出る</span></li>
+            <li class="step is-goal"><b>外枠で離す</b><span>何も実行せずに閉じる</span></li>
           </ol>
         </div>
       </div>
       <ul class="notes">
-        <li>キーを押したままなら、何度でも続けてタップできる</li>
-        <li>やめるときは、指を先に離してからキーを離す。何も実行しない</li>
-        <li>押している間はポインタが止まり、クリックも前面のアプリに届かない</li>
-        <li>HUD が出るまでの時間は設定で変えられる（0.15〜0.8秒）</li>
+        <li>ゆっくり動かしたときや、2本指・手のひら・クリックしたままのドラッグでは開かない</li>
+        <li>開いている間はポインタが止まり、クリックも前面のアプリに届かない</li>
+        <li>マスで少し止まってから離すと実行し、通り過ぎながら離しても実行しない</li>
+        <li>外枠は、トラックパッドの縁に沿った幅1.5〜1.7cmほどの帯（幅15cmほどのトラックパッドで）</li>
+        <li>キーを押しても、何も実行せずに閉じる（キーはふだんどおりアプリに届く）</li>
         <li>2本指で左右にスワイプすると、次のページの9マスへ</li>
-        <li>トリガーキーは JIS 配列なら右⌘、それ以外は右⌥。右⇧・fn も選べる</li>
-        <li>キーを使わずに、トラックパッドの上の角に指を置いて少し待っても開ける（設定 › 一般）</li>
+        <li>送信のように取り消せないマスは、「少し長く止めてから実行」にできる</li>
+        <li>「このアプリでは使わない」にしたアプリでは開かず、トラックパッドはいつもどおり</li>
       </ul>
     </div>
   </section>
@@ -393,7 +399,7 @@
         <details id="faq-trial-end">
           <summary>試用期間が終わるとどうなりますか？</summary>
           <div class="answer">
-            <p>HUD に「試用期間が終了しました」と表示され、マスを押しても実行されなくなります。設定はそのまま残るので、ライセンスキーを入れればすぐに元どおり使えます。</p>
+            <p>上の縁から指を滑らせても9マスが開かなくなり、画面の下に「試用期間が終了しました」と表示されます。設定はそのまま残るので、ライセンスキーを入れればすぐに元どおり使えます。</p>
           </div>
         </details>
         <details id="faq-requirements">
@@ -406,41 +412,48 @@
         <details id="faq-mouse">
           <summary>マウスだけの Mac でも使えますか？</summary>
           <div class="answer">
-            <p>使えません。指を置いた位置でマスを選ぶので、トラックパッドが必要です。Mac mini や Mac Studio でも、Magic Trackpad をつなげば使えます。</p>
+            <p>使えません。トラックパッドの上の縁から指を滑らせて開き、指の位置でマスを選ぶので、トラックパッドが必要です。Mac mini や Mac Studio でも、Magic Trackpad をつなげば使えます。</p>
           </div>
         </details>
         <details id="faq-permissions">
           <summary>どんな権限が必要ですか？</summary>
           <div class="answer">
-            <p>「アクセシビリティ」の許可が必要です（システム設定 › プライバシーとセキュリティ）。トリガーキーの検出、押している間のポインタとクリックの抑止、キー入力の送出、メニュー項目の操作に使います。指の位置を読むのに許可は要りません。</p>
+            <p>「アクセシビリティ」の許可が必要です（システム設定 › プライバシーとセキュリティ）。9マスが開いている間にポインタを止めてクリックを前面のアプリに届けないこと、開いている間にキーが押されたら閉じること、アクションでのキー入力の送出・メニュー項目の操作・選択中のテキストの読み取りに使います。指の位置を読むのに許可は要りません。</p>
             <p>スクリプトでブラウザの URL（NONET_BROWSER_URL）を使うときだけ、macOS が初回に「オートメーション」の確認を出します。ターミナルで実行するときは出ません。</p>
           </div>
         </details>
         <details id="faq-privacy">
           <summary>入力した内容や使い方が送られることはありますか？</summary>
           <div class="answer">
-            <p>ありません。キー入力の中身は記録も送信もしません。設定は Mac の中（<code>~/Library/Application Support/Nonet</code>）だけに保存し、アカウントもありません。ネットワークを使うのは、アップデートの確認と購入ページを開くときだけです。</p>
+            <p>ありません。キーボードを見るのは9マスが開いている間だけで、それもキーが押されたことに気づいて閉じるためです。キー入力の中身は記録も送信もしません。設定は Mac の中（<code>~/Library/Application Support/Nonet</code>）だけに保存し、アカウントもありません。ネットワークを使うのは、アップデートの確認と購入ページを開くときだけです。</p>
             <p>詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
           </div>
         </details>
-        <details id="faq-jis">
-          <summary>JIS キーボードでも使えますか？</summary>
+        <details id="faq-accidental">
+          <summary>ふだんトラックパッドを使っているときに、うっかり開きませんか？</summary>
           <div class="answer">
-            <p>使えます。JIS 配列には右⌥がないので、既定のトリガーキーは右⌘です。右⇧や fn にも変えられます。</p>
-            <p>⌘英かな や Karabiner-Elements などで右⌘の単押しを使っている場合はぶつかることがあるので、トリガーキーを変えてください。</p>
+            <p>開くのは、1本の指をトラックパッドの上の縁に置いて、すっと下へ滑らせたときだけです。ゆっくり動かしたとき、2本以上の指や手のひらが触れているとき、上の縁の外から入ってきた指、クリックしたままのドラッグでは開きません。</p>
+            <p>使わないアプリは、Nonet のメニューの「このアプリでは使わない」で外せます。そのアプリでは、上の縁から滑らせてもトラックパッドはいつもどおりです。</p>
           </div>
         </details>
-        <details id="faq-option-key">
-          <summary>⌥で記号を入力したり、⌥を押しながらドラッグしたりします。邪魔になりませんか？</summary>
+        <details id="faq-cancel">
+          <summary>開いたあと、何も実行せずに閉じるには？</summary>
           <div class="answer">
-            <p>トリガーキーを押している間にほかのキーを押すと、Nonet はすぐに引っ込み、キーは普段どおりアプリに届きます。</p>
-            <p>押している間はポインタとクリックが止まるので、⌥ドラッグには左の⌥を使うか、トリガーキーを右⌘・右⇧・fn に変えてください。</p>
+            <p>指を外枠（9マスの外側の帯）まで滑らせて離します。外枠に入るとマスが暗くなり、「✕ 離すとやめる」と出ます。キーを押しても閉じます（キーはふだんどおり前面のアプリに届きます）。何も実行せずに閉じたときは、軽く2回振動します。</p>
           </div>
         </details>
-        <details id="faq-without-key">
-          <summary>キーを押したままの操作が難しいときは？</summary>
+        <details id="faq-hold">
+          <summary>送信のような取り消せない操作を、うっかり実行しませんか？</summary>
           <div class="answer">
-            <p>キーを使わずに開く方法があります。設定 › 一般 の「トラックパッドだけで呼び出す」で左上か右上の角を選ぶと、トラックパッドのその角に指を置いて少し待つだけで9マスの一覧が出ます。そのまま指を滑らせてマスを選び、マスの上で指を止めてから離すと実行します。</p>
+            <p>マスは、指を少し止めてから離したときだけ実行します。通り過ぎながら離しても実行しません。</p>
+            <p>送信や録音のように取り消せないマスは、マスの設定で「少し長く止めてから実行」にできます。指を0.6秒ほど止めて、HUD のマスの縁が一周してから離したときだけ実行します。</p>
+          </div>
+        </details>
+        <details id="faq-keyboard">
+          <summary>キーボードでの入力やショートカットの邪魔になりませんか？</summary>
+          <div class="answer">
+            <p>なりません。開くのはトラックパッドだけで、キーは使いません。Nonet がキーボードを見るのは9マスが開いている間だけで、そのときにキーを押すと何も実行せずに閉じ、キーはふだんどおりアプリに届きます。</p>
+            <p>マスに記録したショートカットは、JIS・US などの配列でも同じように届きます。</p>
           </div>
         </details>
         <details id="faq-app-store">
@@ -458,7 +471,7 @@
         <details id="faq-stream-deck">
           <summary>Stream Deck とは何が違いますか？</summary>
           <div class="answer">
-            <p>Stream Deck は、Elgato の液晶つきのキーが並んだ専用のデバイスです。Nonet はソフトウェアで、MacBook のトラックパッドをボタンとして使います。追加の機器は要りませんが、押した感触のあるキーやキーごとの画面はなく、トリガーキーを押している間だけボタンになります。</p>
+            <p>Stream Deck は、Elgato の液晶つきのキーが並んだ専用のデバイスです。Nonet はソフトウェアで、MacBook のトラックパッドをボタンとして使います。追加の機器は要りませんが、押した感触のあるキーやキーごとの画面はなく、上の縁から指を滑らせて開いたときだけボタンになります。</p>
           </div>
         </details>
       </div>

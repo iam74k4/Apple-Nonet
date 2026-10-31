@@ -37,15 +37,20 @@ test_user_guide_covers_every_script_variable() {
   done
 }
 
-# 「指を離したとき」（ExecutionTiming.onFingerLift）では指を離すと実行されるので、やめ方は実行のタイミングごとに書く
-test_user_guide_cancel_covers_both_execution_timings() {
-  local section
+# やめ方（SessionCancellation・SessionEnd.interrupted）を、利用ガイドの「やめる」の節がすべて書いている。
+# 外枠の幅は GridInsets.cancelFrame と同じ数字にする
+test_user_guide_cancel_covers_every_way_to_cancel() {
+  local section frame
   section="$(sed -n '/^### やめる/,/^##/p' "$ROOT/docs/user-guide.md")"
   [[ -n "$section" ]] || fail "docs/user-guide.md に「やめる」の節がありません"
-  assert_contains "$section" "「キーを離したとき」（既定）" "やめる: 既定のタイミングでのやめ方"
-  assert_contains "$section" "「指を離したとき」" "やめる: 指を離したときのやめ方"
-  assert_contains "$section" "左の⇧" "やめる: ほかのキーで中断できること"
+  assert_contains "$section" "外枠で離す" "やめる: 外枠で離せば何も実行しないこと"
+  assert_contains "$section" "キーを押す" "やめる: キーで閉じられること"
   assert_contains "$section" "空きマス" "やめる: 空きマスで離せば何も起きないこと"
+  assert_contains "$section" "境目" "やめる: マスの境目で離せば実行しないこと"
+  assert_contains "$section" "20秒" "やめる: 長すぎる操作は自動で閉じること"
+  frame="$(grep -E 'static let cancelFrame' "$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/GridMapper.swift")"
+  assert_contains "$frame" "left: 0.11, right: 0.11, bottom: 0.15, top: 0.17" "外枠の幅が変わったら、利用ガイドの「やめる」の数字も直す"
+  assert_contains "$section" "左右の端から幅の 11%、手前の端から奥行きの 15%、奥の端から 17%" "やめる: 外枠の幅"
 }
 
 # ドキュメントに書いた release.sh のオプションが、スクリプトにあること

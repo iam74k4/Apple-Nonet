@@ -1,30 +1,27 @@
 # 英語用語集
 
-このファイルは Nonet の英語版の用語集で、翻訳する人のための訳語の基準です。アプリの文字列カタログ（`Localizable.xcstrings`）、設定画面、利用ガイド、販売サイト（`site/en/`）を英語にするときは、ここにある訳語をそのまま使ってください。macOS に Apple 自身の用語があるもの（システム設定、アクセシビリティ、ショートカット、Open at Login など）はそれに合わせました。公開済みの英語サイトの言い回しとも食い違わないようにしています。大文字・小文字の使い分けも Apple に合わせます。ウインドウ名、メニュー項目、ボタン、ポップアップの選択肢、タブ名は Title Case にします（例: Check for Updates…、Key Release）。設定の項目名、チェックボックス、説明文、メッセージは、文頭だけを大文字にする sentence case にします（例: Open at login）。販売サイトの見出しは今のまま sentence case です。新しい用語が必要になったら、訳す前にこの表へ追加してください。
+このファイルは Nonet の英語版の用語集で、翻訳する人のための訳語の基準です。アプリの文字列カタログ（`Localizable.xcstrings`）、設定画面、利用ガイド、販売サイト（`site/en/`）を英語にするときは、ここにある訳語をそのまま使ってください。macOS に Apple 自身の用語があるもの（システム設定、アクセシビリティ、ショートカット、Open at Login など）はそれに合わせました。公開済みの英語サイトの言い回しとも食い違わないようにしています。大文字・小文字の使い分けも Apple に合わせます。ウインドウ名、メニュー項目、ボタン、ポップアップの選択肢、タブ名は Title Case にします（例: Check for Updates…、Center of Screen）。設定の項目名、チェックボックス、説明文、メッセージは、文頭だけを大文字にする sentence case にします（例: Open at login）。販売サイトの見出しは今のまま sentence case です。新しい用語が必要になったら、訳す前にこの表へ追加してください。
 
 | Japanese | English | Note |
 |---|---|---|
 | Nonet | Nonet | Product name. Never translate, never all caps. |
-| トリガーキー | trigger key | Lowercase in prose ("hold the trigger key"). The settings label is "Trigger key". "trigger" alone is fine where space is tight. The site already uses this term. Do not use "hotkey" or "activation key". |
-| 右⌘ / 右⌥ / 右⇧ / fn | right ⌘ / right ⌥ / right ⇧ / fn | In prose, follow the site ("Hold right ⌥"; capitalized only at the start of a sentence). In pop-up options, use "Right Command (⌘)", "Right Option (⌥)", "Right Shift (⇧)" and "fn". Keep "fn" lowercase as printed on the key. Docs may add "(Globe)" because newer keyboards label the key 🌐. |
-| トリガーキーを押す / 押している間 / 離す | press / hold / release | "Press" is the moment the key goes down, "hold" means keeping it down, and "release" means letting go. Site: "Hold right ⌥", "Release ⌥ to run". |
+| 上の縁 | top edge | The top edge of the trackpad, where the nine buttons are opened from. In prose: "the top edge of the trackpad". Do not use "top border" or "top side". |
+| 開く動き / 上の縁から開く | slide down from the top edge / Open from the top edge | The only way to open the nine buttons: place one finger on the top edge of the trackpad and slide it straight down. App: "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons.", "Slide a finger down from the top edge of the trackpad to open the HUD". 上の縁から開く is the welcome guide's tip title "Open from the top edge". Internal code calls the gesture the edge slide (`EdgeSlideRecognizer`); users never see that name. Never "swipe down" (a two-finger swipe changes pages), "pull down" or "press". |
+| 外枠 | frame | The band around the nine buttons on the trackpad. Lifting your finger there closes the HUD without running anything. App: "Lift in the frame to cancel", "slide out to the frame around the nine buttons". Do not use "border", "edge" (that is the top edge or the line between buttons) or "margin". |
+| キーを押す（閉じる） | press a key | Keyboard only. Pressing any key while the nine buttons are open closes them without running anything, and the key still reaches the front app: "Pressing a key also closes them.", "or press any key". |
 | 修飾キー | modifier key | Apple term. |
-| マス | button | Use "button" everywhere users see it: the app, the guide and the site. The site's visible English copy already uses "button" throughout: the title "nine buttons for every app", "Slide to a button", "drag it onto an empty button", "buttons no longer run" in the FAQ, and "profiles, buttons, actions" in the privacy policy. In Japanese, the app and the guide call the nine cells マス everywhere (menu items, tips, the filter placeholder, Settings); 9つのボタン appears only in the marketing-style welcome line (and on the Japanese site), so マス never competes with real push buttons in Settings. "cell" and "tile" appear only as HTML/CSS class names in the site's demo and illustrations, and in code such as `CellIconView`. Users never see them, so they can stay as code names. "cell" reads like a spreadsheet cell and "tile" like a passive decoration. "button" tells people they press it and something runs. To avoid confusing it with push buttons in the Settings window, docs refer to on-screen controls by their label ("click Add Profile"), not as "the … button". |
+| マス | button | Use "button" everywhere users see it: the app, the guide and the site. The site's visible English copy already uses "button" throughout: the title "nine buttons for every app", "Slide to a button", "drag it onto an empty button", "buttons no longer run" in the FAQ, and "profiles, buttons, actions" in the privacy policy. In Japanese, the app and the guide call the nine cells マス everywhere (menu items, tips, the filter placeholder, Settings); 9つのボタン appears only in the marketing-style welcome line (and on the Japanese site), so マス never competes with real push buttons in Settings. "cell" and "tile" appear only as HTML/CSS class names in the site's demo and illustrations, and in code such as `CellIconView`. Users never see them, so they can stay as code names. "cell" reads like a spreadsheet cell and "tile" like a passive decoration. "button" tells people that choosing it runs something (on the trackpad you lift your finger on it; you never press it). To avoid confusing it with push buttons in the Settings window, docs refer to on-screen controls by their label ("click Add Profile"), not as "the … button". |
 | 9マス / 9つのボタン | the nine buttons; 3×3 grid | Spell out "nine" for the set (site). Use "grid" only for the layout itself ("split into a 3×3 grid"). Always use × (U+00D7), never x. |
 | 空きマス | empty button | Site: "an empty button". Do not use "blank" or "unassigned". |
 | マスの境界 | edge (between buttons) | Site: "A tick at every edge", "crosses into another button". |
 | HUD | HUD | Keep the acronym and write "the HUD". Do not expand it in the UI. The user guide may explain it once: "the HUD, an overlay that shows all nine buttons". Do not use "heads-up display", "overlay" or "palette" as its name. |
 | ハイライト / 白く光る | highlight / highlighted | "The button under your finger is highlighted." Do not use "glow" or "light up". |
-| すぐにタップ（速押し） | quick tap | Pressing the trigger key and tapping before the HUD delay runs the button right away without the HUD. A quick tap on the visible HUD also runs the button. The site describes it ("press and tap", "run without looking"). The app and guide use "quick tap" as the noun ("A quick tap runs right away"). The welcome guide's task すぐにタップ is "Tap right away". New Japanese text says すぐにタップ, not 速押し. Do not use "fast press" or "flick". |
-| 実行する | run | Site: "It runs right away", "buttons no longer run". Use "run" for buttons, actions, scripts and shortcuts. Avoid "execute" and "fire". Do not use "trigger" as a verb, because the word belongs to the trigger key. |
-| 実行のタイミング | Run on | Settings label. Its options are the next two rows. In prose: "set **Run on** to **Finger Lift**". |
-| キーを離したとき | Key Release | The default option of Run on (`onTriggerRelease`). In prose: "when you release the trigger key". |
-| 指を離したとき | Finger Lift | Option of Run on (`onFingerLift`). In prose: "when you lift your finger". |
-| 指を置く / 置いたまま止める | rest your finger | Site: "Rest your finger and the HUD appears". The trackpad-alone gesture is always "rest a finger in the corner (for a moment)"; Japanese says 角に指を置いて少し待つ. Never 長押し / 押したまま / 押す, or "press" / "press and hold" / "touch and hold", for it: on a trackpad "press" means click. |
-| 指を滑らせる | slide | Site: "Slide to a button". |
-| タップ / マスを押す | tap | "tap a button". Do not use "click" or "press" for trackpad buttons. |
-| 指を離す | lift your finger | |
-| やめる（キャンセル） | cancel | "To cancel, …". The button label is "Cancel". |
+| 実行する | run | Site: "buttons no longer run". Use "run" for buttons, actions, scripts and shortcuts. Avoid "execute", "fire" and "trigger" (as a verb). |
+| 指を置く | place a finger | The start of the opening slide: "Place a finger on the top edge of the trackpad". Japanese uses only 置く / 滑らせる / 止める / 離す for the trackpad, never 長押し / 押したまま / 押す; English never uses "press", "press and hold", "touch and hold", "tap" or "click" for it: on a trackpad "press" means click. 押す is fine for keys and on-screen buttons. |
+| 指を滑らせる | slide | App: "Slide to choose". Site: "Slide to a button". |
+| 指を止める | hold your finger (on a button) | Keeping the finger still on a button before lifting. Used for 少し長く止めてから実行: "hold your finger on this button a little longer before lifting". Not "rest", "wait" or "press and hold". |
+| 指を離す | lift your finger | App: "Lift on a button to run", "Lift in the frame to cancel", "Lift to cancel". |
+| やめる（キャンセル） | cancel | "To cancel, …". The HUD says "Lift to cancel" while the finger is in the frame. The button label is "Cancel". |
 | 2本指で左右にスワイプ | swipe left or right with two fingers | Site wording. The noun is "two-finger swipe". |
 | ページ | page | "up to three pages (27 buttons)", "the next page of nine". |
 | HUD の下の点 | page dots | The dots under the HUD that show the current page. |
@@ -92,23 +89,19 @@
 | 名前を変更… / ページの名前 | Rename… / Page Name | Renaming a page. A named page shows in the HUD title as "Xcode · Debug". |
 | ページの操作 / ページを追加 / このページを削除… | Page Actions / Add Page / Delete This Page… | The … menu next to the page chips (its help tag and VoiceOver label are "Page Actions"). It acts on the selected page and also has Rename…. The menu item Add Page has its own key (`settings.pageMenu.addPage`), because the + button's help tag ページを追加 is "Add page". |
 | 以前の設定に戻す… / 戻す… / この設定に戻す / 控え | Restore an Earlier Version… / Restore… / Restore / saved version | Button under Export & Import, its sheet and its confirmation. In prose, 控え (a saved copy of the settings) is "saved version". Don't call it a "backup" in the UI, so it isn't confused with an exported file. |
-| このマスをテスト実行 | Test This Button | Context menu command. In prose: "test run". |
+| このマスをテスト実行 | Test This Button | Context menu command. In prose: "test run". Nonet doesn't open from the top edge while its own window is the key window (Settings uses the trackpad for dragging buttons), so this is how to try a button from Settings. |
+| 少し長く止めてから実行 | Hold before running | Inspector checkbox (`Cell.requiresHold`; the configuration file still calls it `requiresHUD`) and the VoiceOver value of the timer mark at the top right of such a button in the HUD and the Settings grid. Sentence case. The button runs only if the finger stays on it about 0.6 seconds; meanwhile its outline in the HUD fills around. Caption: "Runs only if you hold your finger on this button a little longer before lifting. When the outline in the HUD goes all the way around, lift to run." Do not use "long press", "press and hold" or "confirm". |
+| 共通マス | Shared Buttons / shared button | Buttons that appear in the same spot on every page of every profile (app profiles, Global and launcher pages), in place of that spot's own button, which is kept and comes back when sharing stops. "Shared Buttons" (Title Case) is the row in the profile list; its caption is "Buttons placed here appear in the same spot on every page of every app". In prose and VoiceOver, lowercase "shared button". Context menu: 共通マスにする / 共通マスを編集 / 共通マスをやめる = "Make Shared Button" / "Edit Shared Button" / "Stop Sharing". The badge on a covered spot in a profile grid, 共通, is "Shared" (`settings.grid.sharedBadge`). |
 | 並べ替え / 入れ替え | reorder / swap | "Drag to reorder", "drag to swap buttons". |
 | 右クリック | Control-click | Apple docs style: "Control-click (or right-click)". |
-| Nonet を有効にする | Enable Nonet | Settings checkbox, and a menu bar menu item with a checkmark. |
-| トラックパッドだけで呼び出す | Open with the trackpad alone | Settings label under Trigger & HUD, right below Trigger key. The user guide section is "Using the trackpad alone". |
-| 使わない / 左上の角に指を置く / 右上の角に指を置く | Off / Rest a finger in the top-left corner / Rest a finger in the top-right corner | Options of Open with the trackpad alone. They are phrases, so they use sentence case. Resting means touching without clicking. Do not use "press", "touch and hold", "long press" or "long-click". |
-| 片手で使うときは、角に指を置いて待つ | One-handed? Rest a finger in a top corner | Welcome guide tip. Its text with no corner chosen is "Choose a corner for Open with the trackpad alone in Settings › General, then rest a finger in that corner for a moment to bring up the HUD." (the setting is a pop-up, so don't say "turn on"). |
-| 右側のキーだけに反応します。左の%@はいつもどおり使えます。 / fn（地球儀）を押している間だけ反応します | Nonet responds only to the right-side key. Left %@ works as usual. / Nonet responds while you hold fn (Globe). | Caption under Trigger key; it follows the chosen key (⌘, ⌥ or ⇧). fn has no left and right. |
-| 角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します。 | Rest a finger in the corner for a moment to show the nine buttons. Slide to a button and lift your finger to run it. | Caption under Open with the trackpad alone. |
-| 指を止めてから HUD が出るまでの時間 | HUD delay after resting | Settings label. Value "0.30 s", range "0.15–0.80 s". Shorter taps count as quick taps. Without a finger on the trackpad, the HUD appears after a fixed, slightly longer wait that isn't a setting. |
+| Nonet を有効にする | Enable Nonet | Settings checkbox, and a menu bar menu item with a checkmark. Caption in Settings: "When off, sliding in from the top edge of the trackpad doesn't open the buttons". |
+| 開き方とやめ方 | How to open and cancel | Row under Opening and HUD in Settings › General, with a small figure of the trackpad and an arrow from the top edge. Caption: "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key." |
 | HUD の大きさ / 標準 / 大きい / 特大 | HUD size / Standard / Large / Extra Large | Settings label and its segmented options. The caption is "Notices at the bottom of the screen use the same size.". |
-| HUD の位置 | HUD position | Options: "Center of Screen" / "Near Pointer". |
+| HUD の位置 | HUD position | Options: "Center of Screen" / "Near Pointer". Caption: "Appears on the display with the pointer." |
 | 前面のアプリで切り替える | Switch profiles with the front app | Settings checkbox. |
 | グローバルのページをつなげる | Add Global pages after app pages | Settings checkbox. |
-| 触覚 | Haptic feedback | Apple term. Settings label with options "Off / Light / Medium / Strong". Not "Firm", which Apple uses for trackpad click pressure. Prose can describe the feeling as "a light tick". Avoid "vibration" in the UI. |
-| トリガーキーを前面のアプリに渡す | Pass the trigger key to the front app | Settings checkbox. |
-| 実行したことを表示 | Show a notice when a button runs | Settings checkbox. The notice is the short label at the bottom of the screen; Japanese captions call it 通知. Caption: "Shows a notice at the bottom of the screen when a button runs without the HUD, and when a slow button finishes." |
+| 触覚 | Haptic feedback | Apple term. Settings label with options "Off / Light / Medium / Strong". Not "Firm", which Apple uses for trackpad click pressure. Prose can describe the feeling as "a light tick"; closing without running anything gives "two light taps" (the caption: "Two light taps mean they closed without running anything."). Here "tap" means the haptic, never a finger action. Avoid "vibration" in the UI. |
+| 実行したことを表示 | Show a notice when a button runs | Settings checkbox. The notice is the short label at the bottom of the screen; Japanese captions call it 通知. Caption: "Shows a notice at the bottom of the screen when a slow button finishes". |
 | ポインタ | pointer | Apple calls the mouse arrow the "pointer" (Japanese ポインタ), and the site does too ("the pointer stays put"). Japanese UI text says ポインタ, never カーソル, for it. Use "cursor" (カーソル) only for a text insertion point. |
 | ポインタの固定方法 | Pointer lock method | Setting label under the Advanced (詳細) section header, so the label itself has no "(Advanced)". Options: "Automatic" / "Discard Movement" / "Detach Pointer" / "Off". |
 | ログイン時に起動 | Open at login | Apple's wording (Dock menu and Login Items). Sentence case because it is a checkbox. |
@@ -137,16 +130,17 @@
 | 買い切り | one-time purchase | Site. |
 | メニューバー / メニューバーのアイコン | menu bar / menu bar icon | Apple term. |
 | Nonet のメニュー | the Nonet menu | The menu that opens from the menu bar icon. The user guide uses this name: "choose Settings… from the Nonet menu". |
+| 早見表 | cheat sheet | Docs-only name (lowercase in prose) for the grid at the top of the Nonet menu: the buttons the front app would show if you opened them now, from the first page. Its title is the profile's, "Buttons for %@" or "Global Buttons" (with " · " and the page name when the page has one); ‹ › are "Previous Page" / "Next Page"; clicking a button opens it in Settings › Profiles. In an app set to Turn Off Nonet in This App, one line replaces the grid: "Nonet is off in %@". The UI itself never shows the words 早見表 or "cheat sheet". |
 | %@ のマスを編集… / %@ のマスを作る… / グローバルのマスを編集… | Edit Buttons for %@… / Create Buttons for %@… / Edit Global Buttons… | Nonet menu item for the front app. Japanese prose in the guide writes ◯◯ のマスを編集…; the English guide writes "Edit Buttons for Xcode…". The welcome guide's tip doesn't name an app (the app behind the window may not be the one the user means): "Click the 3×3 icon in the menu bar and choose Edit Buttons for <app>… to change the buttons for the app in front." |
-| このアプリでは使わない | Turn Off in This App | Nonet menu item with a checkmark. Sets the front app to Turn Off Nonet in This App. |
+| このアプリでは使わない | Turn Off in This App | Nonet menu item with a checkmark. Sets the front app to Turn Off Nonet in This App: in that app, sliding in from the top edge does nothing and the trackpad works as usual ("Nonet is off in %@. The trackpad works as usual."). |
 | 最近の実行 | Recent Runs | Nonet menu submenu. Each item reads "✓ Xcode › Build"; a failure reads "✗ …", then " — " and the first line of the reason. |
 | ヘルプ / Nonet ヘルプ | Help / Nonet Help | Help menu of the hidden main menu (⌘?). |
 | Nonet はここにいます | Nonet lives here | Bubble under the menu bar icon at the end of the welcome guide. |
 | 「Xcode のプロファイル」（メニューの状態） | Xcode profile | Status line in the menu bar menu. |
 | 初回の案内 / 初回の案内をもう一度 | welcome guide / Show Welcome Guide | Menu item without an ellipsis, because it only opens a window. |
 | アプリを選ぶ / 試してみる | Choose Apps / Try It Out | Onboarding steps and buttons. Apple uses "choose" for user decisions and "select" for text or list items. |
-| 試してみましょう / HUD（9マスの一覧）から選ぶ / すぐにタップ / いまの課題 / この後の課題 / 済み | Try it out / Choose from the HUD (all nine buttons) / Tap right away / Current task / Next task / Done | The practice step's heading, its two tasks and their states. |
-| キーを使わない方法もあります / 左上の角 / 右上の角 / オフに戻す | There's also a no-key way / Top-left corner / Top-right corner / Turn Off | The corner card after both practice tasks. |
+| 試してみましょう / 開いて、マスで離す / 外枠で離して、やめる / いまの課題 / この後の課題 / 済み | Try it out / Open and lift on a button / Cancel in the frame / Current task / Next task / Done | The practice step's heading, its two tasks and their states. The first task: "Place a finger on the top edge of the trackpad and slide it down to open the HUD, which shows all nine buttons. Slide to “%@” and lift your finger there." |
+| 使いながら覚えられる、4つのこつ / 上の縁から開く / 外枠で離すとやめる / 2本指で左右にスワイプ / マスを変える | Four quick tips to learn as you go. / Open from the top edge / Lift in the frame to cancel / Swipe left or right with two fingers / Change a button | The tips on the welcome guide's last page (You're all set). |
 | Nonet を使うには、あと1つ許可が必要です / 今後表示しない | One more step to start using Nonet / Don't show again | The permission step when the welcome guide reopens at launch without Accessibility permission. |
 | Mac にログインしたら Nonet を自動で起動する | Open Nonet automatically when you log in | Checkbox on the last page of the welcome guide, checked by default. |
 | 練習モード | practice mode | "Nothing runs in practice mode." |
@@ -156,8 +150,9 @@
 | Nonet について | About Nonet | App menu item of the hidden main menu. It opens the About tab of Settings. |
 | 取り消す / やり直す / カット / コピー / ペースト / ペーストしてスタイルを合わせる / 削除 / すべてを選択 | Undo / Redo / Cut / Copy / Paste / Paste and Match Style / Delete / Select All | Edit menu of the hidden main menu. These are Apple's standard item names. The menu itself is "Edit" (its own key, `menu.edit`, because 編集 is also the symbol group "Editing"). |
 | ウインドウ / 閉じる / しまう | Window / Close / Minimize | Window menu of the hidden main menu (⌘W, ⌘M). |
-| 「タップか、右⌘を離して実行」（HUD の案内） | Tap, or release right ⌘ to run | HUD hint for Key Release, with the trigger key's name (右⌘ / 右⌥ / 右⇧ / fn: "right ⌘" and so on). The site's shorter "Release ⌥ to run" is fine on the site. |
-| 指を滑らせて選ぶ / 先に指を離してから%@を離すとやめる / やめるときは指を置いたまま左の⇧を押す / 滑らせずに離すとやめる / 2本指のスワイプでページを切り替え | Slide to choose / To cancel, lift your finger before releasing %@ / To cancel, keep your finger down and press left ⇧ / Lift without sliding to cancel / Swipe with two fingers to change pages | The beginner line under the grid for the first 20 HUD sessions, joined with " · ". |
+| マスで指を離すと実行（HUD の案内） | Lift on a button to run | HUD hint at the top right. In practice mode it reads "Practice · Lift on a button to run". |
+| 離すとやめる（HUD） | Lift to cancel | Shown with ✕ in the HUD while the finger is in the frame (the buttons dim and the frame brightens). It also shows right after opening, because the finger is still in the top part of the frame. |
+| 指を滑らせて選ぶ / 外枠で指を離すとやめる / 2本指のスワイプでページを切り替え | Slide to choose / Lift in the frame to cancel / Swipe with two fingers to change pages | The beginner line under the grid for the first 20 HUD sessions, joined with " · ". The last part appears only when there are several pages. |
 | 「%@」を実行中… | Running “%@”… | Notice while a slow button runs. |
 | %@ › %@ / %@ › %@（%lldページ目） | %1$@ › %2$@ / %1$@ › %2$@ (page %3$lld) | Title of a failure notice: profile › button, plus the page when the profile has more than one. |
 | アクセシビリティ | Accessibility | Name of the System Settings pane, so it is capitalized: "Accessibility permission". |
@@ -173,7 +168,7 @@
 | 感圧タッチ | Force Touch trackpad | |
 | Apple シリコン | Apple silicon | Lowercase s (Apple style). |
 | ゴミ箱 / アプリケーションフォルダ / ホームフォルダ | Trash / Applications folder / home folder | Finder terms. |
-| セッション | (internal only) | Code term for the time from pressing to releasing the trigger key. Do not show it to users. |
+| セッション | (internal only) | Code term for the time from opening the nine buttons until every finger leaves the trackpad. Do not show it to users. |
 | トースト / 通知 | notice | "toast" is the internal name; users see "notice". Japanese captions call it 通知 (画面の下に出る通知). |
 | 〜できませんでした | Couldn't … | Apple style uses contractions: "Couldn't open %@". |
 | 〜が見つかりません | Can't find … | "Can't find the menu item “%@”". |
@@ -183,7 +178,7 @@
 | 次へ進んでください | Click Next to continue. | Footer of the welcome guide's permission step once Accessibility is allowed. The card already says 許可されています, so the footer doesn't repeat it. |
 | 〜など%lld個（プリセットの説明） | %lld buttons, including … | "%lld buttons, including Build, Test and Open Quickly". Use plural variants. Name only buttons the preset really has on this Mac (AI and Claude Code buttons are left out when they can't run). |
 | プリセットのボタン名 | the target app's own English wording | Take preset names from the target app's English menus (Xcode "Build", "Test"; Zoom "Mute"). |
-| 「」 / … / 〜 / 秒 | “ ” / … (U+2026) / – (en dash) / s | Curly quotes, the single ellipsis character, an en dash for ranges, and a space before units: "0.15–0.8 s", "60 s". Spell out "seconds" in running prose. Menu paths: "Nonet › Settings…". |
+| 「」 / … / 〜 / 秒 | “ ” / … (U+2026) / – (en dash) / s | Curly quotes, the single ellipsis character, an en dash for ranges ("1–2 characters"), and a space before units: "0.6 s", "60 s". Spell out "seconds" in running prose. Menu paths: "Nonet › Settings…". |
 | 打鍵 | keystroke | "Adds Esc as a keystroke". The action type is still "Keystrokes". |
 | 表記で入力 / キーの表記 | Type keys as text / Keys as text | Placeholder and VoiceOver label of the field where keys are typed as text. The example is in the caption under the field: "For example, ⌘L → ⌘C. …". Apple style avoids "e.g.". |
 | 決定（入力欄の横のボタン） / 使う（アイコンの文字） | Apply / Use | Buttons that confirm a typed value. |
@@ -194,7 +189,7 @@
 | 無効になっている / 無効にされている（ライセンスキー） | deactivated | A key we revoked (a refunded license or a key that was made public): "This license key has been deactivated". The user can't undo it, so it's not the same as Remove License from This Mac. |
 | 発行日 / ライセンス ID / 買い切りのライセンス | Issued / License ID / One-time purchase | License pane labels. |
 | もう一度確かめる | Check Again | Button in the Settings status banner and in the welcome guide (looks for the trackpad, or checks secure input, again). The Accessibility banner has only Open System Settings. |
-| トリガーと HUD / フィードバック / 詳細 / 起動 / 書き出しと読み込み / 状態 | Trigger & HUD / Feedback / Advanced / Startup / Export & Import / Status | Settings section headers, Title Case. |
+| 開き方と HUD / プロファイル / フィードバック / 詳細 / 起動 / 書き出しと読み込み / 状態 | Opening and HUD / Profiles / Feedback / Advanced / Startup / Export & Import / Status | Settings section headers, Title Case. 状態 is on the License tab. |
 | 新しいプロファイルだけ追加 / 置き換えて読み込む / 読み込む | Add New Profiles Only / Replace and Import / Import | Buttons in the import confirmation sheet. "Import" is shown when nothing would be replaced. It has its own key (`settings.import.confirmButton`), because the bare 読み込む is "Load" in the Pick from Menus panel. When the sheet lists buttons that run something, these buttons stay disabled until the list is scrolled to the end. |
 | ・%@ › %@ / スクリプト（%lld行）: / キー入力: %@ / メニュー項目: %@ › %@ / ショートカット: %@ / AI への指示: / 結果: %@ / 開くファイル: %@ | • %1$@ › %2$@ / Script (%lld lines): / Keystrokes: %@ / Menu item: %1$@ › %2$@ / Shortcut: %@ / Instructions for AI: / Result: %@ / File to open: %@ | The import confirmation's list of buttons that run something (Script, Keystrokes, Menu Item and AI buttons, and URLs that open a file): "Profile › Button", then everything the button does, never cut off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, or the file. Use plural variants for the line count. |
 | 最後までスクロールして中身をすべて確かめると、読み込めます / Return と同じ働きのキー（または ⌃ の付いたキー）を押します。… / 注意が要る命令（%@）を含みます。… | Scroll to the end to check everything before you can import. / Presses a key that works like Return (or a key with ⌃). … / Contains commands that need care (%@). … | Hint and warnings in the import confirmation sheet. "a key that works like Return" covers Return, Enter and keys that type a line break in the current keyboard layout; "commands that need care" are curl, wget, base64, eval, a pipe into a shell, osascript and rm -rf. |
@@ -203,7 +198,7 @@
 | 既定（サイドバーのバッジ） | Default | Only the badge next to the Global profile. The profile itself is always named "Global". |
 | プリセットあり / 追加済み / 設定済み | Preset / Added / Added | Badges in app lists. 設定済み（無効） is "Added, disabled". |
 | 記号 / アプリ / 文字（アイコンの種類） | Symbol / App / Text | Icon picker segments. The アプリ key is shared with the Menu Item editor's row label, so the segment says "App", not "App Icon". The Profiles sidebar header has its own key (`settings.sidebar.appsHeader`) and reads "Apps". |
-| 左上 / 上 / 右上 / 左 / 中央 / 右 / 左下 / 下 / 右下 | top left / top / top right / left / center / right / bottom left / bottom / bottom right | Button positions, lowercase. Used inside "Button %lld (%@)" and VoiceOver labels. Before a noun, the four corners use their own keys (`attributivePosition.topLeft` and so on) with U+2011 non-breaking hyphens, so the line doesn't wrap at the hyphen: "That was the bottom‑left button. Try the top‑right corner." |
+| 左上 / 上 / 右上 / 左 / 中央 / 右 / 左下 / 下 / 右下 | top left / top / top right / left / center / right / bottom left / bottom / bottom right | Button positions, lowercase. Used inside "Button %lld (%@)" and VoiceOver labels. Before a noun, the four corners use their own keys (`attributivePosition.topLeft` and so on) with U+2011 non-breaking hyphens, so the line doesn't wrap at the hyphen: "the bottom‑left button". The welcome guide's practice feedback uses the plain form: "That was “Build” (top left). “Run” is at the center." |
 | 開発 / デザイン / チャット / メール / ブラウザ / 会議 / ドキュメント / ファイル（プリセットの分類） | Development / Design / Chat / Mail / Web Browsing / Video Conferencing / Writing / File Management | Preset categories shown with each app in Choose Apps. Title Case. |
 | よく使う / 編集 / 画面と操作 / メディアと連絡 / AI と文章 / 開発（記号の分類） | Common / Editing / Windows & Navigation / Media & Communication / AI & Writing / Development | Symbol groups in the icon picker. 編集 here is "Editing", not the Edit menu. |
 | マス %lld（%@） | Button %lld (%@) | Inspector heading and VoiceOver label, e.g. "Button 3 (top right)". An empty one is "%@: empty" in Settings and "Empty button, %@" in the HUD. |
@@ -215,7 +210,7 @@
 | この知らせを消す / アクセシビリティを許可… | Dismiss Notice / Allow Accessibility Access… | Menu bar menu items. |
 | Nonet（無効） / Nonet（確認が必要） / Nonet（アップデートがあります） | Nonet (disabled) / Nonet (needs attention) / Nonet (update available) | Menu bar icon tooltip and VoiceOver. |
 | あとで許可する / 準備ができました | Not Now / You're all set | Onboarding. No exclamation marks. |
-| 練習中 · %@ / 指を離して実行 | Practice · %@ / Lift your finger to run | HUD hints. Finger Lift and a corner hold use the second hint; Key Release uses "Tap, or release right ⌘ to run". |
+| 練習中 · %@ | Practice · %@ | HUD hint in practice mode; %@ is the usual hint, "Lift on a button to run". |
 | スクリプトで使える環境変数 / スクリプトに渡す環境変数 | Environment variables for scripts / Environment variables passed to scripts | Help button label and popover heading in the Script editor. |
 | ほか%lld個 | And %lld more | End of a list in the import confirmation. Use plural variants. |
 | ' （アポストロフィ） | ' | Use the straight apostrophe in contractions ("Can't", "doesn't"), as the existing catalogs do. Quoted names use curly quotes: Delete the “%@” profile? Code examples keep straight quotes. |
