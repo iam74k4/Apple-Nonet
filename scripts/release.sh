@@ -178,6 +178,40 @@ appcast_builds_missing() {
   printf '%s' "$missing"
 }
 
+# appcast に版（sparkle:shortVersionString）が version の項目があるか。Sparkle 2 は要素、古い形は属性で書く
+appcast_has_version() {
+  local file="$1" escaped="${2//./\\.}"
+  [[ -f "$file" ]] || return 1
+  grep -qE "<sparkle:shortVersionString>[[:space:]]*$escaped[[:space:]]*</sparkle:shortVersionString>|sparkle:shortVersionString=\"$escaped\"" "$file"
+}
+
+# appcast に url を指す項目（enclosure）があるか
+appcast_has_url() {
+  [[ -f "$1" && -n "$2" ]] || return 1
+  grep -qF "url=\"$2\"" "$1"
+}
+
+# 同じ版を出し直そうとしていないか。appcast（file）に同じ版か、同じ DMG の URL の項目があれば、問題を1行出す。
+# 出し直すと、公開済みの DMG を上書きし、appcast に同じ URL を指す項目が2つできる（後の差分も作れなくなる）
+reused_version_problem() {
+  local file="$1" version="$2" url="$3" found=""
+  if appcast_has_version "$file" "$version"; then
+    found="版 $version の項目"
+  elif appcast_has_url "$file" "$url"; then
+    found="同じ DMG の URL（$url）の項目"
+  else
+    return 0
+  fi
+  printf '%s には、すでに%sがあります。公開した版の番号は使い回せないので、新しい版の番号（バージョン）で出してください（docs/release.md 2.9）\n' "$file" "$found"
+}
+
+# 公開用のフォルダにすでに同じ版の DMG があれば、問題を1行出す（公開済みの DMG を上書きしない）
+existing_dmg_problem() {
+  local dmg="$1/Nonet-$2.dmg"
+  [[ -e "$dmg" ]] || return 0
+  printf '%s がすでにあります。公開済みの DMG を上書きしないよう止めました。新しい版の番号で出すか、公開していない DMG なら消してください（docs/release.md 2.9）\n' "$dmg"
+}
+
 # 空白・改行の違いを除けば同じか（ホスティングが空白を書き換えることがある）
 same_ignoring_whitespace() {
   cmp -s <(tr -d '[:space:]' <"$1") <(tr -d '[:space:]' <"$2")
@@ -292,7 +326,7 @@ parse_args() {
 
 # 時間のかかる作業の前に、足りないものをまとめて知らせる
 preflight() {
-  local problems="" missing line dirty
+  local problems="" missing line dirty appcast_url dmg_url=""
   local tools=(xcodegen xcodebuild xcrun codesign spctl hdiutil security ditto plutil curl file)
 
   missing="$(missing_commands "${tools[@]}")"
@@ -319,6 +353,16 @@ preflight() {
       problems+="Config/Nonet.xcconfig: $line"$'\n'
     fi
   done < <(config_problems "$ROOT/Config/Nonet.xcconfig")
+
+  # 公開した版の出し直し。公開中の appcast は後で（パッケージを解決した後、アーカイブの前に）取ってきて、もう一度確かめる
+  appcast_url="$(xcconfig_value "$ROOT/Config/Nonet.xcconfig" NONET_APPCAST_URL 2>/dev/null || true)"
+  if [[ "$appcast_url" == https://?* ]]; then
+    dmg_url="$(download_url_prefix "$appcast_url" "${NONET_DOWNLOAD_URL_PREFIX:-}")Nonet-$VERSION.dmg"
+  fi
+  for line in "$(existing_dmg_problem "$RELEASES_DIR" "$VERSION")" \
+    "$(reused_version_problem "$RELEASES_DIR/appcast.xml" "$VERSION" "$dmg_url")"; do
+    [[ -z "$line" ]] || problems+="$line"$'\n'
+  done
 
   if [[ -n "$NOTES" ]]; then
     if [[ ! -f "$NOTES" ]]; then
@@ -508,18 +552,29 @@ EOF
 
 # 書き出した .app が、署名・版・販売用の値のすべてで正しいか
 verify_app() {
-  local app="$1" plist="$1/Contents/Info.plist" problems="" file key expected actual
+  local app="$1" plist="$1/Contents/Info.plist" problems="" file kind runtime main_executable key expected actual
   codesign --verify --deep --strict --verbose=2 "$app" >/dev/null 2>"$WORK/codesign-verify.log" || {
     cat "$WORK/codesign-verify.log" >&2
     die "codesign --verify に失敗しました"
   }
 
   problems+="$(signature_problems "$app" "$TEAM" 1)"$'\n'
-  # Sparkle の XPC サービスや Autoupdate など、中の実行ファイルも Developer ID とタイムスタンプが無いと公証が通らない
+  # Sparkle の XPC サービスや Autoupdate・Updater.app など、中の Mach-O も Developer ID とタイムスタンプが無いと公証が通らない。
+  # 実行ファイル（MH_EXECUTE）は hardened runtime も要る。dylib（Sparkle 本体）とバンドルは runtime を見ない。
+  # アプリ本体の実行ファイルは、上で .app として確かめた
+  main_executable="$(plist_value "$plist" CFBundleExecutable)"
+  main_executable="$app/Contents/MacOS/${main_executable:-Nonet}"
   while IFS= read -r -d '' file; do
-    file -b "$file" | grep -q 'Mach-O' || continue
-    problems+="$(signature_problems "$file" "" 0)"$'\n'
-  done < <(find "$app/Contents/Frameworks" "$app/Contents/PlugIns" "$app/Contents/Library" -type f -perm -100 -print0 2>/dev/null)
+    [[ "$file" != "$main_executable" ]] || continue
+    kind="$(file -b "$file")"
+    grep -q 'Mach-O' <<<"$kind" || continue
+    runtime=0
+    if grep -q 'Mach-O.*executable' <<<"$kind"; then
+      runtime=1
+    fi
+    problems+="$(signature_problems "$file" "" "$runtime")"$'\n'
+  done < <(find "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/XPCServices" "$app/Contents/PlugIns" \
+    "$app/Contents/Helpers" "$app/Contents/Library" -type f -perm -100 -print0 2>/dev/null)
 
   for key in CFBundleShortVersionString:"$VERSION" CFBundleVersion:"$BUILD" \
     SUFeedURL:"$APPCAST_URL" SUPublicEDKey:"$SPARKLE_PUBLIC_KEY" \
@@ -656,6 +711,13 @@ main() {
     die "ビルド番号 $BUILD は、appcast に載っている最大の $latest より大きくしてください（Sparkle はビルド番号で新旧を比べます）。
     公開していない試しの項目なら、$appcast_dir/appcast.xml から消してください"
   fi
+  # 手元の appcast（公開中のものを取り込んだ後）と、取ってきた公開中の appcast のどちらにも、同じ版が無いこと
+  local prefix file line
+  prefix="$(download_url_prefix "$APPCAST_URL" "${NONET_DOWNLOAD_URL_PREFIX:-}")"
+  for file in "$appcast_dir/appcast.xml" "$WORK/published-appcast.xml"; do
+    line="$(reused_version_problem "$file" "$VERSION" "${prefix}Nonet-$VERSION.dmg")"
+    [[ -z "$line" ]] || die "$line"
+  done
   if [[ "$FIRST_RELEASE" == 1 && -n "$latest" ]]; then
     warn "--first-release を付けていますが、appcast にはすでにビルド $latest までの項目があります（項目はそのまま引き継ぎます）"
   fi
@@ -714,12 +776,13 @@ main() {
   assess "$dmg" open
 
   step "appcast を更新する（Sparkle generate_appcast）"
-  cp -f "$dmg" "$appcast_dir/"
+  # 準備の確認の後に置かれたもの（別の端末で同じ版を出したなど）も上書きしない
+  line="$(existing_dmg_problem "$appcast_dir" "$VERSION")"
+  [[ -z "$line" ]] || die "$line"
+  cp "$dmg" "$appcast_dir/"
   if [[ -n "$NOTES" ]]; then
     cp -f "$NOTES" "$appcast_dir/Nonet-$VERSION.${NOTES##*.}"
   fi
-  local prefix
-  prefix="$(download_url_prefix "$APPCAST_URL" "${NONET_DOWNLOAD_URL_PREFIX:-}")"
   # -o が無いと generate_appcast は SUFeedURL の最後の名前（例: nonet.xml）で読み書きするので、手元の名前を決めておく
   local appcast_args=(--account "$SPARKLE_ACCOUNT" --download-url-prefix "$prefix" -o "$appcast_dir/appcast.xml")
   [[ -z "$NOTES" ]] || appcast_args+=(--embed-release-notes)

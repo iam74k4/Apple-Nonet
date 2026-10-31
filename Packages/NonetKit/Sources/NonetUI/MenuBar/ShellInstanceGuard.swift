@@ -18,6 +18,8 @@ public struct ShellRunningInstance: Equatable, Sendable {
     public var launchDate: Date?
     /// どこから開かれたか
     public var location: ShellInstallLocation
+    /// ビルド番号（CFBundleVersion）。分からなければ nil（新しいとはみなさない）
+    public var bundleVersion: String?
 
     public init(
         processID: Int32,
@@ -26,7 +28,8 @@ public struct ShellRunningInstance: Equatable, Sendable {
         isFinishedLaunching: Bool = true,
         isQuitting: Bool = false,
         launchDate: Date? = nil,
-        location: ShellInstallLocation = .installed
+        location: ShellInstallLocation = .installed,
+        bundleVersion: String? = nil
     ) {
         self.processID = processID
         self.bundleURL = bundleURL
@@ -35,6 +38,7 @@ public struct ShellRunningInstance: Equatable, Sendable {
         self.isQuitting = isQuitting
         self.launchDate = launchDate
         self.location = location
+        self.bundleVersion = bundleVersion
     }
 }
 
@@ -47,12 +51,18 @@ public enum ShellInstanceDecision: Equatable, Sendable {
     case replace(ShellRunningInstance)
     /// 動いている方に任せて、このプロセスは終わる。起動し終えていれば、そちらに設定を開かせる
     case handOff(ShellRunningInstance)
+    /// handOff と同じだが、終わる前に、アプリケーションフォルダなどの Nonet がもう動いているので、そちらを使うことを伝える。
+    /// ディスクイメージなどから開いたこちらが、動いている方より新しくないとき（何も言わずに終わると、
+    /// 新しい DMG を開いて入れ直したつもりの人には、古い Nonet の設定が開くだけに見える）
+    case explainAndHandOff(ShellRunningInstance)
 }
 
-/// どれを残すかは、どのプロセスから見ても同じ順で決める（同時に開かれても、2つとも終わったり、2つとも残ったりしない）。
+/// どれを残すかは、どのプロセスから見ても同じ決め方で決める（同時に開かれても、2つとも終わったり、2つとも残ったりしない）。
 /// 終わり始めているもの（ShellQuitMarker）は残さず、終わるのを待つ。
-/// 1. 本来の場所（アプリケーションフォルダなど）のものを、ディスクイメージなどの一時的な場所のものより残す
-/// 2. 起動し終えたものを、起動の途中のものより残す
+/// 1. 本来の場所（アプリケーションフォルダなど）のものを、ディスクイメージなどの一時的な場所のものより残す。
+///    ただし、一時的な場所のものの方がビルド番号（CFBundleVersion）が大きければ、そちらを残す
+///    （新しい DMG から開いたら、動いている古い方に終わってもらい、アプリケーションフォルダの Nonet を置き換えるかを尋ねる）
+/// 2. 同じ場所どうしでは、起動し終えたものを、起動の途中のものより残す
 /// 3. 先に開かれたもの（同じなら、プロセス番号の小さいもの）を残す
 public enum ShellInstanceGuard {
     /// 残す方が起動の途中（同時に開かれた）なら、任せる前に待つ長さ（秒）。起動し終えたものには待たずに任せる
@@ -80,30 +90,60 @@ public enum ShellInstanceGuard {
         guard !staying.isEmpty else {
             return waited < takeOverTimeout ? .wait : .launch
         }
-        let keeper = staying.reduce(own) { outranks($1, $0) ? $1 : $0 }
+        let keeper = keeper(among: [own] + staying)
 
         guard keeper.processID == own.processID else {
             // 起動し終えて動いているなら、待たずに任せる（もう一度開いたらすぐに設定が開くように）。
             // 起動の途中のもの（同時に開かれた）は、こちらが終わるのを待っているので、少し待ってから任せて終わる
             if keeper.isFinishedLaunching {
-                return .handOff(keeper)
+                return handOff(own: own, to: keeper)
             }
             return waited < shutdownGrace ? .wait : .handOff(keeper)
         }
-        // こちらを残す。起動し終えているもの（一時的な場所のもの）は自分では終わらないので、終わってもらう。
-        // 起動の途中のものは、こちらを見て自分で譲るので待つ
+        // こちらを残す。起動し終えているもの（一時的な場所のもの、またはこちらより古いアプリケーションフォルダのもの）は
+        // 自分では終わらないので、終わってもらう。起動の途中のものは、こちらを見て自分で譲るので待つ
         let running = staying.first(where: \.isFinishedLaunching)
         guard waited < takeOverTimeout else {
-            return .handOff(running ?? staying[0])
+            return running.map { handOff(own: own, to: $0) } ?? .handOff(staying[0])
         }
         return running.map { .replace($0) } ?? .wait
     }
 
-    /// a を b より残すか
-    static func outranks(_ a: ShellRunningInstance, _ b: ShellRunningInstance) -> Bool {
-        if a.location != b.location {
-            return a.location == .installed
+    /// 起動し終えた other に任せて終わる。一時的な場所のこちらが、アプリケーションフォルダなどのものに任せるときは、終わる前に伝える
+    static func handOff(own: ShellRunningInstance, to other: ShellRunningInstance) -> ShellInstanceDecision {
+        own.location == .temporary && other.location == .installed ? .explainAndHandOff(other) : .handOff(other)
+    }
+
+    /// 残すもの。場所ごとに1つずつ候補を決めてから（outranks）、一時的な場所の候補の方が新しいときだけ、そちらを残す。
+    /// 2つずつ比べる順番に「場所が違えばビルド番号」を混ぜると、3つ以上のときに順番が輪になり、
+    /// プロセスごとに答えが変わることがあるので、2段に分けて、どのプロセスからも同じものを選ぶ
+    static func keeper(among candidates: [ShellRunningInstance]) -> ShellRunningInstance {
+        func best(_ location: ShellInstallLocation) -> ShellRunningInstance? {
+            candidates.filter { $0.location == location }.reduce(nil as ShellRunningInstance?) { kept, next in
+                guard let kept else { return next }
+                return outranks(next, kept) ? next : kept
+            }
         }
+        switch (best(.installed), best(.temporary)) {
+        case let (installed?, temporary?):
+            return isNewer(temporary, than: installed) ? temporary : installed
+        case let (installed?, nil):
+            return installed
+        case let (nil, temporary?):
+            return temporary
+        case (nil, nil):
+            preconditionFailure("candidates は空にしない")
+        }
+    }
+
+    /// a のビルド番号が b より大きいか（数として比べる。どちらかが分からなければ false）
+    static func isNewer(_ a: ShellRunningInstance, than b: ShellRunningInstance) -> Bool {
+        guard let aVersion = a.bundleVersion, let bVersion = b.bundleVersion else { return false }
+        return aVersion.compare(bVersion, options: .numeric) == .orderedDescending
+    }
+
+    /// 同じ場所のものどうしで、a を b より残すか
+    static func outranks(_ a: ShellRunningInstance, _ b: ShellRunningInstance) -> Bool {
         if a.isFinishedLaunching != b.isFinishedLaunching {
             return a.isFinishedLaunching
         }

@@ -1,6 +1,7 @@
 #!/bin/bash
 # テスト用の偽の Sparkle generate_appcast。フォルダの中身を記録し、
-# 既存の appcast の項目と、偽の DMG に書かれたビルド番号から appcast を作り直す。
+# 既存の appcast の項目はそのまま残し、まだ載っていないビルドの偽の DMG ごとに項目（版・ビルド・DMG の URL）を足す。
+# 本物と同じく、同じ名前の DMG をビルド番号を変えて作り直すと、同じ URL を指す項目が2つになる。
 # 本物と同じく、書く先（と引き継ぐ既存の appcast）は -o、無ければ SUFeedURL の最後の名前（無ければ appcast.xml）。
 #   FAKE_APPCAST_SKIP_ITEM  1 なら新しい DMG の項目を作らない（失敗の再現）
 set -euo pipefail
@@ -10,9 +11,12 @@ printf 'generate_appcast %s\n' "$*" >>"${FAKE_LOG:?}"
 dir="${*: -1}"
 printf 'generate_appcast files: %s\n' "$(cd "$dir" && printf '%s ' *)" >>"$FAKE_LOG"
 
-out=""
+out="" prefix=""
 while [[ $# -gt 0 ]]; do
-  [[ "$1" != -o ]] || out="$2"
+  case "$1" in
+    -o) out="$2" ;;
+    --download-url-prefix) prefix="$2" ;;
+  esac
   shift
 done
 
@@ -25,22 +29,32 @@ if [[ -z "$out" ]]; then
   out="$dir/${name:-appcast.xml}"
 fi
 
-builds() {
-  if [[ -f "$out" ]]; then
-    grep -oE '<sparkle:version>[0-9]+' "$out" | grep -oE '[0-9]+' || true
-  fi
-  if [[ -z "${FAKE_APPCAST_SKIP_ITEM:-}" && ${#dmgs[@]} -gt 0 ]]; then
-    sed -nE 's/.*build=([0-9]+).*/\1/p' "${dmgs[@]}"
-  fi
+# 既存の項目（複数行に分かれていても1行ずつ）
+existing_items() {
+  [[ -f "$out" ]] || return 0
+  tr '\n' ' ' <"$out" | sed 's#</item>#</item>\
+#g' | grep -oE '<item>.*</item>' || true
 }
 
-versions="$(builds | sort -nu)"
+items="$(existing_items)"
+builds="$(grep -oE '<sparkle:version>[0-9]+' <<<"$items" | grep -oE '[0-9]+' || true)"
+if [[ -z "${FAKE_APPCAST_SKIP_ITEM:-}" ]]; then
+  for dmg in "${dmgs[@]}"; do
+    build="$(sed -nE 's/.*build=([0-9]+).*/\1/p' "$dmg")"
+    version="$(sed -nE 's/.* version=([^ ]*).*/\1/p' "$dmg")"
+    [[ -n "$build" ]] || continue
+    ! grep -qx "$build" <<<"$builds" || continue
+    builds+=$'\n'"$build"
+    items+="${items:+$'\n'}<item><title>$version</title><sparkle:version>$build</sparkle:version>"
+    items+="<sparkle:shortVersionString>$version</sparkle:shortVersionString>"
+    items+="<enclosure url=\"$prefix$(basename "$dmg")\" length=\"1\" type=\"application/octet-stream\" sparkle:edSignature=\"c2ln\"/></item>"
+  done
+fi
+
 {
   printf '<?xml version="1.0" encoding="utf-8"?>\n'
   printf '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n<title>Nonet</title>\n'
-  for v in $versions; do
-    printf '<item><sparkle:version>%s</sparkle:version></item>\n' "$v"
-  done
+  [[ -z "$items" ]] || printf '%s\n' "$items"
   printf '</channel>\n</rss>\n'
 } >"$out"
 printf 'generate_appcast wrote: %s\n' "$(basename "$out")" >>"$FAKE_LOG"

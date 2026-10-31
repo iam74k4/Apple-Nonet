@@ -211,7 +211,7 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 
 スクリプトがすること:
 
-1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く）。足りないものをまとめて表示して止まる
+1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く。公開用のフォルダにすでに `Nonet-<バージョン>.dmg` があるか・手元の appcast.xml にすでに同じ版の項目があるか）。足りないものをまとめて表示して止まる（dry run でも同じ）
 2. XcodeGen でプロジェクトを作り、パッケージを解決する（Sparkle は `project.yml` で固定した版。1.9）
 3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。appcast は毎回、公開中のもの（`NONET_APPCAST_URL`）を作業用フォルダ（`build/release/<バージョン>/published-appcast.xml`）に取ってきて、手元の appcast.xml とビルド番号（`sparkle:version`）で比べる
    - 手元に無ければ、公開中のものを使う
@@ -219,12 +219,13 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
    - 手元の方がビルドが多いだけなら、警告して手元のものを使う（前のリリースの appcast をまだアップロードしていない、または CDN がアップロードの前の appcast をまだ返している。どちらも手元のものが新しい）
    - ビルドが同じで中身が違えば、空白・改行の違いだけなら手元のものを使い、それ以外（公開中のものをサーバーで直したなど）は止まる
    - 取れなければ（403・503・ネットワークのエラーなど）止まる。dry run では警告して、手元のものを使って続ける（何も公開しないので）。404・410 で新しく作る（または手元のものを引き継ぐ）のは `--first-release` のときだけ
+   - 手元の appcast か公開中の appcast に、同じ版（`sparkle:shortVersionString`）か同じ DMG の URL（`<DMG の URL の前半>Nonet-<バージョン>.dmg`）の項目がすでにあれば止まる。公開した版の番号は使い回せない（DMG の名前は版で決まるので、出し直すと公開済みの DMG を上書きし、appcast に同じ URL を指す項目が2つでき、後の差分も作れなくなる）
 4. `xcodebuild archive`（Release・Developer ID Application・hardened runtime・`--timestamp`）
 5. `ExportOptions.plist`（`method` は `developer-id`）で書き出す
-6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の実行ファイル（Sparkle の XPC サービスなど）、Info.plist の版と販売用の値
+6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の Mach-O（Sparkle 本体・XPC サービス・Autoupdate・Updater.app、アプリの `Contents/MacOS`・`XPCServices` など）の Developer ID とタイムスタンプ、そのうち実行ファイルの hardened runtime（dylib は見ない。公証はどの実行ファイルにも hardened runtime を求める）、Info.plist の版と販売用の値
 7. アプリを zip にして `xcrun notarytool submit --wait` で公証し、`stapler staple` してから `spctl -a -vv` で Gatekeeper の評価を確かめる
 8. DMG を作る（ボリューム名 `Nonet`、`/Applications` へのリンクつき）→ 署名 → 公証 → ステープル → `spctl` で確認
-9. DMG とリリースノートを公開用のフォルダ（`NONET_RELEASES_DIR`、既定 `build/releases`）に入れ、`generate_appcast` で appcast.xml を更新する（`NONET_APPCAST_URL` のファイル名にかかわらず、手元の名前は `appcast.xml`）
+9. DMG とリリースノートを公開用のフォルダ（`NONET_RELEASES_DIR`、既定 `build/releases`）に入れ（同じ名前の DMG があれば上書きせずに止まる）、`generate_appcast` で appcast.xml を更新する（`NONET_APPCAST_URL` のファイル名にかかわらず、手元の名前は `appcast.xml`）
 
 公証が通らなければ、notarytool のログを表示して止まる。作業用のファイルとログは `build/release/<バージョン>/` に残る。
 
@@ -278,6 +279,10 @@ git push origin v1.2.0
 | 公証が `Invalid` | スクリプトが出すログを見る。よくあるのは、署名の無い実行ファイル・タイムスタンプが無い・hardened runtime が無い。`xcrun notarytool log <ID> --keychain-profile "$NONET_NOTARY_PROFILE"` でもう一度見られる |
 | `spctl` が `rejected` | 公証とステープルが済んでいるか（`xcrun stapler validate`）。dry run では rejected が正常 |
 | 「ビルド番号は…より大きく」 | 公開済みより大きい番号にする。公開していない試しの項目なら appcast.xml から消す |
+| 「…には、すでに版 … の項目があります」・「すでに同じ DMG の URL（…）の項目があります」 | 公開した版を出し直そうとしている（版を上げ忘れて、ビルド番号だけ上げたなど）。**版（バージョン）を上げて**出す（例: `1.2.0` を直すなら `1.2.1` とビルド番号 43）。公開した DMG と appcast の項目はそのまま残す（利用者の手元の版との差分に要る）。その版をまだどこにも公開しておらず、作り直したいときだけ: 公開中の appcast にその版が無いことを `curl -s <appcast の URL>` で確かめてから、手元の appcast.xml からその版の `<item>` を消し、`NONET_RELEASES_DIR` の `Nonet-<バージョン>.dmg`・同じ名前のリリースノート・その版の `*.delta` を消してやり直す |
+| 「…/Nonet-<バージョン>.dmg がすでにあります」 | 公開済みの DMG は上書きしない。版を上げて出す。前の本番が DMG を入れた後（appcast の更新）で失敗し、appcast にその版の項目が無く、どこにも上げていないなら、その DMG を消してやり直す |
+| 同じ版を2回出してしまった（appcast に同じ URL を指す項目が2つ。`publish.sh` が「… を指す項目が 2 個」で止まる） | 古いスクリプトで出したときだけ起こる。上げずに直す: `NONET_RELEASES_DIR/appcast-history/` かサーバーの公開中の appcast.xml を手元の appcast.xml に戻し（公開中のものをそのまま使う）、上書きされた `Nonet-<バージョン>.dmg` は公開中のもの（`curl -o <DMG の URL>`）で戻す。新しく作った方の `*.delta` も消す。そのあと版を上げて出し直す |
+| 「… で hardened runtime が有効になっていません」 | 公証に出す前に止めている（公証はどの実行ファイルにも hardened runtime を求める）。Sparkle の版上げや書き出しの設定で、中の実行ファイルの runtime が落ちていないか（`codesign -dvv <ファイル>` の `flags=` に `runtime`） |
 | 「公開中の appcast が見つかりません（HTTP 404）」 | 初めてのリリースなら `--first-release` を付ける。公開済みなら `NONET_APPCAST_URL` が公開中の URL と同じか確かめる。分からなければ、公開中の appcast をダウンロードして `NONET_RELEASES_DIR/appcast.xml` に置き、`--force-local-appcast` を付ける |
 | 「公開中の appcast を取得できませんでした（HTTP 403 など）」 | ホスティングのアクセス制限（ボット対策・権限）や一時的な障害。`curl -I <appcast の URL>` で確かめる。直せなければ、公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`--force-local-appcast` を付けてやり直す |
 | 「手元の appcast に、公開中のビルド … がありません」 | 手元のものが古い（別の Mac・バックアップ）。手元の appcast.xml を消してやり直す（公開中のものを取ってくる）。手元が正しいと分かっているときだけ `--force-local-appcast` |
