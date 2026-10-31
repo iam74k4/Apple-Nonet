@@ -99,7 +99,7 @@ struct ShellRenderTests {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin
             try Self.render(
-                HUDView(model: model, colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress)
+                HUDView(model: model, colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress, surface: .solid)
                     .padding(margin)
                     .background(Color(white: 0.82)),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),

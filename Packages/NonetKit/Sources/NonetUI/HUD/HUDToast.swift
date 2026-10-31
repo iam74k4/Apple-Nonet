@@ -93,14 +93,18 @@ struct HUDToastRootView: View {
     }
 }
 
-/// 画面の下に一瞬出す黒い小さな帯。アイコン＋名前（＋説明）
+/// 画面の下に一瞬出す小さな帯（HUD と同じ面）。アイコン＋名前（＋説明）
 struct HUDToastView: View {
     let toast: ToastModel
     var colors: HUDColors = .standard
     /// 最大の幅（測るときと同じ値で折り返す）
     var maxWidth: CGFloat?
+    var surface: HUDSurface = .current
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var scale: CGFloat { HUDMetrics(scale: toast.scale).scale }
+    private var theme: HUDTheme { HUDTheme(surface: surface, colors: colors, colorScheme: colorScheme) }
 
     var body: some View {
         let scale = scale
@@ -120,34 +124,32 @@ struct HUDToastView: View {
             VStack(alignment: .leading, spacing: 2 * scale) {
                 Text(toast.title)
                     .font(.system(size: 14 * scale, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.title)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if let detail = toast.detail, !detail.isEmpty {
                     Text(detail)
                         .font(.system(size: 12 * scale))
-                        .foregroundStyle(colors.secondaryText)
+                        .foregroundStyle(theme.secondaryText)
                         .lineLimit(toast.style == .failure ? 4 : 1)
                         .truncationMode(.tail)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .foregroundStyle(Color(white: 0.85))
+        .foregroundStyle(surface == .glass ? theme.cellForeground : AnyShapeStyle(Color(white: 0.85)))
         .padding(.horizontal, 18 * scale)
         .padding(.vertical, 11 * scale)
         .frame(minWidth: HUDToastLayout.minWidth * scale)
         .frame(maxWidth: maxWidth)
-        .background(
-            RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
-                .fill(HUDPalette.background)
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
-                .strokeBorder(Color.white.opacity(toast.style == .failure ? 0.3 : max(0.1, colors.borderOpacity)), lineWidth: 1)
-        )
-        .environment(\.colorScheme, .dark)
+        .modifier(HUDSurfaceBackground(
+            surface: surface,
+            shape: RoundedRectangle(cornerRadius: 22 * scale, style: .continuous),
+            border: Color.white.opacity(toast.style == .failure ? 0.3 : max(0.1, colors.borderOpacity)),
+            shadowOpacity: 0.3,
+            shadowRadius: 10,
+            shadowY: 4
+        ))
         .accessibilityElement(children: .combine)
     }
 }

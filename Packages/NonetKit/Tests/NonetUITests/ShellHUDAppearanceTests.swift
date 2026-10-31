@@ -88,6 +88,50 @@ struct ShellHUDAppearanceTests {
         #expect(abs(HUDPalette.contrastRatio(1, 0) - 21) < 1e-9)
     }
 
+    @Test("macOS 26 以降は Dock と同じガラスの面、それより前は暗い不透明な面")
+    func surface() {
+        if #available(macOS 26, *) {
+            #expect(HUDSurface.current == .glass)
+        } else {
+            #expect(HUDSurface.current == .solid)
+        }
+    }
+
+    @Test("不透明な面はモックの色のまま。ガラスでは光らせたマスをライトでは黒く、ダークでは白く塗って文字を抜く")
+    func themes() {
+        let solid = HUDTheme(surface: .solid, colors: .standard, colorScheme: .light)
+        #expect(solid.highlightedFill == .white)
+        #expect(solid.highlightedForeground == HUDPalette.highlightedForeground)
+        #expect(solid.frameStroke(isActive: true) == HUDColors.standard.frameStroke(isActive: true))
+        #expect(solid.labelFill == HUDPalette.background)
+
+        let dark = HUDTheme(surface: .glass, colors: .standard, colorScheme: .dark)
+        #expect(dark.highlightedFill == .white)
+        #expect(dark.labelForeground == .white)
+        let light = HUDTheme(surface: .glass, colors: .standard, colorScheme: .light)
+        #expect(light.highlightedFill != .white)
+        #expect(light.highlightedForeground == .white)
+        #expect(light.labelFill == .white)
+        // 外枠に指があるときの縁は、ふだんよりはっきりさせる。「コントラストを上げる」ではふだんの縁も濃くする
+        let increased = HUDTheme(surface: .glass, colors: .increased, colorScheme: .light)
+        #expect(light.frameStroke(isActive: true) != light.frameStroke(isActive: false))
+        #expect(increased.frameStroke(isActive: false) != light.frameStroke(isActive: false))
+    }
+
+    @Test("外枠の帯は、9マスの下をくり抜いた形")
+    func frameBand() {
+        let band = HUDFrameBand(cornerRadius: 18, insets: EdgeInsets(top: 14, leading: 9, bottom: 12, trailing: 9), innerCornerRadius: 16)
+        // 偶奇の規則で塗る（SwiftUI の Path.contains(_:eoFill:) は、くり抜いた形で結果が逆になるので CGPath で確かめる）
+        let path = band.path(in: CGRect(x: 0, y: 0, width: 400, height: 300)).cgPath
+        // 帯の中
+        #expect(path.contains(CGPoint(x: 4, y: 150), using: .evenOdd))
+        #expect(path.contains(CGPoint(x: 200, y: 6), using: .evenOdd))
+        #expect(path.contains(CGPoint(x: 200, y: 294), using: .evenOdd))
+        // 9マスの下は塗らない
+        #expect(!path.contains(CGPoint(x: 200, y: 150), using: .evenOdd))
+        #expect(!path.contains(CGPoint(x: 20, y: 30), using: .evenOdd))
+    }
+
     @Test("アプリのページとグローバルのページの点の間を空ける")
     func pageDotGap() {
         let metrics = HUDMetrics(scale: 1)

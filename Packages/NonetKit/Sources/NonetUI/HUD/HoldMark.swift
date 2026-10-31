@@ -20,12 +20,21 @@ enum HoldMark {
 /// マスの右上の小さな印。マスの読み上げは accessibilityValue で言うので、印そのものは読ませない
 struct HoldBadge: View {
     var size: CGFloat
-    var color: Color
+    var style: AnyShapeStyle
+
+    init(size: CGFloat, style: AnyShapeStyle) {
+        self.size = size
+        self.style = style
+    }
+
+    init(size: CGFloat, color: Color) {
+        self.init(size: size, style: AnyShapeStyle(color))
+    }
 
     var body: some View {
         Image(systemName: HoldMark.symbol)
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(color)
+            .foregroundStyle(style)
             .accessibilityHidden(true)
     }
 }
