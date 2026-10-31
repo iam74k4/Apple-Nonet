@@ -83,6 +83,39 @@ struct StoreBackupTests {
         }
     }
 
+    @Test("同じ秒に作った控えは、後から作ったものを新しいとして並べ、比べ、残す")
+    func sameSecondBackupsAreNewestFirst() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let first = store.makeBackup(of: configuration(.off), reason: .beforeDeletingProfile, now: Self.start)
+            let second = store.makeBackup(of: configuration(.strong), reason: .beforeDeletingProfile, now: Self.start)
+            #expect(first != nil && second != nil)
+            #expect(store.backups().map(\.url) == [second?.url, first?.url].compactMap { $0 })
+            // いちばん新しい控え（second）と同じ中身なら作らない
+            let third = store.makeBackup(of: configuration(.strong), reason: .beforeDeletingProfile, now: Self.start)
+            #expect(third?.url == second?.url)
+            #expect(store.backups().count == 2)
+            // 理由が違っても、同じ秒なら後から作ったものが先
+            let fourth = try #require(store.makeBackup(of: configuration(.light), reason: .beforeImport, now: Self.start))
+            #expect(store.backups().first?.url == fourth.url)
+            #expect(fourth.url.lastPathComponent.hasSuffix("-import-3.json"))
+        }
+    }
+
+    @Test("同じ秒に10個を超えても、刈り込むのは古い方")
+    func pruningSameSecondKeepsTheNewest() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            var made: [URL] = []
+            for index in 0..<(ConfigurationStore.maxBackups + 2) {
+                let backup = try #require(store.makeBackup(of: configuration(hudDelay: 0.2 + Double(index) * 0.01), reason: .beforeDeletingPage, now: Self.start))
+                made.append(backup.url)
+            }
+            #expect(store.backups().map(\.url) == Array(made.reversed().prefix(ConfigurationStore.maxBackups)))
+            #expect(try store.loadBackup(try #require(store.backups().first)) == configuration(hudDelay: 0.2 + Double(ConfigurationStore.maxBackups + 1) * 0.01))
+        }
+    }
+
     @Test("控えのファイル名の読み取り", arguments: ConfigurationBackup.Reason.allCases)
     func parsesNames(_ reason: ConfigurationBackup.Reason) throws {
         let stamp = ConfigurationStore.backupTimestamp(for: Self.start)

@@ -139,6 +139,10 @@ final class SettingsModel {
     /// 「以前の設定に戻す」の一覧（シートを開いたときに読む）
     var backupEntries: [SettingsBackupEntry] = []
     @ObservationIgnored private var explicitBackupStore: ConfigurationStore?
+    /// 「プリセットに戻す」で使う、claude を調べ終えた後のこの Mac でできること（確かめるシートを出したときに調べ始める）。
+    /// 調べ終える前は presetEnvironment.capabilities（今わかっている分）を使う
+    @ObservationIgnored var resolvedPresetCapabilities: PresetCapabilities?
+    @ObservationIgnored var presetCapabilitiesTask: Task<Void, Never>?
 
     // MARK: キーの記録
     private(set) var recorder = SettingsKeyRecorder()
@@ -160,6 +164,9 @@ final class SettingsModel {
         NSApp?.keyWindow?.firstResponder is NSText
     }
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    /// 元に戻している最中に、マスの取り消しを忘れると決めたプロファイル。戻し終えてから忘れる
+    /// （最中に undoManager から消すと、名前の無い空の取り消しが残る）
+    @ObservationIgnored private var profilesToForgetAfterUndo: [UUID] = []
 
     // MARK: 一般
     private(set) var loginItemEnabled = false
@@ -233,6 +240,11 @@ final class SettingsModel {
         for name in [Notification.Name.NSUndoManagerWillUndoChange, .NSUndoManagerWillRedoChange] {
             observers.append(center.addObserver(forName: name, object: undoManager, queue: nil) { [weak self] _ in
                 MainActor.assumeIsolated { self?.undoManagerWillChange() }
+            })
+        }
+        for name in [Notification.Name.NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange] {
+            observers.append(center.addObserver(forName: name, object: undoManager, queue: nil) { [weak self] _ in
+                MainActor.assumeIsolated { self?.forgetCellUndoAfterUndoing() }
             })
         }
     }
@@ -436,15 +448,68 @@ final class SettingsModel {
         undoNotice = nil
     }
 
+    /// ページを足す。元に戻せる（戻すと足したページを消す。その下に積んだページの削除の取り消しが、上限で戻せなくならないように）
     func addPage() {
         let profileID = selectedProfile.id
+        guard canAddPage else { return }
+        pendingEdits.flushAll()
+        finishRecording()
+        closeEditGroup()
         var added: Int?
         controller.update { added = $0.addPage(profileID: profileID) }
-        if let added {
-            finishRecording()
-            selectedPage = added
-            selectedIndex = 0
+        guard let added else { return }
+        registerUndoOfAddingPage(at: added, profileID: profileID)
+        selectedPage = added
+        selectedIndex = 0
+        gridMessage = nil
+        undoNotice = nil
+    }
+
+    private func registerUndoOfAddingPage(at index: Int, profileID: UUID) {
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.removeAddedPage(at: index, profileID: profileID)
         }
+        undoManager.setActionName(String(localized: "ページを追加", bundle: .module))
+        undoManager.endUndoGrouping()
+    }
+
+    /// 足したページを消す（元に戻す）。その後にマスを置いていれば（取り消しに積まれない変更で）消さずに知らせる
+    private func removeAddedPage(at index: Int, profileID: UUID) {
+        pendingEdits.flushAll()
+        finishRecording()
+        undoNotice = nil
+        guard let profile = configuration.profile(id: profileID), profile.pages.count > 1,
+              profile.pages.indices.contains(index) else { return }
+        guard profile.pages[index].cells.allSatisfy({ $0 == nil }) else {
+            reveal(CellAddress(page: index, index: selectedIndex ?? 0), profileID: profileID)
+            gridMessage = String(localized: "マスがその後に変わったため、元に戻せませんでした", bundle: .module)
+            return
+        }
+        controller.update { $0.removePage(at: index, profileID: profileID) }
+        // やり直すと、また同じ場所に足す
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.insertAddedPage(at: index, profileID: profileID)
+        }
+        undoManager.setActionName(String(localized: "ページを追加", bundle: .module))
+        reveal(CellAddress(page: max(index - 1, 0), index: selectedIndex ?? 0), profileID: profileID)
+    }
+
+    /// 足したページをもう一度足す（やり直す）
+    private func insertAddedPage(at index: Int, profileID: UUID) {
+        pendingEdits.flushAll()
+        finishRecording()
+        undoNotice = nil
+        guard let count = configuration.profile(id: profileID)?.pages.count else { return }
+        let position = min(index, count)
+        var inserted = false
+        controller.update { inserted = $0.insertPage(.empty, at: position, profileID: profileID) }
+        guard inserted else {
+            gridMessage = String(localized: "ページが \(Profile.maxPages) 枚あるため、消したページを元に戻せませんでした", bundle: .module)
+            return
+        }
+        registerUndoOfAddingPage(at: position, profileID: profileID)
+        reveal(CellAddress(page: position, index: 0), profileID: profileID)
     }
 
     /// 空のページはすぐ消す。マスがあれば確かめる
@@ -495,6 +560,13 @@ final class SettingsModel {
         var restored = false
         controller.update { restored = $0.insertPage(page, at: index, profileID: profileID) }
         guard restored else {
+            // その下に積んだマスの取り消しは、このページがあるものとして場所を覚えている。
+            // 戻すと番号のずれた別のページに入るので、このプロファイルの分は（戻し終えてから）忘れる
+            if undoManager.isUndoing || undoManager.isRedoing {
+                profilesToForgetAfterUndo.append(profileID)
+            } else {
+                discardCellUndo(forProfiles: [profileID])
+            }
             gridMessage = String(localized: "ページが \(Profile.maxPages) 枚あるため、消したページを元に戻せませんでした", bundle: .module)
             return
         }
@@ -742,6 +814,13 @@ final class SettingsModel {
         undoManager.undo()
     }
 
+    private func forgetCellUndoAfterUndoing() {
+        guard !profilesToForgetAfterUndo.isEmpty else { return }
+        let profileIDs = profilesToForgetAfterUndo
+        profilesToForgetAfterUndo = []
+        discardCellUndo(forProfiles: profileIDs)
+    }
+
     func undoTarget(for profileID: UUID) -> SettingsUndoTarget {
         if let target = undoTargets[profileID] {
             return target
@@ -753,7 +832,8 @@ final class SettingsModel {
 
     /// 読み込みでプロファイルを置き換えた後は、覚えた中身が合わなくなるので、
     /// そのプロファイルのマスの変更だけ元に戻せなくする（ほかのプロファイルの変更は残す）。
-    /// プロファイルやページを消したときは、それも元に戻せるので忘れない（取り消しは積んだ順に戻るので、場所はずれない）
+    /// プロファイルやページを消したとき・足したときは、それも元に戻せるので忘れない（取り消しは積んだ順に戻るので、場所はずれない）。
+    /// 消したページを戻せなかったとき（取り消しに積まれない変更でページが上限になっていた）は、場所がずれるので忘れる
     func discardCellUndo(forProfiles profileIDs: [UUID]) {
         if let group = editGroup, profileIDs.contains(group.profileID) {
             editGroup = nil
@@ -1300,6 +1380,13 @@ final class SettingsModel {
     func windowDidResignKey() {
         finishRecording()
         closeEditGroup()
+    }
+
+    /// アプリを終える前（NonetController.stop() で待っている保存を書くより先に）。打ちかけの欄と記録中のキーを確定させる。
+    /// 終了ではウィンドウが閉じないので windowWillClose() は来ない
+    func applicationWillTerminate() {
+        pendingEdits.flushAll()
+        finishRecording()
     }
 
     func windowWillClose() {

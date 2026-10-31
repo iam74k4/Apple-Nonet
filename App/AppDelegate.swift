@@ -122,6 +122,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             center.removeObserver(observer)
         }
         licenseRefreshObservers = []
+        // 設定画面の打ちかけ（少し止まってから確定する欄）と記録中のキーを先に確定させ、stop() で一緒に書く
+        settingsWindow?.commitPendingEdits()
         controller?.stop()
     }
 

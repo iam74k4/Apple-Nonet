@@ -248,6 +248,43 @@ private func pasteboard() -> NSPasteboard {
         #expect(h.xcodeProfile?.pages.first?.name == nil)
     }
 
+    private func hasAction(_ profile: Profile?, _ matches: (Action) -> Bool) -> Bool {
+        profile?.pages.contains { $0.cells.contains { $0.map { matches($0.action) } ?? false } } ?? false
+    }
+
+    /// 「プリセットに戻す」も、この Mac で動かないアクション（AI・Claude Code）は入れない（初回の設定やプロファイルの追加と同じ）
+    @Test func resettingToThePresetUsesThisMacsCapabilities() throws {
+        let h = try harness()
+        let environment = try #require(h.services.presetEnvironment as? FixedPresetEnvironment)
+        environment.capabilities = .none
+        let xcode = try #require(h.xcodeProfile)
+        h.model.resetProfileToPreset(xcode.id)
+        let expected = try #require(PresetLibrary.preset(forBundleID: SettingsFixtures.xcode.bundleID, capabilities: .none))
+        #expect(h.xcodeProfile?.pages.map { $0.cells.map { $0?.action } } == expected.pages.map { $0.cells.map { $0?.action } })
+        #expect(!hasAction(h.xcodeProfile) { if case .ai = $0 { true } else { false } })
+        // Safari: AI の使えない Mac（macOS 14/15）では AI のマスを入れない
+        let safari = try #require(h.safariProfile)
+        h.model.resetProfileToPreset(safari.id)
+        #expect(!hasAction(h.safariProfile) { if case .ai = $0 { true } else { false } })
+    }
+
+    /// 確かめるシートを出している間に claude を調べ終えたら、Claude Code のマスも入れる
+    @Test func resettingToThePresetWaitsForClaudeCodeToBeChecked() async throws {
+        let environment = SettingsFakePresetEnvironment(capabilities: .none, resolved: .all)
+        let h = try SettingsHarness(presetEnvironment: environment)
+        h.model.undoManager.groupsByEvent = false
+        let xcode = try #require(h.xcodeProfile)
+        h.model.requestResetProfile(xcode.id)
+        await h.model.presetCapabilitiesTask?.value
+        h.model.confirm(.resetProfile(id: xcode.id, name: xcode.name))
+        let expected = try #require(PresetLibrary.preset(forBundleID: SettingsFixtures.xcode.bundleID, capabilities: .all))
+        #expect(h.xcodeProfile?.pages.map { $0.cells.map { $0?.action } } == expected.pages.map { $0.cells.map { $0?.action } })
+        // 戻した後は忘れ、次に戻すときに調べ直す
+        #expect(h.model.resolvedPresetCapabilities == nil)
+        #expect(h.model.preset(forProfile: xcode.id)?.pages.map { $0.cells.map { $0?.action } }
+            == PresetLibrary.preset(forBundleID: SettingsFixtures.xcode.bundleID, capabilities: .none)?.pages.map { $0.cells.map { $0?.action } })
+    }
+
     /// プリセットの無いアプリとグローバルには出さない
     @Test func resetIsOfferedOnlyWithAPreset() throws {
         let h = try harness()
@@ -436,9 +473,9 @@ private func pasteboard() -> NSPasteboard {
         #expect(h.model.undoManager.undoActionName == L10n.ui("ページの名前の変更"))
         h.model.undoManager.undo()
         #expect(h.model.selectedProfile.pages[0].name == nil)
-        // 同じ名前なら何も積まない
+        // 同じ名前なら何も積まない（いちばん上はページの追加のまま）
         h.model.renamePage(0, to: "")
-        #expect(!h.model.undoManager.canUndo)
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ページを追加"))
     }
 
     @Test func pageTitlesUseTheName() {

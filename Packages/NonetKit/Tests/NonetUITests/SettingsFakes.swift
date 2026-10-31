@@ -259,7 +259,8 @@ final class SettingsHarness {
         configuration: NonetConfiguration? = SettingsFixtures.configuration(),
         isJISKeyboard: Bool = false,
         verifier: LicenseVerifier? = nil,
-        links: AppLinks = AppLinks()
+        links: AppLinks = AppLinks(),
+        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
     ) throws {
         directory = FileManager.default.temporaryDirectory
             .appending(path: "NonetSettingsTests-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -279,7 +280,8 @@ final class SettingsHarness {
             ai: ai,
             loginItem: loginItem,
             scheduler: scheduler,
-            isJISKeyboard: isJISKeyboard
+            isJISKeyboard: isJISKeyboard,
+            presetEnvironment: presetEnvironment
         )
         let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
         license = LicenseManager(verifier: verifier, storage: licenseStorage, now: { start })
@@ -321,5 +323,25 @@ final class SettingsHarness {
 
     func temporaryFile(_ name: String) -> URL {
         directory.appending(path: name, directoryHint: .notDirectory)
+    }
+}
+
+/// 今わかっていること（capabilities）と、claude を調べ終えた後のこと（resolvedCapabilities）が違う環境
+@MainActor
+final class SettingsFakePresetEnvironment: PresetEnvironmentProviding {
+    var capabilities: PresetCapabilities
+    var resolved: PresetCapabilities
+
+    init(capabilities: PresetCapabilities, resolved: PresetCapabilities) {
+        self.capabilities = capabilities
+        self.resolved = resolved
+    }
+
+    func resolvedCapabilities() async -> PresetCapabilities {
+        resolved
+    }
+
+    func dockApps() -> [AppReference] {
+        []
     }
 }
