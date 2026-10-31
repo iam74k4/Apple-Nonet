@@ -80,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menuBar.onEditButtons = { [weak self] app in self?.settingsWindow?.showButtons(for: app) }
         menuBar.onShowRun = { [weak self] record in self?.settingsWindow?.showRun(record) }
+        menuBar.onShowCell = { [weak self] profileID, address in self?.settingsWindow?.showCell(profileID: profileID, address: address) }
         let frontmost = services.frontmostApp
         menuBar.frontmostApp = { frontmost.current?.app }
         menuBar.links = links

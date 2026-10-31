@@ -70,6 +70,8 @@ struct MenuBarState: Equatable {
     var hasGuide: Bool
     /// 最近実行したボタン（新しい順。メニューの「最近の実行」）
     var recentRuns: [ExecutionRecord] = []
+    /// メニューの先頭の早見表（前面のアプリでトリガーを押したときに出る9マス）。nil なら出さない
+    var cheatSheet: MenuBarCheatSheet?
 
     init(
         status: ControllerStatus,
@@ -109,7 +111,11 @@ struct MenuBarState: Equatable {
         links: AppLinks = AppLinks()
     ) {
         let active = controller.activeProfileName
-        defer { recentRuns = controller.recentExecutions }
+        defer {
+            recentRuns = controller.recentExecutions
+            // 許可が無い・無効にしているときも出す（何が入っているかを見るだけなので）
+            cheatSheet = MenuBarCheatSheet(frontApp: frontApp, configuration: controller.configuration)
+        }
         self.init(
             status: controller.status,
             isEnabled: controller.configuration.settings.isEnabled,
@@ -155,6 +161,9 @@ enum MenuBarStatus: Equatable {
 /// メニューの1行
 enum MenuBarEntry: Equatable {
     case status(String, MenuBarIconState)
+    /// 前面のアプリでトリガーを押したときに出る9マスの早見表。押したマスを設定で開く。
+    /// 「このアプリでは使わない」アプリでは、マスの代わりにそう言う1行
+    case cheatSheet(MenuBarCheatSheet)
     case notice(String)
     case dismissNotice
     case requestAccessibility
@@ -187,6 +196,7 @@ enum MenuBarEntry: Equatable {
     var title: String {
         switch self {
         case .status(let text, _): text
+        case .cheatSheet(let sheet): sheet.turnedOffText ?? sheet.title
         case .notice(let text): text
         case .dismissNotice: String(localized: "この知らせを消す", bundle: .module)
         case .requestAccessibility: String(localized: "アクセシビリティを許可…", bundle: .module)
@@ -322,6 +332,10 @@ enum MenuBarModel {
         }
         if let notice = state.notice, !notice.isEmpty {
             entries += [.notice(notice), .dismissNotice]
+        }
+        // 早見表は状態の行（と、その下の許可・知らせ）のすぐ下。直すことのある行を押し下げない
+        if let sheet = state.cheatSheet {
+            entries += [.separator, .cheatSheet(sheet)]
         }
         entries += [
             .separator,
