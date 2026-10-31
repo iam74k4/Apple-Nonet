@@ -11,6 +11,8 @@ if launchOptions.selfCheck {
 
 MainActor.assumeIsolated {
     // 同じ Nonet が2つ動くと、1回のタップでマスが2回実行される。もう動いていたらそちらに任せて終わる。
+    // ただし、ディスクイメージなどから開いたこちらの方が新しければ、動いている方を終わらせてから起動し、
+    // アプリケーションフォルダへ移す（置き換える）かを AppDelegate で尋ねる。新しくなければ、伝えてから終わる。
     // DEBUG ビルドで設定の置き場所を分けたとき（見た目の確認）は、配布版と並べて動かしてよい
     #if DEBUG
     let allowsMultiple = launchOptions.configDirectory != nil

@@ -3,7 +3,9 @@ import NonetUI
 
 /// 同じ Nonet（同じ bundle ID）がもう動いていたら、そちらに設定を開かせてこのプロセスは終わる。
 /// 動いている方がディスクイメージなどから開いたままのもので、こちらがアプリケーションフォルダのものなら、そちらを終わらせて代わりに動く。
-/// 決め方は NonetUI の ShellInstanceGuard（テストあり）
+/// こちらがディスクイメージなどから開いたもので、アプリケーションフォルダで動いている方より新しければ、そちらを終わらせて起動し、
+/// アプリケーションフォルダの Nonet を置き換えるかを尋ねる（AppDelegate の ShellMoveToApplications.offerIfNeeded）。
+/// 新しくなければ、そのことを伝えてから終わる。決め方は NonetUI の ShellInstanceGuard（テストあり）
 @MainActor
 enum SingleInstance {
     /// 起動を続けてよければ戻る。任せたときは戻らない
@@ -16,9 +18,11 @@ enum SingleInstance {
             bundleURL: Bundle.main.bundleURL,
             isFinishedLaunching: false,
             launchDate: current.launchDate,
-            location: ShellInstallLocation.of(bundleURL: Bundle.main.bundleURL)
+            location: ShellInstallLocation.of(bundleURL: Bundle.main.bundleURL),
+            bundleVersion: Bundle.main.infoDictionary?["CFBundleVersion"] as? String
         )
         var locations: [pid_t: ShellInstallLocation] = [:]
+        var versions: [pid_t: String?] = [:]
         var askedToQuit: Set<pid_t> = []
         let start = Date()
         while true {
@@ -26,6 +30,8 @@ enum SingleInstance {
                 let processID = app.processIdentifier
                 let location = locations[processID] ?? app.bundleURL.map(ShellInstallLocation.of(bundleURL:)) ?? .installed
                 locations[processID] = location
+                let version = versions[processID] ?? app.bundleURL.flatMap(bundleVersion(at:))
+                versions[processID] = version
                 return ShellRunningInstance(
                     processID: processID,
                     bundleURL: app.bundleURL,
@@ -35,7 +41,8 @@ enum SingleInstance {
                     isQuitting: processID != current.processIdentifier
                         && ShellQuitMarker.isQuitting(processID: processID, launchDate: app.launchDate),
                     launchDate: app.launchDate,
-                    location: location
+                    location: location,
+                    bundleVersion: version
                 )
             }
             switch ShellInstanceGuard.decide(
@@ -49,7 +56,8 @@ enum SingleInstance {
             case .wait:
                 waitBriefly()
             case .replace(let other):
-                // ディスクイメージなどから開いたままのものを終わらせ、アプリケーションフォルダのこちらが代わりに動く
+                // ディスクイメージなどから開いたままのもの（またはこちらより古いアプリケーションフォルダのもの）を終わらせ、
+                // こちらが代わりに動く。古い方を終わらせたときは、起動した後で置き換えるかを尋ねる
                 if askedToQuit.insert(other.processID).inserted {
                     NSRunningApplication(processIdentifier: other.processID)?.terminate()
                 }
@@ -60,8 +68,19 @@ enum SingleInstance {
                     showSettings(of: other)
                 }
                 exit(0)
+            case .explainAndHandOff(let other):
+                // ディスクイメージなどから開いたこちらは、動いている方より新しくない。黙って終わらずに伝えてから任せる
+                ShellMoveToApplications.explainAlreadyRunning(runningAt: other.bundleURL)
+                showSettings(of: other)
+                exit(0)
             }
         }
+    }
+
+    /// bundleURL のアプリのビルド番号（CFBundleVersion）。Bundle はキャッシュされるので、Info.plist を直接読む
+    private static func bundleVersion(at bundleURL: URL) -> String? {
+        let plist = bundleURL.appendingPathComponent("Contents/Info.plist", isDirectory: false)
+        return NSDictionary(contentsOf: plist)?["CFBundleVersion"] as? String
     }
 
     /// 一覧の isTerminated・isFinishedLaunching はメインのランループで更新される

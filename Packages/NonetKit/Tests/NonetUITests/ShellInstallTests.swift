@@ -30,7 +30,8 @@ struct ShellInstallTests {
         finished: Bool = true,
         quitting: Bool = false,
         launched: Date? = nil,
-        location: ShellInstallLocation = .installed
+        location: ShellInstallLocation = .installed,
+        version: String? = nil
     ) -> ShellRunningInstance {
         ShellRunningInstance(
             processID: pid,
@@ -39,13 +40,19 @@ struct ShellInstallTests {
             isFinishedLaunching: finished,
             isQuitting: quitting,
             launchDate: launched,
-            location: location
+            location: location,
+            bundleVersion: version
         )
     }
 
     /// 起動の途中の自分（調べている途中）
-    nonisolated static func me(_ pid: Int32 = own, location: ShellInstallLocation = .installed, launched: Date? = nil) -> ShellRunningInstance {
-        instance(pid, location == .installed ? installed : diskImage, finished: false, launched: launched, location: location)
+    nonisolated static func me(
+        _ pid: Int32 = own,
+        location: ShellInstallLocation = .installed,
+        launched: Date? = nil,
+        version: String? = nil
+    ) -> ShellRunningInstance {
+        instance(pid, location == .installed ? installed : diskImage, finished: false, launched: launched, location: location, version: version)
     }
 
     static func decide(_ running: [ShellRunningInstance], own: ShellRunningInstance = me(), waited: TimeInterval) -> ShellInstanceDecision {
@@ -64,9 +71,12 @@ struct ShellInstallTests {
     @Test("起動し終えて動いているものがあれば、待たずにそちらに任せて終わる（もう一度開いたらすぐに設定が開く）")
     func handsOffImmediately() {
         let own = Self.me(location: .temporary)
-        #expect(Self.decide([own, Self.instance(42)], own: own, waited: 0) == .handOff(Self.instance(42)))
-        // 同じ場所のものでも同じ（起動し終えた方を残す）
+        // ディスクイメージなどから開いたこちらは、アプリケーションフォルダのものに任せる前に、そのことを伝える
+        #expect(Self.decide([own, Self.instance(42)], own: own, waited: 0) == .explainAndHandOff(Self.instance(42)))
+        // 同じ場所のものでも同じ（起動し終えた方を残す）。こちらは伝えずに任せる
         #expect(Self.decide([Self.me(), Self.instance(42)], waited: 0) == .handOff(Self.instance(42)))
+        let temporary = Self.instance(42, Self.diskImage, location: .temporary)
+        #expect(Self.decide([own, temporary], own: own, waited: 0) == .handOff(temporary))
     }
 
     @Test("終わりかけのもの（終了した直後に開き直した）は、終わるのを待ってから起動する。任せない")
@@ -117,9 +127,59 @@ struct ShellInstallTests {
 
         // 逆に、一時的な場所から開いたものは、アプリケーションフォルダのものに任せる（起動の途中でも）
         let own = Self.me(location: .temporary)
-        #expect(Self.decide([own, Self.instance(42)], own: own, waited: ShellInstanceGuard.shutdownGrace) == .handOff(Self.instance(42)))
+        #expect(Self.decide([own, Self.instance(42)], own: own, waited: ShellInstanceGuard.shutdownGrace) == .explainAndHandOff(Self.instance(42)))
+        // 起動の途中のもの（同時に開かれた）は、こちらが終わるのを待っているので、伝えずにすぐ終わる
         let launching = Self.me(42)
         #expect(Self.decide([own, launching], own: own, waited: ShellInstanceGuard.shutdownGrace) == .handOff(launching))
+    }
+
+    @Test("新しい DMG から開いたら、アプリケーションフォルダで動いている古い方に終わってもらってから起動する（その後で置き換えるかを尋ねる）")
+    func newerTemporaryReplacesOlderInstalled() {
+        let own = Self.me(location: .temporary, version: "11")
+        let old = Self.instance(42, version: "10")
+        let running = [own, old]
+        // 待たずに終わってもらう（任せて終わらない）
+        #expect(Self.decide(running, own: own, waited: 0) == .replace(old))
+        #expect(Self.decide(running, own: own, waited: ShellInstanceGuard.takeOverTimeout - 0.1) == .replace(old))
+        // 終わり始めたら、終わるのを待ってから起動する（2つが同時にトリガーキーを見ないように）
+        let quitting = Self.instance(42, quitting: true, version: "10")
+        #expect(Self.decide([own, quitting], own: own, waited: 1) == .wait)
+        #expect(Self.decide([own, Self.instance(42, terminated: true, version: "10")], own: own, waited: 1) == .launch)
+        // 終わってくれなければ（尋ねる画面を出している など）、伝えてからそちらに任せる。2つは動かさない
+        #expect(Self.decide(running, own: own, waited: ShellInstanceGuard.takeOverTimeout) == .explainAndHandOff(old))
+        // ビルド番号は数として比べる（"9" より "10" が新しい）
+        let nine = Self.instance(42, version: "9")
+        #expect(Self.decide([own, nine], own: Self.me(location: .temporary, version: "10"), waited: 0) == .replace(nine))
+    }
+
+    @Test("DMG から開いた方が新しくなければ（同じ・古い・分からない）、アプリケーションフォルダで動いている方に、伝えてから任せる", arguments: [
+        "10", "9", nil,
+    ] as [String?])
+    func notNewerTemporaryExplains(ownVersion: String?) {
+        let own = Self.me(location: .temporary, version: ownVersion)
+        let installedRunning = Self.instance(42, version: "10")
+        #expect(Self.decide([own, installedRunning], own: own, waited: 0) == .explainAndHandOff(installedRunning))
+        // 動いている方の版が分からなくても、置き換えない
+        let unknown = Self.instance(42)
+        #expect(Self.decide([own, unknown], own: Self.me(location: .temporary, version: "99"), waited: 0) == .explainAndHandOff(unknown))
+    }
+
+    @Test("新しい DMG から開いたものが動いているときに、アプリケーションフォルダの古い方を開いたら、新しい方に任せる（どのプロセスから見ても同じものを残す）")
+    func olderInstalledDefersToNewerTemporary() {
+        let newer = Self.instance(42, Self.diskImage, location: .temporary, version: "11")
+        let own = Self.me(version: "10")
+        #expect(Self.decide([own, newer], own: own, waited: 0) == .handOff(newer))
+        // 同じ版なら、これまでどおりアプリケーションフォルダの方が代わりに動く
+        let same = Self.instance(42, Self.diskImage, location: .temporary, version: "10")
+        #expect(Self.decide([own, same], own: own, waited: 0) == .replace(same))
+    }
+
+    @Test("任せる前に伝える文は、動いている方とこちらの版を言い、入れ替え方を伝える")
+    func alreadyRunningMessage() {
+        let message = ShellMoveToApplications.alreadyRunningMessage(running: "1.0.0 (1)", own: "1.0.1 (2)")
+        #expect(message.contains("1.0.0 (1)"))
+        #expect(message.contains("1.0.1 (2)"))
+        #expect(message == L10n.ui("アプリケーションフォルダの Nonet（\("1.0.0 (1)")）が動いているので、そちらを使います。この Nonet（\("1.0.1 (2)")）は終了します。入れ替えるときは、動いている Nonet を終了してから、もう一度開いてください。"))
     }
 
     /// 同じ bundle ID のプロセスを時間を進めて動かし、最後に動いているものを返す。
@@ -162,7 +222,7 @@ struct ShellInstallTests {
                     if let target = processes.firstIndex(where: { $0.instance.processID == other.processID }) {
                         processes[target].askedToQuit = true
                     }
-                case .handOff:
+                case .handOff, .explainAndHandOff:
                     processes.remove(at: index)
                 }
             }
@@ -190,6 +250,21 @@ struct ShellInstallTests {
         let temporaryRunning = Self.instance(40, Self.diskImage, location: .temporary)
         #expect(Self.simulate(launching: [(b, 0)], running: [temporaryRunning]) == [42])
         #expect(Self.simulate(launching: [(a, 0), (b, 0)], running: [temporaryRunning]) == [41])
+        // 新しい DMG から開いたとき: アプリケーションフォルダで動いている古い方が終わり、新しい方が残る
+        let oldInstalled = Self.instance(40, version: "10")
+        #expect(Self.simulate(launching: [(Self.me(42, location: .temporary, version: "11"), 0)], running: [oldInstalled]) == [42])
+        #expect(Self.simulate(launching: [(Self.me(42, location: .temporary, version: "10"), 0)], running: [oldInstalled]) == [40])
+        // 古いアプリケーションフォルダのものと新しい DMG のものを同時に・ずらして開いても1つだけ
+        let newTemporary = Self.me(41, location: .temporary, launched: start, version: "11")
+        let oldInstalledLaunching = Self.me(42, launched: start.addingTimeInterval(0.1), version: "10")
+        #expect(Self.simulate(launching: [(newTemporary, 0), (oldInstalledLaunching, 0)]) == [41])
+        #expect(Self.simulate(launching: [(newTemporary, 0), (oldInstalledLaunching, 1)]) == [41])
+        #expect(Self.simulate(launching: [(oldInstalledLaunching, 0), (newTemporary, 1)]) == [41])
+        // アプリケーションフォルダのもの2つ（違う版）と DMG のものが重なっても、1つだけ
+        let installedA = Self.me(43, launched: start, version: "9")
+        let installedB = Self.me(44, launched: start.addingTimeInterval(0.1), version: "12")
+        let survivors = Self.simulate(launching: [(installedA, 0), (installedB, 0), (newTemporary, 0)])
+        #expect(survivors.count == 1)
     }
 
     // MARK: - 終わり始めた印

@@ -601,7 +601,7 @@ test_force_local_appcast_skips_the_comparison() {
 
   # 手元に無ければ、付けていても公開中のものを取ってくる
   rm "$RELEASES/appcast.xml"
-  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.0 43
+  run "$REPO/scripts/release.sh" --force-local-appcast 1.2.1 43
   assert_status 0
   assert_called "curl -sSL"
   assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:version>40</sparkle:version>"
@@ -862,9 +862,177 @@ test_nested_code_must_be_signed_for_notarization() {
   export FAKE_CODESIGN_NESTED_DETAILS="Authority=(unavailable)
 Signature=adhoc"
   export FAKE_CURL_BODY="$RELEASES/appcast.xml"
-  run "$REPO/scripts/release.sh" 1.2.0 43
+  run "$REPO/scripts/release.sh" 1.2.1 43
   assert_status 1
   assert_contains "$OUT" "Sparkle.framework/Versions/B/Autoupdate が Developer ID Application で署名されていません"
+}
+
+# 公証はどの実行ファイルにも hardened runtime を求める。Sparkle の書き出しや版上げで中の実行ファイルの runtime が落ちたら、
+# 公証に出して待つ前に止まる。dylib（Sparkle 本体）は runtime の対象ではない
+test_nested_executables_need_hardened_runtime() {
+  prepare_release
+  export FAKE_NESTED_MACHO=1
+  export FAKE_CODESIGN_NESTED_DETAILS="CodeDirectory v=20500 size=1 flags=0x0(none) hashes=1
+Authority=Developer ID Application: Test Developer ($TEST_TEAM)
+Timestamp=Oct 30, 2026 at 10:00:00
+TeamIdentifier=$TEST_TEAM"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  local executable
+  for executable in Autoupdate Updater.app/Contents/MacOS/Updater \
+    XPCServices/Downloader.xpc/Contents/MacOS/Downloader XPCServices/Installer.xpc/Contents/MacOS/Installer; do
+    assert_contains "$OUT" "Sparkle.framework/Versions/B/$executable で hardened runtime が有効になっていません"
+  done
+  assert_called "codesign -dvv $REPO/build/release/1.2.0/export/Nonet.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle"
+  assert_not_contains "$OUT" "Versions/B/Sparkle で hardened runtime"
+  assert_not_contains "$OUT" "Developer ID Application で署名されていません"
+  assert_not_called "notarytool submit"
+}
+
+# アプリの中の XPC サービスや、Contents/MacOS のアプリ本体以外の実行ファイルも同じ
+test_app_level_helpers_need_hardened_runtime() {
+  prepare_release
+  local app="$TEST_TMP/Nonet.app"
+  export FAKE_CODESIGN_NESTED_DETAILS="CodeDirectory v=20500 size=1 flags=0x2(adhoc) hashes=1
+Authority=Developer ID Application: Test Developer ($TEST_TEAM)
+Timestamp=Oct 30, 2026 at 10:00:00"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/XPCServices/Helper.xpc/Contents/MacOS"
+  cp /usr/bin/true "$app/Contents/MacOS/Nonet"
+  cp /usr/bin/true "$app/Contents/MacOS/nonet-helper"
+  cp /usr/bin/true "$app/Contents/XPCServices/Helper.xpc/Contents/MacOS/Helper"
+  load_release
+  WORK="$TEST_TMP" TEAM="$TEST_TEAM" VERSION=1.2.0 BUILD=42 APPCAST_URL="" SPARKLE_PUBLIC_KEY="" PURCHASE_URL="" \
+    LICENSE_PUBLIC_KEY="" SUPPORT_EMAIL=""
+  run verify_app "$app"
+  assert_status 1
+  assert_contains "$OUT" "Nonet.app/Contents/MacOS/nonet-helper で hardened runtime が有効になっていません"
+  assert_contains "$OUT" "Nonet.app/Contents/XPCServices/Helper.xpc/Contents/MacOS/Helper で hardened runtime が有効になっていません"
+  # アプリ本体の実行ファイルは .app として確かめる（同じ問題を2回出さない）
+  assert_not_called "codesign -dvv $app/Contents/MacOS/Nonet"
+}
+
+# MARK: - 公開した版の出し直し
+
+# generate_appcast と同じ形の項目（版・ビルド・DMG の URL）を1行ずつ持つ appcast
+#   write_versioned_appcast <ファイル> <ビルド>:<版> …
+write_versioned_appcast() {
+  local file="$1" pair
+  shift
+  mkdir -p "$(dirname "$file")"
+  {
+    printf '<?xml version="1.0" standalone="yes"?>\n<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n'
+    for pair in "$@"; do
+      printf '<item>\n<title>%s</title>\n<sparkle:version>%s</sparkle:version>\n<sparkle:shortVersionString>%s</sparkle:shortVersionString>\n' \
+        "${pair#*:}" "${pair%%:*}" "${pair#*:}"
+      printf '<enclosure url="https://nonet.test/updates/Nonet-%s.dmg" length="1" type="application/octet-stream" sparkle:edSignature="c2ln"/>\n</item>\n' \
+        "${pair#*:}"
+    done
+    printf '</channel>\n</rss>\n'
+  } >"$file"
+}
+
+test_appcast_has_version_and_url() {
+  load_release
+  write_versioned_appcast "$TEST_TMP/a.xml" 41:1.2.0
+  appcast_has_version "$TEST_TMP/a.xml" 1.2.0 || fail "版 1.2.0 を見逃した"
+  ! appcast_has_version "$TEST_TMP/a.xml" 1.2 || fail "1.2 を 1.2.0 と同じとみなした"
+  ! appcast_has_version "$TEST_TMP/a.xml" 1.2.00 || fail "1.2.00 を 1.2.0 と同じとみなした"
+  ! appcast_has_version "$TEST_TMP/a.xml" 1x2x0 || fail ". を任意の文字とみなした"
+  ! appcast_has_version "$TEST_TMP/none.xml" 1.2.0 || fail "無いファイルに版があるとみなした"
+  # 古い形（属性）
+  printf '<item><enclosure sparkle:shortVersionString="1.3.0" sparkle:version="50" url="https://nonet.test/u/a.dmg"/></item>\n' >"$TEST_TMP/b.xml"
+  appcast_has_version "$TEST_TMP/b.xml" 1.3.0 || fail "属性の版を見逃した"
+  appcast_has_url "$TEST_TMP/a.xml" "https://nonet.test/updates/Nonet-1.2.0.dmg" || fail "同じ URL を見逃した"
+  ! appcast_has_url "$TEST_TMP/a.xml" "https://nonet.test/updates/Nonet-1.2.0.dmg.bak" || fail "違う URL を同じとみなした"
+  ! appcast_has_url "$TEST_TMP/a.xml" "" || fail "空の URL を同じとみなした"
+}
+
+# 公開後に版を上げ忘れた（ビルド番号だけ上げた）。公証の前に止まる
+test_published_version_cannot_be_released_again() {
+  prepare_release
+  write_versioned_appcast "$TEST_TMP/published/appcast.xml" 41:1.2.0
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "$RELEASES/appcast.xml には、すでに版 1.2.0 の項目があります"
+  assert_contains "$OUT" "docs/release.md 2.9"
+  assert_not_contains "$OUT" "予期しないエラー"
+  assert_not_called "xcodebuild archive"
+  assert_no_file "$RELEASES/Nonet-1.2.0.dmg"
+  # 新しい版なら通る
+  run "$REPO/scripts/release.sh" 1.2.1 42
+  assert_status 0
+}
+
+# 手元の appcast に載っていれば、パッケージの解決より前（準備の確認）で止まる。dry run でも同じ
+test_local_appcast_with_the_same_version_stops_in_preflight() {
+  prepare_release
+  write_versioned_appcast "$RELEASES/appcast.xml" 41:1.2.0
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "リリースの準備が足りません"
+  assert_contains "$OUT" "$RELEASES/appcast.xml には、すでに版 1.2.0 の項目があります"
+  assert_not_called "xcodegen"
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 1
+  assert_not_called "xcodegen"
+}
+
+# 版の番号が無い古い項目でも、同じ DMG の URL を指していれば止まる（NONET_DOWNLOAD_URL_PREFIX も使う）
+test_same_dmg_url_stops() {
+  prepare_release
+  write_appcast "$TEST_TMP/published/appcast.xml" 41
+  sed -i '' 's#</sparkle:version>#</sparkle:version><enclosure url="https://cdn.nonet.test/dl/Nonet-1.2.0.dmg" length="1"/>#' \
+    "$TEST_TMP/published/appcast.xml"
+  export NONET_DOWNLOAD_URL_PREFIX="https://cdn.nonet.test/dl"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "すでに同じ DMG の URL（https://cdn.nonet.test/dl/Nonet-1.2.0.dmg）の項目があります"
+  assert_not_called "xcodebuild archive"
+  # DMG を置く場所が違えば、別の DMG
+  rm -rf "$RELEASES"
+  : >"$FAKE_LOG"
+  unset NONET_DOWNLOAD_URL_PREFIX
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+}
+
+# 公開用のフォルダの DMG は上書きしない（別の Mac から appcast を取り込んで同じ版を出しても）
+test_existing_dmg_is_never_overwritten() {
+  prepare_release
+  mkdir -p "$RELEASES"
+  printf 'published dmg\n' >"$RELEASES/Nonet-1.2.0.dmg"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "$RELEASES/Nonet-1.2.0.dmg がすでにあります。公開済みの DMG を上書きしないよう止めました"
+  assert_not_called "xcodegen"
+  assert_eq "published dmg" "$(cat "$RELEASES/Nonet-1.2.0.dmg")" "DMG は変わらない"
+}
+
+# 本番で一度出した版を、ビルド番号だけ上げてもう一度出そうとした（レビューで再現した流れ）
+test_releasing_the_same_version_twice_stops() {
+  prepare_release
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+  assert_contains "$(cat "$RELEASES/appcast.xml")" "<sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>"
+  local before
+  before="$(cat "$RELEASES/Nonet-1.2.0.dmg")"
+  export FAKE_CURL_BODY="$RELEASES/appcast.xml"
+  : >"$FAKE_LOG"
+  run "$REPO/scripts/release.sh" 1.2.0 43
+  assert_status 1
+  assert_contains "$OUT" "Nonet-1.2.0.dmg がすでにあります"
+  assert_contains "$OUT" "すでに版 1.2.0 の項目があります"
+  assert_not_called "xcodegen"
+  assert_eq "$before" "$(cat "$RELEASES/Nonet-1.2.0.dmg")" "公開済みの DMG は変わらない"
+  assert_eq "1" "$(grep -c 'Nonet-1.2.0.dmg' "$RELEASES/appcast.xml")" "同じ URL の項目は1つのまま"
+
+  # DMG を別の場所に移していても、appcast で止まる
+  mv "$RELEASES/Nonet-1.2.0.dmg" "$TEST_TMP/"
+  run "$REPO/scripts/release.sh" 1.2.0 43
+  assert_status 1
+  assert_not_contains "$OUT" "がすでにあります。公開済みの DMG"
+  assert_contains "$OUT" "すでに版 1.2.0 の項目があります"
+  assert_not_called "xcodebuild archive"
 }
 
 test_release_notes_are_embedded_in_appcast() {

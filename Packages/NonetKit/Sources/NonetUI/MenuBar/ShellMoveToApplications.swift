@@ -118,6 +118,22 @@ public enum ShellMoveToApplications {
         }
     }
 
+    /// ディスクイメージなどから開いたこの Nonet が、アプリケーションフォルダなどで動いている Nonet に任せて終わる前に伝える
+    /// （ShellInstanceDecision.explainAndHandOff）。何も言わずに終わると、新しい版を開いたつもりの人には、
+    /// 動いている方の設定が開くだけに見える。OK を押すまで待つ
+    public static func explainAlreadyRunning(runningAt running: URL?, bundle: Bundle = .main) {
+        _ = ask(
+            String(localized: "Nonet はすでに動いています", bundle: .module),
+            alreadyRunningMessage(running: running.map(versionText(of:)) ?? "?", own: versionText(of: bundle.bundleURL)),
+            buttons: [String(localized: "OK", bundle: .module)]
+        )
+    }
+
+    /// running・own は版の表記（versionText）
+    static func alreadyRunningMessage(running: String, own: String) -> String {
+        String(localized: "アプリケーションフォルダの Nonet（\(running)）が動いているので、そちらを使います。この Nonet（\(own)）は終了します。入れ替えるときは、動いている Nonet を終了してから、もう一度開いてください。", bundle: .module)
+    }
+
     /// 移すかを尋ねるときの説明。移さないとどうなるか（使えなくなる・アップデートが届かない）を先に言う
     static var moveMessage: String {
         String(localized: "このままだと、ディスクイメージを取り出したり Mac を再起動したりすると Nonet が使えなくなり、アップデートも届きません。移すと自動で開き直します。", bundle: .module)

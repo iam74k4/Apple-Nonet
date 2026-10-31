@@ -69,8 +69,16 @@ APP
 </plist>
 EOF
   if [[ -n "${FAKE_NESTED_MACHO:-}" ]]; then
-    mkdir -p "$app/Contents/Frameworks/Sparkle.framework/Versions/B"
-    cp /usr/bin/true "$app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+    # 本物の Sparkle と同じ置き方: 実行ファイル（Autoupdate・Updater.app・XPC サービス）と dylib（Sparkle 本体）
+    local sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B" executable
+    for executable in Autoupdate Updater.app/Contents/MacOS/Updater \
+      XPCServices/Downloader.xpc/Contents/MacOS/Downloader XPCServices/Installer.xpc/Contents/MacOS/Installer; do
+      mkdir -p "$(dirname "$sparkle/$executable")"
+      cp /usr/bin/true "$sparkle/$executable"
+    done
+    # Mach-O の dylib（MH_DYLIB）の頭だけ
+    printf '\xcf\xfa\xed\xfe\x0c\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00%28s' "" | tr ' ' '\0' >"$sparkle/Sparkle"
+    chmod +x "$sparkle/Sparkle"
   fi
 }
 
