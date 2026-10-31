@@ -2,7 +2,8 @@
 import Foundation
 
 /// .nonetprofile の中身。
-/// {"format": "com.iam74k4.Nonet.profiles", "version": 1, "exportedAt": "...", "profiles": [...]}
+/// {"format": "com.iam74k4.Nonet.profiles", "version": 1, "exportedAt": "...", "profiles": [...]}。
+/// すべての書き出しで共通マスがあれば "sharedCells"（設定ファイルと同じ書式）も書く。前の版の Nonet はこれを読まずにプロファイルだけ読む
 struct ProfileDocument: Encodable {
     static let formatIdentifier = "com.iam74k4.Nonet.profiles"
     static let currentVersion = 1
@@ -11,10 +12,16 @@ struct ProfileDocument: Encodable {
     var version = ProfileDocument.currentVersion
     var exportedAt: Date
     var profiles: [Profile]
+    /// 共通マス。無ければ書かない
+    var sharedCells: SharedCells?
 
-    static func encode(_ profiles: [Profile], exportedAt: Date = Date()) throws -> Data {
+    static func encode(_ profiles: [Profile], sharedCells: SharedCells = .empty, exportedAt: Date = Date()) throws -> Data {
         guard !profiles.isEmpty else { throw ConfigurationStoreError.noProfiles }
-        let document = ProfileDocument(exportedAt: exportedAt, profiles: profiles.map { $0.normalizedForStorage() })
+        let document = ProfileDocument(
+            exportedAt: exportedAt,
+            profiles: profiles.map { $0.normalizedForStorage() },
+            sharedCells: sharedCells.isEmpty ? nil : sharedCells.normalizedForStorage()
+        )
         do {
             return try ModelJSON.makeEncoder().encode(document)
         } catch {
@@ -57,7 +64,8 @@ struct ProfileDocument: Encodable {
             modelLogger.warning("読み込んだプロファイルのうち \(unreadable) 個を読めなかった")
         }
         guard profiles.contains(where: isUsable) else { throw ConfigurationStoreError.noProfiles }
-        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable)
+        let sharedCells = (body.sharedCells ?? .empty).normalizedForStorage().reidentified()
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable, sharedCells: sharedCells)
     }
 
     /// 設定に加えられるプロファイル（グローバルか、bundleID のあるアプリ）
@@ -78,6 +86,42 @@ struct ProfileDocument: Encodable {
 
     private struct Body: Decodable {
         var profiles: [LossyElement<Profile>]
+        /// 読めなければ共通マス無し（プロファイルは読む）
+        var sharedCells: SharedCells?
+
+        private enum CodingKeys: String, CodingKey {
+            case profiles, sharedCells
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            profiles = try container.decode([LossyElement<Profile>].self, forKey: .profiles)
+            sharedCells = container.decodeLossy(SharedCells?.self, forKey: .sharedCells, default: nil)
+        }
+    }
+}
+
+extension SharedCells {
+    /// 値の範囲を揃えたもの（Profile.normalizedForStorage() と同じ）
+    func normalizedForStorage() -> SharedCells {
+        SharedCells(cells: cells.map { cell in
+            cell.map { cell in
+                var cell = cell
+                cell.action = cell.action.validated()
+                return cell
+            }
+        })
+    }
+
+    /// マスの id を新しくしたもの
+    func reidentified() -> SharedCells {
+        SharedCells(cells: cells.map { cell in
+            cell.map { cell in
+                var cell = cell
+                cell.id = UUID()
+                return cell
+            }
+        })
     }
 }
 

@@ -294,10 +294,30 @@ struct HUDCellView: View {
                     .padding(metrics.badgeInset)
             }
         }
+        .overlay(alignment: .topLeading) {
+            if cell?.isShared == true {
+                HUDSharedBadge(isHighlighted: isHighlighted, metrics: metrics, colors: colors)
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
-        .accessibilityValue(Text(HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true)))
+        .accessibilityValue(Text(HUDAnnouncement.cellValue(cell)))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+    }
+}
+
+/// 共通マス（どのアプリでも同じ位置に出るマス）の左上の小さな印
+struct HUDSharedBadge: View {
+    let isHighlighted: Bool
+    var metrics = HUDMetrics(scale: 1)
+    var colors: HUDColors = .standard
+
+    var body: some View {
+        Image(systemName: "pin.fill")
+            .font(.system(size: 8 * metrics.scale, weight: .semibold))
+            .foregroundStyle(isHighlighted ? HUDPalette.highlightedDetail : colors.detail)
+            .padding(6 * metrics.scale)
+            .accessibilityHidden(true)
     }
 }
 
@@ -403,6 +423,19 @@ enum HUDAnnouncement {
             return String(localized: "\(cell.title)、\(detail)、\(position)", bundle: .module)
         }
         return String(localized: "\(cell.title)、\(position)", bundle: .module)
+    }
+
+    /// 共通マスの VoiceOver の値（設定のグリッドと同じ文言）。共通マスでなければ nil
+    static func sharedValue(_ cell: HUDCell?) -> String? {
+        guard cell?.isShared == true else { return nil }
+        return String(localized: "sharedButton.accessibilityValue", defaultValue: "共通マス", bundle: .module)
+    }
+
+    /// マスの VoiceOver の値。共通マス・HUD で選んだときだけ実行するマスなら、それを並べる
+    static func cellValue(_ cell: HUDCell?) -> String {
+        [sharedValue(cell) ?? "", HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true)]
+            .filter { !$0.isEmpty }
+            .joined(separator: "、")
     }
 
     /// ハイライト中のマス。指が離れていれば nil。HUD で選んだときだけ実行するマスなら、そう言い添える

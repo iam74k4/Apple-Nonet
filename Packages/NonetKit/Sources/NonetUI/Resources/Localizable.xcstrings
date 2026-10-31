@@ -1383,6 +1383,23 @@
         }
       }
     },
+    "settings.grid.sharedBadge" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共通"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared"
+          }
+        }
+      }
+    },
     "settings.import.confirmButton" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -1464,6 +1481,23 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "グローバル"
+          }
+        }
+      }
+    },
+    "sharedButton.accessibilityValue" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共通マス"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared button"
           }
         }
       }
@@ -1816,6 +1850,16 @@
         }
       }
     },
+    "ここに置いたマスは、すべてのアプリのすべてのページの同じ位置に出ます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buttons placed here appear in the same spot on every page of every app"
+          }
+        }
+      }
+    },
     "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。" : {
       "localizations" : {
         "en" : {
@@ -2065,6 +2109,16 @@
         }
       }
     },
+    "このマスは共通マスです。共通マスで変えると、すべてのアプリで変わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a shared button. Change it in Shared Buttons and it changes in every app."
+          }
+        }
+      }
+    },
     "このマスは空いています。アクションの種類を選んでください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2153,6 +2207,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Register this license key?"
+          }
+        }
+      }
+    },
+    "この位置にはもう共通マスがあります。このマスで置き換えると、すべてのアプリで変わります。⌘Z で元に戻せます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's already a shared button in this spot. Replacing it with this button changes it in every app. You can undo with ⌘Z."
           }
         }
       }
@@ -5665,6 +5729,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet never records or sends what you type. Your settings are stored only on your Mac."
+          }
+        }
+      }
+    },
+    "共通マス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared Buttons"
+          }
+        }
+      }
+    },
+    "共通マスにしました。すべてのアプリの同じ位置に出ます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Made it a shared button. It now appears in the same spot in every app."
+          }
+        }
+      }
+    },
+    "共通マスにする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make Shared Button"
+          }
+        }
+      }
+    },
+    "共通マスをやめました。各アプリのマスに戻ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped sharing. Each app's own button is back."
+          }
+        }
+      }
+    },
+    "共通マスをやめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Sharing"
+          }
+        }
+      }
+    },
+    "共通マスを編集" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Shared Button"
+          }
+        }
+      }
+    },
+    "共通マスを置き換えました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaced the shared buttons."
+          }
+        }
+      }
+    },
+    "共通マスを置き換えますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace the shared button?"
           }
         }
       }

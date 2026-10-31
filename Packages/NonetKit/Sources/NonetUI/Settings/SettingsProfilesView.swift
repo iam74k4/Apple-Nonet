@@ -136,6 +136,8 @@ struct SettingsSidebar: View {
     private var profileList: some View {
         List(selection: Binding(get: { model.selectedProfile.id }, set: { model.selectProfile($0) })) {
             Section {
+                SettingsSharedCellsRow(count: model.configuration.sharedCells.count)
+                    .tag(SharedCells.profileID)
                 globalRow
                     .tag(model.configuration.globalProfile.id)
                     .contextMenu { SettingsProfileContextMenu(model: model, profile: model.configuration.globalProfile) }
@@ -390,7 +392,7 @@ struct SettingsEditorCenter: View {
 
     private func header(_ profile: Profile, showsModeLabel: Bool) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Text(profile.name)
+            Text(SettingsText.profileName(profile))
                 .font(.system(size: 22, weight: .bold))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -477,26 +479,29 @@ struct SettingsPageBar: View {
     private func bar(compactPages: Bool, compactMenuButton: Bool) -> some View {
         let profile = model.selectedProfile
         return HStack(spacing: 6) {
-            ForEach(profile.pages.indices, id: \.self) { index in
-                pageButton(
-                    index,
-                    name: profile.pages[index].name,
-                    isSelected: index == model.pageIndex,
-                    compact: compactPages
-                )
-            }
-            if model.canAddPage {
-                Button {
-                    model.addPage()
-                } label: {
-                    Image(systemName: "plus")
-                        .frame(width: 22, height: 22)
+            // 共通マスはページが無い（どのページでも同じ位置に出る）
+            if !model.isSharedCellsSelected {
+                ForEach(profile.pages.indices, id: \.self) { index in
+                    pageButton(
+                        index,
+                        name: profile.pages[index].name,
+                        isSelected: index == model.pageIndex,
+                        compact: compactPages
+                    )
                 }
-                .buttonStyle(.borderless)
-                .help(String(localized: "ページを追加", bundle: .module))
-                .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
+                if model.canAddPage {
+                    Button {
+                        model.addPage()
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 22, height: 22)
+                    }
+                    .buttonStyle(.borderless)
+                    .help(String(localized: "ページを追加", bundle: .module))
+                    .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
+                }
+                pageMenu
             }
-            pageMenu
             Spacer(minLength: 8)
             menuToggle(compact: compactMenuButton)
         }

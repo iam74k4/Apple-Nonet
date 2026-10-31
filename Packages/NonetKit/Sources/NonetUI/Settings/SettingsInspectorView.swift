@@ -20,7 +20,10 @@ struct SettingsInspectorView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    if let cell = model.selectedCell {
+                    if let shared = model.sharedCell(at: index) {
+                        // 共通マスはその場では編集せず、共通マスの行で編集する（プロファイルのマスは残っている）
+                        SettingsSharedCellNote(model: model, cell: shared, index: index)
+                    } else if let cell = model.selectedCell {
                         SettingsCellEditor(model: model, cell: cell, profile: model.selectedProfile)
                             .id(cell.id)
                     } else {
