@@ -5,8 +5,16 @@ import Testing
 
 /// ライセンスのテストで共有する鍵と中身
 enum LicenseTestFixtures {
-    static let keys = LicenseSigner.generateKeyPair()
-    static let otherKeys = LicenseSigner.generateKeyPair()
+    /// テストの鍵は毎回作るので、base64 が「//」を含まないものに限る（約1%）。
+    /// 含むと、xcconfig にそのまま書くテストで「//」から後ろがコメントになり、ときどき落ちていた
+    static let keys = keyPairWithoutDoubleSlash()
+    static let otherKeys = keyPairWithoutDoubleSlash()
+
+    static func keyPairWithoutDoubleSlash() -> (privateKeyBase64: String, publicKeyBase64: String) {
+        var keys = LicenseSigner.generateKeyPair()
+        while keys.publicKeyBase64.contains("//") { keys = LicenseSigner.generateKeyPair() }
+        return keys
+    }
     /// 2026-10-30T00:00:00Z
     static let issuedAt = Date(timeIntervalSince1970: 1_793_318_400)
 
