@@ -63,6 +63,39 @@ import Testing
         #expect(detector.flagsChanged(keyCode: 54, flags: inputFlags(), trigger: .rightCommand, passTrigger: false) == Output(event: .triggerUp, pass: false))
     }
 
+    /// トリガーを押したまま ⌘C などで一度中断した後に、押したまま角の長押しのセッションが始まったら、
+    /// 次のキーや修飾キーでそのセッションを終える（.interrupted をもう1回出す）
+    @Test func aKeyAfterAnEarlierInterruptionEndsACornerSession() {
+        var detector = TriggerDetector()
+        let trigger = TriggerKey.rightCommand
+        _ = detector.flagsChanged(keyCode: trigger.keyCode, flags: trigger.pressedFlags, trigger: trigger, passTrigger: true)
+        // ⌘C: トリガーのセッションを終える
+        #expect(detector.keyDown() == Output(event: .interrupted, pass: true))
+        // まだ右⌘を押したまま。角の長押しでセッションが始まる
+        detector.interruptsWithoutTrigger = true
+        // ⌘V: 角のセッションを終える。キーは前面アプリに渡す
+        #expect(detector.keyDown() == Output(event: .interrupted, pass: true))
+        // 出すのは1回だけ
+        #expect(detector.keyDown() == .passThrough)
+        #expect(detector.isHeld)
+    }
+
+    /// 押したままの修飾キーでも同じ。修飾キーを離しただけでは終えない
+    @Test func aModifierAfterAnEarlierInterruptionEndsACornerSession() {
+        var detector = TriggerDetector()
+        let trigger = TriggerKey.rightCommand
+        let held = trigger.pressedFlags
+        _ = detector.flagsChanged(keyCode: trigger.keyCode, flags: held, trigger: trigger, passTrigger: true)
+        #expect(detector.keyDown() == Output(event: .interrupted, pass: true))
+        detector.interruptsWithoutTrigger = true
+        // 左⇧を離した（押していたのはセッションの前から）
+        let released = inputFlags(.maskCommand, device: DeviceModifierMask.rightCommand)
+        #expect(detector.flagsChanged(keyCode: 56, flags: released, trigger: trigger, passTrigger: true) == .passThrough)
+        // 左⇧を押した
+        let shift = inputFlags([.maskCommand, .maskShift], device: DeviceModifierMask.rightCommand | DeviceModifierMask.leftShift)
+        #expect(detector.flagsChanged(keyCode: 56, flags: shift, trigger: trigger, passTrigger: true) == Output(event: .interrupted, pass: true))
+    }
+
     @Test func theTriggerWithAnotherModifierInterrupts() {
         var detector = watching()
         let flags = inputFlags([.maskCommand, .maskShift], device: DeviceModifierMask.rightCommand | DeviceModifierMask.leftShift)

@@ -97,6 +97,44 @@ extension SessionScenario {
         #expect(s.log.executions.isEmpty)
     }
 
+    /// 置いて止めていた接触が少しずれてすぐに離れた（滑らせた直後に離した）ら、キャンセル
+    @Test func liftingRightAfterTheSlideCancels() {
+        var s = started()
+        s.touch(x: Self.corner.x + 0.025, y: Self.corner.y, at: 1.5)
+        let lifted = s.lift(at: 1.5 + CornerHoldRecognizer.liftDwell - 0.01)
+        #expect(lifted == [.hideHUD, .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    /// 新しいマスに来てすぐに離した（通り過ぎるように動いて離れた）ら、キャンセル。留まってから離せば実行する
+    @Test func liftingSoonAfterReachingTheCellCancels() {
+        var quick = started()
+        quick.touch(on: 1, at: 1.5)
+        quick.touch(on: 4, at: 1.6)
+        #expect(quick.lift(at: 1.6 + CornerHoldRecognizer.liftDwell - 0.01).endReason == .cancelled)
+        #expect(quick.log.executions.isEmpty)
+
+        var settled = started()
+        settled.touch(on: 1, at: 1.5)
+        settled.touch(on: 4, at: 1.6)
+        // 同じマスの中で動いても、留まっているうちに数える
+        settled.touch(x: Pad.center(4).x + 0.05, y: Pad.center(4).y, at: 1.7)
+        #expect(settled.lift(at: 1.6 + CornerHoldRecognizer.liftDwell + 0.01).executions == [.execute(page: 0, cell: 4, wasFastTap: false)])
+    }
+
+    /// 2本指から1本指に戻ってハイライトが戻ったときも、そこから留まった時間を数える
+    @Test func theDwellRestartsWhenOneFingerIsLeftAfterASwipe() {
+        var s = started(SessionConfiguration(pageCount: 2))
+        s.touch(on: 4, at: 1.5)
+        s.touch(2, x: 0.7, y: 0.5, at: 1.6)
+        s.setFingers([(id: 1, x: 0.35, y: 0.5), (id: 2, x: 0.55, y: 0.5)], at: 1.7)
+        s.lift(2, at: 1.8)
+        s.touch(on: 7, at: 2.0)
+        var quick = s
+        #expect(quick.lift(at: 2.1).endReason == .cancelled)
+        #expect(s.lift(at: 2.2).executions == [.execute(page: 1, cell: 7, wasFastTap: false)])
+    }
+
     /// 空きマスでは何も起きない（仕様 12）。キャンセルとして終える
     @Test func liftingOnAnEmptyCellRunsNothing() {
         var s = started(SessionConfiguration(occupiedCells: [[0]]))
@@ -121,7 +159,7 @@ extension SessionScenario {
     @Test func aFingerReplacedWithinOneFrameEndsTheSession() {
         var s = started()
         s.touch(on: 4, at: 1.5)
-        let effects = s.setFingers([(id: 2, x: 0.5, y: 0.2)], at: 1.6)
+        let effects = s.setFingers([(id: 2, x: 0.5, y: 0.2)], at: 1.7)
         #expect(effects.executions == [.execute(page: 0, cell: 4, wasFastTap: false)])
         #expect(effects.endReason == .released)
         #expect(!s.engine.isInSession)
@@ -153,7 +191,7 @@ extension SessionScenario {
         #expect(cancelled.log.executions.isEmpty)
         // 滑らせ直してから離すと、新しいページのマスを実行する
         s.touch(on: 8, at: 1.9)
-        #expect(s.lift(at: 2.0).executions == [.execute(page: 1, cell: 8, wasFastTap: false)])
+        #expect(s.lift(at: 2.1).executions == [.execute(page: 1, cell: 8, wasFastTap: false)])
     }
 
     /// 1本指に戻ったら、次の2本指のスワイプでまたページを変えられる（1回のセッションで何ページでも）

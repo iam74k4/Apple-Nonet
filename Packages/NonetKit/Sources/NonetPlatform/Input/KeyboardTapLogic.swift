@@ -137,7 +137,9 @@ struct TriggerDetector {
 
     mutating func flagsChanged(keyCode: Int64, flags: CGEventFlags, trigger: TriggerKey, passTrigger: Bool) -> Output {
         if let held = heldTrigger {
-            guard keyCode == held.keyCode else { return interrupt() }
+            guard keyCode == held.keyCode else {
+                return interruptWhileHeld(isPress: ModifierKeyCode.isPress(keyCode: keyCode, flags: flags))
+            }
             if held.isPressed(in: flags) {
                 // 押したままの重複。渡すかどうかは押したときに合わせる
                 return Output(event: nil, pass: swallowedTrigger != held)
@@ -169,7 +171,7 @@ struct TriggerDetector {
     }
 
     mutating func keyDown() -> Output {
-        if isHeld { return interrupt() }
+        if isHeld { return interruptWhileHeld(isPress: true) }
         return interruptsWithoutTrigger ? interruptWithoutTrigger() : .passThrough
     }
 
@@ -199,6 +201,17 @@ struct TriggerDetector {
         guard !isInterrupted else { return .passThrough }
         isInterrupted = true
         return Output(event: .interrupted, pass: true)
+    }
+
+    /// トリガーを押している間のキー。押している間の中断（⌘C などでトリガーのセッションを終えた）の後に、
+    /// 押したまま角の長押しのセッションが始まっていたら（interruptsWithoutTrigger）、そのセッションのために .interrupted をもう1回出す。
+    /// 修飾キーを離しただけ（isPress が false）では、角の長押しのセッションを終えない
+    private mutating func interruptWhileHeld(isPress: Bool) -> Output {
+        if interruptsWithoutTrigger, isPress, !isInterruptedWithoutTrigger {
+            isInterrupted = true
+            return interruptWithoutTrigger()
+        }
+        return interrupt()
     }
 
     private mutating func interruptWithoutTrigger() -> Output {

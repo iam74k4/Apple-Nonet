@@ -110,6 +110,17 @@ final class FakeCursor: CursorControlling {
 
     // MARK: トリガー
 
+    /// どれかのボタンが物理的に押されているか（角の長押しを始める前に確かめる）
+    @Test func reportsWhetherAnyMouseButtonIsPhysicallyDown() {
+        #expect(!monitor.isMouseButtonDown)
+        physical.pressedButtons = [0]
+        #expect(monitor.isMouseButtonDown)
+        physical.pressedButtons = [4]
+        #expect(monitor.isMouseButtonDown)
+        physical.pressedButtons = []
+        #expect(!monitor.isMouseButtonDown)
+    }
+
     @Test func emitsTriggerEventsFromFlagsChanged() throws {
         #expect(try pressTrigger())
         #expect(recorder.events == [.triggerDown])

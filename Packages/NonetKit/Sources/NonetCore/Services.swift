@@ -11,12 +11,16 @@ public struct TouchPoint: Equatable, Sendable {
     public var y: Double
     /// false は近接・離れかけなど、触れていない状態
     public var isTouching: Bool
+    /// 接触の楕円の長径（MultitouchSupport の majorAxis。指先でおよそ 8〜15）。分からなければ nil。
+    /// 手のひらを見分けるのに使う（CornerHoldRecognizer.palmMajorAxis）
+    public var majorAxis: Double?
 
-    public init(id: Int, x: Double, y: Double, isTouching: Bool = true) {
+    public init(id: Int, x: Double, y: Double, isTouching: Bool = true, majorAxis: Double? = nil) {
         self.id = id
         self.x = x
         self.y = y
         self.isTouching = isTouching
+        self.majorAxis = majorAxis
     }
 }
 
@@ -77,6 +81,9 @@ public protocol KeyboardMonitor: AnyObject {
     /// 抑止中に、トラックパッドに触れていない間（離してから少し経った後）に届いた押す・スクロール・移動は、
     /// マウスやホイールのものとみなす。そのイベントは手を加えずに前面アプリに渡し、.interrupted を1回送る
     var isTrackpadTouched: Bool { get set }
+    /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）。
+    /// 押し込んだまま（ドラッグを始めるところ など）の指を、角の長押しとみなさないために使う
+    var isMouseButtonDown: Bool { get }
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
@@ -103,6 +110,9 @@ extension KeyboardMonitor {
         get { false }
         set {}
     }
+
+    /// ボタンの状態を読まない実装の既定（いつも離れている）
+    public var isMouseButtonDown: Bool { false }
 }
 
 // MARK: - 触覚

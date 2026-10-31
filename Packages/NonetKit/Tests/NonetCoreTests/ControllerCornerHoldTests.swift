@@ -29,6 +29,12 @@ import Testing
         h.advance(CornerHoldRecognizer.holdDuration)
     }
 
+    /// cell へ滑らせ、離せば実行される長さ（liftDwell）だけそのマスに留まる
+    private func slide(_ h: ControllerHarness, to cell: Int) {
+        h.touch(on: cell)
+        h.advance(CornerHoldRecognizer.liftDwell)
+    }
+
     private func expectNoSession(_ h: ControllerHarness) {
         #expect(!h.keyboard.isSuppressingPointer)
         #expect(h.keyboard.suppressionChanges.isEmpty)
@@ -94,7 +100,7 @@ import Testing
         h.start()
         holdCorner(h)
         #expect(h.hud.current?.title == ModelFixtures.globalName)
-        h.touch(on: 8)
+        slide(h, to: 8)
         h.lift()
         await h.settle()
         #expect(h.performer.actions == [F.docs.action])
@@ -107,7 +113,7 @@ import Testing
         let h = try harness()
         h.start()
         holdCorner(h)
-        h.touch(on: 2)
+        slide(h, to: 2)
         #expect(h.hud.current?.highlightedIndex == 2)
         h.lift()
         await h.settle()
@@ -149,7 +155,7 @@ import Testing
         h.start()
         h.frontmost.isOwnWindowKey = true
         holdCorner(h)
-        h.touch(on: 2)
+        slide(h, to: 2)
         h.lift()
         await h.settle()
 
@@ -234,6 +240,53 @@ import Testing
         h.controller.isRecordingKeys = true
         holdCorner(h)
         expectNoSession(h)
+    }
+
+    /// ボタンを押し込んだまま（クリックしたままドラッグを始めるところ など）なら始めない。
+    /// 合図は1つのタッチで1回なので、そのタッチの間にボタンを離しても始めない
+    @Test func nothingHappensWhileAMouseButtonIsDown() throws {
+        let h = try harness(trialEnded: true)
+        h.start()
+        h.keyboard.isMouseButtonDown = true
+        holdCorner(h)
+        expectNoSession(h)
+        // 試用期間の終了も知らせない
+        #expect(h.hud.toasts.isEmpty)
+        h.keyboard.isMouseButtonDown = false
+        h.advance(1)
+        expectNoSession(h)
+    }
+
+    /// 手のひらの大きさの接触は長押しとみなさない。指の大きさなら始める
+    @Test func aPalmSizedContactDoesNotStartASession() throws {
+        let h = try harness()
+        h.start()
+        h.majorAxes[1] = CornerHoldRecognizer.palmMajorAxis + 5
+        holdCorner(h)
+        expectNoSession(h)
+
+        h.lift()
+        h.majorAxes[1] = 12
+        holdCorner(h)
+        #expect(h.hud.isVisible)
+    }
+
+    /// 置いて止めていた接触が、少し（3mm ほど）ずれてすぐに離れても実行しない（滑らせた後、マスに liftDwell 留まっていない）
+    @Test func aStillContactThatDriftsAndLiftsAtOnceRunsNothing() async throws {
+        let h = try harness()
+        h.start()
+        h.touch(x: Self.topLeft.x, y: Self.topLeft.y)
+        h.advance(CornerHoldRecognizer.holdDuration + 0.1)
+        #expect(h.hud.isVisible)
+        h.touch(x: Self.topLeft.x + 0.025, y: Self.topLeft.y)
+        h.advance(0.1)
+        h.lift()
+        await h.settle()
+
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.controller.lastExecution == nil)
+        #expect(!h.hud.isVisible)
+        #expect(!h.keyboard.isSuppressingPointer)
     }
 
     /// トリガーキーのセッション中に置いた指は、セッションが終わった後も長押しとみなさない

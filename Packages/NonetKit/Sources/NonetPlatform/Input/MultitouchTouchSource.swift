@@ -239,7 +239,13 @@ extension MultitouchDeviceInfo {
 
 extension MultitouchContact {
     init(_ touch: CMTTouch) {
-        self.init(identifier: touch.identifier, state: touch.state, x: touch.normalized.position.x, y: touch.normalized.position.y)
+        self.init(
+            identifier: touch.identifier,
+            state: touch.state,
+            x: touch.normalized.position.x,
+            y: touch.normalized.position.y,
+            majorAxis: touch.majorAxis
+        )
     }
 
     /// 1フレームの接触点の上限。壊れた count で大きな領域を読まないように

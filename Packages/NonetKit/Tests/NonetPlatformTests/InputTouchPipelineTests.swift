@@ -29,6 +29,26 @@ import Testing
         #expect(MultitouchContact(touch) == MultitouchContact(identifier: 3, state: 4, x: 0.2, y: 0.8))
     }
 
+    /// 接触の大きさ（長径）も読む。角の長押しで手のひらを見分けるのに使う
+    @Test func readsTheMajorAxisFromTheRawContact() throws {
+        var touch = CMTTouch()
+        touch.identifier = 3
+        touch.state = 4
+        touch.normalized.position = CMTPoint(x: 0.2, y: 0.8)
+        touch.majorAxis = 31.5
+        let contact = MultitouchContact(touch)
+        #expect(contact.majorAxis == 31.5)
+        let point = try #require(TouchPoint(contact: contact))
+        #expect(point.majorAxis == 31.5)
+    }
+
+    /// 0 以下・壊れた値は「大きさが分からない」
+    @Test(arguments: [Float(0), -1, .nan, .infinity])
+    func anUnknownMajorAxisIsNil(value: Float) throws {
+        let point = try #require(TouchPoint(contact: MultitouchContact(identifier: 1, state: 4, x: 0.5, y: 0.5, majorAxis: value)))
+        #expect(point.majorAxis == nil)
+    }
+
     @Test func clampsCoordinatesIntoTheUnitSquare() throws {
         let point = try #require(TouchPoint(contact: MultitouchContact(identifier: 1, state: 4, x: -0.02, y: 1.3)))
         #expect(point.x == 0)

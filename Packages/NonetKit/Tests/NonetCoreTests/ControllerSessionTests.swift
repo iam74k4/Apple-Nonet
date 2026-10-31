@@ -78,6 +78,40 @@ import Testing
         #expect(h.controller.lastExecution == nil)
     }
 
+    /// 親指を手前に休めたままトリガーを押し、何もせずに離しても、親指の下のマスは実行しない（仕様 9・11）
+    @Test func aRestingThumbIsNotRunWhenTheTriggerIsReleased() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        // 親指をトラックパッドの手前の右（マス 8: リーダー）に休めている
+        h.touch(1, x: 0.85, y: 0.05)
+        h.advance(2)
+        h.pressTrigger()
+        // hudDelay は過ぎたが、休めている指では HUD を出さない
+        h.advance(0.4)
+        #expect(h.hud.shown.isEmpty)
+        h.releaseTrigger()
+        await h.settle()
+
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.controller.lastExecution == nil)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
+    /// 「指を離したとき」でも、休めていた親指を離すだけでは実行しない
+    @Test func liftingARestingThumbRunsNothingOnFingerLift() async throws {
+        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.fireMode = .onFingerLift }))
+        h.start()
+        h.touch(1, x: 0.85, y: 0.05)
+        h.advance(2)
+        h.pressTrigger()
+        h.advance(0.4)
+        h.lift(1)
+        await h.settle()
+
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.controller.lastExecution == nil)
+    }
+
     @Test func repeatedFastTapsRunOneAtATimeInOrder() async throws {
         let h = try ControllerHarness()
         h.performer.holds = true

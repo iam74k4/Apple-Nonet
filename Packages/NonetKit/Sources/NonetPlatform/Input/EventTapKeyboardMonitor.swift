@@ -33,6 +33,14 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
 
     public var isRunning: Bool { keyboardTap != nil }
 
+    /// 見るボタンの番号（0: 左・1: 右・2: 真ん中、その先はマウスの追加のボタン。CGMouseButton は 32 個まで）
+    static let watchedButtons: Range<Int64> = 0..<32
+
+    /// どれかのボタンがいま物理的に押されているか（hidSystemState）。角の長押しを始める前に確かめる
+    public var isMouseButtonDown: Bool {
+        Self.watchedButtons.contains(where: physicalButton)
+    }
+
     /// 抑止をやめる。dropsLateClicks なら、その直後の clickGraceInterval の間に届く「押す」も捨てる
     public func endPointerSuppression(dropsLateClicks: Bool) {
         endsWithClickGrace = dropsLateClicks

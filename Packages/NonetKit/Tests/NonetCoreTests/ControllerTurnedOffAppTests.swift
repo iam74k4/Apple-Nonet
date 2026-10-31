@@ -71,6 +71,21 @@ import Testing
         #expect(!h.keyboard.interruptsWithoutTrigger)
     }
 
+    /// 試用期間が終わっていても、Nonet を使わないアプリでは角の長押しで何も知らせない（トーストも触覚も出さない。仕様 1）
+    @Test func aCornerLongPressAfterTheTrialEndedSaysNothingInAnAppWhereNonetIsOff() async throws {
+        var configuration = F.configuration(settings: F.settings { $0.touchActivation = .topLeft })
+        configuration.setAppMode(.off, for: F.safari)
+        let h = try ControllerHarness(configuration: configuration, trialEnded: true, frontmost: F.safariApp)
+        h.start()
+        h.touch(x: 0.05, y: 0.95)
+        h.advance(CornerHoldRecognizer.holdDuration + 0.1)
+        h.lift()
+        await h.settle()
+        expectNoSession(h)
+        #expect(h.hud.toasts.isEmpty)
+        #expect(h.haptics.events.isEmpty)
+    }
+
     /// 前面が別のアプリになれば、いつもどおり始まる
     @Test func otherAppsStillWork() async throws {
         let h = try harness()
