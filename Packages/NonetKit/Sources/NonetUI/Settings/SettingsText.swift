@@ -71,7 +71,7 @@ enum SettingsText {
     }
 
     static var openGestureDetail: String {
-        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。", bundle: .module)
+        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
     }
 
     static var hudScaleTitle: String {
@@ -500,7 +500,7 @@ enum SettingsText {
         String(localized: "少し長く止めてから実行", bundle: .module)
     }
 
-    /// 止める時間は SessionConfiguration.holdDwell（0.6秒）。HUD はこのマスに進み具合を出す
+    /// 止める時間は SessionConfiguration.holdDwell（0.45秒）。HUD はこのマスに進み具合を出す
     static var holdDetail: String {
         String(localized: "このマスで指を少し長く止めてから離したときだけ実行します。HUD のマスの縁が一周したら、離すと実行します。", bundle: .module)
     }

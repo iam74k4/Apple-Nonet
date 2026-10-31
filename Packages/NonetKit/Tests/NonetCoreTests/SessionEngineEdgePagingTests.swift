@@ -112,6 +112,37 @@ import Testing
         #expect(grid.pagingEdge(x: 0.03, y: 0.04) == nil)
     }
 
+    /// 行き過ぎた指を、外枠の中で動かしながらゆっくり戻している間は、止めているとは数えない（ページは変わらない）
+    @Test func movingInsideTheSideFrameDoesNotTurnThePage() {
+        var s = SessionScenario(pageCount: 3)
+        s.slideIn(at: 0)
+        s.touch(x: 0.97, y: 0.5, at: 0.2)
+        var t = 0.2
+        var turned = false
+        while t < 1.0 {
+            t += 0.02
+            // 外枠の中（0.97 → 0.90）を、0.02 ごとに 0.002 ずつ（0.1/秒）戻す
+            let x = 0.97 - (t - 0.2) * 0.09
+            let effects = s.touch(x: x, y: 0.5, at: t) + s.tick(at: t)
+            if effects.hapticEvents.contains(.pageChange) { turned = true }
+        }
+        #expect(!turned)
+        #expect(s.engine.pageIndex == 0)
+    }
+
+    /// 外枠の中で動かした後も、そこで止め直せば edgePageDwell でページが変わる（動かした時刻から数える）
+    @Test func restingAgainAfterMovingTurnsThePage() {
+        var s = SessionScenario(pageCount: 3)
+        s.slideIn(at: 0)
+        s.touch(x: 0.96, y: 0.5, at: 0.2)
+        // 0.4 秒に外枠の中で 0.05 動かし、そこで止める
+        s.touch(x: 0.91, y: 0.5, at: 0.4)
+        #expect(s.tick(at: 0.4 + Self.dwell - 0.01).visible.isEmpty)
+        let turned = s.tick(at: 0.4 + Self.dwell)
+        #expect(turned.hapticEvents == [.pageChange])
+        #expect(s.engine.pageIndex == 1)
+    }
+
     @Test func theDwellsAreSanitized() {
         let broken = SessionConfiguration(edgePageDwell: .nan, edgePageRepeat: -1).sanitized
         #expect(broken.edgePageDwell == Self.dwell)

@@ -185,13 +185,16 @@
     </ol>
     <p>The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger is still in the frame (outside the nine buttons), so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything.</p>
     <ul>
-      <li>They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down. A slow move from the top edge, or a move along the edge, counts as ordinary pointer movement</li>
+      <li>They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement</li>
+      <li>Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open</li>
+      <li>Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge</li>
       <li>They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)</li>
+      <li>They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app</li>
       <li>The HUD appears on the display with the pointer (the <strong>HUD position</strong> setting)</li>
     </ul>
     <h3 id="run">Choosing and running a button</h3>
     <ol>
-      <li>Keep your finger down and slide it to choose a button. The button under your finger is highlighted, and each time you cross into another button, the trackpad gives a light tick</li>
+      <li>Keep your finger down and slide it to choose a button. The button under your finger is highlighted (filled white in dark mode and black in light mode), and each time you cross into another button, the trackpad gives a light tick</li>
       <li>Stop on the button you want, then lift your finger</li>
     </ol>
     <p>The highlighted button runs, and the HUD closes.</p>
@@ -202,10 +205,10 @@
       <li>The top of the HUD shows the profile name and the hint "Lift on a button to run". If the page has a name, it shows that too, like "Xcode · Debug". For your first 20 times, a line under the grid also says "Slide to choose · Lift in the frame to cancel" (and "Hold in the left or right frame to change pages" if there are several pages)</li>
     </ul>
     <h3 id="cancel">Canceling</h3>
-    <p>Any of these closes the buttons without running anything (you feel two light taps):</p>
+    <p>Any of these closes the buttons without running anything. You feel two light taps when you lift in the frame, on an empty button or on a border, or lift with two fingers. Closing with a key, or when the 20 seconds run out, gives no tap:</p>
     <ul>
       <li><strong>Lift in the frame</strong>: slide out to the frame around the nine buttons and lift your finger. The frame is the band along the edges of the trackpad: 11% of the width at the left and right, 15% of the depth at the near edge and 17% at the far edge (1.5 to 1.7 cm on a trackpad about 15 cm wide). When your finger enters the frame, the buttons dim, the frame lights up and "✕ Lift to cancel" appears</li>
-      <li><strong>Press a key</strong>: pressing any key while the buttons are open closes them right away. The key reaches the app as usual</li>
+      <li><strong>Press a key</strong>: pressing any key (except media keys such as volume and brightness) while the buttons are open closes them right away. The key reaches the app as usual</li>
       <li><strong>Lift on an empty button</strong>: nothing happens on a button with no action</li>
       <li><strong>Lift on the line between two buttons</strong>: nothing runs on a border</li>
     </ul>
@@ -217,7 +220,7 @@
       <li>Keep your finger on the button for a moment (0.45 seconds), and its outline goes all the way around. While you wait, the top right of the HUD says "Keep your finger still". When the outline is complete, the trackpad ticks once and the hint changes to "Lift to run". Lift after that to run it. Lifting before the outline is complete runs nothing</li>
     </ul>
     <h3 id="while-open">The trackpad while the buttons are open</h3>
-    <p>While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you click, move or scroll with a mouse while you aren't touching the trackpad, Nonet closes the buttons without running anything, and the mouse action reaches the app as usual. Lifting while two fingers are down runs nothing either.</p>
+    <p>While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either.</p>
     <h3 id="pages">Pages</h3>
     <p>While the nine buttons are open, <strong>hold your finger in the left or right frame</strong> to switch to the page on that side. The right frame goes to the next page, and the left frame goes to the previous page.</p>
     <ol>
@@ -524,13 +527,13 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
       </table>
     </div>
     <h3 id="export-import">Export &amp; Import</h3>
-    <p>You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Only profiles (the buttons and their actions) are exported. General settings and your license aren't included.</p>
+    <p>You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Profiles (the buttons and their actions) and shared buttons are exported (shared buttons only with <strong>Export…</strong>; exporting one profile doesn't include them). General settings and your license aren't included.</p>
     <ul>
       <li><strong>Export…</strong>: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose <strong>Export This Profile…</strong></li>
-      <li><strong>Import…</strong>: adds the profiles in a file. In either of these cases, Nonet first asks "Import “file name”?":
+      <li><strong>Import…</strong>: adds the profiles in a file (files over 20 MB can't be imported). In either of these cases, Nonet first asks "Import “file name”?":
         <ul>
-          <li>Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced</li>
-          <li>The file has buttons that run something: Script, Keystrokes, Menu Item and AI buttons, and URLs that open a file on your Mac. Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, or the location of the file. Invisible characters are shown in a visible form, like "⟨U+202E⟩"</li>
+          <li>Importing would replace something you have (the file contains a Global profile, a profile for an app you already have a profile for, or shared buttons). Nonet lists what would be replaced. Importing shared buttons replaces all of your current shared buttons, including those in positions the file doesn't define</li>
+          <li>The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"</li>
         </ul>
       </li>
       <li><strong>Restore an Earlier Version…</strong>: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)</li>
@@ -586,7 +589,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
       <li>Make sure <strong>Turn Off in This App</strong> isn't checked for the front app (such apps are marked Off in the profile list)</li>
       <li>Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")</li>
       <li>Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown</li>
-      <li>Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge or moving slowly doesn't open the buttons (see <a href="#open">Opening the buttons</a> under Basics)</li>
+      <li>Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. Moving the pointer straight down from near the far edge does open them, however slowly you start (see <a href="#open">Opening the buttons</a> under Basics)</li>
       <li>While a Nonet window such as Settings is in front, sliding in from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use <strong>Test This Button</strong> in the inspector. When you close the Settings window, the app you were using before comes back to the front</li>
     </ul>
     <h3 id="menu-bar-icon-missing">The menu bar icon is missing</h3>

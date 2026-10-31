@@ -534,6 +534,21 @@ struct ShellOnboardingTests {
         #expect(configuration.appProfile(forBundleID: ShellFixtures.xcode) != nil)
     }
 
+    @Test("初回の案内を開いたまま設定で共通マスを作っても、プロファイルを作り直すときに捨てない")
+    func sharedCellsSurviveReplacingProfiles() throws {
+        let (model, harness) = Self.make()
+        model.next()
+        #expect(model.replacesProfiles)
+        var configuration = harness.controller.configuration
+        let cell = Cell(title: "共通", icon: .symbol("star"), action: .keystroke(.key("b", .command)))
+        configuration.setSharedCell(cell, at: 8)
+        harness.controller.replaceConfiguration(configuration)
+        // プロファイルは変えていないので、まだ作り直す
+        #expect(model.replacesProfiles)
+        model.applySelection()
+        #expect(harness.controller.configuration.sharedCells[8]?.title == "共通")
+    }
+
     @Test("初回の案内を開いたまま設定でプロファイルを編集したら、「次へ」は足すだけ")
     func editWhileFirstGuideOpen() throws {
         let (model, harness) = Self.make()
@@ -818,7 +833,7 @@ struct ShellOnboardingTests {
         #expect(ShellText.practiceCancelInstruction
             == L10n.ui("もう一度上の縁から HUD を開き、今度は指を外枠（9マスの外側）まで滑らせてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
-            == L10n.ui("「\("X")」で離したので実行しました。やめるときは、指を外枠まで滑らせてから離してください。"))
+            == L10n.ui("「\("X")」で離しました。やめるときは、指を外枠まで滑らせてから離してください。"))
         // トラックパッドには「押す」「長押し」と言わない
         for text in [ShellText.practiceRunInstruction(page.runTarget), ShellText.practiceCancelInstruction, ShellText.doneOpenTip, ShellText.doneCancelTip] {
             #expect(!text.contains("長押し"))
@@ -866,6 +881,9 @@ struct ShellOnboardingTests {
         // まだ1つ目の間は、外枠でやめても進まない
         model.handleCancellation(ShellFixtures.cancellation(date: started.addingTimeInterval(1.5)))
         #expect(model.practice == .run)
+        // 何も起きないと壊れて見えるので、実行されなかった理由と、どうすればよいかを知らせる
+        #expect(model.practiceFeedback == .notRun(.liftedInFrame, whileCancelling: false))
+        #expect(recorder.announcements.last == ShellText.practiceNotRun(.liftedInFrame, target: page.runTarget, whileCancelling: false))
 
         // 目標のマス（別のページの同じ位置でもよい）
         model.handleExecution(ShellFixtures.record(index: page.runTarget.index, page: 1, date: started.addingTimeInterval(2)))
@@ -881,6 +899,8 @@ struct ShellOnboardingTests {
         // 止める時間が足りずに閉じたのは、やめる操作とは数えない
         model.handleCancellation(ShellFixtures.cancellation(.liftedTooSoon, date: started.addingTimeInterval(4)))
         #expect(model.practice == .cancel)
+        #expect(model.practiceFeedback == .notRun(.liftedTooSoon, whileCancelling: true))
+        #expect(recorder.announcements.last == ShellText.practiceNotRun(.liftedTooSoon, target: page.runTarget, whileCancelling: true))
         // 外枠で離した
         model.handleCancellation(ShellFixtures.cancellation(date: started.addingTimeInterval(5)))
         #expect(model.practice == .succeeded)
@@ -1106,5 +1126,32 @@ struct ShellOnboardingTests {
         #expect(model.step == .done)
         model.next()
         #expect(model.step == .done)
+    }
+}
+
+@Suite("練習の案内の言い方")
+struct ShellPracticeTextTests {
+    @Test("少し長く止めるマスを練習に使うときは、止め方も案内する")
+    func aHoldTargetExplainsHowToHold() {
+        let plain = OnboardingPracticeTarget(index: 4, title: "Safari")
+        let hold = OnboardingPracticeTarget(index: 4, title: "送信", requiresHold: true)
+        #expect(!ShellText.practiceRunInstruction(plain).contains(ShellText.practiceRunInstruction(hold).suffix(10)))
+        #expect(ShellText.practiceRunInstruction(hold).hasPrefix(String(ShellText.practiceRunInstruction(hold).prefix(20))))
+        #expect(ShellText.practiceRunInstruction(hold).count > ShellText.practiceRunInstruction(plain).count)
+    }
+
+    @Test("実行されなかった理由ごとに、違う手がかりを出す")
+    func eachReasonHasItsOwnHint() {
+        let target = OnboardingPracticeTarget(index: 4, title: "Safari")
+        let reasons: [SessionCancellation] = [.liftedInFrame, .liftedOnBoundary, .liftedTooSoon, .liftedOnEmptyCell, .liftedWithSeveralFingers]
+        let texts = reasons.map { ShellText.practiceNotRun($0, target: target, whileCancelling: false) }
+        #expect(Set(texts).count == reasons.count)
+        // やめる課題の途中は、外枠で離す以外は、どれも同じ案内
+        let cancelling = Set(reasons.map { ShellText.practiceNotRun($0, target: target, whileCancelling: true) })
+        #expect(cancelling.count == 1)
+        // トラックパッドには「押す」「長押し」と言わない
+        for text in texts + Array(cancelling) + [ShellText.practiceOpenHint] {
+            #expect(!text.contains("押す") && !text.contains("長押し"))
+        }
     }
 }

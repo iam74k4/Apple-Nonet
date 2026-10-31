@@ -58,12 +58,16 @@ enum OnboardingPracticeFeedback: Equatable {
     case wrongCell(index: Int, title: String)
     /// やめる課題で、マスを実行した
     case ranInsteadOfCancelling(title: String)
+    /// 開いて離したが、何も実行されなかった（理由別に、どうすればよいかを知らせる）。whileCancelling は、やめる課題の途中
+    case notRun(SessionCancellation, whileCancelling: Bool)
 }
 
 /// 練習で選んでもらうマス
 struct OnboardingPracticeTarget: Equatable {
     var index: Int
     var title: String
+    /// 少し長く止めてから実行するマス。そればかりのページでは、これを練習に使うので、止める手順も案内する
+    var requiresHold = false
 }
 
 /// 練習に使うページ。練習の HUD に出るもの（前面のアプリのプロファイルの最初のページ）なので、本物のボタンの名前で案内できる
@@ -88,7 +92,11 @@ struct OnboardingPracticePage: Equatable {
         guard let run = Self.runPreference.first(where: (ordinary.isEmpty ? occupied : ordinary).contains) else { return nil }
         profileName = page.profileName
         self.titles = titles
-        runTarget = OnboardingPracticeTarget(index: run, title: titles[run] ?? "")
+        runTarget = OnboardingPracticeTarget(
+            index: run,
+            title: titles[run] ?? "",
+            requiresHold: page.cells.indices.contains(run) && page.cells[run]?.requiresHold == true
+        )
     }
 }
 
@@ -554,12 +562,15 @@ final class OnboardingModel {
         let selected = presets.filter { addedIDs.contains($0.app.bundleID) }
         if replacesProfiles {
             let settings = controller.configuration.settings
+            // 案内を開いたまま設定で作った共通マスは、プロファイルを作り直しても残す
+            let sharedCells = controller.configuration.sharedCells
             var configuration = NonetConfiguration.initial(
                 appPresets: selected,
                 installedBundleIDs: installedLauncherIDs,
                 dockApps: presetEnvironment.dockApps()
             )
             configuration.settings = settings
+            configuration.sharedCells = sharedCells
             controller.replaceConfiguration(configuration)
             // 戻って選び直すのはよいが、この後に設定で編集したものは消さない
             profilesSnapshot = controller.configuration.profiles
@@ -605,15 +616,28 @@ final class OnboardingModel {
     }
 
     /// controller.lastCancellation が変わったら呼ぶ。やめる課題で、外枠で指を離して閉じたらできたことにする
-    /// （止める時間が足りなかった・境界で離した などで実行しなかったものは、やめる操作とは数えない）
+    /// （止める時間が足りなかった・境界で離した などで実行しなかったものは、やめる操作とは数えない）。
+    /// できなかった離し方には、理由別に、どうすればよいかを知らせる（何も起きない練習は、壊れて見える）
     func handleCancellation(_ record: CancellationRecord?) {
         guard step == .practice, isWindowAttended, let record, let startedAt = practiceStartedAt,
               record != cancellationBaseline, record.date >= startedAt else { return }
         cancellationBaseline = record
-        guard practice == .cancel, record.reason == .liftedInFrame else { return }
-        practice = .succeeded
-        practiceFeedback = nil
-        announce(ShellText.practiceCancelDone)
+        switch practice {
+        case .run:
+            practiceFeedback = .notRun(record.reason, whileCancelling: false)
+            announce(ShellText.practiceNotRun(record.reason, target: practicePage?.runTarget, whileCancelling: false))
+        case .cancel:
+            if record.reason == .liftedInFrame {
+                practice = .succeeded
+                practiceFeedback = nil
+                announce(ShellText.practiceCancelDone)
+            } else {
+                practiceFeedback = .notRun(record.reason, whileCancelling: true)
+                announce(ShellText.practiceNotRun(record.reason, target: practicePage?.runTarget, whileCancelling: true))
+            }
+        case .succeeded:
+            break
+        }
     }
 
     private func attentionChanged(from wasAttended: Bool) {

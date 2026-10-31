@@ -33,8 +33,8 @@ public struct GridInsets: Equatable, Sendable {
     /// 幅 15cm・奥行き 10cm ほどのトラックパッドで、1マスは 4cm × 2.3cm ほど残る
     /// - 左右 0.11: 幅 15cm ほどで 1.6cm ほど。勢いよく滑らせても、外枠で止めやすい
     /// - 手前 0.15: 押し込むと奥より手前が沈み、手のひらや親指も手前の縁に来やすいので、左右より広くする
-    /// - 奥 0.17: 開く動きは上の縁の帯（EdgeSlideRecognizer.entryBandHeight 0.06）から下へ entryTravel（0.05）動いた
-    ///   ところで合図するので、開いた瞬間の指は奥から 0.11 までの外枠にいる（開いただけで上の段のマスを光らせない）。
+    /// - 奥 0.17: 開く動きは上の縁の帯（EdgeSlideRecognizer.entryBandHeight 0.09）から下へ entryTravel（0.05）動いた
+    ///   ところで合図するので、開いた瞬間の指は奥から 0.14 までの外枠にいる（開いただけで上の段のマスを光らせない）。
     ///   開いてすぐ離せばやめられるよう、そこからさらに余裕を持たせる
     public static let cancelFrame = GridInsets(left: 0.11, right: 0.11, bottom: 0.15, top: 0.17)
 

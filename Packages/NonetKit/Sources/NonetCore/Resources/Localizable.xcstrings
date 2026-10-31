@@ -275,6 +275,16 @@
         }
       }
     },
+    "Nonet のウィンドウが前面のときは、9マスは開きません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The nine buttons don't open while a Nonet window is in front"
+          }
+        }
+      }
+    },
     "Nonet のプロファイルのファイルではありません" : {
       "localizations" : {
         "en" : {
@@ -363,6 +373,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This license key has been deactivated"
+          }
+        }
+      }
+    },
+    "ほかのアプリの上で試してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try it over another app"
           }
         }
       }

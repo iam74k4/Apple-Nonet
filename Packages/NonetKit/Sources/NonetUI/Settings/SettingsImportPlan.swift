@@ -100,16 +100,27 @@ struct SettingsImportPlan: Identifiable, Equatable {
 
     /// 読み込む前に中身を見せるアクション。スクリプト、キー入力（短くても、⌃R・r・m・⌃M のように履歴のコマンドを実行できる）、
     /// メニュー項目（ショートカットのキーも見せる）、AI（選択テキストを渡し、結果で置き換えうる）、
-    /// Mac の中のファイルを開く URL（.command や .app も開ける）
+    /// ショートカット.app のショートカット（何でも実行できる）、
+    /// Mac の中のファイルを開く URL（.command や .app も開ける）と、別のものを動かす URL（ショートカットの実行・ssh・共有フォルダなど）
     static func needsReview(_ action: Action) -> Bool {
         switch action {
-        case .script, .keystroke, .menuItem, .ai:
+        case .script, .keystroke, .menuItem, .ai, .shortcut:
             true
         case .openURL(let url):
-            opensLocalFile(url.url)
-        case .launchApp, .shortcut:
+            opensLocalFile(url.url) || opensAnotherTool(url.url)
+        case .launchApp:
             false
         }
+    }
+
+    /// 開くと別のものを動かす・つなぐスキーム（ウェブや、アプリ固有のリンクは含めない）
+    static let toolSchemes: Set<String> = ["shortcuts", "ssh", "telnet", "smb", "afp", "vnc", "ftp", "sftp", "applescript"]
+
+    /// ショートカットの実行・ssh・共有フォルダなど、別のものを動かす URL か
+    static func opensAnotherTool(_ url: String) -> Bool {
+        let text = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let colon = text.firstIndex(of: ":") else { return false }
+        return toolSchemes.contains(text[..<colon].lowercased())
     }
 
     /// キー入力かメニュー項目のショートカットが、Return と同じ働きのキーか ⌃ の付いたキーを押す

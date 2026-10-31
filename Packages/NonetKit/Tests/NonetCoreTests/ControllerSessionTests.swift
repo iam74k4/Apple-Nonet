@@ -27,6 +27,9 @@ import Testing
         #expect(!h.keyboard.isSuppressingPointer)
         h.advance(0.05)
         h.touch(x: 0.5, y: ControllerHarness.slidY)
+        // 見分けてから entryConfirmDelay は待つ（2本指のスクロールの2本目が遅れて触れても、開かないように）
+        #expect(h.recorder.events == ["pointer:remember"])
+        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
         #expect(h.recorder.events == ["pointer:remember", "suppress:on", "hud:show", "haptic:activation"])
         let model = try #require(h.hud.current)
         #expect(model.title == "Safari")
@@ -36,18 +39,45 @@ import Testing
         #expect(h.haptics.plays == [.init(event: .activation, strength: .medium)])
     }
 
-    /// ポインタの抑止は、開いたフレームを受けた呼び出しの中で始まる（直後のポインタイベントを取りこぼさない）
-    @Test func suppressionStartsInsideTheFrameThatOpens() throws {
+    /// ポインタの抑止は、待ち（entryConfirmDelay）が終わった呼び出しの中で始まり、そこで触れ始めた位置へ戻す
+    @Test func suppressionStartsWhenTheConfirmDelayEnds() throws {
         let h = try ControllerHarness()
         h.start()
         h.touch(x: 0.5, y: ControllerHarness.edgeY)
         h.advance(0.05)
-        var suppressed = false
-        h.touchSource.onFrame.map { onFrame in
-            onFrame(TouchFrame(timestamp: h.scheduler.now, points: [TouchPoint(id: 1, x: 0.5, y: ControllerHarness.slidY)]))
-            suppressed = h.keyboard.isSuppressingPointer
-        }
-        #expect(suppressed)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        h.advance(EdgeSlideRecognizer.entryConfirmDelay - 0.01)
+        #expect(!h.keyboard.isSuppressingPointer)
+        h.advance(0.01)
+        #expect(h.keyboard.isSuppressingPointer)
+    }
+
+    /// 見分けてから待つ間に2本目の指が触れたら（2本指のスクロールの2本目が遅れて触れた）、開かない
+    @Test func aSecondFingerDuringTheConfirmDelayCancelsOpening() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.advance(0.03)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        h.advance(EdgeSlideRecognizer.entryConfirmDelay / 2)
+        h.touch(2, x: 0.6, y: 0.9)
+        h.advance(0.2)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.hud.shown.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
+    /// 待つ間に指が離れたら（短くなぞっただけ）、開かない
+    @Test func liftingDuringTheConfirmDelayCancelsOpening() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.advance(0.03)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        h.lift()
+        h.advance(0.2)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.hud.shown.isEmpty)
     }
 
     /// 帯の外で触れ始めた・遅い・横に滑らせた・2本目の指・手のひら では開かない（ポインタはそのまま）
@@ -405,6 +435,28 @@ import Testing
         licensed.run(2)
         licensed.advance(0)
         #expect(licensed.licenseStorage.trialWrites == licensedWrites)
+    }
+
+    /// 設定などの Nonet のウィンドウが前面だと開かない。何も知らせないと壊れて見えるので、起動してから1回だけトーストで知らせる
+    @Test func aNonetWindowInFrontExplainsItselfOnce() throws {
+        let h = try ControllerHarness()
+        h.frontmost.isOwnWindowKey = true
+        h.start()
+        h.open()
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.hud.toasts == [ControllerPresentation.ownWindowToast])
+        h.lift()
+        h.advance(0.3)
+        // 2回目からは知らせない（設定でマスをドラッグするたびに出ると邪魔）
+        h.open()
+        #expect(h.hud.toasts.count == 1)
+        h.lift()
+        h.advance(0.3)
+        // 別のアプリが前面になれば、ふつうに開く
+        h.frontmost.isOwnWindowKey = false
+        h.open()
+        #expect(h.hud.shown.count == 1)
     }
 
     /// 練習モードでは実行せず、lastExecution に記録だけする（recentExecutions には入れない）

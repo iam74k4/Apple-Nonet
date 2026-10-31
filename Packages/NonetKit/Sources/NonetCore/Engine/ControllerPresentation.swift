@@ -89,6 +89,15 @@ public enum ControllerPresentation {
         String(localized: "試用期間は残り\(daysLeft)日です", bundle: .module, locale: textLocale)
     }
 
+    /// 設定や案内のウィンドウが前面のときに、上の縁から指を滑らせたとき（9マスは開かない。起動してから1回だけ知らせる）
+    static var ownWindowToast: ToastModel {
+        ToastModel(
+            title: String(localized: "Nonet のウィンドウが前面のときは、9マスは開きません", bundle: .module),
+            detail: String(localized: "ほかのアプリの上で試してください", bundle: .module),
+            style: .info
+        )
+    }
+
     /// 試用期間が終わった後に、上の縁から指を滑らせたとき（9マスは開かない）
     static var trialEndedToast: ToastModel {
         ToastModel(

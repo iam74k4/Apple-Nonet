@@ -1126,9 +1126,15 @@ final class SettingsModel {
 
     /// ファイルを読み、今のプロファイルやグローバルのページが置き換わるなら先に確かめる（元に戻せないため）。
     /// 何かを実行するマス（スクリプト・キー入力・メニュー項目・AI・ファイルを開く URL）があるときも、何も置き換わらなくても中身をすべて見せて先に確かめる（読み込むとすぐ、あなたの権限で動かせるため）
+    static let maxImportFileSize = 20 * 1024 * 1024
+
     func importProfiles(from url: URL) {
         let document: ConfigurationStore.ImportedProfiles
         do {
+            // 書き出したファイルは、大きくても数百 KB。巨大なファイルは、読み込む前に断る
+            if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > Self.maxImportFileSize {
+                throw CocoaError(.fileReadTooLarge)
+            }
             let data = try Data(contentsOf: url)
             document = try ConfigurationStore.importDocument(from: data)
         } catch {

@@ -1626,11 +1626,22 @@
       }
     },
     "「%@」で離したので実行しました。やめるときは、指を外枠まで滑らせてから離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "You lifted on “%@”, so it ran. To cancel, slide your finger out to the frame before lifting it."
+          }
+        }
+      }
+    },
+    "「%@」で離しました。やめるときは、指を外枠まで滑らせてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You lifted on “%@”. To cancel, slide to the frame and lift there."
           }
         }
       }
@@ -1930,6 +1941,16 @@
         }
       }
     },
+    "うまく開かないときは、トラックパッドのいちばん奥の端に指を1本だけ置いて、すぐ下へ滑らせてください。2本指や手のひらでは開きません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If it doesn't open, place just one finger on the far edge of the trackpad and slide it straight down. Two fingers or a palm won't open it."
+          }
+        }
+      }
+    },
     "お問い合わせ…" : {
       "localizations" : {
         "en" : {
@@ -2205,6 +2226,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Runs only if you hold your finger on this button a little longer before lifting. When the outline in the HUD goes all the way around, lift to run."
+          }
+        }
+      }
+    },
+    "このマスは、縁が一周するまで少し止めてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For this button, hold your finger on it until its outline goes all the way around, then lift."
           }
         }
       }
@@ -2717,6 +2748,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "When you import profiles from someone else, always check their scripts. Scripts run with your permissions."
+          }
+        }
+      }
+    },
+    "まだ外枠で離していません。指を外枠（9マスの外側）まで滑らせてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't lifted in the frame yet. Slide your finger to the frame (outside the nine buttons) and lift there."
           }
         }
       }
@@ -3462,6 +3503,7 @@
       }
     },
     "キーを押している間だけ、トラックパッドが9マスになる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4128,11 +4170,22 @@
       }
     },
     "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Slide a finger down from the top edge of the trackpad to open the HUD, which shows all nine buttons. Slide to choose, then lift on a button to run it."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge of the trackpad and the HUD (the overview of all nine buttons) opens. Slide to choose, then lift on a button to run it. It doesn't open while a settings or welcome window is in front, so try it over another app."
           }
         }
       }
@@ -4179,11 +4232,22 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Hold your finger in the left or right frame to change pages."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Hold your finger in the left or right frame to change pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
           }
         }
       }
@@ -5074,6 +5138,16 @@
         }
       }
     },
+    "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lifting right on the line between two buttons runs nothing. Lift in the middle of a button."
+          }
+        }
+      }
+    },
     "マスの変更" : {
       "localizations" : {
         "en" : {
@@ -5691,6 +5765,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swap with Button Above"
+          }
+        }
+      }
+    },
+    "上の縁から指を滑らせると、トラックパッドが9マスになる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge and your trackpad turns into nine buttons"
           }
         }
       }
@@ -6576,6 +6660,16 @@
         }
       }
     },
+    "外枠で離すと、何も実行せずに閉じます。「%@」まで滑らせてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lifting in the frame closes the buttons without running anything. Slide to “%@” and lift there."
+          }
+        }
+      }
+    },
     "外枠で離すとやめる" : {
       "localizations" : {
         "en" : {
@@ -6909,6 +7003,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menu item to choose"
+          }
+        }
+      }
+    },
+    "指を1本にして、マスまで滑らせてから離してください。何も実行しませんでした。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use one finger, slide to a button and lift there. Nothing ran."
           }
         }
       }
@@ -7678,6 +7782,16 @@
         }
       }
     },
+    "空きマスでは何も起きません。「%@」まで滑らせてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing happens on an empty button. Slide to “%@” and lift there."
+          }
+        }
+      }
+    },
     "終わるまで待ち、失敗したらエラーの最後を表示します" : {
       "localizations" : {
         "en" : {
@@ -7780,11 +7894,22 @@
       }
     },
     "練習中は、マスを押しても何も実行されません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing runs in practice mode."
+          }
+        }
+      }
+    },
+    "練習中は、何も実行されません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing runs during practice"
           }
         }
       }
@@ -8643,6 +8768,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keys to send"
+          }
+        }
+      }
+    },
+    "通りかかっただけのマスは実行しません。マスで少し止めてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A button you only slid across doesn't run. Stay on the button for a moment, then lift."
           }
         }
       }

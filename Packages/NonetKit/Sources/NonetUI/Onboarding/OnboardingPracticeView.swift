@@ -76,6 +76,12 @@ struct OnboardingPracticeTasks: View {
                 .background(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
                 .accessibilityElement(children: .combine)
             }
+            if state == .run {
+                Text(ShellText.practiceOpenHint)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -83,6 +89,8 @@ struct OnboardingPracticeTasks: View {
         switch feedback {
         case .wrongCell(let index, let title): ShellText.practiceWrongCell(index: index, title: title, target: page.runTarget)
         case .ranInsteadOfCancelling(let title): ShellText.practiceRanInsteadOfCancelling(title)
+        case .notRun(let reason, let whileCancelling):
+            ShellText.practiceNotRun(reason, target: page.runTarget, whileCancelling: whileCancelling)
         }
     }
 }

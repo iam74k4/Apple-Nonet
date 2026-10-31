@@ -70,13 +70,16 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger is still in the frame (outside the nine buttons), so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything.
 
-- They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down. A slow move from the top edge, or a move along the edge, counts as ordinary pointer movement
+- They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
+- Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
+- Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
+- They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
 - The HUD appears on the display with the pointer (the **HUD position** setting)
 
 ### Choosing and running a button
 
-1. Keep your finger down and slide it to choose a button. The button under your finger is highlighted, and each time you cross into another button, the trackpad gives a light tick
+1. Keep your finger down and slide it to choose a button. The button under your finger is highlighted (filled white in dark mode and black in light mode), and each time you cross into another button, the trackpad gives a light tick
 2. Stop on the button you want, then lift your finger
 
 The highlighted button runs, and the HUD closes.
@@ -88,10 +91,10 @@ The highlighted button runs, and the HUD closes.
 
 ### Canceling
 
-Any of these closes the buttons without running anything (you feel two light taps):
+Any of these closes the buttons without running anything. You feel two light taps when you lift in the frame, on an empty button or on a border, or lift with two fingers. Closing with a key, or when the 20 seconds run out, gives no tap:
 
 - **Lift in the frame**: slide out to the frame around the nine buttons and lift your finger. The frame is the band along the edges of the trackpad: 11% of the width at the left and right, 15% of the depth at the near edge and 17% at the far edge (1.5 to 1.7 cm on a trackpad about 15 cm wide). When your finger enters the frame, the buttons dim, the frame lights up and "✕ Lift to cancel" appears
-- **Press a key**: pressing any key while the buttons are open closes them right away. The key reaches the app as usual
+- **Press a key**: pressing any key (except media keys such as volume and brightness) while the buttons are open closes them right away. The key reaches the app as usual
 - **Lift on an empty button**: nothing happens on a button with no action
 - **Lift on the line between two buttons**: nothing runs on a border
 
@@ -106,7 +109,7 @@ For buttons that do something you can't undo, such as sending or recording, turn
 
 ### The trackpad while the buttons are open
 
-While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you click, move or scroll with a mouse while you aren't touching the trackpad, Nonet closes the buttons without running anything, and the mouse action reaches the app as usual. Lifting while two fingers are down runs nothing either.
+While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either.
 
 ### Pages
 
@@ -384,12 +387,12 @@ Slow buttons (background scripts, shortcuts and AI) that haven't finished after 
 
 ### Export & Import
 
-You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Only profiles (the buttons and their actions) are exported. General settings and your license aren't included.
+You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Profiles (the buttons and their actions) and shared buttons are exported (shared buttons only with **Export…**; exporting one profile doesn't include them). General settings and your license aren't included.
 
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
-- **Import…**: adds the profiles in a file. In either of these cases, Nonet first asks "Import “file name”?":
-  - Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced
-  - The file has buttons that run something: Script, Keystrokes, Menu Item and AI buttons, and URLs that open a file on your Mac. Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, or the location of the file. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
+- **Import…**: adds the profiles in a file (files over 20 MB can't be imported). In either of these cases, Nonet first asks "Import “file name”?":
+  - Importing would replace something you have (the file contains a Global profile, a profile for an app you already have a profile for, or shared buttons). Nonet lists what would be replaced. Importing shared buttons replaces all of your current shared buttons, including those in positions the file doesn't define
+  - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
 - **Restore an Earlier Version…**: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)
 
 In the list, buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (curl, wget, base64, eval, `| sh` (also bash, zsh and others), osascript and rm -rf) are marked in orange with an explanation. If the file has buttons that run something, you can't click **Import**, **Replace and Import** or **Add New Profiles Only** until you scroll to the end of the list (Nonet shows "Scroll to the end to check everything before you can import.").
@@ -453,7 +456,7 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge or moving slowly doesn't open the buttons (see [Opening the buttons](#opening-the-buttons) under Basics)
+- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. Moving the pointer straight down from near the far edge does open them, however slowly you start (see [Opening the buttons](#opening-the-buttons) under Basics)
 - While a Nonet window such as Settings is in front, sliding in from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing

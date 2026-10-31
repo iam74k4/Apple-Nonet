@@ -27,6 +27,10 @@ public struct EdgeSlideRecognizer: Sendable {
     /// 下への動きに対する横の動きの上限（真下から 56° ほどまで）。上の段の角のマスへ斜めに滑らせても開く。
     /// これより横へ寝た動きは、上の縁に沿ってポインタを動かしているとみなす
     public static let maxEntrySlope = 1.5
+    /// 開く動きを見分けてから、実際に開くまで待つ秒数（NonetController が待つ）。待つ間に2本目の指が触れたら開かない。
+    /// 2本指のスクロールは、1本目が5mm動く間に2本目が少し遅れて触れることがある（実機の着地の間隔は 10〜50 ms ほどと見込む）。
+    /// 狙って滑り込ませるときは、HUD がこの分だけ遅れても気にならない短さ
+    public static let entryConfirmDelay: TimeInterval = 0.04
     /// これ以上の長径（TouchPoint.majorAxis）の接触は手のひらとみなし、開かない。
     /// 指先はおよそ 8〜15、平らに置いた親指でも 20 ほどなので、それより大きいものだけを外す控えめな値にしている
     /// （単位は MultitouchSupport の majorAxis のまま。実機では確かめていない。値が取れない接触は外さない）

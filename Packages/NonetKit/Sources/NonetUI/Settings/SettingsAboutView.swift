@@ -34,7 +34,7 @@ struct SettingsAboutView: View {
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
-                    Text("キーを押している間だけ、トラックパッドが9マスになる", bundle: .module)
+                    Text("上の縁から指を滑らせると、トラックパッドが9マスになる", bundle: .module)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

@@ -35,7 +35,7 @@ struct ShellOnboardingFinishTests {
             == L10n.ui("メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます"))
         #expect(!ShellText.doneEditTip.contains(xcodeName))
         #expect(ShellText.doneOpenTip
-            == L10n.ui("トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。"))
+            == L10n.ui("トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。"))
         #expect(ShellText.doneCancelTip
             == L10n.ui("9マスの外側の外枠まで指を滑らせて離すと、何も実行せずに閉じます。キーを押しても閉じます。"))
     }

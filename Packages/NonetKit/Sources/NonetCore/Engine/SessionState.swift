@@ -37,8 +37,10 @@ struct SessionState: Sendable {
     private var reselectAnchor: FingerTracker.Finger?
     /// 指が止まっている左右の外枠（そちらにページがあるときだけ）。止め続けるとページを切り替える
     private var pagingEdge: PageEdge?
-    /// pagingEdge に入った時刻か、前に切り替えた時刻
+    /// pagingEdge に入った時刻か、前に切り替えた時刻。外枠の中で edgeRestTravel より動かしたときも数え直す
     private var edgeSince: TimeInterval
+    /// 止めている位置（edgeSince に数え始めたときの指の位置）
+    private var edgeAnchor: FingerTracker.Finger?
     /// pagingEdge に止めたまま切り替えた回数（2回目からは edgePageRepeat ごと）
     private var edgeTurns = 0
     /// すべての指が離れた時刻（遅れて届くクリックの判断に使う）
@@ -59,6 +61,7 @@ struct SessionState: Sendable {
             lastPosition = finger
             zone = grid.zone(x: finger.x, y: finger.y)
             pagingEdge = availableEdge(at: finger)
+            edgeAnchor = pagingEdge == nil ? nil : finger
         }
     }
 
@@ -66,7 +69,8 @@ struct SessionState: Sendable {
 
     var hudState: SessionHUDState {
         let shown = isMultiFinger ? nil : zone
-        let cell = shown?.cell
+        // 2本指から1本指に戻った後は、滑らせ直すまで離しても実行しない（reselectAnchor）ので、マスを光らせない
+        let cell = reselectAnchor == nil ? shown?.cell : nil
         return SessionHUDState(
             page: page,
             highlightedCell: cell,
@@ -154,6 +158,7 @@ struct SessionState: Sendable {
         edgeTurns += 1
         edgeSince = now
         pagingEdge = availableEdge(edge)
+        if pagingEdge == nil { edgeAnchor = nil }
         refreshHUD(effects: &effects)
         effects.append(.haptic(.pageChange))
     }
@@ -217,6 +222,7 @@ struct SessionState: Sendable {
             isMultiFinger = true
             hasTurnedPage = false
             pagingEdge = nil
+            edgeAnchor = nil
             refreshHUD(effects: &effects)
         }
         guard tracker.count == 2 else {
@@ -273,12 +279,18 @@ struct SessionState: Sendable {
             zoneSince = now
             isHoldReady = false
         }
-        // 左右の外枠に入った・出た・反対の側へ移った: ページを切り替えるまでの時間を最初から数える
+        // 左右の外枠に入った・出た・反対の側へ移った、または外枠の中で動かした: ページを切り替えるまでの時間を最初から数える
         let edge = availableEdge(at: finger)
         if edge != pagingEdge {
             pagingEdge = edge
             edgeSince = now
             edgeTurns = 0
+            edgeAnchor = edge == nil ? nil : finger
+        } else if edge != nil, let anchor = edgeAnchor,
+                  hypot(finger.x - anchor.x, finger.y - anchor.y) > SessionConfiguration.edgeRestTravel {
+            edgeSince = now
+            edgeTurns = 0
+            edgeAnchor = finger
         }
         guard refreshHUD(effects: &effects) else { return }
         // 仕様: マスとマス・マスと外枠の境目をまたぐたびに。指を置き直した・2本指から戻っただけでは鳴らさない
@@ -317,12 +329,13 @@ struct SessionState: Sendable {
         if isMultiFinger { return .failure(Cancel(reason: .liftedWithSeveralFingers)) }
         guard let zone, let cell = zone.cell else { return .failure(Cancel(reason: .liftedInFrame)) }
         if isEmptyCell(cell) { return .failure(Cancel(reason: .liftedOnEmptyCell)) }
-        if let position = lastPosition, grid.isInBoundaryBand(x: position.x, y: position.y) {
+        // 少し長く止めるマスは、止め終えたと HUD と触覚で知らせた後なら、境目の近くでも実行する（狙ったマスで止めたことははっきりしている）
+        let isHold = isHoldCell(cell)
+        if !(isHold && isHoldReady), let position = lastPosition, grid.isInBoundaryBand(x: position.x, y: position.y) {
             return .failure(Cancel(reason: .liftedOnBoundary))
         }
         if reselectAnchor != nil { return .failure(Cancel(reason: .liftedWithoutSliding)) }
         // 止め終えた時刻は、進み具合の期限（holdDeadline）と同じ足し算で決める（HUD が止め終えたと見せたら、離せば必ず実行する）
-        let isHold = isHoldCell(cell)
         let readyAt = zoneSince + (isHold ? configuration.holdDwell : configuration.liftDwell)
         guard now >= readyAt || (isHold && isHoldReady) else { return .failure(Cancel(reason: .liftedTooSoon)) }
         return .success(cell)

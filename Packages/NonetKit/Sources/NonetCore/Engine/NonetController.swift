@@ -138,6 +138,10 @@ public final class NonetController {
     @ObservationIgnored private var lastLicenseRefresh: TimeInterval?
     /// 開く動き（上の縁からの滑り込み）。フレームはセッションの外の分もすべて渡す
     @ObservationIgnored private var opener = EdgeSlideRecognizer()
+    /// 開く動きを見分けてから、開くまで待っている（EdgeSlideRecognizer.entryConfirmDelay）
+    @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
+    /// Nonet のウィンドウが前面で開かなかったことを、この起動で知らせた（知らせるのは1回だけ）
+    @ObservationIgnored private var hasNotifiedOwnWindow = false
     /// 使い始めの案内と試用期間の知らせを、何回・いつ出したか
     @ObservationIgnored private let guidance: any HUDGuidanceStoring
     /// トラックパッドに指が触れているか（キーボードモニターに知らせ、マウスのイベントを見分けてもらう）
@@ -208,6 +212,7 @@ public final class NonetController {
             tickTask = nil
             pollTask?.cancel()
             pollTask = nil
+            cancelPendingOpen()
             services.keyboard.onEvent = nil
             services.touchSource.onFrame = nil
             services.frontmostApp.onChange = nil
@@ -356,6 +361,10 @@ public final class NonetController {
             services.keyboard.isTrackpadTouched = touching
         }
         send(.touches(frame))
+        // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
+        if frame.touching.count != 1 {
+            cancelPendingOpen()
+        }
         switch opener.apply(frame, isSessionActive: engine.isInSession) {
         case .none:
             break
@@ -363,8 +372,24 @@ public final class NonetController {
             // 開く動きの間に指を滑らせた分だけポインタが動くので、触れ始めた位置を覚えておき、開いたらそこへ戻す
             services.keyboard.rememberPointerLocation()
         case .slid:
-            openFromEdge()
+            scheduleOpen()
         }
+    }
+
+    /// 開く動きを見分けた。entryConfirmDelay だけ待って、1本指のままなら開く（待つ間のフレームに頼らず、タイマーで待つ）
+    private func scheduleOpen() {
+        cancelPendingOpen()
+        pendingOpen = services.scheduler.schedule(after: EdgeSlideRecognizer.entryConfirmDelay) { [weak self] in
+            guard let self else { return }
+            self.pendingOpen = nil
+            guard self.isTrackpadTouched else { return }
+            self.openFromEdge()
+        }
+    }
+
+    private func cancelPendingOpen() {
+        pendingOpen?.cancel()
+        pendingOpen = nil
     }
 
     /// 上の縁からの滑り込みを見分けた。開いてよければセッションを始める。
@@ -382,6 +407,12 @@ public final class NonetController {
         // 設定でマスをドラッグするなど、トラックパッドを使っている最中でもある。初回の案内の練習は、案内のウィンドウの上で試す
         guard isPracticeMode || !services.frontmostApp.isOwnWindowKey else {
             controllerLogger.debug("Nonet のウィンドウがキーなので、開きません")
+            // 設定で説明を読んですぐ試した人が、反応が無くて壊れていると思わないよう、起動してから1回だけ知らせる
+            // （設定でマスをドラッグするたびに出ると邪魔なので、2回目からは知らせない）
+            if !hasNotifiedOwnWindow {
+                hasNotifiedOwnWindow = true
+                showToast(ControllerPresentation.ownWindowToast)
+            }
             return
         }
         guard license.canExecuteActions else {

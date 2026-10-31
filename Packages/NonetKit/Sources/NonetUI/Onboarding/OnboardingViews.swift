@@ -79,7 +79,7 @@ struct OnboardingView: View {
                 Text("追加するアプリはありません", bundle: .module)
             }
         case .practice:
-            Text("練習中は、マスを押しても何も実行されません", bundle: .module)
+            Text("練習中は、何も実行されません", bundle: .module)
         case .done:
             Text("この案内は、メニューバーの 3×3 のアイコン ›「初回の案内をもう一度」でまた見られます", bundle: .module)
         }

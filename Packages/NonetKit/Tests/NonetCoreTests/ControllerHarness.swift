@@ -137,11 +137,13 @@ final class ControllerHarness {
     static let edgeY = 0.98
     static let slidY = 0.92
 
-    /// 上の縁から指を下へ滑り込ませて9マスを開く（触れて 0.05 秒で 0.06 下へ。EdgeSlideRecognizer）。開いた後の指は上の外枠にいる
+    /// 上の縁から指を下へ滑り込ませて9マスを開く（触れて 0.05 秒で 0.06 下へ。EdgeSlideRecognizer）。
+    /// 見分けてから実際に開くまで、entryConfirmDelay 待つ。開いた後の指は上の外枠にいる
     func open(_ id: Int = 1, x: Double = 0.5) {
         touch(id, x: x, y: Self.edgeY)
         advance(0.05)
         touch(id, x: x, y: Self.slidY)
+        advance(EdgeSlideRecognizer.entryConfirmDelay)
     }
 
     /// 開いて、マスまで滑らせ、dwell だけ止めてから離す（ふつうのマスは 0.15 秒止めれば実行する）

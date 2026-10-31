@@ -13,9 +13,38 @@ enum ShellText {
 
     // MARK: - 練習
 
-    /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）
+    /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）。
+    /// 少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も添える
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「\(target.title)」まで滑らせて、そこで離してください。", bundle: .module)
+        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「\(target.title)」まで滑らせて、そこで離してください。", bundle: .module)
+        guard target.requiresHold else { return base }
+        return base + String(localized: "このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
+    }
+
+    /// 1つ目の課題の下に出す、開かないときの手がかり
+    static var practiceOpenHint: String {
+        String(localized: "うまく開かないときは、トラックパッドのいちばん奥の端に指を1本だけ置いて、すぐ下へ滑らせてください。2本指や手のひらでは開きません。", bundle: .module)
+    }
+
+    /// 開いて離したが、何も実行されなかった（reason 別に、どうすればよいかを知らせる）。
+    /// whileCancelling は、やめる課題の途中（外枠で離す以外は、やめたことにならない）
+    static func practiceNotRun(_ reason: SessionCancellation, target: OnboardingPracticeTarget?, whileCancelling: Bool) -> String {
+        if whileCancelling {
+            return String(localized: "まだ外枠で離していません。指を外枠（9マスの外側）まで滑らせてから離してください。", bundle: .module)
+        }
+        let title = target?.title ?? ""
+        switch reason {
+        case .liftedInFrame:
+            return String(localized: "外枠で離すと、何も実行せずに閉じます。「\(title)」まで滑らせてから離してください。", bundle: .module)
+        case .liftedOnBoundary:
+            return String(localized: "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。", bundle: .module)
+        case .liftedTooSoon:
+            return String(localized: "通りかかっただけのマスは実行しません。マスで少し止めてから離してください。", bundle: .module)
+        case .liftedOnEmptyCell:
+            return String(localized: "空きマスでは何も起きません。「\(title)」まで滑らせてから離してください。", bundle: .module)
+        case .liftedWithSeveralFingers, .liftedWithoutSliding:
+            return String(localized: "指を1本にして、マスまで滑らせてから離してください。何も実行しませんでした。", bundle: .module)
+        }
     }
 
     /// 2つ目の課題: 外枠で離してやめる
@@ -40,7 +69,7 @@ enum ShellText {
 
     /// やめる課題で、マスを実行した
     static func practiceRanInsteadOfCancelling(_ title: String) -> String {
-        String(localized: "「\(title)」で離したので実行しました。やめるときは、指を外枠まで滑らせてから離してください。", bundle: .module)
+        String(localized: "「\(title)」で離しました。やめるときは、指を外枠まで滑らせてから離してください。", bundle: .module)
     }
 
     /// トラックパッドの図の読み上げ（目標のマス）
@@ -57,7 +86,7 @@ enum ShellText {
 
     /// こつ「上の縁から開く」
     static var doneOpenTip: String {
-        String(localized: "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。", bundle: .module)
+        String(localized: "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
     }
 
     /// こつ「外枠で離すとやめる」

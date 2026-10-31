@@ -200,6 +200,24 @@ import Testing
         #expect(s.lift(at: 0.65).executions == [.execute(page: 0, cell: 8)])
     }
 
+    /// 止め終えたと知らせた後なら、境目の線の近く（帯の中）で離しても実行する。知らせる前の帯の中では、これまでどおりやめる
+    @Test func aReadyHoldCellRunsEvenNearALine() {
+        var s = SessionScenario(SessionConfiguration(holdCells: [[5]]))
+        s.slideIn(at: 0)
+        // マス 5 の内側、中央のマスとの境目の線（x = 0.63）から 0.01
+        s.touch(x: 0.64, y: 0.5, at: 0.2)
+        let early = s.lift(at: 0.3)
+        #expect(early.executions.isEmpty)
+        #expect(early.endReason == .cancelled(.liftedOnBoundary))
+
+        var ready = SessionScenario(SessionConfiguration(holdCells: [[5]]))
+        ready.slideIn(at: 0)
+        ready.touch(x: 0.64, y: 0.5, at: 0.2)
+        #expect(ready.tick(at: 0.2 + SessionConfiguration.defaultHoldDwell).hapticEvents == [.holdReady])
+        let lift = ready.lift(at: 0.2 + SessionConfiguration.defaultHoldDwell + 0.05)
+        #expect(lift.executions == [.execute(page: 0, cell: 5)])
+    }
+
     /// tick が遅れても、届いたフレームの時刻で止め終えたとみなす
     @Test func aLateTickDoesNotLoseTheHold() {
         var s = SessionScenario(SessionConfiguration(holdCells: [[8]]))
@@ -260,9 +278,14 @@ import Testing
         s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
         s.setFingers([(1, 0.25, 0.5), (2, 0.45, 0.5)], at: 0.3)
         let back = s.lift(2, at: 0.4)
-        // ハイライトが戻るが、境界の触覚は鳴らさない
-        #expect(back.hudStates == [SessionHUDState(page: 1, highlightedCell: 3)])
+        // 滑らせ直すまでは、離しても実行しないので、マスを光らせない（2本指の間と同じ表示のまま）。境界の触覚も鳴らさない
+        #expect(back.hudStates.isEmpty)
+        #expect(s.engine.hud?.highlightedCell == nil)
         #expect(back.hapticEvents.isEmpty)
+        // 滑らせ直したら（reselectTravel を超えたら）、いまのマスを光らせる
+        var slid = s
+        let moved = slid.touch(x: 0.25, y: 0.5 + SessionConfiguration.reselectTravel + 0.01, at: 0.45)
+        #expect(moved.hudStates.last?.highlightedCell == 3)
         // 滑らせずに離すとやめる（止めていても）
         var still = s
         #expect(still.lift(at: 1.5).endReason == .cancelled(.liftedWithoutSliding))

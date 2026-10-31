@@ -81,6 +81,8 @@ struct ShellHUDAppearanceTests {
         #expect(increased.detailWhite > standard.detailWhite)
         #expect(increased.inactiveDotWhite > standard.inactiveDotWhite)
         #expect(increased.borderOpacity >= 0.4)
+        // 外枠にいるときも、コントラストを上げたほうが、マスの文字は標準より読みやすい（薄くならない）
+        #expect(increased.dimmedCellOpacity >= standard.dimmedCellOpacity)
         #expect(increased.emptyCellStrokeOpacity >= 0.45)
         #expect(HUDPalette.colors(increasedContrast: true) == increased)
         #expect(HUDPalette.colors(increasedContrast: false) == standard)

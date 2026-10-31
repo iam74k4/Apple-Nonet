@@ -1302,9 +1302,15 @@ import Testing
         for local in ["~/Downloads/run.command", "/Applications/Calculator.app", "file:///tmp/x.command", " FILE:///tmp/y "] {
             #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: local))), "\(local)")
         }
-        for web in ["https://example.com", "//example.com/a", "obsidian://open?vault=a"] {
+        for web in ["https://example.com", "//example.com/a", "obsidian://open?vault=a", "mailto:a@example.com"] {
             #expect(!SettingsImportPlan.needsReview(.openURL(URLAction(url: web))), "\(web)")
         }
+        // 開くと別のものを動かす・つなぐ URL（ショートカットの実行・ssh・共有フォルダ）と、ショートカットそのものも確かめる
+        for tool in ["shortcuts://run-shortcut?name=x", " SSH://host ", "smb://host/share", "vnc://host"] {
+            #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: tool))), "\(tool)")
+        }
+        #expect(SettingsImportPlan.needsReview(.shortcut(ShortcutAction(name: "x", passSelectedText: false, output: nil))))
+        #expect(!SettingsImportPlan.needsReview(.launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Safari", name: "Safari"), hideIfFrontmost: false))))
         let h = try SettingsHarness()
         let open = Cell(title: "資料", icon: .symbol("doc"), action: .openURL(URLAction(url: "~/Downloads/run.command")))
         let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [open])])

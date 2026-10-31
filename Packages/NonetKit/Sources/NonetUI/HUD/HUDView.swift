@@ -166,7 +166,9 @@ struct HUDColors: Equatable {
         frameStrokeOpacity: 0.45,
         frameActiveFillOpacity: 0.22,
         frameActiveStrokeOpacity: 1,
-        dimmedCellOpacity: 0.22
+        // 「コントラストを上げる」では、外枠にいるときも、マスの文字を標準より読みやすく残す
+        // （側面の外枠で止めてページが替わったとき、新しいページの中身を読んで、進むかどうか決められるように）
+        dimmedCellOpacity: 0.45
     )
 
     var cellForeground: Color { Color(white: cellForegroundWhite) }
@@ -257,7 +259,8 @@ struct HUDTheme {
     var labelForeground: Color { isGlass ? ink : .white }
 
     var activeDot: Color { isGlass ? ink : .white }
-    var inactiveDot: AnyShapeStyle { isGlass ? AnyShapeStyle(HierarchicalShapeStyle.tertiary) : AnyShapeStyle(colors.inactiveDot) }
+    /// 選んでいないページの点。ガラスの上では、第三の階層だと明るい背景で見えなくなるので、第二の階層にする
+    var inactiveDot: AnyShapeStyle { isGlass ? AnyShapeStyle(HierarchicalShapeStyle.secondary.opacity(0.7)) : AnyShapeStyle(colors.inactiveDot) }
 
     func bannerFill(isWarning: Bool) -> AnyShapeStyle {
         guard isGlass else { return AnyShapeStyle(Color(white: isWarning ? 0.2 : 0.15)) }
@@ -436,8 +439,9 @@ struct HUDView: View {
                 .padding(.top, metrics.frameTop)
                 .padding(.bottom, metrics.frameBottom)
                 .opacity(inFrame ? colors.dimmedCellOpacity : 1)
-            if inFrame, let paging = model.edgePaging {
-                // 指を止めている側の外枠の帯に、ページを切り替えるまでの進み具合
+            if inFrame, let paging = model.edgePaging, !reduceMotion {
+                // 指を止めている側の外枠の帯に、ページを切り替えるまでの進み具合。
+                // 「視差効果を減らす」では出さない（伸びない線は、最初から「済んだ」ように見える。文は「離すとやめる」の下に出る）
                 HUDEdgePagingBar(paging: paging, color: theme.ring, animates: !reduceMotion)
                     .frame(width: max(metrics.frameSide - 6 * metrics.scale, 3 * metrics.scale))
                     .padding(.vertical, metrics.frameTop + metrics.cellCornerRadius)
@@ -639,6 +643,7 @@ struct HUDCancelLabel: View {
             HStack(spacing: 7 * metrics.scale) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11 * metrics.scale, weight: .bold))
+                    .accessibilityHidden(true)
                 Text(HUDAnnouncement.cancelLabel)
                     .font(.system(size: 14 * metrics.scale, weight: .semibold))
                     .lineLimit(1)
@@ -646,12 +651,12 @@ struct HUDCancelLabel: View {
             if let edge {
                 HStack(spacing: 4 * metrics.scale) {
                     if edge == .left {
-                        Image(systemName: "chevron.left")
+                        Image(systemName: "chevron.left").accessibilityHidden(true)
                     }
                     Text(HUDAnnouncement.edgePagingLabel(edge))
                         .lineLimit(1)
                     if edge == .right {
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.right").accessibilityHidden(true)
                     }
                 }
                 .font(.system(size: 11 * metrics.scale, weight: .medium))
@@ -669,7 +674,7 @@ struct HUDCancelLabel: View {
 }
 
 /// 左右の外枠に指を止めている間、ページを切り替えるまでの進み具合。外枠の帯の中で、縦長の線を中ほどから上下へ伸ばす。
-/// 「視差効果を減らす」では伸ばさず、線を薄く出すだけにする
+/// 「視差効果を減らす」では出さない（HUDView.pad）。animates が false のときの線は、見た目の確認用の静止画
 struct HUDEdgePagingBar: View {
     let paging: HUDEdgePaging
     var color = Color.white
