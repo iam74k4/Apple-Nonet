@@ -59,10 +59,12 @@ import NonetCore
         #expect(s.pressTrigger(at: 0) == [.beginPointerSuppression, .requestTick(at: 0.6)])
     }
 
-    @Test func zeroHudDelayHighlightsARestingFingerImmediately() {
+    /// hudDelay が 0 でも、トリガーより前から休めている指では HUD を出さない（(a) を待つ）。滑らせたらすぐに出す
+    @Test func zeroHudDelayWaitsForARestingFingerToSlide() {
         var s = SessionScenario(hudDelay: 0)
         s.touch(on: 6, at: 0)
-        #expect(s.pressTrigger(at: 1).visible == [.beginPointerSuppression, .showHUD(page: 0, highlightedCell: 6)])
+        #expect(s.pressTrigger(at: 1) == [.beginPointerSuppression, .requestTick(at: 1 + 0.6)])
+        #expect(s.touch(on: 7, at: 1.1).visible == [.showHUD(page: 0, highlightedCell: 7)])
     }
 
     // MARK: ヒステリシス
@@ -316,10 +318,10 @@ import NonetCore
             .endPointerSuppression(dropsLateClicks: true),
             .sessionEnded(.released),
             .beginPointerSuppression,
-            .requestTick(at: 0.2 + 0.3),
+            .requestTick(at: 0.2 + 0.6),
         ])
-        // 速押しにしない。指が無くなったので、HUD は (a) の時刻に出す
-        #expect(s.lift(at: 0.25) == [.requestTick(at: 0.2 + 0.6)])
+        // 速押しにしない。HUD は (a) の時刻に出す
+        #expect(s.lift(at: 0.25).isEmpty)
         #expect(s.log.executions.isEmpty)
     }
 

@@ -60,6 +60,8 @@ final class ControllerHarness {
     let controller: NonetController
     /// いま触れている指
     private var fingers: [Int: (x: Double, y: Double)] = [:]
+    /// 指ごとの接触の長径（TouchPoint.majorAxis）。無い指は nil（大きさが分からない）
+    var majorAxes: [Int: Double] = [:]
 
     /// configuration を保存してから組み立てる（nil なら設定ファイルの無い初回起動）。
     /// trialEnded なら試用期間が終わっている。trialDaysUsed は試用を使った日数（残り日数の知らせを試す）。
@@ -162,7 +164,7 @@ final class ControllerHarness {
 
     func sendFrame() {
         let points = fingers.keys.sorted().compactMap { id in
-            fingers[id].map { TouchPoint(id: id, x: $0.x, y: $0.y) }
+            fingers[id].map { TouchPoint(id: id, x: $0.x, y: $0.y, majorAxis: majorAxes[id]) }
         }
         touchSource.send(TouchFrame(timestamp: scheduler.now, points: points))
     }

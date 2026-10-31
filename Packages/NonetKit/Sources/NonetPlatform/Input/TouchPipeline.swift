@@ -12,6 +12,8 @@ struct MultitouchContact: Equatable, Sendable {
     /// 0〜1。y は手前が 0
     var x: Float
     var y: Float
+    /// 接触の楕円の長径（CMTTouch.majorAxis）。0 以下・NaN なら分からないとみなす
+    var majorAxis: Float = 0
 
     static let touchingStates: ClosedRange<Int32> = 3...4
 
@@ -26,7 +28,8 @@ extension TouchPoint {
             id: Int(contact.identifier),
             x: Double(min(max(contact.x, 0), 1)),
             y: Double(min(max(contact.y, 0), 1)),
-            isTouching: contact.isTouching
+            isTouching: contact.isTouching,
+            majorAxis: contact.majorAxis.isFinite && contact.majorAxis > 0 ? Double(contact.majorAxis) : nil
         )
     }
 

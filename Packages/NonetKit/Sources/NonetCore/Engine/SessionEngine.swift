@@ -121,7 +121,7 @@ public enum SessionEndReason: Equatable, Sendable {
     /// 角の長押しのセッションでは、指を滑らせてから離して終えた
     case released
     /// HUD を出したまま、何も実行せずにトリガーを離した（指を先に離した、など）。
-    /// 角の長押しのセッションでは、指を滑らせずに離した
+    /// 角の長押しのセッションでは、指を滑らせずに離した・滑らせた後にマスに留まらずに離した
     case cancelled
     /// ほかのキーが押された。または、離したイベントを取りこぼしたままトリガーがもう一度押された
     case interrupted
@@ -185,9 +185,12 @@ public enum SessionEffect: Equatable, Sendable {
 ///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
 /// - HUD が出ているときも、短く（`tapMaxDuration`）動かさずに（`tapMaxTravel`）1本指でタップしたら、置いたマスを実行して HUD を閉じる
 ///   （実行のタイミングが「キーを離したとき」のとき。セッションは続く）
-/// - トリガーより前から置いて動かしていない指（`restingTolerance`）は、ほかの指を置いたら数えない。ほかに置いた指は新しいタッチ
+/// - トリガーより前から置いて動かしていない指（`restingTolerance`）は数えない。その指だけでも、ハイライトも (b) の HUD も実行もしない
+///   （HUD は (a) の時刻に出す）。ほかに置いた指は新しいタッチ。動かしたら、ふつうの指として数える。
+///   ただし角の長押しのセッション中にトリガーを押したときは、そのセッションで選んでいた指をそのまま数える
 /// - 角の長押し（`SessionActivation.cornerHold`）で始めたセッションは、HUD をすぐに出し、すべての指が離れたら終える。
-///   滑らせてから1本指で離せば光っているマスを実行し、滑らせずに離せばキャンセル。トリガーを離したイベントは使わない
+///   滑らせてから光っているマスに `CornerHoldRecognizer.liftDwell` 以上留まって1本指で離せばそのマスを実行し、
+///   滑らせずに離した・留まらずに離したらキャンセル。トリガーを離したイベントは使わない
 public struct SessionEngine: Sendable {
     /// セッションの終わりの前のこの秒数のうちに指が離れたか、この秒数より新しい指がまだ触れていれば、
     /// その指の「タップでクリック」が抑止の後に届きうるとみなす（endPointerSuppression の dropsLateClicks）。
@@ -223,13 +226,15 @@ public struct SessionEngine: Sendable {
         switch input {
         case .triggerDown(let time, let configuration):
             advance(to: time, effects: &effects)
+            // 角の長押しのセッションで選んでいた指は、休めている指ではない（トリガーキーのセッションでそのまま選べる）
+            let continuesCornerTouch = session?.isCornerHold == true && configuration.activation == .triggerKey
             if let session {
                 self.session?.end(session.isDraining ? session.releaseReason : .interrupted, now: clock, effects: &effects)
                 finishIfEnded()
             }
             if !clock.isFinite { clock = 0 }
             effects.append(.beginPointerSuppression)
-            session = SessionState(configuration: configuration.sanitized, start: clock, tracker: tracker)
+            session = SessionState(configuration: configuration.sanitized, start: clock, tracker: tracker, continuesCornerTouch: continuesCornerTouch)
             if configuration.activation == .cornerHold {
                 session?.activateFromCorner(now: clock, effects: &effects)
             }

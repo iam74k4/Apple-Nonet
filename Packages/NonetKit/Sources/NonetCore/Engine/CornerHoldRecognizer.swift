@@ -7,6 +7,7 @@ import Foundation
 /// 次のときは合図しない（そのタッチの間は、もう待たない）:
 /// - 角の外で触れ始めた（外から角に入ってきた指を含む）。最初から2本以上で触れた
 /// - 待っている間に、ほかの指が触れた・movementTolerance より動いた・離れた
+/// - 接触が手のひらの大きさ（palmMajorAxis 以上）になった
 /// - 設定が「使わない」か、セッション中に触れ始めた（キーで始めたセッションの指を、終わった後に長押しとみなさない）
 /// 指の出入りは設定やセッションに関係なく数え続ける。時刻は TouchFrame.timestamp と同じ時計の秒
 public struct CornerHoldRecognizer: Sendable {
@@ -19,6 +20,14 @@ public struct CornerHoldRecognizer: Sendable {
     /// 止めているとみなす動きの範囲（トラックパッドを 1 とした割合での距離）。
     /// 始まったセッションで「指を滑らせた」とみなすのも、これより動いたとき
     public static let movementTolerance = 0.02
+    /// これ以上の長径（TouchPoint.majorAxis）の接触は手のひらとみなし、長押しを待たない。
+    /// 指先はおよそ 8〜15、平らに置いた親指でも 20 ほどなので、それより大きいものだけを外す控えめな値にしている
+    /// （単位は MultitouchSupport の majorAxis のまま。実機では確かめていない。値が取れない接触は外さない）
+    public static let palmMajorAxis = 25.0
+    /// 始まったセッションで、滑らせた後に光っているマスにこの秒数以上留まってから離したときだけ実行する
+    /// （置いて止めていた指が、そのままカーソルの移動やドラッグで動いて離れたのを、選んだとみなさない）。
+    /// 留まり始めるのは、そのマスになった時刻と、滑らせたとみなした時刻の遅いほう。足りなければキャンセル
+    public static let liftDwell: TimeInterval = 0.15
 
     private struct Candidate: Sendable {
         var corner: TouchActivation
@@ -37,6 +46,12 @@ public struct CornerHoldRecognizer: Sendable {
     /// 長押しを待っている間、合図する時刻（この時刻に tick(at:) を呼ぶと合図する）。待っていなければ nil
     public var deadline: TimeInterval? {
         candidate.map { $0.start + Self.holdDuration }
+    }
+
+    /// 手のひらの大きさの接触か。大きさが分からなければ false
+    public static func isPalmSized(_ point: TouchPoint) -> Bool {
+        guard let majorAxis = point.majorAxis else { return false }
+        return majorAxis >= palmMajorAxis
     }
 
     /// (x, y) が corner の範囲の中か。縁ちょうどは中。off ならいつも外
@@ -64,13 +79,15 @@ public struct CornerHoldRecognizer: Sendable {
         case .began, .restarted:
             candidate = nil
             guard isWatching, tracker.count == 1, let finger = tracker.lastPlaced,
-                  Self.isInZone(x: finger.x, y: finger.y, corner: corner) else { return false }
+                  Self.isInZone(x: finger.x, y: finger.y, corner: corner),
+                  !Self.isPalmSized(finger.id, in: frame) else { return false }
             candidate = Candidate(corner: corner, fingerID: finger.id, x: finger.x, y: finger.y, start: tracker.gestureStart)
             return fireIfDue(at: time)
         case .moved:
             guard let waiting = candidate else { return false }
             guard isWatching, corner == waiting.corner, tracker.count == 1, let finger = tracker.lastPlaced, finger.id == waiting.fingerID,
-                  hypot(finger.x - waiting.x, finger.y - waiting.y) <= Self.movementTolerance else {
+                  hypot(finger.x - waiting.x, finger.y - waiting.y) <= Self.movementTolerance,
+                  !Self.isPalmSized(finger.id, in: frame) else {
                 candidate = nil
                 return false
             }
@@ -87,6 +104,12 @@ public struct CornerHoldRecognizer: Sendable {
             return false
         }
         return fireIfDue(at: time)
+    }
+
+    /// frame の中の、id の触れている接触が手のひらの大きさか
+    private static func isPalmSized(_ id: Int, in frame: TouchFrame) -> Bool {
+        guard let point = frame.points.last(where: { $0.id == id && $0.isTouching }) else { return false }
+        return isPalmSized(point)
     }
 
     private mutating func fireIfDue(at time: TimeInterval) -> Bool {

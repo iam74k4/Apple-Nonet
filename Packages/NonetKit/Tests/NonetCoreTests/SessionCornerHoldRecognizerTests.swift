@@ -9,6 +9,8 @@ private struct CornerScript {
     var corner: TouchActivation = .topLeft
     var isSessionActive = false
     private(set) var fingers: [Int: (x: Double, y: Double)] = [:]
+    /// 指ごとの接触の長径。無い指は大きさが分からない
+    var majorAxes: [Int: Double] = [:]
 
     init(corner: TouchActivation = .topLeft) {
         self.corner = corner
@@ -39,7 +41,9 @@ private struct CornerScript {
     /// いまの指をそのまま送り直す
     @discardableResult
     mutating func send(at time: TimeInterval) -> Bool {
-        let points = fingers.keys.sorted().compactMap { id in fingers[id].map { TouchPoint(id: id, x: $0.x, y: $0.y) } }
+        let points = fingers.keys.sorted().compactMap { id in
+            fingers[id].map { TouchPoint(id: id, x: $0.x, y: $0.y, majorAxis: majorAxes[id]) }
+        }
         return recognizer.apply(TouchFrame(timestamp: time, points: points), corner: corner, isSessionActive: isSessionActive)
     }
 
@@ -60,6 +64,47 @@ private struct CornerScript {
         #expect(R.zoneHeight == 0.18)
         #expect(R.holdDuration == 0.4)
         #expect(R.movementTolerance == 0.02)
+        #expect(R.palmMajorAxis == 25)
+        #expect(R.liftDwell == 0.15)
+    }
+
+    // MARK: 手のひら
+
+    /// 手のひらの大きさで触れ始めた接触は待たない
+    @Test func aPalmSizedContactIsNotWaitedFor() {
+        var s = CornerScript()
+        s.majorAxes[1] = R.palmMajorAxis
+        #expect(s.touch(x: Self.topLeft.x, y: Self.topLeft.y, at: 10) == false)
+        #expect(s.recognizer.deadline == nil)
+        #expect(s.tick(at: 10 + R.holdDuration) == false)
+    }
+
+    /// 待っている間に手のひらの大きさになった（手のひらが下りてきた）ら取り消す。小さく戻っても、そのタッチではもう待たない
+    @Test func aContactThatGrowsToPalmSizeCancels() {
+        var s = CornerScript()
+        s.majorAxes[1] = 12
+        s.touch(x: Self.topLeft.x, y: Self.topLeft.y, at: 10)
+        #expect(s.recognizer.deadline != nil)
+        s.majorAxes[1] = R.palmMajorAxis + 10
+        #expect(s.send(at: 10.2) == false)
+        #expect(s.recognizer.deadline == nil)
+        s.majorAxes[1] = 12
+        #expect(s.send(at: 10 + R.holdDuration) == false)
+    }
+
+    /// 指の大きさ（平らに置いた親指を含む）と、大きさが分からない接触は、これまでどおり合図する
+    @Test(arguments: [Double?.none, 8, 15, 20])
+    func fingerSizedContactsStillActivate(majorAxis: Double?) {
+        var s = CornerScript()
+        s.majorAxes[1] = majorAxis
+        s.touch(x: Self.topLeft.x, y: Self.topLeft.y, at: 10)
+        #expect(s.send(at: 10 + R.holdDuration) == true)
+    }
+
+    @Test func palmSizeIsOnlyKnownFromTheMajorAxis() {
+        #expect(!R.isPalmSized(TouchPoint(id: 1, x: 0, y: 0)))
+        #expect(!R.isPalmSized(TouchPoint(id: 1, x: 0, y: 0, majorAxis: R.palmMajorAxis - 0.1)))
+        #expect(R.isPalmSized(TouchPoint(id: 1, x: 0, y: 0, majorAxis: R.palmMajorAxis)))
     }
 
     // MARK: 合図する

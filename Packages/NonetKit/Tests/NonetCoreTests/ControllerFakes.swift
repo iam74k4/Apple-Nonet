@@ -211,6 +211,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         didSet { trackpadTouchReports.append(isTrackpadTouched) }
     }
     private(set) var trackpadTouchReports: [Bool] = []
+    /// マウスやトラックパッドのボタンを物理的に押し込んでいるか（テストで変える）
+    var isMouseButtonDown = false
     private(set) var isRunning = false
     /// start() で投げるもの（アクセシビリティの許可が無いときは別に permissionDenied を投げる）
     var startError: (any Error)?

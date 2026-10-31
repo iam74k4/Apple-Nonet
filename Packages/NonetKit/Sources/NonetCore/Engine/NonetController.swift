@@ -357,8 +357,6 @@ public final class NonetController {
     /// 始めたら true
     private func beginSession(_ activation: SessionActivation, at now: TimeInterval) -> Bool {
         guard canBeginSession() else { return false }
-        // 「このアプリでは Nonet を使わない」アプリが前面なら始めない。ポインタを止めず、HUD も出さない（トリガーキーはそのまま渡る）
-        guard !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID) else { return false }
         let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current, activation: activation)
         // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
         send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)
@@ -366,6 +364,7 @@ public final class NonetController {
         return true
     }
 
+    /// セッションを始められるか。トリガーキーと角の長押し（試用期間が終わっていて始めないときの知らせも）が同じ条件で使う
     private func canBeginSession() -> Bool {
         guard isStarted, !isRecordingKeys else { return false }
         // セキュア入力は2秒ごとにしか確かめないので、トリガーのたびに確かめ直す
@@ -373,7 +372,10 @@ public final class NonetController {
         if status == .secureInputActive || services.permissions.isSecureInputActive {
             refreshServices()
         }
-        return status == .running
+        guard status == .running else { return false }
+        // 「このアプリでは Nonet を使わない」アプリが前面なら始めない。ポインタを止めず、HUD も出さない（トリガーキーはそのまま渡る）。
+        // 角の長押しで試用期間の終了を知らせるトーストと触覚も出さない（仕様 1: そのアプリでは何もしない）
+        return !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID)
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
@@ -438,8 +440,13 @@ public final class NonetController {
 
     /// 角の長押しで、トリガーキーと同じ道筋（beginSession）でセッションを始める。試用期間が終わっていたら始めない
     /// （角に指を置いただけで、何も実行できない HUD と帯が出ないように）。そのときは、トリガーキーでマスを押したときと同じく、
-    /// 終わったことと次にすることをトースト1つと触覚で知らせる
+    /// 終わったことと次にすることをトースト1つと触覚で知らせる。
+    /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ など）なら、何もしない
     private func beginCornerHoldSession() {
+        guard !services.keyboard.isMouseButtonDown else {
+            controllerLogger.debug("ボタンが押されているため、角の長押しでは始めません")
+            return
+        }
         guard license.canExecuteActions else {
             guard canBeginSession() else { return }
             controllerLogger.notice("試用期間が終わっているため、角の長押しでは始めません")

@@ -17,8 +17,9 @@ private struct SessionTouch: Sendable {
     var isMultiFinger: Bool
     /// このタッチでページを切り替えた（1回のスワイプで1ページ。仕様 8）。端で止まったときも含む
     var hasTurnedPage = false
-    /// トリガーを押したときに触れていた指だけのタッチ（セッションの始めのタッチ）。休めている指も数え、
-    /// 速押しにも HUD でのタップにもしない
+    /// トリガーを押したときに触れていた指だけのタッチ（セッションの始めのタッチ）で、その指がまだ休めている
+    /// （restingTolerance より動いていない）。1本だけでも、ハイライトも (b) の HUD も実行もしない（仕様 9・11）。
+    /// 速押しにも HUD でのタップにもしない。指を動かしたら false にし、ふつうのタッチとして数える
     var isPreTrigger = false
     /// 最初に置いた指とその位置。HUD でのタップの移動量を測る
     var origin: FingerTracker.Finger?
@@ -41,7 +42,8 @@ private struct SwipeBaseline: Sendable {
 private struct CornerSlide: Sendable {
     /// 測り始めた指と位置（セッションの始まりと、2本以上から1本指に戻ったとき）
     private var anchor: FingerTracker.Finger?
-    private(set) var hasMoved = false
+    /// 滑らせたとみなした時刻。滑らせていなければ nil
+    private(set) var movedAt: TimeInterval?
 
     init(anchor: FingerTracker.Finger?) {
         self.anchor = anchor
@@ -50,14 +52,14 @@ private struct CornerSlide: Sendable {
     /// 測り直す。滑らせていないことにする
     mutating func restart(at finger: FingerTracker.Finger?) {
         anchor = finger
-        hasMoved = false
+        movedAt = nil
     }
 
     /// 1本だけ触れている指の位置
-    mutating func follow(_ finger: FingerTracker.Finger?) {
-        guard let finger, let anchor, anchor.id == finger.id else { return }
+    mutating func follow(_ finger: FingerTracker.Finger?, at time: TimeInterval) {
+        guard movedAt == nil, let finger, let anchor, anchor.id == finger.id else { return }
         if hypot(finger.x - anchor.x, finger.y - anchor.y) > CornerHoldRecognizer.movementTolerance {
-            hasMoved = true
+            movedAt = time
         }
     }
 }
@@ -87,27 +89,31 @@ struct SessionState: Sendable {
     private var lastLiftAt: TimeInterval?
     /// 角の長押しのセッションだけ
     private var slide: CornerSlide?
+    /// 角の長押しのセッションで、いま光っているマスになった時刻（離したときに、そのマスに留まっていたかを測る）
+    private var highlightSince: TimeInterval = 0
     /// トリガーより前から置いていて、まだ動かしていない指（id → 測り始めた位置）。トリガーキーのセッションだけ。
-    /// ほかの指を置いたら数えず（親指を手前に休めたままタップできるように）、restingTolerance より動かしたらふつうの指にする
+    /// 1本だけでも数えず（親指を手前に休めたままトリガーを押し、そのままタップや取りやめができるように）、restingTolerance より動かしたらふつうの指にする
     private var restingFingers: [Int: FingerTracker.Finger] = [:]
 
-    /// configuration は sanitized 済みのもの
-    init(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker) {
+    /// configuration は sanitized 済みのもの。continuesCornerTouch は、角の長押しのセッション中にトリガーを押して始めた
+    /// （触れている指はそのセッションで選んでいた指なので、休めている指にせず、ハイライトで追って (b) の HUD を出す）
+    init(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker, continuesCornerTouch: Bool = false) {
         self.configuration = configuration
         self.grid = configuration.grid
         self.start = start
-        // トリガーより前から置いていた指は速押しにしないが、位置はハイライトできる
+        // トリガーより前から置いていた指は休めている指として数えない（速押しにもせず、restingTolerance より動かすまで
+        // ハイライトも (b) の HUD も無い）。角の長押しのセッションは、長押しの指をそのまま使う
         if tracker.isTouching {
-            let isTriggerKey = configuration.activation == .triggerKey
+            let isResting = configuration.activation == .triggerKey && !continuesCornerTouch
             touch = SessionTouch(
                 physicalStart: tracker.gestureStart,
                 restStart: start,
                 isTapCandidate: false,
                 downCell: nil,
                 isMultiFinger: tracker.gestureMaxFingers >= 2,
-                isPreTrigger: isTriggerKey
+                isPreTrigger: isResting
             )
-            if isTriggerKey {
+            if isResting {
                 restingFingers = Dictionary(tracker.fingers.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
             }
             trackFinger(tracker)
@@ -137,7 +143,7 @@ struct SessionState: Sendable {
         }
         var deadline = timeoutAt
         if !isHUDVisible {
-            if let touch {
+            if let touch = countedTouch {
                 deadline = min(deadline, touch.restStart + configuration.hudDelay)
             } else if !hasExecuted, start + configuration.placementWindow > now {
                 deadline = min(deadline, start + configuration.placementWindow)
@@ -164,12 +170,13 @@ struct SessionState: Sendable {
             return
         }
         guard !isHUDVisible else { return }
-        let isDue = if let touch {
+        let isDue = if let touch = countedTouch {
             // 仕様 4 (b): 置いた指が hudDelay 以上触れたままになった
             now >= touch.restStart + configuration.hudDelay
         } else {
             // 仕様 4 (a)・6: 指を置かずに placementWindow が過ぎた。一度実行した後は出さない。
-            // 待ち時間中に置いた指が実行せずに離れたときも、その時点で迷っているとみなして出す
+            // 待ち時間中に置いた指が実行せずに離れたときも、その時点で迷っているとみなして出す。
+            // トリガーより前から休めている指だけが触れているときも、指を置いていないのと同じ
             !hasExecuted && now >= start + configuration.placementWindow
         }
         if isDue {
@@ -188,6 +195,7 @@ struct SessionState: Sendable {
             return
         }
         showHUD(effects: &effects)
+        highlightSince = now
         effects.append(.haptic(.activation))
     }
 
@@ -211,17 +219,29 @@ struct SessionState: Sendable {
                 slide?.restart(at: tracker.lastPlaced)
             }
         }
+        let previous = highlight
         follow(tracker, effects: &effects)
+        if highlight != previous {
+            highlightSince = now
+        }
         if tracker.count == 1, touch?.isMultiFinger == false {
-            slide?.follow(tracker.lastPlaced)
+            slide?.follow(tracker.lastPlaced, at: now)
         }
     }
 
-    /// すべての指が離れた。滑らせてから1本指で離したなら、光っているマスを実行する。
-    /// 滑らせずに離した・2本以上で離した・空きマス（仕様 12）なら、何もせずにキャンセルとして終える
+    /// 滑らせた後、光っているマスに CornerHoldRecognizer.liftDwell 以上留まってから離したか。
+    /// 置いて止めていた指（手のひら・押し込んだままの指・カーソルを動かす前に置いていた指）がそのまま動いて離れたのを、
+    /// 選んだとみなさないため。留まり始めるのは、そのマスになった時刻と、滑らせたとみなした時刻の遅いほう
+    private func hasSettledBeforeLift(now: TimeInterval) -> Bool {
+        guard let movedAt = slide?.movedAt else { return false }
+        return now - max(highlightSince, movedAt) >= CornerHoldRecognizer.liftDwell
+    }
+
+    /// すべての指が離れた。滑らせてから、光っているマスに liftDwell 以上留まって1本指で離したなら、そのマスを実行する。
+    /// 滑らせずに離した・留まらずに離した・2本以上で離した・空きマス（仕様 12）なら、何もせずにキャンセルとして終える
     private mutating func liftCornerHold(now: TimeInterval, effects: inout [SessionEffect]) {
         var reason = SessionEndReason.cancelled
-        if let touch, !touch.isMultiFinger, slide?.hasMoved == true, let cell = highlight, !isEmptyCell(cell) {
+        if let touch, !touch.isMultiFinger, hasSettledBeforeLift(now: now), let cell = highlight, !isEmptyCell(cell) {
             hideHUD(effects: &effects)
             execute(cell: cell, wasFastTap: false, effects: &effects)
             reason = .released
@@ -400,7 +420,11 @@ struct SessionState: Sendable {
             released = true
         }
         guard released else { return }
-        if touch == nil {
+        if let touch, touch.isPreTrigger {
+            // セッションの始めのタッチの指を動かした: ふつうのタッチとして数え、ハイライトで追う。(b) の HUD は動かした時刻から数える
+            self.touch?.isPreTrigger = false
+            self.touch?.restStart = now
+        } else if touch == nil {
             // 休めていた指を滑らせ始めた: ハイライトで追えるよう、その指のタッチにする（トリガーより前から置いていたので、速押しにはしない）
             touch = SessionTouch(
                 physicalStart: tracker.gestureStart,
@@ -409,8 +433,6 @@ struct SessionState: Sendable {
                 downCell: nil,
                 isMultiFinger: countedFingers(tracker).count >= 2
             )
-        } else {
-            touch?.isPreTrigger = false
         }
     }
 
@@ -422,6 +444,7 @@ struct SessionState: Sendable {
     }
 
     /// このタッチで数える指（置いた順）。休めている指は、セッションの始めのタッチ（その指だけのタッチ）でだけ数える
+    /// （ページを変えるスワイプの起点をトリガーの時刻にするため。ハイライトと実行は isPreTrigger で止める）
     private func countedFingers(_ tracker: FingerTracker) -> [FingerTracker.Finger] {
         guard !restingFingers.isEmpty, touch?.isPreTrigger != true else { return tracker.fingers }
         return tracker.fingers.filter { restingFingers[$0.id] == nil }
@@ -573,9 +596,14 @@ struct SessionState: Sendable {
 
     // MARK: HUD・実行
 
-    /// 2本以上の指が触れたタッチはハイライトしない（実行されないマスを光らせないため）
+    /// HUD を出すまでの待ち時間（仕様 4 (b)）を数えるタッチ。トリガーより前から休めている指だけのタッチは数えない（(a) で出す）
+    private var countedTouch: SessionTouch? {
+        touch?.isPreTrigger == true ? nil : touch
+    }
+
+    /// 2本以上の指が触れたタッチと、トリガーより前から休めている指だけのタッチはハイライトしない（実行されないマスを光らせないため）
     private var currentHighlight: Int? {
-        guard let touch, !touch.isMultiFinger else { return nil }
+        guard let touch, !touch.isMultiFinger, !touch.isPreTrigger else { return nil }
         return tracked?.cell
     }
 
