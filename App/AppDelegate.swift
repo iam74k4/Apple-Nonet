@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         .localized(language: Bundle.main.preferredLocalizations.first)
     #if DEBUG
     private var preview: DebugPreview?
+    private var demo: DemoSession?
     #endif
 
     init(options: ShellLaunchOptions) {
@@ -51,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // 起動できたなら、ほかの Nonet はもう動いていない。前のプロセスが残した終わりかけの印を消す
         ShellQuitMarker.removeAll()
-        let services = NonetServices.live()
+        let services = makeServices()
         let hud = HUDWindowController()
         let license = makeLicenseManager()
         let controller = NonetController(
@@ -114,6 +115,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         applyDebugOptions()
         #endif
+    }
+
+    /// 本物のサービス一式。DEBUG ビルドの --demo では、デモ用の差し替え（App/DemoMode.swift）を入れる
+    private func makeServices() -> NonetServices {
+        let live = NonetServices.live()
+        #if DEBUG
+        if options.demo {
+            let demo = DemoSession(options: options)
+            self.demo = demo
+            return demo.services(from: live)
+        }
+        #endif
+        return live
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -257,6 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 見た目の確認用の起動引数（一覧は App/DebugPreview.swift）
     private func applyDebugOptions() {
         guard let controller, let hud, let license, let services else { return }
+        demo?.present()
         if let tab = options.settingsTab {
             showSettings(tab: tab)
         }

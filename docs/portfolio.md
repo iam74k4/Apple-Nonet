@@ -11,6 +11,17 @@
 https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と SaifuLog の間）。この下の手順と値は、そのときの下書きとして残す。実際に入れたものとの違い:
 
 - **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る）
+- **デモ動画（まだ入れていない）**: Debug ビルドの `--demo` で撮る。本物の操作のロジック・NonetController・HUD を動かし、何も実行せず（performer を差し替える）、ポインタも抑止しない。画面の右下に、指の位置を示すトラックパッドの図が出る。`--demo-script` を付けると、実機の指の代わりに台本（`NonetUI/MenuBar/DemoScript.swift`。3回開く: 中央のマスを実行・右の外枠で次のページへ切り替えて実行・手前の外枠で離してやめる）を入れて、終わったらアプリを終える。台本は `ShellDemoScriptTests` が本物の `EdgeSlideRecognizer`・`SessionEngine` に通して確かめている。付けなければ実機の指をそのまま図に出す。撮るには画面が点いていてロックされていないこと（スリープ中・ロック中は画面の一覧が空になり、録画できない）:
+
+  ```bash
+  swiftc -O -parse-as-library scripts/record-screen.swift -o build/record-screen
+  app=build/DerivedData/Build/Products/Debug/Nonet.app/Contents/MacOS/Nonet
+  # 背景（暗いグラデーションとメニューバー）の画像を用意し、見本の設定（Xcode のプロファイルの中央が Claude Code）で動かす
+  "$app" --config-dir "$demo" --demo-script --demo-app com.apple.dt.Xcode --demo-backdrop backdrop.png &
+  build/record-screen demo.mp4 15.6 0 0 1710 1069 1440 900 3000000 1.2   # 範囲は起動時に出る capture-region
+  ```
+
+  `record-screen` は ScreenCaptureKit で書く（`screencapture -v` は録画を始められなかった）。AstLog の動画は H.264 の MP4・10MB まで・HEVC は不可。
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
 - **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足す
 

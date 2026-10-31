@@ -19,6 +19,14 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var previewBundleID: String?
     /// --preview-backdrop <画像>: --preview-hud で、HUD の後ろに画面いっぱいに敷く絵（ガラスの HUD を決まった背景で撮る）
     public var previewBackdrop: URL?
+    /// --demo: 販売ページ用のデモ動画を撮る（本物の操作のロジックと HUD で、何も実行しない。指の位置を示すトラックパッドの図を出す）
+    public var demo = false
+    /// --demo-app <bundle ID>: --demo で、前面のアプリの代わりにこのアプリのプロファイルを使う
+    public var demoBundleID: String?
+    /// --demo-backdrop <画像>: --demo で、画面いっぱいに敷く背景
+    public var demoBackdrop: URL?
+    /// --demo-script: --demo で、実機の指の代わりに台本どおりの指の動きを入れる（終わったらアプリを終える）
+    public var demoScript = false
     /// --preview-toast: トーストを繰り返し出す
     public var previewToast = false
     /// --preview-result: 結果のパネルを出す
@@ -62,6 +70,21 @@ public struct ShellLaunchOptions: Equatable, Sendable {
                 }
             case "--preview-hud":
                 options.previewHUD = true
+            case "--demo":
+                options.demo = true
+            case "--demo-script":
+                options.demo = true
+                options.demoScript = true
+            case "--demo-app":
+                if let next, !next.hasPrefix("--") {
+                    options.demoBundleID = next
+                    index += 1
+                }
+            case "--demo-backdrop":
+                if let next, !next.hasPrefix("--") {
+                    options.demoBackdrop = URL(fileURLWithPath: (next as NSString).expandingTildeInPath)
+                    index += 1
+                }
             case "--preview-app":
                 if let next, !next.hasPrefix("--") {
                     options.previewBundleID = next
