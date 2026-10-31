@@ -45,6 +45,9 @@ scripts/release.sh が NONET_RELEASES_DIR に作ったリリースを https://no
 
 上げる前に確かめること:
   - DMG と appcast.xml があり、appcast.xml を Worker（/download）と同じ読み方で読めること
+  - DMG の署名（codesign --verify）・公証のステープル（xcrun stapler validate）・Gatekeeper の評価
+    （spctl -a -t open --context context:primary-signature）が通ること。通らない DMG は上げない
+  - appcast.xml のその版の項目（DMG とデルタ）に sparkle:edSignature があること。署名の無い更新を Sparkle は受け付けない
   - appcast.xml にその版の項目があり、URL が https://nonet.astlog.dev/updates/Nonet-<バージョン>.dmg、
     length が DMG の大きさと同じで、既定のチャンネルで最新であること（/download の行き先になる）
   - 項目にあるデルタが手元にあり、大きさが合うこと
@@ -184,7 +187,7 @@ http_head() {
 # 時間のかかる作業やネットワークの前に、足りないものをまとめて知らせる
 preflight() {
   local problems="" missing value
-  missing="$(missing_commands curl node awk)"
+  missing="$(missing_commands curl node awk codesign xcrun spctl)"
   [[ -z "$missing" ]] || problems+="必要なコマンドがありません: $(printf '%s' "$missing" | tr '\n' ' ')（node は Node.js 22 以降）"$'\n'
   if ! command -v md5 >/dev/null 2>&1 && ! command -v md5sum >/dev/null 2>&1; then
     problems+="md5 も md5sum もありません"$'\n'
@@ -218,10 +221,32 @@ preflight() {
   RELEASES_DIR="$(cd "$RELEASES_DIR" && pwd)"
 }
 
+# appcast.xml の、url を指す <enclosure …> の開始タグ（複数行に分かれていても1行にして）。無ければ空
+appcast_enclosure() {
+  tr '\r\n\t' '   ' <"$1" | grep -oE '<enclosure[^>]*>' | grep -F "url=\"$2\"" | head -n 1 || true
+}
+
+# DMG とデルタ（DELTA_NAMES）の enclosure に、空でない sparkle:edSignature があるか。無いものを1行ずつ出す。
+# 署名の無い更新を Sparkle は受け付けない。署名は generate_appcast が Sparkle の秘密鍵で付ける
+appcast_signature_problems() {
+  local file="$1" urls=("$DMG_URL") url name tag
+  for name in ${DELTA_NAMES[@]+"${DELTA_NAMES[@]}"}; do
+    urls+=("$UPDATES_PREFIX$name")
+  done
+  for url in "${urls[@]}"; do
+    tag="$(appcast_enclosure "$file" "$url")"
+    if [[ -z "$tag" ]]; then
+      printf '%s の enclosure が appcast.xml にありません\n' "$url"
+    elif ! grep -qE 'sparkle:edSignature="[^"]+"' <<<"$tag"; then
+      printf '%s の enclosure に sparkle:edSignature がありません\n' "$url"
+    fi
+  done
+}
+
 # 手元の appcast.xml の、この版の項目を確かめる。BUILD・DMG_SIZE・DELTA_NAMES を決める
 check_local_release() {
   local summary="$WORK/local.tsv" matches count other short default length newest_build newest_url
-  local url delta_length name size pattern
+  local url delta_length name size pattern problems
   summarize_appcast "$RELEASES_DIR/appcast.xml" "$summary" "手元の appcast.xml" \
     "Worker も読めないので、このまま上げると /download が 503 になります。scripts/release.sh が作ったままか確かめてください"
 
@@ -271,7 +296,36 @@ check_local_release() {
     DELTA_NAMES+=("$name")
   done < <(rows "$summary" delta 2 "$BUILD")
 
-  info "ビルド $BUILD / $DMG_NAME $DMG_SIZE バイト / デルタ ${#DELTA_NAMES[@]} 個"
+  problems="$(appcast_signature_problems "$RELEASES_DIR/appcast.xml")"
+  if [[ -n "$problems" ]]; then
+    error "手元の appcast.xml の項目に Sparkle の署名がありません:"
+    sed 's/^/  - /' <<<"$problems" >&2
+    die "Sparkle は署名の無い更新を受け付けないので、このまま上げると利用者がアップデートできません。
+    キーチェーンに Sparkle の秘密鍵があるか（docs/release.md「Sparkle の鍵」）を確かめて、scripts/release.sh をやり直してください"
+  fi
+
+  info "ビルド $BUILD / $DMG_NAME $DMG_SIZE バイト / デルタ ${#DELTA_NAMES[@]} 個 / Sparkle の署名あり"
+}
+
+# 上げる DMG が、署名・公証のステープル・Gatekeeper の評価のすべてを通るか。通らないものを上げると、利用者の Mac で開けない。
+# 通らないものをすべて出してから止まる（dry run でも同じ。ネットワークは使わない）
+verify_dmg() {
+  local dmg="$RELEASES_DIR/$DMG_NAME" problems="" log="$WORK/dmg-check.log"
+  if ! codesign --verify --strict --verbose=2 "$dmg" >"$log" 2>&1; then
+    problems+="DMG の署名を確かめられません（codesign --verify）: $(tr '\n' ' ' <"$log")"$'\n'
+  fi
+  if ! xcrun stapler validate "$dmg" >"$log" 2>&1; then
+    problems+="DMG に公証のチケットがステープルされていません（xcrun stapler validate）。--dry-run で作った DMG や、公証の前の DMG ではないか確かめてください: $(tr '\n' ' ' <"$log")"$'\n'
+  fi
+  if ! spctl -a -t open --context context:primary-signature -v "$dmg" >"$log" 2>&1; then
+    problems+="Gatekeeper が DMG を受け付けません（spctl -a -t open）: $(tr '\n' ' ' <"$log")"$'\n'
+  fi
+  if [[ -n "$problems" ]]; then
+    error "DMG に問題があります:"
+    sed 's/^/  - /' <<<"${problems%$'\n'}" >&2
+    die "$DMG_NAME は上げません。scripts/release.sh を --dry-run なしで最後まで通した DMG か確かめてください"
+  fi
+  info "$DMG_NAME: 署名・公証のステープル・Gatekeeper の評価を確かめました"
 }
 
 # 公開中の appcast と R2 の今の中身を見て、何を上げるかを決める（UPLOAD_NAMES・UPLOAD_TYPES・SKIPPED_NAMES）
@@ -454,6 +508,9 @@ main() {
 
   step "手元のリリースを確かめる（$RELEASES_DIR）"
   check_local_release
+
+  step "DMG の署名・公証・Gatekeeper を確かめる"
+  verify_dmg
 
   step "公開中のものと比べる（$SITE_ORIGIN）"
   check_published

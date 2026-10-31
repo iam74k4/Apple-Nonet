@@ -52,6 +52,8 @@ test_help_prints_usage_and_needs_nothing() {
   assert_status 0
   assert_contains "$OUT" "使い方: scripts/release.sh"
   assert_contains "$OUT" "--dry-run"
+  assert_contains "$OUT" "--allow-dirty"
+  assert_contains "$OUT" "--allow-branch"
   assert_contains "$OUT" "NONET_NOTARY_PROFILE"
 }
 
@@ -290,6 +292,33 @@ test_ed25519_public_key_format() {
   ! is_ed25519_public_key "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" || fail "32 バイトでない鍵を受け付けた"
 }
 
+# Debug ビルド（開発用）は、同じ bundle ID の製品版と同じ Mac で動くので、本番の appcast を見に行ってはいけない。
+# Debug だけ NONET_APPCAST_URL を空にする（Info.plist の SUFeedURL が空になり、アプリは Sparkle を動かさず、
+# メニューの「アップデートを確認」も「アップデートがあります…」の印も出ない）。Release は xcconfig の値のまま
+test_debug_builds_do_not_check_for_updates() {
+  # shellcheck source=../lib/common.sh
+  source "$ROOT/scripts/lib/common.sh"
+  local target debug release
+  target="$(sed -n '/^targets:/,/^schemes:/p' "$ROOT/project.yml")"
+  debug="$(sed -n '/^        Debug:$/,/^        Release:$/p' <<<"$target")"
+  release="$(sed -n '/^        Release:$/,$p' <<<"$target")"
+  [[ -n "$debug" && -n "$release" ]] || fail "project.yml の Nonet ターゲットに Debug と Release の設定がありません"
+  assert_contains "$debug" '          NONET_APPCAST_URL: ""' "Debug の NONET_APPCAST_URL を空にする"
+  assert_not_contains "$release" "NONET_" "Release は Config/Nonet.xcconfig の値のまま（Release で販売用の値を上書きしない）"
+  # 両方の構成が同じ xcconfig を読む。販売用の値は、このファイルだけで決める
+  grep -qx '  Debug: Config/Nonet.xcconfig' "$ROOT/project.yml" || fail "Debug が Config/Nonet.xcconfig を読んでいません"
+  grep -qx '  Release: Config/Nonet.xcconfig' "$ROOT/project.yml" || fail "Release が Config/Nonet.xcconfig を読んでいません"
+  # 空にすると効く仕組み: Info.plist の SUFeedURL が NONET_APPCAST_URL で、空なら配信先なしとして Sparkle を作らない
+  assert_contains "$(cat "$ROOT/project.yml")" 'SUFeedURL: $(NONET_APPCAST_URL)'
+  assert_contains "$(cat "$ROOT/App/Info.plist")" '<string>$(NONET_APPCAST_URL)</string>'
+  assert_contains "$(cat "$ROOT/App/AppInfo.swift")" 'string("SUFeedURL") != nil && string("SUPublicEDKey") != nil'
+  assert_contains "$(cat "$ROOT/App/UpdaterController.swift")" 'if AppInfo.hasUpdateFeed {'
+  assert_contains "$(cat "$ROOT/App/UpdaterController.swift")" 'var isAvailable: Bool { controller != nil }'
+  assert_contains "$(cat "$ROOT/App/AppDelegate.swift")" 'updater.isAvailable ?'
+  # xcconfig の値そのものは、Debug 用に変えない（release.sh と publish.sh が読む）
+  assert_contains "$(xcconfig_value "$ROOT/Config/Nonet.xcconfig" NONET_APPCAST_URL)" "https://"
+}
+
 # MARK: - 小さな関数
 
 test_project_team_id() {
@@ -381,6 +410,40 @@ test_uncommitted_changes_ignore_only_the_release_notes() {
   assert_contains "$(uncommitted_changes "$repo" "$repo/notes/1.2.0.md")" "tracked.txt" "変更したファイル"
 }
 
+# .claude/ は手元の道具の状態を置く場所。未追跡のファイルだけ、コミットしていない変更に数えない（本物の git で確かめる）
+test_uncommitted_changes_ignore_untracked_claude_files() {
+  if ! command -v git >/dev/null 2>&1; then
+    printf 'git が無いので飛ばしました\n'
+    return 0
+  fi
+  load_release
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+  local repo="$TEST_TMP/git-repo"
+  mkdir -p "$repo/.claude/hooks" "$repo/.claude/worktrees/agent-1" "$repo/sub/.claude"
+  printf 'a\n' >"$repo/tracked.txt"
+  printf 'hook\n' >"$repo/.claude/hooks/tracked.sh"
+  git -C "$repo" init -q
+  git -C "$repo" add tracked.txt .claude/hooks/tracked.sh
+  git -C "$repo" -c user.name=test -c user.email=test@nonet.test -c commit.gpgsign=false -c core.hooksPath=/dev/null \
+    commit -q -m init
+  printf 'x\n' >"$repo/.claude/settings.local.json"
+  printf 'x\n' >"$repo/.claude/worktrees/agent-1/file"
+  assert_contains "$(git -C "$repo" status --porcelain)" "?? .claude/" "git は数える（このテストの前提）"
+  assert_eq "" "$(uncommitted_changes "$repo" "")" "未追跡の .claude/ のファイル"
+
+  # 追跡しているファイルの変更や、ほかの未追跡のファイルは数える
+  printf 'more\n' >>"$repo/.claude/hooks/tracked.sh"
+  assert_contains "$(uncommitted_changes "$repo" "")" " M .claude/hooks/tracked.sh" "追跡している .claude/ のファイルの変更"
+  git -C "$repo" checkout -q -- .claude/hooks/tracked.sh
+  assert_eq "" "$(uncommitted_changes "$repo" "")"
+  printf 'x\n' >"$repo/other.txt"
+  assert_contains "$(uncommitted_changes "$repo" "")" "?? other.txt" "ほかの未追跡のファイル"
+  rm "$repo/other.txt"
+  # リポジトリの直下の .claude/ だけ（ほかの場所の .claude/ は別のもの）
+  printf 'x\n' >"$repo/sub/.claude/file"
+  assert_contains "$(uncommitted_changes "$repo" "")" "?? sub/" "サブフォルダの .claude/"
+}
+
 # MARK: - 準備の確認
 
 test_preflight_lists_all_problems_before_building() {
@@ -420,6 +483,119 @@ test_dirty_tree_needs_allow_dirty() {
   run "$REPO/scripts/release.sh" --allow-dirty 1.2.0 42
   assert_status 0
   assert_contains "$OUT" "コミットしていない変更があります"
+}
+
+# 始めに、ビルドするコミット・ブランチ・コミットしていない変更の有無を出す（準備の確認より前に）
+test_release_shows_the_commit_branch_and_tree_state_first() {
+  prepare_release
+  export FAKE_GIT_HEAD="89abcdef0123456789abcdef0123456789abcdef"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "コミット:     89abcdef0123456789abcdef0123456789abcdef"
+  assert_contains "$OUT" "ブランチ:     main"
+  assert_contains "$OUT" "作業ツリー:   きれい"
+  assert_contains "$OUT" "push:         済み（origin/main）"
+  assert_called "git -C $REPO rev-parse HEAD"
+  assert_contains "$(grep '^==> ' <<<"$OUT" | head -n 1)" "ビルドするもの（Nonet 1.2.0、ビルド 42）" "最初に出す見出し"
+}
+
+test_release_shows_which_files_are_uncommitted() {
+  prepare_release
+  export FAKE_GIT_STATUS=" M App/AppDelegate.swift\n?? notes/draft.md"
+  run "$REPO/scripts/release.sh" --allow-dirty 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "作業ツリー:   コミットしていない変更があります（2 件）"
+  assert_contains "$OUT" " M App/AppDelegate.swift"
+  assert_contains "$OUT" "?? notes/draft.md"
+}
+
+# .claude/ の中の未追跡のファイルは、コミットしていない変更に数えない。追跡しているファイルの変更は数える
+test_untracked_files_under_dot_claude_are_not_dirty() {
+  prepare_release
+  export FAKE_GIT_STATUS="?? .claude/\n?? .claude/worktrees/agent-1/"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "作業ツリー:   きれい"
+  assert_not_contains "$OUT" "コミットしていない変更があります"
+
+  export FAKE_GIT_STATUS="?? .claude/\n M project.yml\n M .claude/settings.json"
+  run "$REPO/scripts/release.sh" 1.2.1 43
+  assert_status 1
+  assert_contains "$OUT" "コミットしていない変更があります（2 件）"
+  assert_contains "$OUT" "コミットしてから出すか、--allow-dirty を付けてください"
+  assert_not_contains "$OUT" "?? .claude/"
+}
+
+# 本番は main からだけ出せる。--allow-branch で外せる。dry run は止まらない
+test_release_needs_the_main_branch() {
+  prepare_release
+  export FAKE_GIT_BRANCH="feature/pricing"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "ブランチ:     feature/pricing"
+  assert_contains "$OUT" "リリースの準備が足りません"
+  assert_contains "$OUT" "ブランチが main ではありません（いまは feature/pricing）"
+  assert_contains "$OUT" "--allow-branch を付けてください"
+  assert_not_called "xcodegen"
+  assert_not_called "xcodebuild"
+
+  run "$REPO/scripts/release.sh" --dry-run 1.2.1 42
+  assert_status 0
+  assert_contains "$OUT" "ブランチが main ではありません（いまは feature/pricing）。dry run なので続けますが、本番ではここで止まります"
+
+  run "$REPO/scripts/release.sh" --allow-branch 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "main ではないブランチ feature/pricing から出します（--allow-branch）"
+  assert_contains "$OUT" "できました: Nonet 1.2.0（ビルド 42）"
+}
+
+test_release_from_a_detached_head_needs_allow_branch() {
+  prepare_release
+  export FAKE_GIT_BRANCH=""
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "ブランチ:     （どのブランチでもありません。detached HEAD）"
+  assert_contains "$OUT" "ブランチが main ではありません（いまは detached HEAD）"
+  assert_not_called "xcodebuild"
+  run "$REPO/scripts/release.sh" --allow-branch 1.2.0 42
+  assert_status 0
+}
+
+# ブランチと変更のどちらも、それぞれのオプションが要る（片方のオプションで、もう片方は通らない）
+test_branch_and_dirty_problems_are_listed_together() {
+  prepare_release
+  export FAKE_GIT_BRANCH="topic" FAKE_GIT_STATUS=" M project.yml"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "コミットしていない変更があります。コミットしてから出すか、--allow-dirty を付けてください"
+  assert_contains "$OUT" "ブランチが main ではありません（いまは topic）"
+  run "$REPO/scripts/release.sh" --allow-dirty 1.2.0 42
+  assert_status 1
+  assert_not_contains "$OUT" "コミットしてから出すか"
+  assert_contains "$OUT" "ブランチが main ではありません"
+  run "$REPO/scripts/release.sh" --allow-branch 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "コミットしてから出すか"
+  assert_not_contains "$OUT" "ブランチが main ではありません"
+  run "$REPO/scripts/release.sh" --allow-branch --allow-dirty 1.2.0 42
+  assert_status 0
+  assert_called "xcodebuild archive"
+}
+
+# まだ push していないコミットは警告するだけ（リモートの情報は手元にあるものだけを見る。ネットワークは使わない）
+test_release_warns_when_the_commit_is_not_pushed() {
+  prepare_release
+  export FAKE_GIT_REMOTE_BRANCHES=""
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "push:         このコミットを含むリモートのブランチがありません"
+  assert_called "git -C $REPO branch -r --contains HEAD"
+  assert_not_called "git -C $REPO fetch"
+  assert_not_called "git -C $REPO ls-remote"
+  export FAKE_GIT_NO_REMOTE=1
+  run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
+  assert_status 0
+  assert_contains "$OUT" "push:         リモートがありません"
 }
 
 test_notes_must_exist_and_be_supported() {
@@ -911,6 +1087,128 @@ Timestamp=Oct 30, 2026 at 10:00:00"
   assert_not_called "codesign -dvv $app/Contents/MacOS/Nonet"
 }
 
+# MARK: - 書き出したアプリの中身（自己診断・DEBUG のコード・get-task-allow）
+
+# 書き出した .app を、公証に出す前に --self-check で本当に動かす
+test_release_runs_the_self_check_on_the_exported_app() {
+  prepare_release
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+  local app="$REPO/build/release/1.2.0/export/Nonet.app"
+  assert_called "Nonet executable: $app/Contents/MacOS/Nonet"
+  assert_called_in_order \
+    "codesign --verify --deep --strict --verbose=2 $app" \
+    "Nonet --self-check" \
+    "xcrun notarytool submit"
+  assert_called "strings -a $app/Contents/MacOS/Nonet"
+  assert_called "codesign -d --entitlements :- $app"
+  assert_contains "$OUT" "--self-check が ok であることを確かめました"
+}
+
+test_failed_self_check_stops_before_notarization() {
+  prepare_release
+  export FAKE_SELF_CHECK_STATUS=1
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "書き出したアプリに問題があります"
+  assert_contains "$OUT" "export/Nonet.app/Contents/MacOS/Nonet --self-check が ok になりませんでした（終了コード 1、ok: false、failures: [\"multitouch\"]）"
+  assert_not_called "notarytool submit"
+  assert_no_file "$RELEASES/Nonet-1.2.0.dmg"
+}
+
+# 終了コードが 0 でも、ok と報告していなければ止める（逆も）。入れ子の "ok": true に騙されない
+test_self_check_must_report_ok_and_exit_zero() {
+  prepare_release
+  export FAKE_SELF_CHECK_OUTPUT='{"failures":["presets"],"ok":false}'
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "終了コード 0、ok: false、failures: [\"presets\"]"
+
+  export FAKE_SELF_CHECK_OUTPUT='{"configurationRoundTrip":{"ok":true},"failures":["presets"],"ok":false}'
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "終了コード 0、ok: false"
+
+  export FAKE_SELF_CHECK_OUTPUT=""
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "終了コード 0、ok: なし"
+
+  export FAKE_SELF_CHECK_OUTPUT="これは JSON ではありません"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "ok: なし"
+  assert_contains "$OUT" "出力: これは JSON ではありません"
+
+  export FAKE_SELF_CHECK_OUTPUT='{"failures":[],"ok":true}' FAKE_SELF_CHECK_STATUS=1
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "終了コード 1、ok: true"
+  assert_not_called "notarytool submit"
+}
+
+test_self_check_that_never_finishes_is_stopped() {
+  prepare_release
+  export FAKE_SELF_CHECK_HANG=1 NONET_SELF_CHECK_TIMEOUT=1
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "--self-check が 1 秒たっても終わりません"
+  assert_not_called "notarytool submit"
+}
+
+# DEBUG ビルドだけのコード（App/DemoMode.swift・App/DebugPreview.swift）が Release の実行ファイルに残っていたら止める
+test_release_binary_with_debug_only_code_is_rejected() {
+  prepare_release
+  load_release
+  local marker
+  for marker in "${DEBUG_ONLY_MARKERS[@]}"; do
+    export FAKE_APP_DEBUG_TEXT="$marker"
+    run "$REPO/scripts/release.sh" 1.2.0 42
+    assert_status 1 "$marker"
+    assert_contains "$OUT" "export/Nonet.app/Contents/MacOS/Nonet に DEBUG ビルドだけのコード（$marker）が入っています" "$marker"
+    assert_not_called "notarytool submit"
+  done
+  export FAKE_APP_DEBUG_TEXT="DemoSession DebugPreview"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "DEBUG ビルドだけのコード（DebugPreview DemoSession）"
+
+  # 起動引数の名前は NonetUI の ShellLaunchOptions がどのビルドでも読むので、印にしない（本番が必ず止まってしまう）
+  export FAKE_APP_DEBUG_TEXT="--demo-script --demo-start-file --config-dir --preview-hud DemoScript"
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+}
+
+# 印が、本当に DEBUG のコードだけにある文字列か（名前を変えて印が空振りしない・Release のコードにある文字列で本番が止まらない）
+test_debug_only_markers_are_only_in_debug_code() {
+  load_release
+  local sources=() file marker found
+  while IFS= read -r file; do sources+=("$file"); done < <(
+    find "$ROOT/App" "$ROOT/Packages/NonetKit/Sources" -name '*.swift' | sort
+  )
+  for marker in "${DEBUG_ONLY_MARKERS[@]}"; do
+    found="$(python3 -I "$ROOT/scripts/tests/swift_debug_scope.py" find "$marker" "${sources[@]}")"
+    grep -q '^debug ' <<<"$found" || fail "release.sh の DEBUG_ONLY_MARKERS の「$marker」が、#if DEBUG のコードにありません（名前を変えたなら印も直す）"
+    ! grep -q '^release ' <<<"$found" || fail "「$marker」が #if DEBUG の外にもあります（Release のビルドにも入るので、印にできません）:" "$(grep '^release ' <<<"$found")"
+  done
+}
+
+# get-task-allow の付いた署名（Debug ビルドの署名）は、ほかのプロセスがデバッガーでつなげるので配らない
+test_get_task_allow_signature_is_rejected() {
+  prepare_release
+  export FAKE_CODESIGN_GET_TASK_ALLOW=true
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 1
+  assert_contains "$OUT" "export/Nonet.app が com.apple.security.get-task-allow の付いた署名です"
+  assert_called "codesign -d --entitlements :- $REPO/build/release/1.2.0/export/Nonet.app"
+  assert_not_called "notarytool submit"
+
+  # false は付いていないのと同じ
+  export FAKE_CODESIGN_GET_TASK_ALLOW=false
+  run "$REPO/scripts/release.sh" 1.2.0 42
+  assert_status 0
+}
+
 # MARK: - 公開した版の出し直し
 
 # generate_appcast と同じ形の項目（版・ビルド・DMG の URL）を1行ずつ持つ appcast
@@ -1055,6 +1353,8 @@ test_release_notes_inside_the_repo_do_not_block_a_release() {
   export FAKE_GIT_REAL=1 GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
   printf 'build/\nNonet.xcodeproj/\n' >"$REPO/.gitignore"
   /usr/bin/git -C "$REPO" init -q
+  # 本番は main からだけ出せる（init.defaultBranch に左右されないよう、ブランチ名を決める）
+  /usr/bin/git -C "$REPO" symbolic-ref HEAD refs/heads/main
   /usr/bin/git -C "$REPO" add -A
   /usr/bin/git -C "$REPO" -c user.name=test -c user.email=test@nonet.test -c commit.gpgsign=false -c core.hooksPath=/dev/null \
     commit -q -m init
@@ -1112,5 +1412,6 @@ test_release_works_outside_a_git_checkout() {
   export FAKE_GIT_NOT_REPO=1
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 0
+  assert_contains "$OUT" "git の作業ツリーではないので、コミットとブランチを確かめられません"
   assert_not_called "git -C $REPO status"
 }

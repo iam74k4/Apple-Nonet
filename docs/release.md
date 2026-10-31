@@ -113,6 +113,8 @@ NONET_SUPPORT_EMAIL = <問い合わせを受けるメールアドレス>
 
 `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「情報」タブの「利用ガイド」「プライバシー」のリンクになる。日本語のページ（`site/guide.html`・`site/privacy.html`）を指しておく。アプリが英語で動いているときは、最後の要素の前に `en/` を入れた英語のページ（`https://nonet.astlog.dev/en/guide.html`。`site/en/guide.html`）を開く。`#troubleshooting` のような節へのリンクは、日本語と英語で同じ id にしてある。
 
+Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONET_APPCAST_URL` だけ `project.yml` で空にしてある（Debug の設定の上書き）。同じ bundle ID の製品版を入れた Mac で、開発用のビルドが本番の appcast からアップデートを受け取らないようにするためである。空にすると Info.plist の `SUFeedURL` が空になり、アプリは Sparkle を動かさない。メニューの「アップデートを確認」・「アップデートがあります…」とアイコンの印・設定の「情報」のアップデートの確認は、配信先が無いときと同じで出ない。Release（`scripts/release.sh`）はこの xcconfig の値のままで、書き出したアプリの `SUFeedURL` を確かめる。
+
 `.html` は省かない（`…/guide` ではなく `…/guide.html`）。S3 ＋ CloudFront のように `.html` を補わないホストでは、省いた URL は 404 になる。`scripts/check-site.sh` は、ホストが `site/index.html` の canonical と同じなら、`.html` を省いた URL を問題として知らせる（1.8）。
 
 **xcconfig では `//` から後ろがコメントになる**。URL は `https:/$()/…` と書く（`$()` は空文字に展開される）。`https://…` と書くと `https:` で切れ、アップデートの確認も購入ページも動かない。公開鍵（base64）にも `//` が入ることがあり（約1%）、そのときも `//` を `/$()/` と書く。`scripts/release.sh` と `nonet-license issue` は、これらの切れ方を見つけて止まる。
@@ -209,9 +211,11 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes notes/1.0.0.md 1.0.0 1
 ```
 
+始めに、ビルドするコミット（ハッシュ）・ブランチ・コミットしていない変更の有無を表示する（公開する DMG の元になるもの）。本番は**きれいな `main` のコミット**からだけ出せる。`main` 以外のブランチ（detached HEAD を含む）なら `--allow-branch` が、コミットしていない変更があれば `--allow-dirty` が要る。dry run はどちらも警告するだけで止まらない。`.claude/` の中の未追跡のファイルは、コミットしていない変更に数えない（追跡しているファイルの変更は数える）。このコミットを含むリモートのブランチが手元に無ければ、push していない警告を出す（手元の `origin/*` の情報だけを見て、ネットワークは使わない。止めはしない）。タグは公開のあとに付ける（2.8）。
+
 スクリプトがすること:
 
-1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・コミットしていない変更。`--notes` のファイルは除く。公開用のフォルダにすでに `Nonet-<バージョン>.dmg` があるか・手元の appcast.xml にすでに同じ版の項目があるか）。足りないものをまとめて表示して止まる（dry run でも同じ）
+1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・ブランチが `main` か・コミットしていない変更。`--notes` のファイルは除く。公開用のフォルダにすでに `Nonet-<バージョン>.dmg` があるか・手元の appcast.xml にすでに同じ版の項目があるか）。足りないものをまとめて表示して止まる（dry run でも、ブランチと変更以外は同じ）
 2. XcodeGen でプロジェクトを作り、パッケージを解決する（Sparkle は `project.yml` で固定した版。1.9）
 3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。appcast は毎回、公開中のもの（`NONET_APPCAST_URL`）を作業用フォルダ（`build/release/<バージョン>/published-appcast.xml`）に取ってきて、手元の appcast.xml とビルド番号（`sparkle:version`）で比べる
    - 手元に無ければ、公開中のものを使う
@@ -222,7 +226,10 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
    - 手元の appcast か公開中の appcast に、同じ版（`sparkle:shortVersionString`）か同じ DMG の URL（`<DMG の URL の前半>Nonet-<バージョン>.dmg`）の項目がすでにあれば止まる。公開した版の番号は使い回せない（DMG の名前は版で決まるので、出し直すと公開済みの DMG を上書きし、appcast に同じ URL を指す項目が2つでき、後の差分も作れなくなる）
 4. `xcodebuild archive`（Release・Developer ID Application・hardened runtime・`--timestamp`）
 5. `ExportOptions.plist`（`method` は `developer-id`）で書き出す
-6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の Mach-O（Sparkle 本体・XPC サービス・Autoupdate・Updater.app、アプリの `Contents/MacOS`・`XPCServices` など）の Developer ID とタイムスタンプ、そのうち実行ファイルの hardened runtime（dylib は見ない。公証はどの実行ファイルにも hardened runtime を求める）、Info.plist の版と販売用の値
+6. 署名を確かめる: `codesign --verify --deep --strict`、Developer ID・チーム・タイムスタンプ・hardened runtime、中の Mach-O（Sparkle 本体・XPC サービス・Autoupdate・Updater.app、アプリの `Contents/MacOS`・`XPCServices` など）の Developer ID とタイムスタンプ、そのうち実行ファイルの hardened runtime（dylib は見ない。公証はどの実行ファイルにも hardened runtime を求める）、Info.plist の版と販売用の値。続けて中身を確かめる（どれも公証に出す前に止める）:
+   - アプリの実行ファイルに、DEBUG ビルドだけのコード（`#if DEBUG` の中の `DemoSession`・`DebugPreview` などの型の名前と、そこだけが出す文言）が入っていないこと（`strings -a`。印の一覧は release.sh の `DEBUG_ONLY_MARKERS`）。起動引数の名前（`--demo-script` など）は NonetUI の `ShellLaunchOptions` がどのビルドでも読むので印にしない。Release のコードが読んでよい起動引数が `--self-check` だけであることは、静的なテスト（`scripts/tests/launch_options_test.sh`）が確かめる
+   - 署名に `com.apple.security.get-task-allow`（Debug ビルドの署名。ほかのプロセスがデバッガーでつなげる）が付いていないこと（`codesign -d --entitlements :-`）
+   - 書き出したアプリを `Contents/MacOS/Nonet --self-check` で実際に動かし、JSON の `ok` が `true`（終了コードも 0）と報告すること。終わらなければ `NONET_SELF_CHECK_TIMEOUT` 秒（既定 60）で止める
 7. アプリを zip にして `xcrun notarytool submit --wait` で公証し、`stapler staple` してから `spctl -a -vv` で Gatekeeper の評価を確かめる
 8. DMG を作る（ボリューム名 `Nonet`、`/Applications` へのリンクつき）→ 署名 → 公証 → ステープル → `spctl` で確認
 9. DMG とリリースノートを公開用のフォルダ（`NONET_RELEASES_DIR`、既定 `build/releases`）に入れ（同じ名前の DMG があれば上書きせずに止まる）、`generate_appcast` で appcast.xml を更新する（`NONET_APPCAST_URL` のファイル名にかかわらず、手元の名前は `appcast.xml`）
@@ -236,8 +243,9 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 | `NONET_DOWNLOAD_URL_PREFIX` | appcast.xml と同じ場所 | appcast に書く DMG の URL の前半 |
 | `NONET_SPARKLE_KEY_ACCOUNT` | `ed25519` | Sparkle の秘密鍵のキーチェーンのアカウント名 |
 | `NONET_NOTARY_TIMEOUT` | `1h` | 公証の結果を待つ上限 |
+| `NONET_SELF_CHECK_TIMEOUT` | `60` | 書き出したアプリの `--self-check` を待つ上限（秒） |
 
-オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--first-release`（初めてのリリース。公開中の appcast が無ければ新しく作る）、`--force-local-appcast`（公開中の appcast を取ってこずに、手元の appcast.xml をそのまま使う。手元のものが正しいと分かっているときだけ）、`--allow-dirty`（コミットしていない変更があっても続ける）、`--help`。
+オプション: `--dry-run`（公証しない）、`--notes <ファイル>`（リリースノート）、`--first-release`（初めてのリリース。公開中の appcast が無ければ新しく作る）、`--force-local-appcast`（公開中の appcast を取ってこずに、手元の appcast.xml をそのまま使う。手元のものが正しいと分かっているときだけ）、`--allow-dirty`（コミットしていない変更があっても続ける。本番はこれが無いと止まる）、`--allow-branch`（`main` 以外のブランチから出す。本番はこれが無いと止まる）、`--help`。
 
 `NONET_RELEASES_DIR` には過去の DMG と appcast.xml が貯まる。Sparkle は古い版との差分（`*.delta`）をここで作り、古い項目は `old_updates/` に移す。公開中の appcast.xml はスクリプトが毎回取ってきて比べるので `build/` を消しても困らないが、差分を作るには過去の DMG が要るので、バックアップされる場所を指定しておくとよい。
 
@@ -256,7 +264,7 @@ scripts/publish.sh 1.2.0
 2. appcast のその版の項目にあるデルタ（`*.delta`）のうち、まだ同じ中身が上がっていないもの
 3. 最後に `appcast.xml`（`old_updates/` は上げない）
 
-上げる前に、DMG と appcast が合っているか（URL・大きさ・最新か）と、公開中の appcast が手元より新しくないかを確かめ、公開中の appcast を `NONET_RELEASES_DIR/appcast-history/` に控える。上げたあとに、公開中の appcast にその版があること、DMG の URL が 200 で大きさが合うこと、`/download` がその DMG へ飛ぶことを確かめる。販売ページは書き換えなくてよい。詳しくは [hosting.md](hosting.md) の「3. リリースごとの手順」。
+上げる前に、DMG と appcast が合っているか（URL・大きさ・最新か）と、公開中の appcast が手元より新しくないかを確かめ、公開中の appcast を `NONET_RELEASES_DIR/appcast-history/` に控える。DMG そのものも確かめる（`codesign --verify`・`xcrun stapler validate`・`spctl -a -t open --context context:primary-signature`）。公証の前の DMG（dry run で作ったもの）や署名の壊れた DMG は上げない。appcast の項目（DMG とデルタ）に `sparkle:edSignature` が無いときも上げない（署名の無い更新を Sparkle は受け付けない）。上げたあとに、公開中の appcast にその版があること、DMG の URL が 200 で大きさが合うこと、`/download` がその DMG へ飛ぶことを確かめる。販売ページは書き換えなくてよい。詳しくは [hosting.md](hosting.md) の「3. リリースごとの手順」。
 
 ### 2.7 確かめる
 
@@ -293,7 +301,13 @@ git push origin v1.2.0
 | 「macOS SDK … に FoundationModels がありません」 | `xcode-select -p` が古い Xcode を指している。`sudo xcode-select -s /Applications/Xcode.app` で Xcode 26 以降を選ぶ |
 | 「… が「//」の所で切れています」 | 公開鍵の `//` を `/$()/` と書く（1.4・1.6） |
 | 「中身が appcast（RSS）ではありません」 | 無いファイルにも 200 でページを返す設定になっていないか（1.7） |
-| 「コミットしていない変更があります」 | `git status` で確かめる。`--notes` のファイルは数えない |
+| 「コミットしていない変更があります」 | `git status` で確かめる。`--notes` のファイルと、`.claude/` の中の未追跡のファイルは数えない。コミットしてから出す。変更ごと出すと決めているときだけ `--allow-dirty` |
+| 「ブランチが main ではありません」 | `main` に切り替えて（またはマージして）出す。別のブランチから出すと決めているときだけ `--allow-branch`。タグ（2.8）は出したコミットに付けるので、そのコミットが `main` にあるようにする。dry run は警告するだけ |
+| 「…に DEBUG ビルドだけのコード（…）が入っています」 | Release でないビルドを書き出していないか、`#if DEBUG` の外にデモやプレビューのコードが出ていないか。印は release.sh の `DEBUG_ONLY_MARKERS`。Swift の型の名前を変えたら、印も直す（`scripts/tests/release_test.sh` が、印が `#if DEBUG` の中にだけあることを確かめる） |
+| 「…が com.apple.security.get-task-allow の付いた署名です」 | Debug の署名（Apple Development）のまま書き出していないか。`App/Nonet.entitlements` に `get-task-allow` を書かない |
+| 「…--self-check が ok になりませんでした」 | 表示された `failures` を見る（`version`・`presets`・`launcherCandidates`・`configurationRoundTrip`・`multitouch`）。作業用フォルダ（`build/release/<バージョン>/`）の `self-check.json` と `self-check.err` に出力が残る。同じ確認は `scripts/test.sh` の最後（Debug のビルド）でも動く |
+| 「DMG に問題があります」（`publish.sh`） | `codesign --verify`・`xcrun stapler validate`・`spctl -a -t open --context context:primary-signature -v` のどれが通らないかが出る。公証の前の DMG（dry run）を上げようとしていないか。`NONET_RELEASES_DIR` の DMG が、`release.sh` を `--dry-run` なしで通したものか |
+| 「手元の appcast.xml の項目に Sparkle の署名がありません」（`publish.sh`） | `generate_appcast` が秘密鍵で署名できていない。キーチェーンの Sparkle の鍵（1.4）を確かめて、`release.sh` をやり直す |
 | Sparkle の鍵が一致しない | 別の Mac や別のアカウント名で鍵を作っていないか。バックアップから `generate_keys -f` で取り込む |
 | アップデートが見つからない | appcast の `sparkle:version` が今の版より大きいか、appcast と DMG の URL に HTTPS で届くか、`SUPublicEDKey` が鍵と一致しているか |
 
@@ -414,7 +428,7 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 
 **鍵とアカウント**
 - [ ] Developer ID Application 証明書（`.p12`）・Sparkle の秘密鍵・ライセンスの秘密鍵を、それぞれ2か所にバックアップした
-- [ ] どの秘密鍵もリポジトリに入っていない（`git log -p | grep -i private` などで確かめる）
+- [ ] どの秘密鍵もリポジトリに入っていない（`.gitignore` が `*.p12`・`*.p8`・`*.pem`・`*.cer`・`*.private-key`・`.env*`・`.dev.vars`・`secrets/` を無視している。`git grep -I -l -E 'BEGIN (RSA |EC )?PRIVATE KEY'` が何も出さない。履歴は `git log -p | grep -i private` などで確かめる。`scripts/tests/run.sh docs` も確かめる）
 - [ ] `Config/Nonet.xcconfig` の7つの値を入れ、コミットした（公開鍵の `//` は `/$()/`）
 - [ ] `Packages/NonetKit` で `nonet-license issue` を動かし、アプリの公開鍵（xcconfig）との照合が通った（「注意」が出ない）
 - [ ] プライバシーポリシーに書いた試用の記録のキーチェーンの2つの項目を、アプリが本当に作る（`App/AppDelegate.swift` が `SystemTrialRecordKeychain()` と `SystemTrialRecordKeychain.machineMarker()` を渡している。`scripts/release.sh` は1つ目を確かめる）

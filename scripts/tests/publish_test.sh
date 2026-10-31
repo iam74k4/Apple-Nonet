@@ -70,6 +70,7 @@ prepare_publish() {
   export NONET_RELEASES_DIR="$RELEASES" FAKE_R2_DIR="$R2"
   export FAKE_DOWNLOAD_LOCATION="${PUBLISH_PREFIX}Nonet-1.2.0.dmg"
   unset FAKE_WRANGLER_FAIL FAKE_WRANGLER_DROP FAKE_CURL_STATUS FAKE_CURL_HTTP_CODE
+  unset FAKE_CODESIGN_VERIFY_STATUS FAKE_STAPLER_STATUS FAKE_SPCTL_STATUS
 
   printf 'dmg 1.1.1\n' >"$RELEASES/Nonet-1.1.1.dmg"
   printf 'dmg 1.2.0, build 42\n' >"$RELEASES/Nonet-1.2.0.dmg"
@@ -108,6 +109,10 @@ test_publish_help_needs_nothing() {
   assert_contains "$OUT" "NONET_RELEASES_DIR"
   assert_contains "$OUT" "CLOUDFLARE_API_TOKEN"
   assert_contains "$OUT" "3. appcast.xml"
+  assert_contains "$OUT" "codesign --verify"
+  assert_contains "$OUT" "xcrun stapler validate"
+  assert_contains "$OUT" "spctl -a -t open --context context:primary-signature"
+  assert_contains "$OUT" "sparkle:edSignature"
 }
 
 test_publish_argument_errors() {
@@ -214,6 +219,113 @@ test_publish_dry_run_prints_the_plan_and_uploads_nothing() {
   rm "$RELEASES/Nonet42-40.delta"
   publish --dry-run 1.2.0
   assert_refused "appcast.xml にあるデルタ Nonet42-40.delta が $RELEASES にありません"
+}
+
+# MARK: - 上げる前に DMG と署名を確かめる
+
+# DMG の署名・公証のステープル・Gatekeeper を、公開中のものと比べる前（ネットワークの前）に確かめる
+test_publish_verifies_the_dmg_before_uploading() {
+  prepare_publish
+  publish 1.2.0
+  assert_status 0
+  local dmg="$RELEASES/Nonet-1.2.0.dmg"
+  assert_called_in_order \
+    "codesign --verify --strict --verbose=2 $dmg" \
+    "xcrun stapler validate $dmg" \
+    "spctl -a -t open --context context:primary-signature -v $dmg" \
+    "curl -sS --max-time 60 -H Cache-Control: no-cache -D" \
+    "$(put_call Nonet-1.2.0.dmg application/x-apple-diskimage)"
+  assert_contains "$OUT" "Nonet-1.2.0.dmg: 署名・公証のステープル・Gatekeeper の評価を確かめました"
+  assert_contains "$OUT" "デルタ 2 個 / Sparkle の署名あり"
+}
+
+# それぞれが通らなければ、何も上げずに（ネットワークにも触れずに）止まる。dry run でも同じ
+test_publish_refuses_a_dmg_that_fails_a_check() {
+  prepare_publish
+  export FAKE_CODESIGN_VERIFY_STATUS=1
+  publish 1.2.0
+  assert_refused "DMG の署名を確かめられません（codesign --verify）: $RELEASES/Nonet-1.2.0.dmg: code object is not signed at all"
+  assert_contains "$OUT" "Nonet-1.2.0.dmg は上げません"
+  assert_not_contains "$OUT" "公証のチケット"
+  assert_not_contains "$OUT" "Gatekeeper が"
+  assert_not_called "curl"
+
+  prepare_publish
+  export FAKE_STAPLER_STATUS=1
+  publish 1.2.0
+  assert_refused "DMG に公証のチケットがステープルされていません（xcrun stapler validate）"
+  assert_contains "$OUT" "Could not validate ticket for $RELEASES/Nonet-1.2.0.dmg"
+  assert_not_contains "$OUT" "DMG の署名を確かめられません"
+  assert_not_called "curl"
+
+  prepare_publish
+  export FAKE_SPCTL_STATUS=3
+  publish 1.2.0
+  assert_refused "Gatekeeper が DMG を受け付けません（spctl -a -t open）: $RELEASES/Nonet-1.2.0.dmg: rejected"
+  assert_not_called "curl"
+
+  # dry run でも確かめる
+  prepare_publish
+  export FAKE_STAPLER_STATUS=1
+  publish --dry-run 1.2.0
+  assert_refused "DMG に公証のチケットがステープルされていません"
+
+  # 全部通らなければ、全部出す
+  prepare_publish
+  export FAKE_CODESIGN_VERIFY_STATUS=1 FAKE_STAPLER_STATUS=1 FAKE_SPCTL_STATUS=3
+  publish 1.2.0
+  assert_refused "DMG の署名を確かめられません"
+  assert_contains "$OUT" "DMG に公証のチケットがステープルされていません"
+  assert_contains "$OUT" "Gatekeeper が DMG を受け付けません"
+}
+
+# 署名の無い更新は Sparkle が受け付けないので、項目（DMG とデルタ）に sparkle:edSignature が無ければ上げない
+test_publish_refuses_an_appcast_item_without_a_sparkle_signature() {
+  prepare_publish
+  sed -i '' '/Nonet-1.2.0.dmg/s/ sparkle:edSignature="c2ln"//' "$RELEASES/appcast.xml"
+  publish 1.2.0
+  assert_refused "手元の appcast.xml の項目に Sparkle の署名がありません"
+  assert_contains "$OUT" "${PUBLISH_PREFIX}Nonet-1.2.0.dmg の enclosure に sparkle:edSignature がありません"
+  assert_not_contains "$OUT" "Nonet42-41.delta の enclosure"
+  assert_contains "$OUT" "キーチェーンに Sparkle の秘密鍵があるか"
+  assert_not_called "curl"
+
+  # 空の署名
+  prepare_publish
+  sed -i '' '/Nonet-1.2.0.dmg/s/sparkle:edSignature="c2ln"/sparkle:edSignature=""/' "$RELEASES/appcast.xml"
+  publish 1.2.0
+  assert_refused "${PUBLISH_PREFIX}Nonet-1.2.0.dmg の enclosure に sparkle:edSignature がありません"
+
+  # デルタの署名
+  prepare_publish
+  sed -i '' '/Nonet42-40.delta/s/ sparkle:edSignature="c2ln"//' "$RELEASES/appcast.xml"
+  publish 1.2.0
+  assert_refused "${PUBLISH_PREFIX}Nonet42-40.delta の enclosure に sparkle:edSignature がありません"
+  assert_not_contains "$OUT" "Nonet42-41.delta の enclosure"
+  assert_not_contains "$OUT" "Nonet-1.2.0.dmg の enclosure"
+
+  # 前の版の項目は、この版の公開には関係しない
+  prepare_publish
+  sed -i '' '/Nonet-1.1.1.dmg/s/ sparkle:edSignature="c2ln"//' "$RELEASES/appcast.xml"
+  publish 1.2.0
+  assert_status 0
+}
+
+# 開始タグが何行にも分かれていても、署名を見つける（見つけられずに止めたり、見逃したりしない）
+test_publish_finds_the_signature_in_a_multiline_enclosure() {
+  prepare_publish
+  sed -i '' '/Nonet-1.2.0.dmg/s/ length=/\
+      length=/; /Nonet-1.2.0.dmg/s/ sparkle:edSignature=/\
+      sparkle:edSignature=/' "$RELEASES/appcast.xml"
+  [[ "$(grep -c '^      sparkle:edSignature=' "$RELEASES/appcast.xml")" -ge 1 ]] || fail "テストの appcast が複数行になっていません"
+  publish 1.2.0
+  assert_status 0
+
+  prepare_publish
+  sed -i '' '/Nonet-1.2.0.dmg/s/ length=/\
+      length=/; /Nonet-1.2.0.dmg/s/ sparkle:edSignature="c2ln"//' "$RELEASES/appcast.xml"
+  publish 1.2.0
+  assert_refused "${PUBLISH_PREFIX}Nonet-1.2.0.dmg の enclosure に sparkle:edSignature がありません"
 }
 
 # MARK: - 途中で失敗したとき

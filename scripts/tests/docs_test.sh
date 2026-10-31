@@ -130,3 +130,57 @@ test_ci_runs_the_test_script() {
   grep -qE '^on:' "$ci" || fail "CI の on: がありません"
   grep -q 'pull_request' "$ci" || fail "CI がプルリクエストで動きません"
 }
+
+# 読めない・保存すると失う・別の版の設定ファイルを、アプリが残す名前（ConfigurationStore.swift）を、プライバシーポリシーの3つが日英とも書いている
+privacy_copy_names() {
+  # HTML の &lt; &gt; を戻し、<日時> や <date-time> のような置き換え部分をそろえて、configuration.….json の名前を出す
+  sed -e 's/&lt;/</g; s/&gt;/>/g' | sed -E 's/<[^>]*>/<>/g' | grep -oE 'configuration[.][A-Za-z0-9<>.-]*[.]json' | sort -u || true
+}
+
+test_privacy_policy_names_the_settings_copies_the_app_keeps() {
+  local store="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/ConfigurationStore.swift" name ja_md en_md
+  # アプリがこの名前で残している（名前を変えたら、ポリシーも直す）
+  grep -qF 'base: "configuration.corrupt-\(' "$store" || fail "ConfigurationStore.swift の configuration.corrupt-… の名前が変わりました"
+  grep -qF 'family: "configuration.lossy"' "$store" || fail "ConfigurationStore.swift の configuration.lossy-… の名前が変わりました"
+  grep -qF 'family: "configuration.v\(' "$store" || fail "ConfigurationStore.swift の configuration.v<番号>.json の名前が変わりました"
+  ja_md="$(sed -n '/^## 日本語$/,/^## English$/p' "$ROOT/docs/privacy.md")"
+  en_md="$(sed -n '/^## English$/,$p' "$ROOT/docs/privacy.md")"
+  [[ -n "$ja_md" && -n "$en_md" ]] || fail "docs/privacy.md の日本語と英語の節を読めません"
+  for name in 'configuration.corrupt-<>.json' 'configuration.lossy-<>.json' 'configuration.v<>.json'; do
+    grep -qxF "$name" <<<"$(privacy_copy_names <<<"$ja_md")" || fail "docs/privacy.md の日本語に $name の説明がありません"
+    grep -qxF "$name" <<<"$(privacy_copy_names <<<"$en_md")" || fail "docs/privacy.md の英語に $name の説明がありません"
+  done
+  # 販売ページは、同じ言語の docs/privacy.md と同じ名前を書いている
+  assert_eq "$(privacy_copy_names <<<"$ja_md")" "$(privacy_copy_names <"$ROOT/site/privacy.html")" "site/privacy.html と docs/privacy.md（日本語）の設定ファイルの名前"
+  assert_eq "$(privacy_copy_names <<<"$en_md")" "$(privacy_copy_names <"$ROOT/site/en/privacy.html")" "site/en/privacy.html と docs/privacy.md（英語）の設定ファイルの名前"
+}
+
+# 証明書・鍵・環境変数のファイルをコミットしない（docs/release.md は .p12 の書き出しを勧めている）
+test_gitignore_keeps_secret_files_out_of_the_repo() {
+  if ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf 'git の作業ツリーではないので飛ばしました\n'
+    return 0
+  fi
+  local path
+  for path in cert.p12 DeveloperID.p12 AuthKey_ABCDE12345.p8 key.pem cert.cer .dev.vars cloudflare/.dev.vars .env .env.local .env.production \
+    secrets/anything nonet-license.private-key; do
+    git -C "$ROOT" check-ignore -q --no-index "$path" || fail ".gitignore が $path を無視していません"
+  done
+  # 無視しすぎない
+  for path in README.md project.yml scripts/release.sh .env.example cloudflare/wrangler.toml; do
+    ! git -C "$ROOT" check-ignore -q --no-index "$path" || fail ".gitignore が $path まで無視しています"
+  done
+}
+
+test_no_secret_files_or_private_keys_are_tracked() {
+  if ! command -v git >/dev/null 2>&1 || ! git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf 'git の作業ツリーではないので飛ばしました\n'
+    return 0
+  fi
+  local files
+  files="$(git -C "$ROOT" ls-files | grep -E '[.](p12|p8|pem|cer|private-key)$|(^|/)[.]dev[.]vars$|(^|/)[.]env($|[.])' | grep -vE '(^|/)[.]env[.]example$' || true)"
+  [[ -z "$files" ]] || fail "コミットしてはいけないファイルが追跡されています:" "$files"
+  # 正規表現にしてあるので、このファイル自身には当たらない
+  files="$(git -C "$ROOT" grep -I -l -E 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY' || true)"
+  [[ -z "$files" ]] || fail "秘密鍵が追跡されているファイルにあります:" "$files"
+}

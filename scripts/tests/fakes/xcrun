@@ -46,6 +46,10 @@ EOF
     esac
     ;;
   stapler)
+    # stapler staple|validate <パス>。失敗の理由は本物と同じ形で標準出力に出す
+    if [[ "${FAKE_STAPLER_STATUS:-0}" != 0 ]]; then
+      printf 'Processing: %s\nCould not validate ticket for %s\nThe %s action failed!\n' "${*: -1}" "${*: -1}" "${1:-}"
+    fi
     exit "${FAKE_STAPLER_STATUS:-0}"
     ;;
   xcstringstool)

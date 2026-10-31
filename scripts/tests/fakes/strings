@@ -1,0 +1,5 @@
+#!/bin/bash
+# テスト用の strings。呼び出しを FAKE_LOG に記録して、本物の strings に任せる（実行ファイルに文字列が入っているかを本当に調べる）
+set -euo pipefail
+printf 'strings %s\n' "$*" >>"${FAKE_LOG:?}"
+exec /usr/bin/strings "$@"
