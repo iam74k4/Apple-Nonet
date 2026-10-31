@@ -123,6 +123,24 @@ public final class SettingsWindowController {
         show(tab: .profiles)
     }
 
+    /// メニューの「最近の実行」。そのボタンのプロファイル・ページ・マスを選んで開く。
+    /// プロファイルが分からない・もう無いときは、名前で探し、それでも無ければプロファイルのタブを開くだけ
+    public func showRun(_ record: ExecutionRecord) {
+        _ = loadWindow()
+        selectRun(record)
+        show(tab: .profiles)
+    }
+
+    /// showRun の、ウィンドウを出さない部分（テストする）
+    func selectRun(_ record: ExecutionRecord) {
+        select(.profiles)
+        let profiles = model.configuration.profiles
+        guard let profile = profiles.first(where: { $0.id == record.profileID })
+            ?? profiles.first(where: { $0.name == record.profileName }) else { return }
+        let address = profile.pages.indices.contains(record.address.page) ? record.address : nil
+        model.showProfile(id: profile.id, at: address)
+    }
+
     /// showButtons の、ウィンドウを出さない部分（テストする）
     func selectButtons(for app: AppReference?, now: Date) {
         select(.profiles)

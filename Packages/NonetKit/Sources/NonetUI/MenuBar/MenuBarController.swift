@@ -11,6 +11,8 @@ public final class MenuBarController {
     public var onRequestAccessibility: (() -> Void)?
     /// 「◯◯のボタンを編集…」で呼ぶ。開くアプリ（グローバルなら nil）を渡す。nil なら設定の「プロファイル」を開く
     public var onEditButtons: ((AppReference?) -> Void)?
+    /// 「最近の実行」で選んだボタンを設定で開く
+    public var onShowRun: ((ExecutionRecord) -> Void)?
     /// 前面のアプリ（Nonet を数えない）。「◯◯のボタンを編集…」の◯◯を決める。nil ならいつもグローバル
     public var frontmostApp: (@MainActor () -> AppReference?)?
     /// 購入ページ（「Nonet を購入…」）と利用ガイド（「利用ガイド」）。無いページの項目は出さない
@@ -186,6 +188,24 @@ public final class MenuBarController {
                 }
             }
             item.state = isOn ? NSControl.StateValue.on : NSControl.StateValue.off
+            return item
+        case .recentRuns(let records):
+            let item = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
+            let submenu = NSMenu(title: entry.title)
+            for record in records {
+                let run = NSMenuItem(title: MenuBarModel.recentRunTitle(record), action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
+                run.target = actionTarget
+                run.representedObject = MenuBarAction { [weak self] in
+                    guard let self else { return }
+                    if let show = self.onShowRun {
+                        show(record)
+                    } else {
+                        self.onOpenSettings(.profiles)
+                    }
+                }
+                submenu.addItem(run)
+            }
+            item.submenu = submenu
             return item
         case .showOnboarding:
             return actionItem(entry) { [weak self] in self?.onOpenOnboarding() }

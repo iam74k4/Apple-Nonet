@@ -68,6 +68,8 @@ struct MenuBarState: Equatable {
     var canPurchase: Bool
     /// 利用ガイドのページがある
     var hasGuide: Bool
+    /// 最近実行したボタン（新しい順。メニューの「最近の実行」）
+    var recentRuns: [ExecutionRecord] = []
 
     init(
         status: ControllerStatus,
@@ -107,6 +109,7 @@ struct MenuBarState: Equatable {
         links: AppLinks = AppLinks()
     ) {
         let active = controller.activeProfileName
+        defer { recentRuns = controller.recentExecutions }
         self.init(
             status: controller.status,
             isEnabled: controller.configuration.settings.isEnabled,
@@ -163,6 +166,8 @@ enum MenuBarEntry: Equatable {
     /// 前面のアプリでだけ Nonet を使わない（押すと切り替える）。アプリが分からないときは出さない
     case turnOffInApp(AppReference, isOn: Bool)
     case showOnboarding
+    /// 最近実行したボタン（新しい順）。選ぶと設定でそのボタンを開く
+    case recentRuns([ExecutionRecord])
     /// 利用ガイドのページを開く
     case userGuide
     /// 登録済みのとき。選ぶと設定の「ライセンス」を開く
@@ -191,6 +196,7 @@ enum MenuBarEntry: Equatable {
         case .editButtons(let target): target.title
         case .turnOffInApp: String(localized: "このアプリでは使わない", bundle: .module)
         case .showOnboarding: String(localized: "初回の案内をもう一度", bundle: .module)
+        case .recentRuns: String(localized: "最近の実行", bundle: .module)
         case .userGuide: String(localized: "利用ガイド", bundle: .module)
         case .license(let text): text
         case .trialInfo(let text): text
@@ -205,6 +211,16 @@ enum MenuBarEntry: Equatable {
 
 /// メニューバーの状態の文言・アイコン・メニューの並び。AppKit に触れない
 enum MenuBarModel {
+    /// 「最近の実行」の1行。「✓ Xcode › ビルド」。失敗なら理由の1行目を添える
+    static func recentRunTitle(_ record: ExecutionRecord) -> String {
+        let mark = record.succeeded ? "✓" : "✗"
+        let base = String(localized: "\(mark) \(record.profileName) › \(record.cellTitle)", bundle: .module)
+        guard !record.succeeded,
+              let reason = record.message?.split(separator: "\n").first.map(String.init),
+              !reason.isEmpty else { return base }
+        return String(localized: "\(base) — \(reason)", bundle: .module)
+    }
+
     /// 試用期間の残りがこの日数以下なら、アイコンに印を付けて状態の行で知らせる
     static let trialWarningDays = 3
 
@@ -316,6 +332,9 @@ enum MenuBarModel {
         ]
         if let app = state.editTarget.app {
             entries.append(.turnOffInApp(app, isOn: state.isTurnedOffInFrontApp))
+        }
+        if !state.recentRuns.isEmpty {
+            entries.append(.recentRuns(state.recentRuns))
         }
         entries.append(.showOnboarding)
         if state.hasGuide {

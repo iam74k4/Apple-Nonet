@@ -1,6 +1,38 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
+    "%@ %@ › %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ › %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ › %3$@"
+          }
+        }
+      }
+    },
+    "%@ — %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$@"
+          }
+        }
+      }
+    },
     "%@ が前面にあるとき" : {
       "localizations" : {
         "en" : {
@@ -5487,6 +5519,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete last key"
+          }
+        }
+      }
+    },
+    "最近の実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Runs"
           }
         }
       }

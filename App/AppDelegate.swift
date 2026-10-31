@@ -79,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.showOnboarding(purpose: .permission(remindsAtLaunch: false))
         }
         menuBar.onEditButtons = { [weak self] app in self?.settingsWindow?.showButtons(for: app) }
+        menuBar.onShowRun = { [weak self] record in self?.settingsWindow?.showRun(record) }
         let frontmost = services.frontmostApp
         menuBar.frontmostApp = { frontmost.current?.app }
         menuBar.links = links
