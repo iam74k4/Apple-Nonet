@@ -48,7 +48,7 @@ import Testing
 
     /// どのキーか（右⌘ など。JIS 配列には⌘が2つある）まで言い、「キーを離したとき」でもタップで実行できることを言う
     @Test func hintsNameTheTriggerKeyAndSayTappingWorks() {
-        let release = { (trigger: TriggerKey) in ModelFixtures.text("タップか \(trigger.localizedName)を離して実行") }
+        let release = { (trigger: TriggerKey) in ModelFixtures.text("タップか、\(trigger.localizedName)を離して実行") }
         #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == release(.rightCommand))
         #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == release(.function))
         #expect(ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("指を離して実行"))
@@ -60,7 +60,7 @@ import Testing
 
     /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
     @Test func trialTexts() {
-        let ended = ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます")
+        let ended = ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます。")
         #expect(ControllerPresentation.trialEndedBanner == ended)
         #expect(NonetError.licenseRequired.localizedDescription == ended)
         #expect(ControllerPresentation.trialReminderBanner(daysLeft: 3) == String(localized: "試用期間は残り\(3)日です", bundle: .nonetCore, locale: ControllerPresentation.textLocale))

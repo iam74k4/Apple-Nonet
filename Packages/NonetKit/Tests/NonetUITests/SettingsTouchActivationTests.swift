@@ -10,8 +10,8 @@ import Testing
     @Test func choiceNamesMatchTheUserGuide() {
         #expect(TouchActivation.allCases.map(SettingsText.name) == [
             L10n.ui("使わない"),
-            L10n.ui("左上の角で長押し"),
-            L10n.ui("右上の角で長押し"),
+            L10n.ui("左上の角に指を置く"),
+            L10n.ui("右上の角に指を置く"),
         ])
     }
 }

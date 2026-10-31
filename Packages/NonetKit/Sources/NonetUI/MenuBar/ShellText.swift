@@ -3,7 +3,8 @@ import NonetCore
 
 /// メニューバーと初回起動で使う文言。
 /// 呼び方: 9マスの一覧は、画面で最初に出すときだけ「HUD（9マスの一覧）」、後は「HUD」。
-/// 速押しは「すぐにタップ」。ふだんの名詞は「ボタン」、位置が大事なときは「マス」
+/// 速押しは「すぐにタップ」。9つのセルは「マス」（「9つのボタン」はようこその一行だけ）。
+/// 角の呼び出しは「角に指を置いて少し待つ」（トラックパッドでは「押す」「長押し」と言わない。押すとクリックになる）
 enum ShellText {
     /// 「右⌘」など。利用ガイドの呼び方に合わせる
     static func triggerName(_ trigger: TriggerKey) -> String {
@@ -27,9 +28,9 @@ enum ShellText {
         let key = triggerName(trigger)
         switch fireMode {
         case .onTriggerRelease:
-            return String(localized: "\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(target.title)」に合わせ、\(key)を離してください", bundle: .module)
+            return String(localized: "\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(target.title)」に合わせ、\(key)を離してください。", bundle: .module)
         case .onFingerLift:
-            return String(localized: "\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(target.title)」に合わせ、指を離してください", bundle: .module)
+            return String(localized: "\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(target.title)」に合わせ、指を離してください。", bundle: .module)
         }
     }
 
@@ -40,35 +41,35 @@ enum ShellText {
 
     /// 1つ目の課題ができた
     static var practiceHUDDone: String {
-        String(localized: "できました。迷ったときはこのやり方で", bundle: .module)
+        String(localized: "できました。迷ったときはこのやり方で。", bundle: .module)
     }
 
     /// 2つ目の課題ができた（例: 「…右上のマスは「Safari」です。…」）
     static func practiceQuickTapDone(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "すぐにタップできました。\(HUDAnnouncement.attributivePositionName(target.index))のマスは「\(target.title)」です。慣れたら、これがいちばん速い使い方です", bundle: .module)
+        String(localized: "すぐにタップできました。\(HUDAnnouncement.attributivePositionName(target.index))のマスは「\(target.title)」です。慣れたら、これがいちばん速い使い方です。", bundle: .module)
     }
 
     /// 違うマスを押した（例: 「いまのは左下の「Finder」です。「Safari」は右上にあります」）
     static func practiceWrongCell(index: Int, title: String, target: OnboardingPracticeTarget) -> String {
-        String(localized: "いまのは\(HUDAnnouncement.positionName(index))の「\(title)」です。「\(target.title)」は\(HUDAnnouncement.positionName(target.index))にあります", bundle: .module)
+        String(localized: "いまのは\(HUDAnnouncement.positionName(index))の「\(title)」です。「\(target.title)」は\(HUDAnnouncement.positionName(target.index))にあります。", bundle: .module)
     }
 
     /// HUD の課題で、HUD が出る前に実行された
     static var practiceTooQuick: String {
-        String(localized: "HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください", bundle: .module)
+        String(localized: "HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください。", bundle: .module)
     }
 
     /// すぐにタップの課題で、HUD から実行した
     static var practiceUsedHUD: String {
-        String(localized: "HUD から実行しました。今度は指を止めずに、すぐにタップしてください", bundle: .module)
+        String(localized: "HUD から実行しました。今度は指を止めずに、すぐにタップしてください。", bundle: .module)
     }
 
     /// トラックパッドの図の読み上げ（目標のマス）
     static func practiceFigureLabel(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "トラックパッドの図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です", bundle: .module)
+        String(localized: "トラックパッドの図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
     }
 
-    // MARK: - 角の長押し
+    // MARK: - 角に指を置いて呼び出す
 
     /// 角の呼び方（名詞の前に置く。英語は top-left）
     static func cornerName(_ corner: TouchActivation) -> String {
@@ -77,11 +78,11 @@ enum ShellText {
 
     /// 選んだ角で試してもらう
     static func cornerTrialInstruction(_ corner: TouchActivation) -> String {
-        String(localized: "\(cornerName(corner))の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します", bundle: .module)
+        String(localized: "\(cornerName(corner))の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します。", bundle: .module)
     }
 
     static var cornerTrialDone: String {
-        String(localized: "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます", bundle: .module)
+        String(localized: "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます。", bundle: .module)
     }
 
     // MARK: - 完了
@@ -96,24 +97,24 @@ enum ShellText {
         }
     }
 
-    /// こつ「ボタンを変える」。menuTitle はメニューの項目（「Xcode のボタンを編集…」など）
-    static func doneEditTip(_ menuTitle: String) -> String {
-        String(localized: "メニューバーの 3×3 のアイコン ›「\(menuTitle)」で、いま使っているアプリのボタンを変えられます", bundle: .module)
+    /// こつ「マスを変える」。案内のウインドウの裏にあるアプリの名前は出さない（そのアプリとは限らない）
+    static var doneEditTip: String {
+        String(localized: "メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます", bundle: .module)
     }
 
-    /// こつ「片手で使うときは、角を長押し」
+    /// こつ「片手で使うときは、角に指を置いて待つ」
     static func doneCornerTip(_ activation: TouchActivation) -> String {
         switch activation {
         case .off:
-            String(localized: "設定 › 一般 の「トラックパッドだけで呼び出す」をオンにすると、トラックパッドの角を押したまま少し待つだけで HUD が出ます", bundle: .module)
+            String(localized: "設定 › 一般 の「トラックパッドだけで呼び出す」で角を選ぶと、トラックパッドの角に指を置いて少し待つだけで HUD が出ます", bundle: .module)
         case .topLeft, .topRight:
-            String(localized: "トラックパッドの\(cornerName(activation))の角を押したまま少し待つと、HUD が出ます。設定 › 一般 で変えられます", bundle: .module)
+            String(localized: "トラックパッドの\(cornerName(activation))の角に指を置いて少し待つと、HUD が出ます。設定 › 一般 で変えられます。", bundle: .module)
         }
     }
 
     /// 試用期間の残り。数で文が変わる（1 day / 2 days）
     static func trialNote(daysLeft: Int) -> String {
-        String(localized: "試用期間はあと\(daysLeft)日です。購入はメニューバーからいつでもできます", bundle: .module, locale: .nonetUI)
+        String(localized: "試用期間はあと\(daysLeft)日です。購入はメニューバーからいつでもできます。", bundle: .module, locale: .nonetUI)
     }
 
     // MARK: - そのほか

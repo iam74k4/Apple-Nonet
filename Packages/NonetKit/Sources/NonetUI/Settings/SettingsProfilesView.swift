@@ -105,7 +105,7 @@ struct SettingsSidebar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            TextField(text: $model.profileQuery, prompt: Text("名前・ボタン・キーで絞り込み", bundle: .module)) {
+            TextField(text: $model.profileQuery, prompt: Text("名前・マス・キーで絞り込み", bundle: .module)) {
                 Text("プロファイルを絞り込む", bundle: .module)
             }
             .textFieldStyle(.plain)
@@ -320,7 +320,7 @@ struct SettingsSearchResultsList: View {
                         .listRowBackground(isSelected(match) ? Color.accentColor.opacity(0.15) : Color.clear)
                     }
                 } header: {
-                    Text("ボタン", bundle: .module)
+                    Text("マス", bundle: .module)
                 }
             }
         }
@@ -410,12 +410,20 @@ struct SettingsEditorCenter: View {
                 .controlSize(.small)
                 .help(title)
                 .accessibilityLabel(title)
-                // 狭いときは見出しを省き、選択肢の幅も縮めて名前を先に出す（名前の方を優先する）
+                // 狭いときは見出しをポップアップの上に移し、選択肢の幅も縮めて名前を先に出す（名前の方を優先する）。
+                // 見出しを消すと「このプロファイル」だけが残り、何を選ぶのか分からない
                 if showsModeLabel {
                     picker.fixedSize()
                 } else {
-                    picker.labelsHidden()
-                        .frame(minWidth: 110, maxWidth: 190)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("前面にあるとき", bundle: .module)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .accessibilityHidden(true)
+                        picker.labelsHidden()
+                            .frame(minWidth: 110, maxWidth: 190)
+                    }
                 }
             }
         }
@@ -442,10 +450,9 @@ struct SettingsEditorCenter: View {
             .font(.system(size: 11))
         } else {
             HStack(alignment: .firstTextBaseline) {
-                Text("マスを選んで右側で設定。ドラッグか ⌥⌘＋矢印キーで入れ替え、Delete で空にする", bundle: .module)
+                Text("マスを選んで右側で設定。ドラッグか ⌥⌘＋矢印キーで入れ替え、Delete で空にする。", bundle: .module)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
-                Text(verbatim: "3×3")
             }
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
@@ -458,10 +465,11 @@ struct SettingsPageBar: View {
     let model: SettingsModel
 
     var body: some View {
-        // 窓が狭いときは「メニューから割り当て」をアイコンだけに、それでも入らなければページの名前を数字だけにする
+        // 窓が狭いときはページの名前を数字だけに、それでも入らなければ「メニューから割り当て」をアイコンだけにする
+        // （数字だけでもページと分かるが、アイコンだけのボタンは何をするのか分からない）
         ViewThatFits(in: .horizontal) {
             bar(compactPages: false, compactMenuButton: false)
-            bar(compactPages: false, compactMenuButton: true)
+            bar(compactPages: true, compactMenuButton: false)
             bar(compactPages: true, compactMenuButton: true)
         }
     }
@@ -488,20 +496,42 @@ struct SettingsPageBar: View {
                 .help(String(localized: "ページを追加", bundle: .module))
                 .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
             }
-            if model.canRemovePage {
-                Button {
-                    model.requestRemovePage(model.pageIndex)
-                } label: {
-                    Image(systemName: "minus")
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.borderless)
-                .help(String(localized: "このページを削除", bundle: .module))
-                .accessibilityLabel(String(localized: "このページを削除", bundle: .module))
-            }
+            pageMenu
             Spacer(minLength: 8)
             menuToggle(compact: compactMenuButton)
         }
+    }
+
+    /// 選んでいるページの操作。削除はページの見出しの横に記号だけで置かない（区切りの線に見え、どのページを消すのかも分からない）
+    private var pageMenu: some View {
+        let title = String(localized: "ページの操作", bundle: .module)
+        return Menu {
+            Button {
+                model.addPage()
+            } label: {
+                Text(String(localized: "settings.pageMenu.addPage", defaultValue: "ページを追加", bundle: .module))
+            }
+            .disabled(!model.canAddPage)
+            Button {
+                model.beginRenamingPage(model.pageIndex)
+            } label: {
+                Text("名前を変更…", bundle: .module)
+            }
+            Divider()
+            Button(role: .destructive) {
+                model.requestRemovePage(model.pageIndex)
+            } label: {
+                Text("このページを削除…", bundle: .module)
+            }
+            .disabled(!model.canRemovePage)
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(title)
+        .accessibilityLabel(title)
     }
 
     private func menuToggle(compact: Bool) -> some View {
@@ -603,7 +633,7 @@ struct SettingsPageNameEditor: View {
             .focused($isFocused)
             .onSubmit { model.renamePage(index, to: text) }
             .onExitCommand { model.renamingPage = nil }
-            Text("「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります", bundle: .module)
+            Text("「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります。", bundle: .module)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

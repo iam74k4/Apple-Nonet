@@ -73,7 +73,7 @@ struct ActionCommandOutputTests {
         }
         let lines = message.split(separator: "\n").map(String.init)
         let hint = String(
-            localized: "コマンドが見つかりません。インストールされているか、ターミナルで command -v \("nonet-no-such-command-xyz") を確かめてください",
+            localized: "コマンドが見つかりません。インストールされているか、ターミナルで command -v \("nonet-no-such-command-xyz") を確かめてください。",
             bundle: .nonetActions
         )
         #expect(lines.first == String(localized: "スクリプトが失敗しました（終了コード \(Int32(127))）", bundle: .nonetActions))
@@ -90,7 +90,7 @@ struct ActionCommandOutputTests {
             Issue.record("actionFailed になるはず")
             return
         }
-        #expect(message.hasSuffix(String(localized: "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください", bundle: .nonetActions)))
+        #expect(message.hasSuffix(String(localized: "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください。", bundle: .nonetActions)))
     }
 
     @Test("ほかの終了コードには確かめ方を付けない")

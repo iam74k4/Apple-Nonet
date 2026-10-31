@@ -14,7 +14,7 @@ struct OnboardingDoneStep: View {
                     Text("準備ができました", bundle: .module)
                         .font(.system(size: 24, weight: .bold))
                         .onboardingHeading()
-                    Text("使いながら覚えられるように、こつを4つだけ。", bundle: .module)
+                    Text("使いながら覚えられる、4つのこつ", bundle: .module)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
@@ -32,12 +32,12 @@ struct OnboardingDoneStep: View {
                 )
                 OnboardingTip(
                     symbol: "square.grid.3x3.middle.filled",
-                    title: Text("ボタンを変える", bundle: .module),
-                    detail: Text(ShellText.doneEditTip(model.editButtonsTitle))
+                    title: Text("マスを変える", bundle: .module),
+                    detail: Text(ShellText.doneEditTip)
                 )
                 OnboardingTip(
                     symbol: "hand.point.up.left",
-                    title: Text("片手で使うときは、角を長押し", bundle: .module),
+                    title: Text("片手で使うときは、角に指を置いて待つ", bundle: .module),
                     detail: Text(ShellText.doneCornerTip(model.cornerActivation))
                 )
             }

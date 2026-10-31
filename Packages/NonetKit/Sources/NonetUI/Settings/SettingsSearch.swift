@@ -51,9 +51,12 @@ enum SettingsProfileSearch {
                     guard let cell, results.cells.count < cellLimit else { continue }
                     let title = SettingsGrid.displayTitle(for: cell)
                     let subtitle = SettingsGrid.subtitleContent(for: cell)
+                    let detail = SettingsGrid.detailContent(for: cell)
                     let sentKeys = sentKeys(of: cell)
+                    // アプリ起動のマスは、グリッドに出さないアプリの名前でも見つける
                     let found = matches(title, query)
                         || matches(subtitle.text, query)
+                        || matches(detail.text, query)
                         || (keys != nil && sentKeys == keys)
                     guard found else { continue }
                     results.cells.append(SettingsCellMatch(

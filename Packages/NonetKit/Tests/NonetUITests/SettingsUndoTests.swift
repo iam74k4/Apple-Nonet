@@ -81,7 +81,7 @@ import Testing
         let terminal = try #require(cell(h, 2))
         h.model.swapCells(CellAddress(page: 0, index: 0), CellAddress(page: 0, index: 2))
         h.model.updateCell(id: safari.id) { $0.title = "ブラウザ" }
-        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの変更"))
         h.model.undoManager.undo()
         #expect(cell(h, 2) == safari)
         #expect(cell(h, 0) == terminal)
@@ -202,7 +202,7 @@ import Testing
         let source = (1...20).map { "echo \($0)" }.joined(separator: "\n")
         h.model.updateAction(ofCell: created.id, as: ScriptAction.self) { $0.source = source }
         h.model.updateCell(id: created.id) { $0.title = "ビルド" }
-        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの変更"))
         h.model.selectCell(4)
         h.model.undoManager.undo()
         #expect(cell(h, 1) == created)

@@ -18,8 +18,8 @@ enum SettingsText {
     static func name(_ activation: TouchActivation) -> String {
         switch activation {
         case .off: String(localized: "使わない", bundle: .module)
-        case .topLeft: String(localized: "左上の角で長押し", bundle: .module)
-        case .topRight: String(localized: "右上の角で長押し", bundle: .module)
+        case .topLeft: String(localized: "左上の角に指を置く", bundle: .module)
+        case .topRight: String(localized: "右上の角に指を置く", bundle: .module)
         }
     }
 
@@ -33,7 +33,7 @@ enum SettingsText {
     static func name(_ position: HUDPosition) -> String {
         switch position {
         case .screenCenter: String(localized: "画面の中央", bundle: .module)
-        case .nearCursor: String(localized: "カーソルの近く", bundle: .module)
+        case .nearCursor: String(localized: "ポインタの近く", bundle: .module)
         }
     }
 
@@ -58,7 +58,7 @@ enum SettingsText {
         switch method {
         case .automatic: String(localized: "自動", bundle: .module)
         case .dropEvents: String(localized: "移動を捨てる", bundle: .module)
-        case .decouple: String(localized: "カーソルを切り離す", bundle: .module)
+        case .decouple: String(localized: "ポインタを切り離す", bundle: .module)
         case .none: String(localized: "固定しない", bundle: .module)
         }
     }
@@ -66,9 +66,9 @@ enum SettingsText {
     static func detail(_ method: CursorLockMethod) -> String {
         switch method {
         case .automatic: String(localized: "移動を捨て、ずれたら元の位置に戻します", bundle: .module)
-        case .dropEvents: String(localized: "カーソルの移動イベントを捨てるだけです", bundle: .module)
-        case .decouple: String(localized: "カーソルとトラックパッドの動きを切り離します", bundle: .module)
-        case .none: String(localized: "カーソルは指に合わせて動きます", bundle: .module)
+        case .dropEvents: String(localized: "ポインタの移動イベントを捨てるだけです", bundle: .module)
+        case .decouple: String(localized: "ポインタとトラックパッドの動きを切り離します", bundle: .module)
+        case .none: String(localized: "ポインタは指に合わせて動きます", bundle: .module)
         }
     }
 
@@ -93,9 +93,9 @@ enum SettingsText {
     static func detail(_ mode: FireMode) -> String {
         switch mode {
         case .onTriggerRelease:
-            String(localized: "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します", bundle: .module)
+            String(localized: "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します。", bundle: .module)
         case .onFingerLift:
-            String(localized: "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します", bundle: .module)
+            String(localized: "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します。", bundle: .module)
         }
     }
 
@@ -105,7 +105,7 @@ enum SettingsText {
     }
 
     static var hudDelayDetail: String {
-        String(localized: "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します", bundle: .module)
+        String(localized: "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します。", bundle: .module)
     }
 
     static var hudScaleTitle: String {
@@ -113,21 +113,35 @@ enum SettingsText {
     }
 
     static var hudScaleDetail: String {
-        String(localized: "画面の下に出る知らせも同じ大きさになります", bundle: .module)
+        String(localized: "画面の下に出る通知も同じ大きさになります", bundle: .module)
     }
 
     static var hapticsDetail: String {
-        String(localized: "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します", bundle: .module)
+        String(localized: "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します。", bundle: .module)
     }
 
     static var executionToastDetail: String {
-        String(localized: "HUD を出さずに実行したときと、時間の掛かるボタンが終わったときに、そのボタンを画面の下に表示します", bundle: .module)
+        String(localized: "HUD を出さずに実行したときと、時間の掛かるマスが終わったときに、画面の下に通知を出します", bundle: .module)
+    }
+
+    /// トリガーキーの説明。右側のキーなら、左の同じキーがいつもどおり使えることを言う。fn には左右が無い
+    static func triggerDetail(_ trigger: TriggerKey) -> String {
+        switch trigger {
+        case .rightCommand: rightKeyDetail(leftKey: "⌘")
+        case .rightOption: rightKeyDetail(leftKey: "⌥")
+        case .rightShift: rightKeyDetail(leftKey: "⇧")
+        case .function: String(localized: "fn（地球儀）を押している間だけ反応します", bundle: .module)
+        }
+    }
+
+    private static func rightKeyDetail(leftKey: String) -> String {
+        String(localized: "右側のキーだけに反応します。左の\(leftKey)はいつもどおり使えます。", bundle: .module)
     }
 
     /// JIS 配列には右⌥が無い
     static func triggerWarning(trigger: TriggerKey, isJISKeyboard: Bool) -> String? {
         guard isJISKeyboard, trigger == .rightOption else { return nil }
-        return String(localized: "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください", bundle: .module)
+        return String(localized: "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください。", bundle: .module)
     }
 
     /// 「0.30秒」
@@ -194,15 +208,15 @@ enum SettingsText {
     /// プロファイルの見出しの下の説明
     static func profileDescription(_ profile: Profile) -> String {
         if profile.isGlobal {
-            return String(localized: "プロファイルの無いアプリで使う9マス", bundle: .module)
+            return String(localized: "プロファイルのないアプリで使う9マス", bundle: .module)
         }
         switch profile.mode {
         case .profile:
             return String(localized: "\(profile.name) が前面にあるときに使う9マス", bundle: .module)
         case .global:
-            return String(localized: "\(profile.name) ではグローバルのボタンを使います。このプロファイルのボタンは残しています", bundle: .module)
+            return String(localized: "\(profile.name) ではグローバルのマスを使います。このプロファイルのマスは残しています。", bundle: .module)
         case .off:
-            return String(localized: "\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます", bundle: .module)
+            return String(localized: "\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます。", bundle: .module)
         }
     }
 
@@ -435,8 +449,8 @@ enum SettingsText {
                 symbol: "clock",
                 title: trialEnd.map { end in
                     let day = trialEndDay(end, locale: locale)
-                    return String(localized: "試用期間中（残り \(daysLeft) 日・\(day)まで）", bundle: .module, locale: .nonetUI)
-                } ?? String(localized: "試用期間中（残り \(daysLeft) 日）", bundle: .module, locale: .nonetUI),
+                    return String(localized: "試用期間中（残り\(daysLeft)日・\(day)まで）", bundle: .module, locale: .nonetUI)
+                } ?? String(localized: "試用期間中（残り\(daysLeft)日）", bundle: .module, locale: .nonetUI),
                 // 何をすれば試用期間のあとも使えるのかを言う（「ずっと使えます」だけでは、何が続くのか分からない）
                 detail: String(localized: "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、試用期間のあとも使い続けられます。", bundle: .module),
                 isProblem: false
@@ -596,12 +610,12 @@ struct SettingsStatusBanner: Equatable {
         case .secureInputActive:
             symbol = "lock"
             title = String(localized: "パスワードの入力中は動きません", bundle: .module)
-            message = String(localized: "パスワード欄から離れるか、ターミナル › セキュアキーボード入力 をオフにしてください。", bundle: .module)
+            message = String(localized: "パスワード欄から離れるか、ターミナル › セキュアキーボード入力 をオフにしてください", bundle: .module)
             buttons = [Button(action: .recheck, title: String(localized: "もう一度確かめる", bundle: .module))]
         case .disabled:
             symbol = "pause.circle"
             title = String(localized: "Nonet は無効になっています", bundle: .module)
-            message = String(localized: "トリガーキーを押しても反応しません。", bundle: .module)
+            message = String(localized: "トリガーキーを押しても反応しません", bundle: .module)
             buttons = [Button(action: .enable, title: String(localized: "有効にする", bundle: .module))]
         }
     }

@@ -1261,7 +1261,7 @@ import Testing
         h.model.confirmation = .deactivateLicense
         h.model.confirm(.deactivateLicense)
         #expect(h.license.entitlement == .trial(daysLeft: 14))
-        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("この Mac から登録を消しました。"), isError: false))
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("この Mac から登録を消しました"), isError: false))
     }
 
     @Test func badKeysShowTheReason() throws {

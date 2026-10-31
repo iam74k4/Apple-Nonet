@@ -113,11 +113,11 @@ enum ScriptRunner {
     static func commandNotFoundHint(command: String?) -> String {
         if let command {
             return String(
-                localized: "コマンドが見つかりません。インストールされているか、ターミナルで command -v \(command) を確かめてください",
+                localized: "コマンドが見つかりません。インストールされているか、ターミナルで command -v \(command) を確かめてください。",
                 bundle: .nonetActions
             )
         }
-        return String(localized: "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください", bundle: .nonetActions)
+        return String(localized: "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください。", bundle: .nonetActions)
     }
 
     /// 標準エラーの最後の「コマンドが見つからない」から、コマンドの名前を読む。

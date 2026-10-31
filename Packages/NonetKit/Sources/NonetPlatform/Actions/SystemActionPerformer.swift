@@ -227,19 +227,19 @@ enum SelectionMessage {
         switch reading.copyUnavailable {
         case .denied?:
             return String(
-                localized: "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください",
+                localized: "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください。",
                 bundle: .nonetActions
             )
         case .some:
             return String(
-                localized: "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください",
+                localized: "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください。",
                 bundle: .nonetActions
             )
         case nil:
             break
         }
         if reading.ignoredLineCopy {
-            return String(localized: "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください", bundle: .nonetActions)
+            return String(localized: "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください。", bundle: .nonetActions)
         }
         return String(localized: "テキストを選択してから実行してください", bundle: .nonetActions)
     }

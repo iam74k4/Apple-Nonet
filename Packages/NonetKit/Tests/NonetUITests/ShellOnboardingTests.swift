@@ -219,7 +219,7 @@ struct ShellOnboardingTests {
         let (model, harness) = Self.make(granted: false, recorder: recorder)
         harness.permissions.isAccessibilityGranted = true
         model.pollPermission()
-        #expect(recorder.announcements == [L10n.ui("アクセシビリティが許可されました。次へ進みます")])
+        #expect(recorder.announcements == [L10n.ui("アクセシビリティが許可されました。次へ進みます。")])
 
         harness.permissions.isAccessibilityGranted = false
         model.pollPermission()
@@ -243,7 +243,7 @@ struct ShellOnboardingTests {
         )
         #expect(model.isTrackpadMissing)
         #expect(OnboardingModel.noTrackpadMessage
-            == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）"))
+            == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）。"))
         model.recheckTrackpad()
         #expect(model.isTrackpadMissing)
         harness.touchSource.isAvailable = true
@@ -801,7 +801,7 @@ struct ShellOnboardingTests {
         }
         let blocker = try #require(model.practiceBlocker)
         #expect(blocker == .noButtons)
-        #expect(blocker.message == L10n.ui("いま使うページにボタンがありません。設定でボタンを追加すると試せます"))
+        #expect(blocker.message == L10n.ui("いま使うページのマスはすべて空いています。設定でマスにアクションを入れると試せます。"))
         #expect(blocker.remedy == .openProfiles)
         #expect(blocker.remedy?.title == L10n.ui("設定を開く"))
         model.resolve(.openProfiles)
@@ -817,16 +817,16 @@ struct ShellOnboardingTests {
         let key = L10n.ui("右⌥")
         let hud = page.hudTarget.title
         #expect(ShellText.practiceHUDInstruction(trigger: model.trigger, fireMode: .onTriggerRelease, target: page.hudTarget)
-            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、\(key)を離してください"))
+            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、\(key)を離してください。"))
         #expect(ShellText.practiceHUDInstruction(trigger: model.trigger, fireMode: .onFingerLift, target: page.hudTarget)
-            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、指を離してください"))
+            == L10n.ui("\(key)を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「\(hud)」に合わせ、指を離してください。"))
         let position = String(localized: "右上", bundle: .nonetUI)
         let quick = page.quickTapTarget.title
         #expect(ShellText.practiceQuickTapInstruction(trigger: model.trigger, target: page.quickTapTarget)
             == L10n.ui("\(key)を押して、\(position)の「\(quick)」をすぐにタップしてください"))
         let attributive = String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .nonetUI)
         #expect(ShellText.practiceQuickTapDone(page.quickTapTarget)
-            == L10n.ui("すぐにタップできました。\(attributive)のマスは「\(quick)」です。慣れたら、これがいちばん速い使い方です"))
+            == L10n.ui("すぐにタップできました。\(attributive)のマスは「\(quick)」です。慣れたら、これがいちばん速い使い方です。"))
     }
 
     @Test("違うマスの知らせは、押したマスの位置と名前、目標の位置を言う。位置の呼び方（英語は bottom-left）")
@@ -835,7 +835,7 @@ struct ShellOnboardingTests {
         let topRight = String(localized: "右上", bundle: .nonetUI)
         let target = OnboardingPracticeTarget(index: 2, title: "Safari")
         #expect(ShellText.practiceWrongCell(index: 6, title: "Finder", target: target)
-            == L10n.ui("いまのは\(bottomLeft)の「\("Finder")」です。「\("Safari")」は\(topRight)にあります"))
+            == L10n.ui("いまのは\(bottomLeft)の「\("Finder")」です。「\("Safari")」は\(topRight)にあります。"))
         #expect(HUDAnnouncement.attributivePositionName(6) == String(localized: "attributivePosition.bottomLeft", defaultValue: "左下", bundle: .nonetUI))
         #expect(HUDAnnouncement.attributivePositionName(0) == String(localized: "attributivePosition.topLeft", defaultValue: "左上", bundle: .nonetUI))
         #expect(HUDAnnouncement.attributivePositionName(2) == String(localized: "attributivePosition.topRight", defaultValue: "右上", bundle: .nonetUI))
@@ -873,25 +873,25 @@ struct ShellOnboardingTests {
         model.handleExecution(ShellFixtures.record(index: page.hudTarget.index, date: started.addingTimeInterval(2), fastTap: true))
         #expect(model.practice == .hud)
         #expect(model.practiceFeedback == .tooQuick)
-        #expect(recorder.announcements.last == L10n.ui("HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください"))
+        #expect(recorder.announcements.last == L10n.ui("HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください。"))
 
         // HUD から実行した（HUD のマスをタップしたときも wasFastTap は false）。別のページの同じ位置でもよい
         model.handleExecution(ShellFixtures.record(index: page.hudTarget.index, page: 1, date: started.addingTimeInterval(3), fastTap: false))
         #expect(model.practice == .quickTap)
         #expect(model.practiceFeedback == nil)
-        #expect(recorder.announcements.last == L10n.ui("できました。迷ったときはこのやり方で"))
+        #expect(recorder.announcements.last == L10n.ui("できました。迷ったときはこのやり方で。"))
 
         // 2つ目: HUD から実行したら、すぐにタップするよう知らせる
         model.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: started.addingTimeInterval(4), fastTap: false))
         #expect(model.practice == .quickTap)
         #expect(model.practiceFeedback == .usedHUD)
-        #expect(recorder.announcements.last == L10n.ui("HUD から実行しました。今度は指を止めずに、すぐにタップしてください"))
+        #expect(recorder.announcements.last == L10n.ui("HUD から実行しました。今度は指を止めずに、すぐにタップしてください。"))
 
         model.handleExecution(try Self.quickTapRecord(model, date: started.addingTimeInterval(5)))
         #expect(model.practice == .succeeded)
         #expect(model.practiceFeedback == nil)
         #expect(recorder.announcements.last == ShellText.practiceQuickTapDone(page.quickTapTarget))
-        // できたら、角の長押しを紹介する
+        // できたら、角に指を置く呼び出しを紹介する
         #expect(model.cornerTrial == .offered)
 
         // 成功の後に違うマスを押しても成功のまま
@@ -924,7 +924,7 @@ struct ShellOnboardingTests {
         #expect(model.practice == .hud)
         let blocker = try #require(model.practiceBlocker)
         #expect(blocker == .licenseRequired)
-        #expect(blocker.message == L10n.ui("試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます"))
+        #expect(blocker.message == L10n.ui("試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます。"))
         #expect(blocker.remedy?.title == L10n.ui("ライセンスキーを入力…"))
         model.resolve(.openLicense)
         #expect(opened == [.license])
@@ -1045,7 +1045,7 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
         harness.controller.update { $0.settings.isEnabled = false }
         #expect(model.practiceBlocker == .disabled)
-        #expect(model.practiceBlocker?.message == L10n.ui("Nonet が無効になっています。有効にすると試せます"))
+        #expect(model.practiceBlocker?.message == L10n.ui("Nonet が無効になっています。有効にすると試せます。"))
         #expect(!harness.controller.configuration.settings.isEnabled)
         model.enableNonet()
         #expect(harness.controller.configuration.settings.isEnabled)
@@ -1060,7 +1060,7 @@ struct ShellOnboardingTests {
         harness.controller.refreshPermissions()
         let blocker = try #require(model.practiceBlocker)
         #expect(blocker == .noTrackpad)
-        #expect(blocker.message == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）"))
+        #expect(blocker.message == L10n.ui("トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）。"))
         #expect(blocker.remedy == .recheck)
         #expect(blocker.remedy?.title == L10n.ui("もう一度確かめる"))
         harness.touchSource.isAvailable = true
@@ -1076,7 +1076,7 @@ struct ShellOnboardingTests {
         #expect(!model.isAccessibilityGranted)
         let disabled = try #require(model.practiceBlocker)
         #expect(disabled == .disabled)
-        #expect(disabled.message == L10n.ui("Nonet が無効になっています。有効にすると試せます"))
+        #expect(disabled.message == L10n.ui("Nonet が無効になっています。有効にすると試せます。"))
         #expect(disabled.remedy == .enableNonet)
         #expect(disabled.remedy?.title == L10n.ui("Nonet を有効にする"))
 

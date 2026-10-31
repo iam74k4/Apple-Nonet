@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 3. 試してみる: HUD から選ぶ → すぐにタップ の2つの課題と、その後の角の長押しの紹介
+// 3. 試してみる: HUD から選ぶ → すぐにタップ の2つの課題と、その後の「角に指を置いて呼び出す」の紹介
 import NonetCore
 import SwiftUI
 
@@ -174,7 +174,7 @@ struct OnboardingCornerCard: View {
                     .font(.system(size: 14, weight: .semibold))
                 switch trial {
                 case .offered:
-                    Text("トラックパッドの左上か右上の角を押したまま少し待つと、HUD が出ます", bundle: .module)
+                    Text("トラックパッドの左上か右上の角に指を置いて少し待つと、HUD が出ます", bundle: .module)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

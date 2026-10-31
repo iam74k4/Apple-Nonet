@@ -9,7 +9,7 @@ import NonetCore
 extension SettingsModel {
     /// インスペクタでの変更の取り消しの名前
     static var inspectorEditActionName: String {
-        String(localized: "ボタンの変更", bundle: .module)
+        String(localized: "マスの変更", bundle: .module)
     }
 
     /// インスペクタでマスを変えた（updateCell から）。同じマスを続けて変えている間は、変える前の中身に戻す1つの取り消しにまとめる

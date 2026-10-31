@@ -10,14 +10,22 @@ import Testing
         #expect(SettingsText.name(FireMode.onTriggerRelease) == L10n.ui("キーを離したとき"))
         #expect(SettingsText.name(FireMode.onFingerLift) == L10n.ui("指を離したとき"))
         #expect(SettingsText.name(HUDPosition.screenCenter) == L10n.ui("画面の中央"))
-        #expect(SettingsText.name(HUDPosition.nearCursor) == L10n.ui("カーソルの近く"))
+        #expect(SettingsText.name(HUDPosition.nearCursor) == L10n.ui("ポインタの近く"))
         #expect(HapticStrength.allCases.map(SettingsText.name) == [L10n.ui("オフ"), L10n.ui("弱"), L10n.ui("中"), L10n.ui("強")])
-        #expect(CursorLockMethod.allCases.map(SettingsText.name) == [L10n.ui("自動"), L10n.ui("移動を捨てる"), L10n.ui("カーソルを切り離す"), L10n.ui("固定しない")])
+        #expect(CursorLockMethod.allCases.map(SettingsText.name) == [L10n.ui("自動"), L10n.ui("移動を捨てる"), L10n.ui("ポインタを切り離す"), L10n.ui("固定しない")])
         #expect(SettingsText.name(ScriptRunMode.background) == L10n.ui("裏で実行"))
         #expect(SettingsText.name(ScriptRunMode.terminal) == L10n.ui("ターミナルで実行"))
         #expect(AIOutput.allCases.map(SettingsText.name) == [L10n.ui("選択範囲を置き換える"), L10n.ui("クリップボードにコピー"), L10n.ui("画面に表示")])
         #expect(Set(TriggerKey.allCases.map(SettingsText.name)).count == TriggerKey.allCases.count)
         #expect(Set(CursorLockMethod.allCases.map(SettingsText.detail)).count == CursorLockMethod.allCases.count)
+    }
+
+    /// トリガーキーの説明は選んだキーで変わる。右側のキーは左の同じキーを、fn は左右を言わない
+    @Test func triggerDetailFollowsTheKey() {
+        #expect(SettingsText.triggerDetail(.rightCommand) == L10n.ui("右側のキーだけに反応します。左の\("⌘")はいつもどおり使えます。"))
+        #expect(SettingsText.triggerDetail(.rightOption) == L10n.ui("右側のキーだけに反応します。左の\("⌥")はいつもどおり使えます。"))
+        #expect(SettingsText.triggerDetail(.rightShift) == L10n.ui("右側のキーだけに反応します。左の\("⇧")はいつもどおり使えます。"))
+        #expect(SettingsText.triggerDetail(.function) == L10n.ui("fn（地球儀）を押している間だけ反応します"))
     }
 
     @Test func tabTitles() {
@@ -139,7 +147,7 @@ import Testing
         ])
         #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "make"))) == [L10n.uiCounted("スクリプト（\(1)行）:"), "make"])
         #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "a\nb\nc\nd"))).last == L10n.uiCounted("…ほか\(1)行"))
-        #expect(SettingsText.summary(.trial(daysLeft: 1)).title == L10n.uiCounted("試用期間中（残り \(1) 日）"))
+        #expect(SettingsText.summary(.trial(daysLeft: 1)).title == L10n.uiCounted("試用期間中（残り\(1)日）"))
     }
 
     /// スクリプトの説明。「ターミナルで実行」は Apple Events を送らないので、オートメーションの許可を求めるのはブラウザの URL だけ。
@@ -160,7 +168,7 @@ import Testing
 
     @Test func entitlementSummaries() {
         let trial = SettingsText.summary(.trial(daysLeft: 3))
-        #expect(trial.title == L10n.uiCounted("試用期間中（残り \(3) 日）"))
+        #expect(trial.title == L10n.uiCounted("試用期間中（残り\(3)日）"))
         #expect(!trial.isProblem)
         let expired = SettingsText.summary(.expired)
         #expect(expired.title == L10n.ui("試用期間が終了しました"))

@@ -98,7 +98,7 @@ struct OnboardingPracticePage: Equatable {
     }
 }
 
-/// 練習の後に試してもらう「トラックパッドだけで呼び出す」（角の長押し）
+/// 練習の後に試してもらう「トラックパッドだけで呼び出す」（角に指を置いて少し待つ）
 enum OnboardingCornerTrial: Equatable {
     /// 紹介している（まだ試していない）
     case offered
@@ -122,17 +122,17 @@ enum OnboardingPracticeBlocker: Equatable {
     var message: String {
         switch self {
         case .disabled:
-            String(localized: "Nonet が無効になっています。有効にすると試せます", bundle: .module)
+            String(localized: "Nonet が無効になっています。有効にすると試せます。", bundle: .module)
         case .needsAccessibility:
             String(localized: "アクセシビリティが許可されていないため、まだ試せません", bundle: .module)
         case .noTrackpad:
             OnboardingModel.noTrackpadMessage
         case .secureInput:
-            String(localized: "パスワードの入力中は試せません。パスワード欄から離れてください", bundle: .module)
+            String(localized: "パスワードの入力中は試せません。パスワード欄から離れてください。", bundle: .module)
         case .noButtons:
-            String(localized: "いま使うページにボタンがありません。設定でボタンを追加すると試せます", bundle: .module)
+            String(localized: "いま使うページのマスはすべて空いています。設定でマスにアクションを入れると試せます。", bundle: .module)
         case .licenseRequired:
-            String(localized: "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます", bundle: .module)
+            String(localized: "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます。", bundle: .module)
         }
     }
 
@@ -218,7 +218,7 @@ final class OnboardingModel {
     static let promptFallbackDelay: TimeInterval = 1.5
 
     nonisolated static var noTrackpadMessage: String {
-        String(localized: "トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）", bundle: .module)
+        String(localized: "トラックパッドが見つかりません。Magic Trackpad の電源を入れてつなぐと、自動で見つけます（10秒ほど）。", bundle: .module)
     }
 
     private(set) var step: OnboardingStep = .welcome
@@ -228,7 +228,7 @@ final class OnboardingModel {
     private(set) var practiceFeedback: OnboardingPracticeFeedback?
     /// 練習ができた後の「キーを使わない方法もあります」。練習ができるまでは nil
     private(set) var cornerTrial: OnboardingCornerTrial?
-    /// 角の長押しで試す角
+    /// 角に指を置いて試す角
     var cornerChoice: TouchActivation = .topRight
     /// ウィンドウがほかのウィンドウに隠れていない（しまった・画面のロック中も隠れている）
     private(set) var isWindowVisible = true
@@ -403,12 +403,6 @@ final class OnboardingModel {
 
     // MARK: - 完了の画面
 
-    /// メニューの「◯◯のボタンを編集…」と同じ文言（完了の画面のこつで、どこから変えるかを伝える）
-    var editButtonsTitle: String {
-        _ = controller.activeProfileName
-        return MenuBarEditTarget.resolve(frontApp: frontmostApp?.current?.app, configuration: controller.configuration).title
-    }
-
     /// 試用期間中なら残りの日数
     var trialDaysLeft: Int? {
         guard case .trial(let daysLeft)? = license?.entitlement else { return nil }
@@ -434,7 +428,7 @@ final class OnboardingModel {
         controller.refreshPermissions()
         if granted, step == .welcome {
             logger.info("アクセシビリティが許可されたので次へ進む")
-            announce(String(localized: "アクセシビリティが許可されました。次へ進みます", bundle: .module))
+            announce(String(localized: "アクセシビリティが許可されました。次へ進みます。", bundle: .module))
             go(to: .apps)
         } else if granted {
             announce(String(localized: "アクセシビリティが許可されました", bundle: .module))
@@ -678,7 +672,7 @@ final class OnboardingModel {
         announce(ShellText.practiceWrongCell(index: record.address.index, title: record.cellTitle, target: target))
     }
 
-    /// 角の長押しで HUD を出して実行した。記録にはどちらで出したかが無いので、HUD から実行したものを数える
+    /// 角に指を置いて HUD を出して実行した。記録にはどちらで出したかが無いので、HUD から実行したものを数える
     private func handleCornerTrial(_ record: ExecutionRecord) {
         guard case .trying(let corner) = cornerTrial, !record.wasFastTap else { return }
         cornerTrial = .succeeded(corner)

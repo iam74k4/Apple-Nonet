@@ -549,7 +549,7 @@ final class SettingsModel {
         let address = CellAddress(page: pageIndex, index: index)
         guard var copy = SettingsGrid.cell(at: address, in: profile) else { return }
         guard let target = SettingsGrid.nextEmptyAddress(after: address, in: profile) else {
-            gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください", bundle: .module)
+            gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
         copy.id = UUID()
@@ -623,7 +623,7 @@ final class SettingsModel {
         let profile = selectedProfile
         guard let target = address
             ?? SettingsGrid.assignmentTarget(selected: selectedAddress, currentPage: pageIndex, in: profile) else {
-            gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください", bundle: .module)
+            gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
         let existing = SettingsGrid.cell(at: target, in: profile)
@@ -1138,14 +1138,14 @@ final class SettingsModel {
     func deactivateLicense() {
         license.deactivate()
         isEnteringAnotherKey = false
-        licenseMessage = SettingsMessage(text: String(localized: "この Mac から登録を消しました。", bundle: .module), isError: false)
+        licenseMessage = SettingsMessage(text: String(localized: "この Mac から登録を消しました", bundle: .module), isError: false)
     }
 
     /// 登録済みのキーをコピーする（同じキーを、自分のほかの Mac にも登録できる）
     func copyLicenseKey() {
         guard let key = license.registeredLicenseKey else { return }
         copyToPasteboard(key)
-        licenseMessage = SettingsMessage(text: String(localized: "ライセンスキーをコピーしました。", bundle: .module), isError: false)
+        licenseMessage = SettingsMessage(text: String(localized: "ライセンスキーをコピーしました", bundle: .module), isError: false)
     }
 
     /// 「別のキーを登録…」と、そのやめる
@@ -1187,7 +1187,7 @@ final class SettingsModel {
             if verified.key == license.registeredLicenseKey {
                 licenseKeyInput = ""
                 isEnteringAnotherKey = false
-                licenseMessage = SettingsMessage(text: String(localized: "このライセンスキーは登録済みです。", bundle: .module), isError: false)
+                licenseMessage = SettingsMessage(text: String(localized: "このライセンスキーは登録済みです", bundle: .module), isError: false)
                 return
             }
             licenseMessage = nil

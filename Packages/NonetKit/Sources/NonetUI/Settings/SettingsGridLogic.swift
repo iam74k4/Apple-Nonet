@@ -116,8 +116,23 @@ enum SettingsGrid {
         subtitleContent(for: cell).text
     }
 
-    /// マスに出す説明と、それがキーの表記か（キーの表記だけ等幅で出す。言葉まで等幅にするとターミナルの出力のように見える）
+    /// マスに出す説明と、それがキーの表記か（キーの表記だけ等幅で出す。言葉まで等幅にするとターミナルの出力のように見える）。
+    /// アプリ起動はいつも種類の名前（同じグリッドで、アプリの名前と種類の名前が混ざらないように）。アプリの名前はインスペクタとヘルプに出す
     static func subtitleContent(for cell: Cell) -> (text: String, isKeys: Bool) {
+        if case .launchApp = cell.action, !SettingsCellEditing.isIncomplete(cell.action) {
+            return (SettingsActionKinds.name(cell.action.kind), false)
+        }
+        return detailContent(for: cell)
+    }
+
+    /// マスのヘルプ（ポインタを重ねたときの説明）。アプリ起動だけ、グリッドに出さない開くアプリの名前を出す
+    static func tooltip(for cell: Cell?) -> String? {
+        guard let cell, case .launchApp = cell.action, !SettingsCellEditing.isIncomplete(cell.action) else { return nil }
+        return detailContent(for: cell).text
+    }
+
+    /// マスの中身の説明（アプリ起動ならアプリの名前）。検索と VoiceOver とヘルプで使う
+    static func detailContent(for cell: Cell) -> (text: String, isKeys: Bool) {
         if SettingsCellEditing.isIncomplete(cell.action) {
             return (String(localized: "未設定", bundle: .module), false)
         }
@@ -150,7 +165,7 @@ enum SettingsGrid {
         guard let cell else {
             return String(localized: "\(position)：空き", bundle: .module)
         }
-        return String(localized: "\(position)：\(displayTitle(for: cell))、\(subtitle(for: cell))", bundle: .module)
+        return String(localized: "\(position)：\(displayTitle(for: cell))、\(detailContent(for: cell).text)", bundle: .module)
     }
 }
 

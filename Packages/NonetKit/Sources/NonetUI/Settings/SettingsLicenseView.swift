@@ -164,8 +164,8 @@ struct SettingsLicenseView: View {
                     .padding(6)
                     .accessibilityLabel(String(localized: "ライセンスキー", bundle: .module))
                 if model.licenseKeyInput.isEmpty {
-                    // TextEditor には placeholder が無いので重ねる（クリックは欄に通す）
-                    Text("購入時のメールにあるライセンスキーを貼り付け", bundle: .module)
+                    // TextEditor には placeholder が無いので重ねる（クリックは欄に通す）。すぐ上の説明を繰り返さない
+                    Text(String(localized: "settings.license.keyPlaceholder", defaultValue: "ライセンスキー", bundle: .module))
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 11)

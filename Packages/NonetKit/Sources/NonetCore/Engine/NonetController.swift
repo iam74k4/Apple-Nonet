@@ -301,7 +301,7 @@ public final class NonetController {
                 return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
             }
         } else if ControllerExecutionPolicy.sendsInputToFrontmostApp(action) {
-            let reason = String(localized: "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください", bundle: .module)
+            let reason = String(localized: "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください。", bundle: .module)
             return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
         }
         let context = ActionContext(frontmostApp: services.frontmostApp.current)
@@ -706,7 +706,7 @@ public final class NonetController {
     /// 設定画面からは「このマスをテスト実行」で試せる（直前のアプリを前面に戻してから実行する）
     private func refuseInOwnWindow(_ target: ControllerTarget, wasFastTap: Bool) {
         controllerLogger.notice("Nonet のウィンドウがキーなので実行しません（\(target.cell.action.kind.rawValue, privacy: .public)）")
-        let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます", bundle: .module)
+        let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。", bundle: .module)
         showToast(ControllerPresentation.failureToast(target, message: message))
         record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
     }
@@ -937,7 +937,7 @@ public final class NonetController {
             // 読めないファイルを上書きしないよう、この起動の間は保存しない
             controllerLogger.error("設定ファイルを読めないので、保存せずに初期の設定で動かします: \(error.localizedDescription, privacy: .public)")
             saver.isEnabled = false
-            notice = String(localized: "\(error.localizedDescription)。Nonet を終了するまで、設定の変更は保存されません", bundle: .module)
+            notice = String(localized: "\(error.localizedDescription)。Nonet を終了するまで、設定の変更は保存されません。", bundle: .module)
         }
     }
 

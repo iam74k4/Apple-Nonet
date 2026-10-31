@@ -138,6 +138,7 @@ struct SettingsGridCell: View {
                 return model.handleDrop(item.payload, onto: index)
             } isTargeted: { isDropTarget = $0 }
             .contextMenu { contextMenu }
+            .help(SettingsGrid.tooltip(for: cell) ?? "")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
             .accessibilityHint(String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))

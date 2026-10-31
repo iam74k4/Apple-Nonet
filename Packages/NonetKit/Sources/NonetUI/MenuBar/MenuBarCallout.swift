@@ -25,7 +25,7 @@ enum MenuBarItemVisibility {
     }
 }
 
-/// アイコンの下に短く出す吹き出し。アイコンも数回光らせる。
+/// アイコンの下に短く出す吹き出し。アイコンも数回光らせる（「視差効果を減らす」のときは点滅させず、一度だけ光らせたままにする）。
 /// 前面にならず、クリックも受けず、ウィンドウを閉じて Nonet を隠しても（ShellActivation）残る
 @MainActor
 final class MenuBarCallout {
@@ -33,6 +33,28 @@ final class MenuBarCallout {
     /// アイコンを光らせる回数
     static let pulseCount = 3
     static let pulseInterval: TimeInterval = 0.25
+    /// 「視差効果を減らす」のときに、光らせたままにする時間
+    static let steadyHighlightDuration: TimeInterval = 1.5
+
+    /// アイコンの光らせ方。steps はハイライトを切り替える回数（奇数番目で光り、偶数番目で消える）、interval はその間隔
+    struct PulsePlan: Equatable {
+        var steps: Int
+        var interval: TimeInterval
+    }
+
+    /// 点滅は動きなので、「視差効果を減らす」のときは一度だけ光らせて消す
+    static func pulsePlan(reduceMotion: Bool) -> PulsePlan {
+        reduceMotion
+            ? PulsePlan(steps: 2, interval: steadyHighlightDuration)
+            : PulsePlan(steps: pulseCount * 2, interval: pulseInterval)
+    }
+
+    /// システム設定 › アクセシビリティ › ディスプレイ › 視差効果を減らす（テストで差し替える）
+    private let reduceMotion: @MainActor () -> Bool
+
+    init(reduceMotion: @escaping @MainActor () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
+        self.reduceMotion = reduceMotion
+    }
 
     private var panel: MenuBarCalloutPanel?
     private var hideWork: DispatchWorkItem?
@@ -73,8 +95,9 @@ final class MenuBarCallout {
     /// 押したときと同じ見た目で、数回光らせる
     private func pulse(_ button: NSStatusBarButton) {
         pulseTimer?.invalidate()
-        remainingPulseSteps = Self.pulseCount * 2
-        let timer = Timer(timeInterval: Self.pulseInterval, repeats: true) { [weak self, weak button] _ in
+        let plan = Self.pulsePlan(reduceMotion: reduceMotion())
+        remainingPulseSteps = plan.steps
+        let timer = Timer(timeInterval: plan.interval, repeats: true) { [weak self, weak button] _ in
             MainActor.assumeIsolated { self?.pulseStep(button) }
         }
         pulseTimer = timer

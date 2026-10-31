@@ -153,7 +153,7 @@ import Testing
         #expect(h.performer.calls.isEmpty)
         // 実行しなかったことを触覚でも知らせる
         #expect(h.haptics.events == [.rejected])
-        let message = ModelFixtures.text("Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます")
+        let message = ModelFixtures.text("Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。")
         let title = failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2)
         #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: F.closeTab.icon, style: .failure)])
         let record = try #require(h.controller.lastExecution)
@@ -238,7 +238,7 @@ import Testing
             nil, nil, nil,
             HUDCell(title: F.reader.title, icon: F.reader.icon),
         ]
-        let hint = ModelFixtures.text("タップか \(TriggerKey.rightOption.localizedName)を離して実行")
+        let hint = ModelFixtures.text("タップか、\(TriggerKey.rightOption.localizedName)を離して実行")
         // グローバルのページは 3枚目から（ページの点をそこで離す）
         let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: hint, globalPagesStart: 2)
         #expect(h.hud.shown == [ControllerFakeHUD.Shown(model: shown, position: .nearCursor)])
@@ -543,7 +543,7 @@ import Testing
         h.start()
         h.pressTrigger()
         h.advance(Self.placementWindow)
-        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます"))
+        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます。"))
         #expect(h.hud.current?.bannerStyle == .warning)
         h.touch(on: 4)
         h.advance(0.4)
@@ -623,7 +623,7 @@ import Testing
         h.controller.isPracticeMode = true
         h.pressTrigger()
         h.advance(Self.placementWindow)
-        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("タップか \(TriggerKey.rightOption.localizedName)を離して実行"))"))
+        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("タップか、\(TriggerKey.rightOption.localizedName)を離して実行"))"))
         h.releaseTrigger()
         h.fastTap(2)
         await h.settle()

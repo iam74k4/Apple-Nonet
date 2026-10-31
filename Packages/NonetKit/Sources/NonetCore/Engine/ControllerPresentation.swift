@@ -55,7 +55,7 @@ public enum ControllerPresentation {
     public static func hint(fireMode: FireMode, trigger: TriggerKey, isPracticeMode: Bool) -> String {
         let base = switch fireMode {
         case .onTriggerRelease:
-            String(localized: "タップか \(trigger.localizedName)を離して実行", bundle: .module)
+            String(localized: "タップか、\(trigger.localizedName)を離して実行", bundle: .module)
         case .onFingerLift:
             String(localized: "指を離して実行", bundle: .module)
         }

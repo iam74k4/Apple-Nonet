@@ -458,7 +458,7 @@ public enum ConfigurationStoreError: Error, Equatable, LocalizedError, Sendable 
         case .readFailed:
             String(localized: "設定ファイルを読み込めませんでした", bundle: .module)
         case .corrupted(let movedTo?, _):
-            String(localized: "設定ファイルが壊れていたため読み込めませんでした。元のファイルは「\(movedTo.lastPathComponent)」として残しています", bundle: .module)
+            String(localized: "設定ファイルが壊れていたため読み込めませんでした。元のファイルは「\(movedTo.lastPathComponent)」として残しています。", bundle: .module)
         case .corrupted(nil, _):
             String(localized: "設定ファイルが壊れていたため読み込めませんでした", bundle: .module)
         case .writeFailed:
@@ -468,7 +468,7 @@ public enum ConfigurationStoreError: Error, Equatable, LocalizedError, Sendable 
         case .notAProfileDocument:
             String(localized: "Nonet のプロファイルのファイルではありません", bundle: .module)
         case .unsupportedProfileDocumentVersion:
-            String(localized: "新しい版の Nonet で書き出されたファイルです。Nonet をアップデートしてください", bundle: .module)
+            String(localized: "新しい版の Nonet で書き出されたファイルです。Nonet をアップデートしてください。", bundle: .module)
         case .invalidProfileDocument:
             String(localized: "プロファイルのファイルが壊れています", bundle: .module)
         case .noProfiles:
