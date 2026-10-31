@@ -13,8 +13,6 @@ final class ShellFakeTouchSource: TouchSource {
 
 @MainActor
 final class ShellFakeKeyboard: KeyboardMonitor {
-    var trigger: TriggerKey = .rightCommand
-    var passTriggerToApps = true
     var cursorLock: CursorLockMethod = .automatic
     var isSuppressingPointer = false
     var onEvent: ((KeyboardEvent) -> Void)?
@@ -184,7 +182,7 @@ final class ShellControllerHarness {
     let directory: URL
 
     /// license を渡さなければ、試用の初日（残り14日）
-    init(installed: Set<String> = [], accessibilityGranted: Bool = true, isJIS: Bool = true, license: LicenseManager? = nil) {
+    init(installed: Set<String> = [], accessibilityGranted: Bool = true, license: LicenseManager? = nil) {
         permissions = ShellFakePermissions(granted: accessibilityGranted)
         installedApps = ShellFakeInstalledApps(installed)
         services = NonetServices(
@@ -199,8 +197,7 @@ final class ShellControllerHarness {
             shortcuts: ShellFakeShortcuts(),
             ai: ShellFakeAI(),
             loginItem: loginItem,
-            scheduler: scheduler,
-            isJISKeyboard: isJIS
+            scheduler: scheduler
         )
         directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("nonet-shell-tests-\(UUID().uuidString)", isDirectory: true)
@@ -226,17 +223,19 @@ final class ShellControllerHarness {
 }
 
 enum ShellFixtures {
-    /// fastTap が false なら、HUD を出してから実行した（HUD のマスをタップしたときも）
-    static func record(index: Int, page: Int = 0, date: Date, title: String = "マス", fastTap: Bool = true, profile: String = "Xcode") -> ExecutionRecord {
+    static func record(index: Int, page: Int = 0, date: Date, title: String = "マス", profile: String = "Xcode") -> ExecutionRecord {
         ExecutionRecord(
             cellTitle: title,
             profileName: profile,
             address: CellAddress(page: page, index: index),
             succeeded: true,
             message: nil,
-            wasFastTap: fastTap,
             date: date
         )
+    }
+
+    static func cancellation(_ reason: SessionCancellation = .liftedInFrame, date: Date) -> CancellationRecord {
+        CancellationRecord(reason: reason, date: date)
     }
 
     static func running(_ bundleID: String, name: String) -> RunningAppInfo {

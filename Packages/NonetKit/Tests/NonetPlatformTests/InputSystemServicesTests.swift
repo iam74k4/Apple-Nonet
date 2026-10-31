@@ -143,10 +143,6 @@ import Testing
         }
     }
 
-    @Test func keyboardLayoutIsStable() {
-        #expect(KeyboardLayout.isJIS == KeyboardLayout.isJIS)
-    }
-
     @Test func frontmostObserverNeverReportsItself() {
         let observer = WorkspaceFrontmostAppObserver()
         #expect(observer.current?.processID != ProcessInfo.processInfo.processIdentifier)

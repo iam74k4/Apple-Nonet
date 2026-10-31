@@ -2,7 +2,7 @@
 import Foundation
 
 /// 実行を頼まれた順に始める。次の実行は、前の実行が終わるか順番を譲る（ControllerExecutionTurn.pass）まで始めない。
-/// 速押しを続けたときに順番が入れ替わらず、キー入力どうしが混ざらないように。
+/// 続けて実行したときに順番が入れ替わらず、キー入力どうしが混ざらないように。
 /// 長く掛かる実行（裏で動くスクリプトなど）は途中で順番を譲り、後のマスを終わるまで待たせない
 @MainActor
 final class ControllerExecutionQueue {

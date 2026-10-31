@@ -40,7 +40,6 @@ import Testing
         #expect(record.cellTitle == F.closeTab.title)
         #expect(record.profileName == "Safari")
         #expect(record.address == CellAddress(page: 0, index: 2))
-        #expect(!record.wasFastTap)
         #expect(h.controller.lastExecution == record)
         #expect(h.hud.toasts.isEmpty)
         #expect(!h.scheduler.requestedDelays.contains(NonetController.activationRetryInterval))
@@ -249,7 +248,7 @@ import Testing
         let h = try ControllerHarness()
         h.performer.holds = true
         h.start()
-        h.fastTap(2)
+        h.run(2)
         await h.waitUntil { h.performer.calls.count == 1 }
         let run = Task { await h.controller.testRun(F.docs, profileID: h.controller.configuration.globalProfile.id) }
         await h.waitUntil { h.performer.calls.count > 1 }

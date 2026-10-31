@@ -20,8 +20,8 @@ enum ControllerFixtures {
     static let docs = Cell(title: "ドキュメント", icon: .text("D"), action: .openURL(URLAction(url: "https://example.com/docs")))
 
     /// Safari: [新しいタブ, 空, タブを閉じる, 空, 要約, 空, 空, 空, リーダー] と [再読み込み]。
-    /// グローバル: [メモ, 空, …, ドキュメント（8）]。トリガーは右⌥
-    static func configuration(settings: GlobalSettings = GlobalSettings(trigger: .rightOption)) -> NonetConfiguration {
+    /// グローバル: [メモ, 空, …, ドキュメント（8）]
+    static func configuration(settings: GlobalSettings = GlobalSettings()) -> NonetConfiguration {
         let global = Profile(kind: .global, pages: [Page(cells: [openNotes, nil, nil, nil, nil, nil, nil, nil, docs])])
         let safariProfile = Profile(kind: .app(safari), pages: [
             Page(cells: [newTab, nil, closeTab, nil, summarize, nil, nil, nil, reader]),
@@ -31,7 +31,7 @@ enum ControllerFixtures {
     }
 
     static func settings(_ transform: (inout GlobalSettings) -> Void) -> GlobalSettings {
-        var settings = GlobalSettings(trigger: .rightOption)
+        var settings = GlobalSettings()
         transform(&settings)
         return settings
     }
@@ -65,13 +65,12 @@ final class ControllerHarness {
 
     /// configuration を保存してから組み立てる（nil なら設定ファイルの無い初回起動）。
     /// trialEnded なら試用期間が終わっている。trialDaysUsed は試用を使った日数（残り日数の知らせを試す）。
-    /// licensed ならライセンスを登録済み。frontmost はトリガーを押すときの前面アプリ
+    /// licensed ならライセンスを登録済み。frontmost は9マスを開くときの前面アプリ
     init(
         configuration: NonetConfiguration? = ControllerFixtures.configuration(),
         trialEnded: Bool = false,
         trialDaysUsed: Double? = nil,
         licensed: Bool = false,
-        isJISKeyboard: Bool = false,
         installed: Set<String> = [],
         frontmost app: RunningAppInfo? = ControllerFixtures.safariApp,
         presetEnvironment: FixedPresetEnvironment = FixedPresetEnvironment()
@@ -112,7 +111,6 @@ final class ControllerHarness {
             ai: ControllerFakeAI(),
             loginItem: ControllerFakeLoginItem(),
             scheduler: scheduler,
-            isJISKeyboard: isJISKeyboard,
             presetEnvironment: presetEnvironment
         )
         controller = NonetController(services: services, store: store, hud: hud, license: license, guidance: guidance)
@@ -130,16 +128,51 @@ final class ControllerHarness {
         controller.start()
     }
 
-    func pressTrigger() {
-        keyboard.send(.triggerDown)
+    /// 開いている間にキーを押した（本物のモニターは開いている間だけ知らせる）
+    func pressKey() {
+        keyboard.pressKey()
     }
 
-    func releaseTrigger() {
-        keyboard.send(.triggerUp)
+    /// 上の縁の帯で触れ始めた指の高さと、開くまでに下へ滑らせた後の高さ
+    static let edgeY = 0.98
+    static let slidY = 0.92
+
+    /// 上の縁から指を下へ滑り込ませて9マスを開く（触れて 0.05 秒で 0.06 下へ。EdgeSlideRecognizer）。開いた後の指は上の外枠にいる
+    func open(_ id: Int = 1, x: Double = 0.5) {
+        touch(id, x: x, y: Self.edgeY)
+        advance(0.05)
+        touch(id, x: x, y: Self.slidY)
     }
 
-    func interrupt() {
-        keyboard.send(.interrupted)
+    /// 開いて、マスまで滑らせ、dwell だけ止めてから離す（ふつうのマスは 0.15 秒止めれば実行する）
+    func run(_ cell: Int, dwell: TimeInterval = 0.2) {
+        open()
+        choose(cell, dwell: dwell)
+    }
+
+    /// 開いていれば（指が触れていれば）マスまで滑らせ、dwell だけ止めてから離す。閉じていれば開いてから
+    func choose(_ cell: Int, dwell: TimeInterval = 0.2) {
+        if fingers.isEmpty {
+            open()
+        }
+        advance(0.05)
+        touch(on: cell)
+        advance(dwell)
+        lift()
+        advance(0.05)
+    }
+
+    /// 開いていれば、いまの場所で指を離して閉じる
+    func closeIfOpen() {
+        guard !fingers.isEmpty else { return }
+        lift()
+        advance(0.05)
+    }
+
+    /// 開いたまま、いまの場所で指を離す（開いた直後なら上の外枠なので、何もせずに閉じる）
+    func liftAndClose() {
+        lift()
+        advance(0.05)
     }
 
     func advance(_ seconds: TimeInterval) {
@@ -167,22 +200,6 @@ final class ControllerHarness {
             fingers[id].map { TouchPoint(id: id, x: $0.x, y: $0.y, majorAxis: majorAxes[id]) }
         }
         touchSource.send(TouchFrame(timestamp: scheduler.now, points: points))
-    }
-
-    /// トリガーを押したまま、hudDelay より短くマスをタップする
-    func tap(_ cell: Int) {
-        advance(0.05)
-        touch(on: cell)
-        advance(0.05)
-        lift()
-        advance(0.05)
-    }
-
-    /// トリガーを押し、マスを速押しして、トリガーを離す
-    func fastTap(_ cell: Int) {
-        pressTrigger()
-        tap(cell)
-        releaseTrigger()
     }
 
     /// 頼んだ実行がすべて終わるまで待つ

@@ -377,7 +377,7 @@ extension ConfigurationStore {
         if saved == data { return false }
         guard let original = try? JSONSerialization.jsonObject(with: data),
               let savedObject = try? JSONSerialization.jsonObject(with: saved) else { return true }
-        return !JSONContent.isPreserved(original, in: savedObject)
+        return !JSONContent.isPreserved(GlobalSettings.removingRetiredKeys(from: original), in: savedObject)
     }
 
     static func describe(_ error: any Error) -> String {

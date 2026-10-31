@@ -1,4 +1,4 @@
-// 担当: ui-settings。一般の「トリガーと HUD」と「知らせ」: HUD の大きさ・指を止めてから HUD が出るまでの時間・説明の文
+// 担当: ui-settings。一般の「開き方と HUD」と「フィードバック」: HUD の大きさ・開き方の説明・説明の文
 import AppKit
 import NonetCore
 @testable import NonetUI
@@ -13,21 +13,9 @@ import Testing
         #expect(SettingsText.hudScaleDetail == L10n.ui("画面の下に出る通知も同じ大きさになります"))
     }
 
-    /// 指を置かないときの待ち時間とは別の、指を止めてからの時間だと分かる名前と説明
-    @Test func theHudDelaySaysItCountsFromTheRestingFinger() {
-        #expect(SettingsText.hudDelayTitle == L10n.ui("指を止めてから HUD が出るまでの時間"))
-        #expect(SettingsText.hudDelayDetail == L10n.ui("指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します。"))
-    }
-
-    /// 「キーを離したとき」でも、すぐにタップすれば HUD が出ていても実行する
-    @Test func fireModeDetailsSayTappingWorksWithTheHUD() {
-        #expect(SettingsText.detail(FireMode.onTriggerRelease) == L10n.ui("HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します。"))
-        #expect(SettingsText.detail(FireMode.onFingerLift) == L10n.ui("HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します。"))
-    }
-
     @Test func notificationDetailsCoverTheNewFeedback() {
-        #expect(SettingsText.hapticsDetail == L10n.ui("マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します。"))
-        #expect(SettingsText.executionToastDetail == L10n.ui("HUD を出さずに実行したときと、時間の掛かるマスが終わったときに、画面の下に通知を出します"))
+        #expect(SettingsText.hapticsDetail == L10n.ui("開いたとき・マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行せずに閉じたときは軽く2回振動します。"))
+        #expect(SettingsText.executionToastDetail == L10n.ui("時間の掛かるマスが終わったときに、画面の下に通知を出します"))
     }
 }
 
@@ -40,7 +28,7 @@ import Testing
         #expect(try h.saved()?.settings.hudScale == .extraLarge)
     }
 
-    /// 一般のタブの「トリガーと HUD」に、HUD の大きさの3つの選択肢が並ぶ
+    /// 一般のタブの「開き方と HUD」に、HUD の大きさの3つの選択肢が並び、トリガーキーや角の選択肢は無い
     @Test func theGeneralTabShowsTheHUDSizeChoices() async throws {
         _ = NSApplication.shared
         let h = try SettingsHarness()
@@ -63,5 +51,9 @@ import Testing
             (0..<control.segmentCount).map { control.label(forSegment: $0) ?? "" }
         }
         #expect(segments.contains(HUDScale.allCases.map(SettingsText.name)))
+        // ポップアップは「ポインタの固定方法」だけ（トリガーキー・角・実行のタイミングは無い）
+        let popups = walk(hosting).compactMap { $0 as? NSPopUpButton }
+        #expect(popups.count <= 1)
+        #expect(!walk(hosting).contains { $0 is NSSlider })
     }
 }

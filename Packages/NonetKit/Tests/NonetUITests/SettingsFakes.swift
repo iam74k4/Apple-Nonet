@@ -23,8 +23,6 @@ final class SettingsFakeTouchSource: TouchSource {
 
 @MainActor
 final class SettingsFakeKeyboard: KeyboardMonitor {
-    var trigger: TriggerKey = .rightCommand
-    var passTriggerToApps = true
     var cursorLock: CursorLockMethod = .automatic
     var isSuppressingPointer = false
     var onEvent: ((KeyboardEvent) -> Void)?
@@ -257,7 +255,6 @@ final class SettingsHarness {
 
     init(
         configuration: NonetConfiguration? = SettingsFixtures.configuration(),
-        isJISKeyboard: Bool = false,
         verifier: LicenseVerifier? = nil,
         links: AppLinks = AppLinks(),
         presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
@@ -280,7 +277,6 @@ final class SettingsHarness {
             ai: ai,
             loginItem: loginItem,
             scheduler: scheduler,
-            isJISKeyboard: isJISKeyboard,
             presetEnvironment: presetEnvironment
         )
         let start = Date(timeIntervalSinceReferenceDate: 800_000_000)

@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 同じ Nonet を2つ動かさない。2つ動くと、どちらもトリガーキーとトラックパッドを見て、1回のタップでマスが2回実行され、
+// 同じ Nonet を2つ動かさない。2つ動くと、どちらもトラックパッドを見て、1回の操作でマスが2回実行され、
 // 試用の時間も2倍に数えられる（ディスクイメージから開いたものと、アプリケーションフォルダのものなど）。
 // ここは決め方だけ。プロセスを調べて終わる部分は App/SingleInstance.swift
 import Foundation
@@ -85,7 +85,7 @@ public enum ShellInstanceGuard {
         let others = running.filter { $0.processID != own.processID && !$0.isTerminated }
         guard !others.isEmpty else { return .launch }
         // 終わりかけのもの（終了した直後に開き直した）は残す候補にしない。終わるのを待ってから起動する
-        // （2つが同時にトリガーキーを見ないように）。終わりきらなくても、もう入力は見ていないので、待ちすぎたら起動する
+        // （2つが同時にトラックパッドを見ないように）。終わりきらなくても、もう入力は見ていないので、待ちすぎたら起動する
         let staying = others.filter { !$0.isQuitting }
         guard !staying.isEmpty else {
             return waited < takeOverTimeout ? .wait : .launch

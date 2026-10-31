@@ -6,16 +6,16 @@ public struct HUDCell: Equatable, Sendable {
     public var icon: CellIcon
     /// "⌘B" など。出さないなら nil
     public var detail: String?
-    /// HUD で選んだときだけ実行するマス（Cell.requiresHUD）。小さな印を付ける
-    public var requiresHUD: Bool
+    /// 少し長く止めてから実行するマス（Cell.requiresHold）。小さな印を付ける
+    public var requiresHold: Bool
     /// 共通マス（どのアプリでも同じ位置に出るマス）。HUD に小さな印を付ける
     public var isShared: Bool
 
-    public init(title: String, icon: CellIcon, detail: String? = nil, requiresHUD: Bool = false, isShared: Bool = false) {
+    public init(title: String, icon: CellIcon, detail: String? = nil, requiresHold: Bool = false, isShared: Bool = false) {
         self.title = title
         self.icon = icon
         self.detail = detail
-        self.requiresHUD = requiresHUD
+        self.requiresHold = requiresHold
         self.isShared = isShared
     }
 }
@@ -28,6 +28,25 @@ public enum HUDBannerStyle: Equatable, Sendable {
     case info
 }
 
+/// 少し長く止めてから実行するマスに、指を止めている間の進み具合（SessionHold）
+public struct HUDHold: Equatable, Sendable {
+    /// 止めているマス（0〜8）
+    public var cellIndex: Int
+    /// 止め始めた時刻（Scheduler.now の秒）。HUD は、これが変わったら進み具合を最初から満たし直す
+    public var since: TimeInterval
+    /// 止める必要のある秒数（SessionConfiguration.holdDwell）。HUD はこの間に進み具合を満たしていく
+    public var duration: TimeInterval
+    /// 止め終えた。いま指を離すと実行する
+    public var isReady: Bool
+
+    public init(cellIndex: Int, since: TimeInterval = 0, duration: TimeInterval, isReady: Bool) {
+        self.cellIndex = cellIndex
+        self.since = since
+        self.duration = duration
+        self.isReady = isReady
+    }
+}
+
 /// HUD に出すもの
 public struct HUDModel: Equatable, Sendable {
     /// プロファイル名
@@ -36,14 +55,18 @@ public struct HUDModel: Equatable, Sendable {
     public var pageCount: Int
     /// 常に9個。nil は空きマス
     public var cells: [HUDCell?]
-    /// 指の下にあるマス。指が離れていれば nil
+    /// 指の下にあるマス。指が外枠にある・2本以上の指が触れていれば nil
     public var highlightedIndex: Int?
-    /// 右上の案内（例: 「タップか 右⌘を離して実行」）
+    /// 指が9マスの外側の枠（やめる場所）にある。離すと何も実行しない。HUD はマスを暗くし、枠を強めて「離すとやめる」を出す
+    public var isFingerInFrame: Bool
+    /// 少し長く止めてから実行するマスに指を止めている間の進み具合。そのマスを光らせていなければ nil
+    public var hold: HUDHold?
+    /// 右上の案内（例: 「マスで指を離すと実行」）
     public var hint: String
     /// 上部の注意書き（例: 試用期間の終了）
     public var banner: String?
     public var bannerStyle: HUDBannerStyle
-    /// 9マスの下の1〜2行の案内（使い始めの数回だけ。例: 「指を滑らせて選ぶ · …」）。出さないなら nil
+    /// 9マスの下の1〜2行の案内（使い始めの数回だけ。例: 「指を滑らせて選ぶ · 外枠で指を離すとやめる」）。出さないなら nil
     public var footnote: String?
     /// アプリのページの後ろにグローバルのページをつなげたとき、グローバルの最初のページの位置。
     /// ページの点をそこで少し離す。つなげていなければ nil
@@ -57,6 +80,8 @@ public struct HUDModel: Equatable, Sendable {
         pageCount: Int,
         cells: [HUDCell?],
         highlightedIndex: Int?,
+        isFingerInFrame: Bool = false,
+        hold: HUDHold? = nil,
         hint: String,
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
@@ -69,6 +94,8 @@ public struct HUDModel: Equatable, Sendable {
         self.pageCount = pageCount
         self.cells = cells
         self.highlightedIndex = highlightedIndex
+        self.isFingerInFrame = isFingerInFrame
+        self.hold = hold
         self.hint = hint
         self.banner = banner
         self.bannerStyle = bannerStyle

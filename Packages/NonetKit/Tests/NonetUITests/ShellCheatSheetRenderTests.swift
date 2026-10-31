@@ -14,7 +14,7 @@ struct ShellCheatSheetRenderTests {
     static func configuration() throws -> NonetConfiguration {
         let candidates = Set(PresetLibrary.launcherCandidates.map(\.bundleID))
         let xcode = try #require(PresetLibrary.preset(forBundleID: ShellFixtures.xcode))
-        var configuration = NonetConfiguration.initial(trigger: .rightCommand, appPresets: [xcode], installedBundleIDs: candidates)
+        var configuration = NonetConfiguration.initial(appPresets: [xcode], installedBundleIDs: candidates)
         let id = try #require(configuration.appProfile(forBundleID: ShellFixtures.xcode)?.id)
         if (configuration.profile(id: id)?.pages.count ?? 0) < 2 {
             _ = configuration.addPage(profileID: id)

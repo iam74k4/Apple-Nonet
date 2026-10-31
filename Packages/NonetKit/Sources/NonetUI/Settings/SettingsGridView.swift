@@ -130,7 +130,7 @@ struct SettingsGridCell: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground))
             .overlay(border)
-            .overlay(alignment: .topTrailing) { hudOnlyBadge }
+            .overlay(alignment: .topTrailing) { holdBadge }
             .overlay(alignment: .topLeading) {
                 if isShared {
                     // 狭いマスでは文字を省き、アイコンと重ならないようにする
@@ -162,7 +162,7 @@ struct SettingsGridCell: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
             .accessibilityValue(
-                [isShared ? SettingsText.sharedCellAccessibilityValue : "", HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true)]
+                [isShared ? SettingsText.sharedCellAccessibilityValue : "", HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true)]
                     .filter { !$0.isEmpty }
                     .joined(separator: "、")
             )
@@ -236,11 +236,11 @@ struct SettingsGridCell: View {
             .truncationMode(.middle)
     }
 
-    /// HUD で選んだときだけ実行するマス（Cell.requiresHUD）の印。HUD と同じ記号を右上に
+    /// 少し長く止めてから実行するマス（Cell.requiresHold）の印。HUD と同じ記号を右上に
     @ViewBuilder
-    private var hudOnlyBadge: some View {
-        if cell?.requiresHUD == true {
-            HUDOnlyBadge(size: 10, color: .secondary)
+    private var holdBadge: some View {
+        if cell?.requiresHold == true {
+            HoldBadge(size: 10, color: .secondary)
                 .padding(8)
         }
     }

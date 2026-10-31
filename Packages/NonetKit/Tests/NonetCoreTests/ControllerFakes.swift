@@ -162,7 +162,6 @@ final class ControllerFakeTouchSource: TouchSource {
     private(set) var isRunning = false
     private(set) var startCount = 0
     private(set) var stopCount = 0
-    private(set) var revalidateCount = 0
 
     func start() throws {
         startCount += 1
@@ -175,10 +174,6 @@ final class ControllerFakeTouchSource: TouchSource {
         isRunning = false
     }
 
-    func revalidate() {
-        revalidateCount += 1
-    }
-
     /// 本物と同じく、動いている間だけフレームを渡す
     func send(_ frame: TouchFrame) {
         guard isRunning else { return }
@@ -188,8 +183,6 @@ final class ControllerFakeTouchSource: TouchSource {
 
 @MainActor
 final class ControllerFakeKeyboard: KeyboardMonitor {
-    var trigger: TriggerKey = .function
-    var passTriggerToApps = true
     var cursorLock: CursorLockMethod = .none
     var isSuppressingPointer = false {
         didSet {
@@ -199,13 +192,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         }
     }
     var onEvent: ((KeyboardEvent) -> Void)?
-    /// 角の長押しのセッションの間 true（本物は、トリガーを押していなくてもキーで .interrupted を送る）
-    var interruptsWithoutTrigger = false {
-        didSet {
-            guard interruptsWithoutTrigger != oldValue else { return }
-            recorder.log(interruptsWithoutTrigger ? "keys:watch" : "keys:unwatch")
-        }
-    }
+    /// rememberPointerLocation が呼ばれた回数（本物は、次の抑止の始まりでポインタをそこへ戻す）
+    private(set) var rememberedPointerCount = 0
     /// コントローラーが知らせた、トラックパッドに触れているか（知らされた順）
     var isTrackpadTouched = false {
         didSet { trackpadTouchReports.append(isTrackpadTouched) }
@@ -256,11 +244,22 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    /// 本物のモニターは動いている間だけイベントを渡す
+    func rememberPointerLocation() {
+        rememberedPointerCount += 1
+        recorder.log("pointer:remember")
+    }
+
+    /// 本物のモニターは動いている間だけイベントを渡す（キーは抑止している間だけ見る）
     func send(_ event: KeyboardEvent) {
         guard isRunning else { return }
         onEvent?(event)
         suppressionAfterEvent.append(isSuppressingPointer)
+    }
+
+    /// キーが押された。本物と同じく、抑止している（9マスを開いている）間だけ .interrupted を送る
+    func pressKey() {
+        guard isSuppressingPointer else { return }
+        send(.interrupted)
     }
 }
 
@@ -444,16 +443,10 @@ final class ControllerFakeHUD: HUDPresenting {
     }
 
     private(set) var toastHides = 0
-    /// トリガーキーを押しているかの知らせ（知らされた順）
-    private(set) var triggerHeldChanges: [Bool] = []
 
     func hideToast() {
         toastHides += 1
         recorder.log("toast:hide")
-    }
-
-    func setTriggerHeld(_ held: Bool) {
-        triggerHeldChanges.append(held)
     }
 }
 

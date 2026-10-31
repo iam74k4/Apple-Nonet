@@ -20,14 +20,13 @@ import Testing
         return configuration.validated()
     }
 
-    @Test func aQuickTapOnASharedPositionRunsTheSharedCellInsteadOfTheAppCell() async throws {
+    @Test func aSharedPositionRunsTheSharedCellInsteadOfTheAppCell() async throws {
         let h = try ControllerHarness(configuration: configuration())
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.settle()
         #expect(h.performer.actions == [Self.mute.action])
         #expect(h.controller.lastExecution?.cellTitle == "ミュート")
-        #expect(h.controller.lastExecution?.wasFastTap == true)
         // どこで実行したかは、使っていたプロファイル（Safari）の位置で残す（最近の実行から設定のそのマスを開く）
         #expect(h.controller.lastExecution?.profileID == (try h.profileID(F.safari)))
         #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 0))
@@ -37,7 +36,7 @@ import Testing
     @Test func aSharedPositionIsNotEmptyEvenWhereTheAppHasNoCell() async throws {
         let h = try ControllerHarness(configuration: configuration())
         h.start()
-        h.fastTap(1)
+        h.run(1)
         await h.settle()
         #expect(h.performer.actions == [Self.lock.action])
         #expect(!h.haptics.events.contains(.rejected))
@@ -46,7 +45,7 @@ import Testing
     @Test func theHUDShowsTheSharedCellsWithTheirMark() throws {
         let h = try ControllerHarness(configuration: configuration())
         h.start()
-        h.pressTrigger()
+        h.open()
         h.advance(1)
         let cells = try #require(h.hud.current?.cells)
         #expect(cells[0]?.title == "ミュート")
@@ -55,14 +54,14 @@ import Testing
         #expect(cells[1]?.isShared == true)
         #expect(cells[2]?.title == F.closeTab.title)
         #expect(cells[2]?.isShared == false)
-        h.releaseTrigger()
+        h.closeIfOpen()
     }
 
     /// プロファイルの無いアプリではグローバルのページで、同じ位置に出る
     @Test func anAppWithoutAProfileGetsTheSharedCellsOnTheGlobalPage() async throws {
         let h = try ControllerHarness(configuration: configuration(), frontmost: F.notesApp)
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.settle()
         #expect(h.performer.actions == [Self.mute.action])
         #expect(h.controller.lastExecution?.profileID == h.controller.configuration.globalProfile.id)
@@ -71,10 +70,10 @@ import Testing
     @Test func anAppWhereNonetIsOffStaysOffWithSharedCells() async throws {
         let h = try ControllerHarness(configuration: configuration { $0.setAppMode(.off, for: F.safari) })
         h.start()
-        h.fastTap(1)
-        h.pressTrigger()
+        h.run(1)
+        h.open()
         h.advance(1)
-        h.releaseTrigger()
+        h.closeIfOpen()
         await h.settle()
         #expect(h.performer.calls.isEmpty)
         #expect(h.hud.shown.isEmpty)
@@ -86,7 +85,7 @@ import Testing
         let h = try ControllerHarness(configuration: configuration())
         h.start()
         h.controller.update { $0.setSharedCell(nil, at: 0) }
-        h.fastTap(0)
+        h.run(0)
         await h.settle()
         #expect(h.performer.actions == [F.newTab.action])
     }

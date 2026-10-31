@@ -13,7 +13,7 @@ struct ModelHUDScaleCodingTests {
 
     @Test("すべての値が往復する", arguments: HUDScale.allCases)
     func everyValueRoundTrips(_ scale: HUDScale) throws {
-        let settings = GlobalSettings(fireMode: .onFingerLift, hudScale: scale)
+        let settings = GlobalSettings(haptics: .light, hudScale: scale)
         #expect(try ModelFixtures.roundTrip(settings) == settings)
     }
 

@@ -70,7 +70,7 @@ struct MenuBarState: Equatable {
     var hasGuide: Bool
     /// 最近実行したボタン（新しい順。メニューの「最近の実行」）
     var recentRuns: [ExecutionRecord] = []
-    /// メニューの先頭の早見表（前面のアプリでトリガーを押したときに出る9マス）。nil なら出さない
+    /// メニューの先頭の早見表（前面のアプリで9マスを開いたときに出るマス）。nil なら出さない
     var cheatSheet: MenuBarCheatSheet?
 
     init(
@@ -161,7 +161,7 @@ enum MenuBarStatus: Equatable {
 /// メニューの1行
 enum MenuBarEntry: Equatable {
     case status(String, MenuBarIconState)
-    /// 前面のアプリでトリガーを押したときに出る9マスの早見表。押したマスを設定で開く。
+    /// 前面のアプリで9マスを開いたときに出るマスの早見表。押したマスを設定で開く。
     /// 「このアプリでは使わない」アプリでは、マスの代わりにそう言う1行
     case cheatSheet(MenuBarCheatSheet)
     case notice(String)

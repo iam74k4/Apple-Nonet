@@ -1,6 +1,6 @@
-// 担当: engine。キーボード・指・時計の偽物から NonetController を動かし、HUD・触覚・実行までを確かめる。
-// 既定: トリガーは右⌥、hudDelay 0.3秒（指を置かなければ placementWindow 0.6秒で HUD）、onTriggerRelease、
-// 前面は Safari（ページは Safari 2枚＋グローバル1枚）。使い始めの案内は出し終えている（ControllerHarness）
+// 担当: engine。指・キーボード・時計の偽物から NonetController を動かし、開く → 選ぶ → 離して実行 / やめる までを確かめる。
+// 既定: 前面は Safari（ページは Safari 2枚＋グローバル1枚）。使い始めの案内は出し終えている（ControllerHarness）。
+// h.open() は上の縁（y 0.98）で触れて 0.05 秒で 0.06 下へ滑らせる。開いた後の指は上の外枠にいる
 import Foundation
 import Testing
 @testable import NonetCore
@@ -9,400 +9,300 @@ import Testing
 @Suite struct ControllerSessionTests {
     typealias F = ControllerFixtures
 
-    /// 指を置かずに HUD が出るまで待つ（仕様 4 (a)）
-    private static let placementWindow = SessionConfiguration.defaultPlacementWindow
-
     /// 失敗のトーストの見出し（どのプロファイルのどのマスか）
     private func failureTitle(_ cell: Cell, profile: String, page: Int = 0, index: Int, pages: Int) -> String {
         ControllerPresentation.failureTitle(ControllerTarget(cell: cell, profileName: profile, address: CellAddress(page: page, index: index), profilePageCount: pages))
     }
 
-    private func detail(_ cell: Cell) -> String? {
-        guard case .keystroke(let keys) = cell.action else { return nil }
-        return keys.displayString
-    }
+    // MARK: 開く
 
-    // MARK: 速押し
-
-    @Test func fastTapExecutesTheCellOfTheProfileOfTheAppFrontmostAtTriggerDown() async throws {
+    /// 上の縁から滑らせると開く: ポインタの位置を覚え、抑止を始め、HUD をすぐに出し（指は外枠なので「離すとやめる」）、軽い触覚
+    @Test func slidingInFromTheTopEdgeOpensTheGrid() throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        // トリガーを押した後に前面が変わっても、押したときのアプリのページとアプリに向けて実行する
+        h.recorder.clear()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        // 上の縁で触れ始めたときにポインタの位置を覚える（開いたらそこへ戻す）
+        #expect(h.recorder.events == ["pointer:remember"])
+        #expect(!h.keyboard.isSuppressingPointer)
+        h.advance(0.05)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        #expect(h.recorder.events == ["pointer:remember", "suppress:on", "hud:show", "haptic:activation"])
+        let model = try #require(h.hud.current)
+        #expect(model.title == "Safari")
+        #expect(model.isFingerInFrame)
+        #expect(model.highlightedIndex == nil)
+        #expect(model.hint == ControllerPresentation.hint(isPracticeMode: false))
+        #expect(h.haptics.plays == [.init(event: .activation, strength: .medium)])
+    }
+
+    /// ポインタの抑止は、開いたフレームを受けた呼び出しの中で始まる（直後のポインタイベントを取りこぼさない）
+    @Test func suppressionStartsInsideTheFrameThatOpens() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.advance(0.05)
+        var suppressed = false
+        h.touchSource.onFrame.map { onFrame in
+            onFrame(TouchFrame(timestamp: h.scheduler.now, points: [TouchPoint(id: 1, x: 0.5, y: ControllerHarness.slidY)]))
+            suppressed = h.keyboard.isSuppressingPointer
+        }
+        #expect(suppressed)
+    }
+
+    /// 帯の外で触れ始めた・遅い・横に滑らせた・2本目の指・手のひら では開かない（ポインタはそのまま）
+    @Test func ordinaryTouchesDoNotOpen() throws {
+        let h = try ControllerHarness()
+        h.start()
+        // 帯の外で触れ始めた
+        h.touch(x: 0.5, y: 0.9)
+        h.advance(0.05)
+        h.touch(x: 0.5, y: 0.6)
+        h.lift()
+        // 遅い
+        h.touch(x: 0.5, y: 0.98)
+        h.advance(0.5)
+        h.touch(x: 0.5, y: 0.8)
+        h.lift()
+        // 横に滑らせた
+        h.touch(x: 0.3, y: 0.98)
+        h.advance(0.05)
+        h.touch(x: 0.45, y: 0.9)
+        h.lift()
+        // 2本目の指
+        h.touch(1, x: 0.5, y: 0.98)
+        h.touch(2, x: 0.2, y: 0.2)
+        h.advance(0.05)
+        h.touch(1, x: 0.5, y: 0.85)
+        h.lift(1)
+        h.lift(2)
+        // 手のひら
+        h.majorAxes[1] = 40
+        h.touch(x: 0.5, y: 0.98)
+        h.advance(0.05)
+        h.touch(x: 0.5, y: 0.85)
+        h.lift()
+        #expect(h.hud.shown.isEmpty)
+        #expect(h.keyboard.suppressionChanges.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
+    /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ）なら開かない
+    @Test func aPhysicallyPressedButtonKeepsItClosed() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.keyboard.isMouseButtonDown = true
+        h.open()
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
+    /// 「このアプリでは Nonet を使わない」アプリが前面なら開かない（試用期間が終わっていても知らせない）
+    @Test(arguments: [false, true])
+    func aTurnedOffAppKeepsItClosed(trialEnded: Bool) throws {
+        let h = try ControllerHarness(trialEnded: trialEnded)
+        h.start()
+        h.controller.update { _ = $0.setAppMode(.off, for: F.safari) }
+        h.open()
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.haptics.plays.isEmpty)
+        #expect(h.hud.toasts.isEmpty)
+    }
+
+    /// 無効・アクセシビリティなし・セキュア入力中は開かない
+    @Test func itDoesNotOpenUnlessRunning() throws {
+        let disabled = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.isEnabled = false }))
+        disabled.start()
+        disabled.open()
+        #expect(disabled.hud.shown.isEmpty)
+
+        let secure = try ControllerHarness()
+        secure.start()
+        secure.permissions.isSecureInputActive = true
+        secure.open()
+        #expect(secure.hud.shown.isEmpty)
+        #expect(secure.controller.status == .secureInputActive)
+        // パスワード欄から離れたら、すぐに使える
+        secure.lift()
+        secure.permissions.isSecureInputActive = false
+        secure.open()
+        #expect(secure.hud.shown.count == 1)
+
+        let noPermission = try ControllerHarness()
+        noPermission.permissions.isAccessibilityGranted = false
+        noPermission.start()
+        noPermission.open()
+        #expect(noPermission.hud.shown.isEmpty)
+    }
+
+    /// 試用期間が終わっていたら開かない。終わったことと次にすることをトースト1つと rejected の触覚で知らせる（1つのタッチで1回）
+    @Test func anExpiredTrialShowsOneToastInsteadOfOpening() throws {
+        let h = try ControllerHarness(trialEnded: true)
+        h.start()
+        h.open()
+        h.advance(0.05)
+        h.touch(x: 0.5, y: 0.5)
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.haptics.events == [.rejected])
+        #expect(h.hud.toasts == [ToastModel(
+            title: ModelFixtures.text("試用期間が終了しました"),
+            detail: ModelFixtures.text("メニューバーの Nonet から購入・登録できます"),
+            style: .failure
+        )])
+        h.lift()
+        h.open()
+        #expect(h.hud.toasts.count == 2)
+    }
+
+    /// Nonet のウィンドウ（設定など）がキーなら開かない。練習モード（初回の案内のウィンドウの上で試す）なら開く
+    @Test func aKeyNonetWindowKeepsItClosedExceptForPractice() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.frontmost.isOwnWindowKey = true
+        h.open()
+        #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
+        h.lift()
+        h.controller.isPracticeMode = true
+        h.run(2)
+        await h.settle()
+        #expect(h.hud.shown.count == 1)
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.controller.lastExecution?.cellTitle == F.closeTab.title)
+    }
+
+    /// キーを記録している間（設定画面）は開かない
+    @Test func recordingKeysKeepsItClosed() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.controller.isRecordingKeys = true
+        h.open()
+        #expect(h.hud.shown.isEmpty)
+    }
+
+    // MARK: 選んで離す
+
+    /// マスで止めてから離すと、開いたときの前面アプリのページのマスを、そのアプリに向けて実行する
+    @Test func liftingOnACellRunsItForTheAppThatWasInFront() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.open()
+        // 開いた後に前面が変わっても、開いたときのアプリのページとアプリに向けて実行する
         h.frontmost.activate(F.notesApp)
-        h.tap(2)
-        h.releaseTrigger()
+        h.advance(0.05)
+        h.touch(on: 2)
+        #expect(h.hud.current?.highlightedIndex == 2)
+        #expect(h.hud.current?.isFingerInFrame == false)
+        #expect(h.haptics.events == [.activation, .boundary])
+        h.advance(0.2)
+        h.lift()
         await h.settle()
 
         #expect(h.performer.actions == [F.closeTab.action])
         #expect(h.performer.calls.first?.frontmostApp == F.safariApp)
-        #expect(h.hud.shown.isEmpty)
-        #expect(h.haptics.plays == [.init(event: .execute, strength: .medium)])
-        #expect(h.hud.toasts == [ToastModel(title: F.closeTab.title, icon: F.closeTab.icon, style: .success)])
+        #expect(!h.hud.isVisible)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.haptics.events == [.activation, .boundary, .execute])
+        // HUD から実行したので、成功のトーストは出さない（時間の掛かるマスだけ）
+        #expect(h.hud.toasts.isEmpty)
         let record = try #require(h.controller.lastExecution)
         #expect(record.cellTitle == F.closeTab.title)
         #expect(record.profileName == "Safari")
         #expect(record.address == CellAddress(page: 0, index: 2))
         #expect(record.succeeded)
-        #expect(record.message == nil)
-        #expect(record.wasFastTap)
+        #expect(h.controller.lastCancellation == nil)
     }
 
-    @Test func fastTapUsesTheGlobalPagesWhenTheFrontmostAppHasNoProfile() async throws {
+    @Test func theGlobalPagesAreUsedWhenTheFrontAppHasNoProfile() async throws {
         let h = try ControllerHarness(frontmost: F.notesApp)
         h.start()
-        h.fastTap(8)
+        h.run(8)
         await h.settle()
-
         #expect(h.performer.actions == [F.docs.action])
         #expect(h.performer.calls.first?.frontmostApp == F.notesApp)
         #expect(h.controller.lastExecution?.profileName == ModelFixtures.globalName)
-        #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 8))
     }
 
-    @Test func aFingerRestingBeforeTheTriggerIsNotAFastTap() async throws {
+    /// 外枠に出して離すとやめる: 何も実行せず、rejected の触覚。やめたことを記録する（練習で使う）
+    @Test func liftingInTheFrameCancels() async throws {
         let h = try ControllerHarness()
         h.start()
-        // セッションの外のフレームもエンジンに渡しているので、トリガーより前から置いていた指だと分かる
-        h.touch(on: 2)
-        h.advance(1)
-        h.pressTrigger()
+        h.open()
         h.advance(0.05)
-        h.lift()
-        h.advance(0.05)
-        h.releaseTrigger()
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
-        #expect(h.controller.lastExecution == nil)
-    }
-
-    /// 親指を手前に休めたままトリガーを押し、何もせずに離しても、親指の下のマスは実行しない（仕様 9・11）
-    @Test func aRestingThumbIsNotRunWhenTheTriggerIsReleased() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        // 親指をトラックパッドの手前の右（マス 8: リーダー）に休めている
-        h.touch(1, x: 0.85, y: 0.05)
-        h.advance(2)
-        h.pressTrigger()
-        // hudDelay は過ぎたが、休めている指では HUD を出さない
-        h.advance(0.4)
-        #expect(h.hud.shown.isEmpty)
-        h.releaseTrigger()
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.controller.lastExecution == nil)
-        #expect(h.haptics.plays.isEmpty)
-    }
-
-    /// 「指を離したとき」でも、休めていた親指を離すだけでは実行しない
-    @Test func liftingARestingThumbRunsNothingOnFingerLift() async throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.fireMode = .onFingerLift }))
-        h.start()
-        h.touch(1, x: 0.85, y: 0.05)
-        h.advance(2)
-        h.pressTrigger()
-        h.advance(0.4)
-        h.lift(1)
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.controller.lastExecution == nil)
-    }
-
-    @Test func repeatedFastTapsRunOneAtATimeInOrder() async throws {
-        let h = try ControllerHarness()
-        h.performer.holds = true
-        h.start()
-        h.pressTrigger()
-        h.tap(0)
-        h.tap(2)
-        h.tap(8)
-        h.releaseTrigger()
-
-        // 触覚は実行を頼んだときに鳴る。実行は前のものが終わるまで始まらない
-        #expect(h.haptics.events == [.execute, .execute, .execute])
-        await h.waitUntil { h.performer.calls.count == 1 }
-        await h.waitUntil { h.performer.calls.count > 1 }
-        #expect(h.performer.actions == [F.newTab.action])
-        h.performer.releaseOne()
-        await h.waitUntil { h.performer.calls.count == 2 }
-        await h.waitUntil { h.performer.calls.count > 2 }
-        #expect(h.performer.calls.count == 2)
-        h.performer.releaseOne()
-        await h.waitUntil { h.performer.calls.count == 3 }
-        h.performer.releaseOne()
-        await h.settle()
-
-        #expect(h.performer.actions == [F.newTab.action, F.closeTab.action, F.reader.action])
-        #expect(h.performer.finished == [F.newTab.action, F.closeTab.action, F.reader.action])
-        #expect(h.performer.maxRunning == 1)
-        #expect(h.hud.toasts.map(\.title) == [F.newTab.title, F.closeTab.title, F.reader.title])
-        #expect(h.controller.lastExecution?.cellTitle == F.reader.title)
-    }
-
-    /// 何も実行しないが、すぐにタップしたことは届いたと触覚で知らせる
-    @Test func anEmptyCellRunsNothingButBuzzes() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.fastTap(1)
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.events == [.rejected])
-        #expect(h.hud.toasts.isEmpty)
-        #expect(h.controller.lastExecution == nil)
-    }
-
-    @Test func anEmptyCellTapStillLetsTheHUDAppearWhenHesitating() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        h.tap(1)
-        #expect(!h.hud.isVisible)
-        // 何も実行していないので、指を置かずに迷っていれば (a) の HUD を出す
-        h.advance(Self.placementWindow - 0.15)
-        #expect(h.hud.isVisible)
-        #expect(h.hud.current?.highlightedIndex == nil)
-        h.releaseTrigger()
-        await h.settle()
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.events == [.rejected])
-    }
-
-    // MARK: Nonet 自身が前面のとき
-
-    @Test func buttonsForTheFrontAppDoNotRunWhileANonetWindowIsKey() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        // 設定ウィンドウがキー。前面アプリ（current）は直前の Safari のまま
-        h.frontmost.isOwnWindowKey = true
-        h.fastTap(2)
-        await h.settle()
-
-        // セッションは始まる（タップがクリックとして設定ウィンドウに届かない）が、キーは送らずに知らせる
-        #expect(h.keyboard.suppressionChanges == [true, false])
-        #expect(h.performer.calls.isEmpty)
-        // 実行しなかったことを触覚でも知らせる
-        #expect(h.haptics.events == [.rejected])
-        let message = ModelFixtures.text("Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。")
-        let title = failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2)
-        #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: F.closeTab.icon, style: .failure)])
-        let record = try #require(h.controller.lastExecution)
-        #expect(record.cellTitle == F.closeTab.title)
-        #expect(!record.succeeded)
-        #expect(record.message == message)
-
-        // 別のアプリに戻れば使える
-        h.frontmost.isOwnWindowKey = false
-        h.fastTap(2)
-        await h.settle()
-        #expect(h.performer.actions == [F.closeTab.action])
-    }
-
-    @Test func openAppAndURLButtonsRunWhileANonetWindowIsKey() async throws {
-        // 前面アプリに働きかけないマスは、設定ウィンドウがキーでも実行する
-        let h = try ControllerHarness(frontmost: F.notesApp)
-        h.start()
-        h.frontmost.isOwnWindowKey = true
-        h.fastTap(0)
-        h.fastTap(8)
-        await h.settle()
-
-        #expect(h.performer.actions == [F.openNotes.action, F.docs.action])
-        #expect(h.hud.toasts.allSatisfy { $0.style == .success })
-    }
-
-    @Test func buttonsRunWhileNonetIsActiveWithoutAKeyWindow() async throws {
-        // 設定ウィンドウを閉じた後・Finder から開いた直後は Nonet が前面に残るが、キーのウィンドウは無い
-        let h = try ControllerHarness()
-        h.start()
-        h.frontmost.isOwnWindowKey = false
-        h.fastTap(2)
-        h.fastTap(8)
-        await h.settle()
-
-        #expect(h.performer.actions == [F.closeTab.action, F.reader.action])
-        #expect(h.hud.toasts.allSatisfy { $0.style == .success })
-    }
-
-    @Test func practiceModeRecordsEvenWhileANonetWindowIsKey() async throws {
-        // 初回起動の練習は、案内のウィンドウをキーにしたまま行う（何も実行しない）
-        let h = try ControllerHarness()
-        h.start()
-        h.controller.isPracticeMode = true
-        h.frontmost.isOwnWindowKey = true
-        h.fastTap(2)
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.hud.toasts.isEmpty)
-        #expect(h.controller.lastExecution?.cellTitle == F.closeTab.title)
-        #expect(h.controller.lastExecution?.succeeded == true)
-    }
-
-    // MARK: トラックパッドの確かめ直し
-
-    @Test func startingASessionAsksTheTouchSourceToRevalidate() throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        #expect(h.touchSource.revalidateCount == 1)
-        h.releaseTrigger()
-        h.pressTrigger()
-        #expect(h.touchSource.revalidateCount == 2)
-    }
-
-    // MARK: HUD
-
-    @Test func hudShowsUpdatesAndHidesWithTheResolvedPages() async throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.hudPosition = .nearCursor }))
-        h.start()
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-
-        let expectedCells: [HUDCell?] = [
-            HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: detail(F.newTab)),
-            nil,
-            HUDCell(title: F.closeTab.title, icon: F.closeTab.icon, detail: detail(F.closeTab)),
-            nil,
-            HUDCell(title: F.summarize.title, icon: F.summarize.icon),
-            nil, nil, nil,
-            HUDCell(title: F.reader.title, icon: F.reader.icon),
-        ]
-        let hint = ModelFixtures.text("タップか、\(TriggerKey.rightOption.localizedName)を離して実行")
-        // グローバルのページは 3枚目から（ページの点をそこで離す）
-        let shown = HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: nil, hint: hint, globalPagesStart: 2)
-        #expect(h.hud.shown == [ControllerFakeHUD.Shown(model: shown, position: .nearCursor)])
-        #expect(detail(F.newTab)?.isEmpty == false)
-
         h.touch(on: 4)
-        #expect(h.hud.current?.highlightedIndex == 4)
-        h.advance(0.1)
-        h.touch(on: 8)
-        #expect(h.hud.updates.map(\.highlightedIndex) == [4, 8])
-        #expect(h.hud.updates.last == HUDModel(title: "Safari", pageIndex: 0, pageCount: 3, cells: expectedCells, highlightedIndex: 8, hint: hint, globalPagesStart: 2))
-        #expect(h.haptics.events == [.boundary])
-
         h.advance(0.3)
-        h.releaseTrigger()
+        h.touch(x: 0.03, y: 0.5)
+        #expect(h.hud.current?.isFingerInFrame == true)
+        #expect(h.hud.current?.highlightedIndex == nil)
+        h.advance(0.3)
+        h.lift()
         await h.settle()
 
+        #expect(h.performer.calls.isEmpty)
         #expect(!h.hud.isVisible)
-        #expect(h.hud.hideCount == 1)
-        #expect(h.performer.actions == [F.reader.action])
-        #expect(h.haptics.events == [.boundary, .execute])
-        // HUD から実行したときは、成功のトーストを出さない
-        #expect(h.hud.toasts.isEmpty)
-        #expect(h.controller.lastExecution?.wasFastTap == false)
-        #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 8))
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.haptics.events == [.activation, .boundary, .boundary, .rejected])
+        #expect(h.controller.lastExecution == nil)
+        #expect(h.controller.lastCancellation?.reason == .liftedInFrame)
     }
 
-    @Test func liftingTheFingerBeforeReleasingCancels() async throws {
+    /// マスに留まる時間（0.15 秒）が足りないうちに離した・空きマスで離したら、実行せずに rejected
+    @Test func liftingTooSoonOrOnAnEmptyCellRunsNothing() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        h.advance(0.3)
-        h.touch(on: 4)
-        h.advance(0.4)
-        h.lift()
-        #expect(h.hud.current?.highlightedIndex == nil)
-        h.advance(0.1)
-        h.releaseTrigger()
+        h.run(2, dwell: 0.1)
+        h.run(1)
         await h.settle()
-
-        #expect(!h.hud.isVisible)
         #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.events.filter { $0 == .rejected }.count == 2)
+        #expect(h.controller.lastCancellation?.reason == .liftedOnEmptyCell)
         #expect(!h.haptics.events.contains(.execute))
-        #expect(!h.keyboard.isSuppressingPointer)
     }
 
-    @Test func onFingerLiftExecutesWhenTheFingerLeaves() async throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.fireMode = .onFingerLift }))
-        h.start()
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.hint == ModelFixtures.text("指を離して実行"))
-        h.touch(on: 0)
-        h.advance(0.4)
-        h.lift()
-        #expect(!h.hud.isVisible)
-        // トリガーを押したまま。実行はもう頼んである
-        #expect(h.keyboard.isSuppressingPointer)
-        h.releaseTrigger()
-        await h.settle()
-
-        #expect(h.performer.actions == [F.newTab.action])
-        #expect(h.controller.lastExecution?.wasFastTap == false)
-        #expect(h.hud.toasts.isEmpty)
-        #expect(!h.keyboard.isSuppressingPointer)
-    }
-
-    @Test func anotherKeyInterruptsWithoutExecuting() async throws {
+    /// 開いている間にキーを押したら、何も実行せずに閉じる（触覚も鳴らさない）
+    @Test func aKeyClosesWithoutRunning() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        h.touch(on: 4)
-        h.interrupt()
-        #expect(!h.hud.isVisible)
-        #expect(!h.keyboard.isSuppressingPointer)
-        h.advance(0.5)
-        h.releaseTrigger()
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.hud.shown.count == 1)
-    }
-
-    @Test func aSessionThatOutlastsTheLimitEnds() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
+        h.open()
+        h.advance(0.05)
+        h.touch(on: 2)
         h.advance(0.3)
-        h.touch(on: 4)
-        h.advance(SessionConfiguration.defaultMaxDuration)
+        h.pressKey()
         #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
-        // 時間切れの後に離しても何も起きない。タイマーは確かめ直しの1つだけ
-        h.releaseTrigger()
+        h.lift()
         await h.settle()
         #expect(h.performer.calls.isEmpty)
-        #expect(h.scheduler.pending.map(\.delay) == [NonetController.pollInterval])
+        #expect(h.haptics.events == [.activation, .boundary])
+        // キーで閉じたのは、指を離してやめたのとは別
+        #expect(h.controller.lastCancellation == nil)
+        // 開いていない間のキーは何もしない
+        h.pressKey()
+        #expect(h.keyboard.suppressionAfterEvent == [false])
     }
 
+    /// 2本指で横にスワイプするとページが変わり、残った指を滑らせて選べる（アプリのページの後ろにグローバルのページ）
     @Test func twoFingerSwipesTurnPagesAcrossTheAppAndGlobalPages() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        h.advance(0.3)
-
-        // 2本の指を左へ動かすと次のページ
-        h.touch(1, x: 0.6, y: 0.5)
-        h.touch(2, x: 0.7, y: 0.5)
-        h.touch(1, x: 0.4, y: 0.5)
-        h.touch(2, x: 0.5, y: 0.5)
-        #expect(h.hud.current?.pageIndex == 1)
-        #expect(h.hud.current?.title == "Safari")
-        #expect(h.hud.current?.cells.first??.title == F.reload.title)
-        #expect(h.haptics.events == [.pageChange])
-        h.lift(1)
-        h.lift(2)
-
-        h.touch(1, x: 0.6, y: 0.5)
-        h.touch(2, x: 0.7, y: 0.5)
-        h.touch(1, x: 0.4, y: 0.5)
-        h.touch(2, x: 0.5, y: 0.5)
-        #expect(h.hud.current?.pageIndex == 2)
+        h.open()
+        h.advance(0.05)
+        for expected in [1, 2] {
+            h.touch(1, x: 0.5, y: 0.5)
+            h.touch(2, x: 0.7, y: 0.5)
+            h.touch(1, x: 0.3, y: 0.5)
+            h.touch(2, x: 0.5, y: 0.5)
+            #expect(h.hud.current?.pageIndex == expected)
+            h.lift(2)
+        }
         #expect(h.hud.current?.title == ModelFixtures.globalName)
-        h.lift(1)
-        h.lift(2)
-
+        #expect(h.haptics.events.filter { $0 == .pageChange }.count == 2)
         h.touch(on: 8)
-        h.advance(0.4)
-        h.releaseTrigger()
+        h.advance(0.3)
+        h.lift()
         await h.settle()
 
         #expect(h.performer.actions == [F.docs.action])
@@ -411,359 +311,188 @@ import Testing
         #expect(h.controller.lastExecution?.address == CellAddress(page: 0, index: 8))
     }
 
+    /// 開いている間に設定が変わっても、開いたときのページを使い続ける
     @Test func theSessionKeepsThePagesItStartedWith() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.open()
         let safariID = try h.profileID(F.safari)
         h.controller.update { configuration in
-            configuration.updateProfile(id: safariID) { $0.pages[0].cells[0]?.title = "変えた" }
+            configuration.updateProfile(id: safariID) { $0.pages[0].cells[2] = nil }
         }
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.cells.first??.title == F.newTab.title)
-        h.releaseTrigger()
-
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.cells.first??.title == "変えた")
-    }
-
-    @Test func aTriggerDownWhileTheLastSessionIsDrainingStartsAFreshSession() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
         h.advance(0.05)
         h.touch(on: 2)
-        // 置いたばかりの指が残っているので、前のセッションは指が離れるのを待っている
-        h.releaseTrigger()
-        h.frontmost.activate(F.notesApp)
-        h.advance(0.05)
-        h.pressTrigger()
-        #expect(h.keyboard.suppressionChanges == [true, false, true])
-
-        // 新しいセッションは押したときの前面アプリ（メモ → グローバル）を使い、残っていた指は速押しにしない
-        h.lift()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.title == ModelFixtures.globalName)
-        h.releaseTrigger()
-        await h.settle()
-        #expect(h.performer.calls.isEmpty)
-        #expect(!h.keyboard.isSuppressingPointer)
-    }
-
-    @Test func aMissedTriggerUpEndsTheOldSessionBeforeTheNewOne() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        h.touch(on: 4)
-        // 離したイベントを取りこぼしたまま、もう一度押された
-        h.pressTrigger()
-        #expect(!h.hud.isVisible)
-        #expect(h.keyboard.isSuppressingPointer)
-        #expect(Array(h.recorder.events.suffix(3)) == ["hud:hide", "suppress:off", "suppress:on"])
-        h.lift()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.shown.count == 2)
-        h.releaseTrigger()
-        await h.settle()
-        #expect(h.performer.calls.isEmpty)
-    }
-
-    // MARK: ポインタの抑止
-
-    @Test func pointerSuppressionStartsInsideTheTriggerDownCallback() throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        #expect(h.keyboard.suppressionAfterEvent == [true])
-        #expect(h.recorder.events.first == "suppress:on")
-        h.releaseTrigger()
-        #expect(h.keyboard.suppressionChanges == [true, false])
-    }
-
-    @Test func suppressionLastsUntilAJustPlacedFingerLeaves() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        h.advance(0.05)
-        h.touch(on: 2)
-        h.advance(0.05)
-        // 置いたばかりの指が残っているので、その指が離れるまで抑止を続ける
-        h.releaseTrigger()
-        #expect(h.keyboard.isSuppressingPointer)
-        h.advance(0.05)
-        h.lift()
-        #expect(!h.keyboard.isSuppressingPointer)
-        await h.settle()
-
-        #expect(h.performer.actions == [F.closeTab.action])
-        #expect(h.recorder.events.prefix(4) == ["suppress:on", "haptic:execute", "suppress:off", "perform:keystroke"])
-    }
-
-    @Test func suppressionEndsWhenAJustPlacedFingerStaysTooLong() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        h.advance(0.05)
-        h.touch(on: 2)
-        h.releaseTrigger()
-        #expect(h.keyboard.isSuppressingPointer)
         h.advance(0.3)
+        h.lift()
+        await h.settle()
+        #expect(h.performer.actions == [F.closeTab.action])
+    }
+
+    /// 指が離れたフレームを取りこぼしても、maxDuration（20 秒）で閉じる
+    @Test func aSessionThatOutlastsTheLimitEnds() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.open()
+        h.advance(0.05)
+        h.touch(on: 2)
+        h.advance(SessionConfiguration.defaultMaxDuration)
+        #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
         h.lift()
         await h.settle()
         #expect(h.performer.calls.isEmpty)
+        // タイマーは確かめ直しの1つだけ
+        #expect(h.scheduler.pending.map(\.delay) == [NonetController.pollInterval])
     }
 
-    @Test func onlyOneTickIsPendingAtATime() throws {
+    /// 指を離して閉じたら、遅れて届くクリック（タップでクリック）を捨ててもらう
+    @Test func closingByLiftingDropsLateClicks() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.run(2)
+        await h.settle()
+        #expect(h.keyboard.lateClickGraces == [true])
+    }
+
+    // MARK: 少し長く止めてから実行するマス
+
+    /// 少し長く止めるマスは、holdDwell（0.6 秒）止めてから離したときだけ実行する。HUD は止め終えたことを見せる
+    @Test func aHoldCellRunsOnlyAfterTheLongerDwell() async throws {
+        var configuration = F.configuration()
+        configuration.profiles[1].pages[0].cells[2]?.requiresHold = true
+        let h = try ControllerHarness(configuration: configuration)
+        h.start()
+        h.run(2, dwell: 0.3)
+        await h.settle()
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.controller.lastCancellation?.reason == .liftedTooSoon)
+
+        h.open()
         h.advance(0.05)
         h.touch(on: 2)
-        h.advance(0.05)
-        h.touch(on: 5)
-        let ticks = { h.scheduler.pending.filter { $0.delay != NonetController.pollInterval } }
-        #expect(ticks().count == 1)
-        h.lift()
-        h.releaseTrigger()
-        #expect(ticks().isEmpty)
-    }
-
-    @Test func endingRightAfterALiftAsksTheKeyboardToDropLateClicks() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        // 速押しで指を離してからトリガーを離した
-        h.fastTap(2)
-        // トリガーを指より少し先に離した（指を離したフレームで終わる）
-        h.pressTrigger()
-        h.advance(0.05)
-        h.touch(on: 2)
-        h.advance(0.05)
-        h.releaseTrigger()
-        h.advance(0.03)
+        let holding = try #require(h.hud.current?.hold)
+        #expect(holding.cellIndex == 2)
+        #expect(holding.duration == SessionConfiguration.defaultHoldDwell)
+        #expect(!holding.isReady)
+        h.advance(SessionConfiguration.defaultHoldDwell)
+        #expect(h.hud.current?.hold?.isReady == true)
         h.lift()
         await h.settle()
-
-        #expect(h.keyboard.lateClickGraces == [true, true])
-        #expect(h.performer.actions == [F.closeTab.action, F.closeTab.action])
-    }
-
-    @Test func endingWithoutARecentTouchLetsClicksThrough() throws {
-        let h = try ControllerHarness()
-        h.start()
-        // トリガーをほかのキーと組み合わせただけ（右⌘＋C など）
-        h.pressTrigger()
-        h.advance(0.1)
-        h.interrupt()
-        h.releaseTrigger()
-        // HUD で指を長く置いて離し、しばらくしてからトリガーを離した
-        h.pressTrigger()
-        h.touch(on: 4)
-        h.advance(1)
-        h.lift()
-        h.advance(1)
-        h.releaseTrigger()
-
-        #expect(h.keyboard.lateClickGraces == [false, false])
-        #expect(h.keyboard.suppressionChanges == [true, false, true, false])
-    }
-
-    // MARK: ライセンス・練習モード
-
-    @Test func anExpiredTrialShowsTheBannerAndRefusesToExecute() async throws {
-        let h = try ControllerHarness(trialEnded: true)
-        h.start()
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.banner == ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます。"))
-        #expect(h.hud.current?.bannerStyle == .warning)
-        h.touch(on: 4)
-        h.advance(0.4)
-        h.releaseTrigger()
-        await h.settle()
-
-        let message = NonetError.licenseRequired.errorDescription
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.events == [.rejected])
-        let title = failureTitle(F.summarize, profile: "Safari", index: 4, pages: 2)
-        #expect(h.hud.toasts == [ToastModel(title: title, detail: message, icon: F.summarize.icon, style: .failure)])
-        #expect(h.controller.lastExecution?.succeeded == false)
-        #expect(h.controller.lastExecution?.message == message)
-        #expect(h.controller.lastExecution?.cellTitle == F.summarize.title)
-    }
-
-    @Test func anExpiredTrialRefusesFastTapsToo() async throws {
-        let h = try ControllerHarness(trialEnded: true)
-        h.start()
-        h.fastTap(2)
-        await h.settle()
-
-        #expect(h.performer.calls.isEmpty)
-        #expect(h.hud.toasts.map(\.style) == [.failure])
-        #expect(h.controller.lastExecution?.wasFastTap == true)
-    }
-
-    @Test func pressingTheTriggerRefreshesTheLicense() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        #expect(h.license.entitlement == .trial(daysLeft: LicenseManager.trialDays))
-        h.clock.advance(days: 15)
-        // 実行してよいかはいつでも正しい。表示用の entitlement はセッションの開始で新しくなる
-        #expect(!h.license.canExecuteActions)
-        #expect(h.license.entitlement != .expired)
-        h.pressTrigger()
-        h.advance(0.01)
-        #expect(h.license.entitlement == .expired)
-    }
-
-    @Test func theTriggerRefreshesTheLicenseAtMostOncePerInterval() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        let initial = h.licenseStorage.trialWrites
-        // ふつうのショートカットでもトリガーの押下は届く。そのたびに試用の記録を書かない
-        for _ in 0..<5 {
-            h.pressTrigger()
-            h.advance(0.5)
-            h.releaseTrigger()
-            h.advance(0.5)
-        }
-        #expect(h.licenseStorage.trialWrites == initial + 1)
-        h.advance(NonetController.licenseRefreshInterval)
-        h.pressTrigger()
-        h.advance(0.01)
-        #expect(h.licenseStorage.trialWrites == initial + 2)
-    }
-
-    @Test func aLicensedTriggerDoesNotRefreshTheTrial() async throws {
-        let h = try ControllerHarness(licensed: true)
-        guard case .licensed = h.license.entitlement else {
-            Issue.record("ライセンスが登録されていない: \(h.license.entitlement)")
-            return
-        }
-        h.start()
-        let initial = h.licenseStorage.trialWrites
-        h.fastTap(2)
-        h.advance(1)
-        await h.settle()
-        #expect(h.licenseStorage.trialWrites == initial)
         #expect(h.performer.actions == [F.closeTab.action])
     }
 
+    // MARK: 試用期間・練習モード・Nonet のウィンドウ
+
+    /// 開いたら（60 秒に1回まで）表示用のライセンスを新しくする。ライセンスがあれば数えない
+    @Test func openingRefreshesTheLicenseAtMostOncePerInterval() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        let writes = h.licenseStorage.trialWrites
+        h.run(2)
+        h.advance(0)
+        #expect(h.licenseStorage.trialWrites == writes + 1)
+        h.run(2)
+        h.advance(0)
+        #expect(h.licenseStorage.trialWrites == writes + 1)
+        h.advance(NonetController.licenseRefreshInterval)
+        h.run(2)
+        h.advance(0)
+        #expect(h.licenseStorage.trialWrites == writes + 2)
+
+        let licensed = try ControllerHarness(licensed: true)
+        licensed.start()
+        let licensedWrites = licensed.licenseStorage.trialWrites
+        licensed.run(2)
+        licensed.advance(0)
+        #expect(licensed.licenseStorage.trialWrites == licensedWrites)
+    }
+
+    /// 練習モードでは実行せず、lastExecution に記録だけする（recentExecutions には入れない）
     @Test func practiceModeRecordsWithoutPerforming() async throws {
         let h = try ControllerHarness()
         h.start()
         h.controller.isPracticeMode = true
-        h.pressTrigger()
-        h.advance(Self.placementWindow)
-        #expect(h.hud.current?.hint == ModelFixtures.text("練習中 · \(ModelFixtures.text("タップか、\(TriggerKey.rightOption.localizedName)を離して実行"))"))
-        h.releaseTrigger()
-        h.fastTap(2)
+        h.run(2)
         await h.settle()
-
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.events == [.execute])
-        #expect(h.hud.toasts.isEmpty)
-        let record = try #require(h.controller.lastExecution)
-        #expect(record.succeeded)
-        #expect(record.cellTitle == F.closeTab.title)
-        #expect(record.wasFastTap)
-        // 実際には実行していないので、最近の実行には入れない
+        #expect(h.haptics.events.contains(.execute))
+        #expect(h.controller.lastExecution?.cellTitle == F.closeTab.title)
         #expect(h.controller.recentExecutions.isEmpty)
+        // 外枠でやめたことも記録する（練習の2つ目の課題）
+        h.open()
+        h.advance(0.1)
+        h.liftAndClose()
+        #expect(h.controller.lastCancellation?.reason == .liftedInFrame)
     }
 
-    @Test func anExpiredTrialAlsoRefusesPracticeTaps() async throws {
-        let h = try ControllerHarness(trialEnded: true)
-        h.start()
-        h.controller.isPracticeMode = true
-        h.fastTap(2)
-        await h.settle()
-
-        #expect(h.haptics.events == [.rejected])
-        #expect(h.hud.toasts.map(\.style) == [.failure])
-        #expect(h.controller.lastExecution?.succeeded == false)
-    }
-
-    @Test func practiceTapsOnEmptyCellsAreNotRecorded() async throws {
+    /// 開いている間に Nonet のウィンドウがキーになったら、前面アプリに働きかけるマスは実行しない（アプリを開く・URL は実行する）
+    @Test func buttonsForTheFrontAppDoNotRunIfANonetWindowBecomesKey() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.controller.isPracticeMode = true
-        h.fastTap(1)
+        h.open()
+        h.frontmost.isOwnWindowKey = true
+        h.advance(0.05)
+        h.touch(on: 2)
+        h.advance(0.3)
+        h.lift()
         await h.settle()
-        #expect(h.controller.lastExecution == nil)
-        #expect(h.haptics.events == [.rejected])
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.events.last == .rejected)
+        let record = try #require(h.controller.lastExecution)
+        #expect(!record.succeeded)
+        #expect(h.hud.toasts.last?.style == .failure)
+
+        let global = try ControllerHarness(frontmost: F.notesApp)
+        global.start()
+        global.open()
+        global.frontmost.isOwnWindowKey = true
+        global.advance(0.05)
+        global.touch(on: 8)
+        global.advance(0.3)
+        global.lift()
+        await global.settle()
+        #expect(global.performer.actions == [F.docs.action])
     }
 
-    // MARK: 結果とトースト
+    // MARK: 結果と失敗
 
     @Test func aiOutputGoesToTheResultPanel() async throws {
         let h = try ControllerHarness()
-        h.performer.output = { action in
-            if case .ai = action { return "要約です" }
-            return nil
-        }
+        h.performer.output = { $0 == F.summarize.action ? "要約の結果" : nil }
         h.start()
-        h.fastTap(4)
+        h.run(4)
         await h.settle()
-
-        #expect(h.hud.results == [ResultModel(title: F.summarize.title, text: "要約です", icon: F.summarize.icon)])
-        #expect(h.hud.toasts.isEmpty)
-        #expect(h.controller.lastExecution?.succeeded == true)
-    }
-
-    @Test func noSuccessToastWhenExecutionToastsAreOff() async throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.showExecutionToast = false }))
-        h.start()
-        h.fastTap(2)
-        await h.settle()
-
-        #expect(h.performer.actions == [F.closeTab.action])
-        #expect(h.hud.toasts.isEmpty)
+        #expect(h.hud.results == [ResultModel(title: F.summarize.title, text: "要約の結果", icon: F.summarize.icon)])
     }
 
     @Test func failuresAlwaysShowAFailureToast() async throws {
         let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.showExecutionToast = false }))
-        let error = NonetError.appNotFound("Safari")
-        h.performer.failure = { _ in error }
+        h.performer.failure = { $0 == F.closeTab.action ? NonetError.actionFailed("だめでした") : nil }
         h.start()
-        h.fastTap(2)
-        h.pressTrigger()
-        h.advance(0.3)
-        h.touch(on: 0)
-        h.advance(0.4)
-        h.releaseTrigger()
+        h.run(2)
         await h.settle()
-
-        let message = error.errorDescription
-        #expect(h.hud.toasts == [
-            ToastModel(title: failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2), detail: message, icon: F.closeTab.icon, style: .failure),
-            ToastModel(title: failureTitle(F.newTab, profile: "Safari", index: 0, pages: 2), detail: message, icon: F.newTab.icon, style: .failure),
-        ])
+        #expect(h.hud.toasts == [ToastModel(
+            title: failureTitle(F.closeTab, profile: "Safari", index: 2, pages: 2),
+            detail: "だめでした",
+            icon: F.closeTab.icon,
+            style: .failure
+        )])
         #expect(h.controller.lastExecution?.succeeded == false)
-        #expect(h.controller.lastExecution?.message == message)
-        #expect(h.controller.lastExecution?.wasFastTap == false)
     }
-
-    // MARK: 触覚
 
     @Test func hapticsUseTheConfiguredStrengthAndCanBeTurnedOff() async throws {
         let strong = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.haptics = .strong }))
         strong.start()
-        strong.fastTap(2)
+        strong.run(2)
         await strong.settle()
-        #expect(strong.haptics.plays == [.init(event: .execute, strength: .strong)])
+        #expect(strong.haptics.plays.allSatisfy { $0.strength == .strong })
+        #expect(strong.haptics.events == [.activation, .boundary, .execute])
 
         let off = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.haptics = .off }))
         off.start()
-        off.pressTrigger()
-        off.advance(0.3)
-        off.touch(on: 4)
-        off.touch(on: 8)
-        off.advance(0.4)
-        off.releaseTrigger()
+        off.run(2)
         await off.settle()
         #expect(off.haptics.plays.isEmpty)
-        #expect(off.performer.actions == [F.reader.action])
+        #expect(off.performer.actions == [F.closeTab.action])
     }
 }

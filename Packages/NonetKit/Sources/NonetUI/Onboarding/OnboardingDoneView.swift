@@ -21,24 +21,24 @@ struct OnboardingDoneStep: View {
             }
             VStack(alignment: .leading, spacing: 12) {
                 OnboardingTip(
-                    symbol: "hand.raised",
-                    title: Text("迷ったら、指を止める", bundle: .module),
-                    detail: Text(ShellText.doneHUDTip(model.fireMode))
+                    symbol: "arrow.down.to.line",
+                    title: Text("上の縁から開く", bundle: .module),
+                    detail: Text(ShellText.doneOpenTip)
+                )
+                OnboardingTip(
+                    symbol: "xmark.square",
+                    title: Text("外枠で離すとやめる", bundle: .module),
+                    detail: Text(ShellText.doneCancelTip)
                 )
                 OnboardingTip(
                     symbol: "hand.draw",
                     title: Text("2本指で左右にスワイプ", bundle: .module),
-                    detail: Text("キーを押したまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。", bundle: .module)
+                    detail: Text("9マスを開いたまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。", bundle: .module)
                 )
                 OnboardingTip(
                     symbol: "square.grid.3x3.middle.filled",
                     title: Text("マスを変える", bundle: .module),
                     detail: Text(ShellText.doneEditTip)
-                )
-                OnboardingTip(
-                    symbol: "hand.point.up.left",
-                    title: Text("片手で使うときは、角に指を置いて待つ", bundle: .module),
-                    detail: Text(ShellText.doneCornerTip(model.cornerActivation))
                 )
             }
             .padding(16)

@@ -366,10 +366,10 @@ private extension PointerSuppressor {
     }
 
     @Test func cursorLockPlans() {
-        #expect(CursorLockPlan(.automatic) == CursorLockPlan(dropsMoves: true, warpsBack: true, decouples: false))
-        #expect(CursorLockPlan(.dropEvents) == CursorLockPlan(dropsMoves: true, warpsBack: false, decouples: false))
-        #expect(CursorLockPlan(.decouple) == CursorLockPlan(dropsMoves: true, warpsBack: false, decouples: true))
-        #expect(CursorLockPlan(.none) == CursorLockPlan(dropsMoves: false, warpsBack: false, decouples: false))
+        #expect(CursorLockPlan(.automatic) == CursorLockPlan(dropsMoves: true, warpsBack: true, decouples: false, restoresTouchStart: true))
+        #expect(CursorLockPlan(.dropEvents) == CursorLockPlan(dropsMoves: true, warpsBack: false, decouples: false, restoresTouchStart: true))
+        #expect(CursorLockPlan(.decouple) == CursorLockPlan(dropsMoves: true, warpsBack: false, decouples: true, restoresTouchStart: true))
+        #expect(CursorLockPlan(.none) == CursorLockPlan(dropsMoves: false, warpsBack: false, decouples: false, restoresTouchStart: false))
     }
 
     @Test func warpOnlyWhenTheCursorReallyMoved() {

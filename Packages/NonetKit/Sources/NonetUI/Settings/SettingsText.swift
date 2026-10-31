@@ -6,30 +6,6 @@ import NonetCore
 enum SettingsText {
     // MARK: 選択肢の名前
 
-    static func name(_ trigger: TriggerKey) -> String {
-        switch trigger {
-        case .rightCommand: String(localized: "右⌘（Command）", bundle: .module)
-        case .rightOption: String(localized: "右⌥（Option）", bundle: .module)
-        case .rightShift: String(localized: "右⇧（Shift）", bundle: .module)
-        case .function: String(localized: "fn（地球儀）", bundle: .module)
-        }
-    }
-
-    static func name(_ activation: TouchActivation) -> String {
-        switch activation {
-        case .off: String(localized: "使わない", bundle: .module)
-        case .topLeft: String(localized: "左上の角に指を置く", bundle: .module)
-        case .topRight: String(localized: "右上の角に指を置く", bundle: .module)
-        }
-    }
-
-    static func name(_ mode: FireMode) -> String {
-        switch mode {
-        case .onTriggerRelease: String(localized: "キーを離したとき", bundle: .module)
-        case .onFingerLift: String(localized: "指を離したとき", bundle: .module)
-        }
-    }
-
     static func name(_ position: HUDPosition) -> String {
         switch position {
         case .screenCenter: String(localized: "画面の中央", bundle: .module)
@@ -89,23 +65,13 @@ enum SettingsText {
 
     // MARK: 一般
 
-    /// 実行のタイミングの説明。「キーを離したとき」でも、すぐにタップすれば HUD が出ていてもその場で実行する
-    static func detail(_ mode: FireMode) -> String {
-        switch mode {
-        case .onTriggerRelease:
-            String(localized: "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します。", bundle: .module)
-        case .onFingerLift:
-            String(localized: "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します。", bundle: .module)
-        }
+    /// 「開き方」の説明（GlobalSettings に開き方の設定は無い。トラックパッドの上の縁から滑らせるだけ）
+    static var openGestureTitle: String {
+        String(localized: "開き方とやめ方", bundle: .module)
     }
 
-    /// GlobalSettings.hudDelay。指を置かないときに HUD が出るまでの時間（SessionConfiguration.placementWindow）は別で、設定には出さない
-    static var hudDelayTitle: String {
-        String(localized: "指を止めてから HUD が出るまでの時間", bundle: .module)
-    }
-
-    static var hudDelayDetail: String {
-        String(localized: "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します。", bundle: .module)
+    static var openGestureDetail: String {
+        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。", bundle: .module)
     }
 
     static var hudScaleTitle: String {
@@ -117,37 +83,11 @@ enum SettingsText {
     }
 
     static var hapticsDetail: String {
-        String(localized: "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します。", bundle: .module)
+        String(localized: "開いたとき・マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行せずに閉じたときは軽く2回振動します。", bundle: .module)
     }
 
     static var executionToastDetail: String {
-        String(localized: "HUD を出さずに実行したときと、時間の掛かるマスが終わったときに、画面の下に通知を出します", bundle: .module)
-    }
-
-    /// トリガーキーの説明。右側のキーなら、左の同じキーがいつもどおり使えることを言う。fn には左右が無い
-    static func triggerDetail(_ trigger: TriggerKey) -> String {
-        switch trigger {
-        case .rightCommand: rightKeyDetail(leftKey: "⌘")
-        case .rightOption: rightKeyDetail(leftKey: "⌥")
-        case .rightShift: rightKeyDetail(leftKey: "⇧")
-        case .function: String(localized: "fn（地球儀）を押している間だけ反応します", bundle: .module)
-        }
-    }
-
-    private static func rightKeyDetail(leftKey: String) -> String {
-        String(localized: "右側のキーだけに反応します。左の\(leftKey)はいつもどおり使えます。", bundle: .module)
-    }
-
-    /// JIS 配列には右⌥が無い
-    static func triggerWarning(trigger: TriggerKey, isJISKeyboard: Bool) -> String? {
-        guard isJISKeyboard, trigger == .rightOption else { return nil }
-        return String(localized: "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください。", bundle: .module)
-    }
-
-    /// 「0.30秒」
-    static func seconds(_ value: Double, locale: Locale = uiLocale) -> String {
-        let number = value.formatted(.number.precision(.fractionLength(2)).locale(locale))
-        return String(localized: "\(number)秒", bundle: .module)
+        String(localized: "時間の掛かるマスが終わったときに、画面の下に通知を出します", bundle: .module)
     }
 
     // MARK: 日付と数の書き方
@@ -219,7 +159,7 @@ enum SettingsText {
         case .global:
             return String(localized: "\(profile.name) ではグローバルのマスを使います。このプロファイルのマスは残しています。", bundle: .module)
         case .off:
-            return String(localized: "\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます。", bundle: .module)
+            return String(localized: "\(profile.name) では Nonet を使いません。トラックパッドはいつもどおり働きます。", bundle: .module)
         }
     }
 
@@ -555,14 +495,14 @@ enum SettingsText {
 
     // MARK: インスペクタ
 
-    /// Cell.requiresHUD のチェックボックス。押し間違えると困るマス（送信・録画など）に付ける
-    static var hudOnlyTitle: String {
-        String(localized: "すぐのタップでは実行しない（HUD で選んだときだけ）", bundle: .module)
+    /// Cell.requiresHold のチェックボックス。間違えて実行すると困るマス（送信・録画など）に付ける
+    static var holdTitle: String {
+        String(localized: "少し長く止めてから実行", bundle: .module)
     }
 
-    /// 「指を離したとき」でも、HUD で光ったマスにもう一度触れて離せば実行するので、どちらの実行のタイミングでも「もう一度タップ」で言える
-    static var hudOnlyDetail: String {
-        String(localized: "すぐにタップすると HUD が出てこのマスが光り、もう一度タップすると実行します", bundle: .module)
+    /// 止める時間は SessionConfiguration.holdDwell（0.6秒）。HUD はこのマスに進み具合を出す
+    static var holdDetail: String {
+        String(localized: "このマスで指を少し長く止めてから離したときだけ実行します。HUD のマスの縁が一周したら、離すと実行します。", bundle: .module)
     }
 
     // MARK: テスト実行
@@ -617,7 +557,7 @@ struct SettingsStatusBanner: Equatable {
         case .disabled:
             symbol = "pause.circle"
             title = String(localized: "Nonet は無効になっています", bundle: .module)
-            message = String(localized: "トリガーキーを押しても反応しません", bundle: .module)
+            message = String(localized: "トラックパッドの上の縁から指を滑らせても、9マスは開きません", bundle: .module)
             buttons = [Button(action: .enable, title: String(localized: "有効にする", bundle: .module))]
         }
     }

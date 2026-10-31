@@ -26,8 +26,6 @@ import Testing
         #expect(h.keyboard.isRunning)
         #expect(h.touchSource.isRunning)
         #expect(h.frontmost.isRunning)
-        #expect(h.keyboard.trigger == .rightOption)
-        #expect(h.keyboard.passTriggerToApps)
         #expect(h.keyboard.cursorLock == .automatic)
         #expect(h.controller.activeProfileName == "Safari")
         #expect(hasPoll(h))
@@ -45,8 +43,8 @@ import Testing
     @Test func stopEndsTheSessionAndStopsEverything() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
+        h.advance(0.3)
         h.touch(on: 4)
         #expect(h.hud.isVisible)
         h.controller.stop()
@@ -70,7 +68,7 @@ import Testing
         h.controller.stop()
         h.start()
         #expect(h.controller.status == .running)
-        h.fastTap(2)
+        h.run(2)
         await h.settle()
         #expect(h.performer.actions == [F.closeTab.action])
     }
@@ -102,7 +100,6 @@ import Testing
         #expect(h.controller.status == .running)
         #expect(h.keyboard.isRunning)
         #expect(h.touchSource.isRunning)
-        #expect(h.keyboard.trigger == .rightOption)
     }
 
     @Test func aFingerRestingWhileAccessibilityIsRevokedIsForgotten() async throws {
@@ -117,10 +114,10 @@ import Testing
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.touchSource.isRunning)
-        // 止めたときに離れたことにしてあるので、次に置いた指は新しいタッチ（速押しになる）
-        h.pressTrigger()
-        h.tap(2)
-        h.releaseTrigger()
+        // 止めたときに離れたことにしてあるので、次に置いた指は新しいタッチ（上の縁から開ける）
+        h.open()
+        h.choose(2)
+        h.closeIfOpen()
         await h.settle()
         #expect(h.performer.actions == [F.closeTab.action])
     }
@@ -140,7 +137,7 @@ import Testing
     @Test func revokingAccessibilityStopsTheMonitorAndEndsTheSession() throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.open()
         h.advance(0.3)
         h.permissions.isAccessibilityGranted = false
         h.advance(NonetController.pollInterval)
@@ -173,7 +170,7 @@ import Testing
         h.touchSource.startError = NonetError.unavailable("なし")
         h.start()
         #expect(h.controller.status == .noTrackpad)
-        // 使えないトリガーキーを飲み込まないよう、キーボードも見張らない
+        // 開くことも無いので、イベントタップも作らない
         #expect(!h.keyboard.isRunning)
         h.advance(NonetController.pollInterval)
         #expect(h.touchSource.startCount == 2)
@@ -193,7 +190,7 @@ import Testing
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
 
-        h.pressTrigger()
+        h.open()
         h.advance(0.3)
         h.touchSource.isAvailable = false
         h.advance(NonetController.pollInterval)
@@ -214,42 +211,41 @@ import Testing
         // キーボードは動かしたまま（終わったらすぐ使えるように）。指の位置も読み続ける
         #expect(h.keyboard.isRunning)
         #expect(h.touchSource.isRunning)
-        h.pressTrigger()
+        h.open()
         #expect(h.keyboard.suppressionChanges.isEmpty)
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         h.permissions.isSecureInputActive = false
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
     }
 
-    @Test func theTriggerRechecksSecureInputBeforeThePollDoes() throws {
+    @Test func openingRechecksSecureInputBeforeThePollDoes() throws {
         let h = try ControllerHarness()
         h.permissions.isSecureInputActive = true
         h.start()
         h.permissions.isSecureInputActive = false
-        h.pressTrigger()
+        h.open()
         #expect(h.controller.status == .running)
         #expect(h.keyboard.isSuppressingPointer)
     }
 
-    @Test func theTriggerNoticesSecureInputThatBeganSinceTheLastPoll() async throws {
+    @Test func openingNoticesSecureInputThatBeganSinceTheLastPoll() async throws {
         let h = try ControllerHarness()
         h.start()
-        // パスワード欄に入ってすぐ（次の確かめ直しより前に）トリガーを押す
+        // パスワード欄に入ってすぐ（次の確かめ直しより前に）上の縁から滑らせる
         h.permissions.isSecureInputActive = true
         h.advance(NonetController.pollInterval / 4)
         #expect(h.controller.status == .running)
-        h.pressTrigger()
+        h.open()
 
         #expect(h.controller.status == .secureInputActive)
-        #expect(h.keyboard.suppressionAfterEvent == [false])
         #expect(h.keyboard.suppressionChanges.isEmpty)
-        h.tap(2)
+        h.choose(2)
         h.advance(1)
         h.touch(on: 0)
         h.advance(1)
-        h.releaseTrigger()
+        h.closeIfOpen()
         await h.settle()
         #expect(h.hud.shown.isEmpty)
         #expect(h.performer.calls.isEmpty)
@@ -260,7 +256,7 @@ import Testing
     @Test func secureInputDuringASessionEndsIt() throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.open()
         h.advance(0.3)
         h.permissions.isSecureInputActive = true
         h.advance(NonetController.pollInterval)
@@ -298,12 +294,12 @@ import Testing
     // MARK: 有効・無効
 
     @Test func disablingStopsTheMonitorsAndEnablingRestartsThem() throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.passTriggerToApps = false }))
+        let h = try ControllerHarness()
         h.start()
         h.controller.update { $0.settings.isEnabled = false }
 
         #expect(h.controller.status == .disabled)
-        // トリガーを飲み込む設定でも、無効の間はキーを普通に使えるようにする
+        // 無効の間は、イベントタップも指の位置も止める
         #expect(!h.keyboard.isRunning)
         #expect(!h.touchSource.isRunning)
         #expect(!hasPoll(h))
@@ -320,7 +316,7 @@ import Testing
     @Test func disablingDuringASessionEndsIt() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.open()
         h.advance(0.3)
         h.touch(on: 4)
         h.controller.update { $0.settings.isEnabled = false }
@@ -336,10 +332,10 @@ import Testing
         h.touch(on: 2)
         h.controller.update { $0.settings.isEnabled = false }
         h.controller.update { $0.settings.isEnabled = true }
-        // 止めている間に指は離れたかもしれない。次に置いた指は新しいタッチ（速押しになる）
-        h.pressTrigger()
-        h.tap(2)
-        h.releaseTrigger()
+        // 止めている間に指は離れたかもしれない。次に置いた指は新しいタッチ（上の縁から開ける）
+        h.open()
+        h.choose(2)
+        h.closeIfOpen()
         await h.settle()
         #expect(h.performer.actions == [F.closeTab.action])
     }
@@ -349,42 +345,21 @@ import Testing
     @Test func settingsAreAppliedToTheKeyboardMonitor() throws {
         let h = try ControllerHarness()
         h.start()
-        h.controller.update {
-            $0.settings.trigger = .rightShift
-            $0.settings.passTriggerToApps = false
-            $0.settings.cursorLock = .decouple
-        }
-        #expect(h.keyboard.trigger == .rightShift)
-        #expect(!h.keyboard.passTriggerToApps)
+        h.controller.update { $0.settings.cursorLock = .decouple }
         #expect(h.keyboard.cursorLock == .decouple)
         #expect(h.keyboard.isRunning)
-    }
-
-    @Test func changingTheTriggerDuringASessionEndsIt() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        h.advance(0.3)
-        h.touch(on: 4)
-        h.controller.update { $0.settings.trigger = .rightCommand }
-        #expect(!h.hud.isVisible)
-        #expect(!h.keyboard.isSuppressingPointer)
-        h.advance(0.5)
-        h.releaseTrigger()
-        await h.settle()
-        #expect(h.performer.calls.isEmpty)
     }
 
     @Test func otherChangesKeepTheSession() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
+        h.advance(0.3)
         h.touch(on: 4)
-        h.controller.update { $0.settings.hudDelay = 0.5 }
+        h.controller.update { $0.settings.haptics = .strong }
         #expect(h.hud.isVisible)
         h.advance(0.4)
-        h.releaseTrigger()
+        h.closeIfOpen()
         await h.settle()
         #expect(h.performer.actions == [F.summarize.action])
     }
@@ -392,14 +367,9 @@ import Testing
     @Test func newSessionsUseTheNewSettings() throws {
         let h = try ControllerHarness()
         h.start()
-        h.controller.update { $0.settings.hudDelay = 0.5 }
-        h.pressTrigger()
-        // 指を止めてから HUD が出るまでの時間
-        h.touch(on: 4)
-        h.advance(0.45)
-        #expect(!h.hud.isVisible)
-        h.advance(0.1)
-        #expect(h.hud.isVisible)
+        h.controller.update { $0.settings.hudPosition = .nearCursor }
+        h.open()
+        #expect(h.hud.shown.last?.position == .nearCursor)
     }
 
     // MARK: キーの記録
@@ -408,28 +378,28 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         h.controller.isRecordingKeys = true
-        h.pressTrigger()
+        h.open()
         h.advance(0.5)
         #expect(h.keyboard.suppressionChanges.isEmpty)
         #expect(h.hud.shown.isEmpty)
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         h.controller.isRecordingKeys = false
-        h.pressTrigger()
+        h.open()
         #expect(h.keyboard.isSuppressingPointer)
     }
 
     @Test func startingToRecordKeysEndsTheSession() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.pressTrigger()
+        h.open()
         h.advance(0.3)
         h.touch(on: 4)
         h.controller.isRecordingKeys = true
         #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
         h.advance(0.4)
-        h.releaseTrigger()
+        h.closeIfOpen()
         await h.settle()
         #expect(h.performer.calls.isEmpty)
     }

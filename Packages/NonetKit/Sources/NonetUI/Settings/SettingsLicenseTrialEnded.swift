@@ -76,7 +76,7 @@ public final class TrialEndedWindowController {
         })
     }
 
-    /// 試用期間が終わっていて、今日まだ出していなければ出す（トリガーキーが断られたときなどにも呼べる）
+    /// 試用期間が終わっていて、今日まだ出していなければ出す（9マスを開こうとして断られたときなどにも呼べる）
     public func showIfDue() {
         guard license.entitlement == .expired, window == nil else { return }
         let current = now()

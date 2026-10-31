@@ -1,5 +1,5 @@
 // 担当: platform-input
-// イベントタップの判断（トリガーの検出・中断・ポインタの抑止）。CGEvent に触れず、テストできるようにしてある
+// イベントタップの判断（開いている間のキーでの中断・ポインタの抑止）。CGEvent に触れず、テストできるようにしてある
 import CoreGraphics
 import Foundation
 import NonetCore
@@ -14,67 +14,6 @@ enum DeviceModifierMask {
     static let leftOption: UInt64 = 0x0020
     static let rightOption: UInt64 = 0x0040
     static let rightControl: UInt64 = 0x2000
-}
-
-extension TriggerKey {
-    /// flagsChanged の仮想キーコード
-    var keyCode: Int64 {
-        switch self {
-        case .rightCommand: 54
-        case .rightOption: 61
-        case .rightShift: 60
-        case .function: 63
-        }
-    }
-
-    /// 左右の区別が無い修飾キーのフラグ
-    var modifierFlag: CGEventFlags {
-        switch self {
-        case .rightCommand: .maskCommand
-        case .rightOption: .maskAlternate
-        case .rightShift: .maskShift
-        case .function: .maskSecondaryFn
-        }
-    }
-
-    /// 右側のキーのビット。fn には左右が無い
-    var deviceMask: UInt64? {
-        switch self {
-        case .rightCommand: DeviceModifierMask.rightCommand
-        case .rightOption: DeviceModifierMask.rightOption
-        case .rightShift: DeviceModifierMask.rightShift
-        case .function: nil
-        }
-    }
-
-    /// 同じ修飾キーの左側のビット
-    var leftDeviceMask: UInt64? {
-        switch self {
-        case .rightCommand: DeviceModifierMask.leftCommand
-        case .rightOption: DeviceModifierMask.leftOption
-        case .rightShift: DeviceModifierMask.leftShift
-        case .function: nil
-        }
-    }
-
-    /// flags でこのキーが押されているか
-    func isPressed(in flags: CGEventFlags) -> Bool {
-        guard let right = deviceMask, let left = leftDeviceMask else {
-            return flags.contains(modifierFlag)
-        }
-        if flags.rawValue & right != 0 { return true }
-        if flags.rawValue & left != 0 { return false }
-        // 左右のビットを付けないキーボードでは、左右の区別が無いフラグで判断する
-        return flags.contains(modifierFlag)
-    }
-
-    /// トリガー以外の修飾キー（同じ修飾キーの左側を含む）が押されているか。Caps Lock は数えない
-    func hasOtherModifiers(in flags: CGEventFlags) -> Bool {
-        let modifiers: CGEventFlags = [.maskShift, .maskControl, .maskAlternate, .maskCommand, .maskSecondaryFn]
-        if !flags.intersection(modifiers).subtracting(modifierFlag).isEmpty { return true }
-        if let left = leftDeviceMask, flags.rawValue & left != 0 { return true }
-        return false
-    }
 }
 
 /// flagsChanged の仮想キーコードごとの、そのキーが押されているかの見分け方
@@ -104,125 +43,29 @@ enum ModifierKeyCode {
     }
 }
 
-/// トリガーキーの押下・解放と、押している間の中断を見分ける
-struct TriggerDetector {
-    struct Output: Equatable {
-        var event: KeyboardEvent?
-        /// false ならイベントを前面アプリに渡さない
-        var pass: Bool
+/// 9マスを開いている間のキー。キーや修飾キーが押されたら .interrupted を1回だけ出す（そのキーはいつも前面アプリに渡す）。
+/// 修飾キーを離しただけ（開く前から押していたキーを離した など）では出さない。開いていない間はキーボードのタップを止めているので、何も届かない
+struct SessionKeyWatcher {
+    /// このセッションで .interrupted を出した
+    private(set) var hasInterrupted = false
 
-        static let passThrough = Output(event: nil, pass: true)
+    /// セッションが始まった
+    mutating func sessionBegan() {
+        hasInterrupted = false
     }
 
-    /// 押しているトリガー（押した時点の設定。押している間に設定が変わっても、離すまではこれで判断する）
-    private(set) var heldTrigger: TriggerKey?
-    /// 押している間にほかのキーが押された（.interrupted は1回だけ出す）
-    private(set) var isInterrupted = false
-    /// 押すイベントを捨てたトリガー。対になる離すイベントも捨てる
-    private(set) var swallowedTrigger: TriggerKey?
-    /// 捨てた押下が物理的な状態（hidSystemState）に反映されると確かめられた（実機では未確認）。
-    /// 捨てて押している最中に押されて見えたら true にする。離れて見えたことからは決めない
-    /// （その確認は、離すイベントを取りこぼした直後のことが多い）
-    private(set) var swallowedStateIsReliable = false
-    /// トリガーを押していなくても、キーや修飾キーが押されたら .interrupted を出す（角の長押しで始めたセッションの間。
-    /// KeyboardMonitor.interruptsWithoutTrigger）。出すのは true にしてから1回だけ
-    var interruptsWithoutTrigger = false {
-        didSet {
-            if interruptsWithoutTrigger != oldValue { isInterruptedWithoutTrigger = false }
-        }
-    }
-    private(set) var isInterruptedWithoutTrigger = false
-
-    var isHeld: Bool { heldTrigger != nil }
-
-    mutating func flagsChanged(keyCode: Int64, flags: CGEventFlags, trigger: TriggerKey, passTrigger: Bool) -> Output {
-        if let held = heldTrigger {
-            guard keyCode == held.keyCode else {
-                return interruptWhileHeld(isPress: ModifierKeyCode.isPress(keyCode: keyCode, flags: flags))
-            }
-            if held.isPressed(in: flags) {
-                // 押したままの重複。渡すかどうかは押したときに合わせる
-                return Output(event: nil, pass: swallowedTrigger != held)
-            }
-            endHold()
-            let swallow = swallowedTrigger == held
-            swallowedTrigger = nil
-            return Output(event: .triggerUp, pass: !swallow)
-        }
-
-        if let swallowed = swallowedTrigger, keyCode == swallowed.keyCode {
-            swallowedTrigger = nil
-            // 安全装置で離したことにした後で届いた、捨てた押下と対になる離すイベント
-            if !swallowed.isPressed(in: flags) { return Output(event: nil, pass: false) }
-            // 新しい押下なら、前の対は終わっている
-        }
-
-        guard keyCode == trigger.keyCode, trigger.isPressed(in: flags), !trigger.hasOtherModifiers(in: flags) else {
-            // 修飾キーを離しただけ（セッションの前から押していたキーなど）では終えない
-            if interruptsWithoutTrigger, ModifierKeyCode.isPress(keyCode: keyCode, flags: flags) {
-                return interruptWithoutTrigger()
-            }
-            return .passThrough
-        }
-        heldTrigger = trigger
-        isInterrupted = false
-        swallowedTrigger = passTrigger ? nil : trigger
-        return Output(event: .triggerDown, pass: passTrigger)
+    mutating func keyDown() -> KeyboardEvent? {
+        interrupt()
     }
 
-    mutating func keyDown() -> Output {
-        if isHeld { return interruptWhileHeld(isPress: true) }
-        return interruptsWithoutTrigger ? interruptWithoutTrigger() : .passThrough
+    mutating func flagsChanged(keyCode: Int64, flags: CGEventFlags) -> KeyboardEvent? {
+        ModifierKeyCode.isPress(keyCode: keyCode, flags: flags) ? interrupt() : nil
     }
 
-    /// 物理的な状態と食い違っていたら（離すイベントを取りこぼしたら）離したことにする。
-    /// tapWasDisabled: タップが無効にされていた直後（その間のイベントを取りこぼしたかもしれない）
-    mutating func reconcile(physicalFlags: CGEventFlags, tapWasDisabled: Bool) -> KeyboardEvent? {
-        guard let held = heldTrigger else { return nil }
-        let pressed = held.isPressed(in: physicalFlags)
-        if swallowedTrigger == held {
-            if pressed { swallowedStateIsReliable = true }
-            // 反映されると分かるまでは、離れて見えても信じない。ただしタップが無効にされていたなら、
-            // 離すイベントを取りこぼした見込みが高いので終える（押したままだと思い込むより安全）
-            guard swallowedStateIsReliable || tapWasDisabled else { return nil }
-        }
-        guard !pressed else { return nil }
-        // 捨てた押下の対になる離すイベントが後から届いたら捨てられるよう、swallowedTrigger は残す
-        endHold()
-        return .triggerUp
-    }
-
-    mutating func reset() {
-        endHold()
-        swallowedTrigger = nil
-    }
-
-    private mutating func interrupt() -> Output {
-        guard !isInterrupted else { return .passThrough }
-        isInterrupted = true
-        return Output(event: .interrupted, pass: true)
-    }
-
-    /// トリガーを押している間のキー。押している間の中断（⌘C などでトリガーのセッションを終えた）の後に、
-    /// 押したまま角の長押しのセッションが始まっていたら（interruptsWithoutTrigger）、そのセッションのために .interrupted をもう1回出す。
-    /// 修飾キーを離しただけ（isPress が false）では、角の長押しのセッションを終えない
-    private mutating func interruptWhileHeld(isPress: Bool) -> Output {
-        if interruptsWithoutTrigger, isPress, !isInterruptedWithoutTrigger {
-            isInterrupted = true
-            return interruptWithoutTrigger()
-        }
-        return interrupt()
-    }
-
-    private mutating func interruptWithoutTrigger() -> Output {
-        guard !isInterruptedWithoutTrigger else { return .passThrough }
-        isInterruptedWithoutTrigger = true
-        return Output(event: .interrupted, pass: true)
-    }
-
-    private mutating func endHold() {
-        heldTrigger = nil
-        isInterrupted = false
+    private mutating func interrupt() -> KeyboardEvent? {
+        guard !hasInterrupted else { return nil }
+        hasInterrupted = true
+        return .interrupted
     }
 }
 
@@ -239,7 +82,7 @@ enum OwnEventFilter {
 
 /// タップごとに受け取るイベント。tapDisabled* はマスクに関係なく届く
 enum EventTapMask {
-    /// 動いている間ずっと受け取る
+    /// 9マスを開いている間だけ受け取る（キーが押されたら閉じる）
     static let keyboard = mask(of: [CGEventType.keyDown.rawValue, CGEventType.flagsChanged.rawValue])
     /// 抑止中とその後片付けの間だけ受け取る
     static let pointer = mask(of: PointerEventKind.all)
@@ -385,7 +228,7 @@ struct PointerSuppressor {
     }
 
     /// 抑止をやめた。dropsLateClicks なら、しばらくは押すイベントを捨てる（移動・スクロールは渡す）。
-    /// 指に触れていないセッション（トリガーをほかのキーと組み合わせただけ など）の直後のクリックは捨てない
+    /// 指が触れ始めてから長く経って閉じたセッション（キーで閉じた など）の直後のクリックは捨てない
     mutating func suppressionEnded(at now: TimeInterval, dropsLateClicks: Bool) {
         clickGraceDeadline = dropsLateClicks ? now + Self.clickGraceInterval : nil
     }
@@ -479,7 +322,7 @@ struct PointerSuppressor {
 
 /// 抑止中のポインタのイベントが、トラックパッドではなくマウスやホイールのものか（docs/architecture.md §5「マウスとホイール」）。
 /// トラックパッドに触れていない間に届いた押す・スクロール・移動はマウスやホイールのものとみなし、セッションを終えて
-/// そのまま前面アプリに渡す（右⌘を押しながらのマウスでの⌘クリックやホイールでの拡大を飲み込まないように）。
+/// そのまま前面アプリに渡す（マウスでのクリックやホイールでのスクロールを飲み込まないように）。
 /// 指を離した直後は、そのタッチの「タップでクリック」・慣性のスクロール・最後の移動が遅れて届くので見分けない
 struct TrackpadContact: Equatable {
     /// 指が離れてから、届いたイベントをまだトラックパッドのものとみなす秒数（SessionEngine.lateClickWindow と同じ）
@@ -537,19 +380,23 @@ struct CursorLockPlan: Equatable {
     var warpsBack: Bool
     /// カーソルとマウスの動きを切り離す
     var decouples: Bool
+    /// 抑止を始めるとき、指が触れ始めた位置（rememberPointerLocation）にカーソルを戻す（開く動きで指を滑らせた分だけ動くため）
+    var restoresTouchStart: Bool
 
-    init(dropsMoves: Bool, warpsBack: Bool, decouples: Bool) {
+    init(dropsMoves: Bool, warpsBack: Bool, decouples: Bool, restoresTouchStart: Bool) {
         self.dropsMoves = dropsMoves
         self.warpsBack = warpsBack
         self.decouples = decouples
+        self.restoresTouchStart = restoresTouchStart
     }
 
     init(_ method: CursorLockMethod) {
         switch method {
-        case .automatic: self.init(dropsMoves: true, warpsBack: true, decouples: false)
-        case .dropEvents: self.init(dropsMoves: true, warpsBack: false, decouples: false)
-        case .decouple: self.init(dropsMoves: true, warpsBack: false, decouples: true)
-        case .none: self.init(dropsMoves: false, warpsBack: false, decouples: false)
+        case .automatic: self.init(dropsMoves: true, warpsBack: true, decouples: false, restoresTouchStart: true)
+        case .dropEvents: self.init(dropsMoves: true, warpsBack: false, decouples: false, restoresTouchStart: true)
+        case .decouple: self.init(dropsMoves: true, warpsBack: false, decouples: true, restoresTouchStart: true)
+        // 固定しない（カーソルは指に合わせて動く）を選んだ人には、戻すこともしない
+        case .none: self.init(dropsMoves: false, warpsBack: false, decouples: false, restoresTouchStart: false)
         }
     }
 

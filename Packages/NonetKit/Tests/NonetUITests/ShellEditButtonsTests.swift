@@ -29,7 +29,6 @@ struct ShellEditButtonsTests {
             address: CellAddress(page: page, index: index),
             succeeded: true,
             message: nil,
-            wasFastTap: true,
             date: date
         )
     }

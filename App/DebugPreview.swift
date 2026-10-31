@@ -14,6 +14,7 @@ final class DebugPreview {
     private let license: LicenseManager
     private let services: NonetServices
     private var toastTimer: Timer?
+    private var hudTimer: Timer?
     private var toastIndex = 0
 
     init(controller: NonetController, hud: HUDWindowController, license: LicenseManager, services: NonetServices) {
@@ -34,23 +35,60 @@ final class DebugPreview {
         LicenseManager(verifier: verifier, storage: MemoryLicenseStorage(trialStartDate: nil), now: { Date() })
     }
 
-    /// 前面アプリの最初のページを、中央のマスをハイライトして出したままにする
+    /// 前面アプリの最初のページの HUD を出したままにし、3秒ごとに状態を替える（--snapshot の各回で1つずつ写る）:
+    /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
     func showHUD() {
+        showHUDState(0)
+        var state = 0
+        let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                state += 1
+                self?.showHUDState(state % Self.hudStateCount)
+            }
+        }
+        hudTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private static let hudStateCount = 4
+    /// 少し長く止めるマスの例に使う位置（ページに少し長く止めるマスが無ければ、この位置のマスをそうみなす）
+    private static let previewHoldCell = 7
+
+    private func showHUDState(_ state: Int) {
         let configuration = controller.configuration
         let pages = configuration.resolvedPages(frontmostBundleID: services.frontmostApp.current?.app.bundleID)
         guard let page = pages.first else { return }
-        let trigger = configuration.settings.trigger
+        let holdIndex = page.cells.firstIndex { $0?.requiresHold == true } ?? Self.previewHoldCell
+        let cells = page.cells.enumerated().map { index, cell in
+            cell.map {
+                HUDCell(
+                    title: $0.title,
+                    icon: $0.icon,
+                    detail: Self.detail(for: $0.action),
+                    requiresHold: $0.requiresHold || index == holdIndex,
+                    isShared: page.sharedIndices.contains(index)
+                )
+            }
+        }
+        let since = ProcessInfo.processInfo.systemUptime
+        let (highlight, inFrame, hold): (Int?, Bool, HUDHold?) = switch state {
+        case 1: (nil, true, nil)
+        case 2: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: false))
+        case 3: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: true))
+        default: (4, false, nil)
+        }
         let model = HUDModel(
             title: page.title,
             pageIndex: 0,
             pageCount: pages.count,
-            cells: page.cells.enumerated().map { index, cell in
-                cell.map { HUDCell(title: $0.title, icon: $0.icon, detail: Self.detail(for: $0.action), requiresHUD: $0.requiresHUD, isShared: page.sharedIndices.contains(index)) }
-            },
-            highlightedIndex: 4,
+            cells: cells,
+            highlightedIndex: highlight,
+            isFingerInFrame: inFrame,
+            hold: hold,
             // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く
-            hint: ControllerPresentation.hint(fireMode: configuration.settings.fireMode, trigger: trigger, isPracticeMode: controller.isPracticeMode),
-            banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner
+            hint: ControllerPresentation.hint(isPracticeMode: controller.isPracticeMode),
+            banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
+            footnote: ControllerPresentation.beginnerFootnote(pageCount: pages.count)
         )
         hud.show(model, position: configuration.settings.hudPosition)
     }
@@ -71,8 +109,8 @@ final class DebugPreview {
             text: String(localized: """
             この記事は、MacBook のトラックパッドを 3×3 のボタンとして使うアイデアを紹介しています。
 
-            ・トリガーキーを押している間だけ、トラックパッドが9つのボタンになる
-            ・慣れたらすぐにタップして実行し、迷ったときだけ HUD で確かめる
+            ・トラックパッドの上の縁から指を滑らせると、トラックパッドが9つのボタンになる
+            ・指を滑らせて選び、マスで離すと実行し、外枠で離すと何もせずに閉じる
             ・前面のアプリに合わせて9マスが切り替わり、1つのアプリに最大3ページまで置ける
 
             設定は Mac の中だけに保存され、アカウントも要りません。
@@ -81,9 +119,10 @@ final class DebugPreview {
         ))
     }
 
-    /// 0.5・3.4・6.4 秒後に表示中のウィンドウを書き出し、終わったらアプリを終える（トーストは3秒ごとに替わる）
+    /// 0.5・3.4・6.4・9.4 秒後に表示中のウィンドウを書き出し、終わったらアプリを終える（トーストと HUD の状態は3秒ごとに替わる。
+    /// HUD の3回目は、少し長く止めるマスを止め始めて 0.4 秒のところ）
     func snapshotWindowsAndQuit(to directory: URL) {
-        let delays: [TimeInterval] = [0.5, 3.4, 6.4]
+        let delays: [TimeInterval] = [0.5, 3.4, 6.4, 9.4]
         for (round, delay) in delays.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 MainActor.assumeIsolated {

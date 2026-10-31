@@ -1,16 +1,14 @@
 // 担当: engine
 import Foundation
 
-/// 1回のセッションで使うもの。トリガーを押したときに決め、セッションが終わるまで変えない
+/// 1回のセッションで使うもの。9マスを開いたときに決め、セッションが終わるまで変えない
 /// （途中で前面アプリや設定が変わっても、HUD のマスと実行するマスが食い違わないように）
 struct ControllerSession: Equatable, Sendable {
     /// 前面アプリで使うページの並び（resolvedPages）
     let pages: [ResolvedPage]
-    /// トリガーを押したときに前面にあったアプリ。アクションはこのアプリに向けて実行する
+    /// 開いたときに前面にあったアプリ。アクションはこのアプリに向けて実行する
     let frontmostApp: RunningAppInfo?
     let settings: GlobalSettings
-    /// トリガーキーで始めたか、トラックパッドの角の長押しで始めたか
-    let activation: SessionActivation
     /// このセッションで HUD を出した（使い始めの案内と試用期間の知らせは、最初に出したときに決める）
     var hasShownHUD = false
     /// 9マスの下に使い始めの案内を出す
@@ -18,21 +16,18 @@ struct ControllerSession: Equatable, Sendable {
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
 
-    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?, activation: SessionActivation = .triggerKey) {
+    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
         pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
-        self.activation = activation
     }
 
     var engineConfiguration: SessionConfiguration {
-        // 空きマスの速押しで 6 の (a) の HUD が止まらないように、中身のあるマスを渡す
+        // 空きマスで指を離したら実行せずにやめる（rejected の触覚）ように、中身のあるマスを渡す
         let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
-        // HUD で選んだときだけ実行するマスは、速押しでは実行せずに HUD を出す
-        let hudOnly = pages.map { page in Set(page.cells.indices.filter { page.cells[$0]?.requiresHUD == true }) }
-        var configuration = SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied, hudOnlyCells: hudOnly)
-        configuration.activation = activation
-        return configuration
+        // 少し長く止めてから実行するマス
+        let holds = pages.map { page in Set(page.cells.indices.filter { page.cells[$0]?.requiresHold == true }) }
+        return SessionConfiguration(pageCount: pages.count, occupiedCells: occupied, holdCells: holds)
     }
 
     /// page（resolvedPages での位置）の cell 番目のマス。範囲外と空きマスは nil
@@ -49,12 +44,7 @@ struct ControllerSession: Equatable, Sendable {
         )
     }
 
-    /// 角の長押しのセッションは、実行のタイミングの設定に関係なく指を離して実行する
-    private var effectiveFireMode: FireMode {
-        activation == .cornerHold ? .onFingerLift : settings.fireMode
-    }
-
-    func hudModel(page: Int, highlightedCell: Int?, isPracticeMode: Bool, isTrialEnded: Bool) -> HUDModel {
+    func hudModel(_ state: SessionHUDState, isPracticeMode: Bool, isTrialEnded: Bool) -> HUDModel {
         let banner: (text: String, style: HUDBannerStyle)? = if isTrialEnded {
             (ControllerPresentation.trialEndedBanner, .warning)
         } else if let days = trialReminderDays {
@@ -62,14 +52,11 @@ struct ControllerSession: Equatable, Sendable {
         } else {
             nil
         }
-        let footnote = showsBeginnerHint
-            ? ControllerPresentation.beginnerFootnote(fireMode: effectiveFireMode, activation: activation, trigger: settings.trigger, pageCount: pages.count)
-            : nil
+        let footnote = showsBeginnerHint ? ControllerPresentation.beginnerFootnote(pageCount: pages.count) : nil
         return ControllerPresentation.hudModel(
             pages: pages,
-            page: page,
-            highlightedCell: highlightedCell,
-            hint: ControllerPresentation.hint(fireMode: effectiveFireMode, trigger: settings.trigger, isPracticeMode: isPracticeMode),
+            state: state,
+            hint: ControllerPresentation.hint(isPracticeMode: isPracticeMode),
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             footnote: footnote,

@@ -12,7 +12,7 @@ public struct TouchPoint: Equatable, Sendable {
     /// false は近接・離れかけなど、触れていない状態
     public var isTouching: Bool
     /// 接触の楕円の長径（MultitouchSupport の majorAxis。指先でおよそ 8〜15）。分からなければ nil。
-    /// 手のひらを見分けるのに使う（CornerHoldRecognizer.palmMajorAxis）
+    /// 手のひらを見分けるのに使う（EdgeSlideRecognizer.palmMajorAxis）
     public var majorAxis: Double?
 
     public init(id: Int, x: Double, y: Double, isTouching: Bool = true, majorAxis: Double? = nil) {
@@ -45,49 +45,41 @@ public protocol TouchSource: AnyObject {
     var onFrame: ((TouchFrame) -> Void)? { get set }
     func start() throws
     func stop()
-    /// 利用者がこれから触れる（トリガーが押された）。止まっていそうなデバイスがあれば開始し直す。すぐに戻る
-    func revalidate()
-}
-
-extension TouchSource {
-    /// 確かめ直すことの無い実装の既定
-    public func revalidate() {}
 }
 
 // MARK: - キーボードとポインタ
 
 public enum KeyboardEvent: Equatable, Sendable {
-    case triggerDown
-    case triggerUp
-    /// トリガーを押している間に、ほかのキーや修飾キーが押された（そのキーは前面アプリに渡す）
+    /// 9マスを開いている（ポインタを抑止している）間に、キーや修飾キーが押された（そのキーは前面アプリに渡す）。
+    /// トラックパッドに触れていない間に届いたマウスやホイールのイベントも同じ
     case interrupted
 }
 
+/// キーボードとポインタのイベントタップ。9マスはトラックパッドだけで開くので、キーボードは開いている間だけ見る
 @MainActor
 public protocol KeyboardMonitor: AnyObject {
-    var trigger: TriggerKey { get set }
-    /// false ならトリガーキーのイベントを前面アプリに渡さない
-    var passTriggerToApps: Bool { get set }
     var cursorLock: CursorLockMethod { get set }
-    /// true の間、ポインタの移動・クリック・スクロール・ジェスチャーを前面アプリに渡さない。
+    /// true の間、ポインタの移動・クリック・スクロール・ジェスチャーを前面アプリに渡さず、キーボードも見る
+    /// （キーや修飾キーが押されたら .interrupted を1回送る）。false の間はキーボードを見ない。
     /// 捨てた「押す」に対応する「離す」は、false に戻した後でも捨てる
     var isSuppressingPointer: Bool { get set }
     /// メインスレッドで呼ばれる
     var onEvent: ((KeyboardEvent) -> Void)? { get set }
-    /// true の間は、トリガーを押していなくても、キーや修飾キーが押されたら .interrupted を1回送る（そのキーは前面アプリに渡す）。
-    /// トラックパッドの角の長押しで始めたセッションの間だけ true にする。トリガーキーが押されたら、いつもどおり .triggerDown
-    var interruptsWithoutTrigger: Bool { get set }
     /// トラックパッドにいま指が触れているか（NonetController が指のフレームから知らせる）。
     /// 抑止中に、トラックパッドに触れていない間（離してから少し経った後）に届いた押す・スクロール・移動は、
     /// マウスやホイールのものとみなす。そのイベントは手を加えずに前面アプリに渡し、.interrupted を1回送る
     var isTrackpadTouched: Bool { get set }
     /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）。
-    /// 押し込んだまま（ドラッグを始めるところ など）の指を、角の長押しとみなさないために使う
+    /// 押し込んだまま（ドラッグを始めるところ など）の指で、9マスを開かないために使う
     var isMouseButtonDown: Bool { get }
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
     func stop()
+    /// いまのポインタの位置を覚える。次に isSuppressingPointer を true にしたとき、ポインタをここへ戻す
+    /// （開く動きで指を滑らせた分だけポインタが動くため。NonetController は指が上の縁で触れ始めたときに呼ぶ）。
+    /// CursorLockMethod.none では戻さない
+    func rememberPointerLocation()
     /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
     /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
     func endPointerSuppression(dropsLateClicks: Bool)
@@ -99,11 +91,8 @@ extension KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    /// トリガーを押していないときのキーを見ない実装の既定（角の長押しのセッションは、キーでは終わらない）
-    public var interruptsWithoutTrigger: Bool {
-        get { false }
-        set {}
-    }
+    /// ポインタを戻さない実装の既定
+    public func rememberPointerLocation() {}
 
     /// マウスのイベントを見分けない実装の既定（抑止中はどのデバイスのイベントも捨てる）
     public var isTrackpadTouched: Bool {
@@ -122,10 +111,11 @@ public enum HapticEvent: Equatable, Sendable {
     case boundary
     case pageChange
     case execute
-    /// トラックパッドの角の長押しで9マスを出した（トリガーキーを押していないので、出たことを指に知らせる）
+    /// トラックパッドの上の縁から指を滑らせて9マスを開いた（開いたことを指に知らせる）
     case activation
-    /// 受け付けたが何もしなかった（空きマスのすぐにタップ・2本以上の指で離した・試用期間の終了や Nonet のウィンドウで
-    /// 実行しなかった・最初や最後のページから先へスワイプした）。「何も起きなかった」と「届かなかった」を指で見分けられるように
+    /// 受け付けたが何もしなかった（外枠・境界の帯・空きマスで離した・止める時間が足りずに離した・2本以上の指で離した・
+    /// 試用期間の終了や Nonet のウィンドウで実行しなかった・最初や最後のページから先へスワイプした）。
+    /// 「何も起きなかった」と「届かなかった」を指で見分けられるように
     case rejected
 }
 
@@ -147,7 +137,7 @@ public struct RunningAppInfo: Equatable, Sendable {
 }
 
 public struct ActionContext: Sendable {
-    /// トリガーを押したときに前面にあったアプリ
+    /// 9マスを開いたときに前面にあったアプリ
     public var frontmostApp: RunningAppInfo?
 
     public init(frontmostApp: RunningAppInfo?) {
@@ -280,15 +270,11 @@ public protocol HUDPresenting: AnyObject {
     func showResult(_ result: ResultModel)
     /// 表示中のトーストを消す（「実行中」のトーストを、実行が終わって知らせることが無いときに消す）
     func hideToast()
-    /// トリガーキーを押している間 true。失敗のトーストは、押している間は消さない（下を向いてタップしていても読めるように）
-    func setTriggerHeld(_ held: Bool)
 }
 
 extension HUDPresenting {
     /// トーストを消せない実装の既定（時間で消える）
     public func hideToast() {}
-    /// トリガーキーを気にしない実装の既定
-    public func setTriggerHeld(_ held: Bool) {}
 }
 
 // MARK: - まとめ
@@ -308,8 +294,6 @@ public struct NonetServices {
     public var ai: any AIAvailabilityProviding
     public var loginItem: any LoginItemControlling
     public var scheduler: any Scheduler
-    /// 物理キーボードが JIS 配列か（トリガーの既定値を決める）
-    public var isJISKeyboard: Bool
     /// プリセットを組み立てるときに見る、この Mac の状態（AI・Claude Code・Dock）
     public var presetEnvironment: any PresetEnvironmentProviding
 
@@ -326,7 +310,6 @@ public struct NonetServices {
         ai: any AIAvailabilityProviding,
         loginItem: any LoginItemControlling,
         scheduler: any Scheduler,
-        isJISKeyboard: Bool,
         presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
     ) {
         self.touchSource = touchSource
@@ -341,7 +324,6 @@ public struct NonetServices {
         self.ai = ai
         self.loginItem = loginItem
         self.scheduler = scheduler
-        self.isJISKeyboard = isJISKeyboard
         self.presetEnvironment = presetEnvironment
     }
 }

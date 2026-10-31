@@ -7,22 +7,22 @@ extension PresetData {
     /// 中央: 選択中のテキストが無いので AI ではなく、会議中にいちばん使うミュートを置く。
     /// モックから外したもの: 退出 ⌘W（macOS の欄では「現在のウインドウを閉じる」で、退出の割り当ては無い）
     /// 録画 ⇧⌘R は「コンピューターへの録画の開始 / 停止」
-    /// HUD で選んだときだけ実行する（PresetBuilder.hudOnly）: ビデオ・画面共有・挙手・録画。押し間違えると参加者みんなに見える
+    /// 少し長く止めてから実行する（PresetBuilder.holdBeforeRunning）: ビデオ・画面共有・挙手・録画。押し間違えると参加者みんなに見える
     /// （録画は参加者に知らされる）。ミュートは咳や物音ですぐに切り替えたいので付けない
     static var zoom: AppPreset {
         PresetBuilder.preset(
             KnownApp.zoom,
             category: "会議",
             cells: [
-                PresetBuilder.hudOnly(PresetBuilder.key("ビデオ", "video", .key("v", [.shift, .command]))),
-                PresetBuilder.hudOnly(PresetBuilder.key("画面共有", "display", .key("s", [.shift, .command]))),
-                PresetBuilder.hudOnly(PresetBuilder.key("挙手", "hand.raised", .key("y", .option))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("ビデオ", "video", .key("v", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("画面共有", "display", .key("s", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("挙手", "hand.raised", .key("y", .option))),
                 PresetBuilder.key("チャット", "bubble.left.and.bubble.right", .key("h", [.shift, .command])),
                 PresetBuilder.key("ミュート", "mic.slash", .key("a", [.shift, .command])),
                 PresetBuilder.key("参加者", "person.2", .key("u", .command)),
                 PresetBuilder.key("表示切替", "square.grid.2x2", .key("w", [.shift, .command])),
                 PresetBuilder.key("全画面", "arrow.up.left.and.arrow.down.right", .key("f", [.shift, .command])),
-                PresetBuilder.hudOnly(PresetBuilder.key("録画", "record.circle", .key("r", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("録画", "record.circle", .key("r", [.shift, .command]))),
             ],
             summary: { "ミュート、ビデオ、画面共有など\($0)個" }
         )
@@ -66,7 +66,7 @@ extension PresetData {
     /// 出典: https://support.microsoft.com/en-us/office/keyboard-shortcuts-for-microsoft-teams-2e8e2a70-e8d8-4a19-949b-4c36dd5292d2
     /// （新しい Teams の Mac の欄）。⌘1〜⌘9 はアプリバーの並び順で変わるので使わない。
     /// 通話の終了 ⇧⌘H は押し間違えると会議から抜けてしまうので入れない。
-    /// HUD で選んだときだけ実行する（PresetBuilder.hudOnly）: ビデオと画面共有（Zoom と同じ。押し間違えると参加者に見える）。
+    /// 少し長く止めてから実行する（PresetBuilder.holdBeforeRunning）: ビデオと画面共有（Zoom と同じ。押し間違えると参加者に見える）。
     /// ミュートは咳や物音ですぐに切り替えたいので付けない
     /// 中央: 長いチャットを選んで読むことが多いので要約。AI を使えない Mac では、会議中にいちばん使うミュートを中央に移す
     static func teams(_ capabilities: PresetCapabilities) -> AppPreset {
@@ -81,9 +81,9 @@ extension PresetData {
                 PresetBuilder.summarize(),
                 PresetBuilder.key("メンション", "at", .key("m", [.option, .command])),
                 PresetBuilder.key("ミュート", "mic.slash", .key("m", [.shift, .command])),
-                PresetBuilder.hudOnly(PresetBuilder.key("ビデオ", "video", .key("o", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("ビデオ", "video", .key("o", [.shift, .command]))),
                 // 共有するコンテンツのトレイを開く（Zoom の画面共有と同じ印にそろえる）
-                PresetBuilder.hudOnly(PresetBuilder.key("画面共有", "display", .key("e", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("画面共有", "display", .key("e", [.shift, .command]))),
             ], fallbackIndex: 6, capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
@@ -99,7 +99,7 @@ extension PresetData {
     /// 出典: https://support.apple.com/guide/mail/keyboard-shortcuts-mlhlb94f262b/mac
     /// 中央: 受け取ったメールを選んで読むことが多いので要約（受信したメールは書き換えられないので結果は表示）。
     /// AI を使えない Mac では、読み終えたメールを片付けるアーカイブを中央に移す
-    /// HUD で選んだときだけ実行する（PresetBuilder.hudOnly）: 送信（送ったメールは取り消せない）。返信・転送は書く画面が開くだけなので付けない
+    /// 少し長く止めてから実行する（PresetBuilder.holdBeforeRunning）: 送信（送ったメールは取り消せない）。返信・転送は書く画面が開くだけなので付けない
     static func mail(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.mail,
@@ -113,7 +113,7 @@ extension PresetData {
                 PresetBuilder.key("アーカイブ", "archivebox", .key("a", [.control, .command])),
                 PresetBuilder.key("受信", "tray.and.arrow.down", .key("n", [.shift, .command])),
                 PresetBuilder.key("既読/未読", "envelope.badge", .key("u", [.shift, .command])),
-                PresetBuilder.hudOnly(PresetBuilder.key("送信", "paperplane", .key("d", [.shift, .command]))),
+                PresetBuilder.holdBeforeRunning(PresetBuilder.key("送信", "paperplane", .key("d", [.shift, .command]))),
             ], fallbackIndex: 5, capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {

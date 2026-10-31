@@ -309,7 +309,7 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
 
 @Suite @MainActor struct SettingsSupportMailTests {
     private let details = SettingsSupportMail.Details(
-        version: "1.2.0", build: "34", macOSVersion: "26.1 (25B78)", macModel: "Mac14,2", trigger: .rightCommand, keyboardType: "JIS"
+        version: "1.2.0", build: "34", macOSVersion: "26.1 (25B78)", macModel: "Mac14,2", keyboardType: "JIS"
     )
 
     @Test func subjectAndBodyHoldOnlyTheListedDetails() throws {
@@ -322,7 +322,6 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
             "Nonet: 1.2.0 (34)",
             "macOS: 26.1 (25B78)",
             "Mac: Mac14,2",
-            L10n.ui("トリガーキー: \(SettingsText.name(TriggerKey.rightCommand))"),
             L10n.ui("キーボード: \("JIS")"),
         ])
         let url = try #require(mail.url)
@@ -354,12 +353,10 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
     }
 
     @Test func currentDetailsReadThisMac() {
-        let current = SettingsSupportMail.currentDetails(trigger: .rightShift, isJISKeyboard: true)
-        #expect(current.trigger == .rightShift)
-        #expect(current.keyboardType == "JIS")
+        let current = SettingsSupportMail.currentDetails()
         #expect(!current.macOSVersion.isEmpty)
         #expect(current.macModel != "?")
-        #expect(["ANSI", "ISO", "JIS", "?"].contains(SettingsSupportMail.currentDetails(trigger: .rightShift, isJISKeyboard: false).keyboardType))
+        #expect(["ANSI", "ISO", "JIS", "?"].contains(current.keyboardType))
     }
 
     /// ライセンスキーも登録者も本文に入れない
@@ -377,7 +374,7 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         let url = try #require(h.openedURLs.last)
         #expect(url.scheme == "mailto")
         let body = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "body" }?.value)
-        #expect(body.contains(SettingsText.name(h.model.settings.trigger)))
+        #expect(body.contains(L10n.ui("キーボード: \(SettingsSupportMail.currentDetails().keyboardType)")))
         for secret in [signed.key, "Hanako", "hanako@example.com", signed.info.licenseID] {
             #expect(!body.contains(secret), "\(secret)")
         }

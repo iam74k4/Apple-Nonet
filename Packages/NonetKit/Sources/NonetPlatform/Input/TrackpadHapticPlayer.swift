@@ -69,8 +69,9 @@ enum HapticTuning {
         // 弱では「受け付けなかった」（3 の2打）と同じにならないよう、1つ強くする
         .pageChange: (light: 4, medium: 4, strong: 5),
         .execute: (light: 4, medium: 6, strong: 6),
-        // 角の長押しで9マスが出た。指を置いたまま気づけるよう、実行と同じ強さ
-        .activation: (light: 4, medium: 6, strong: 6),
+        // 上の縁から指を滑らせて9マスが開いた。開いたことだけを伝える軽い1打（境界より1つ弱い。
+        // すぐ後にマスへ入ると境界の1打が来るので、それより目立たせない）
+        .activation: (light: 3, medium: 3, strong: 4),
         // 弱い2打。強さの設定に関係なく同じ（「何も起きなかった」は控えめに）
         .rejected: (light: 3, medium: 3, strong: 3),
     ]

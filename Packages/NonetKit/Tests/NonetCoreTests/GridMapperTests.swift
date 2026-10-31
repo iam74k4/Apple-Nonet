@@ -6,7 +6,7 @@ import NonetCore
 
     @Test(arguments: 0..<9)
     func cellCentersMapToRowMajorIndexFromTopLeft(cell: Int) {
-        let point = Pad.center(cell)
+        let point = Pad.center(cell, in: .zero)
         #expect(grid.cell(x: point.x, y: point.y) == cell)
     }
 
@@ -206,7 +206,7 @@ import NonetCore
 
     /// 縁を除いた範囲でのマスの中央
     private func center(_ cell: Int, insets: GridInsets) -> (x: Double, y: Double) {
-        let unit = Pad.center(cell)
+        let unit = Pad.center(cell, in: .zero)
         let width = 1 - insets.left - insets.right
         let height = 1 - insets.bottom - insets.top
         return (insets.left + unit.x * width, insets.bottom + unit.y * height)

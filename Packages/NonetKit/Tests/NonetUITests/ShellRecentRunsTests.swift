@@ -18,7 +18,6 @@ struct ShellRecentRunsTests {
             address: CellAddress(page: page, index: index),
             succeeded: succeeded,
             message: message,
-            wasFastTap: true,
             date: now,
             profileID: profileID
         )

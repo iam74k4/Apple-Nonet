@@ -37,9 +37,10 @@ public final class OnboardingWindowController {
     private let windowDelegate = OnboardingWindowDelegate()
     private var permissionTimer: Timer?
     private var executionObserver: ShellObserver<ExecutionRecord?>?
+    private var cancellationObserver: ShellObserver<CancellationRecord?>?
     private var didFinish = false
 
-    /// license: 練習のタップが試用期間の終了で断られた後、ライセンスキーを登録したら知らせを消すために見る。
+    /// license: 試用期間が終わっていて練習できないことを知らせ、ライセンスキーを登録したら知らせを消すために見る。
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
     public convenience init(controller: NonetController, services: NonetServices, license: LicenseManager? = nil, onFinish: @escaping () -> Void) {
         self.init(controller: controller, services: services, license: license, history: .shared, onFinish: onFinish)
@@ -121,6 +122,11 @@ public final class OnboardingWindowController {
         }, onChange: { [weak self] record in
             self?.model.handleExecution(record)
         })
+        cancellationObserver = ShellObserver({ [weak self] in
+            self?.controller.lastCancellation
+        }, onChange: { [weak self] record in
+            self?.model.handleCancellation(record)
+        })
     }
 
     /// 許可されたら、システム設定の後ろに隠れたウィンドウを前に出す（Nonet は Dock にも ⌘Tab にも出ないので、自分では探せない）
@@ -169,6 +175,7 @@ public final class OnboardingWindowController {
         permissionTimer?.invalidate()
         permissionTimer = nil
         executionObserver?.cancel()
+        cancellationObserver?.cancel()
         executionObserver = nil
         model.close()
         window?.delegate = nil

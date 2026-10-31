@@ -110,9 +110,9 @@ struct SettingsCellEditor: View {
                 .pickerStyle(.menu)
             }
             actionEditor
-            Toggle(isOn: Binding(get: { cell.requiresHUD }, set: { model.setRequiresHUD($0, ofCell: cell.id) })) {
-                Text(SettingsText.hudOnlyTitle)
-                Text(SettingsText.hudOnlyDetail)
+            Toggle(isOn: Binding(get: { cell.requiresHold }, set: { model.setRequiresHold($0, ofCell: cell.id) })) {
+                Text(SettingsText.holdTitle)
+                Text(SettingsText.holdDetail)
             }
             .toggleStyle(.checkbox)
             Divider()
@@ -152,9 +152,9 @@ struct SettingsCellEditor: View {
 }
 
 extension SettingsModel {
-    /// 「すぐのタップでは実行しない（HUD で選んだときだけ）」（Cell.requiresHUD）。ほかのインスペクタの変更と同じく ⌘Z で戻せる
-    func setRequiresHUD(_ isOn: Bool, ofCell id: UUID) {
-        updateCell(id: id) { $0.requiresHUD = isOn }
+    /// 「少し長く止めてから実行」（Cell.requiresHold）。ほかのインスペクタの変更と同じく ⌘Z で戻せる
+    func setRequiresHold(_ isOn: Bool, ofCell id: UUID) {
+        updateCell(id: id) { $0.requiresHold = isOn }
     }
 }
 

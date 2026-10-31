@@ -733,25 +733,14 @@ import Testing
 @Suite @MainActor struct SettingsModelGeneralTests {
     @Test func settingsAreSavedImmediately() throws {
         let h = try SettingsHarness()
-        h.model.setSetting(\.hudDelay, 0.5)
+        h.model.setSetting(\.hudPosition, .nearCursor)
         h.model.setSetting(\.haptics, .strong)
-        h.model.setSetting(\.fireMode, .onFingerLift)
-        #expect(h.model.settings.hudDelay == 0.5)
+        h.model.setSetting(\.cursorLock, .dropEvents)
+        #expect(h.model.settings.hudPosition == .nearCursor)
         let saved = try #require(try h.saved())
-        #expect(saved.settings.hudDelay == 0.5)
+        #expect(saved.settings.hudPosition == .nearCursor)
         #expect(saved.settings.haptics == .strong)
-        #expect(saved.settings.fireMode == .onFingerLift)
-    }
-
-    @Test func jisKeyboardsWarnAboutRightOption() throws {
-        let jis = try SettingsHarness(isJISKeyboard: true)
-        jis.model.setSetting(\.trigger, .rightOption)
-        #expect(jis.model.triggerWarning != nil)
-        jis.model.setSetting(\.trigger, .rightCommand)
-        #expect(jis.model.triggerWarning == nil)
-        let ansi = try SettingsHarness(isJISKeyboard: false)
-        ansi.model.setSetting(\.trigger, .rightOption)
-        #expect(ansi.model.triggerWarning == nil)
+        #expect(saved.settings.cursorLock == .dropEvents)
     }
 
     @Test func disablingShowsABannerThatReenables() throws {

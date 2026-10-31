@@ -101,7 +101,7 @@ final class MenuBarCheatSheetView: NSView {
     override func mouseDown(with event: NSEvent) {}
     override func mouseUp(with event: NSEvent) {}
 
-    /// メニューを開くたびに呼ぶ。最初のページ（トリガーを押したときに出るページ）に戻し、ポインタの跡を消す
+    /// メニューを開くたびに呼ぶ。最初のページ（9マスを開いたときに出るページ）に戻し、ポインタの跡を消す
     func update(sheet: MenuBarCheatSheet, density: MenuBarCheatSheetLayout.Density, increasedContrast: Bool) {
         store.sheet = sheet
         store.hovered = nil

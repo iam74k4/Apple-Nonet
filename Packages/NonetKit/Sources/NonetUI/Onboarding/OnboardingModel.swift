@@ -43,26 +43,24 @@ struct OnboardingAppChoice: Identifiable, Equatable {
     var id: String { app.bundleID }
 }
 
-/// 練習の進み具合。HUD から選ぶ → すぐにタップ の順に進む
+/// 練習の進み具合。マスで離して実行する → 外枠で離してやめる の順に進む
 enum OnboardingPracticeState: Equatable {
-    /// 1つ目: HUD を出し、指を滑らせて目標のマスに合わせて実行する（HUD のマスをタップしてもよい）
-    case hud
-    /// 2つ目: 目標の角をすぐにタップする
-    case quickTap
+    /// 1つ目: 上の縁から指を滑らせて開き、目標のマスまで滑らせて離す
+    case run
+    /// 2つ目: もう一度開き、外枠まで滑らせて離す（何も実行しない）
+    case cancel
     case succeeded
 }
 
 /// 練習でうまくいかなかったときの知らせ
 enum OnboardingPracticeFeedback: Equatable {
-    /// 違うマスを押した（位置と、そのマスの名前）
+    /// 違うマスを実行した（位置と、そのマスの名前）
     case wrongCell(index: Int, title: String)
-    /// HUD の課題で、HUD が出る前に実行された
-    case tooQuick
-    /// すぐにタップの課題で、HUD から実行した
-    case usedHUD
+    /// やめる課題で、マスを実行した
+    case ranInsteadOfCancelling(title: String)
 }
 
-/// 練習で押してもらうマス
+/// 練習で選んでもらうマス
 struct OnboardingPracticeTarget: Equatable {
     var index: Int
     var title: String
@@ -70,43 +68,28 @@ struct OnboardingPracticeTarget: Equatable {
 
 /// 練習に使うページ。練習の HUD に出るもの（前面のアプリのプロファイルの最初のページ）なので、本物のボタンの名前で案内できる
 struct OnboardingPracticePage: Equatable {
-    /// すぐにタップしてもらうマス。角を優先する（右上から）
-    static let quickTapPreference = [2, 0, 8, 6, 4, 1, 3, 5, 7]
-    /// HUD で選んでもらうマス。すぐにタップの右上から離れたところを優先する
-    static let hudPreference = [6, 4, 8, 0, 3, 5, 7, 1, 2]
+    /// 選んでもらうマス。指を置きやすい中央を最初に、上の縁から入ってきた指が上の段を通り過ぎて届く下の段を次に
+    static let runPreference = [4, 6, 8, 7, 3, 5, 0, 2, 1]
 
     var profileName: String
     /// 9マスの名前。空きマスは nil
     var titles: [String?]
-    var hudTarget: OnboardingPracticeTarget
-    var quickTapTarget: OnboardingPracticeTarget
+    var runTarget: OnboardingPracticeTarget
 
-    /// 中身のあるマスが無ければ nil（空きマスは押しても何も記録されないので、練習にならない）
+    /// 中身のあるマスが無ければ nil（空きマスで離しても何も記録されないので、練習にならない）
     init?(_ page: ResolvedPage?) {
         guard let page else { return nil }
         let titles = (0..<Page.cellCount).map { index in
             page.cells.indices.contains(index) ? page.cells[index]?.title : nil
         }
         let occupied = Set(titles.indices.filter { titles[$0] != nil })
-        // HUD で選んだときだけ実行するマス（Cell.requiresHUD）は、すぐにタップしても実行しないので練習に使わない（そればかりなら使う）
-        let tappable = occupied.filter { page.cells.indices.contains($0) && page.cells[$0]?.requiresHUD != true }
-        guard let quick = Self.quickTapPreference.first(where: (tappable.isEmpty ? occupied : tappable).contains) else { return nil }
-        // 中身のあるマスが1つしか無ければ、同じマスを違うやり方で押してもらう
-        let hud = Self.hudPreference.first { occupied.contains($0) && $0 != quick } ?? quick
+        // 少し長く止めてから実行するマス（Cell.requiresHold）は、最初の練習には使わない（そればかりなら使う）
+        let ordinary = occupied.filter { page.cells.indices.contains($0) && page.cells[$0]?.requiresHold != true }
+        guard let run = Self.runPreference.first(where: (ordinary.isEmpty ? occupied : ordinary).contains) else { return nil }
         profileName = page.profileName
         self.titles = titles
-        hudTarget = OnboardingPracticeTarget(index: hud, title: titles[hud] ?? "")
-        quickTapTarget = OnboardingPracticeTarget(index: quick, title: titles[quick] ?? "")
+        runTarget = OnboardingPracticeTarget(index: run, title: titles[run] ?? "")
     }
-}
-
-/// 練習の後に試してもらう「トラックパッドだけで呼び出す」（角に指を置いて少し待つ）
-enum OnboardingCornerTrial: Equatable {
-    /// 紹介している（まだ試していない）
-    case offered
-    /// 設定をオンにして、試すのを待っている
-    case trying(TouchActivation)
-    case succeeded(TouchActivation)
 }
 
 /// 練習できない理由。文言とボタンを同じ値から選ぶ
@@ -118,7 +101,7 @@ enum OnboardingPracticeBlocker: Equatable {
     case secureInput
     /// いま使うページに中身のあるマスが無い
     case noButtons
-    /// 試用期間が終わっていて、練習のタップも実行されなかった
+    /// 試用期間が終わっていて、9マスが開かない
     case licenseRequired
 
     var message: String {
@@ -225,13 +208,9 @@ final class OnboardingModel {
 
     private(set) var step: OnboardingStep = .welcome
     private(set) var isAccessibilityGranted: Bool
-    private(set) var practice: OnboardingPracticeState = .hud
+    private(set) var practice: OnboardingPracticeState = .run
     /// 練習でうまくいかなかったときの知らせ。課題が進んだら消す
     private(set) var practiceFeedback: OnboardingPracticeFeedback?
-    /// 練習ができた後の「キーを使わない方法もあります」。練習ができるまでは nil
-    private(set) var cornerTrial: OnboardingCornerTrial?
-    /// 角に指を置いて試す角
-    var cornerChoice: TouchActivation = .topRight
     /// ウィンドウがほかのウィンドウに隠れていない（しまった・画面のロック中も隠れている）
     private(set) var isWindowVisible = true
     /// ウィンドウがキーウィンドウ。ほかのアプリを使っている間は false
@@ -240,9 +219,6 @@ final class OnboardingModel {
     let isFirstLaunchGuide: Bool
     /// 案内をどうして開いたか（最初の画面の見出しと「今後表示しない」）
     var purpose: OnboardingPurpose = .guide
-    /// 練習のタップが試用期間の終了で断られた（もう一度押して実行されれば消える）。
-    /// 知らせは、ライセンスを登録して実行できるようになった時点で出さなくなる（practiceBlocker）
-    private(set) var isPracticeRefusedForLicense = false
     /// トラックパッドが見つからない（最初の画面で知らせる。許可より前に分かる）
     private(set) var isTrackpadMissing = false
     /// 完了の画面の「Mac にログインしたら Nonet を自動で起動する」
@@ -286,6 +262,7 @@ final class OnboardingModel {
     @ObservationIgnored private var practiceStartedAt: Date?
     /// 練習を始めたときにすでにあった記録（これは数えない）
     @ObservationIgnored private var practiceBaseline: ExecutionRecord?
+    @ObservationIgnored private var cancellationBaseline: CancellationRecord?
     /// このウィンドウで macOS の許可の確認を出した。2回目からはシステム設定の欄だけを開く
     @ObservationIgnored private var hasPromptedAccessibility = false
     /// 知らせを出したときに選んでいた「ログイン時に起動」。同じ選択のまま押し直したら閉じる
@@ -296,7 +273,7 @@ final class OnboardingModel {
     /// ここから変わっていれば利用者が編集したので、作り直さずに足すだけにする
     private var profilesSnapshot: [Profile]
 
-    /// license が nil なら、断られた後は次に実行されるまで知らせを出し続ける。
+    /// license が nil なら、試用期間の終了では練習を止めない。
     /// frontmostApp が nil なら、練習はグローバルのページで案内する。touchSource が nil ならトラックパッドを確かめない。
     /// loginItem が nil なら「ログイン時に起動」を反映しない
     init(
@@ -331,14 +308,6 @@ final class OnboardingModel {
         selectedIDs = Set(available.map(\.app.bundleID))
         profilesSnapshot = controller.configuration.profiles
         refreshTrackpad()
-    }
-
-    var trigger: TriggerKey {
-        controller.configuration.settings.trigger
-    }
-
-    var fireMode: FireMode {
-        controller.configuration.settings.fireMode
     }
 
     /// 選んだアプリだけのプロファイルで作り直すか。そうでなければ足りないものを足すだけ。
@@ -393,9 +362,11 @@ final class OnboardingModel {
         if practicePage == nil {
             return .noButtons
         }
-        // 断られた後でも、ライセンスキーを登録して実行できるようになっていれば、もう知らせない
-        guard isPracticeRefusedForLicense, license?.canExecuteActions != true else { return nil }
-        return .licenseRequired
+        // 試用期間が終わっていると9マスが開かない。ライセンスキーを登録すれば（@Observable なので）知らせは消える
+        if license?.canExecuteActions == false {
+            return .licenseRequired
+        }
+        return nil
     }
 
     /// 練習モードにしてよいか。見えていても、ほかのアプリを使っている間は本物を実行する
@@ -409,10 +380,6 @@ final class OnboardingModel {
     var trialDaysLeft: Int? {
         guard case .trial(let daysLeft)? = license?.entitlement else { return nil }
         return daysLeft
-    }
-
-    var cornerActivation: TouchActivation {
-        controller.configuration.settings.touchActivation
     }
 
     // MARK: - アクセシビリティ
@@ -579,7 +546,7 @@ final class OnboardingModel {
         }
     }
 
-    /// 選んだアプリを反映して、試してみるへ。全体の設定（トリガーなど）は変えない。
+    /// 選んだアプリを反映して、試してみるへ。全体の設定は変えない。
     /// どのカードも最初は選ばれているので、そのまま進めばおすすめのまま使うことになる（別の「飛ばす」ボタンは置かない）
     func applySelection() {
         guard step == .apps else { return }
@@ -588,7 +555,6 @@ final class OnboardingModel {
         if replacesProfiles {
             let settings = controller.configuration.settings
             var configuration = NonetConfiguration.initial(
-                trigger: settings.trigger,
                 appPresets: selected,
                 installedBundleIDs: installedLauncherIDs,
                 dockApps: presetEnvironment.dockApps()
@@ -612,89 +578,42 @@ final class OnboardingModel {
     // MARK: - 練習
 
     /// controller.lastExecution が変わったら呼ぶ。練習を始めてからの記録だけを数える。
-    /// 実行されなかったもの（試用期間の終了で断られた）は押せたことにしない。
-    /// どのページでも、目標と同じ位置のマスなら押せたことにする（2本指でページを替えてしまっても、やり方は合っている）
+    /// 実行されなかったもの（Nonet のウィンドウで断られた など）は実行できたことにしない。
+    /// どのページでも、目標と同じ位置のマスなら実行できたことにする（2本指でページを替えてしまっても、やり方は合っている）
     func handleExecution(_ record: ExecutionRecord?) {
         guard step == .practice, isWindowAttended, let record, let startedAt = practiceStartedAt,
               record != practiceBaseline, record.date >= startedAt else { return }
         practiceBaseline = record
-        guard record.succeeded else {
-            if record.message == NonetError.licenseRequired.localizedDescription {
-                isPracticeRefusedForLicense = true
-            }
-            return
-        }
-        isPracticeRefusedForLicense = false
+        guard record.succeeded else { return }
         switch practice {
-        case .hud: handleHUDTask(record)
-        case .quickTap: handleQuickTapTask(record)
-        case .succeeded: handleCornerTrial(record)
+        case .run:
+            guard let target = practicePage?.runTarget else { return }
+            guard record.address.index == target.index else {
+                practiceFeedback = .wrongCell(index: record.address.index, title: record.cellTitle)
+                announce(ShellText.practiceWrongCell(index: record.address.index, title: record.cellTitle, target: target))
+                return
+            }
+            practice = .cancel
+            practiceFeedback = nil
+            announce(ShellText.practiceRunDone)
+        case .cancel:
+            practiceFeedback = .ranInsteadOfCancelling(title: record.cellTitle)
+            announce(ShellText.practiceRanInsteadOfCancelling(record.cellTitle))
+        case .succeeded:
+            break
         }
     }
 
-    /// 1つ目: HUD を出してから実行した（wasFastTap が false。HUD のマスをタップしたときも）
-    private func handleHUDTask(_ record: ExecutionRecord) {
-        guard let target = practicePage?.hudTarget else { return }
-        guard record.address.index == target.index else {
-            showWrongCell(record, target: target)
-            return
-        }
-        guard !record.wasFastTap else {
-            practiceFeedback = .tooQuick
-            announce(ShellText.practiceTooQuick)
-            return
-        }
-        practice = .quickTap
-        practiceFeedback = nil
-        announce(ShellText.practiceHUDDone)
-    }
-
-    /// 2つ目: HUD を出さずにすぐ実行した（wasFastTap が true）
-    private func handleQuickTapTask(_ record: ExecutionRecord) {
-        guard let target = practicePage?.quickTapTarget else { return }
-        guard record.address.index == target.index else {
-            showWrongCell(record, target: target)
-            return
-        }
-        guard record.wasFastTap else {
-            practiceFeedback = .usedHUD
-            announce(ShellText.practiceUsedHUD)
-            return
-        }
+    /// controller.lastCancellation が変わったら呼ぶ。やめる課題で、外枠で指を離して閉じたらできたことにする
+    /// （止める時間が足りなかった・境界で離した などで実行しなかったものは、やめる操作とは数えない）
+    func handleCancellation(_ record: CancellationRecord?) {
+        guard step == .practice, isWindowAttended, let record, let startedAt = practiceStartedAt,
+              record != cancellationBaseline, record.date >= startedAt else { return }
+        cancellationBaseline = record
+        guard practice == .cancel, record.reason == .liftedInFrame else { return }
         practice = .succeeded
         practiceFeedback = nil
-        let current = controller.configuration.settings.touchActivation
-        cornerChoice = current == .off ? .topRight : current
-        cornerTrial = .offered
-        announce(ShellText.practiceQuickTapDone(target))
-    }
-
-    private func showWrongCell(_ record: ExecutionRecord, target: OnboardingPracticeTarget) {
-        practiceFeedback = .wrongCell(index: record.address.index, title: record.cellTitle)
-        announce(ShellText.practiceWrongCell(index: record.address.index, title: record.cellTitle, target: target))
-    }
-
-    /// 角に指を置いて HUD を出して実行した。記録にはどちらで出したかが無いので、HUD から実行したものを数える
-    private func handleCornerTrial(_ record: ExecutionRecord) {
-        guard case .trying(let corner) = cornerTrial, !record.wasFastTap else { return }
-        cornerTrial = .succeeded(corner)
-        announce(ShellText.cornerTrialDone)
-    }
-
-    /// 「試してみる」: 選んだ角で「トラックパッドだけで呼び出す」をオンにして、試すのを待つ
-    func tryCornerActivation() {
-        guard cornerTrial != nil else { return }
-        let corner = cornerChoice == .off ? .topRight : cornerChoice
-        controller.update { $0.settings.touchActivation = corner }
-        cornerTrial = .trying(corner)
-        logger.info("案内で、トラックパッドだけで呼び出す設定をオンにした（\(String(describing: corner), privacy: .public)）")
-    }
-
-    /// 「オフに戻す」
-    func turnOffCornerActivation() {
-        guard cornerTrial != nil else { return }
-        controller.update { $0.settings.touchActivation = .off }
-        cornerTrial = .offered
+        announce(ShellText.practiceCancelDone)
     }
 
     private func attentionChanged(from wasAttended: Bool) {
@@ -704,6 +623,7 @@ final class OnboardingModel {
         if attended {
             // 離れている間の実行は本物なので、練習には数えない
             practiceBaseline = controller.lastExecution
+            cancellationBaseline = controller.lastCancellation
             practiceStartedAt = now()
         }
     }
@@ -717,11 +637,10 @@ final class OnboardingModel {
         step = newStep
         switch newStep {
         case .practice:
-            practice = .hud
+            practice = .run
             practiceFeedback = nil
-            cornerTrial = nil
-            isPracticeRefusedForLicense = false
             practiceBaseline = controller.lastExecution
+            cancellationBaseline = controller.lastCancellation
             practiceStartedAt = now()
             controller.isPracticeMode = isWindowAttended
         case .done:

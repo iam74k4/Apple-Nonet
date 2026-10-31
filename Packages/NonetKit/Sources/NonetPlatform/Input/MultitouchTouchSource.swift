@@ -98,14 +98,6 @@ public final class MultitouchTouchSource: TouchSource {
         inputLogger.info("トラックパッドの読み取りを止めた")
     }
 
-    /// トリガーが押された。開始し直してからしばらく経つのにフレームが1つも届いていなければ、止まっているかもしれないので開始し直す。
-    /// イベントタップのコールバックから呼ばれるので、開始し直すのはメインループの次の回にする
-    public func revalidate() {
-        guard isRunning, pendingRestart == nil, recovery.needsRestartOnTrigger(now: ProcessInfo.processInfo.systemUptime) else { return }
-        inputLogger.notice("トラックパッドのフレームが届いていないので、開始し直す")
-        scheduleRestart(.silent, after: 0)
-    }
-
     /// 一覧が開始しようとしたデバイスと違えば（抜き差しの通知を取りこぼした）開始し直す
     private func checkDeviceList() {
         guard isRunning, pendingRestart == nil else { return }
@@ -173,7 +165,6 @@ public final class MultitouchTouchSource: TouchSource {
         guard isRunning, let connection else { return }
         let (frames, device) = connection.pipeline.drain()
         if let device { MultitouchActivity.lastTouchedDeviceID = device }
-        if !frames.isEmpty { recovery.frameArrived() }
         for frame in frames {
             guard isRunning else { return }
             deliver(frame, from: device)

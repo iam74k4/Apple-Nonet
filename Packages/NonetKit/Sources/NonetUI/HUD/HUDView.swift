@@ -21,11 +21,17 @@ struct HUDMetrics: Equatable {
     var bannerHeight: CGFloat { HUDLayout.bannerHeight * scale }
     var pageIndicatorHeight: CGFloat { HUDLayout.pageIndicatorHeight * scale }
     var footnoteHeight: CGFloat { HUDLayout.footnoteHeight * scale }
+    var frameSide: CGFloat { HUDLayout.frameSide * scale }
+    var frameTop: CGFloat { HUDLayout.frameTop * scale }
+    var frameBottom: CGFloat { HUDLayout.frameBottom * scale }
+    var padCornerRadius: CGFloat { HUDLayout.padCornerRadius * scale }
+    /// 少し長く止めるマスの進み具合の線の太さ
+    var holdLineWidth: CGFloat { 3 * scale }
     var headerFontSize: CGFloat { 12 * scale }
     var cellTitleFontSize: CGFloat { 13 * scale }
     var detailFontSize: CGFloat { 11 * scale }
     var iconSize: CGFloat { 20 * scale }
-    /// HUD で選んだときだけ実行するマスの印（HUDOnlyBadge）の大きさと、マスの角からの距離
+    /// 少し長く止めてから実行するマスの印（HoldBadge）の大きさと、マスの角からの距離
     var badgeSize: CGFloat { 9 * scale }
     var badgeInset: CGFloat { 7 * scale }
     var dotSize: CGFloat { 7 * scale }
@@ -48,11 +54,11 @@ struct HUDMetrics: Equatable {
     }
 }
 
-/// HUD の標準の寸法（倍率 1）。モック（HUD 動作デモ・アプリページと触覚）に合わせる
+/// HUD の標準の寸法（倍率 1）。モック（HUD 動作デモ・アプリページと触覚）に合わせ、9マスの周りに外枠を足した
 enum HUDLayout {
     static let width: CGFloat = 504
-    /// 帯もページの点も無いときの高さ
-    static let baseHeight: CGFloat = 315
+    /// 帯もページの点も無いときの高さ（9マスの高さは前と同じで、外枠の上下の分だけ高い）
+    static let baseHeight: CGFloat = 315 + frameTop + frameBottom
     static let padding: CGFloat = 18
     static let spacing: CGFloat = 12
     static let cellSpacing: CGFloat = 8
@@ -63,6 +69,15 @@ enum HUDLayout {
     /// 9マスの下の使い始めの案内（11pt で2行まで）
     static let footnoteHeight: CGFloat = 28
     static let pageGroupGap: CGFloat = 8
+    /// 9マスの周りの外枠（トラックパッドの外枠を表す）の幅。トラックパッドの割合（左右 7%・奥 12%・手前 10%）の順を保ち、
+    /// 帯として見分けられて、9マスを小さくしすぎない幅にする
+    static let frameSide: CGFloat = 10
+    static let frameTop: CGFloat = 14
+    static let frameBottom: CGFloat = 12
+    /// 外枠の角の丸み（マスの角の丸み 12 と外枠の幅が作る、外側の丸み）
+    static let padCornerRadius: CGFloat = 18
+    /// 9マスの下の塗らない部分を、マスより外へ広げる幅（外枠の帯とマスの間に少しすき間を空ける）
+    static let gridWell: CGFloat = 4
     /// パネルの影を SwiftUI で描くための余白。ウィンドウの影は中身が変わると遅れて付くので使わない
     static let shadowMargin: CGFloat = 28
 
@@ -81,6 +96,9 @@ enum HUDPalette {
     static let secondaryText = Color(white: 0x9A / 255)
     static let highlightedForeground = Color(white: 0x11 / 255)
     static let highlightedDetail = Color(white: 0x55 / 255)
+    /// 少し長く止めるマスを、止め終える前に光らせる色（白く塗る前）
+    static let holdingCell = Color(white: holdingCellWhite)
+    static let holdingCellWhite: Double = 0x33 / 255
 
     static let backgroundWhite: Double = 0x11 / 255
     static let cellWhite: Double = 0x1E / 255
@@ -114,6 +132,13 @@ struct HUDColors: Equatable {
     var borderOpacity: Double
     /// 空きマスの点線
     var emptyCellStrokeOpacity: Double
+    /// 外枠（やめる場所）。ふだんは控えめな帯と縁、指が外枠にあるときは帯を明るくして縁を白くする
+    var frameFillOpacity: Double
+    var frameStrokeOpacity: Double
+    var frameActiveFillOpacity: Double
+    var frameActiveStrokeOpacity: Double
+    /// 指が外枠にあるときのマスの不透明度（離しても実行しないことを見せる）
+    var dimmedCellOpacity: Double
 
     static let standard = HUDColors(
         cellForegroundWhite: 0xA8 / 255,
@@ -121,7 +146,12 @@ struct HUDColors: Equatable {
         secondaryTextWhite: 0x9A / 255,
         inactiveDotWhite: 0x77 / 255,
         borderOpacity: 0.08,
-        emptyCellStrokeOpacity: 0.07
+        emptyCellStrokeOpacity: 0.07,
+        frameFillOpacity: 0.035,
+        frameStrokeOpacity: 0.1,
+        frameActiveFillOpacity: 0.13,
+        frameActiveStrokeOpacity: 0.8,
+        dimmedCellOpacity: 0.3
     )
 
     static let increased = HUDColors(
@@ -130,7 +160,12 @@ struct HUDColors: Equatable {
         secondaryTextWhite: 0xC8 / 255,
         inactiveDotWhite: 0x9A / 255,
         borderOpacity: 0.4,
-        emptyCellStrokeOpacity: 0.45
+        emptyCellStrokeOpacity: 0.45,
+        frameFillOpacity: 0.07,
+        frameStrokeOpacity: 0.45,
+        frameActiveFillOpacity: 0.22,
+        frameActiveStrokeOpacity: 1,
+        dimmedCellOpacity: 0.22
     )
 
     var cellForeground: Color { Color(white: cellForegroundWhite) }
@@ -139,6 +174,14 @@ struct HUDColors: Equatable {
     var inactiveDot: Color { Color(white: inactiveDotWhite) }
     var border: Color { Color.white.opacity(borderOpacity) }
     var emptyCellStroke: Color { Color.white.opacity(emptyCellStrokeOpacity) }
+
+    func frameFill(isActive: Bool) -> Color {
+        Color.white.opacity(isActive ? frameActiveFillOpacity : frameFillOpacity)
+    }
+
+    func frameStroke(isActive: Bool) -> Color {
+        Color.white.opacity(isActive ? frameActiveStrokeOpacity : frameStrokeOpacity)
+    }
 }
 
 /// 表示中の HUD の中身。update のたびにここだけを書き換え、ウィンドウやホスティングビューは作り直さない
@@ -148,6 +191,8 @@ final class HUDStore {
     var model: HUDModel?
     /// システム設定の「コントラストを上げる」（出すたびに読み直す）
     var increasedContrast = false
+    /// システム設定の「視差効果を減らす」（出すたびに読み直す）。外枠の切り替えをアニメーションにせず、進み具合も満たしていかない
+    var reduceMotion = false
 }
 
 /// パネルに置く根のビュー。影の余白の中に HUD を描く
@@ -157,7 +202,7 @@ struct HUDRootView: View {
     var body: some View {
         ZStack {
             if let model = store.model {
-                HUDView(model: model, colors: HUDPalette.colors(increasedContrast: store.increasedContrast))
+                HUDView(model: model, colors: HUDPalette.colors(increasedContrast: store.increasedContrast), reduceMotion: store.reduceMotion)
             }
         }
         .padding(HUDLayout.shadowMargin)
@@ -167,6 +212,9 @@ struct HUDRootView: View {
 struct HUDView: View {
     let model: HUDModel
     var colors: HUDColors = .standard
+    var reduceMotion = false
+    /// 少し長く止めるマスの進み具合を、この値（0〜1）で止めて描く（見た目の確認用）。nil なら止め始めてから duration で満たす
+    var fixedHoldProgress: Double?
 
     private var metrics: HUDMetrics { HUDMetrics(scale: model.scale) }
 
@@ -178,7 +226,7 @@ struct HUDView: View {
             if let banner = model.banner {
                 HUDBannerView(text: banner, style: model.bannerStyle, metrics: metrics)
             }
-            grid
+            pad
             if model.pageCount > 1 {
                 HUDPageIndicator(
                     pageIndex: model.pageIndex,
@@ -231,13 +279,50 @@ struct HUDView: View {
         .font(.system(size: metrics.headerFontSize))
     }
 
+    /// トラックパッドを表す面。9マスと、その周りの外枠（指を出して離すと何もせずに閉じる場所）。
+    /// 指が外枠にあるときは、外枠を明るくして縁を白くし、マスを暗くして、中央に「離すとやめる」を出す
+    private var pad: some View {
+        let inFrame = model.isFingerInFrame
+        let shape = RoundedRectangle(cornerRadius: metrics.padCornerRadius, style: .continuous)
+        // 9マスの下は塗らず、外枠の帯だけが明るく見えるようにする（マスの間のすき間は外枠ではない）
+        let well = HUDLayout.gridWell * metrics.scale
+        return ZStack {
+            shape.fill(colors.frameFill(isActive: inFrame))
+            RoundedRectangle(cornerRadius: metrics.cellCornerRadius + well, style: .continuous)
+                .fill(HUDPalette.background)
+                .padding(.horizontal, metrics.frameSide - well)
+                .padding(.top, metrics.frameTop - well)
+                .padding(.bottom, metrics.frameBottom - well)
+            shape.strokeBorder(colors.frameStroke(isActive: inFrame), lineWidth: (inFrame ? 1.5 : 1) * metrics.scale)
+            grid
+                .padding(.horizontal, metrics.frameSide)
+                .padding(.top, metrics.frameTop)
+                .padding(.bottom, metrics.frameBottom)
+                .opacity(inFrame ? colors.dimmedCellOpacity : 1)
+            if inFrame {
+                HUDCancelLabel(metrics: metrics, colors: colors)
+                    .transition(.opacity)
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
+    }
+
     private var grid: some View {
         Grid(horizontalSpacing: metrics.cellSpacing, verticalSpacing: metrics.cellSpacing) {
             ForEach(0..<3, id: \.self) { row in
                 GridRow {
                     ForEach(0..<3, id: \.self) { column in
                         let index = row * 3 + column
-                        HUDCellView(cell: cell(at: index), isHighlighted: model.highlightedIndex == index, index: index, metrics: metrics, colors: colors)
+                        HUDCellView(
+                            cell: cell(at: index),
+                            isHighlighted: model.highlightedIndex == index,
+                            index: index,
+                            metrics: metrics,
+                            colors: colors,
+                            hold: model.hold?.cellIndex == index && model.highlightedIndex == index ? model.hold : nil,
+                            reduceMotion: reduceMotion,
+                            fixedHoldProgress: fixedHoldProgress
+                        )
                     }
                 }
             }
@@ -255,12 +340,26 @@ struct HUDCellView: View {
     let index: Int
     var metrics = HUDMetrics(scale: 1)
     var colors: HUDColors = .standard
+    /// 光っている、少し長く止めるマスの進み具合。止め終えるまでは白く塗らず、縁に沿って線を伸ばす
+    var hold: HUDHold?
+    var reduceMotion = false
+    var fixedHoldProgress: Double?
+
+    /// 白く塗る（いま指を離すと実行する）。少し長く止めるマスは止め終えてから
+    private var isFilled: Bool {
+        isHighlighted && (hold?.isReady ?? true)
+    }
+
+    /// 少し長く止めるマスを止めている途中
+    private var isHolding: Bool {
+        isHighlighted && hold?.isReady == false
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: metrics.cellCornerRadius, style: .continuous)
         ZStack {
             if let cell {
-                shape.fill(isHighlighted ? Color.white : HUDPalette.cell)
+                shape.fill(isFilled ? Color.white : isHolding ? HUDPalette.holdingCell : HUDPalette.cell)
                 VStack(spacing: 5 * metrics.scale) {
                     CellIconView(cell.icon, size: metrics.iconSize)
                     Text(cell.title)
@@ -271,13 +370,16 @@ struct HUDCellView: View {
                     if let detail = cell.detail, !detail.isEmpty {
                         Text(detail)
                             .font(.system(size: metrics.detailFontSize))
-                            .foregroundStyle(isHighlighted ? HUDPalette.highlightedDetail : colors.detail)
+                            .foregroundStyle(isFilled ? HUDPalette.highlightedDetail : isHolding ? Color.white.opacity(0.8) : colors.detail)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
                 }
                 .padding(.horizontal, 8 * metrics.scale)
-                .foregroundStyle(isHighlighted ? HUDPalette.highlightedForeground : colors.cellForeground)
+                .foregroundStyle(isFilled ? HUDPalette.highlightedForeground : isHolding ? Color.white : colors.cellForeground)
+                if isHolding, let hold {
+                    HUDHoldRing(hold: hold, cornerRadius: metrics.cellCornerRadius, lineWidth: metrics.holdLineWidth, animates: !reduceMotion, fixedProgress: fixedHoldProgress)
+                }
             } else if isHighlighted {
                 // 空きマスは実行しても何も起きないので、塗らずに枠だけで示す
                 shape.fill(HUDPalette.emptyCell)
@@ -289,20 +391,108 @@ struct HUDCellView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .topTrailing) {
-            if cell?.requiresHUD == true {
-                HUDOnlyBadge(size: metrics.badgeSize, color: isHighlighted ? HUDPalette.highlightedDetail : colors.detail)
+            if cell?.requiresHold == true {
+                HoldBadge(size: metrics.badgeSize, color: isFilled ? HUDPalette.highlightedDetail : isHolding ? Color.white : colors.detail)
                     .padding(metrics.badgeInset)
             }
         }
         .overlay(alignment: .topLeading) {
             if cell?.isShared == true {
-                HUDSharedBadge(isHighlighted: isHighlighted, metrics: metrics, colors: colors)
+                HUDSharedBadge(isHighlighted: isFilled, metrics: metrics, colors: colors)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
         .accessibilityValue(Text(HUDAnnouncement.cellValue(cell)))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+    }
+}
+
+/// 少し長く止めるマスの進み具合。マスの縁に沿って白い線を伸ばし、一周したら（HUDHold.isReady）マスが白くなる。
+/// 「視差効果を減らす」では線を伸ばさず、縁を点線で囲むだけにする（止め終えたら白くなるのは同じ）
+struct HUDHoldRing: View {
+    let hold: HUDHold
+    let cornerRadius: CGFloat
+    let lineWidth: CGFloat
+    let animates: Bool
+    let fixedProgress: Double?
+    @State private var progress: CGFloat = 0
+
+    var body: some View {
+        let ring = HUDHoldRingShape(cornerRadius: cornerRadius, inset: lineWidth / 2)
+        ZStack {
+            if let fixedProgress {
+                ring.stroke(Color.white.opacity(0.2), lineWidth: lineWidth)
+                ring.trim(from: 0, to: CGFloat(min(max(fixedProgress, 0), 1)))
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            } else if animates {
+                ring.stroke(Color.white.opacity(0.2), lineWidth: lineWidth)
+                ring.trim(from: 0, to: progress)
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            } else {
+                ring.stroke(Color.white.opacity(0.7), style: StrokeStyle(lineWidth: lineWidth * 0.6, dash: [lineWidth * 1.5, lineWidth * 1.5]))
+            }
+        }
+        .onAppear { start() }
+        .onChange(of: hold.since) { start() }
+        .accessibilityHidden(true)
+    }
+
+    /// 止め始めた（このマスになった・滑らせ直した）ところから、duration で一周させる
+    private func start() {
+        guard animates, fixedProgress == nil else { return }
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) { progress = 0 }
+        withAnimation(.linear(duration: max(hold.duration, 0))) { progress = 1 }
+    }
+}
+
+/// マスの縁をなぞる線。上の辺の中ほどから時計回りに一周する（進み具合が時計の針と同じ向きに伸びる）
+struct HUDHoldRingShape: Shape {
+    var cornerRadius: CGFloat
+    /// 線の太さの半分だけ内側を通る（マスの外にはみ出さない）
+    var inset: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let box = rect.insetBy(dx: inset, dy: inset)
+        let radius = max(0, min(cornerRadius - inset, box.width / 2, box.height / 2))
+        var path = Path()
+        path.move(to: CGPoint(x: box.midX, y: box.minY))
+        path.addLine(to: CGPoint(x: box.maxX - radius, y: box.minY))
+        path.addArc(center: CGPoint(x: box.maxX - radius, y: box.minY + radius), radius: radius, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+        path.addLine(to: CGPoint(x: box.maxX, y: box.maxY - radius))
+        path.addArc(center: CGPoint(x: box.maxX - radius, y: box.maxY - radius), radius: radius, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        path.addLine(to: CGPoint(x: box.minX + radius, y: box.maxY))
+        path.addArc(center: CGPoint(x: box.minX + radius, y: box.maxY - radius), radius: radius, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        path.addLine(to: CGPoint(x: box.minX, y: box.minY + radius))
+        path.addArc(center: CGPoint(x: box.minX + radius, y: box.minY + radius), radius: radius, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        path.closeSubpath()
+        return path
+    }
+}
+
+/// 指が外枠にあるときに、暗くしたマスの上に出す「離すとやめる」
+struct HUDCancelLabel: View {
+    var metrics = HUDMetrics(scale: 1)
+    var colors: HUDColors = .standard
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 10 * metrics.scale, style: .continuous)
+        HStack(spacing: 7 * metrics.scale) {
+            Image(systemName: "xmark")
+                .font(.system(size: 11 * metrics.scale, weight: .bold))
+            Text(HUDAnnouncement.cancelLabel)
+                .font(.system(size: 14 * metrics.scale, weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(Color.white)
+        .padding(.horizontal, 16 * metrics.scale)
+        .padding(.vertical, 9 * metrics.scale)
+        // 下の暗くしたマスの文字が透けないよう、塗りつぶす
+        .background(shape.fill(HUDPalette.background))
+        .overlay(shape.strokeBorder(colors.frameStroke(isActive: true), lineWidth: 1))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -431,34 +621,48 @@ enum HUDAnnouncement {
         return String(localized: "sharedButton.accessibilityValue", defaultValue: "共通マス", bundle: .module)
     }
 
-    /// マスの VoiceOver の値。共通マス・HUD で選んだときだけ実行するマスなら、それを並べる
+    /// マスの VoiceOver の値。共通マス・少し長く止めてから実行するマスなら、それを並べる
     static func cellValue(_ cell: HUDCell?) -> String {
-        [sharedValue(cell) ?? "", HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true)]
+        [sharedValue(cell) ?? "", HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true)]
             .filter { !$0.isEmpty }
             .joined(separator: "、")
     }
 
-    /// ハイライト中のマス。指が離れていれば nil。HUD で選んだときだけ実行するマスなら、そう言い添える
-    /// （すぐにタップして HUD が出たときに、なぜ実行しなかったかが分かるように）
+    /// 指が外枠にあるときの「離すとやめる」（HUD の中央と読み上げ）
+    static var cancelLabel: String {
+        String(localized: "離すとやめる", bundle: .module)
+    }
+
+    /// 少し長く止めるマスを止め終えたとき
+    static var holdReady: String {
+        String(localized: "離すと実行", bundle: .module)
+    }
+
+    /// ハイライト中のマス。指が外枠にある・離れていれば nil。少し長く止めてから実行するマスなら、そう言い添える
     static func highlighted(in model: HUDModel) -> String? {
         guard let index = model.highlightedIndex, (0..<Page.cellCount).contains(index) else { return nil }
         let cell = model.cells.indices.contains(index) ? model.cells[index] : nil
         let description = cellDescription(cell, index: index)
-        guard cell?.requiresHUD == true else { return description }
-        return String(localized: "\(description)、\(HUDOnlyMark.accessibilityValue)", bundle: .module)
+        guard cell?.requiresHold == true else { return description }
+        return String(localized: "\(description)、\(HoldMark.accessibilityValue)", bundle: .module)
     }
 
-    /// 前の表示から読み上げる内容が変わったときだけ文を返す（同じ文を何度も読ませない）
+    /// 前の表示から読み上げる内容が変わったときだけ文を返す（同じ文を何度も読ませない）。
+    /// 外枠に入ったら「離すとやめる」、少し長く止めるマスを止め終えたら「離すと実行」
     static func announcement(from previous: HUDModel?, to model: HUDModel) -> String? {
         let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title
-        let current = highlighted(in: model)
+        let current = model.isFingerInFrame ? cancelLabel : highlighted(in: model)
+        if !isNewPage, let hold = model.hold, hold.isReady, previous?.hold?.isReady != true, previous?.highlightedIndex == model.highlightedIndex {
+            return holdReady
+        }
         if isNewPage {
             let page = model.pageCount > 1
                 ? String(localized: "\(model.title)、\(pageDescription(pageIndex: model.pageIndex, pageCount: model.pageCount))", bundle: .module)
                 : model.title
             return [page, current].compactMap { $0 }.joined(separator: String(localized: "、", bundle: .module))
         }
-        guard previous.flatMap(highlighted(in:)) != current else { return nil }
+        let before = previous.flatMap { $0.isFingerInFrame ? cancelLabel : highlighted(in: $0) }
+        guard before != current else { return nil }
         return current
     }
 }

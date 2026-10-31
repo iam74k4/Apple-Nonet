@@ -45,7 +45,7 @@ private func pasteboard() -> NSPasteboard {
         profile.mode = .global
         #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) ではグローバルのマスを使います。このプロファイルのマスは残しています。"))
         profile.mode = .off
-        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます。"))
+        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) では Nonet を使いません。トラックパッドはいつもどおり働きます。"))
         #expect(SettingsText.name(ProfileMode.off) == L10n.ui("このアプリでは Nonet を使わない"))
         #expect(SettingsProfileRow.badge(.profile) == nil)
         #expect(SettingsProfileRow.badge(.off) == L10n.ui("オフ"))

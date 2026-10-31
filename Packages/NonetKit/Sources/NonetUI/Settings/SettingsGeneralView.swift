@@ -11,50 +11,14 @@ struct SettingsGeneralView: View {
             Section {
                 Toggle(isOn: binding(\.isEnabled)) {
                     Text("Nonet を有効にする", bundle: .module)
-                    Text("オフにするとトリガーキーに反応しません", bundle: .module)
-                }
-                Picker(selection: binding(\.trigger)) {
-                    ForEach(TriggerKey.allCases, id: \.self) { key in
-                        Text(SettingsText.name(key)).tag(key)
-                    }
-                } label: {
-                    Text("トリガーキー", bundle: .module)
-                    Text(SettingsText.triggerDetail(model.settings.trigger))
-                }
-                if let warning = model.triggerWarning {
-                    SettingsNote(text: warning, symbol: "exclamationmark.triangle", isWarning: true)
-                }
-                Picker(selection: binding(\.touchActivation)) {
-                    ForEach(TouchActivation.allCases, id: \.self) { activation in
-                        Text(SettingsText.name(activation)).tag(activation)
-                    }
-                } label: {
-                    Text("トラックパッドだけで呼び出す", bundle: .module)
-                    Text("角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します。", bundle: .module)
-                }
-                Picker(selection: binding(\.fireMode)) {
-                    ForEach(FireMode.allCases, id: \.self) { mode in
-                        Text(SettingsText.name(mode)).tag(mode)
-                    }
-                } label: {
-                    Text("実行のタイミング", bundle: .module)
-                    Text(SettingsText.detail(model.settings.fireMode))
+                    Text("オフにすると、トラックパッドの上の縁から指を滑らせても9マスが開きません", bundle: .module)
                 }
                 LabeledContent {
-                    HStack(spacing: 10) {
-                        Slider(value: binding(\.hudDelay), in: GlobalSettings.hudDelayRange, step: 0.05) {
-                            Text(SettingsText.hudDelayTitle)
-                        }
-                        .labelsHidden()
-                        .frame(minWidth: 160, maxWidth: 240)
-                        Text(SettingsText.seconds(model.settings.hudDelay))
-                            .monospacedDigit()
-                            .frame(minWidth: 52, alignment: .trailing)
-                    }
+                    SettingsOpenGestureFigure()
+                        .frame(width: 92, height: 62)
                 } label: {
-                    // 指を置かないときに HUD が出るまでの時間は別（少し長い。SessionConfiguration.placementWindow）
-                    Text(SettingsText.hudDelayTitle)
-                    Text(SettingsText.hudDelayDetail)
+                    Text(SettingsText.openGestureTitle)
+                    Text(SettingsText.openGestureDetail)
                 }
                 Picker(selection: binding(\.hudPosition)) {
                     ForEach(HUDPosition.allCases, id: \.self) { position in
@@ -75,7 +39,7 @@ struct SettingsGeneralView: View {
                 }
                 .pickerStyle(.segmented)
             } header: {
-                Text("トリガーと HUD", bundle: .module)
+                Text("開き方と HUD", bundle: .module)
             }
 
             Section {
@@ -111,10 +75,6 @@ struct SettingsGeneralView: View {
             }
 
             Section {
-                Toggle(isOn: binding(\.passTriggerToApps)) {
-                    Text("トリガーキーを前面のアプリに渡す", bundle: .module)
-                    Text("オフにすると、トリガーキーそのものを前面のアプリやほかのツールに渡しません", bundle: .module)
-                }
                 Picker(selection: binding(\.cursorLock)) {
                     ForEach(CursorLockMethod.allCases, id: \.self) { method in
                         Text(SettingsText.name(method)).tag(method)
@@ -176,5 +136,56 @@ struct SettingsGeneralView: View {
 
     private func binding<Value: Equatable>(_ keyPath: WritableKeyPath<GlobalSettings, Value>) -> Binding<Value> {
         Binding(get: { model.settings[keyPath: keyPath] }, set: { model.setSetting(keyPath, $0) })
+    }
+}
+
+/// 「開き方とやめ方」の小さな図。トラックパッドの外枠（GridInsets.cancelFrame と同じ割合）と9マス、上の縁から下への矢印。
+/// 説明は横の文が言うので、VoiceOver には読ませない
+struct SettingsOpenGestureFigure: View {
+    private static let frame = GridInsets.cancelFrame
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            let inner = CGRect(
+                x: size.width * Self.frame.left,
+                y: size.height * Self.frame.top,
+                width: size.width * (1 - Self.frame.left - Self.frame.right),
+                height: size.height * (1 - Self.frame.top - Self.frame.bottom)
+            )
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.primary.opacity(0.07))
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .frame(width: inner.width, height: inner.height)
+                    .offset(x: inner.minX, y: inner.minY)
+                Path { path in
+                    for line in 1...2 {
+                        let x = inner.minX + inner.width * CGFloat(line) / 3
+                        let y = inner.minY + inner.height * CGFloat(line) / 3
+                        path.move(to: CGPoint(x: x, y: inner.minY))
+                        path.addLine(to: CGPoint(x: x, y: inner.maxY))
+                        path.move(to: CGPoint(x: inner.minX, y: y))
+                        path.addLine(to: CGPoint(x: inner.maxX, y: y))
+                    }
+                }
+                .stroke(Color.secondary.opacity(0.45), lineWidth: 0.5)
+                // 上の縁から下へ滑らせる
+                Path { path in
+                    let x = size.width / 2
+                    path.move(to: CGPoint(x: x, y: 1))
+                    path.addLine(to: CGPoint(x: x, y: inner.minY + inner.height * 0.42))
+                }
+                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(Color.accentColor)
+                    .position(x: size.width / 2, y: inner.minY + inner.height * 0.42)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

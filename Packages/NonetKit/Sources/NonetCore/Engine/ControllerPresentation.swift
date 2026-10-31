@@ -7,27 +7,31 @@ public enum ControllerPresentation {
     /// page は resolvedPages での位置。範囲外は端に寄せる
     static func hudModel(
         pages: [ResolvedPage],
-        page: Int,
-        highlightedCell: Int?,
+        state: SessionHUDState,
         hint: String,
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
         footnote: String? = nil,
         scale: Double = 1
     ) -> HUDModel {
-        let index = pages.isEmpty ? 0 : min(max(page, 0), pages.count - 1)
+        let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
         let sharedIndices = resolved?.sharedIndices ?? []
         let cells = Page(cells: resolved?.cells ?? []).cells.enumerated().map { index, cell in
             cell.map { hudCell($0, isShared: sharedIndices.contains(index)) }
         }
-        let highlight = highlightedCell.flatMap { (0..<Page.cellCount).contains($0) ? $0 : nil }
+        let highlight = state.highlightedCell.flatMap { (0..<Page.cellCount).contains($0) ? $0 : nil }
+        let hold = state.hold.flatMap { hold in
+            hold.cell == highlight ? HUDHold(cellIndex: hold.cell, since: hold.since, duration: hold.duration, isReady: hold.isReady) : nil
+        }
         return HUDModel(
             title: resolved?.title ?? "",
             pageIndex: index,
             pageCount: max(pages.count, 1),
             cells: cells,
             highlightedIndex: highlight,
+            isFingerInFrame: state.isInFrame,
+            hold: hold,
             hint: hint,
             banner: banner,
             bannerStyle: bannerStyle,
@@ -44,7 +48,7 @@ public enum ControllerPresentation {
     }
 
     static func hudCell(_ cell: Cell, isShared: Bool = false) -> HUDCell {
-        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHUD: cell.requiresHUD, isShared: isShared)
+        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHold: cell.requiresHold, isShared: isShared)
     }
 
     /// キー入力のマスだけ「⌘B」のように送るキーを添える
@@ -54,29 +58,19 @@ public enum ControllerPresentation {
         return text.isEmpty ? nil : text
     }
 
-    /// HUD の右上の案内。どのキーかまで言う（JIS 配列には⌘が2つある）。「キーを離したとき」でも、短いタップはその場で実行する
-    public static func hint(fireMode: FireMode, trigger: TriggerKey, isPracticeMode: Bool) -> String {
-        let base = switch fireMode {
-        case .onTriggerRelease:
-            String(localized: "タップか、\(trigger.localizedName)を離して実行", bundle: .module)
-        case .onFingerLift:
-            String(localized: "指を離して実行", bundle: .module)
-        }
+    /// HUD の右上の案内。マスで指を離すと実行する（外枠で離すとやめることは、外枠に出たときに HUD が言う）
+    public static func hint(isPracticeMode: Bool) -> String {
+        let base = String(localized: "マスで指を離すと実行", bundle: .module)
         guard isPracticeMode else { return base }
         return String(localized: "練習中 · \(base)", bundle: .module)
     }
 
     /// 使い始めの数回（HUDGuidance.beginnerSessionLimit）だけ、9マスの下に出す案内。選び方とやめ方、ページが複数ならページの変え方
-    public static func beginnerFootnote(fireMode: FireMode, activation: SessionActivation, trigger: TriggerKey, pageCount: Int) -> String {
-        var parts = [String(localized: "指を滑らせて選ぶ", bundle: .module)]
-        switch (activation, fireMode) {
-        case (.cornerHold, _):
-            parts.append(String(localized: "滑らせずに離すとやめる", bundle: .module))
-        case (.triggerKey, .onTriggerRelease):
-            parts.append(String(localized: "先に指を離してから\(trigger.localizedName)を離すとやめる", bundle: .module))
-        case (.triggerKey, .onFingerLift):
-            parts.append(String(localized: "やめるときは指を置いたまま左の⇧を押す", bundle: .module))
-        }
+    public static func beginnerFootnote(pageCount: Int) -> String {
+        var parts = [
+            String(localized: "指を滑らせて選ぶ", bundle: .module),
+            String(localized: "外枠で指を離すとやめる", bundle: .module),
+        ]
         if pageCount > 1 {
             parts.append(String(localized: "2本指のスワイプでページを切り替え", bundle: .module))
         }
@@ -94,7 +88,7 @@ public enum ControllerPresentation {
         String(localized: "試用期間は残り\(daysLeft)日です", bundle: .module, locale: textLocale)
     }
 
-    /// 試用期間が終わった後に角を長押ししたとき（HUD は出さない）
+    /// 試用期間が終わった後に、上の縁から指を滑らせたとき（9マスは開かない）
     static var trialEndedToast: ToastModel {
         ToastModel(
             title: String(localized: "試用期間が終了しました", bundle: .module),

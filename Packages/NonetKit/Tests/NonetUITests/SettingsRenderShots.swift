@@ -40,7 +40,6 @@ struct SettingsRenderShots {
         _ = NSApplication.shared
         let h = try SettingsHarness(
             configuration: Self.sampleConfiguration(),
-            isJISKeyboard: true,
             links: AppLinks(
                 purchase: URL(string: "https://example.com/buy"),
                 support: URL(string: "https://example.com/guide"),
@@ -69,7 +68,7 @@ struct SettingsRenderShots {
             model.selectCell(4)
             try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-script-\(suffix)")
 
-            // HUD で選んだときだけ実行するマス（Xcode のクリーン。グリッドとインスペクタの印）
+            // 少し長く止めてから実行するマス（Xcode のクリーン。グリッドとインスペクタの印）
             model.selectCell(7)
             try await render(SettingsInspectorView(model: model), size: CGSize(width: 310, height: 560), appearance, "inspector-hud-only-\(suffix)")
 
@@ -169,9 +168,8 @@ struct SettingsRenderShots {
             try await render(SettingsMenuPanel(model: model, browser: model.menuBrowser), size: CGSize(width: 310, height: 520), appearance, "menus-permission-\(suffix)")
             model.showMenus(false)
 
-            // 一般（JIS で右⌥・ログイン項目の失敗）
+            // 一般（開き方の説明・ログイン項目の失敗）
             model.selectTab(.general)
-            model.setSetting(\.trigger, .rightOption)
             h.loginItem.failure = SettingsFakeLoginError()
             model.setLoginItemEnabled(true)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 1300), appearance, "general-\(suffix)")
