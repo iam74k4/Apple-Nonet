@@ -35,6 +35,12 @@ struct SessionState: Sendable {
     private var swipeBaseline: SwipeBaseline?
     /// 2本以上から1本指に戻った後、残った指を滑らせるのを待っている（滑らせるまでは離しても実行しない）。測り始めた位置
     private var reselectAnchor: FingerTracker.Finger?
+    /// 指が止まっている左右の外枠（そちらにページがあるときだけ）。止め続けるとページを切り替える
+    private var pagingEdge: PageEdge?
+    /// pagingEdge に入った時刻か、前に切り替えた時刻
+    private var edgeSince: TimeInterval
+    /// pagingEdge に止めたまま切り替えた回数（2回目からは edgePageRepeat ごと）
+    private var edgeTurns = 0
     /// すべての指が離れた時刻（遅れて届くクリックの判断に使う）
     private var lastLiftAt: TimeInterval?
 
@@ -46,11 +52,13 @@ struct SessionState: Sendable {
         self.start = start
         touchStart = tracker.gestureStart
         zoneSince = start
+        edgeSince = start
         isMultiFinger = tracker.count >= 2
         if !isMultiFinger, let finger = tracker.lastPlaced {
             fingerID = finger.id
             lastPosition = finger
             zone = grid.zone(x: finger.x, y: finger.y)
+            pagingEdge = availableEdge(at: finger)
         }
     }
 
@@ -63,7 +71,8 @@ struct SessionState: Sendable {
             page: page,
             highlightedCell: cell,
             isInFrame: shown == .frame,
-            hold: cell.flatMap { isHoldCell($0) ? SessionHold(cell: $0, since: zoneSince, duration: configuration.holdDwell, isReady: isHoldReady) : nil }
+            hold: cell.flatMap { isHoldCell($0) ? SessionHold(cell: $0, since: zoneSince, duration: configuration.holdDwell, isReady: isHoldReady) : nil },
+            edgePaging: isMultiFinger ? nil : pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) }
         )
     }
 
@@ -75,10 +84,21 @@ struct SessionState: Sendable {
         return zoneSince + configuration.holdDwell
     }
 
+    /// 左右の外枠に止めてから、ページを切り替えるまでの秒数（切り替えた後も止めていれば edgePageRepeat）
+    private var edgeDuration: TimeInterval {
+        edgeTurns == 0 ? configuration.edgePageDwell : configuration.edgePageRepeat
+    }
+
+    /// 左右の外枠に止めた指で、ページを切り替える時刻。止めていなければ nil
+    private var edgeDeadline: TimeInterval? {
+        guard !isMultiFinger, pagingEdge != nil else { return nil }
+        return edgeSince + edgeDuration
+    }
+
     /// 次に tick がほしい時刻
     var nextDeadline: TimeInterval? {
         guard endReason == nil else { return nil }
-        return holdDeadline.map { min($0, timeoutAt) } ?? timeoutAt
+        return [holdDeadline, edgeDeadline, timeoutAt].compactMap { $0 }.min()
     }
 
     // MARK: 開く・時間
@@ -117,10 +137,40 @@ struct SessionState: Sendable {
             return
         }
         if let deadline = holdDeadline, now >= deadline {
-            // 止め終えた: いま離すと実行することを HUD で見せる
+            // 止め終えた: いま離すと実行することを HUD と触覚で知らせる
             isHoldReady = true
             refreshHUD(effects: &effects)
+            effects.append(.haptic(.holdReady))
         }
+        if let deadline = edgeDeadline, now >= deadline {
+            turnPageAtEdge(now: now, effects: &effects)
+        }
+    }
+
+    /// 左右の外枠に止め続けた: 右なら次、左なら前のページにする。端のページまで来たら、それ以上は待たない
+    private mutating func turnPageAtEdge(now: TimeInterval, effects: inout [SessionEffect]) {
+        guard let edge = pagingEdge else { return }
+        page = min(max(edge == .right ? page + 1 : page - 1, 0), configuration.pageCount - 1)
+        edgeTurns += 1
+        edgeSince = now
+        pagingEdge = availableEdge(edge)
+        refreshHUD(effects: &effects)
+        effects.append(.haptic(.pageChange))
+    }
+
+    /// その側にページがあれば edge、無ければ nil
+    private func availableEdge(_ edge: PageEdge?) -> PageEdge? {
+        switch edge {
+        case .left?: page > 0 ? .left : nil
+        case .right?: page < configuration.pageCount - 1 ? .right : nil
+        case nil: nil
+        }
+    }
+
+    /// finger が左右の外枠（9マスの行の横）にあり、そちらにページがあればその側
+    private func availableEdge(at finger: FingerTracker.Finger) -> PageEdge? {
+        guard zone == .frame else { return nil }
+        return availableEdge(grid.pagingEdge(x: finger.x, y: finger.y))
     }
 
     /// HUD を閉じ、ポインタの抑止をやめて終える
@@ -166,6 +216,7 @@ struct SessionState: Sendable {
         if !isMultiFinger {
             isMultiFinger = true
             hasTurnedPage = false
+            pagingEdge = nil
             refreshHUD(effects: &effects)
         }
         guard tracker.count == 2 else {
@@ -221,6 +272,13 @@ struct SessionState: Sendable {
             reselectAnchor = nil
             zoneSince = now
             isHoldReady = false
+        }
+        // 左右の外枠に入った・出た・反対の側へ移った: ページを切り替えるまでの時間を最初から数える
+        let edge = availableEdge(at: finger)
+        if edge != pagingEdge {
+            pagingEdge = edge
+            edgeSince = now
+            edgeTurns = 0
         }
         guard refreshHUD(effects: &effects) else { return }
         // 仕様: マスとマス・マスと外枠の境目をまたぐたびに。指を置き直した・2本指から戻っただけでは鳴らさない

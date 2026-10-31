@@ -91,6 +91,37 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: ready, to: ready) == nil)
     }
 
+    @Test("読み上げ: 左右の外枠でページを切り替えられるときは「止めると次のページ」も言う。切り替えたらページから読み直す")
+    func edgePagingAnnouncements() {
+        var inFrame = Self.model(highlighted: nil, pageCount: 3)
+        inFrame.isFingerInFrame = true
+        var onRight = inFrame
+        onRight.edgePaging = HUDEdgePaging(edge: .right, since: 1, duration: 0.5)
+        let separator = L10n.ui("、")
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: onRight) == [L10n.ui("離すとやめる"), L10n.ui("止めると次のページ")].joined(separator: separator))
+        var onLeft = onRight
+        onLeft.edgePaging?.edge = .left
+        #expect(HUDAnnouncement.frameLabel(in: onLeft) == [L10n.ui("離すとやめる"), L10n.ui("止めると前のページ")].joined(separator: separator))
+        // 止めている間に進み具合が満ちていくだけなら読み直さない
+        var later = onRight
+        later.edgePaging?.since = 2
+        #expect(HUDAnnouncement.announcement(from: onRight, to: later) == nil)
+        // 切り替えたら、ページから読み直す
+        var turned = later
+        turned.pageIndex = 1
+        #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
+    }
+
+    @Test("右上の案内: 少し長く止めるマスを止めている間は「そのまま止めて待つ」、止め終えたら「離すと実行」")
+    func holdHints() {
+        var holding = Self.model(highlighted: 4)
+        #expect(HUDAnnouncement.hint(for: holding) == holding.hint)
+        holding.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.45, isReady: false)
+        #expect(HUDAnnouncement.hint(for: holding) == L10n.ui("そのまま止めて待つ"))
+        holding.hold?.isReady = true
+        #expect(HUDAnnouncement.hint(for: holding) == L10n.ui("離すと実行"))
+    }
+
     @Test("読み上げ: ページが変わったらページから読み直す")
     func pageChanges() {
         let first = Self.model(highlighted: 4, pageIndex: 0, pageCount: 3)

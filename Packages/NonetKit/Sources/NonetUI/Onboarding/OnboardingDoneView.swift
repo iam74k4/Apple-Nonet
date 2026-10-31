@@ -31,9 +31,9 @@ struct OnboardingDoneStep: View {
                     detail: Text(ShellText.doneCancelTip)
                 )
                 OnboardingTip(
-                    symbol: "hand.draw",
-                    title: Text("2本指で左右にスワイプ", bundle: .module),
-                    detail: Text("9マスを開いたまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。", bundle: .module)
+                    symbol: "arrow.left.and.right",
+                    title: Text("左右の外枠で止めてページを切り替える", bundle: .module),
+                    detail: Text("9マスを開いたまま、左右の外枠に指を止めると、そちら側のページに切り替わります。1つのアプリに最大3ページ置けます。", bundle: .module)
                 )
                 OnboardingTip(
                     symbol: "square.grid.3x3.middle.filled",

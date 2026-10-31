@@ -111,7 +111,7 @@ import Testing
         s.slideIn(at: 0)
         s.touch(on: 7, at: 0.1)
         s.touch(on: 8, at: 1.0)
-        #expect(s.lift(at: 1.1).endReason == .cancelled(.liftedTooSoon))
+        #expect(s.lift(at: 1.0 + SessionConfiguration.defaultLiftDwell - 0.01).endReason == .cancelled(.liftedTooSoon))
     }
 
     /// 外枠で離すのが、やめる操作。何も実行せず、rejected の触覚
@@ -174,12 +174,12 @@ import Testing
 }
 
 @Suite struct SessionEngineHoldTests {
-    /// 少し長く止めるマス: 止め終えるまで（holdDwell 0.6 秒）は、離しても実行しない
+    /// 少し長く止めるマス: 止め終えるまで（holdDwell 0.45 秒）は、離しても実行しない
     @Test func aHoldCellNeedsTheLongerDwell() {
         var s = SessionScenario(SessionConfiguration(holdCells: [[8]]))
         s.slideIn(at: 0)
         let onCell = s.touch(on: 8, at: 0.1)
-        #expect(onCell.hudStates == [SessionHUDState(page: 0, highlightedCell: 8, hold: SessionHold(cell: 8, since: 0.1, duration: 0.6, isReady: false))])
+        #expect(onCell.hudStates == [SessionHUDState(page: 0, highlightedCell: 8, hold: SessionHold(cell: 8, since: 0.1, duration: 0.45, isReady: false))])
         // 止め終える時刻に tick を頼む
         #expect(onCell.tickRequests == [0.1 + SessionConfiguration.defaultHoldDwell])
         let early = s.lift(at: 0.5)
@@ -188,16 +188,16 @@ import Testing
         #expect(early.endReason == .cancelled(.liftedTooSoon))
     }
 
-    /// 止め終えたら HUD に知らせ（離すと実行する）、その後に離すと実行する
+    /// 止め終えたら HUD と触覚（holdReady）で知らせ（離すと実行する）、その後に離すと実行する
     @Test func aHoldCellRunsAfterTheHUDShowsItIsReady() {
         var s = SessionScenario(SessionConfiguration(holdCells: [[8]]))
         s.slideIn(at: 0)
         s.touch(on: 8, at: 0.1)
-        #expect(s.tick(at: 0.69).visible.isEmpty)
-        let ready = s.tick(at: 0.7)
-        #expect(ready.hudStates == [SessionHUDState(page: 0, highlightedCell: 8, hold: SessionHold(cell: 8, since: 0.1, duration: 0.6, isReady: true))])
-        #expect(ready.hapticEvents.isEmpty)
-        #expect(s.lift(at: 0.8).executions == [.execute(page: 0, cell: 8)])
+        #expect(s.tick(at: 0.54).visible.isEmpty)
+        let ready = s.tick(at: 0.55)
+        #expect(ready.hudStates == [SessionHUDState(page: 0, highlightedCell: 8, hold: SessionHold(cell: 8, since: 0.1, duration: 0.45, isReady: true))])
+        #expect(ready.hapticEvents == [.holdReady])
+        #expect(s.lift(at: 0.65).executions == [.execute(page: 0, cell: 8)])
     }
 
     /// tick が遅れても、届いたフレームの時刻で止め終えたとみなす

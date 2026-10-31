@@ -37,6 +37,7 @@ final class DebugPreview {
 
     /// 前面アプリの最初のページの HUD を出したままにし、3秒ごとに状態を替える（--snapshot の各回で1つずつ写る）:
     /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
+    /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
     func showHUD() {
         showHUDState(0)
         var state = 0
@@ -50,7 +51,7 @@ final class DebugPreview {
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    private static let hudStateCount = 4
+    private static let hudStateCount = 5
     /// 少し長く止めるマスの例に使う位置（ページに少し長く止めるマスが無ければ、この位置のマスをそうみなす）
     private static let previewHoldCell = 7
 
@@ -71,8 +72,11 @@ final class DebugPreview {
             }
         }
         let since = ProcessInfo.processInfo.systemUptime
+        let edgePaging = state == 4 && pages.count > 1
+            ? HUDEdgePaging(edge: .right, since: since, duration: SessionConfiguration.defaultEdgePageDwell)
+            : nil
         let (highlight, inFrame, hold): (Int?, Bool, HUDHold?) = switch state {
-        case 1: (nil, true, nil)
+        case 1, 4: (nil, true, nil)
         case 2: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: false))
         case 3: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: true))
         default: (4, false, nil)
@@ -85,6 +89,7 @@ final class DebugPreview {
             highlightedIndex: highlight,
             isFingerInFrame: inFrame,
             hold: hold,
+            edgePaging: edgePaging,
             // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く
             hint: ControllerPresentation.hint(isPracticeMode: controller.isPracticeMode),
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,

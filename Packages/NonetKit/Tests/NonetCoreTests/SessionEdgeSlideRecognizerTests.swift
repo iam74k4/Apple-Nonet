@@ -39,13 +39,14 @@ private struct Slide {
     typealias R = EdgeSlideRecognizer
 
     @Test func constantsMatchTheSpec() {
-        #expect(R.entryBandHeight == 0.06)
+        #expect(R.entryBandHeight == 0.09)
         #expect(R.entryTravel == 0.05)
-        #expect(R.entryWindow == 0.4)
+        #expect(R.entryWindow == 0.6)
+        #expect(R.maxEntrySlope == 1.5)
         #expect(R.palmMajorAxis == 25)
     }
 
-    /// 上の縁の帯（奥 6%、幅はすべて）で触れ始めて、0.4 秒のうちに 0.05 下へ動けば開く
+    /// 上の縁の帯（奥 9%、幅はすべて）で触れ始めて、0.6 秒のうちに 0.05 下へ動けば開く
     @Test(arguments: [0.0, 0.5, 1.0])
     func aDownwardSlideFromTheTopBandOpens(x: Double) {
         var s = Slide()
@@ -82,7 +83,7 @@ private struct Slide {
         #expect(s.touch(y: 0.97 - R.entryTravel - 0.001, at: 0.15) == .slid)
     }
 
-    /// 触れてから 0.4 秒を過ぎてから届いても開かない（上の縁からゆっくり動かすのは、ふつうのポインタの移動）
+    /// 触れてから 0.6 秒を過ぎてから届いても開かない（上の縁からゆっくり動かすのは、ふつうのポインタの移動）
     @Test func aSlowSlideDoesNotOpen() {
         var s = Slide()
         s.touch(y: 0.97, at: 0)
@@ -91,24 +92,24 @@ private struct Slide {
         // そのタッチでは、もう待たない
         #expect(s.touch(y: 0.6, at: 0.5) == .none)
         #expect(s.slidCount == 0)
-        // 0.4 秒ちょうどは間に合う
+        // 0.6 秒ちょうどは間に合う
         var onTime = Slide()
         onTime.touch(y: 0.97, at: 0)
         #expect(onTime.touch(y: 0.9, at: R.entryWindow) == .slid)
     }
 
-    /// 下より横に動いた（|dx| > dy）なら開かない。真下から 45° までは開く
+    /// 斜めより横に動いた（|dx| > 1.5 × dy）なら開かない。上の段の角へ斜めに滑らせる（真下から 56° まで）なら開く
     @Test func theSlideMustBeMostlyDownward() {
         #expect(R.isEntrySlide(dx: 0, dy: 0.05))
-        #expect(R.isEntrySlide(dx: 0.06, dy: 0.06))
-        #expect(R.isEntrySlide(dx: -0.06, dy: 0.06))
-        #expect(!R.isEntrySlide(dx: 0.07, dy: 0.06))
+        #expect(R.isEntrySlide(dx: 0.09, dy: 0.06))
+        #expect(R.isEntrySlide(dx: -0.09, dy: 0.06))
+        #expect(!R.isEntrySlide(dx: 0.1, dy: 0.06))
         #expect(!R.isEntrySlide(dx: 0, dy: -0.06))
         #expect(!R.isEntrySlide(dx: .nan, dy: 0.06))
 
         var diagonal = Slide()
         diagonal.touch(x: 0.5, y: 0.97, at: 0)
-        #expect(diagonal.touch(x: 0.57, y: 0.91, at: 0.1) == .none)
+        #expect(diagonal.touch(x: 0.6, y: 0.91, at: 0.1) == .none)
         #expect(diagonal.slidCount == 0)
     }
 

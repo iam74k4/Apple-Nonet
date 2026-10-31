@@ -20,7 +20,7 @@ import Testing
     /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
     @Test func theOpenGestureIsExplained() {
         #expect(SettingsText.openGestureTitle == L10n.ui("開き方とやめ方"))
-        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。"))
+        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。"))
     }
 
     @Test func tabTitles() {

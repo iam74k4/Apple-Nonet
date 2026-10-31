@@ -57,6 +57,12 @@ public enum GridZone: Equatable, Sendable {
     }
 }
 
+/// 左右の外枠（指を止めるとページを切り替える場所）。左は前のページ、右は次のページ
+public enum PageEdge: Equatable, Sendable {
+    case left
+    case right
+}
+
 /// 指の位置（x は左が 0、y は手前が 0 の 0〜1）を 3×3 のマス番号（0〜8、左上から右へ、上の行から）に変える。
 /// 境界付近では今のマスを保ち（ヒステリシス）、境界の上で指が震えてもハイライトがちらつかないようにする
 public struct GridMapper: Equatable, Sendable {
@@ -71,13 +77,13 @@ public struct GridMapper: Equatable, Sendable {
     static let maxMarginInCells = 0.5 - 1e-9
     /// 指を離しても実行しない、内側の境界の線の片側の幅（トラックパッドの幅・奥行きを 1 とした割合）。
     /// 線の上で離した指はどちらのマスを狙ったのか分からないので、隣のマスを実行するより何もしないほうがよい。
-    /// - 外枠（GridInsets.cancelFrame）の内側のマスは幅 0.26・奥行き 0.227 ほどなので、1本の線の帯は幅 0.05、
-    ///   マスのおよそ 19〜22%。両側に線がある中央のマスでも、幅・奥行きとも 8 割ほど残る
-    /// - ヒステリシス（0.03）より少し狭い。ヒステリシスの幅は、来た向きでどちらのマスにもなる（どちらとも言える）位置で、
+    /// - 外枠（GridInsets.cancelFrame）の内側のマスは幅 0.26・奥行き 0.227 ほどなので、1本の線の帯は幅 0.03、
+    ///   マスのおよそ 12〜13%。両側に線がある中央のマスでも、幅・奥行きとも 9 割ほど残る
+    /// - ヒステリシス（0.03）の半分。ヒステリシスの幅は、来た向きでどちらのマスにもなる（どちらとも言える）位置で、
     ///   帯はその内側に収める（滑らせて選ぶときに隣のマスに切り替わる位置より遠くは拒まない）
-    /// - 幅 15cm ほどのトラックパッドで線の両側 4mm ほど（奥行き 10cm ほどで 2.5mm）。指の腹の接触は 1cm ほどあるので、
-    ///   中心がこの中で離れた指は両方のマスにかかっている
-    public static let defaultBoundaryBand = 0.025
+    /// - 幅 15cm ほどのトラックパッドで線の両側 2mm ほど（奥行き 10cm ほどで 1.5mm）。線のほぼ真上で離した指だけを拒む。
+    ///   実機で 0.025（両側 4mm）では「光っているマスで離しても実行されない」ことが多かったので狭めた
+    public static let defaultBoundaryBand = 0.015
     /// 帯の上限（マス1つ分を 1 とした単位）。縁を除いてマスが小さくなっても、中央のマスに半分は残す
     static let maxBoundaryBandInCells = 0.25
     /// 外枠と9マスの境目で今の場所を保つ余裕（トラックパッド全体を 1 とした割合）。幅 15cm ほどで 2mm ほど。
@@ -124,6 +130,15 @@ public struct GridMapper: Equatable, Sendable {
 
     public func isInBoundaryBand(_ point: TouchPoint) -> Bool {
         isInBoundaryBand(x: point.x, y: point.y)
+    }
+
+    /// 9マスの行の横の、左右の外枠にあるか（ページを切り替える場所）。角（上下の外枠と重なるところ）は含めない。
+    /// 開いた直後の指は上の外枠にいるので、上の角で止めてもページは変わらない。外枠かどうかは zone で確かめてから呼ぶ
+    public func pagingEdge(x: Double, y: Double) -> PageEdge? {
+        guard y >= insets.bottom, y <= 1 - insets.top else { return nil }
+        if x < insets.left { return .left }
+        if x > 1 - insets.right { return .right }
+        return nil
     }
 
     /// 9マスの範囲（外枠の内側）に入っているか。margin だけ内側（負なら外側）に狭めた範囲で確かめる。境目ちょうどは中。NaN は外

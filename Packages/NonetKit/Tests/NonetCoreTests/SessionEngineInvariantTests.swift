@@ -256,7 +256,7 @@ private struct InvariantChecker {
             }
         }
         #expect(seen == [
-            "begin", "end", "show", "update", "hide", "activation", "boundary", "pageChange", "rejected",
+            "begin", "end", "show", "update", "hide", "activation", "boundary", "pageChange", "holdReady", "rejected",
             "execute", "tick", "released", "cancelled", "interrupted", "timeout",
         ])
     }

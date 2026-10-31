@@ -403,7 +403,7 @@ struct HUDView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 0)
-            Text(model.hint)
+            Text(HUDAnnouncement.hint(for: model))
                 .foregroundStyle(theme.secondaryText)
                 .lineLimit(1)
                 .layoutPriority(1)
@@ -436,8 +436,16 @@ struct HUDView: View {
                 .padding(.top, metrics.frameTop)
                 .padding(.bottom, metrics.frameBottom)
                 .opacity(inFrame ? colors.dimmedCellOpacity : 1)
+            if inFrame, let paging = model.edgePaging {
+                // 指を止めている側の外枠の帯に、ページを切り替えるまでの進み具合
+                HUDEdgePagingBar(paging: paging, color: theme.ring, animates: !reduceMotion)
+                    .frame(width: max(metrics.frameSide - 6 * metrics.scale, 3 * metrics.scale))
+                    .padding(.vertical, metrics.frameTop + metrics.cellCornerRadius)
+                    .padding(.horizontal, 3 * metrics.scale)
+                    .frame(maxWidth: .infinity, alignment: paging.edge == .left ? .leading : .trailing)
+            }
             if inFrame {
-                HUDCancelLabel(metrics: metrics, theme: theme)
+                HUDCancelLabel(metrics: metrics, theme: theme, edge: model.edgePaging?.edge)
                     .transition(.opacity)
             }
         }
@@ -617,19 +625,38 @@ struct HUDHoldRingShape: Shape {
     }
 }
 
-/// 指が外枠にあるときに、暗くしたマスの上に出す「離すとやめる」
+/// 指が外枠にあるときに、薄くしたマスの上に出す「離すとやめる」。
+/// 左右の外枠でそちらにページがあれば、その下に「止めると次のページ」（左なら前のページ）を添える
 struct HUDCancelLabel: View {
     var metrics = HUDMetrics(scale: 1)
     var theme = HUDTheme(surface: .solid)
+    /// 指を止めている左右の外枠（そちらにページがあるときだけ）
+    var edge: PageEdge?
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10 * metrics.scale, style: .continuous)
-        HStack(spacing: 7 * metrics.scale) {
-            Image(systemName: "xmark")
-                .font(.system(size: 11 * metrics.scale, weight: .bold))
-            Text(HUDAnnouncement.cancelLabel)
-                .font(.system(size: 14 * metrics.scale, weight: .semibold))
-                .lineLimit(1)
+        VStack(spacing: 4 * metrics.scale) {
+            HStack(spacing: 7 * metrics.scale) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11 * metrics.scale, weight: .bold))
+                Text(HUDAnnouncement.cancelLabel)
+                    .font(.system(size: 14 * metrics.scale, weight: .semibold))
+                    .lineLimit(1)
+            }
+            if let edge {
+                HStack(spacing: 4 * metrics.scale) {
+                    if edge == .left {
+                        Image(systemName: "chevron.left")
+                    }
+                    Text(HUDAnnouncement.edgePagingLabel(edge))
+                        .lineLimit(1)
+                    if edge == .right {
+                        Image(systemName: "chevron.right")
+                    }
+                }
+                .font(.system(size: 11 * metrics.scale, weight: .medium))
+                .opacity(0.75)
+            }
         }
         .foregroundStyle(theme.labelForeground)
         .padding(.horizontal, 16 * metrics.scale)
@@ -638,6 +665,39 @@ struct HUDCancelLabel: View {
         .background(shape.fill(theme.labelFill))
         .overlay(shape.strokeBorder(theme.frameStroke(isActive: true), lineWidth: 1))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// 左右の外枠に指を止めている間、ページを切り替えるまでの進み具合。外枠の帯の中で、縦長の線を中ほどから上下へ伸ばす。
+/// 「視差効果を減らす」では伸ばさず、線を薄く出すだけにする
+struct HUDEdgePagingBar: View {
+    let paging: HUDEdgePaging
+    var color = Color.white
+    let animates: Bool
+    @State private var progress: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            Capsule().fill(color.opacity(0.2))
+            if animates {
+                Capsule().fill(color)
+                    .scaleEffect(x: 1, y: progress, anchor: .center)
+            } else {
+                Capsule().fill(color.opacity(0.6))
+            }
+        }
+        .onAppear { start() }
+        .onChange(of: paging.since) { start() }
+        .accessibilityHidden(true)
+    }
+
+    /// 止め始めた（外枠のその側に入った・ページを切り替えた）ところから、duration で伸ばし切る
+    private func start() {
+        guard animates else { return }
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) { progress = 0 }
+        withAnimation(.linear(duration: max(paging.duration, 0))) { progress = 1 }
     }
 }
 
@@ -779,6 +839,31 @@ enum HUDAnnouncement {
         String(localized: "離すとやめる", bundle: .module)
     }
 
+    /// 左右の外枠に指を止めているときに「離すとやめる」に添える文
+    static func edgePagingLabel(_ edge: PageEdge) -> String {
+        switch edge {
+        case .left: String(localized: "止めると前のページ", bundle: .module)
+        case .right: String(localized: "止めると次のページ", bundle: .module)
+        }
+    }
+
+    /// 指が外枠にあるときに読む文。左右の外枠でそちらにページがあれば、止めるとページが変わることも言う
+    static func frameLabel(in model: HUDModel) -> String {
+        guard let edge = model.edgePaging?.edge else { return cancelLabel }
+        return [cancelLabel, edgePagingLabel(edge)].joined(separator: String(localized: "、", bundle: .module))
+    }
+
+    /// 少し長く止めるマスを止めている途中の、右上の案内
+    static var holdWaiting: String {
+        String(localized: "そのまま止めて待つ", bundle: .module)
+    }
+
+    /// HUD の右上の案内。少し長く止めるマスを光らせている間は、止め終えるまで「そのまま止めて待つ」、止め終えたら「離すと実行」
+    static func hint(for model: HUDModel) -> String {
+        guard let hold = model.hold, hold.cellIndex == model.highlightedIndex else { return model.hint }
+        return hold.isReady ? holdReady : holdWaiting
+    }
+
     /// 少し長く止めるマスを止め終えたとき
     static var holdReady: String {
         String(localized: "離すと実行", bundle: .module)
@@ -797,7 +882,7 @@ enum HUDAnnouncement {
     /// 外枠に入ったら「離すとやめる」、少し長く止めるマスを止め終えたら「離すと実行」
     static func announcement(from previous: HUDModel?, to model: HUDModel) -> String? {
         let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title
-        let current = model.isFingerInFrame ? cancelLabel : highlighted(in: model)
+        let current = model.isFingerInFrame ? frameLabel(in: model) : highlighted(in: model)
         if !isNewPage, let hold = model.hold, hold.isReady, previous?.hold?.isReady != true, previous?.highlightedIndex == model.highlightedIndex {
             return holdReady
         }
@@ -807,7 +892,7 @@ enum HUDAnnouncement {
                 : model.title
             return [page, current].compactMap { $0 }.joined(separator: String(localized: "、", bundle: .module))
         }
-        let before = previous.flatMap { $0.isFingerInFrame ? cancelLabel : highlighted(in: $0) }
+        let before = previous.flatMap { $0.isFingerInFrame ? frameLabel(in: $0) : highlighted(in: $0) }
         guard before != current else { return nil }
         return current
     }

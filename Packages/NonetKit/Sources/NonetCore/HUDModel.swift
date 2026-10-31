@@ -47,6 +47,22 @@ public struct HUDHold: Equatable, Sendable {
     }
 }
 
+/// 左右の外枠に指を止めている間の、ページを切り替えるまでの進み具合（SessionEdgePaging）
+public struct HUDEdgePaging: Equatable, Sendable {
+    /// 指を止めている側。左は前のページ、右は次のページ
+    public var edge: PageEdge
+    /// 止め始めた時刻（Scheduler.now の秒）。HUD は、これが変わったら進み具合を最初から満たし直す
+    public var since: TimeInterval
+    /// 切り替えるまでの秒数。HUD はこの間に進み具合を満たしていく
+    public var duration: TimeInterval
+
+    public init(edge: PageEdge, since: TimeInterval = 0, duration: TimeInterval) {
+        self.edge = edge
+        self.since = since
+        self.duration = duration
+    }
+}
+
 /// HUD に出すもの
 public struct HUDModel: Equatable, Sendable {
     /// プロファイル名
@@ -61,6 +77,9 @@ public struct HUDModel: Equatable, Sendable {
     public var isFingerInFrame: Bool
     /// 少し長く止めてから実行するマスに指を止めている間の進み具合。そのマスを光らせていなければ nil
     public var hold: HUDHold?
+    /// 指が左右の外枠にあり、そちらにページがあるときの、切り替えるまでの進み具合。HUD は外枠の帯に進み具合を、
+    /// 「離すとやめる」の下に「止めると次のページ」を出す
+    public var edgePaging: HUDEdgePaging?
     /// 右上の案内（例: 「マスで指を離すと実行」）
     public var hint: String
     /// 上部の注意書き（例: 試用期間の終了）
@@ -82,6 +101,7 @@ public struct HUDModel: Equatable, Sendable {
         highlightedIndex: Int?,
         isFingerInFrame: Bool = false,
         hold: HUDHold? = nil,
+        edgePaging: HUDEdgePaging? = nil,
         hint: String,
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
@@ -96,6 +116,7 @@ public struct HUDModel: Equatable, Sendable {
         self.highlightedIndex = highlightedIndex
         self.isFingerInFrame = isFingerInFrame
         self.hold = hold
+        self.edgePaging = edgePaging
         self.hint = hint
         self.banner = banner
         self.bannerStyle = bannerStyle

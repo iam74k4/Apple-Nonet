@@ -32,6 +32,7 @@ public enum ControllerPresentation {
             highlightedIndex: highlight,
             isFingerInFrame: state.isInFrame,
             hold: hold,
+            edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
             hint: hint,
             banner: banner,
             bannerStyle: bannerStyle,
@@ -72,7 +73,7 @@ public enum ControllerPresentation {
             String(localized: "外枠で指を離すとやめる", bundle: .module),
         ]
         if pageCount > 1 {
-            parts.append(String(localized: "2本指のスワイプでページを切り替え", bundle: .module))
+            parts.append(String(localized: "左右の外枠で止めるとページを切り替え", bundle: .module))
         }
         // 区切りの「 · 」は言語によらない（HUD の「練習中 · …」と同じ）
         return parts.joined(separator: " · ")

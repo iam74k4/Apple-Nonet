@@ -55,13 +55,13 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         // 帯の外で触れ始めた
-        h.touch(x: 0.5, y: 0.9)
+        h.touch(x: 0.5, y: 0.88)
         h.advance(0.05)
         h.touch(x: 0.5, y: 0.6)
         h.lift()
         // 遅い
         h.touch(x: 0.5, y: 0.98)
-        h.advance(0.5)
+        h.advance(0.7)
         h.touch(x: 0.5, y: 0.8)
         h.lift()
         // 横に滑らせた
@@ -249,11 +249,11 @@ import Testing
         #expect(h.controller.lastCancellation?.reason == .liftedInFrame)
     }
 
-    /// マスに留まる時間（0.15 秒）が足りないうちに離した・空きマスで離したら、実行せずに rejected
+    /// マスに留まる時間（0.1 秒）が足りないうちに離した・空きマスで離したら、実行せずに rejected
     @Test func liftingTooSoonOrOnAnEmptyCellRunsNothing() async throws {
         let h = try ControllerHarness()
         h.start()
-        h.run(2, dwell: 0.1)
+        h.run(2, dwell: 0.05)
         h.run(1)
         await h.settle()
         #expect(h.performer.calls.isEmpty)

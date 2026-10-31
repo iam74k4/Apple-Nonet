@@ -8,13 +8,13 @@ import NonetCore
     static let lines = [1.0 / 3, 2.0 / 3]
 
     @Test func theBandIsNarrowerThanTheHysteresisAndLeavesMostOfEachCell() {
-        #expect(GridMapper.defaultBoundaryBand == 0.025)
+        #expect(GridMapper.defaultBoundaryBand == 0.015)
         #expect(grid.boundaryBand == GridMapper.defaultBoundaryBand)
         // 帯はヒステリシス（来た向きでどちらのマスにもなる幅）の内側に収める
         #expect(GridMapper.defaultBoundaryBand < GridMapper.defaultHysteresis)
-        // 両側に線がある中央のマスでも、幅の 85% はタップを受け付ける
+        // 両側に線がある中央のマスでも、幅の 91% は離すと実行する
         let cell = 1.0 / 3
-        #expect(abs((cell - 2 * GridMapper.defaultBoundaryBand) / cell - 0.85) < 1e-9)
+        #expect(abs((cell - 2 * GridMapper.defaultBoundaryBand) / cell - 0.91) < 1e-9)
     }
 
     @Test(arguments: lines)
@@ -26,7 +26,7 @@ import NonetCore
 
     @Test(arguments: lines)
     func insideTheBandOnEitherSideOfALine(line: Double) {
-        for offset in [-0.024, -0.01, 0.01, 0.024] {
+        for offset in [-0.014, -0.008, 0.008, 0.014] {
             #expect(grid.isInBoundaryBand(x: line + offset, y: 1.0 / 6), "x \(line + offset)")
             #expect(grid.isInBoundaryBand(x: 1.0 / 6, y: line + offset), "y \(line + offset)")
         }
@@ -34,7 +34,7 @@ import NonetCore
 
     @Test(arguments: lines)
     func outsideTheBandOnEitherSideOfALine(line: Double) {
-        for offset in [-0.03, -0.026, 0.026, 0.03] {
+        for offset in [-0.03, -0.016, 0.016, 0.03] {
             #expect(!grid.isInBoundaryBand(x: line + offset, y: 1.0 / 6), "x \(line + offset)")
             #expect(!grid.isInBoundaryBand(x: 1.0 / 6, y: line + offset), "y \(line + offset)")
         }
@@ -51,10 +51,10 @@ import NonetCore
         for x in Self.lines {
             for y in Self.lines {
                 #expect(grid.isInBoundaryBand(x: x, y: y))
-                #expect(grid.isInBoundaryBand(x: x + 0.02, y: y - 0.02))
+                #expect(grid.isInBoundaryBand(x: x + 0.012, y: y - 0.012))
                 // 片方の線の帯にだけ入っていても帯の中
-                #expect(grid.isInBoundaryBand(x: x + 0.02, y: y + 0.1))
-                #expect(grid.isInBoundaryBand(x: x - 0.1, y: y - 0.02))
+                #expect(grid.isInBoundaryBand(x: x + 0.012, y: y + 0.1))
+                #expect(grid.isInBoundaryBand(x: x - 0.1, y: y - 0.012))
                 // 角のすぐ外（どちらの帯にも入らない）
                 #expect(!grid.isInBoundaryBand(x: x + 0.03, y: y - 0.03))
                 #expect(!grid.isInBoundaryBand(x: x - 0.03, y: y + 0.03))
@@ -103,8 +103,8 @@ import NonetCore
         let inset = GridMapper(insets: GridInsets(all: 0.1))
         let line = 0.1 + 0.8 / 3
         #expect(inset.isInBoundaryBand(x: line, y: 0.5))
-        #expect(inset.isInBoundaryBand(x: line + 0.024, y: 0.5))
-        #expect(!inset.isInBoundaryBand(x: line + 0.026, y: 0.5))
+        #expect(inset.isInBoundaryBand(x: line + 0.014, y: 0.5))
+        #expect(!inset.isInBoundaryBand(x: line + 0.016, y: 0.5))
         // 縁を除かないときの線（1/3）は、もう線ではない
         #expect(!inset.isInBoundaryBand(x: 1.0 / 3, y: 0.5))
         // 縁より外は端のマスで、線ではない

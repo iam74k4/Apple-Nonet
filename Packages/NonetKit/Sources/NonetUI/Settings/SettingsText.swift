@@ -71,7 +71,7 @@ enum SettingsText {
     }
 
     static var openGestureDetail: String {
-        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。", bundle: .module)
+        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。", bundle: .module)
     }
 
     static var hudScaleTitle: String {

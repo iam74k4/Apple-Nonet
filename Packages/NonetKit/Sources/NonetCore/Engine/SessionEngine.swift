@@ -14,16 +14,22 @@ public struct SessionConfiguration: Equatable, Sendable {
     public static let defaultMaxDuration: TimeInterval = 20
     /// ふつうのマスで、指を離して実行するまでに、そのマスに留まっている秒数。
     /// 滑らせて通りかかっただけのマス（滑らせながら指を離した・ポインタを動かすつもりで離した）を実行しないため。
-    /// 狙ったマスで止めて離す動きには気にならない短さ（指を止めるのに 0.1 秒ほどはかかる）
-    public static let defaultLiftDwell: TimeInterval = 0.15
+    /// 狙ったマスへ滑らせてそのまま離す動きでも届く短さ（実機で 0.15 秒では「狙ったマスで離しても実行されない」となった。
+    /// 隣のマスを通りかかる時間は、滑らせる速さ 10cm/秒 ほどで 0.04 秒ほどなので、0.1 秒でも通りかかっただけのマスは外せる）
+    public static let defaultLiftDwell: TimeInterval = 0.1
     /// 少し長く止めてから実行するマス（Cell.requiresHold）の留まる秒数。送信・録画のように取り消せないマスで、
-    /// 狙ったマスを確かめて止めたことをはっきりさせる。HUD はこの間の進み具合を見せる（ふつうの 0.15 秒の4倍で、
-    /// 目で追える長さ。1 秒を超えると、止めて待つのがもどかしい）
-    public static let defaultHoldDwell: TimeInterval = 0.6
+    /// 狙ったマスを確かめて止めたことをはっきりさせる。HUD はこの間の進み具合を見せ、止め終えたら触覚（holdReady）で知らせる
+    /// （目で追えて、待つのがもどかしくない長さ。実機で 0.6 秒は長いとなったので縮めた）
+    public static let defaultHoldDwell: TimeInterval = 0.45
     /// 2本以上の指から1本指に戻ったとき、残った指でまた選ぶのに要る動き（トラックパッドを 1 とした距離）。
     /// 2本の指は同時には離れにくく（0.1〜0.3 秒ほどずれる）、残った指の下のマスを、選んでいないのに実行しないため。
     /// 止めた指の揺れ（1mm より十分小さい）よりは大きく、滑らせればすぐに届く 2〜3mm
     public static let reselectTravel = 0.02
+    /// 左右の外枠（9マスの行の横）に指を止めてから、ページを切り替えるまでの秒数。
+    /// やめるつもりで外枠に出て離すまで（0.2〜0.3 秒ほど）よりは長く、待つのがもどかしくない短さ
+    public static let defaultEdgePageDwell: TimeInterval = 0.5
+    /// 切り替えた後も止めているとき、次に切り替えるまでの秒数。続けて送れるが、行き過ぎないよう最初より長くする
+    public static let defaultEdgePageRepeat: TimeInterval = 0.9
 
     /// 前面アプリで使うページの数（resolvedPages の数）。1 未満は 1 とみなす
     public var pageCount: Int
@@ -45,6 +51,8 @@ public struct SessionConfiguration: Equatable, Sendable {
     public var boundaryBand: Double
     public var liftDwell: TimeInterval
     public var holdDwell: TimeInterval
+    public var edgePageDwell: TimeInterval
+    public var edgePageRepeat: TimeInterval
 
     public init(
         pageCount: Int = 1,
@@ -57,7 +65,9 @@ public struct SessionConfiguration: Equatable, Sendable {
         holdCells: [Set<Int>]? = nil,
         boundaryBand: Double = GridMapper.defaultBoundaryBand,
         liftDwell: TimeInterval = SessionConfiguration.defaultLiftDwell,
-        holdDwell: TimeInterval = SessionConfiguration.defaultHoldDwell
+        holdDwell: TimeInterval = SessionConfiguration.defaultHoldDwell,
+        edgePageDwell: TimeInterval = SessionConfiguration.defaultEdgePageDwell,
+        edgePageRepeat: TimeInterval = SessionConfiguration.defaultEdgePageRepeat
     ) {
         self.pageCount = pageCount
         self.hysteresis = hysteresis
@@ -70,6 +80,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.boundaryBand = boundaryBand
         self.liftDwell = liftDwell
         self.holdDwell = holdDwell
+        self.edgePageDwell = edgePageDwell
+        self.edgePageRepeat = edgePageRepeat
     }
 
     /// 範囲外の値を直したもの。エンジンはセッションの開始時にこれを使う
@@ -86,6 +98,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         // 少し長く止めるマスは、ふつうのマスより短くしない
         let hold = holdDwell.isFinite && holdDwell >= 0 ? holdDwell : Self.defaultHoldDwell
         result.holdDwell = max(hold, result.liftDwell)
+        result.edgePageDwell = edgePageDwell.isFinite && edgePageDwell > 0 ? edgePageDwell : Self.defaultEdgePageDwell
+        result.edgePageRepeat = edgePageRepeat.isFinite && edgePageRepeat > 0 ? edgePageRepeat : Self.defaultEdgePageRepeat
         return result
     }
 
@@ -156,6 +170,21 @@ public struct SessionHold: Equatable, Sendable {
     }
 }
 
+/// 左右の外枠に指を止めている間の、ページを切り替えるまでの進み具合
+public struct SessionEdgePaging: Equatable, Sendable {
+    public var edge: PageEdge
+    /// 止め始めた時刻（外枠のその側に入った時刻か、前に切り替えた時刻）
+    public var since: TimeInterval
+    /// 切り替えるまでの秒数（edgePageDwell。続けて止めているときは edgePageRepeat）
+    public var duration: TimeInterval
+
+    public init(edge: PageEdge, since: TimeInterval, duration: TimeInterval) {
+        self.edge = edge
+        self.since = since
+        self.duration = duration
+    }
+}
+
 /// 表示中の HUD の中身
 public struct SessionHUDState: Equatable, Sendable {
     /// resolvedPages での位置
@@ -166,12 +195,15 @@ public struct SessionHUDState: Equatable, Sendable {
     public var isInFrame: Bool
     /// 光っているマスが少し長く止めるマスなら、その進み具合
     public var hold: SessionHold?
+    /// 指が左右の外枠にあり、そちらにページがあれば、切り替えるまでの進み具合
+    public var edgePaging: SessionEdgePaging?
 
-    public init(page: Int, highlightedCell: Int?, isInFrame: Bool = false, hold: SessionHold? = nil) {
+    public init(page: Int, highlightedCell: Int?, isInFrame: Bool = false, hold: SessionHold? = nil, edgePaging: SessionEdgePaging? = nil) {
         self.page = page
         self.highlightedCell = highlightedCell
         self.isInFrame = isInFrame
         self.hold = hold
+        self.edgePaging = edgePaging
     }
 }
 
@@ -188,8 +220,8 @@ public enum SessionEffect: Equatable, Sendable {
     /// 表示中の HUD のページ・ハイライト・外枠・進み具合が変わった
     case updateHUD(SessionHUDState)
     case hideHUD
-    /// activation（開いた）・boundary（マスと外枠の境目をまたいだ）・pageChange・rejected（何も実行せずに指を離した・
-    /// 端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
+    /// activation（開いた）・boundary（マスと外枠の境目をまたいだ）・pageChange・holdReady（少し長く止めるマスを止め終えた）・
+    /// rejected（何も実行せずに指を離した・端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする

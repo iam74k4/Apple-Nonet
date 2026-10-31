@@ -70,7 +70,7 @@ import Testing
     @Test func beginnerFootnotesExplainChoosingCancellingAndPages() {
         let choose = ModelFixtures.text("指を滑らせて選ぶ")
         let cancel = ModelFixtures.text("外枠で指を離すとやめる")
-        let pages = ModelFixtures.text("2本指のスワイプでページを切り替え")
+        let pages = ModelFixtures.text("左右の外枠で止めるとページを切り替え")
         #expect(ControllerPresentation.beginnerFootnote(pageCount: 1) == [choose, cancel].joined(separator: " · "))
         #expect(ControllerPresentation.beginnerFootnote(pageCount: 3) == [choose, cancel, pages].joined(separator: " · "))
     }

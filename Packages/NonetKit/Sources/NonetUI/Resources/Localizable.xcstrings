@@ -607,6 +607,7 @@
       }
     },
     "2本指で左右にスワイプ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -627,11 +628,22 @@
       }
     },
     "9マスを開いたまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "With the buttons open, swipe with two fingers to change pages. Each app can have up to three pages."
+          }
+        }
+      }
+    },
+    "9マスを開いたまま、左右の外枠に指を止めると、そちら側のページに切り替わります。1つのアプリに最大3ページ置けます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the nine buttons open, rest your finger on the left or right frame to switch to the page on that side. Each app can have up to three pages."
           }
         }
       }
@@ -2540,6 +2552,16 @@
         }
       }
     },
+    "そのまま止めて待つ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep your finger still"
+          }
+        }
+      }
+    },
     "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2983,11 +3005,22 @@
       }
     },
     "アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにします" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global pages follow the app's pages, so you can reach them with a two-finger swipe."
+          }
+        }
+      }
+    },
+    "アプリのページの後ろにグローバルのページをつなげ、ページを切り替えて行けるようにします" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global pages follow the app's pages, so you can reach them by changing pages."
           }
         }
       }
@@ -4135,11 +4168,22 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Rest your finger on the left or right frame to change pages."
           }
         }
       }
@@ -6789,6 +6833,16 @@
         }
       }
     },
+    "左右の外枠で止めてページを切り替える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest on the side frame to change pages"
+          }
+        }
+      }
+    },
     "弱" : {
       "localizations" : {
         "en" : {
@@ -7202,6 +7256,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Next: Try It Out"
+          }
+        }
+      }
+    },
+    "止めると前のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest for the previous page"
+          }
+        }
+      }
+    },
+    "止めると次のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest for the next page"
           }
         }
       }

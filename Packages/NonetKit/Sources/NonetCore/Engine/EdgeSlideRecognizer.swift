@@ -5,23 +5,28 @@
 import Foundation
 
 /// 上の縁の帯（entryBandHeight）で触れ始めた1本指が、触れてから entryWindow のうちに entryTravel 以上、
-/// 横より縦に（|dx| ≤ dy）下へ動いたら、開く合図を1回だけ返す。次のときは合図しない（そのタッチの間は、もう待たない）:
+/// 真下から斜めまで（|dx| ≤ maxEntrySlope × dy）下へ動いたら、開く合図を1回だけ返す。次のときは合図しない（そのタッチの間は、もう待たない）:
 /// - 帯の外で触れ始めた（外から帯に入ってきた指を含む）。最初から2本以上で触れた・ほかの指が触れているところに置いた
-/// - 待っている間に、ほかの指が触れた・離れた・entryWindow を過ぎた・下より横に entryTravel 以上動いた
+/// - 待っている間に、ほかの指が触れた・離れた・entryWindow を過ぎた・斜めより横へ entryTravel 以上動いた
 /// - 接触が手のひらの大きさ（palmMajorAxis 以上）になった
 /// - セッション中に触れ始めた（開いている9マスの指を、閉じた後に開く動きとみなさない）
 /// 指の出入りはセッションに関係なく数え続ける。時刻は TouchFrame.timestamp と同じ時計の秒
 public struct EdgeSlideRecognizer: Sendable {
     /// 触れ始めると開く動きの候補になる、上の縁の帯の高さ（トラックパッドの奥行きを 1 とした割合。幅はすべて）。
-    /// 奥行き 10cm ほどのトラックパッドで 6mm ほど: 縁に指先を当てて置けば中心がこの中に入り、
-    /// ふだんポインタを動かすために指を置く場所（手前と中ほど）からは十分に離れている
-    public static let entryBandHeight = 0.06
+    /// 奥行き 10cm ほどのトラックパッドで 9mm ほど: 縁のあたりに指を置けば、指先を縁に当てなくても中心がこの中に入り、
+    /// ふだんポインタを動かすために指を置く場所（手前と中ほど）からは離れている。
+    /// 実機で 6mm では「縁から滑らせても開かないことがある」となったので広げた
+    public static let entryBandHeight = 0.09
     /// 開くのに要る、下への動き（トラックパッドの奥行きを 1 とした割合）。5mm ほど。
     /// 止めた指の揺れ（1mm より十分小さい）や、置いたときのずれでは届かず、ひと撫ででは確実に届く
     public static let entryTravel = 0.05
     /// 触れてからこの秒数のうちに entryTravel 動かなければ、そのタッチでは開かない。
-    /// 狙って滑り込ませると 0.1〜0.25 秒ほどで届く。上の縁からゆっくり動かすのは、ふだんのポインタの移動とみなす
-    public static let entryWindow: TimeInterval = 0.4
+    /// 狙って滑り込ませると 0.1〜0.25 秒ほどで届くが、置いてひと呼吸おいてから滑らせる人もいるので余裕を持たせる。
+    /// 上の縁からゆっくり動かすのは、ふだんのポインタの移動とみなす
+    public static let entryWindow: TimeInterval = 0.6
+    /// 下への動きに対する横の動きの上限（真下から 56° ほどまで）。上の段の角のマスへ斜めに滑らせても開く。
+    /// これより横へ寝た動きは、上の縁に沿ってポインタを動かしているとみなす
+    public static let maxEntrySlope = 1.5
     /// これ以上の長径（TouchPoint.majorAxis）の接触は手のひらとみなし、開かない。
     /// 指先はおよそ 8〜15、平らに置いた親指でも 20 ほどなので、それより大きいものだけを外す控えめな値にしている
     /// （単位は MultitouchSupport の majorAxis のまま。実機では確かめていない。値が取れない接触は外さない）
@@ -64,10 +69,10 @@ public struct EdgeSlideRecognizer: Sendable {
     }
 
     /// 触れ始めた位置からの動き（dx は右が正、dy は下（手前）が正）が開く動きか。
-    /// entryTravel 以上下へ動き、横の動きが下への動きを超えない（真下から 45° まで）
+    /// entryTravel 以上下へ動き、横の動きが下への動きの maxEntrySlope 倍を超えない
     public static func isEntrySlide(dx: Double, dy: Double) -> Bool {
         guard dx.isFinite, dy.isFinite else { return false }
-        return dy >= entryTravel && abs(dx) <= dy
+        return dy >= entryTravel && abs(dx) <= maxEntrySlope * dy
     }
 
     /// フレームを1つ渡す。isSessionActive なら、待っている候補を取り消し、新しく触れた指も待たない
@@ -102,7 +107,7 @@ public struct EdgeSlideRecognizer: Sendable {
                 return .slid
             }
             // 横に滑らせた（上の縁に沿ってポインタを動かしている）: このタッチでは開かない
-            if abs(dx) >= Self.entryTravel, abs(dx) > dy {
+            if abs(dx) >= Self.entryTravel, abs(dx) > Self.maxEntrySlope * dy {
                 candidate = nil
             }
             return .none

@@ -110,6 +110,8 @@ public enum HapticEvent: Equatable, Sendable {
     /// 指がマスの境界をまたいだ
     case boundary
     case pageChange
+    /// 少し長く止めるマスを止め終えた（いま離すと実行する）
+    case holdReady
     case execute
     /// トラックパッドの上の縁から指を滑らせて9マスを開いた（開いたことを指に知らせる）
     case activation

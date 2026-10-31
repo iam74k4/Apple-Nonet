@@ -49,7 +49,7 @@ struct SettingsGeneralView: View {
                 }
                 Toggle(isOn: binding(\.appendGlobalPages)) {
                     Text("グローバルのページをつなげる", bundle: .module)
-                    Text("アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにします", bundle: .module)
+                    Text("アプリのページの後ろにグローバルのページをつなげ、ページを切り替えて行けるようにします", bundle: .module)
                 }
                 .disabled(!model.settings.autoSwitchProfiles)
             } header: {
