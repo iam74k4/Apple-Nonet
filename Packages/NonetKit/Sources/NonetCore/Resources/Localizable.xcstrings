@@ -315,6 +315,7 @@
       }
     },
     "fn" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -366,6 +367,7 @@
       }
     },
     "やめるときは指を置いたまま左の⇧を押す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -716,6 +718,7 @@
       }
     },
     "タップか、%@を離して実行" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1174,6 +1177,16 @@
         }
       }
     },
+    "マスで指を離すと実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift on a button to run"
+          }
+        }
+      }
+    },
     "マップ" : {
       "localizations" : {
         "en" : {
@@ -1450,6 +1463,7 @@
       }
     },
     "先に指を離してから%@を離すとやめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1560,6 +1574,7 @@
       }
     },
     "右⇧" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1570,6 +1585,7 @@
       }
     },
     "右⌘" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1580,11 +1596,22 @@
       }
     },
     "右⌥" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "right ⌥"
+          }
+        }
+      }
+    },
+    "外枠で指を離すとやめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift in the frame to cancel"
           }
         }
       }
@@ -1640,6 +1667,7 @@
       }
     },
     "指を離して実行" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1957,6 +1985,7 @@
       }
     },
     "滑らせずに離すとやめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
