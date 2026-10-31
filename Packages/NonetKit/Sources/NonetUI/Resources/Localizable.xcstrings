@@ -7893,6 +7893,16 @@
         }
       }
     },
+    "練習中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Practice"
+          }
+        }
+      }
+    },
     "練習中は、マスを押しても何も実行されません" : {
       "extractionState" : "stale",
       "localizations" : {

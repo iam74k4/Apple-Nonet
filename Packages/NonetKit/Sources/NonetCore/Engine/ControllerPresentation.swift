@@ -9,6 +9,7 @@ public enum ControllerPresentation {
         pages: [ResolvedPage],
         state: SessionHUDState,
         hint: String,
+        isPractice: Bool = false,
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
         footnote: String? = nil,
@@ -33,6 +34,7 @@ public enum ControllerPresentation {
             isFingerInFrame: state.isInFrame,
             hold: hold,
             edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
+            isPractice: isPractice,
             hint: hint,
             banner: banner,
             bannerStyle: bannerStyle,
@@ -59,21 +61,23 @@ public enum ControllerPresentation {
         return text.isEmpty ? nil : text
     }
 
-    /// HUD の右上の案内。マスで指を離すと実行する（外枠で離すとやめることは、外枠に出たときに HUD が言う）
+    /// 案内の文。マスで指を離すと実行する（外枠で離すとやめることは、外枠に出たときに HUD が言う）。
+    /// HUD には出さない（使い始めの案内が言う。練習中は、HUD が題名の横に「練習中」を出す）
     public static func hint(isPracticeMode: Bool) -> String {
         let base = String(localized: "マスで指を離すと実行", bundle: .module)
         guard isPracticeMode else { return base }
         return String(localized: "練習中 · \(base)", bundle: .module)
     }
 
-    /// 使い始めの数回（HUDGuidance.beginnerSessionLimit）だけ、9マスの下に出す案内。選び方とやめ方、ページが複数ならページの変え方
+    /// 使い始めの数回（HUDGuidance.beginnerSessionLimit）だけ、9マスの下に出す案内。選び方・実行のしかた・やめ方、ページが複数ならページの変え方
     public static func beginnerFootnote(pageCount: Int) -> String {
         var parts = [
             String(localized: "指を滑らせて選ぶ", bundle: .module),
-            String(localized: "外枠で指を離すとやめる", bundle: .module),
+            String(localized: "マスで離すと実行", bundle: .module),
+            String(localized: "外枠で離すとやめる", bundle: .module),
         ]
         if pageCount > 1 {
-            parts.append(String(localized: "左右の外枠で止めるとページを切り替え", bundle: .module))
+            parts.append(String(localized: "左右の外枠で止めるとページ切り替え", bundle: .module))
         }
         // 区切りの「 · 」は言語によらない（HUD の「練習中 · …」と同じ）
         return parts.joined(separator: " · ")

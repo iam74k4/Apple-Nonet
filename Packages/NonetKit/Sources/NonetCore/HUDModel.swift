@@ -80,12 +80,14 @@ public struct HUDModel: Equatable, Sendable {
     /// 指が左右の外枠にあり、そちらにページがあるときの、切り替えるまでの進み具合。HUD は外枠の帯に進み具合を、
     /// 「離すとやめる」の下に「止めると次のページ」を出す
     public var edgePaging: HUDEdgePaging?
-    /// 右上の案内（例: 「マスで指を離すと実行」）
+    /// 練習中（初回の案内の練習。実行しない）。HUD は題名の横に「練習中」を出す
+    public var isPractice: Bool
+    /// 案内の文（例: 「マスで指を離すと実行」）。HUD には出さない（使い始めの案内 footnote が言う）。読み上げの既定に使う
     public var hint: String
     /// 上部の注意書き（例: 試用期間の終了）
     public var banner: String?
     public var bannerStyle: HUDBannerStyle
-    /// 9マスの下の1〜2行の案内（使い始めの数回だけ。例: 「指を滑らせて選ぶ · 外枠で指を離すとやめる」）。出さないなら nil
+    /// 9マスの下の1〜2行の案内（使い始めの数回だけ。例: 「指を滑らせて選ぶ · マスで離すと実行 · 外枠で離すとやめる」）。出さないなら nil
     public var footnote: String?
     /// アプリのページの後ろにグローバルのページをつなげたとき、グローバルの最初のページの位置。
     /// ページの点をそこで少し離す。つなげていなければ nil
@@ -102,6 +104,7 @@ public struct HUDModel: Equatable, Sendable {
         isFingerInFrame: Bool = false,
         hold: HUDHold? = nil,
         edgePaging: HUDEdgePaging? = nil,
+        isPractice: Bool = false,
         hint: String,
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
@@ -117,6 +120,7 @@ public struct HUDModel: Equatable, Sendable {
         self.isFingerInFrame = isFingerInFrame
         self.hold = hold
         self.edgePaging = edgePaging
+        self.isPractice = isPractice
         self.hint = hint
         self.banner = banner
         self.bannerStyle = bannerStyle

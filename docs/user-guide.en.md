@@ -87,7 +87,7 @@ The highlighted button runs, and the HUD closes.
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant
 - Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
-- The top of the HUD shows the profile name and the hint "Lift on a button to run". If the page has a name, it shows that too, like "Xcode · Debug". For your first 20 times, a line under the grid also says "Slide to choose · Lift in the frame to cancel" (and "Hold in the left or right frame to change pages" if there are several pages)
+- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page. Each button shows just its icon and name, not the keys it presses (like ⌘B). For your first 20 times, a line under the grid also says "Slide to choose · Lift on a button to run · Lift in the frame to cancel" (and "Hold in the side frame to change pages" if there are several pages). While you hold on a button that needs a longer hold, the top edge says "Keep your finger still" and then "Lift to run". In practice it says "Practice"
 
 ### Canceling
 

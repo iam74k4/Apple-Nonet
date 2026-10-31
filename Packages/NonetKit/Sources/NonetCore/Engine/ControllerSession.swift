@@ -57,6 +57,7 @@ struct ControllerSession: Equatable, Sendable {
             pages: pages,
             state: state,
             hint: ControllerPresentation.hint(isPracticeMode: isPracticeMode),
+            isPractice: isPracticeMode,
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             footnote: footnote,

@@ -1208,6 +1208,16 @@
         }
       }
     },
+    "マスで離すと実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift on a button to run"
+          }
+        }
+      }
+    },
     "マップ" : {
       "localizations" : {
         "en" : {
@@ -1628,6 +1638,17 @@
       }
     },
     "外枠で指を離すとやめる" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift in the frame to cancel"
+          }
+        }
+      }
+    },
+    "外枠で離すとやめる" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1658,11 +1679,22 @@
       }
     },
     "左右の外枠で止めるとページを切り替え" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hold in the left or right frame to change pages"
+          }
+        }
+      }
+    },
+    "左右の外枠で止めるとページ切り替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold in the side frame to change pages"
           }
         }
       }

@@ -69,10 +69,11 @@ import Testing
 
     @Test func beginnerFootnotesExplainChoosingCancellingAndPages() {
         let choose = ModelFixtures.text("指を滑らせて選ぶ")
-        let cancel = ModelFixtures.text("外枠で指を離すとやめる")
-        let pages = ModelFixtures.text("左右の外枠で止めるとページを切り替え")
-        #expect(ControllerPresentation.beginnerFootnote(pageCount: 1) == [choose, cancel].joined(separator: " · "))
-        #expect(ControllerPresentation.beginnerFootnote(pageCount: 3) == [choose, cancel, pages].joined(separator: " · "))
+        let run = ModelFixtures.text("マスで離すと実行")
+        let cancel = ModelFixtures.text("外枠で離すとやめる")
+        let pages = ModelFixtures.text("左右の外枠で止めるとページ切り替え")
+        #expect(ControllerPresentation.beginnerFootnote(pageCount: 1) == [choose, run, cancel].joined(separator: " · "))
+        #expect(ControllerPresentation.beginnerFootnote(pageCount: 3) == [choose, run, cancel, pages].joined(separator: " · "))
     }
 
     /// アプリのページの後ろにつなげたグローバルのページの位置（ページの点をそこで離す）

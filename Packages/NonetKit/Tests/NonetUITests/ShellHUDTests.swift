@@ -20,13 +20,13 @@ struct ShellHUDTests {
         return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, hint: "⌘を離して実行", banner: banner)
     }
 
-    @Test("HUD の大きさはモックどおり。帯とページの点の分だけ高くなる")
+    @Test("HUD の大きさ: 題名とページの点は上の外枠に入るので、ページが増えても高さは変わらない。帯の分だけ高くなる")
     func hudSize() {
-        // 9マスの周りの外枠（奥 18・手前 16）の分だけ、モックより高い
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 504, height: 349))
-        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == CGSize(width: 504, height: 374))
+        // 上の外枠 28・9マス 3×54 + 2×6・下の外枠 12
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 368, height: 214))
+        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == HUDLayout.size(for: Self.model()))
         let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
-        #expect(both == CGSize(width: 504, height: 414))
+        #expect(both == CGSize(width: 368, height: 244))
         // 外枠に指があるか・進み具合では大きさは変わらない
         var inFrame = Self.model()
         inFrame.isFingerInFrame = true
@@ -110,6 +110,21 @@ struct ShellHUDTests {
         var turned = later
         turned.pageIndex = 1
         #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
+    }
+
+    @Test("題名の横の一言: 少し長く止めるマスの案内が先、次に練習中。どちらも無ければ出さない（ページの点を出す）")
+    func topNotes() {
+        var model = Self.model(highlighted: 4)
+        #expect(HUDAnnouncement.topNote(for: model) == nil)
+        model.isPractice = true
+        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("練習中"))
+        model.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.45, isReady: false)
+        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("そのまま止めて待つ"))
+        model.hold?.isReady = true
+        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("離すと実行"))
+        // 光っているのが別のマスなら、止めている案内は出さない
+        model.hold = HUDHold(cellIndex: 5, since: 1, duration: 0.45, isReady: false)
+        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("練習中"))
     }
 
     @Test("右上の案内: 少し長く止めるマスを止めている間は「そのまま止めて待つ」、止め終えたら「離すと実行」")

@@ -25,20 +25,20 @@ struct ShellHUDAppearanceTests {
 
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 504, height: 349))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 630, height: 436.25))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 756, height: 523.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 368, height: 214))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 460, height: 267.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 552, height: 321))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 504, height: 349))
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 368, height: 214))
         #expect(HUDMetrics(scale: 1.5).headerFontSize == 18)
-        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 19.5)
+        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 18)
     }
 
     @Test("使い始めの案内の分だけ高くなる")
     func footnoteHeight() {
         let plain = HUDLayout.size(for: Self.model())
         let withFootnote = HUDLayout.size(for: Self.model(footnote: "指を滑らせて選ぶ"))
-        #expect(withFootnote.height == plain.height + HUDLayout.footnoteHeight + HUDLayout.spacing)
+        #expect(withFootnote.height == plain.height + HUDLayout.footnoteHeight)
         #expect(HUDLayout.size(for: Self.model(footnote: "案内", scale: 1.5)).height == withFootnote.height * 1.5)
     }
 
@@ -141,7 +141,7 @@ struct ShellHUDAppearanceTests {
         #expect(HUDPageDots.leadingSpace(before: 1, globalPagesStart: 2, metrics: metrics) == metrics.dotSpacing)
         #expect(HUDPageDots.leadingSpace(before: 2, globalPagesStart: 2, metrics: metrics) == metrics.dotSpacing + metrics.pageGroupGap)
         #expect(HUDPageDots.leadingSpace(before: 2, globalPagesStart: nil, metrics: metrics) == metrics.dotSpacing)
-        #expect(HUDPageDots.leadingSpace(before: 2, globalPagesStart: 2, metrics: HUDMetrics(scale: 1.5)) == (8 + 8) * 1.5)
+        #expect(HUDPageDots.leadingSpace(before: 2, globalPagesStart: 2, metrics: HUDMetrics(scale: 1.5)) == (6 + 6) * 1.5)
     }
 
     @Test("トーストの最大の幅は倍率に合わせ、画面より広くしない")
