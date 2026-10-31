@@ -17,7 +17,8 @@ IDS = [
     (2, "basics"), (3, "trigger-key"), (3, "quick-tap"), (3, "hud"), (3, "cancel"), (3, "while-holding"),
     (3, "pages"), (3, "global-and-launcher"), (3, "haptics"), (3, "trackpad-alone"),
     (2, "menu-bar"),
-    (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "inspector"), (3, "pick-from-menus"),
+    (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "undo-and-restore"), (3, "power-editing"),
+    (3, "inspector"), (3, "pick-from-menus"),
     (2, "actions"), (3, "keystrokes"), (3, "open-app"), (3, "url"), (3, "script"), (4, "script-variables"),
     (3, "shortcut"), (3, "menu-item"), (3, "ai"),
     (2, "general"), (3, "trigger-and-hud"), (3, "general-profiles"), (3, "feedback"), (3, "advanced"),
@@ -30,6 +31,9 @@ IDS = [
     (3, "ai-unavailable"), (3, "selected-text"), (3, "no-haptics"), (3, "login-item"), (3, "damaged-settings"), (3, "reset"),
     (2, "uninstall"),
 ]
+
+# 公開する場所（site/ のほかのページの canonical・hreflang と同じ。scripts/check-site.sh が site/index.html の canonical と比べる）
+SITE_URL = "https://nonet.astlog.dev/"
 
 # Markdown のリンク先（docs/ からの相対）を、サイトのページに置き換える
 LINKS = {"privacy.md": "privacy.html"}
@@ -248,7 +252,7 @@ PAGES = [
         lang="ja",
         title="利用ガイド — Nonet",
         description="Nonet の使い方。トリガーキーと9つのボタン、プロファイルの編集、アクションの種類、設定、ライセンス、困ったときの対処をまとめています。",
-        alternate='<link rel="alternate" hreflang="en" href="en/guide.html">',
+        path="guide.html",
         prefix="",
         skip="本文へ移動",
         nav_label="サイト内の移動",
@@ -258,7 +262,10 @@ PAGES = [
         comment="<!-- 原本は docs/user-guide.md。このページは python3 -I scripts/build-guide.py で作る（手で直さない。作り直し忘れは scripts/tests/site_test.sh が見つける） -->",
         toc_label="目次",
         footer_links=[
+            '<li><a href="guide.html" aria-current="page">利用ガイド</a></li>',
             '<li><a href="privacy.html">プライバシーポリシー</a></li>',
+            '<li><a href="terms.html">利用規約</a></li>',
+            '<li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>',
             "<!-- TODO: 問い合わせ先のメールアドレス（index.html と同じ） -->",
             '<li><a href="mailto:support@TODO.invalid">お問い合わせ</a></li>',
             '<li><a href="en/guide.html" hreflang="en" lang="en">English</a></li>',
@@ -271,7 +278,7 @@ PAGES = [
         lang="en",
         title="User Guide — Nonet",
         description="How to use Nonet: the trigger key and the nine buttons, editing profiles, action types, settings, your license and troubleshooting.",
-        alternate='<link rel="alternate" hreflang="ja" href="../guide.html">',
+        path="en/guide.html",
         prefix="../",
         skip="Skip to content",
         nav_label="Site",
@@ -281,7 +288,10 @@ PAGES = [
         comment="<!-- The source is docs/user-guide.en.md. This page is built with python3 -I scripts/build-guide.py (don't edit it by hand; scripts/tests/site_test.sh catches a page that wasn't rebuilt) -->",
         toc_label="Contents",
         footer_links=[
+            '<li><a href="guide.html" aria-current="page">User guide</a></li>',
             '<li><a href="privacy.html">Privacy policy</a></li>',
+            '<li><a href="terms.html">Terms</a></li>',
+            '<li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>',
             "<!-- TODO: support email address (same as index.html) -->",
             '<li><a href="mailto:support@TODO.invalid">Contact</a></li>',
             '<li><a href="../guide.html" hreflang="ja" lang="ja">日本語</a></li>',
@@ -315,8 +325,12 @@ def build(root, page):
         f"<title>{page['title']}</title>",
         f'<meta name="description" content="{page["description"]}">',
         '<meta name="color-scheme" content="light dark">',
-        page["alternate"],
+        # 検索に出すページの決まり（scripts/check-site.sh）: 自分の URL の canonical と、日本語・英語・x-default（英語）の hreflang
+        f'<link rel="canonical" href="{SITE_URL}{page["path"]}">',
+        *[f'<link rel="alternate" hreflang="{lang}" href="{SITE_URL}{path}">'
+          for lang, path in (("ja", PAGES[0]["path"]), ("en", PAGES[1]["path"]), ("x-default", PAGES[1]["path"]))],
         f'<link rel="icon" href="{p}favicon.svg" type="image/svg+xml">',
+        f'<link rel="apple-touch-icon" href="{p}apple-touch-icon.png">',
         f'<link rel="stylesheet" href="{p}style.css">',
         "</head>",
         "<body>",

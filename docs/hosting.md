@@ -154,10 +154,10 @@ npx wrangler deploy                     # 2.2 の wrangler login のまま
 
 どれも、Actions の site を初めて実行するより前に済ませる（environment が無いまま実行すると、GitHub は保護の無い `production` を自動で作る）。
 
-1. Settings › Environments › New environment で `production` を作る
-2. Deployment protection rules で **Required reviewers** に自分を付ける。deploy の job はこの environment で動くので、承認するまで本番に触れない
-3. **Deployment branches and tags** を「Selected branches and tags」にし、`main` だけを足す。site.yml の「main から実行しているか」は、実行したブランチの YAML に書いてあるのでそのブランチで消せる。守りはこちら
-4. 2.3 のトークンを、この environment の **Environment secrets** に `CLOUDFLARE_API_TOKEN` として置く。Repository secrets には置かない（environment を外した workflow をどのブランチにでも書けば、承認もブランチの制限も通らずに読める）
+1. Settings › Environments › New environment で `production` を作る（作成済み）
+2. Deployment protection rules の **Required reviewers** は、このリポジトリ（非公開）の今のプランでは使えない。代わりに、deploy は手動の実行（workflow_dispatch）でしか始まらないので、Run workflow を押す人がその場で承認したことになる（Actions を実行できるのは書き込み権限のある人だけ）。公開リポジトリにするか、Required reviewers を使えるプランにしたら、自分を付ける
+3. **Deployment branches and tags** を「Selected branches and tags」にし、`main` だけを足す（設定済み）。site.yml の「main から実行しているか」は、実行したブランチの YAML に書いてあるのでそのブランチで消せる。守りはこちら
+4. 2.3 のトークンを、この environment の **Environment secrets** に `CLOUDFLARE_API_TOKEN` として置く。Repository secrets には置かない（environment を外した workflow をどのブランチにでも書けば、ブランチの制限を通らずに読める）
 5. （任意）Settings › Branches で `main` を保護し、CI と site の check を必須にする
 
 site.yml の中でも、トークンは wrangler を呼ぶ step の env にだけ渡し（`npm ci` や action からは読めない。deploy の `npm ci` は `--ignore-scripts`）、`permissions: contents: read`、action は commit の SHA で固定してある（Web-AstLog と同じ SHA。上げるときは `git ls-remote --tags https://github.com/actions/<名前>` で引き直し、行末のタグ名も直す）。続けて2回実行しても、デプロイは並んで走らない（後のほうが待つ）。
@@ -212,7 +212,7 @@ site.yml の中でも、トークンは wrangler を呼ぶ step の env にだ�
 | 「… に届きません」「公開中の appcast を確かめられません」 | ネットワーク・Worker を出したか（2.5）・バケットがあるか |
 | 「上げ終わりましたが、公開された中身が合いません」 | 「4. 確かめる」の curl で見る。直らなければ「5. 戻す」 |
 
-ページだけを変えたとき: main に入れてから、GitHub › Actions › site › Run workflow（Branch: `main`）。check が通ると承認を求められ、承認すると `wrangler deploy` が走る。ページを出しても R2（DMG・appcast）は変わらず、`publish.sh` もページを変えない。
+ページだけを変えたとき: main に入れてから、GitHub › Actions › site › Run workflow（Branch: `main`）。check が通ると、続けて `wrangler deploy` が走る（Required reviewers は使えないので、承認の待ちは無い。Run workflow を押すことが承認になる）。ページを出しても R2（DMG・appcast）は変わらず、`publish.sh` もページを変えない。
 
 ---
 
