@@ -53,6 +53,16 @@
         }
       }
     },
+    "%@ では Nonet を使いません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet is off in %@"
+          }
+        }
+      }
+    },
     "%@ では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -139,6 +149,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Edit Buttons for %@…"
+          }
+        }
+      }
+    },
+    "%@ のマス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buttons for %@"
           }
         }
       }
@@ -3345,6 +3365,16 @@
         }
       }
     },
+    "グローバルのマス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Global Buttons"
+          }
+        }
+      }
+    },
     "グローバルのマスを編集…" : {
       "localizations" : {
         "en" : {
@@ -5710,6 +5740,16 @@
         }
       }
     },
+    "前のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Page"
+          }
+        }
+      }
+    },
     "前面にあるとき" : {
       "localizations" : {
         "en" : {
@@ -6632,6 +6672,16 @@
         }
       }
     },
+    "次のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Page"
+          }
+        }
+      }
+    },
     "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7431,6 +7481,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send the keystrokes you set up, choose menu items and read selected text"
+          }
+        }
+      }
+    },
+    "設定で開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens it in Settings."
           }
         }
       }
