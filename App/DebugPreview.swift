@@ -6,7 +6,8 @@ import NonetUI
 /// 見た目の確認用（DEBUG ビルドだけ）。起動引数:
 /// --config-dir <dir>  設定の置き場所（空のフォルダなら初回起動になる）。試用の記録もメモリだけに置く
 /// --show-settings [profiles|general|license|about]  --show-onboarding
-/// --preview-hud  --preview-toast  --preview-result  --simulate-expired-trial  --snapshot <dir>
+/// --preview-hud [--preview-app <bundle ID>] [--preview-backdrop <画像>]  --preview-toast  --preview-result
+/// --simulate-expired-trial  --snapshot <dir>
 @MainActor
 final class DebugPreview {
     private let controller: NonetController
@@ -16,6 +17,7 @@ final class DebugPreview {
     private var toastTimer: Timer?
     private var hudTimer: Timer?
     private var toastIndex = 0
+    private var backdrop: NSWindow?
 
     init(controller: NonetController, hud: HUDWindowController, license: LicenseManager, services: NonetServices) {
         self.controller = controller
@@ -38,7 +40,11 @@ final class DebugPreview {
     /// 前面アプリの最初のページの HUD を出したままにし、3秒ごとに状態を替える（--snapshot の各回で1つずつ写る）:
     /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
     /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
-    func showHUD() {
+    func showHUD(bundleID: String? = nil, backdrop image: URL? = nil) {
+        previewBundleID = bundleID
+        if let image {
+            showBackdrop(image)
+        }
         showHUDState(0)
         var state = 0
         let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in
@@ -52,12 +58,30 @@ final class DebugPreview {
     }
 
     private static let hudStateCount = 5
+    /// --preview-app で選んだアプリ。nil なら前面のアプリ
+    private var previewBundleID: String?
+
+    /// 画面いっぱいに絵を敷く（HUD の下、ほかのウィンドウの上）。マウスは素通しする
+    private func showBackdrop(_ url: URL) {
+        guard let screen = NSScreen.main, let image = NSImage(contentsOf: url) else { return }
+        let window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue - 1)
+        window.ignoresMouseEvents = true
+        window.isReleasedWhenClosed = false
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        let view = NSImageView(frame: screen.frame)
+        view.image = image
+        view.imageScaling = .scaleAxesIndependently
+        window.contentView = view
+        window.orderFrontRegardless()
+        backdrop = window
+    }
     /// 少し長く止めるマスの例に使う位置（ページに少し長く止めるマスが無ければ、この位置のマスをそうみなす）
     private static let previewHoldCell = 7
 
     private func showHUDState(_ state: Int) {
         let configuration = controller.configuration
-        let pages = configuration.resolvedPages(frontmostBundleID: services.frontmostApp.current?.app.bundleID)
+        let pages = configuration.resolvedPages(frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
         guard let page = pages.first else { return }
         let holdIndex = page.cells.firstIndex { $0?.requiresHold == true } ?? Self.previewHoldCell
         let cells = page.cells.enumerated().map { index, cell in
@@ -93,7 +117,8 @@ final class DebugPreview {
             // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く
             hint: ControllerPresentation.hint(isPracticeMode: controller.isPracticeMode),
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
-            footnote: ControllerPresentation.beginnerFootnote(pageCount: pages.count)
+            footnote: ControllerPresentation.beginnerFootnote(pageCount: pages.count),
+            scale: configuration.settings.hudScale.factor
         )
         hud.show(model, position: configuration.settings.hudPosition)
     }

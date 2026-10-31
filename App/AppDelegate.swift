@@ -271,7 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let preview = DebugPreview(controller: controller, hud: hud, license: license, services: services)
         if options.previewHUD {
-            preview.showHUD()
+            preview.showHUD(bundleID: options.previewBundleID, backdrop: options.previewBackdrop)
         }
         if options.previewToast {
             preview.startToasts()

@@ -6,6 +6,14 @@
 - 基にしたもの: AstLog は本番と同じ `main` の `cb899fd`。Nonet は branch `claude/nonet-app-features-b5e3dc`
 - 発売前の値（「開発中」・テストの本数・リンク）は、[5. 発売時に直すもの](#5-発売時に直すもの) を見て直す
 
+## いまの状態（2026-10-31 に公開）
+
+https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と SaifuLog の間）。この下の手順と値は、そのときの下書きとして残す。実際に入れたものとの違い:
+
+- **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る）
+- **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
+- **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足す
+
 ## 0. 前提
 
 - **下書きで保存し、公開は後にする。** Website のリンク先 https://nonet.astlog.dev/ は、まだ開いていない。Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする

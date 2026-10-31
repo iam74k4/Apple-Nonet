@@ -29,7 +29,7 @@ DEFAULT_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 OG_WIDTH, OG_HEIGHT = 1200, 630
 TOUCH_ICON_SIZE = 180
 # アプリのアイコンの下絵（1024）での板の位置と大きさ（scripts/make-icon.swift の IconGeometry.plate）。
-# 板の外（角）は、板のグラデーションの下の色（gray 0.05 = #0d0d0d）で埋める
+# 板の外（角）は、板のグラデーションの下の色（#0B0B0D。scripts/make-icon.swift の IconPalette.plateBottom）で埋める
 ICON_CANVAS, ICON_PLATE_ORIGIN, ICON_PLATE_SIZE = 1024, 100, 824
 
 # 見出しの下に添える1行。ページの価格・試用の文言と合わせる
@@ -127,7 +127,7 @@ def touch_icon_page():
 <head>
 <meta charset="utf-8">
 <style>
-html, body {{ width: {TOUCH_ICON_SIZE}px; height: {TOUCH_ICON_SIZE}px; margin: 0; overflow: hidden; background: #0d0d0d; }}
+html, body {{ width: {TOUCH_ICON_SIZE}px; height: {TOUCH_ICON_SIZE}px; margin: 0; overflow: hidden; background: #0b0b0d; }}
 img {{ position: absolute; left: {offset:.3f}px; top: {offset:.3f}px; width: {size:.3f}px; height: {size:.3f}px; }}
 </style>
 </head>

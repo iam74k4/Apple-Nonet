@@ -1,22 +1,34 @@
 #!/usr/bin/env swift
 // アプリのアイコンを描いて App/Assets.xcassets/AppIcon.appiconset に書き出す。
-// 使い方: swift scripts/make-icon.swift [出力先の .appiconset]
-// 形はモックのロゴ（角の丸い 3×3、中央が塗り）。黒い角丸の板に白で描く。小さいサイズは線が潰れるので塗りで描く
+// 使い方: swift scripts/make-icon.swift [出力先の .appiconset] [--accent RRGGBB] [--preview 1024px の PNG]
+// 同じ作者の AppMixer・SaifuLog のアイコンに合わせる: 上から下へ暗くなる無彩色の角丸の板に、触るところだけを
+// システムの色1つで塗る。Nonet では 3×3 のうち、指を離して実行するマス（中央）だけを塗り、ほかの8マスは薄い白にする
 import CoreGraphics
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
+
+/// 色（AppMixer の make_icon.py と同じ値。板は #3A3A3C から #0B0B0D、影は下へ 18・ぼかし 22・不透明度 0.38）
+enum IconPalette {
+    static let plateTop = (r: 0x3A, g: 0x3A, b: 0x3C)
+    static let plateBottom = (r: 0x0B, g: 0x0B, b: 0x0D)
+    /// 使っていないマス（AppMixer のフェーダーの溝と同じ、白の 16%）。小さいサイズは潰れないよう濃くする
+    static let restingCellAlpha: CGFloat = 0.16
+    static let restingCellAlphaSimplified: CGFloat = 0.3
+    /// 指を離して実行するマスの色（システムの緑。AppMixer は青、SaifuLog はオレンジ）
+    static let accent = "30D158"
+}
 
 /// 1024 の下絵での寸法（macOS 11 以降のアイコンのテンプレート: 824 の板を 100 の余白で置く）
 enum IconGeometry {
     static let canvas: CGFloat = 1024
     static let plate = CGRect(x: 100, y: 100, width: 824, height: 824)
     static let plateRadius: CGFloat = 185.4
-    /// 板の幅に対する 3×3 の幅（小さいサイズは大きめにして読めるようにする）
-    static func gridRatio(simplified: Bool) -> CGFloat { simplified ? 0.62 : 0.54 }
+    /// 板の幅に対する 3×3 の幅（小さいサイズは大きめにして読めるようにする）。
+    /// AppMixer のフェーダーの高さ（板の 60%）とそろえる
+    static func gridRatio(simplified: Bool) -> CGFloat { simplified ? 0.66 : 0.6 }
     /// マスと隙間の比はロゴと同じ（マス 5、隙間 2.5）
     static let cellToGap: CGFloat = 2
-    static let strokeRatio: CGFloat = 0.2
     static let cornerRatio: CGFloat = 0.28
 
     /// 9つのマス（左下が原点の座標）。左上から右へ、上の行から
@@ -48,7 +60,21 @@ struct IconSize {
 
 let sizes = [16, 32, 128, 256, 512].flatMap { points in [1, 2].map { IconSize(points: points, scale: $0) } }
 
-func render(pixels: Int) -> CGImage? {
+func color(hex: String, alpha: CGFloat = 1) -> CGColor {
+    let value = Int(hex, radix: 16) ?? 0
+    return CGColor(
+        srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+        green: CGFloat((value >> 8) & 0xFF) / 255,
+        blue: CGFloat(value & 0xFF) / 255,
+        alpha: alpha
+    )
+}
+
+func color(_ rgb: (r: Int, g: Int, b: Int)) -> CGColor {
+    CGColor(srgbRed: CGFloat(rgb.r) / 255, green: CGFloat(rgb.g) / 255, blue: CGFloat(rgb.b) / 255, alpha: 1)
+}
+
+func render(pixels: Int, accent: String) -> CGImage? {
     guard let space = CGColorSpace(name: CGColorSpace.sRGB),
           let context = CGContext(
               data: nil,
@@ -73,20 +99,20 @@ func render(pixels: Int) -> CGImage? {
     )
     context.saveGState()
     if !simplified {
-        context.setShadow(offset: CGSize(width: 0, height: -10), blur: 24, color: CGColor(gray: 0, alpha: 0.35))
+        context.setShadow(offset: CGSize(width: 0, height: -18), blur: 44, color: CGColor(gray: 0, alpha: 0.38))
     }
     context.addPath(plate)
-    context.setFillColor(CGColor(gray: 0.07, alpha: 1))
+    context.setFillColor(color(IconPalette.plateBottom))
     context.fillPath()
     context.restoreGState()
 
-    // 上から下へわずかに暗くする
+    // 上から下へ暗くする
     context.saveGState()
     context.addPath(plate)
     context.clip()
     if let gradient = CGGradient(
         colorsSpace: space,
-        colors: [CGColor(gray: 0.17, alpha: 1), CGColor(gray: 0.05, alpha: 1)] as CFArray,
+        colors: [color(IconPalette.plateTop), color(IconPalette.plateBottom)] as CFArray,
         locations: [0, 1]
     ) {
         context.drawLinearGradient(
@@ -98,38 +124,13 @@ func render(pixels: Int) -> CGImage? {
     }
     context.restoreGState()
 
-    // 板の縁のかすかな光
-    if !simplified {
-        context.saveGState()
-        context.addPath(CGPath(
-            roundedRect: IconGeometry.plate.insetBy(dx: 1.5, dy: 1.5),
-            cornerWidth: IconGeometry.plateRadius - 1.5,
-            cornerHeight: IconGeometry.plateRadius - 1.5,
-            transform: nil
-        ))
-        context.setStrokeColor(CGColor(gray: 1, alpha: 0.10))
-        context.setLineWidth(3)
-        context.strokePath()
-        context.restoreGState()
-    }
-
-    // 3×3。中央は白で塗り、ほかは白い線（小さいサイズは薄い塗り）
+    // 3×3。中央（指を離して実行するマス）だけを差し色で塗り、ほかは薄い白
+    let restingAlpha = simplified ? IconPalette.restingCellAlphaSimplified : IconPalette.restingCellAlpha
     for (index, rect) in IconGeometry.cells(simplified: simplified).enumerated() {
         let radius = rect.width * IconGeometry.cornerRatio
-        let isCenter = index == 4
-        if isCenter || simplified {
-            context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
-            context.setFillColor(CGColor(gray: 1, alpha: isCenter ? 1 : 0.42))
-            context.fillPath()
-        } else {
-            let line = rect.width * IconGeometry.strokeRatio
-            let inner = rect.insetBy(dx: line / 2, dy: line / 2)
-            let innerRadius = max(0, radius - line / 2)
-            context.addPath(CGPath(roundedRect: inner, cornerWidth: innerRadius, cornerHeight: innerRadius, transform: nil))
-            context.setStrokeColor(CGColor(gray: 1, alpha: 0.92))
-            context.setLineWidth(line)
-            context.strokePath()
-        }
+        context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+        context.setFillColor(index == 4 ? color(hex: accent) : CGColor(gray: 1, alpha: restingAlpha))
+        context.fillPath()
     }
     return context.makeImage()
 }
@@ -165,14 +166,33 @@ func contentsJSON() -> String {
 }
 
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-let output = CommandLine.arguments.count > 1
-    ? URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
-    : root.appendingPathComponent("App/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
+var arguments = Array(CommandLine.arguments.dropFirst())
+
+/// `--name 値` を取り出す
+func option(_ name: String) -> String? {
+    guard let index = arguments.firstIndex(of: name), arguments.indices.contains(index + 1) else { return nil }
+    let value = arguments[index + 1]
+    arguments.removeSubrange(index...(index + 1))
+    return value
+}
+
+let accent = option("--accent") ?? IconPalette.accent
+let preview = option("--preview")
+let output = arguments.first.map { URL(fileURLWithPath: $0, isDirectory: true) }
+    ?? root.appendingPathComponent("App/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
 
 do {
+    if let preview {
+        guard let image = render(pixels: Int(IconGeometry.canvas), accent: accent) else {
+            throw NSError(domain: "make-icon", code: 3, userInfo: [NSLocalizedDescriptionKey: "下絵を描けません"])
+        }
+        try writePNG(image, to: URL(fileURLWithPath: preview))
+        print("書き出しました: \(preview)")
+        exit(0)
+    }
     try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
     for size in sizes {
-        guard let image = render(pixels: size.pixels) else {
+        guard let image = render(pixels: size.pixels, accent: accent) else {
             throw NSError(domain: "make-icon", code: 3, userInfo: [NSLocalizedDescriptionKey: "\(size.pixels)px を描けません"])
         }
         try writePNG(image, to: output.appendingPathComponent(size.filename))

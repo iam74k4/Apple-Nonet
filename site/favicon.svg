@@ -1,19 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <style>
-    rect { fill: none; stroke: #111; stroke-width: 1.5; }
-    .c { fill: #111; stroke: none; }
-    @media (prefers-color-scheme: dark) {
-      rect { stroke: #f2f2f2; }
-      .c { fill: #f2f2f2; }
-    }
-  </style>
-  <rect x="2" y="2" width="5" height="5" rx="1.5"/>
-  <rect x="9.5" y="2" width="5" height="5" rx="1.5"/>
-  <rect x="17" y="2" width="5" height="5" rx="1.5"/>
-  <rect x="2" y="9.5" width="5" height="5" rx="1.5"/>
-  <rect class="c" x="9.5" y="9.5" width="5" height="5" rx="1.5"/>
-  <rect x="17" y="9.5" width="5" height="5" rx="1.5"/>
-  <rect x="2" y="17" width="5" height="5" rx="1.5"/>
-  <rect x="9.5" y="17" width="5" height="5" rx="1.5"/>
-  <rect x="17" y="17" width="5" height="5" rx="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- アプリのアイコン（scripts/make-icon.swift）を小さくしたもの。板は上から下へ暗く、指を離して実行する中央のマスだけ緑 -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A3A3C"/>
+      <stop offset="1" stop-color="#0B0B0D"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7.2" fill="url(#plate)"/>
+  <g fill="#FFFFFF" fill-opacity="0.3">
+    <rect x="5.5" y="5.5" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="13.375" y="5.5" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="21.25" y="5.5" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="5.5" y="13.375" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="21.25" y="13.375" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="5.5" y="21.25" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="13.375" y="21.25" width="5.25" height="5.25" rx="1.5"/>
+    <rect x="21.25" y="21.25" width="5.25" height="5.25" rx="1.5"/>
+  </g>
+  <rect x="13.375" y="13.375" width="5.25" height="5.25" rx="1.5" fill="#30D158"/>
 </svg>

@@ -15,6 +15,10 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var onboardingStep: String?
     /// --preview-hud: 最初のページの HUD を出したままにする
     public var previewHUD = false
+    /// --preview-app <bundle ID>: --preview-hud で、前面のアプリの代わりにこのアプリのページを出す
+    public var previewBundleID: String?
+    /// --preview-backdrop <画像>: --preview-hud で、HUD の後ろに画面いっぱいに敷く絵（ガラスの HUD を決まった背景で撮る）
+    public var previewBackdrop: URL?
     /// --preview-toast: トーストを繰り返し出す
     public var previewToast = false
     /// --preview-result: 結果のパネルを出す
@@ -58,6 +62,16 @@ public struct ShellLaunchOptions: Equatable, Sendable {
                 }
             case "--preview-hud":
                 options.previewHUD = true
+            case "--preview-app":
+                if let next, !next.hasPrefix("--") {
+                    options.previewBundleID = next
+                    index += 1
+                }
+            case "--preview-backdrop":
+                if let next, !next.hasPrefix("--") {
+                    options.previewBackdrop = URL(fileURLWithPath: (next as NSString).expandingTildeInPath)
+                    index += 1
+                }
             case "--preview-toast":
                 options.previewToast = true
             case "--preview-result":

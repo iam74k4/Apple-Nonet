@@ -245,13 +245,16 @@ struct ShellSelfCheckTests {
             "Nonet", "-NSDocumentRevisionsDebugMode", "YES",
             "--config-dir", "/tmp/nonet config",
             "--show-settings", "license",
-            "--show-onboarding", "--preview-hud", "--preview-toast", "--preview-result",
+            "--show-onboarding", "--preview-hud", "--preview-app", "com.apple.dt.Xcode",
+            "--preview-backdrop", "/tmp/backdrop.png", "--preview-toast", "--preview-result",
             "--simulate-expired-trial", "--self-check", "--snapshot", "/tmp/shots",
         ])
         #expect(options.configDirectory?.path == "/tmp/nonet config")
         #expect(options.settingsTab == .license)
         #expect(options.showOnboarding)
         #expect(options.previewHUD)
+        #expect(options.previewBundleID == "com.apple.dt.Xcode")
+        #expect(options.previewBackdrop?.path == "/tmp/backdrop.png")
         #expect(options.previewToast)
         #expect(options.previewResult)
         #expect(options.simulateExpiredTrial)
