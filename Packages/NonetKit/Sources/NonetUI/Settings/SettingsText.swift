@@ -251,75 +251,52 @@ enum SettingsText {
         return lines.joined(separator: "\n")
     }
 
-    /// 確かめるときに名前やマスを並べる数（多いときは残りを数で伝える）
+    /// 確かめるときに、置き換わるプロファイルの名前を並べる数（多いときは残りを数で伝える）。中身を見せるマスには上限を付けない
     static let importConfirmationNameLimit = 6
-    /// 確かめるときに出すスクリプトの行数（多いときは残りを行数で伝える）
-    static let importScriptLineLimit = 3
     /// 確かめるときの、プロファイルやマスの名前の長さ
     static let importNameLimit = 40
     /// 確かめるときの、ファイル名の長さ
     static let importFileNameLimit = 60
-    /// 確かめるときの、スクリプトの1行・キー入力・URL の長さ
+    /// ファイルから来た1行の文（ライセンスの登録者など）の長さ。読み込むマスの中身（スクリプト・キー・URL）は切らない
     static let importContentLimit = 100
 
-    /// 読み込む前に確かめる文。置き換わるものと、何かを実行するマスとその中身（両方あれば空行で分ける）
+    /// 読み込む前に確かめる文の全体。置き換わるもの（replacementLines）と、何かを実行するマスとその中身のすべて
+    /// （importReviewEntries。スクリプトは全部の行、キー入力は押すキーのすべて）。両方あれば空行で分ける。
+    /// 確かめる画面（SettingsImportReviewSheet）は同じ中身を、スクロールできる欄に出す
     static func importConfirmation(_ plan: SettingsImportPlan) -> String {
         var sections: [[String]] = []
-        if plan.replacesExisting {
-            var targets: [String] = []
-            if plan.result.replacedGlobal {
-                targets.append(String(localized: "グローバルのページ", bundle: .module))
-            }
-            targets += plan.replacedNames
-            var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
-            lines += importConfirmationNames(targets)
-            if plan.result.added > 0 {
-                lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module, locale: .nonetUI))
-            }
-            sections.append(lines)
+        let replacement = importReplacementLines(plan)
+        if !replacement.isEmpty {
+            sections.append(replacement)
         }
         if plan.hasReviewedCells {
-            var lines = [String(localized: "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。", bundle: .module)]
-            for reviewed in plan.reviewedCells.prefix(importConfirmationNameLimit) {
-                let profile = singleLine(reviewed.profileName, limit: importNameLimit)
-                let title = singleLine(SettingsGrid.displayTitle(for: reviewed.cell), limit: importNameLimit)
-                lines.append(String(localized: "・\(profile) › \(title)", bundle: .module))
-                lines += reviewLines(for: reviewed.cell.action)
-            }
-            let rest = plan.reviewedCells.count - importConfirmationNameLimit
-            if rest > 0 {
-                lines.append(String(localized: "ほか\(rest)個", bundle: .module, locale: .nonetUI))
+            var lines = [importReviewIntro]
+            for entry in importReviewEntries(plan) {
+                lines += entry.textLines
             }
             sections.append(lines)
         }
         return sections.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
     }
 
-    /// 確かめるときに出す、マスの中身（スクリプトは最初の数行、キー入力は打つ文字、URL は開くファイル）
-    static func reviewLines(for action: Action) -> [String] {
-        switch action {
-        case .script(let script):
-            let lines = script.source.components(separatedBy: .newlines)
-                .map { singleLine($0, limit: importContentLimit) }
-                .filter { !$0.isEmpty }
-            var result = [String(localized: "スクリプト（\(lines.count)行）:", bundle: .module, locale: .nonetUI)]
-            result += lines.prefix(importScriptLineLimit)
-            let rest = lines.count - importScriptLineLimit
-            if rest > 0 {
-                result.append(String(localized: "…ほか\(rest)行", bundle: .module, locale: .nonetUI))
-            }
-            return result
-        case .keystroke(let keys):
-            return [String(localized: "キー入力: \(keysPreview(keys))", bundle: .module)]
-        case .openURL(let url):
-            return [String(localized: "開くファイル: \(singleLine(url.url, limit: importContentLimit))", bundle: .module)]
-        case .launchApp, .shortcut, .menuItem, .ai:
-            return []
+    /// 置き換わるもの（グローバルのページと、同じアプリのプロファイル）。置き換わらなければ空
+    static func importReplacementLines(_ plan: SettingsImportPlan) -> [String] {
+        guard plan.replacesExisting else { return [] }
+        var targets: [String] = []
+        if plan.result.replacedGlobal {
+            targets.append(String(localized: "グローバルのページ", bundle: .module))
         }
+        targets += plan.replacedNames
+        var lines = [String(localized: "次の設定が、ファイルの中身で置き換わります。元に戻せません。", bundle: .module)]
+        lines += importConfirmationNames(targets)
+        if plan.result.added > 0 {
+            lines.append(String(localized: "ほかに\(plan.result.added)個のプロファイルを新しく追加します。", bundle: .module, locale: .nonetUI))
+        }
+        return lines
     }
 
     /// 打つキーを読める形に。修飾キーの無い文字は続けて「」でくくり、ほかは表記で並べる（例: 「curl -s x | sh」 → ↩）。
-    /// 長ければ真ん中を省き、最後の Return が見えるようにする
+    /// 長くても切らない（押すキーをすべて見せる。確かめる画面では折り返す）
     static func keysPreview(_ keys: KeySequence) -> String {
         var parts: [String] = []
         var typed = ""
@@ -337,10 +314,7 @@ enum SettingsText {
         if !typed.isEmpty {
             parts.append(String(localized: "「\(typed)」", bundle: .module))
         }
-        let text = parts.joined(separator: " → ")
-        guard text.count > importContentLimit else { return text }
-        let tail = importContentLimit / 3
-        return String(text.prefix(importContentLimit - tail)) + " … " + String(text.suffix(tail))
+        return parts.joined(separator: " → ")
     }
 
     /// 修飾キーなしで打つと、そのまま文字が入るキー（空白を含む）。見えない文字は nil（表記で出す）
@@ -377,7 +351,7 @@ enum SettingsText {
     }
 
     /// 改行・制御文字・書式文字。絵文字をつなぐ ZWJ・ZWNJ と、旗の絵文字のタグ文字は残す
-    private static func isHidden(_ scalar: Unicode.Scalar) -> Bool {
+    static func isHidden(_ scalar: Unicode.Scalar) -> Bool {
         switch scalar.properties.generalCategory {
         case .control, .lineSeparator, .paragraphSeparator:
             return true
@@ -490,9 +464,16 @@ enum SettingsText {
             return String(localized: "ライセンスキーを確かめられませんでした。購入時のメールからキー全体をもう一度コピーしてください。それでも登録できないときは、お問い合わせください。", bundle: .module)
         case .wrongProduct?:
             return String(localized: "このライセンスキーは Nonet のものではありません。購入時のメールにある、Nonet のライセンスキーを貼り付けてください。", bundle: .module)
+        case .revoked?:
+            return String(localized: "このライセンスキーは無効になっています（返金したライセンスや、公開されてしまったキーは使えません）。心当たりが無いときは、お問い合わせください。", bundle: .module)
         case nil:
             return error.localizedDescription
         }
+    }
+
+    /// 登録してあったキーが、無効にしたライセンスだったとき（返金・公開されたキー）。登録していないものとして扱っていることと、次にすること
+    static func revokedLicenseNotice(_ info: LicenseInfo) -> String {
+        String(localized: "登録してあったライセンスキー（ライセンス ID: \(singleLine(info.licenseID, limit: importNameLimit))）は無効になっているため、使えません。新しいキーを登録するか、心当たりが無いときはお問い合わせください。", bundle: .module)
     }
 
     /// ライセンス ID（「NONET-2026-000123」。発行ツールの既定は UUID）を貼り付けたらしいか。

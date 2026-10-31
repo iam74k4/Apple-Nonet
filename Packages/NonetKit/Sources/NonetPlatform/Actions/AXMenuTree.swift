@@ -125,6 +125,11 @@ struct AXMenuTree: MenuTree {
 /// メニュー項目をパスでたどって押す。アクセシビリティ API はアプリが応答するまで待つので、メインスレッドでは呼ばない。
 /// タイトルが状態で変わった項目は、対になるタイトルか同じショートカットで探す（MenuPathResolver）
 enum MenuItemPresser {
+    /// アプリのメニューバーから読んだ、その項目のショートカット（MenuShortcutLookup）。読めなければ nil
+    static func shortcut(path: [String], pid: pid_t) -> KeySequence? {
+        MenuShortcutLookup.shortcut(at: path, in: AXMenuTree(pid: pid))
+    }
+
     static func press(path: [String], keyEquivalent: KeySequence? = nil, pid: pid_t, appName: String) throws {
         guard !path.isEmpty else {
             throw NonetError.actionFailed(String(localized: "メニュー項目が設定されていません", bundle: .nonetActions))

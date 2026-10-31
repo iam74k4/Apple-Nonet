@@ -8,6 +8,8 @@ package enum LicenseToolCommand: Equatable {
     case keygen(outputDirectory: String)
     case issue(privateKeyPath: String, licensee: String, email: String?, edition: String?, licenseID: String?, publicKey: String?, skipAppKeyCheck: Bool = false)
     case verify(publicKey: String, licenseKey: String)
+    /// target はライセンス ID かライセンスキー。listPath は一覧のファイル（無ければリポジトリの中を探す）
+    case revoke(target: String, listPath: String?)
 }
 
 package struct LicenseToolUsageError: Error, Equatable {
@@ -32,6 +34,8 @@ package struct LicenseToolIO {
     package var createDirectory: (String) throws -> Void
     /// 新しいファイルを作る。すでにあれば失敗する（上書きしない）
     package var createNewFile: (_ path: String, _ contents: String, _ permissions: UInt16) throws -> Void
+    /// ファイルを書き換える（無効にしたライセンスの一覧）。既定は書かずに失敗する（.live だけが本物のファイルに書く）
+    package var replaceFile: (_ path: String, _ contents: String) throws -> Void
     package var standardOutput: (String) -> Void
     package var standardError: (String) -> Void
     package var now: () -> Date
@@ -48,7 +52,8 @@ package struct LicenseToolIO {
         standardError: @escaping (String) -> Void,
         now: @escaping () -> Date,
         makeLicenseID: @escaping () -> String,
-        generateKeyPair: @escaping () -> (privateKeyBase64: String, publicKeyBase64: String) = LicenseSigner.generateKeyPair
+        generateKeyPair: @escaping () -> (privateKeyBase64: String, publicKeyBase64: String) = LicenseSigner.generateKeyPair,
+        replaceFile: @escaping (_ path: String, _ contents: String) throws -> Void = { _, _ in throw CocoaError(.fileWriteNoPermission) }
     ) {
         self.currentDirectory = currentDirectory
         self.fileExists = fileExists
@@ -60,6 +65,7 @@ package struct LicenseToolIO {
         self.now = now
         self.makeLicenseID = makeLicenseID
         self.generateKeyPair = generateKeyPair
+        self.replaceFile = replaceFile
     }
 
     package static var live: LicenseToolIO {
@@ -73,7 +79,8 @@ package struct LicenseToolIO {
             standardOutput: { try? FileHandle.standardOutput.write(contentsOf: Data($0.utf8)) },
             standardError: { try? FileHandle.standardError.write(contentsOf: Data($0.utf8)) },
             now: { Date() },
-            makeLicenseID: { UUID().uuidString }
+            makeLicenseID: { UUID().uuidString },
+            replaceFile: { path, contents in try Data(contents.utf8).write(to: URL(fileURLWithPath: path), options: .atomic) }
         )
     }
 }
@@ -84,6 +91,8 @@ package enum LicenseTool {
     /// アプリに入れる公開鍵の置き場所（リポジトリの根から）と、その名前
     package static let configPath = "Config/Nonet.xcconfig"
     package static let configKeyName = "NONET_LICENSE_PUBLIC_KEY"
+    /// アプリに入れる、無効にしたライセンスの一覧（リポジトリの根から）
+    package static let revocationListPath = "Packages/NonetKit/Sources/NonetCore/Resources/RevokedLicenses.txt"
 
     package static let exitSuccess: Int32 = 0
     package static let exitFailure: Int32 = 1
@@ -102,6 +111,10 @@ package enum LicenseTool {
           --skip-app-key-check を付けると、アプリに入れる公開鍵とは照合しない（前の鍵の組で作った古い版のアプリ向けに発行するときだけ）
       nonet-license verify --public <公開鍵の base64 かファイル> <ライセンスキー>
           ライセンスキーを検証して中身を表示する。キーの前後に「License key:」などの文が付いていてもよい
+      nonet-license revoke <ライセンス ID かライセンスキー> [--list <一覧のファイル>]
+          ライセンスを無効にする（返金したとき・キーが公開されてしまったとき）。ライセンス ID の SHA-256 を、
+          今いるフォルダから上にたどって見つけた \(revocationListPath)（--list で指定もできる）に足す。
+          アプリが受け付けなくなるのは、一覧をコミットして出す次のリリースから
       nonet-license help
           この説明を表示する
 
@@ -132,6 +145,8 @@ package enum LicenseTool {
             )
         case .verify(let publicKey, let licenseKey):
             return verify(publicKey: publicKey, licenseKey: licenseKey, io: io)
+        case .revoke(let target, let listPath):
+            return revoke(target: target, listPath: listPath, io: io)
         }
     }
 
@@ -173,6 +188,13 @@ package enum LicenseTool {
             }
             try expectPositionals(parsed.positionals, count: 1, command: name)
             return .verify(publicKey: try required("public", in: parsed.options), licenseKey: licenseKey)
+        case "revoke":
+            let parsed = try parseOptions(rest, allowed: ["list"])
+            guard let target = parsed.positionals.first, !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw LicenseToolUsageError("無効にするライセンス ID かライセンスキーを指定してください")
+            }
+            try expectPositionals(parsed.positionals, count: 1, command: name)
+            return .revoke(target: target, listPath: parsed.options["list"])
         default:
             throw LicenseToolUsageError("不明なコマンドです: \(name)")
         }
@@ -382,6 +404,79 @@ package enum LicenseTool {
         }
     }
 
+    /// ライセンス ID（キーならその中の ID）の SHA-256 を一覧に足す。すでにあれば何もしない
+    private static func revoke(target: String, listPath: String?, io: LicenseToolIO) -> Int32 {
+        let licenseID: String
+        do {
+            licenseID = try revokedLicenseID(target, io: io)
+        } catch let error as LicenseToolFailure {
+            io.standardError("エラー: \(error.message)\n")
+            return exitFailure
+        } catch {
+            io.standardError("エラー: \(error.localizedDescription)\n")
+            return exitFailure
+        }
+        guard let path = listPath.map({ absolutePath($0, io: io) }) ?? findInRepository(revocationListPath, io: io) else {
+            io.standardError("エラー: \(revocationListPath) が見つかりません（リポジトリの中で動かすか、--list で一覧のファイルを指定してください）\n")
+            return exitFailure
+        }
+        let text: String
+        do {
+            text = try io.readFile(path)
+        } catch {
+            io.standardError("エラー: 一覧を読めません: \(path): \(error.localizedDescription)\n")
+            return exitFailure
+        }
+        let hash = LicenseRevocationList.hash(of: licenseID)
+        if LicenseRevocationList(text: text).hashes.contains(hash) {
+            io.standardOutput(hash + "\n")
+            io.standardError("すでに無効にしてあります: ライセンス ID \(licenseID)（\(path)）\n")
+            return exitSuccess
+        }
+        let date = io.now().formatted(Date.ISO8601FormatStyle().year().month().day())
+        var updated = text
+        if !updated.isEmpty, !updated.hasSuffix("\n") {
+            updated += "\n"
+        }
+        // ID は書かない（一覧はリポジトリとアプリに入る）。日付だけ添える
+        updated += "\(hash)  # \(date)\n"
+        do {
+            try io.replaceFile(path, updated)
+        } catch {
+            io.standardError("エラー: 一覧に書けません: \(path): \(error.localizedDescription)\n")
+            return exitFailure
+        }
+        io.standardOutput(hash + "\n")
+        io.standardError("""
+        無効にしました: ライセンス ID \(licenseID)
+        一覧: \(path)
+        一覧をコミットして、次のリリースに入れてください。アプリがこのキーを受け付けなくなるのは、その版からです（それまでの版では使えるままです）。
+
+        """)
+        return exitSuccess
+    }
+
+    /// 無効にするライセンス ID。キー（eyJ を含む）なら中の ID（署名は確かめない。ID を足すだけで、ほかのキーには効かない）
+    private static func revokedLicenseID(_ target: String, io: LicenseToolIO) throws -> String {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.contains(LicenseCoding.keyPrefix) {
+            guard let key = LicenseCoding.licenseKey(in: trimmed), let parts = LicenseCoding.keyParts(key),
+                  let info = try? LicenseCoding.decode(parts.payload) else {
+                throw LicenseToolFailure(message: "ライセンスキーを読めません。キー全体か、ライセンス ID を指定してください")
+            }
+            io.standardError("キーの中身:\n\(describe(info))\n")
+            let licenseID = info.licenseID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !licenseID.isEmpty else {
+                throw LicenseToolFailure(message: "キーのライセンス ID が空です")
+            }
+            return licenseID
+        }
+        guard !trimmed.contains(where: \.isNewline) else {
+            throw LicenseToolFailure(message: "ライセンス ID に改行が入っています")
+        }
+        return trimmed
+    }
+
     // MARK: - 補助
 
     /// --public の値（ファイルがあればその中身、無ければ base64 そのもの）。.xcconfig のファイルなら、その NONET_LICENSE_PUBLIC_KEY
@@ -454,9 +549,14 @@ package enum LicenseTool {
 
     /// 今いるフォルダから上にたどって見つけた Config/Nonet.xcconfig（swift run はリポジトリの中の Packages/NonetKit で動かす）
     private static func findConfig(io: LicenseToolIO) -> String? {
+        findInRepository(configPath, io: io)
+    }
+
+    /// 今いるフォルダから上にたどって見つけた、リポジトリの根からの relativePath
+    private static func findInRepository(_ relativePath: String, io: LicenseToolIO) -> String? {
         var current = absolutePath(".", io: io)
         while true {
-            let candidate = join(current, configPath)
+            let candidate = join(current, relativePath)
             if io.fileExists(candidate) {
                 return candidate
             }
@@ -514,6 +614,7 @@ package enum LicenseTool {
         case .wrongProduct: "Nonet のライセンスキーではありません（product が \(LicenseInfo.productID) ではありません）"
         case .invalidPublicKey: "公開鍵が正しくありません（32 バイトの Ed25519 公開鍵の base64 を指定してください）"
         case .invalidPrivateKey: "秘密鍵が正しくありません（keygen で作った \(privateKeyFileName) を指定してください）"
+        case .revoked: "無効にしたライセンスです（\(revocationListPath) にあります）"
         }
     }
 

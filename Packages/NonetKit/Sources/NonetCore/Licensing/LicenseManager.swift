@@ -82,8 +82,10 @@ struct TrialRecord: Codable, Equatable, Sendable {
     }
 }
 
-/// UserDefaults に保存し、試用の記録は Application Support のファイルにも写す（keychain を渡せば、キーチェーンにも）。
-/// 置き場所ごとの記録が食い違ったら TrialRecord.reconciled でまとめる（UserDefaults やフォルダを消すだけで試用をやり直せないようにする）
+/// UserDefaults に保存し、試用の記録は Application Support のファイルにも写す（keychain を渡せば、キーチェーンにも。
+/// marker を渡せば、目立たない名前の2つ目の項目にも）。
+/// 置き場所ごとの記録が食い違ったら TrialRecord.reconciled でまとめる（UserDefaults やフォルダを消すだけで試用をやり直せないようにする）。
+/// どこにも記録が無いときは、以前に使った跡（evidence・読めない marker）で開始日を決める（earlierUseStart）
 public final class UserDefaultsLicenseStorage: LicenseStorage {
     static let trialStartKey = "com.iam74k4.Nonet.license.trialStart"
     static let trialLastSeenKey = "com.iam74k4.Nonet.license.trialLastSeen"
@@ -112,9 +114,17 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     private let defaults: UserDefaults
     private let supportDirectory: URL?
     private let keychain: (any TrialRecordKeychain)?
-    /// キーチェーンから読んだ記録（書いたあとは、書いた記録）。書くのはこのプロセスだけなので、読むのは起動ごとに一度でよい
+    /// 2つ目のキーチェーンの項目（SystemTrialRecordKeychain.machineMarker）。keychain と同じ記録を、同じときに書く
+    private let marker: (any TrialRecordKeychain)?
+    /// 以前に使った跡。どこにも試用の記録が無いときだけ見る
+    private let evidence: (any TrialUsageEvidence)?
+    private let now: () -> Date
+    /// キーチェーンから読んだ記録（keychain と marker をまとめたもの。書いたあとは、書いた記録）。
+    /// 書くのはこのプロセスだけなので、読むのは起動ごとに一度でよい
     private var keychainRecord: TrialRecord?
     private var hasReadKeychain = false
+    /// marker の項目はあるが、記録として読めなかった（壊れている・書き換えられた）
+    private var markerIsUnreadable = false
     /// この起動でキーチェーンに最後に書いた記録
     private var lastKeychainWrite: TrialRecord?
 
@@ -122,18 +132,35 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory)
     }
 
-    /// 試用の記録をキーチェーンにも写す（アプリ本体だけ。--self-check や Debug の --config-dir では使わない）
-    public convenience init(defaults: UserDefaults = .standard, keychain: (any TrialRecordKeychain)?) {
-        self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory, keychain: keychain)
+    /// 試用の記録をキーチェーンにも写し、どこにも記録が無ければ以前に使った跡を見る
+    /// （アプリ本体だけ。--self-check や Debug の --config-dir では使わない。どちらも書かない保存先を使う）
+    public convenience init(
+        defaults: UserDefaults = .standard,
+        keychain: (any TrialRecordKeychain)?,
+        marker: (any TrialRecordKeychain)? = nil,
+        evidence: (any TrialUsageEvidence)? = nil
+    ) {
+        self.init(defaults: defaults, supportDirectory: Self.defaultSupportDirectory, keychain: keychain, marker: marker, evidence: evidence)
     }
 
     /// supportDirectory は試用の記録を写すフォルダ（テスト用）。nil なら写さない。
-    /// keychain は3つ目の置き場所。起動ごとに一度だけ読み、起動したときと、使った時間が keychainWriteInterval 増えたとき・
-    /// 時計が変わったときに書く（キーチェーンを何度も読み書きしない）。まとめ方は current() を参照
-    public init(defaults: UserDefaults, supportDirectory: URL?, keychain: (any TrialRecordKeychain)? = nil) {
+    /// keychain は3つ目の置き場所、marker は4つ目（同じ記録を写す、目立たない名前の項目）。起動ごとに一度だけ読み、起動したときと、
+    /// 使った時間が keychainWriteInterval 増えたとき・時計が変わったときに書く（キーチェーンを何度も読み書きしない）。まとめ方は current() を参照。
+    /// evidence は以前に使った跡（earlierUseStart）。now は跡から開始日を決めるときの時計（テスト用）
+    public init(
+        defaults: UserDefaults,
+        supportDirectory: URL?,
+        keychain: (any TrialRecordKeychain)? = nil,
+        marker: (any TrialRecordKeychain)? = nil,
+        evidence: (any TrialUsageEvidence)? = nil,
+        now: @escaping () -> Date = { Date() }
+    ) {
         self.defaults = defaults
         self.supportDirectory = supportDirectory
         self.keychain = keychain
+        self.marker = marker
+        self.evidence = evidence
+        self.now = now
     }
 
     private static var defaultSupportDirectory: URL? {
@@ -173,13 +200,15 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     /// refresh で試用を数えたあとに、キーチェーンにも写す（UserDefaultsLicenseStorage.needsKeychainWrite のとき）。
     /// キーチェーンの記録は、記録を消しても消さない
     public func didSaveTrialProgress() {
-        guard let keychain else { return }
+        guard keychain != nil || marker != nil else { return }
         let record = current()
         guard !record.isEmpty, Self.needsKeychainWrite(record, after: lastKeychainWrite) else { return }
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .sortedKeys
-            keychain.writeTrialRecord(try encoder.encode(record))
+            let data = try encoder.encode(record)
+            keychain?.writeTrialRecord(data)
+            marker?.writeTrialRecord(data)
             lastKeychainWrite = record
             keychainRecord = record
             hasReadKeychain = true
@@ -210,6 +239,7 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     /// - どちらかにあるときは、使った時間だけを下限として使う（数えた量より減らさない。環境設定に「使った時間 0」と書き込んでも減らない）。
     ///   最後に数えた時刻は使わない。キーチェーンは毎回は書かないので、時計がずれていた起動の記録が残っていることがあり、
     ///   それを組で数えると、ずれた分を余計に数えてしまう。使った時間は数え終えた量なので、多く数えることはない
+    /// どこにも開始日が無い（試用の記録をすべて消した）ときは、以前に使った跡から開始日を決める（earlierUseStart）
     private func current() -> TrialRecord {
         let stored = defaultsRecord()
         let mirrored = mirrorRecord()
@@ -221,7 +251,15 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
                 records.append(saved)
             }
         }
-        let chosen = TrialRecord.reconciled(records)
+        var chosen = TrialRecord.reconciled(records)
+        if chosen.start == nil, let start = Self.earlierUseStart(
+            markerIsUnreadable: markerIsUnreadable,
+            evidence: evidence?.earliestUse(),
+            now: now()
+        ) {
+            logger.notice("試用の記録がありませんが、以前に使った跡があるため、その日から数えます")
+            chosen.start = start
+        }
         heal(stored, to: chosen) { value, slot in setDefaults(value, slot) }
         heal(mirrored, to: chosen) { value, slot in writeMirror(value, slot) }
         return chosen
@@ -324,14 +362,44 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
         }
     }
 
+    // MARK: - 以前に使った跡
+
+    /// 跡として認める最も古い日（Nonet が出る前。2025-01-01）。それより古い作成日は、正しく読めていないものとして使わない
+    static let earliestPlausibleUse = Date(timeIntervalSince1970: 1_735_689_600)
+
+    /// 試用の記録がどこにも無いときの開始日（timeIntervalSinceReferenceDate）。nil なら初めての起動として now から始める。
+    /// - marker の項目があるのに読めない: 前に使ったことは確かだが、いつかは分からないので、ちょうど期限切れになる日（now − 14日）
+    /// - 跡（Backups・Caches のフォルダの作成日）がある: その日。試用はそれより前に始まっているので、実際より長く数えることは無い
+    ///   （初めての起動でフォルダが先にできても、作成日はほぼ now なので試用は減らない）。now より後の日付（時計が戻っている）は now にする
+    /// - 跡の日付が earliestPlausibleUse より前: 作成日を正しく読めていないので使わない（期限切れにしない）
+    static func earlierUseStart(markerIsUnreadable: Bool, evidence: Date?, now: Date) -> Double? {
+        if markerIsUnreadable {
+            return now.addingTimeInterval(-TrialProgress.duration).timeIntervalSinceReferenceDate
+        }
+        guard let evidence, evidence >= earliestPlausibleUse else { return nil }
+        return min(evidence, now).timeIntervalSinceReferenceDate
+    }
+
     // MARK: - キーチェーン
 
-    /// 読めない・壊れているときは nil（試用は残りの置き場所で数える）
+    /// keychain と marker の記録をまとめたもの。どちらも読めない・壊れているときは nil（試用は残りの置き場所で数える）。
+    /// marker の項目があって読めなければ、markerIsUnreadable にする
     private func readKeychain() -> TrialRecord? {
-        guard let keychain else { return nil }
+        guard keychain != nil || marker != nil else { return nil }
         if !hasReadKeychain {
             hasReadKeychain = true
-            keychainRecord = keychain.readTrialRecord().flatMap(Self.decodeKeychainRecord)
+            var records: [TrialRecord] = []
+            if let record = keychain?.readTrialRecord().flatMap(Self.decodeKeychainRecord) {
+                records.append(record)
+            }
+            if let data = marker?.readTrialRecord() {
+                if let record = Self.decodeKeychainRecord(data) {
+                    records.append(record)
+                } else {
+                    markerIsUnreadable = true
+                }
+            }
+            keychainRecord = records.count > 1 ? TrialRecord.reconciled(records) : records.first
         }
         return keychainRecord
     }
@@ -426,8 +494,12 @@ public final class LicenseManager {
     nonisolated public static let trialDays = 14
 
     public private(set) var entitlement: Entitlement = .expired
+    /// 登録してあるキーが無効にしたライセンス（LicenseRevocationList）のとき、その中身。登録していないものとして扱い、
+    /// 設定の「ライセンス」に理由を出すのに使う。ほかのときは nil
+    public private(set) var revokedLicense: LicenseInfo?
 
     @ObservationIgnored private let verifier: LicenseVerifier?
+    @ObservationIgnored private let revocations: LicenseRevocationList
     @ObservationIgnored private let storage: any LicenseStorage
     @ObservationIgnored private let now: @Sendable () -> Date
     @ObservationIgnored private let uptime: (@Sendable () -> TimeInterval)?
@@ -442,14 +514,17 @@ public final class LicenseManager {
     }
 
     /// 初めて使ったときに試用を始める。保存されたキーがあれば検証する。
-    /// uptime は単調な時計（秒）。now だけを差し替えたとき（テスト）は使わない。本物の単調な時計と比べると、偽の時計の進みを時計の変更とみなしてしまうため
+    /// uptime は単調な時計（秒）。now だけを差し替えたとき（テスト）は使わない。本物の単調な時計と比べると、偽の時計の進みを時計の変更とみなしてしまうため。
+    /// revocations は無効にしたライセンスの一覧（既定はアプリに入っているもの）
     public init(
         verifier: LicenseVerifier?,
         storage: any LicenseStorage,
         now: @escaping @Sendable () -> Date,
-        uptime: (@Sendable () -> TimeInterval)? = nil
+        uptime: (@Sendable () -> TimeInterval)? = nil,
+        revocations: LicenseRevocationList = .bundled
     ) {
         self.verifier = verifier
+        self.revocations = revocations
         self.storage = storage
         self.now = now
         self.uptime = uptime
@@ -500,10 +575,11 @@ public final class LicenseManager {
 
     /// 保存せずに検証する。リンクやファイルから開いたキーを、登録してよいか尋ねる前に確かめる。
     /// activate と同じく、貼り付けた文に「License key:」などが付いていれば、キーの部分だけを返す。失敗したら LicenseError
+    /// 無効にしたライセンス（LicenseRevocationList）なら LicenseError.revoked
     public func verify(licenseKey: String) throws -> VerifiedLicense {
-        guard let verifier else { throw LicenseError.invalidPublicKey }
+        guard verifier != nil else { throw LicenseError.invalidPublicKey }
         guard let key = LicenseCoding.licenseKey(in: licenseKey) else { throw LicenseError.malformed }
-        return VerifiedLicense(key: key, info: try verifier.verify(key))
+        return VerifiedLicense(key: key, info: try check(key).get())
     }
 
     /// 検証してから保存する。失敗したら LicenseError を投げ、保存済みのキーはそのまま。
@@ -513,6 +589,7 @@ public final class LicenseManager {
         let verified = try verify(licenseKey: licenseKey)
         storage.licenseKey = verified.key
         checkedKey = (verified.key, .success(verified.info))
+        setRevokedLicense(nil)
         update(.licensed(verified.info))
         logger.info("ライセンスを登録しました")
         return verified.info
@@ -583,29 +660,45 @@ public final class LicenseManager {
         return progress
     }
 
+    /// 保存されたキーを確かめる。無効にしたライセンスなら登録していないものとして扱い、revokedLicense に中身を入れる
     private func storedLicense() -> LicenseInfo? {
         guard let key = storage.licenseKey, !key.isEmpty else {
             checkedKey = nil
+            setRevokedLicense(nil)
             return nil
         }
         if let checkedKey, checkedKey.key == key {
             return try? checkedKey.result.get()
         }
-        let result: Result<LicenseInfo, LicenseError>
-        if let verifier {
-            do {
-                result = .success(try verifier.verify(key))
-            } catch {
-                result = .failure(error as? LicenseError ?? .malformed)
-            }
-        } else {
-            result = .failure(.invalidPublicKey)
-        }
+        let result = check(key)
         if case .failure(let error) = result {
             logger.error("保存されたライセンスキーを使えないため無視します: \(String(describing: error), privacy: .public)")
         }
         checkedKey = (key, result)
+        setRevokedLicense(result == .failure(.revoked) ? verifier.flatMap { try? $0.verify(key) } : nil)
         return try? result.get()
+    }
+
+    /// 署名と製品を確かめ、無効にしたライセンスの一覧と照らす
+    private func check(_ key: String) -> Result<LicenseInfo, LicenseError> {
+        guard let verifier else { return .failure(.invalidPublicKey) }
+        let info: LicenseInfo
+        do {
+            info = try verifier.verify(key)
+        } catch {
+            return .failure(error as? LicenseError ?? .malformed)
+        }
+        guard !revocations.isRevoked(info.licenseID) else {
+            logger.notice("無効にしたライセンスのキーです")
+            return .failure(.revoked)
+        }
+        return .success(info)
+    }
+
+    private func setRevokedLicense(_ info: LicenseInfo?) {
+        if revokedLicense != info {
+            revokedLicense = info
+        }
     }
 
     /// 同じ値を入れ直して観測側を無駄に更新しない

@@ -43,6 +43,8 @@ public enum LicenseError: Error, Equatable, LocalizedError, Sendable {
     case wrongProduct
     case invalidPublicKey
     case invalidPrivateKey
+    /// 署名は正しいが、無効にしたライセンス（返金したもの・公開されてしまったもの。LicenseRevocationList）
+    case revoked
 
     public var errorDescription: String? {
         switch self {
@@ -56,6 +58,8 @@ public enum LicenseError: Error, Equatable, LocalizedError, Sendable {
             String(localized: "ライセンスを検証する公開鍵が設定されていないか、正しくありません", bundle: .module)
         case .invalidPrivateKey:
             String(localized: "ライセンスに署名する秘密鍵が正しくありません", bundle: .module)
+        case .revoked:
+            String(localized: "このライセンスキーは無効にされています", bundle: .module)
         }
     }
 }

@@ -161,7 +161,17 @@ public final class SystemActionPerformer: ActionPerforming {
             target = running
         }
         let isFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier
-        if MenuActionPlan.decide(isTargetFrontmost: isFrontmost, keyEquivalent: action.keyEquivalent) == .sendKeys,
+        // 保存したショートカットは、アプリのメニューにあるその項目のショートカットと同じときだけ送る。
+        // 読み込んだファイルのマスが、項目とは別のキー（⌥⇧⌘⌫ など）を送れないように
+        var shortcutInMenu: KeySequence?
+        if isFrontmost, let keys = action.keyEquivalent, !keys.chords.isEmpty, AXIsProcessTrusted() {
+            let pid = target.processIdentifier
+            let path = action.path
+            shortcutInMenu = await Task.detached(priority: .userInitiated) {
+                MenuItemPresser.shortcut(path: path, pid: pid)
+            }.value
+        }
+        if MenuActionPlan.decide(isTargetFrontmost: isFrontmost, keyEquivalent: action.keyEquivalent, shortcutInMenu: shortcutInMenu) == .sendKeys,
            let keys = action.keyEquivalent {
             do {
                 try await keySender.send(keys)
@@ -274,9 +284,10 @@ enum MenuActionPlan: Equatable {
     case sendKeys
     case pressMenu
 
-    /// 対象アプリが前面にあり、ショートカットが分かっていればキーを送る（速い）。ほかはメニューを押す
-    static func decide(isTargetFrontmost: Bool, keyEquivalent: KeySequence?) -> MenuActionPlan {
-        guard isTargetFrontmost, let keyEquivalent, !keyEquivalent.chords.isEmpty else { return .pressMenu }
+    /// 対象アプリが前面にあり、保存したショートカットが、アプリのメニューから読んだその項目のショートカット（shortcutInMenu）と
+    /// 同じならキーを送る（速い）。ほかはメニューを押す（項目が無い・使えない・ショートカットが違う・読めない）
+    static func decide(isTargetFrontmost: Bool, keyEquivalent: KeySequence?, shortcutInMenu: KeySequence?) -> MenuActionPlan {
+        guard isTargetFrontmost, let keyEquivalent, !keyEquivalent.chords.isEmpty, keyEquivalent == shortcutInMenu else { return .pressMenu }
         return .sendKeys
     }
 }

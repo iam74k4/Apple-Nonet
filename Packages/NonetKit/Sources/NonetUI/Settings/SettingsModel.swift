@@ -67,7 +67,7 @@ final class SettingsModel {
         case deleteProfile(id: UUID, name: String)
         case removePage(profileID: UUID, index: Int)
         case deactivateLicense
-        /// 読み込むと今のプロファイルやグローバルのページが置き換わるか、スクリプトや Return を押すキー入力など、何かを実行するマスを含む
+        /// 読み込むと今のプロファイルやグローバルのページが置き換わるか、何かを実行するマス（スクリプト・キー入力・メニュー項目・AI・ファイルを開く URL）を含む
         case importProfiles(SettingsImportPlan)
         /// プロファイルの中身をプリセットに戻す
         case resetProfile(id: UUID, name: String)
@@ -118,6 +118,10 @@ final class SettingsModel {
     /// 名前を変えているページ（ページの見出しのダブルクリック）
     var renamingPage: Int?
     var confirmation: Confirmation?
+    /// 読み込む前の確認で、マスの中身の欄を最後までスクロールして見た。見るまでは読み込めない（canConfirmImport）。確認を出すたびに false に戻す
+    private(set) var importReviewReachedEnd = false
+    /// 読み込むキー入力が、今のキー配列で Return と同じ働きをするかを調べる（テストでは偽物）
+    @ObservationIgnored var keyCharacters: any SettingsKeyCharacterTranslating = SettingsLayoutKeyTranslator()
     private(set) var lastTestRun: TestRun?
     /// グリッドの下に出す短い知らせ（「空いているマスがありません」など）
     var gridMessage: String?
@@ -1034,7 +1038,7 @@ final class SettingsModel {
     }
 
     /// ファイルを読み、今のプロファイルやグローバルのページが置き換わるなら先に確かめる（元に戻せないため）。
-    /// スクリプトや Return を押すキー入力などのマスがあるときも、何も置き換わらなくても中身を見せて先に確かめる（読み込むとすぐ、あなたの権限で動かせるため）
+    /// 何かを実行するマス（スクリプト・キー入力・メニュー項目・AI・ファイルを開く URL）があるときも、何も置き換わらなくても中身をすべて見せて先に確かめる（読み込むとすぐ、あなたの権限で動かせるため）
     func importProfiles(from url: URL) {
         let document: ConfigurationStore.ImportedProfiles
         do {
@@ -1045,8 +1049,9 @@ final class SettingsModel {
             fileMessage = SettingsMessage(text: SettingsText.fileError(error, reading: true), isError: true)
             return
         }
-        let plan = SettingsImportPlan(document: document, configuration: configuration, fileName: url.lastPathComponent)
+        let plan = SettingsImportPlan(document: document, configuration: configuration, fileName: url.lastPathComponent, keys: keyCharacters)
         if plan.needsConfirmation {
+            importReviewReachedEnd = false
             confirmation = .importProfiles(plan)
         } else {
             // plan.document はメニュー項目の長いショートカットを除いたもの
@@ -1054,8 +1059,21 @@ final class SettingsModel {
         }
     }
 
-    /// 置き換えるものは読まず、新しいアプリのプロファイルだけ加える
+    /// 読み込む前の確認で、読み込んでよいか。何かを実行するマスがあれば、その中身を最後まで見てから
+    func canConfirmImport(_ plan: SettingsImportPlan) -> Bool {
+        !plan.hasReviewedCells || importReviewReachedEnd
+    }
+
+    /// 確認の欄を最後までスクロールした（SettingsImportReviewSheet）
+    func markImportReviewRead() {
+        if !importReviewReachedEnd {
+            importReviewReachedEnd = true
+        }
+    }
+
+    /// 置き換えるものは読まず、新しいアプリのプロファイルだけ加える。マスの中身を最後まで見ていなければ何もしない
     func importNewProfilesOnly(_ plan: SettingsImportPlan) {
+        guard canConfirmImport(plan) else { return }
         confirmation = nil
         applyImport(plan.newProfilesOnly(in: configuration))
     }
@@ -1263,6 +1281,8 @@ final class SettingsModel {
     // MARK: - 確認
 
     func confirm(_ confirmation: Confirmation) {
+        // 読み込むマスの中身を最後まで見ていなければ、確認を出したままにする
+        if case .importProfiles(let plan) = confirmation, !canConfirmImport(plan) { return }
         self.confirmation = nil
         switch confirmation {
         case .deleteProfile(let id, _):
