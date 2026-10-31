@@ -8,7 +8,7 @@ Nonet は Mac App Store ではなく直販する（非公開の `MultitouchSuppo
 | appcast.xml | Sparkle がアップデートを見つけるためのフィード（EdDSA 署名つき） | `scripts/release.sh` が Sparkle の `generate_appcast` で更新 |
 | 販売ページ | `site/`（静的な HTML。ビルド不要） | そのままアップロード |
 
-ライセンスは「14日間の試用 → 買い切り」。キーは Ed25519 で署名した文字列で、アプリはサーバー無しで検証する（[architecture.md](architecture.md) §6「ライセンス」）。
+ライセンスは「14日間の試用 → 買い切り」。キーは Ed25519 で署名した文字列で、アプリはサーバー無しで検証する（[architecture.md](architecture.md) §6「ライセンス」）。返金したキーや公開されてしまったキーは、アプリに入れる一覧で止める（3.5）。
 
 ---
 
@@ -288,7 +288,7 @@ git push origin v1.2.0
 | 「手元の appcast に、公開中のビルド … がありません」 | 手元のものが古い（別の Mac・バックアップ）。手元の appcast.xml を消してやり直す（公開中のものを取ってくる）。手元が正しいと分かっているときだけ `--force-local-appcast` |
 | 「同じビルドの項目の中身が違います」 | 公開中の appcast をサーバーで直したなら、手元の appcast.xml を消してやり直す。どちらが正しいかは、作業用フォルダの `published-appcast.xml` と `diff` で比べる |
 | 「公開中のものに無いビルド … があります」（警告） | 前のリリースの appcast.xml をまだアップロードしていないなら、今回の appcast と一緒に、そのビルドの DMG もアップロードする。アップロードしたばかりなら CDN のキャッシュが古いだけ |
-| 「App/ が試用の記録をキーチェーンに置いていません」 | プライバシーポリシーは製品版がキーチェーンの項目を作ると書いている。`App/AppDelegate.swift` で `UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain())` を使う（3.3）。キーチェーンを使わないことにしたなら、プライバシーポリシー（3つとも）からキーチェーンの項目を消す |
+| 「App/ が試用の記録をキーチェーンに置いていません」 | プライバシーポリシーは製品版がキーチェーンの項目を作ると書いている。`App/AppDelegate.swift` で `UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain(), marker: SystemTrialRecordKeychain.machineMarker(), evidence: FileTrialUsageEvidence.standard())` を使う（3.3）。キーチェーンを使わないことにしたなら、プライバシーポリシー（3つとも）からキーチェーンの項目を消す |
 | 「--public の公開鍵が、アプリに入れる公開鍵（…）と違うため、発行しません」 | xcconfig の `NONET_LICENSE_PUBLIC_KEY` と `--public` の鍵が keygen で作った同じ組か確かめる。前の鍵の組の古い版のアプリ向けに発行するときだけ `--skip-app-key-check` |
 | 「macOS SDK … に FoundationModels がありません」 | `xcode-select -p` が古い Xcode を指している。`sudo xcode-select -s /Applications/Xcode.app` で Xcode 26 以降を選ぶ |
 | 「… が「//」の所で切れています」 | 公開鍵の `//` を `/$()/` と書く（1.4・1.6） |
@@ -353,22 +353,27 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 
 ### 3.3 試用の記録（方針）
 
-試用は「初めて起動してから使った時間が14日」で終わる。どれだけ使ったかの記録は、Mac の中の3か所に置く。
+試用は「初めて起動してから使った時間が14日」で終わる。どれだけ使ったかの記録は、Mac の中の4か所に置く。
 
 | 置き場所 | 中身 | 消えるとき |
 |---|---|---|
 | 環境設定（`~/Library/Preferences/com.iam74k4.Nonet.plist`） | 開始日・最後に数えた時刻・使った時間 | 環境設定を消したとき、アンインストールツール |
 | `~/Library/Application Support/Nonet/` の隠しファイル | 同じ | フォルダを消したとき、アンインストールツール |
 | ログインキーチェーンの項目（サービス `com.iam74k4.Nonet.license.trial`） | 同じ（起動したとき、使った時間が1時間増えるごと、時計が変わったときに書く） | キーチェーンアクセスで消したとき |
+| ログインキーチェーンの2つ目の項目（サービスの名前は IOPlatformUUID と bundle ID から作った SHA-256 の16進64桁。ラベルは付けない） | 同じ（1つ目と同じときに書く） | キーチェーンアクセスで消したとき |
 
 - 食い違ったら、どの記録で数えても試用が最も短くなるように1つにまとめる（バックアップから戻した古いフォルダで同じ日を二重に数えたり、1か所だけ書き換えて延ばしたりできない）。決まりは `TrialRecord.reconciled`（`NonetCore/Licensing/LicenseManager.swift`）のコメント
+- 2つ目の項目は、名前から Nonet のものとは分からない（`SystemTrialRecordKeychain.machineMarker`）。1つ目の項目だけをキーチェーンアクセスで消しても、こちらが残っていれば試用は続きから数える。2つの項目の記録が食い違えば、上の決まりで1つにまとめる。Mac の識別子（IOPlatformUUID）を読めなければ使わない。識別子そのものは保存しない
 - キーチェーンは起動ごとに1回読む。ほかの2か所の両方から記録が消えていれば（アンインストールツールで環境設定と Application Support をまとめて消した）、キーチェーンの記録で数える。入れ直しても、時計を戻しても、試用はやり直しにならない
 - ほかの2か所に記録があるときは、キーチェーンの「使った時間」だけを下限として使う（環境設定に「使った時間 0」と書き込んでも減らない）。最後に数えた時刻は使わない（キーチェーンは毎回は書かないので、時計がずれていた起動の記録が残っていることがあり、それで数えるとずれた分を余計に数えるため）
 - 起動したままの日が続いても、キーチェーンは使った時間が1時間増えるごとに書き直す（ほかの2か所を消して入れ直し、時計を戻して起動しても、減るのは最後の1時間ほどだけ）
-- キーチェーンを使うのは、Developer ID で署名した製品版だけ（開発用の署名やアドホックのビルド、`--self-check` と Debug の `--config-dir` では使わない。署名の身元が違うと、キーチェーンが許可を聞いてくるため）。iCloud キーチェーンとは同期しない
+- 4か所のどこにも試用の記録が無いときだけ、以前に使った跡から開始日を決める（`UserDefaultsLicenseStorage.earlierUseStart`）。記録が1か所にでも残っていれば、跡は見ない
+  - 2つ目の項目はあるのに読めない（壊れている・書き換えられた）: 前に使ったことは確かだが、いつかは分からないので、期限切れにする（今から14日前を開始日にする）
+  - `~/Library/Application Support/Nonet/Backups/` か `~/Library/Caches/com.iam74k4.Nonet/` のフォルダがある: いちばん古い作成日を開始日にする（`FileTrialUsageEvidence`。14日を過ぎていれば期限切れ）。試用はフォルダができるより前に始まっているので、実際より長くは数えない。初めての起動でフォルダが先にできても、作成日はほぼ今なので試用は減らない。2025年より前の作成日は正しく読めていないものとして使わず、時計より後の作成日は今として数える
+- キーチェーンを使うのは、Developer ID で署名した製品版だけ（開発用の署名やアドホックのビルド、`--self-check` と Debug の `--config-dir` では使わない。署名の身元が違うと、キーチェーンが許可を聞いてくるため）。iCloud キーチェーンとは同期しない。フォルダの作成日は署名に関係なく見るが、`--self-check` と Debug の `--config-dir` では見ない。このため、記録がすべて消えているときは、自己診断が「残り14日」と出しても、アプリは期限切れとすることがある
 - 動いている間に、ほかの置き場所の使った時間の方が多くなっていたら（ほかの Nonet が数えた）、使った時間が最も多く残る数え方を取り、同じ経過を二重には数えない（[architecture.md](architecture.md) §6「ライセンス」）
 - ライセンスが登録されている間は、試用の記録を書き換えない（残っている記録はそのまま）
-- それでも、キーチェーンアクセスで項目も消す・macOS の別のユーザーで使う・Mac を初期化する、といった方法で試用はやり直せる。サーバー無しの試用では防ぎきれないので、手間をかける人は止めない、という割り切り
+- それでも、キーチェーンアクセスで2つの項目も消し、Backups と Caches のフォルダも消す・macOS の別のユーザーで使う・Mac を初期化する、といった方法で試用はやり直せる。サーバー無しの試用では防ぎきれないので、手間をかける人は止めない、という割り切り
 - 利用者がアンインストールで消すものは、利用ガイド（[user-guide.md](user-guide.md#アンインストール)・[user-guide.en.md](user-guide.en.md#uninstalling)）とプライバシーポリシー（[privacy.md](privacy.md)）に書く。利用ガイドの原本はこの2つの Markdown で、販売ページの `site/guide.html`・`site/en/guide.html` は `python3 -I scripts/build-guide.py` で作る（手で直さない。作り直し忘れは `scripts/tests/site_test.sh` が見つける）
 
 ### 3.4 販売ページに要るもの
@@ -387,6 +392,22 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - 問い合わせ先のメールアドレス
 - プライバシーポリシー（`site/privacy.html`。原本は [privacy.md](privacy.md)）の販売サービスの名前とプライバシーポリシーの URL
 
+### 3.5 ライセンスを無効にする（返金・キーの流出）
+
+返金したライセンスと、公開されてしまったキーは、アプリに入れる一覧（`Packages/NonetKit/Sources/NonetCore/Resources/RevokedLicenses.txt`。`LicenseRevocationList`）で受け付けないようにする。キーはオフラインで確かめるので、サーバーで止めることはできない。
+
+```bash
+cd Packages/NonetKit
+swift run nonet-license revoke <ライセンス ID かライセンスキー>
+```
+
+- 一覧に `<ライセンス ID の SHA-256>  # <日付>` の行が足される。ID そのものは書かない（一覧はリポジトリとアプリに入るため）。すでにあれば何もしない。キーを渡したときは、署名は確かめずに中のライセンス ID を使い、キーの中身を表示する。リポジトリの外で動かすときは `--list <一覧のファイル>` で一覧を指定する
+- 一覧をコミットして、次のリリース（2.5）に入れる。アプリが受け付けなくなるのはその版からで、それまでの版では使えるまま
+- 新しい版では、そのキーは登録できない（「このライセンスキーは無効になっています（返金したライセンスや、公開されてしまったキーは使えません）。心当たりがないときは、お問い合わせください。」）。登録していた Mac では、登録していないものとして扱い、残っている試用の記録で数え直す（試用期間が終わっていれば期限切れ）。ライセンスのタブには「登録してあったライセンスキー（ライセンス ID: …）は無効になっているため、使えません。…」と理由が出る。キーは消さない
+- 間違えて足したときは、その行を消してコミットし、次の版を出せば元に戻る
+- 返金の記録（注文番号・ライセンス ID・日付）は、発行の記録（3.1）と一緒に残す
+- `nonet-license verify` は一覧を見ない（署名と製品だけを確かめる）
+
 ---
 
 ## 4. 公開前のチェックリスト
@@ -396,16 +417,16 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] どの秘密鍵もリポジトリに入っていない（`git log -p | grep -i private` などで確かめる）
 - [ ] `Config/Nonet.xcconfig` の7つの値を入れ、コミットした（公開鍵の `//` は `/$()/`）
 - [ ] `Packages/NonetKit` で `nonet-license issue` を動かし、アプリの公開鍵（xcconfig）との照合が通った（「注意」が出ない）
-- [ ] プライバシーポリシーに書いた試用の記録のキーチェーンの項目を、アプリが本当に作る（`App/AppDelegate.swift` が `SystemTrialRecordKeychain()` を渡している。`scripts/release.sh` も確かめる）
+- [ ] プライバシーポリシーに書いた試用の記録のキーチェーンの2つの項目を、アプリが本当に作る（`App/AppDelegate.swift` が `SystemTrialRecordKeychain()` と `SystemTrialRecordKeychain.machineMarker()` を渡している。`scripts/release.sh` は1つ目を確かめる）
 
 **アプリ**
-- [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプ・「タップでクリック」の抑止と、トラックパッドの開始し直し（スリープ・蓋の開け閉め・Magic Trackpad のつなぎ直し・ファストユーザスイッチ）は [architecture.md](architecture.md) §7 の未確認の点
+- [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。ポインタの固定・触覚・2本指スワイプ・「タップでクリック」の抑止と、トラックパッドの開始し直し（スリープ・蓋の開け閉め・Magic Trackpad のつなぎ直し・ファストユーザスイッチ）は [architecture.md](architecture.md) §7 の未確認の点
 - [ ] JIS と US のキーボード、内蔵トラックパッドと Magic Trackpad で試した
 - [ ] 新しいユーザーで、初回起動 → アクセシビリティの許可 → プリセット → 練習まで通した
 - [ ] 試用の終了（HUD の帯・実行の代わりのトースト・試用期間の終了のウインドウ・設定の帯）と、キーの登録で元に戻ることを確かめた
 - [ ] 購入のメールの `nonet://register?key=…` のリンクと `.nonetlicense` のファイルで、登録してよいかを尋ねられ、登録できた
 - [ ] `scripts/sync-strings.sh` で文言を集め、英語の訳を入れた（`scripts/test.sh` の `--check` が通る）
-- [ ] Developer ID で署名したビルド（dry run の `build/release/<版>/export/Nonet.app`）で、環境設定と `~/Library/Application Support/Nonet/` を消して起動し直しても試用が続き、キーチェーンの許可を聞かれない
+- [ ] Developer ID で署名したビルド（dry run の `build/release/<版>/export/Nonet.app`）で、環境設定と `~/Library/Application Support/Nonet/` を消して起動し直しても試用が続き、キーチェーンの許可を聞かれない。キーチェーンアクセスで `com.iam74k4.Nonet.license.trial` も消しても、2つ目の項目で試用が続く
 - [ ] `scripts/test.sh` が通る（CI も緑）
 
 **配布**
@@ -418,6 +439,7 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 **販売**
 - [ ] 販売サービスの商品・価格・税の設定をした
 - [ ] テスト購入 → キーが届く → アプリで登録できる、を通した
+- [ ] 返金やキーの流出で無効にしたライセンスがあれば、`RevokedLicenses.txt` の変更をコミットした（3.5。この版に入る）
 - [ ] `scripts/check-site.sh --strict` が通る（価格・URL・問い合わせ先が埋まっている）
 - [ ] 利用ガイド（`site/guide.html`・`site/en/guide.html`）を公開し、`NONET_SUPPORT_URL` が `…/guide.html` を指している
 - [ ] プライバシーポリシー・利用規約（返金の方針）・特定商取引法に基づく表記を公開した（どのページのフッターからも開ける。`scripts/check-site.sh` が確かめる）

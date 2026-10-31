@@ -392,13 +392,13 @@ test_pages_state_the_sales_terms() {
   en_terms="$(cat "$ROOT/site/en/terms.html")"
   legal="$(cat "$ROOT/site/tokushoho.html")"
   for text in "購入から30日以内なら、理由を問わず全額返金" "1つのライセンスで、あなたが使うすべての Mac に" "バージョン 1.x のアップデートはすべて無料" \
-    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "トラックパッドの上の角の長押し" \
+    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "トラックパッドのその角に指を置いて少し待つ" \
     "⌥ドラッグには左の⌥" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
     assert_contains "$ja" "$text" "index.html"
   done
   for text in "Full refund within 30 days, no questions asked" "One license covers every Mac you use" "All 1.x updates are free" \
     "tested from the first beta" "you get a refund no matter when you bought it" "Each person needs their own license" \
-    "touching and holding a top corner of the trackpad" "for ⌥-drag use left ⌥" "guide.html#uninstall" "On Force Touch trackpads" \
+    "rest a finger in a top corner of the trackpad" "for ⌥-drag use left ⌥" "guide.html#uninstall" "On Force Touch trackpads" \
     "Recorded shortcuts work the same on JIS, US and other layouts" "an independent Mac developer" "https://astlog.dev"; do
     assert_contains "$en" "$text" "en/index.html"
   done

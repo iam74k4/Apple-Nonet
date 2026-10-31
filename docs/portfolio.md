@@ -74,7 +74,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 工夫:
 
 ```text
-指の位置は MultitouchSupport の生のフレームから読み、最後に置いた指の絶対位置でマスを決めます（カーソルの位置は使いません）。トリガーキーの検出と、押している間のカーソル・クリックの抑止は CGEventTap で行い、ポインタ用のタップは抑止の間だけ有効にして、ふだんのポインタのイベントをアプリに通さないようにしています。押している間にほかのキーが押されたら何も実行せずに終え、そのキーは前面のアプリに渡します。
+指の位置は MultitouchSupport の生のフレームから読み、最後に置いた指の絶対位置でマスを決めます（ポインタの位置は使いません）。トリガーキーの検出と、押している間のポインタ・クリックの抑止は CGEventTap で行い、ポインタ用のタップは抑止の間だけ有効にして、ふだんのポインタのイベントをアプリに通さないようにしています。押している間にほかのキーが押されたら何も実行せずに終え、そのキーは前面のアプリに渡します。
 
 キーを押してすぐ（既定で 0.3 秒以内）のタップは HUD を出さずにその場で実行し、指を止めて迷ったときだけ HUD を出します。マスの境界をまたぐたびにトラックパッドを振動させる作りにし、非公開の MTActuator を優先して、使えなければ公開の NSHapticFeedbackManager に切り替えます。
 
@@ -84,7 +84,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 成果:
 
 ```text
-まだ販売していません。14日間の試用のあとに買い切りで売る予定で、価格と販売サービスは決めていません。実機での手動テスト（速押し・HUD・カーソルとクリックの抑止・触覚・2本指スワイプ・ほかのキーとの同時押しなど9項目）は、これから製品版で通します。
+まだ販売していません。14日間の試用のあとに買い切りで売る予定で、価格と販売サービスは決めていません。実機での手動テスト（速押し・HUD・ポインタとクリックの抑止・触覚・2本指スワイプ・ほかのキーとの同時押しなど9項目）は、これから製品版で通します。
 
 自動テストは、Swift Testing のテスト 1,307 件と、リリースのスクリプト・販売ページ・ドキュメントのテスト 120 件です。scripts/test.sh がこれに加えてアプリのビルドと自己診断（--self-check）までを通します。macOS 14 以降を対象にし、アプリの画面と販売ページは日本語と英語で用意しています。
 ```
@@ -194,8 +194,8 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | メニューバーの常駐アプリ（Dock に出ない） | `docs/architecture.md` §1（`LSUIElement`）、`project.yml` |
 | 非公開の MultitouchSupport を dlopen で読み、指の位置を読む | `Packages/NonetKit/Sources/CMultitouch/CMultitouch.c`（`dlopen`）、`docs/spike-results.md` |
 | 指の位置を読むだけなら許可が要らない（検証用のアプリで確かめた） | `docs/spike-results.md`「確認できたこと」 |
-| 最後に置いた指の絶対位置でマスを決め、カーソルの位置は使わない | `docs/architecture.md` §5 の 2、`docs/user-guide.md`「Nonet とは」 |
-| CGEventTap でトリガーキーの検出とカーソル・クリックの抑止。ポインタ用のタップは抑止の間だけ有効 | `Packages/NonetKit/Sources/NonetPlatform/Input/EventTapKeyboardMonitor.swift`（冒頭の説明と `CGEvent.tapCreate`） |
+| 最後に置いた指の絶対位置でマスを決め、ポインタの位置は使わない | `docs/architecture.md` §5 の 2、`docs/user-guide.md`「Nonet とは」 |
+| CGEventTap でトリガーキーの検出とポインタ・クリックの抑止。ポインタ用のタップは抑止の間だけ有効 | `Packages/NonetKit/Sources/NonetPlatform/Input/EventTapKeyboardMonitor.swift`（冒頭の説明と `CGEvent.tapCreate`） |
 | ほかのキーが押されたら何も実行せずに終え、そのキーは前面アプリに渡す | `docs/architecture.md` §5 の 10、`docs/user-guide.md`「やめる」 |
 | 既定で 0.3 秒以内のタップは HUD なしで実行し、迷ったときだけ HUD | `docs/architecture.md` §5 の 3・4、`Settings.swift` の `hudDelay: Double = 0.3` |
 | 境界・ページ・実行で振動。MTActuator を優先し、使えなければ NSHapticFeedbackManager | `docs/architecture.md` §5 の 7 と §7、`NonetPlatform/Input/TrackpadHapticPlayer.swift` |
@@ -222,7 +222,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 成果の1段落目 | まだ販売していない・価格と販売サービスは未定・実機の手動テストはこれから | 販売を始めた月・価格・販売サービスを書く。手動テストが済んだら、その一文を消す |
 | 成果のテストの件数 | 書いた日の件数 | 下のコマンドで数え直す |
 | 成果の CI の一文 | 書いていない | コードを push して GitHub Actions が緑になったら、2段落目に「プッシュのたびに GitHub Actions でも同じ一式を動かしています。」を足す |
-| 工夫の触覚・カーソルの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（T5・T6）で方式が決まったら、それに合わせる |
+| 工夫の触覚・ポインタの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（T5・T6）で方式が決まったら、それに合わせる |
 | リンク `Download` | 入れない | 公証済みの DMG を出したら `Download` / `https://nonet.astlog.dev/download` を Website の次に足す |
 | リンク `Repository` | 入れない | リポジトリは非公開なので入れない |
 | 公開する | 外す（下書き） | nonet.astlog.dev が開き、`scripts/check-site.sh --strict` が通ったら入れる |

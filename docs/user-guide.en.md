@@ -28,7 +28,7 @@ If you open Nonet from the disk image or from the folder you downloaded it to, i
 
 Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu.
 
-Only one copy of Nonet runs at a time. If you open Nonet again while it's running, the running copy opens its Settings window right away instead of a second copy starting. If you open it right after quitting, it waits for the old copy to finish quitting. If a copy opened from the disk image is running and you open the copy in the Applications folder, the disk image copy quits and the one in the Applications folder takes over.
+Only one copy of Nonet runs at a time. If you open Nonet again while it's running, the running copy opens its Settings window right away instead of a second copy starting. If you open it right after quitting, it waits for the old copy to finish quitting. When a copy opened from the disk image and the copy in the Applications folder meet, the one in the Applications folder runs, unless the disk image copy is a newer version. Then the disk image copy runs: if the copy in the Applications folder is running, Nonet quits it first, and then asks "Move Nonet to the Applications folder?". If the disk image copy isn't newer, it says "Nonet Is Already Running" and quits, and the running copy opens its Settings window.
 
 ### Accessibility permission
 
@@ -75,7 +75,7 @@ The examples below use right ⌘.
 1. Press right ⌘
 2. Right away (in less than 0.3 seconds by default), tap where the button you want is
 
-The button runs right away, without the HUD. Nonet briefly shows the button at the bottom of the screen. While you keep holding right ⌘, you can tap as many times as you like. A finger that was already resting on the trackpad before you pressed right ⌘ and hasn't moved, such as your thumb, doesn't count.
+The button runs right away, without the HUD. Nonet briefly shows the button at the bottom of the screen. While you keep holding right ⌘, you can tap as many times as you like. A finger that was already resting on the trackpad before you pressed right ⌘, such as your thumb, doesn't count until it moves. While only that finger is touching, nothing is selected, and the HUD appears after a moment (0.6 seconds), as if you weren't touching the trackpad. Move that finger to choose a button in the HUD.
 
 ### The HUD
 
@@ -126,12 +126,12 @@ You can also bring up the nine buttons without the trigger key, using only the t
 
 1. Rest one finger in the corner you chose (the far left or far right corner of the trackpad) and keep it still for a moment (0.4 seconds)
 2. The trackpad gives a light tick, the HUD appears, and the corner button under your finger is highlighted. The pointer stays put
-3. Slide to the button you want and lift your finger to run the highlighted button
+3. Slide to the button you want, pause on it for a moment (0.15 seconds), and lift your finger to run the highlighted button
 
-- To cancel, lift your finger without sliding
+- To cancel, lift your finger without sliding. Lifting right after sliding, without pausing on a button, also runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Swipe left or right with two fingers to change pages. After a swipe, slide one finger again before you lift it (lifting right away runs nothing)
 - If you press any other key, Nonet steps aside without running anything. Pressing the trigger key switches to the usual trigger key controls
-- Nothing appears if your finger slides into the corner from elsewhere, if you touch with two or more fingers, or if your finger moves while you wait, so moving the pointer through a corner doesn't bring it up
+- Nothing appears if your finger slides into the corner from elsewhere, if you touch with two or more fingers or your palm, if your finger moves while you wait, or while a mouse or trackpad button is held down (for example, when you click and start dragging), so moving the pointer through a corner doesn't bring it up
 - Once your trial has ended, the HUD doesn't appear. Instead, "Your trial has ended" and where to buy or register appear at the bottom of the screen
 
 ## Menu bar
@@ -185,7 +185,7 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 
 ### Undo and earlier versions
 
-- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting, copying to another profile), changes in the inspector (one step per button), renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
+- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting, copying to another profile), changes in the inspector (one step per button), adding or renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
 - After you clear a button, replace a filled button, copy a button to another profile, or delete a profile or a page, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so
 - Replacing profiles by importing can't be undone with ⌘Z. Use a saved version instead (below)
 - Nonet saves a copy of your settings while you change them (at most once an hour), and before deleting a profile or a page, importing, resetting to a preset or restoring an earlier version. It keeps the newest 10 in `~/Library/Application Support/Nonet/Backups/`. Under Export & Import on the General tab, click **Restore an Earlier Version…**, choose a version, then click **Restore…** and **Restore** to go back to those profiles and settings. Your settings from before are saved too, so you can go back again
@@ -312,7 +312,7 @@ Runs a shortcut from the Shortcuts app. Type its name in **Shortcut to run**, or
 
 Chooses a menu item in an app. The easiest way to set it up is **Pick from Menus** (the button in the inspector's Menu Item editor opens the same panel). **Menu item to choose** shows where the item is, its app and its keys.
 
-- If the app is in front and the item has a keyboard shortcut, Nonet sends the keys, which is fast
+- If the app is in front and the item's keyboard shortcut matches that item's shortcut in the app's menus, Nonet sends the keys, which is fast. Otherwise (for example, if an app update changed the shortcut, or Nonet can't read the menus), Nonet opens the menus one by one and chooses the item
 - If it has none (**None (Nonet opens the menus to choose it)**), Nonet opens the menus one by one with Accessibility and chooses the item
 - Items whose name changes when you choose them, such as Play and Pause or Show Toolbar and Hide Toolbar, keep working after the first press. If Nonet can't find the name, it looks for the paired name, then for the only item in the same menu with the same keyboard shortcut
 - The app must be running
@@ -383,8 +383,10 @@ You can export profiles to a .nonetprofile file to back them up or to share them
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
 - **Import…**: adds the profiles in a file. In either of these cases, Nonet first asks "Import “file name”?":
   - Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced
-  - The file has buttons that run something: scripts, keystrokes that press Return or are longer than four keystrokes, and URLs that open a file on your Mac. Nonet asks even if nothing would be replaced. It lists each of these buttons as "• Profile › Button" with what it runs: the first three lines of the script and its line count, the keys, or the location of the file
+  - The file has buttons that run something: Script, Keystrokes, Menu Item and AI buttons, and URLs that open a file on your Mac. Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, or the location of the file. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
 - **Restore an Earlier Version…**: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)
+
+In the list, buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (curl, wget, base64, eval, `| sh` (also bash, zsh and others), osascript and rm -rf) are marked in orange with an explanation. If the file has buttons that run something, you can't click **Import**, **Replace and Import** or **Add New Profiles Only** until you scroll to the end of the list (Nonet shows "Scroll to the end to check everything before you can import.").
 
 When Nonet asks, check the contents, then choose one of these:
 
@@ -393,9 +395,9 @@ When Nonet asks, check the contents, then choose one of these:
 - Add New Profiles Only: leaves your profiles as they are and adds only profiles for apps you don't have yet (shown only when the file both replaces some profiles and adds new ones)
 - Cancel: changes nothing
 
-In other cases, Nonet imports the file without asking. The result (how many profiles were added, replaced or skipped) appears in the banner at the top of the window. For Menu Item buttons, Nonet imports a keyboard shortcut only if it's a single keystroke. It drops longer ones, and Nonet chooses those items by opening the menus.
+In other cases, Nonet imports the file without asking. The result (how many profiles were added, replaced or skipped) appears in the banner at the top of the window. For Menu Item buttons, Nonet imports a keyboard shortcut only if it's a single keystroke. It drops longer ones, and Nonet chooses those items by opening the menus. Even a single keystroke is sent only if it matches the item's shortcut in the app's menus; otherwise Nonet chooses the item from the menus (see Menu Item under Action types).
 
-**Import profiles from someone else only if you trust them.** Scripts and keystrokes run with your permissions. Check the buttons Nonet lists before you import, and read whole scripts in the inspector after importing. If the file contains scripts, the banner reminds you after importing.
+**Import profiles from someone else only if you trust them.** Scripts and keystrokes run with your permissions. Check everything Nonet lists before you import. If the file contains scripts, the banner reminds you after importing.
 
 ## Trial and license
 
@@ -403,6 +405,7 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
 - When the trial ends, the HUD shows "Your trial has ended. Buy Nonet or register a license key from its menu bar icon." and buttons no longer run (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Register License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
 - After you buy Nonet, your license key arrives by email. One license covers every Mac you use. You can get a full refund within 30 days of purchase
+- Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the License tab says why, and Nonet goes back to the trial if any trial time is left
 
 The License tab:
 
@@ -537,5 +540,6 @@ To remove your license key and trial record too, quit Nonet and also delete:
 
 - `~/Library/Preferences/com.iam74k4.Nonet.plist` (preferences such as the trial record, your license key and how many times the HUD tips were shown)
 - The item you find when you search for `com.iam74k4.Nonet.license.trial` in Keychain Access (the trial record)
+- In Keychain Access, the item whose name is 64 hexadecimal digits (0–9 and a–f). It holds a copy of the same trial record. Its name is made from this Mac and the app, and it doesn't say Nonet
 
 If you'll use your license on another Mac, keep a copy of your license key first (**Copy License Key** on the License tab).
