@@ -46,7 +46,7 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(SessionConfiguration.defaultPlacementWindow)
         h.touch(on: 4)
         #expect(h.hud.isVisible)
         h.controller.stop()
@@ -379,7 +379,7 @@ import Testing
         let h = try ControllerHarness()
         h.start()
         h.pressTrigger()
-        h.advance(0.3)
+        h.advance(SessionConfiguration.defaultPlacementWindow)
         h.touch(on: 4)
         h.controller.update { $0.settings.hudDelay = 0.5 }
         #expect(h.hud.isVisible)
@@ -394,6 +394,8 @@ import Testing
         h.start()
         h.controller.update { $0.settings.hudDelay = 0.5 }
         h.pressTrigger()
+        // 指を止めてから HUD が出るまでの時間
+        h.touch(on: 4)
         h.advance(0.45)
         #expect(!h.hud.isVisible)
         h.advance(0.1)

@@ -6,25 +6,92 @@ import SwiftUI
 
 /// トーストの寸法と表示時間
 enum HUDToastLayout {
+    /// 倍率 1 の最大の幅
     static let maxWidth: CGFloat = 520
     static let minWidth: CGFloat = 120
     static let shadowMargin: CGFloat = 16
+    /// 成功と案内を出しておく秒数
+    static let briefDuration: TimeInterval = 0.8
+    /// 失敗の表示時間: 基本の秒数に、1文字ごとの秒数を足し、最短と最長で止める（3行のエラー出力も読めるように）
+    static let failureBaseDuration: TimeInterval = 1.5
+    static let failureDurationPerCharacter: TimeInterval = 0.06
+    static let failureDurationRange: ClosedRange<TimeInterval> = 3...8
 
-    /// 成功と案内は一瞬、失敗は読めるだけの時間
-    static func duration(for style: ToastModel.Style) -> TimeInterval {
-        switch style {
-        case .info, .success: 0.8
-        case .failure: 2.5
+    /// 成功と案内は一瞬、失敗は読めるだけの時間（見出しと説明の文字数で決める）。実行中は時間では消さない（nil）
+    static func duration(for toast: ToastModel) -> TimeInterval? {
+        switch toast.style {
+        case .info, .success:
+            return briefDuration
+        case .failure:
+            let characters = toast.title.count + (toast.detail?.count ?? 0)
+            let duration = failureBaseDuration + failureDurationPerCharacter * Double(characters)
+            return min(max(duration, failureDurationRange.lowerBound), failureDurationRange.upperBound)
+        case .running:
+            return nil
         }
     }
 
-    /// アイコンが無いときに出す記号。案内は出さない
+    /// アイコンが無いときに出す記号。案内と実行中は出さない（実行中はくるくる回る印を出す）
     static func fallbackSymbol(for style: ToastModel.Style) -> String? {
         switch style {
-        case .info: nil
+        case .info, .running: nil
         case .success: "checkmark.circle.fill"
         case .failure: "exclamationmark.triangle.fill"
         }
+    }
+
+    /// 倍率を掛けた最大の幅。画面より広くしない
+    static func maxWidth(scale: CGFloat, screenWidth: CGFloat) -> CGFloat {
+        let available = screenWidth - 2 * HUDPlacement.edgeMargin - 2 * shadowMargin
+        return max(minWidth, min(maxWidth * scale, available))
+    }
+}
+
+/// トーストを消す時刻の決め方。失敗のトーストは、トリガーキーを押している間は消さず、離してから afterRelease 秒で消す
+/// （トラックパッドを見ながら続けてタップしていても、離した後で読めるように）
+struct HUDToastSchedule: Equatable {
+    /// 失敗のトーストを、押していたトリガーキーを離してから消すまでの秒数
+    static let afterRelease: TimeInterval = 1
+
+    private(set) var style: ToastModel.Style?
+    /// 消す時刻。nil なら時間では消さない
+    private(set) var hideAt: TimeInterval?
+    private(set) var isTriggerHeld = false
+    /// 消す時刻が来たが、トリガーキーを押していたので離すのを待っている
+    private(set) var waitsForRelease = false
+
+    /// 出した。消す時刻を返す（nil なら時間では消さない）
+    mutating func show(_ toast: ToastModel, at now: TimeInterval) -> TimeInterval? {
+        style = toast.style
+        waitsForRelease = false
+        hideAt = HUDToastLayout.duration(for: toast).map { now + $0 }
+        return hideAt
+    }
+
+    /// 消す時刻が来た（タイマー）。いま消すなら true
+    mutating func deadlineReached(at now: TimeInterval) -> Bool {
+        guard let hideAt, now >= hideAt else { return false }
+        if style == .failure, isTriggerHeld {
+            self.hideAt = nil
+            waitsForRelease = true
+            return false
+        }
+        return true
+    }
+
+    /// トリガーキーを押した・離した。離して、消すのを待っていたなら、新しい消す時刻を返す
+    mutating func setTriggerHeld(_ held: Bool, at now: TimeInterval) -> TimeInterval? {
+        isTriggerHeld = held
+        guard !held, waitsForRelease else { return nil }
+        waitsForRelease = false
+        hideAt = now + Self.afterRelease
+        return hideAt
+    }
+
+    mutating func hidden() {
+        style = nil
+        hideAt = nil
+        waitsForRelease = false
     }
 }
 
@@ -32,6 +99,8 @@ enum HUDToastLayout {
 @Observable
 final class HUDToastStore {
     var toast: ToastModel?
+    /// システム設定の「コントラストを上げる」（出すたびに読み直す）
+    var increasedContrast = false
 }
 
 struct HUDToastRootView: View {
@@ -40,7 +109,7 @@ struct HUDToastRootView: View {
     var body: some View {
         ZStack {
             if let toast = store.toast {
-                HUDToastView(toast: toast)
+                HUDToastView(toast: toast, colors: HUDPalette.colors(increasedContrast: store.increasedContrast))
             }
         }
         .padding(HUDToastLayout.shadowMargin)
@@ -50,26 +119,37 @@ struct HUDToastRootView: View {
 /// 画面の下に一瞬出す黒い小さな帯。アイコン＋名前（＋説明）
 struct HUDToastView: View {
     let toast: ToastModel
+    var colors: HUDColors = .standard
+    /// 最大の幅（測るときと同じ値で折り返す）
+    var maxWidth: CGFloat?
+
+    private var scale: CGFloat { HUDMetrics(scale: toast.scale).scale }
 
     var body: some View {
-        HStack(spacing: 10) {
-            // 失敗はマスのアイコンより「失敗した」ことを見せる
-            if let icon = toast.icon, toast.style != .failure {
-                CellIconView(icon, size: 16)
+        let scale = scale
+        HStack(spacing: 10 * scale) {
+            // 失敗はマスのアイコンより「失敗した」ことを見せる。実行中は回る印
+            if toast.style == .running {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(scale)
+                    .frame(width: 16 * scale, height: 16 * scale)
+            } else if let icon = toast.icon, toast.style != .failure {
+                CellIconView(icon, size: 16 * scale)
             } else if let symbol = HUDToastLayout.fallbackSymbol(for: toast.style) {
                 Image(systemName: symbol)
-                    .font(.system(size: 16))
+                    .font(.system(size: 16 * scale))
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2 * scale) {
                 Text(toast.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14 * scale, weight: .semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 if let detail = toast.detail, !detail.isEmpty {
                     Text(detail)
-                        .font(.system(size: 12))
-                        .foregroundStyle(HUDPalette.secondaryText)
+                        .font(.system(size: 12 * scale))
+                        .foregroundStyle(colors.secondaryText)
                         .lineLimit(toast.style == .failure ? 4 : 1)
                         .truncationMode(.tail)
                         .fixedSize(horizontal: false, vertical: true)
@@ -77,17 +157,18 @@ struct HUDToastView: View {
             }
         }
         .foregroundStyle(Color(white: 0.85))
-        .padding(.horizontal, 18)
-        .padding(.vertical, 11)
-        .frame(minWidth: HUDToastLayout.minWidth)
+        .padding(.horizontal, 18 * scale)
+        .padding(.vertical, 11 * scale)
+        .frame(minWidth: HUDToastLayout.minWidth * scale)
+        .frame(maxWidth: maxWidth)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
                 .fill(HUDPalette.background)
                 .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.white.opacity(toast.style == .failure ? 0.3 : 0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
+                .strokeBorder(Color.white.opacity(toast.style == .failure ? 0.3 : max(0.1, colors.borderOpacity)), lineWidth: 1)
         )
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .combine)
@@ -106,39 +187,63 @@ final class HUDToastPresenter {
     private lazy var fader = HUDPanelFader(panel: panel)
     private lazy var measurer = NSHostingController(rootView: HUDToastView(toast: ToastModel(title: "")))
     private var hideTimer: Timer?
+    private var schedule = HUDToastSchedule()
+    private let now: () -> TimeInterval
 
-    func show(_ toast: ToastModel, on screen: HUDScreenGeometry) {
+    init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.now = now
+    }
+
+    func show(_ toast: ToastModel, on screen: HUDScreenGeometry, increasedContrast: Bool) {
         store.toast = toast
-        let size = measure(toast)
+        store.increasedContrast = increasedContrast
+        let size = measure(toast, screen: screen)
         let margin = HUDToastLayout.shadowMargin
         let frame = HUDPlacement.toastFrame(size: size, screen: screen).insetBy(dx: -margin, dy: -margin)
         panel.setFrame(frame, display: true)
         fader.show()
         HUDAccessibility.announce(HUDAccessibility.toastAnnouncement(title: toast.title, detail: toast.detail))
+        startTimer(until: schedule.show(toast, at: now()))
+    }
 
+    func hide() {
         hideTimer?.invalidate()
-        let timer = Timer(timeInterval: HUDToastLayout.duration(for: toast.style), repeats: false) { [weak self] timer in
+        hideTimer = nil
+        schedule.hidden()
+        fader.hide { [weak self] in
+            self?.store.toast = nil
+        }
+    }
+
+    /// トリガーキーを押している間は、失敗のトーストを消さない
+    func setTriggerHeld(_ held: Bool) {
+        if let hideAt = schedule.setTriggerHeld(held, at: now()) {
+            startTimer(until: hideAt)
+        }
+    }
+
+    private func startTimer(until hideAt: TimeInterval?) {
+        hideTimer?.invalidate()
+        hideTimer = nil
+        guard let hideAt else { return }
+        let timer = Timer(timeInterval: max(0, hideAt - now()), repeats: false) { [weak self] timer in
             MainActor.assumeIsolated {
                 guard let self, self.hideTimer === timer else { return }
-                self.hide()
+                self.hideTimer = nil
+                if self.schedule.deadlineReached(at: self.now()) {
+                    self.hide()
+                }
             }
         }
         hideTimer = timer
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    func hide() {
-        hideTimer?.invalidate()
-        hideTimer = nil
-        fader.hide { [weak self] in
-            self?.store.toast = nil
-        }
-    }
-
     /// 文が長ければ最大の幅で折り返した大きさ
-    private func measure(_ toast: ToastModel) -> CGSize {
-        measurer.rootView = HUDToastView(toast: toast)
-        let fitting = measurer.sizeThatFits(in: CGSize(width: HUDToastLayout.maxWidth, height: 400))
-        return CGSize(width: min(ceil(fitting.width), HUDToastLayout.maxWidth), height: ceil(fitting.height))
+    private func measure(_ toast: ToastModel, screen: HUDScreenGeometry) -> CGSize {
+        let limit = HUDToastLayout.maxWidth(scale: HUDMetrics(scale: toast.scale).scale, screenWidth: screen.visibleFrame.width)
+        measurer.rootView = HUDToastView(toast: toast, maxWidth: limit)
+        let fitting = measurer.sizeThatFits(in: CGSize(width: limit, height: 400 * HUDMetrics(scale: toast.scale).scale))
+        return CGSize(width: min(ceil(fitting.width), limit), height: ceil(fitting.height))
     }
 }

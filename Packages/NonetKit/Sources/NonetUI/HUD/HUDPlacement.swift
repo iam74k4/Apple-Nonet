@@ -45,6 +45,23 @@ enum HUDPlacement {
         return frame(size: size, centeredAt: center, in: screen)
     }
 
+    /// 設定の「HUD の大きさ」で画面の使える範囲（端の余白と影の余白を除く）からはみ出すなら、収まるところまで倍率を下げる
+    static func fitted(_ model: HUDModel, in screen: HUDScreenGeometry) -> HUDModel {
+        var result = model
+        result.scale = fittedScale(for: model, in: screen)
+        return result
+    }
+
+    static func fittedScale(for model: HUDModel, in screen: HUDScreenGeometry) -> Double {
+        let requested = HUDMetrics(scale: model.scale).scale
+        var unscaled = model
+        unscaled.scale = 1
+        let size = HUDLayout.size(for: unscaled)
+        let available = screen.visibleFrame.insetBy(dx: edgeMargin + HUDLayout.shadowMargin, dy: edgeMargin + HUDLayout.shadowMargin)
+        guard size.width > 0, size.height > 0, available.width > 0, available.height > 0 else { return requested }
+        return min(requested, available.width / size.width, available.height / size.height)
+    }
+
     /// center を中心にした枠を、画面の使える範囲（端の余白を除く）に収める
     static func frame(size: CGSize, centeredAt center: CGPoint, in screen: HUDScreenGeometry) -> CGRect {
         let rect = CGRect(x: center.x - size.width / 2, y: center.y - size.height / 2, width: size.width, height: size.height)

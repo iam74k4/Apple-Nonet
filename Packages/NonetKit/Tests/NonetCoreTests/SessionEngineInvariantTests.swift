@@ -78,12 +78,13 @@ private struct RandomInputs {
         if roll < 0.25, fingers.count < 3 {
             fingers[nextFingerID] = (Double.random(in: -0.05...1.05, using: &random), Double.random(in: -0.05...1.05, using: &random))
             nextFingerID += 1
-        } else if roll < 0.5, let id = fingers.keys.randomElement(using: &random) {
+        } else if roll < 0.5, let id = fingers.keys.sorted().randomElement(using: &random) {
             fingers[id] = nil
         } else {
             let step = Bool.random(using: &random) ? 0.02 : 0.2
             let dx = Double.random(in: -step...step, using: &random)
-            for id in fingers.keys {
+            // 辞書の並びはインスタンスごとに変わりうるので、id の順に乱数を使う（同じシードで同じ入力にする）
+            for id in fingers.keys.sorted() {
                 if let point = fingers[id] {
                     fingers[id] = (point.x + dx, point.y + Double.random(in: -step...step, using: &random))
                 }
@@ -99,8 +100,12 @@ private struct InvariantChecker {
     var inSession = false
     var hud: SessionHUDState?
     var latestTime = -Double.infinity
-    /// いまの物理的なタッチで同時に触れた指の最大数
-    var touchMaxFingers = 0
+    /// 直前のフレームで触れていた指
+    var touchingIDs: Set<Int> = []
+    /// セッションを始めたときに触れていて、まだ離れていない指（エンジンはほかの指を置いたら数えない）
+    var preTriggerIDs: Set<Int> = []
+    /// トリガーより後に置いた指が、いまのタッチ（その数が 0 になるまで）で同時に触れた最大数
+    var activeMaxFingers = 0
     var issues: [String] = []
 
     init(configuration: SessionConfiguration) {
@@ -113,14 +118,20 @@ private struct InvariantChecker {
             issues.append("step \(step) \(input): \(message) in \(effects)")
         }
         let inputTime: TimeInterval
-        let maxFingersBefore = touchMaxFingers
+        let activeMaxBefore = activeMaxFingers
+        var liftedInThisFrame = false
+        var activeNow = 0
         switch input {
         case .triggerDown(let time, _), .triggerUp(let time), .interrupted(let time), .tick(let time):
             inputTime = time
         case .touches(let frame):
             inputTime = frame.timestamp
-            let count = frame.touching.count
-            touchMaxFingers = count == 0 ? 0 : max(touchMaxFingers, count)
+            let ids = Set(frame.touching.map(\.id))
+            liftedInThisFrame = !touchingIDs.subtracting(ids).isEmpty
+            touchingIDs = ids
+            preTriggerIDs.formIntersection(ids)
+            activeNow = ids.subtracting(preTriggerIDs).count
+            activeMaxFingers = activeNow == 0 ? 0 : max(activeMaxFingers, activeNow)
         }
         latestTime = max(latestTime, inputTime)
 
@@ -135,6 +146,8 @@ private struct InvariantChecker {
                 if inSession { fail("セッション中に begin") }
                 guard case .triggerDown = input else { fail("triggerDown 以外で begin"); break }
                 inSession = true
+                preTriggerIDs = touchingIDs
+                activeMaxFingers = 0
             case .endPointerSuppression:
                 if !inSession { fail("セッション外で end") }
                 guard case .sessionEnded = next else { fail("end の次が sessionEnded でない"); break }
@@ -164,13 +177,15 @@ private struct InvariantChecker {
                 Self.checkRange(page: page, cell: cell, pageCount: pageCount, fail: fail)
                 switch input {
                 case .touches:
-                    if touchMaxFingers != 0 { fail("指が離れていないのに実行") }
-                    if maxFingersBefore != 1 { fail("2本以上の指のタッチで実行") }
-                    if !wasFastTap, fireMode != .onFingerLift { fail("onTriggerRelease なのに指を離して HUD から実行") }
+                    // トリガーより前から休めている指は触れたままでよい（エンジンは数えない）
+                    if !liftedInThisFrame || activeNow != 0 { fail("指が離れていないのに実行") }
+                    if activeMaxBefore > 1 { fail("2本以上の指のタッチで実行") }
+                    // HUD から実行する（指を離したとき・HUD でのタップ）ときは、先に HUD を閉じる
+                    if !wasFastTap, previous != .hideHUD { fail("HUD を閉じずに指を離して HUD から実行") }
                     if wasFastTap, hud != nil { fail("HUD を出したまま速押し") }
                 case .triggerUp:
                     if wasFastTap || fireMode != .onTriggerRelease { fail("トリガーを離したときの実行の種類が違う") }
-                    if maxFingersBefore != 1 { fail("2本以上の指のタッチで実行") }
+                    if activeMaxBefore > 1 { fail("2本以上の指のタッチで実行") }
                 default:
                     fail("tick・中断・押下で実行")
                 }
@@ -244,7 +259,7 @@ private struct InvariantChecker {
             }
         }
         #expect(seen == [
-            "begin", "end", "show", "update", "hide", "boundary", "pageChange",
+            "begin", "end", "show", "update", "hide", "boundary", "pageChange", "rejected",
             "fastTap", "hudExecute", "tick", "released", "cancelled", "interrupted", "timeout",
         ])
     }

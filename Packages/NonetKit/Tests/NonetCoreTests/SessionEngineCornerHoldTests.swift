@@ -110,7 +110,10 @@ extension SessionScenario {
         s.touch(on: 4, at: 1.5)
         s.touch(2, on: 5, at: 1.6)
         #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil))
-        #expect(s.liftAll(at: 1.8).endReason == .cancelled)
+        let lifted = s.liftAll(at: 1.8)
+        #expect(lifted.endReason == .cancelled)
+        // ページを変えずに2本以上で離したので、受け付けなかったことを触覚で知らせる
+        #expect(lifted.hapticEvents == [.rejected])
         #expect(s.log.executions.isEmpty)
     }
 

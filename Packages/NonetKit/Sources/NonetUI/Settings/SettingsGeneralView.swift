@@ -38,12 +38,12 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("実行のタイミング", bundle: .module)
-                    Text(fireModeDetail)
+                    Text(SettingsText.detail(model.settings.fireMode))
                 }
                 LabeledContent {
                     HStack(spacing: 10) {
                         Slider(value: binding(\.hudDelay), in: GlobalSettings.hudDelayRange, step: 0.05) {
-                            Text("HUD が出るまでの時間", bundle: .module)
+                            Text(SettingsText.hudDelayTitle)
                         }
                         .labelsHidden()
                         .frame(minWidth: 160, maxWidth: 240)
@@ -52,8 +52,9 @@ struct SettingsGeneralView: View {
                             .frame(minWidth: 52, alignment: .trailing)
                     }
                 } label: {
-                    Text("HUD が出るまでの時間", bundle: .module)
-                    Text("これより早いタップは、HUD を出さずにその場で実行します", bundle: .module)
+                    // 指を置かないときに HUD が出るまでの時間は別（少し長い。SessionConfiguration.placementWindow）
+                    Text(SettingsText.hudDelayTitle)
+                    Text(SettingsText.hudDelayDetail)
                 }
                 Picker(selection: binding(\.hudPosition)) {
                     ForEach(HUDPosition.allCases, id: \.self) { position in
@@ -62,6 +63,15 @@ struct SettingsGeneralView: View {
                 } label: {
                     Text("HUD の位置", bundle: .module)
                     Text("カーソルのあるディスプレイに出ます", bundle: .module)
+                }
+                .pickerStyle(.segmented)
+                Picker(selection: binding(\.hudScale)) {
+                    ForEach(HUDScale.allCases, id: \.self) { scale in
+                        Text(SettingsText.name(scale)).tag(scale)
+                    }
+                } label: {
+                    Text(SettingsText.hudScaleTitle)
+                    Text(SettingsText.hudScaleDetail)
                 }
                 .pickerStyle(.segmented)
             } header: {
@@ -89,12 +99,12 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("触覚", bundle: .module)
-                    Text("マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します", bundle: .module)
+                    Text(SettingsText.hapticsDetail)
                 }
                 .pickerStyle(.segmented)
                 Toggle(isOn: binding(\.showExecutionToast)) {
                     Text("実行を知らせる", bundle: .module)
-                    Text("HUD を出さずに実行したとき、実行したマスを画面の下に一瞬表示します", bundle: .module)
+                    Text(SettingsText.executionToastDetail)
                 }
             } header: {
                 Text("知らせ", bundle: .module)
@@ -158,15 +168,6 @@ struct SettingsGeneralView: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    private var fireModeDetail: String {
-        switch model.settings.fireMode {
-        case .onTriggerRelease:
-            String(localized: "HUD で選んだマスを、トリガーキーを離したときに実行します。速押しはどちらでもその場で実行します", bundle: .module)
-        case .onFingerLift:
-            String(localized: "HUD で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します", bundle: .module)
-        }
     }
 
     private var defaultExportName: String {

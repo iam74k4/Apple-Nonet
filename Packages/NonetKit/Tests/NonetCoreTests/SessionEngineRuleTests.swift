@@ -1,4 +1,4 @@
-// docs/architecture.md「操作の仕様」の規則ごとのテスト。既定: hudDelay 0.3秒、onTriggerRelease、1ページ
+// docs/architecture.md「操作の仕様」の規則ごとのテスト。既定: hudDelay 0.3秒、placementWindow 0.6秒、onTriggerRelease、1ページ
 import Testing
 import NonetCore
 
@@ -7,7 +7,8 @@ import NonetCore
 
     @Test func pressingTheTriggerStartsASessionAndSuppressesThePointer() {
         var s = SessionScenario()
-        #expect(s.pressTrigger(at: 0) == [.beginPointerSuppression, .requestTick(at: 0.3)])
+        // 指を置かなければ placementWindow で HUD を出す
+        #expect(s.pressTrigger(at: 0) == [.beginPointerSuppression, .requestTick(at: 0.6)])
         #expect(s.engine.isInSession)
         #expect(s.engine.isTriggerHeld)
         #expect(s.engine.pageIndex == 0)
@@ -83,11 +84,23 @@ import NonetCore
 
     // MARK: 4. HUD
 
-    @Test func hudAppearsAfterHudDelayWithoutATouch() {
+    /// 4 (a): 指を置かないときは hudDelay ではなく placementWindow で出す（キーボードからトラックパッドへ手を動かす間に出さない）
+    @Test func hudAppearsAfterThePlacementWindowWithoutATouch() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        #expect(s.tick(at: 0.3) == [.showHUD(page: 0, highlightedCell: nil), .requestTick(at: 20)])
+        #expect(s.tick(at: 0.3) == [.requestTick(at: 0.6)])
+        #expect(s.engine.hud == nil)
+        #expect(s.tick(at: 0.6) == [.showHUD(page: 0, highlightedCell: nil), .requestTick(at: 20)])
         #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil))
+    }
+
+    /// 手を動かして hudDelay より後に置いた指も、placementWindow より前ならすぐにタップとして実行できる
+    @Test func aFingerLandingAfterHudDelayButInsideThePlacementWindowCanStillTap() {
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        s.touch(on: 2, at: 0.45)
+        #expect(s.lift(at: 0.55).visible == [.execute(page: 0, cell: 2, wasFastTap: true)])
+        #expect(!s.log.showsHUD)
     }
 
     @Test func hudAppearsWhenAFingerRestsForHudDelay() {
@@ -108,8 +121,8 @@ import NonetCore
     @Test func fingerPlacedAfterTheHUDHighlightsWithoutHaptics() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
-        #expect(s.touch(on: 6, at: 0.5) == [.updateHUD(page: 0, highlightedCell: 6)])
+        s.tick(at: 0.6)
+        #expect(s.touch(on: 6, at: 0.7) == [.updateHUD(page: 0, highlightedCell: 6)])
     }
 
     // MARK: 5. HUD からの実行
@@ -142,18 +155,69 @@ import NonetCore
     @Test func onTriggerReleaseCancelsWhenTheHUDNeverHadAFinger() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
+        s.tick(at: 0.6)
         #expect(s.releaseTrigger(at: 2) == [.hideHUD, .endPointerSuppression(dropsLateClicks: false), .sessionEnded(.cancelled)])
     }
 
-    @Test func onTriggerReleaseDoesNotExecuteWhenLiftingInTheHUD() {
+    /// HUD が出ていても、短いタップは置いたマスをその場で実行して HUD を閉じる。速押しではない（HUD で見て選んだ）
+    @Test func onTriggerReleaseRunsAShortTapInTheHUD() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
-        s.touch(on: 1, at: 0.4)
-        // HUD が出ているときの短いタッチは速押しではない
-        #expect(s.lift(at: 0.45) == [.updateHUD(page: 0, highlightedCell: nil)])
+        s.tick(at: 0.6)
+        s.touch(on: 1, at: 0.7)
+        #expect(s.lift(at: 0.75) == [.hideHUD, .execute(page: 0, cell: 1, wasFastTap: false)])
+        #expect(s.engine.hud == nil)
+        #expect(s.engine.isInSession)
+        // セッションは続き、続けてすぐにタップできる。(a) の HUD はもう出ない（仕様 6）
+        s.touch(on: 5, at: 0.9)
+        #expect(s.lift(at: 0.95).visible == [.execute(page: 0, cell: 5, wasFastTap: true)])
+        #expect(!s.tick(at: 5).showsHUD)
+        #expect(s.releaseTrigger(at: 6).endReason == .released)
+    }
+
+    /// tapMaxDuration 以上置いた指は、これまでどおり HUD で選ぶ指（先に離すとやめる）
+    @Test func onTriggerReleaseDoesNotRunARestingFingerLiftedInTheHUD() {
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        s.tick(at: 0.6)
+        s.touch(on: 1, at: 0.7)
+        #expect(s.lift(at: 0.7 + SessionConfiguration.tapMaxDuration) == [.updateHUD(page: 0, highlightedCell: nil)])
+        #expect(s.releaseTrigger(at: 1.2).endReason == .cancelled)
         #expect(s.log.executions.isEmpty)
+    }
+
+    /// tapMaxTravel より動いた指は、滑らせて選んでいる指
+    @Test func onTriggerReleaseDoesNotRunAShortSlideInTheHUD() {
+        var s = SessionScenario()
+        s.pressTrigger(at: 0)
+        s.tick(at: 0.6)
+        s.touch(x: 0.5, y: 0.5, at: 0.7)
+        s.touch(x: 0.5 + SessionConfiguration.tapMaxTravel, y: 0.5, at: 0.75)
+        #expect(s.lift(at: 0.8) == [.updateHUD(page: 0, highlightedCell: nil)])
+        #expect(s.log.executions.isEmpty)
+        // 少しだけなら、置いたマスのタップ
+        s.touch(x: 0.5, y: 0.5, at: 1.0)
+        s.touch(x: 0.5 + SessionConfiguration.tapMaxTravel / 2, y: 0.5, at: 1.05)
+        #expect(s.lift(at: 1.1) == [.hideHUD, .execute(page: 0, cell: 4, wasFastTap: false)])
+    }
+
+    /// トリガーより前から置いていた指を離しても、HUD でのタップにしない
+    @Test func aFingerRestingBeforeTheTriggerIsNotATapInTheHUD() {
+        var s = SessionScenario(hudDelay: 0.15)
+        s.touch(on: 4, at: 1.95)
+        s.pressTrigger(at: 2)
+        #expect(s.tick(at: 2.15).visible == [.showHUD(page: 0, highlightedCell: 4)])
+        #expect(s.lift(at: 2.17) == [.updateHUD(page: 0, highlightedCell: nil)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    /// 「指を離したとき」は、短くても長くても、離せば光っているマスを実行する（これまでどおり）
+    @Test func onFingerLiftRunsAShortTapInTheHUDAsBefore() {
+        var s = SessionScenario(fireMode: .onFingerLift)
+        s.pressTrigger(at: 0)
+        s.tick(at: 0.6)
+        s.touch(on: 7, at: 0.7)
+        #expect(s.lift(at: 0.75) == [.hideHUD, .execute(page: 0, cell: 7, wasFastTap: false)])
     }
 
     @Test func onFingerLiftExecutesTheHighlightedCellAndClosesTheHUD() {
@@ -306,42 +370,46 @@ import NonetCore
         #expect(s.engine.pageIndex == 2)
     }
 
-    @Test func swipeStopsAtTheLastPageWithoutHaptics() {
+    /// 最後のページから先へは行かず、受け付けなかったことを触覚で知らせる（ページの触覚と区別できる）
+    @Test func swipeStopsAtTheLastPageWithARejectedHaptic() {
         var s = SessionScenario(pageCount: 2)
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
-        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.4)
-        s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.45)
-        s.liftAll(at: 0.5)
+        s.tick(at: 0.6)
+        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.7)
+        s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.75)
+        s.liftAll(at: 0.8)
         #expect(s.engine.pageIndex == 1)
-        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.6)
-        #expect(s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.65).isEmpty)
+        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.9)
+        #expect(s.setFingers([(1, 0.45, 0.5), (2, 0.65, 0.5)], at: 0.95) == [.haptic(.rejected)])
+        // 端で止まったスワイプを離しても、もう一度は鳴らさない
+        #expect(s.liftAll(at: 1.0).isEmpty)
         #expect(s.engine.pageIndex == 1)
-        #expect(s.log.hapticEvents == [.pageChange])
+        #expect(s.log.hapticEvents == [.pageChange, .rejected])
     }
 
     @Test func swipeAtTheFirstPageStillShowsTheHUD() {
         var s = SessionScenario(pageCount: 3)
         s.pressTrigger(at: 0)
         s.setFingers([(1, 0.2, 0.5), (2, 0.4, 0.5)], at: 0.05)
-        #expect(s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1).visible == [.showHUD(page: 0, highlightedCell: nil)])
-        #expect(s.log.hapticEvents.isEmpty)
+        #expect(s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1).visible == [.showHUD(page: 0, highlightedCell: nil), .haptic(.rejected)])
+        #expect(s.log.hapticEvents == [.rejected])
     }
 
     @Test func singlePageSwipeOnlyShowsTheHUD() {
         var s = SessionScenario(pageCount: 1)
         s.pressTrigger(at: 0)
         s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.05)
-        #expect(s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1).visible == [.showHUD(page: 0, highlightedCell: nil), .haptic(.rejected)])
         #expect(s.engine.pageIndex == 0)
     }
 
-    @Test func swipeBelowTheThresholdDoesNothing() {
+    /// ページを変えずに2本指を離した: 実行せず、受け付けなかったことを触覚で知らせる
+    @Test func swipeBelowTheThresholdOnlyTellsItWasNotRecognised() {
         var s = SessionScenario(pageCount: 3)
         s.pressTrigger(at: 0)
         s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.05)
         #expect(s.setFingers([(1, 0.31, 0.5), (2, 0.51, 0.5)], at: 0.1).visible.isEmpty)
-        #expect(s.liftAll(at: 0.15).visible.isEmpty)
+        #expect(s.liftAll(at: 0.15).visible == [.haptic(.rejected)])
         #expect(s.engine.pageIndex == 0)
         #expect(s.log.executions.isEmpty)
     }
@@ -440,17 +508,17 @@ import NonetCore
         var s = SessionScenario()
         s.pressTrigger(at: 0)
         s.setFingers([(1, 0.1, 0.9), (2, 0.9, 0.9)], at: 0.05)
-        s.liftAll(at: 0.1)
-        #expect(s.tick(at: 0.3).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.liftAll(at: 0.1).visible == [.haptic(.rejected)])
+        #expect(s.tick(at: 0.6).visible == [.showHUD(page: 0, highlightedCell: nil)])
     }
 
-    @Test func twoFingerTouchSpanningHudDelayShowsTheHUDWhenItEnds() {
+    @Test func twoFingerTouchSpanningThePlacementWindowShowsTheHUDWhenItEnds() {
         // 待ち時間中に置いた指が実行せずに離れたら、その時点で迷っているとみなす
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.setFingers([(1, 0.1, 0.9), (2, 0.9, 0.9)], at: 0.1)
-        #expect(s.tick(at: 0.3) == [.requestTick(at: 0.1 + 0.3)])
-        #expect(s.liftAll(at: 0.35) == [.showHUD(page: 0, highlightedCell: nil), .requestTick(at: 20)])
+        s.setFingers([(1, 0.1, 0.9), (2, 0.9, 0.9)], at: 0.35)
+        #expect(s.tick(at: 0.6) == [.requestTick(at: 0.35 + 0.3)])
+        #expect(s.liftAll(at: 0.62) == [.haptic(.rejected), .showHUD(page: 0, highlightedCell: nil), .requestTick(at: 20)])
     }
 
     @Test func secondFingerInTheHUDClearsTheHighlightAndBlocksExecution() {
@@ -472,7 +540,8 @@ import NonetCore
         s.tick(at: 0.4)
         s.touch(2, on: 8, at: 0.5)
         s.lift(2, at: 0.6)
-        #expect(s.lift(1, at: 0.7).isEmpty)
+        // 2本触れたタッチは実行せず、受け付けなかったことを触覚で知らせる
+        #expect(s.lift(1, at: 0.7) == [.haptic(.rejected)])
         #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil))
         // 新しい1本指のタッチなら実行できる
         s.touch(on: 2, at: 0.8)
@@ -555,18 +624,30 @@ import NonetCore
         var s = withEmptyCells()
         s.pressTrigger(at: 0)
         s.touch(on: 1, at: 0.05)
-        // 実行せずに離したのと同じ。迷っていれば (a) の HUD を出す（仕様 6 の「一度実行した後」にしない）
-        #expect(s.lift(at: 0.1) == [.requestTick(at: 0.3)])
-        #expect(s.tick(at: 0.3).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        // 実行せずに離したのと同じ。迷っていれば (a) の HUD を出す（仕様 6 の「一度実行した後」にしない）。
+        // 押したことは届いているので、受け付けなかったことを触覚で知らせる
+        #expect(s.lift(at: 0.1) == [.haptic(.rejected), .requestTick(at: 0.6)])
+        #expect(s.tick(at: 0.6).visible == [.showHUD(page: 0, highlightedCell: nil)])
         #expect(s.log.executions.isEmpty)
     }
 
-    @Test func anEmptyTapAfterTheHudDelayShowsTheHUDRightAway() {
+    @Test func anEmptyTapAfterThePlacementWindowShowsTheHUDRightAway() {
         var s = withEmptyCells()
         s.pressTrigger(at: 0)
-        s.touch(on: 5, at: 0.25)
-        #expect(!s.tick(at: 0.3).showsHUD)
-        #expect(s.lift(at: 0.4).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        s.touch(on: 5, at: 0.55)
+        #expect(!s.tick(at: 0.6).showsHUD)
+        #expect(s.lift(at: 0.7).visible == [.haptic(.rejected), .showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.log.executions.isEmpty)
+    }
+
+    /// HUD でのタップも、空きマスなら実行せずに触覚で知らせ、HUD は出したまま
+    @Test func aTapOnAnEmptyCellInTheHUDOnlyBuzzes() {
+        var s = withEmptyCells()
+        s.pressTrigger(at: 0)
+        s.tick(at: 0.6)
+        s.touch(on: 1, at: 0.7)
+        #expect(s.lift(at: 0.75) == [.haptic(.rejected), .updateHUD(page: 0, highlightedCell: nil)])
+        #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil))
         #expect(s.log.executions.isEmpty)
     }
 
@@ -586,7 +667,7 @@ import NonetCore
         s.pressTrigger(at: 0)
         s.touch(on: 1, at: 0.05)
         #expect(s.releaseTrigger(at: 0.08).visible.isEmpty)
-        #expect(s.lift(at: 0.1) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
+        #expect(s.lift(at: 0.1) == [.haptic(.rejected), .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -644,10 +725,10 @@ import NonetCore
         var s = SessionScenario()
         s.touch(on: 4, at: 1)
         #expect(s.pressTrigger(at: 2) == [.beginPointerSuppression, .requestTick(at: 2 + 0.3)])
-        #expect(s.lift(at: 2.1).isEmpty)
+        // 速押しにはしない。指が無くなったので、HUD は (a) の時刻に出す
+        #expect(s.lift(at: 2.1) == [.requestTick(at: 2 + 0.6)])
         #expect(s.log.executions.isEmpty)
-        // 指が置かれなかったので (a) で HUD を出す
-        #expect(s.tick(at: 2 + 0.3).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.tick(at: 2 + 0.6).visible == [.showHUD(page: 0, highlightedCell: nil)])
     }
 
     @Test func fingerRestingBeforeTheTriggerIsHighlightedAndCanBeSelected() {
@@ -680,6 +761,71 @@ import NonetCore
             .showHUD(page: 1, highlightedCell: nil),
             .haptic(.pageChange),
         ])
+    }
+
+    // MARK: トリガーより前から休めている指（親指を手前に置いたまま、など）
+
+    /// 休めている指のほかに置いた指は、新しいすぐにタップ（2本の指のタッチにしない）
+    @Test func aTapBesideARestingFingerRuns() {
+        var s = SessionScenario()
+        s.touch(1, x: 0.5, y: 0.05, at: 1)
+        s.pressTrigger(at: 2)
+        s.touch(2, on: 2, at: 2.1)
+        #expect(s.lift(2, at: 2.2).visible == [.execute(page: 0, cell: 2, wasFastTap: true)])
+        // 続けてもう一度。親指を置いたままでも HUD は出ない（一度実行した後は (a) を出さない。親指は休めている指）
+        s.touch(3, on: 6, at: 2.4)
+        #expect(s.lift(3, at: 2.5).visible == [.execute(page: 0, cell: 6, wasFastTap: true)])
+        #expect(!s.tick(at: 5).showsHUD)
+        #expect(!s.log.hapticEvents.contains(.rejected))
+    }
+
+    /// 休めている指は2本目に数えないので、休めている指のほかの2本でページを変えられる
+    @Test func aRestingFingerDoesNotBlockATwoFingerSwipe() {
+        var s = SessionScenario(pageCount: 2)
+        s.touch(1, x: 0.5, y: 0.05, at: 1)
+        s.pressTrigger(at: 2)
+        s.touch(2, x: 0.6, y: 0.5, at: 2.05)
+        s.touch(3, x: 0.8, y: 0.5, at: 2.06)
+        s.setFingers([(1, 0.5, 0.05), (2, 0.45, 0.5), (3, 0.65, 0.5)], at: 2.1)
+        #expect(s.engine.pageIndex == 1)
+        #expect(s.log.hapticEvents == [.pageChange])
+    }
+
+    /// 休めている指を滑らせたら、ふつうの指としてハイライトで追う（速押しにはしない）
+    @Test func aRestingFingerThatSlidesIsFollowed() {
+        var s = SessionScenario()
+        s.touch(1, on: 4, at: 1)
+        s.pressTrigger(at: 2)
+        s.touch(2, on: 0, at: 2.05)
+        s.lift(2, at: 2.1)
+        #expect(s.log.executions == [.execute(page: 0, cell: 0, wasFastTap: true)])
+        // 残った指はもう HUD を出さないが、滑らせれば（restingTolerance より動けば）追う
+        s.touch(1, x: Pad.center(4).x + SessionConfiguration.restingTolerance / 2, y: Pad.center(4).y, at: 2.3)
+        #expect(!s.tick(at: 3).showsHUD)
+        s.touch(1, on: 5, at: 3.1)
+        #expect(s.tick(at: 3.1 + 0.3).visible == [.showHUD(page: 0, highlightedCell: 5)])
+        #expect(s.releaseTrigger(at: 4).executions == [.execute(page: 0, cell: 5, wasFastTap: false)])
+    }
+
+    /// HUD でハイライトしていた休めている指のほかに置いた指は、境界の触覚を鳴らさずにハイライトし、短ければ HUD でのタップ
+    @Test func aTapBesideARestingFingerInTheHUDRunsWithoutABoundaryBuzz() {
+        var s = SessionScenario()
+        s.touch(1, on: 7, at: 1)
+        s.pressTrigger(at: 2)
+        #expect(s.tick(at: 2.3).visible == [.showHUD(page: 0, highlightedCell: 7)])
+        #expect(s.touch(2, on: 2, at: 2.4) == [.updateHUD(page: 0, highlightedCell: 2)])
+        #expect(s.lift(2, at: 2.5) == [.hideHUD, .execute(page: 0, cell: 2, wasFastTap: false)])
+        #expect(s.log.hapticEvents.isEmpty)
+    }
+
+    /// ほかの指でタップしている間の休めている指の小さなずれは、2本目に数えない
+    @Test func aRestingFingerThatDriftsDuringATapIsStillIgnored() {
+        var s = SessionScenario()
+        s.touch(1, x: 0.5, y: 0.05, at: 1)
+        s.pressTrigger(at: 2)
+        s.touch(2, on: 2, at: 2.1)
+        s.setFingers([(1, 0.53, 0.05), (2, Pad.center(2).x, Pad.center(2).y)], at: 2.15)
+        #expect(s.lift(2, at: 2.2).visible == [.execute(page: 0, cell: 2, wasFastTap: true)])
     }
 
     @Test func newTouchAfterTheRestingFingerLiftsCanBeAFastTap() {

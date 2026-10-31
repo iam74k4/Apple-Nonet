@@ -306,6 +306,104 @@ final class FakeCursor: CursorControlling {
         #expect(send(try #require(CGEventType(rawValue: 14)), event))
     }
 
+    // MARK: マウスとホイール
+
+    /// トラックパッドに触れていない間の押す・移動・ホイールはマウスのもの: セッションを終えてもらい、そのまま渡す（⌘クリックなど）
+    @Test(arguments: [CGEventType.leftMouseDown, .rightMouseDown, .mouseMoved, .leftMouseDragged])
+    func aMouseEventWithoutATrackpadTouchEndsTheSessionAndPasses(_ type: CGEventType) throws {
+        monitor.isTrackpadTouched = false
+        clock.now += TrackpadContact.releaseGrace
+        _ = try pressTrigger()
+        let button: CGMouseButton = type == .rightMouseDown ? .right : .left
+        let event = try mouse(type, button: button)
+        #expect(send(type, event))
+        #expect(event.type == type)
+        #expect(recorder.events == [.triggerDown, .interrupted])
+        #expect(!monitor.isSuppressingPointer)
+        // その後のイベントもふつうに渡し、.interrupted は1回だけ
+        #expect(send(.mouseMoved, try mouse(.mouseMoved)))
+        #expect(recorder.events == [.triggerDown, .interrupted])
+    }
+
+    @Test func aWheelScrollWithoutATrackpadTouchEndsTheSessionAndPasses() throws {
+        monitor.isTrackpadTouched = false
+        clock.now += TrackpadContact.releaseGrace
+        _ = try pressTrigger()
+        #expect(send(.scrollWheel, try scroll(phase: 0, momentum: 0)))
+        #expect(recorder.events == [.triggerDown, .interrupted])
+    }
+
+    /// 指が触れている間は、トラックパッドのクリックや移動として捨てる（これまでどおり）
+    @Test func pointerEventsWhileTheTrackpadIsTouchedAreStillDropped() throws {
+        monitor.isTrackpadTouched = true
+        _ = try pressTrigger()
+        #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
+        #expect(!send(.mouseMoved, try mouse(.mouseMoved)))
+        #expect(recorder.events == [.triggerDown])
+        #expect(monitor.isSuppressingPointer)
+    }
+
+    /// 指を離した直後に届く「タップでクリック」や慣性のスクロールは、トラックパッドのものとして捨てる
+    @Test func eventsRightAfterTheFingerLiftsAreStillTheTrackpads() throws {
+        monitor.isTrackpadTouched = true
+        _ = try pressTrigger()
+        monitor.isTrackpadTouched = false
+        clock.now += TrackpadContact.releaseGrace - 0.01
+        #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
+        clock.now += 1
+        // 慣性のスクロールは、離してから長く続いてもトラックパッドのもの
+        #expect(!send(.scrollWheel, try scroll(phase: 0, momentum: 2)))
+        #expect(recorder.events == [.triggerDown])
+    }
+
+    /// 触れているかを知らされていない（指の位置を読まない）間は見分けない
+    @Test func withoutTouchInformationEveryPointerEventIsDropped() throws {
+        _ = try pressTrigger()
+        #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
+        #expect(recorder.events == [.triggerDown])
+    }
+
+    @Test func trackpadContactDecidesByDeviceAndTime() {
+        var contact = TrackpadContact()
+        let click = PointerEventInfo(type: PointerEventKind.leftMouseDown)
+        #expect(!contact.isFromAnotherDevice(click, now: 10))
+        contact.update(isTouched: false, at: 10)
+        #expect(contact.isFromAnotherDevice(click, now: 10))
+        contact.update(isTouched: true, at: 11)
+        #expect(!contact.isFromAnotherDevice(click, now: 11))
+        contact.update(isTouched: false, at: 12)
+        #expect(!contact.isFromAnotherDevice(click, now: 12 + TrackpadContact.releaseGrace - 0.01))
+        #expect(contact.isFromAnotherDevice(click, now: 12 + TrackpadContact.releaseGrace))
+        // 離すと、ジェスチャーは見分けない
+        #expect(!contact.isFromAnotherDevice(PointerEventInfo(type: PointerEventKind.leftMouseUp), now: 20))
+        #expect(!contact.isFromAnotherDevice(PointerEventInfo(type: 31), now: 20))
+        #expect(contact.isFromAnotherDevice(PointerEventInfo(type: PointerEventKind.scrollWheel, scrollPhase: 1), now: 20))
+        #expect(!contact.isFromAnotherDevice(PointerEventInfo(type: PointerEventKind.scrollWheel, momentumPhase: 1), now: 20))
+        #expect(contact.isFromAnotherDevice(PointerEventInfo(type: PointerEventKind.otherMouseDown, buttonNumber: 3), now: 20))
+    }
+
+    // MARK: ポインタのタップが無効にされたとき
+
+    /// 自分で無効にした直後の tapDisabledByUserInput は取りこぼしではない。時間切れと、有効にしておくはずの間の無効化は取りこぼし
+    @Test func onlyUnexpectedPointerTapDisablesAreTreatedAsMissedEvents() {
+        #expect(PointerTapDisableResponse.response(to: .tapDisabledByUserInput, isPointerTapEnabled: false) == .ignore)
+        #expect(PointerTapDisableResponse.response(to: .tapDisabledByUserInput, isPointerTapEnabled: true) == .recover)
+        #expect(PointerTapDisableResponse.response(to: .tapDisabledByTimeout, isPointerTapEnabled: false) == .recover)
+        #expect(PointerTapDisableResponse.response(to: .tapDisabledByTimeout, isPointerTapEnabled: true) == .recover)
+    }
+
+    /// セッションの後片付けを終えて自分で無効にした後に届く知らせでは、何もしない（有効にし直さず、見直しも始めない）
+    @Test func ourOwnPointerTapDisableIsIgnored() throws {
+        recorder.dropsLateClicks = true
+        _ = try pressTrigger()
+        _ = try releaseTrigger()
+        passClickGrace()
+        #expect(!monitor.isPointerTapEnabled)
+        #expect(monitor.handle(type: .tapDisabledByUserInput, event: try #require(CGEvent(source: nil)), from: .pointer))
+        #expect(!monitor.isPointerTapEnabled)
+        #expect(!monitor.isSweeping)
+    }
+
     // MARK: ポインタのタップ
 
     private func scroll(phase: Int64, momentum: Int64) throws -> CGEvent {

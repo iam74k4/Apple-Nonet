@@ -283,7 +283,7 @@ final class SettingsHarness {
         )
         let start = Date(timeIntervalSinceReferenceDate: 800_000_000)
         license = LicenseManager(verifier: verifier, storage: licenseStorage, now: { start })
-        controller = NonetController(services: services, store: store, hud: SettingsFakeHUD(), license: license)
+        controller = NonetController(services: services, store: store, hud: SettingsFakeHUD(), license: license, guidance: MemoryHUDGuidanceStore())
         controller.start()
         if let configuration {
             controller.replaceConfiguration(configuration)

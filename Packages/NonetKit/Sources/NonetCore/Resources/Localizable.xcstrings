@@ -1,6 +1,38 @@
 {
   "sourceLanguage" : "ja",
   "strings" : {
+    "%@ › %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ › %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ › %2$@"
+          }
+        }
+      }
+    },
+    "%@ › %@（%lldページ目）" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ › %2$@（%3$lldページ目）"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ › %2$@ (page %3$lld)"
+          }
+        }
+      }
+    },
     "%@ が前面になりませんでした" : {
       "localizations" : {
         "en" : {
@@ -42,11 +74,22 @@
       }
     },
     "%@を離して実行" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Release %@ to run"
+          }
+        }
+      }
+    },
+    "2本指のスワイプでページを切り替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe with two fingers to change pages"
           }
         }
       }
@@ -249,6 +292,26 @@
         }
       }
     },
+    "fn" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fn"
+          }
+        }
+      }
+    },
+    "「%@」を実行中…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running “%@”…"
+          }
+        }
+      }
+    },
     "あとで読む" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -266,6 +329,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This license key isn't for Nonet."
+          }
+        }
+      }
+    },
+    "やめるときは指を置いたまま左の⇧を押す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To cancel, keep your finger down and press left ⇧"
           }
         }
       }
@@ -595,6 +668,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title"
+          }
+        }
+      }
+    },
+    "タップか %@を離して実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap, or release %@ to run"
           }
         }
       }
@@ -1132,6 +1215,16 @@
         }
       }
     },
+    "メニューバーの Nonet から購入・登録できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy Nonet or register a license key from its menu bar icon."
+          }
+        }
+      }
+    },
     "メニュー項目" : {
       "localizations" : {
         "en" : {
@@ -1302,6 +1395,16 @@
         }
       }
     },
+    "先に指を離してから%@を離すとやめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To cancel, lift your finger before releasing %@"
+          }
+        }
+      }
+    },
     "全体を検索" : {
       "localizations" : {
         "en" : {
@@ -1402,6 +1505,36 @@
         }
       }
     },
+    "右⇧" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⇧"
+          }
+        }
+      }
+    },
+    "右⌘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌘"
+          }
+        }
+      }
+    },
+    "右⌥" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "right ⌥"
+          }
+        }
+      }
+    },
     "定義へ移動" : {
       "localizations" : {
         "en" : {
@@ -1438,6 +1571,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back"
+          }
+        }
+      }
+    },
+    "指を滑らせて選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide to choose"
           }
         }
       }
@@ -1748,6 +1891,16 @@
         }
       }
     },
+    "滑らせずに離すとやめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift without sliding to cancel"
+          }
+        }
+      }
+    },
     "画面共有" : {
       "localizations" : {
         "en" : {
@@ -1908,12 +2061,45 @@
         }
       }
     },
+    "試用期間が終了しました。メニューバーの Nonet から購入・登録できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended. Buy Nonet or register a license key from its menu bar icon."
+          }
+        }
+      }
+    },
     "試用期間が終了しました。ライセンスを入力してください" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your trial has ended. Enter a license key."
+          }
+        }
+      }
+    },
+    "試用期間は残り%lld日です" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left in your trial"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left in your trial"
+                }
+              }
+            }
           }
         }
       }

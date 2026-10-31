@@ -4,7 +4,7 @@ import Testing
 @testable import NonetPlatform
 
 @Suite struct InputHapticTuningTests {
-    static let events: [HapticEvent] = [.boundary, .pageChange, .execute]
+    static let events: [HapticEvent] = [.boundary, .pageChange, .execute, .activation, .rejected]
 
     @Test(arguments: events)
     func offPlaysNothing(event: HapticEvent) {
@@ -29,10 +29,38 @@ import Testing
         }
     }
 
+    /// 種類ごとに強さか打つ回数が違い、どの強さでも指で見分けられる（境界・ページ・実行・受け付けなかった）
+    @Test(arguments: [HapticStrength.light, .medium, .strong])
+    func eachKindFeelsDifferentAtEveryStrength(strength: HapticStrength) {
+        let kinds: [HapticEvent] = [.boundary, .pageChange, .execute, .rejected]
+        let feels = kinds.map { event in
+            HapticTuning.pulses(for: event, strength: strength).map { "\($0.actuation.actuationID)@\($0.delay)" }
+        }
+        #expect(Set(feels).count == kinds.count)
+    }
+
+    @Test func pageChangesAndRejectionsAreTwoPulses() throws {
+        let page = HapticTuning.pulses(for: .pageChange, strength: .medium)
+        #expect(page.map(\.delay) == [0, 0.05])
+        #expect(page.map(\.actuation.actuationID) == [4, 4])
+        for strength in [HapticStrength.light, .medium, .strong] {
+            let rejected = HapticTuning.pulses(for: .rejected, strength: strength)
+            #expect(rejected.map(\.delay) == [0, 0.04])
+            #expect(rejected.map(\.actuation.actuationID) == [3, 3])
+            #expect(HapticTuning.pulses(for: .execute, strength: strength).count == 1)
+            #expect(HapticTuning.pulses(for: .boundary, strength: strength).count == 1)
+        }
+        #expect(HapticTuning.pulses(for: .rejected, strength: .off).isEmpty)
+        // 境界の強さ（弱 / 中 / 強）
+        #expect([HapticStrength.light, .medium, .strong].map { HapticTuning.actuation(for: .boundary, strength: $0)?.actuationID } == [3, 4, 5])
+        #expect([HapticStrength.light, .medium, .strong].map { HapticTuning.actuation(for: .execute, strength: $0)?.actuationID } == [4, 6, 6])
+    }
+
     @Test func fallbackPatterns() {
         #expect(HapticTuning.fallback(for: .boundary) == .alignment)
         #expect(HapticTuning.fallback(for: .pageChange) == .levelChange)
         #expect(HapticTuning.fallback(for: .execute) == .generic)
+        #expect(HapticTuning.fallback(for: .rejected) == .generic)
         #expect(HapticFallbackPattern.alignment.nsPattern == .alignment)
         #expect(HapticFallbackPattern.levelChange.nsPattern == .levelChange)
         #expect(HapticFallbackPattern.generic.nsPattern == .generic)
@@ -122,13 +150,57 @@ final class FakeHapticBackend: HapticBackend {
         var touched: UInt64?
     }
 
+    /// 2打目の予定（手で進める）
+    final class Pending {
+        var pulses: [(delay: TimeInterval, action: @MainActor () -> Void)] = []
+    }
+
     let backend = FakeHapticBackend()
     let clock = Clock()
+    let pending = Pending()
     let engine: HapticEngine
 
     init() {
         let clock = clock
-        engine = HapticEngine(backend: backend, clock: { clock.now }, lastTouchedDevice: { clock.touched })
+        let pending = pending
+        engine = HapticEngine(
+            backend: backend,
+            clock: { clock.now },
+            lastTouchedDevice: { clock.touched },
+            schedule: { delay, action in pending.pulses.append((delay, action)) }
+        )
+    }
+
+    /// 予定した2打目を打つ
+    private func firePending() {
+        let pulses = pending.pulses
+        pending.pulses = []
+        for pulse in pulses {
+            clock.now += pulse.delay
+            pulse.action()
+        }
+    }
+
+    @Test func aPageChangePlaysTheSecondPulseLaterEvenWithinTheRateLimit() throws {
+        engine.play(.pageChange, strength: .medium)
+        #expect(pending.pulses.map(\.delay) == [0.05])
+        let page = try #require(HapticTuning.actuation(for: .pageChange, strength: .medium)).actuationID
+        #expect(backend.calls == [.defaultDevice, .close, .open(1), .actuate(page)])
+        backend.clear()
+        firePending()
+        #expect(backend.calls == [.actuate(page)])
+    }
+
+    @Test func aRejectionIsTwoGentlePulses() throws {
+        engine.play(.rejected, strength: .strong)
+        firePending()
+        #expect(backend.calls == [.defaultDevice, .close, .open(1), .actuate(3), .actuate(3)])
+        backend.clear()
+        // 続けて鳴らしすぎない
+        clock.now += 0.01
+        engine.play(.rejected, strength: .strong)
+        #expect(backend.calls.isEmpty)
+        #expect(pending.pulses.isEmpty)
     }
 
     private func execute() throws -> Int32 {
@@ -196,6 +268,10 @@ final class FakeHapticBackend: HapticBackend {
         let page = try #require(HapticTuning.actuation(for: .pageChange, strength: .strong)).actuationID
         #expect(backend.calls == [.defaultDevice, .close, .open(1), .actuate(page), .close, .fallback(.levelChange)])
         #expect(engine.openDeviceID == nil)
+        // 2打目も同じく、開けなければ公開 API で鳴らす
+        backend.clear()
+        firePending()
+        #expect(backend.calls == [.close, .fallback(.levelChange)])
     }
 
     @Test func fallsBackWithoutAnyDevice() {

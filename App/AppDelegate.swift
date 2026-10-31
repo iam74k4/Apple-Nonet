@@ -58,7 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             services: services,
             store: ConfigurationStore(directory: configurationDirectory),
             hud: hud,
-            license: license
+            license: license,
+            guidance: makeGuidanceStore()
         )
         self.services = services
         self.hud = hud
@@ -153,6 +154,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         return OnboardingReminderPreference(defaults: .standard)
     }()
+
+    /// 使い始めの HUD の案内の回数と、試用期間の知らせの日付。設定の置き場所を分けたときは本物（UserDefaults）に書かない
+    private func makeGuidanceStore() -> any HUDGuidanceStoring {
+        #if DEBUG
+        if options.configDirectory != nil || options.simulateExpiredTrial {
+            return MemoryHUDGuidanceStore()
+        }
+        #endif
+        return UserDefaultsHUDGuidanceStore()
+    }
 
     private func makeLicenseManager() -> LicenseManager {
         let verifier = AppInfo.licensePublicKey.flatMap { try? LicenseVerifier(publicKeyBase64: $0) }

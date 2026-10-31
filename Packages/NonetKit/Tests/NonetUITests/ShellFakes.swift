@@ -210,7 +210,8 @@ final class ShellControllerHarness {
             services: services,
             store: ConfigurationStore(directory: directory),
             hud: ShellFakeHUD(),
-            license: self.license
+            license: self.license,
+            guidance: MemoryHUDGuidanceStore()
         )
     }
 

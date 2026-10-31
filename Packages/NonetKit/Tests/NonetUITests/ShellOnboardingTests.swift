@@ -571,7 +571,8 @@ struct ShellOnboardingTests {
             services: harness.services,
             store: ConfigurationStore(directory: harness.directory),
             hud: ShellFakeHUD(),
-            license: harness.license
+            license: harness.license,
+            guidance: MemoryHUDGuidanceStore()
         )
         relaunched.start()
         #expect(!relaunched.isFirstLaunch)

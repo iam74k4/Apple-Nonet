@@ -206,6 +206,11 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
             recorder.log(interruptsWithoutTrigger ? "keys:watch" : "keys:unwatch")
         }
     }
+    /// コントローラーが知らせた、トラックパッドに触れているか（知らされた順）
+    var isTrackpadTouched = false {
+        didSet { trackpadTouchReports.append(isTrackpadTouched) }
+    }
+    private(set) var trackpadTouchReports: [Bool] = []
     private(set) var isRunning = false
     /// start() で投げるもの（アクセシビリティの許可が無いときは別に permissionDenied を投げる）
     var startError: (any Error)?
@@ -434,6 +439,19 @@ final class ControllerFakeHUD: HUDPresenting {
     func showResult(_ result: ResultModel) {
         results.append(result)
         recorder.log("result")
+    }
+
+    private(set) var toastHides = 0
+    /// トリガーキーを押しているかの知らせ（知らされた順）
+    private(set) var triggerHeldChanges: [Bool] = []
+
+    func hideToast() {
+        toastHides += 1
+        recorder.log("toast:hide")
+    }
+
+    func setTriggerHeld(_ held: Bool) {
+        triggerHeldChanges.append(held)
     }
 }
 

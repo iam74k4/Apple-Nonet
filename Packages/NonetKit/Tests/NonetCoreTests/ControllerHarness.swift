@@ -53,16 +53,21 @@ final class ControllerHarness {
     let store: ConfigurationStore
     let clock = ControllerFakeClock(Date(timeIntervalSinceReferenceDate: 815_000_000))
     let licenseStorage = ControllerFakeLicenseStorage()
+    /// 使い始めの案内と試用期間の知らせの記録（UserDefaults に書かない）。既定は使い始めの案内を出し終えた人
+    /// （HUD の中身を比べるテストに案内が混ざらないように。案内のテストは hudSessionCount を 0 にする）
+    let guidance = MemoryHUDGuidanceStore(hudSessionCount: HUDGuidance.beginnerSessionLimit)
     let license: LicenseManager
     let controller: NonetController
     /// いま触れている指
     private var fingers: [Int: (x: Double, y: Double)] = [:]
 
     /// configuration を保存してから組み立てる（nil なら設定ファイルの無い初回起動）。
-    /// trialEnded なら試用期間が終わっている。licensed ならライセンスを登録済み。frontmost はトリガーを押すときの前面アプリ
+    /// trialEnded なら試用期間が終わっている。trialDaysUsed は試用を使った日数（残り日数の知らせを試す）。
+    /// licensed ならライセンスを登録済み。frontmost はトリガーを押すときの前面アプリ
     init(
         configuration: NonetConfiguration? = ControllerFixtures.configuration(),
         trialEnded: Bool = false,
+        trialDaysUsed: Double? = nil,
         licensed: Bool = false,
         isJISKeyboard: Bool = false,
         installed: Set<String> = [],
@@ -82,6 +87,8 @@ final class ControllerHarness {
         }
         if trialEnded {
             licenseStorage.trialStartDate = clock.now.addingTimeInterval(-30 * 86_400)
+        } else if let trialDaysUsed {
+            licenseStorage.trialStartDate = clock.now.addingTimeInterval(-trialDaysUsed * 86_400)
         }
         var verifier: LicenseVerifier?
         if licensed {
@@ -106,7 +113,7 @@ final class ControllerHarness {
             isJISKeyboard: isJISKeyboard,
             presetEnvironment: presetEnvironment
         )
-        controller = NonetController(services: services, store: store, hud: hud, license: license)
+        controller = NonetController(services: services, store: store, hud: hud, license: license, guidance: guidance)
     }
 
     deinit {

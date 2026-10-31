@@ -5,17 +5,17 @@ import NonetCore
 @Suite struct SessionEngineTimingTests {
     // MARK: 期限ちょうど
 
-    @Test func fingerLandingExactlyAtHudDelayIsNotAFastTap() {
+    @Test func fingerLandingExactlyAtThePlacementWindowIsNotAFastTap() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
         // 期限ちょうどは「過ぎた」とみなし、HUD を先に出してから指を受ける
-        #expect(s.touch(on: 4, at: 0.3) == [
+        #expect(s.touch(on: 4, at: 0.6) == [
             .showHUD(page: 0, highlightedCell: nil),
             .updateHUD(page: 0, highlightedCell: 4),
             .requestTick(at: 20),
         ])
-        #expect(s.lift(at: 0.35) == [.updateHUD(page: 0, highlightedCell: nil)])
-        #expect(s.log.executions.isEmpty)
+        // 速押しではなく、HUD でのタップ
+        #expect(s.lift(at: 0.65) == [.hideHUD, .execute(page: 0, cell: 4, wasFastTap: false)])
     }
 
     @Test func fingerLiftingExactlyAtHudDelayShowsTheHUDInsteadOfTapping() {
@@ -41,15 +41,22 @@ import NonetCore
         ])
     }
 
-    @Test func zeroHudDelayShowsTheHUDImmediately() {
-        var s = SessionScenario(hudDelay: 0)
+    @Test func zeroDelaysShowTheHUDImmediately() {
+        var s = SessionScenario(SessionConfiguration(hudDelay: 0, placementWindow: 0))
         #expect(s.pressTrigger(at: 0) == [
             .beginPointerSuppression,
             .showHUD(page: 0, highlightedCell: nil),
             .requestTick(at: 20),
         ])
+        // 速押しではないが、HUD でのタップ
         s.touch(on: 2, at: 0.01)
-        #expect(s.lift(at: 0.02).executions.isEmpty)
+        #expect(s.lift(at: 0.02).executions == [.execute(page: 0, cell: 2, wasFastTap: false)])
+    }
+
+    /// hudDelay を 0 にしても、指を置かないときの placementWindow は別
+    @Test func zeroHudDelayKeepsThePlacementWindow() {
+        var s = SessionScenario(hudDelay: 0)
+        #expect(s.pressTrigger(at: 0) == [.beginPointerSuppression, .requestTick(at: 0.6)])
     }
 
     @Test func zeroHudDelayHighlightsARestingFingerImmediately() {
@@ -123,9 +130,9 @@ import NonetCore
     @Test func earlyTickRequestsTheSameDeadlineAgain() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        #expect(s.tick(at: 0.29) == [.requestTick(at: 0.3)])
+        #expect(s.tick(at: 0.59) == [.requestTick(at: 0.6)])
         #expect(s.engine.hud == nil)
-        #expect(s.tick(at: 0.3).showsHUD)
+        #expect(s.tick(at: 0.6).showsHUD)
     }
 
     @Test func lateTickStillShowsTheHUD() {
@@ -144,7 +151,7 @@ import NonetCore
             time += 0.02
             #expect(s.touch(on: cell, at: time).tickRequests.isEmpty)
         }
-        #expect(s.log.tickRequests == [0.3, 0.1 + 0.3, 20])
+        #expect(s.log.tickRequests == [0.6, 0.1 + 0.3, 20])
     }
 
     @Test func tickAfterTheSessionEndedDoesNothing() {
@@ -177,7 +184,7 @@ import NonetCore
         var s = SessionScenario()
         #expect(s.send(.triggerDown(at: .nan, configuration: SessionConfiguration())) == [
             .beginPointerSuppression,
-            .requestTick(at: 0.3),
+            .requestTick(at: 0.6),
         ])
     }
 
@@ -218,8 +225,8 @@ import NonetCore
         #expect(s.touch(1, x: 0.2, y: 0.5, at: 0.15).isEmpty)
         #expect(s.touch(2, x: 0.4, y: 0.5, at: 0.16).isEmpty)
         #expect(s.setFingers([(1, 0.0, 0.5), (2, 0.2, 0.5)], at: 0.18).isEmpty)
-        // 2本目が触れたので実行しない
-        #expect(s.liftAll(at: 0.2) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
+        // 2本目が触れたので実行しない。受け付けなかったことは触覚で知らせる
+        #expect(s.liftAll(at: 0.2) == [.haptic(.rejected), .endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
     }
 
     @Test func secondTriggerReleaseWhileWaitingIsIgnored() {
@@ -255,20 +262,21 @@ import NonetCore
     @Test func releasingInTheHUDWithAJustPlacedFingerExecutesOnceAndWaitsForTheLift() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
-        s.touch(on: 4, at: 0.35)
-        #expect(s.releaseTrigger(at: 0.4).visible == [.hideHUD, .execute(page: 0, cell: 4, wasFastTap: false)])
-        #expect(s.lift(at: 0.45) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
+        s.tick(at: 0.6)
+        s.touch(on: 4, at: 0.65)
+        #expect(s.releaseTrigger(at: 0.7).visible == [.hideHUD, .execute(page: 0, cell: 4, wasFastTap: false)])
+        // HUD でのタップとして2回目を実行しない
+        #expect(s.lift(at: 0.75) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.released)])
         #expect(s.log.executions.count == 1)
     }
 
     @Test func cancellingInTheHUDWithAJustPlacedFingerKeepsTheCancelReason() {
         var s = SessionScenario(fireMode: .onFingerLift)
         s.pressTrigger(at: 0)
-        s.tick(at: 0.3)
-        s.touch(on: 4, at: 0.35)
-        #expect(s.releaseTrigger(at: 0.4).visible == [.hideHUD])
-        #expect(s.lift(at: 0.45) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
+        s.tick(at: 0.6)
+        s.touch(on: 4, at: 0.65)
+        #expect(s.releaseTrigger(at: 0.7).visible == [.hideHUD])
+        #expect(s.lift(at: 0.75) == [.endPointerSuppression(dropsLateClicks: true), .sessionEnded(.cancelled)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -294,9 +302,9 @@ import NonetCore
         s.touch(on: 0, at: 0.02)
         s.lift(at: 0.04)
         s.releaseTrigger(at: 0.05)
-        #expect(s.pressTrigger(at: 0.1) == [.beginPointerSuppression, .requestTick(at: 0.1 + 0.3)])
+        #expect(s.pressTrigger(at: 0.1) == [.beginPointerSuppression, .requestTick(at: 0.1 + 0.6)])
         // 前のセッションで実行していても、新しいセッションでは (a) で HUD が出る
-        #expect(s.tick(at: 0.1 + 0.3).visible == [.showHUD(page: 0, highlightedCell: nil)])
+        #expect(s.tick(at: 0.1 + 0.6).visible == [.showHUD(page: 0, highlightedCell: nil)])
     }
 
     @Test func rapidRePressWhileTheFingerIsStillDownTreatsItAsAlreadyResting() {
@@ -310,7 +318,8 @@ import NonetCore
             .beginPointerSuppression,
             .requestTick(at: 0.2 + 0.3),
         ])
-        #expect(s.lift(at: 0.25).isEmpty)
+        // 速押しにしない。指が無くなったので、HUD は (a) の時刻に出す
+        #expect(s.lift(at: 0.25) == [.requestTick(at: 0.2 + 0.6)])
         #expect(s.log.executions.isEmpty)
     }
 
@@ -326,7 +335,7 @@ import NonetCore
             .endPointerSuppression(dropsLateClicks: false),
             .sessionEnded(.interrupted),
             .beginPointerSuppression,
-            .requestTick(at: 1 + 0.3),
+            .requestTick(at: 1 + 0.6),
         ])
         #expect(s.engine.pageIndex == 0)
         #expect(s.engine.hud == nil)
@@ -336,8 +345,8 @@ import NonetCore
         var s = SessionScenario(fireMode: .onTriggerRelease, pageCount: 1)
         s.pressTrigger(at: 0)
         s.releaseTrigger(at: 0.1)
-        s.configuration = SessionConfiguration(hudDelay: 0.5, fireMode: .onFingerLift, pageCount: 2)
-        #expect(s.pressTrigger(at: 1).tickRequests == [1 + 0.5])
+        s.configuration = SessionConfiguration(hudDelay: 0.5, placementWindow: 0.7, fireMode: .onFingerLift, pageCount: 2)
+        #expect(s.pressTrigger(at: 1).tickRequests == [1 + 0.7])
         s.touch(on: 3, at: 1.1)
         s.tick(at: 1.1 + 0.5)
         #expect(s.lift(at: 1.7).visible == [.hideHUD, .execute(page: 0, cell: 3, wasFastTap: false)])

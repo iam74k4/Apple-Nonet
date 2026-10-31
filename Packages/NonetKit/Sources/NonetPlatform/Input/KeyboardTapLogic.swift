@@ -464,6 +464,58 @@ struct PointerSuppressor {
     }
 }
 
+/// 抑止中のポインタのイベントが、トラックパッドではなくマウスやホイールのものか（docs/architecture.md §5「マウスとホイール」）。
+/// トラックパッドに触れていない間に届いた押す・スクロール・移動はマウスやホイールのものとみなし、セッションを終えて
+/// そのまま前面アプリに渡す（右⌘を押しながらのマウスでの⌘クリックやホイールでの拡大を飲み込まないように）。
+/// 指を離した直後は、そのタッチの「タップでクリック」・慣性のスクロール・最後の移動が遅れて届くので見分けない
+struct TrackpadContact: Equatable {
+    /// 指が離れてから、届いたイベントをまだトラックパッドのものとみなす秒数（SessionEngine.lateClickWindow と同じ）
+    static let releaseGrace: TimeInterval = 0.5
+
+    /// トラックパッドに触れているか（NonetController が指のフレームから知らせる）
+    private(set) var isTouched = false
+    /// 一度でも知らされたか。知らされていない間（指の位置を読まない実装・テスト）は見分けない
+    private(set) var isKnown = false
+    /// 最後に指が離れた時刻
+    private var releasedAt: TimeInterval?
+
+    mutating func update(isTouched touched: Bool, at now: TimeInterval) {
+        isKnown = true
+        guard touched != isTouched else { return }
+        isTouched = touched
+        if !touched {
+            releasedAt = now
+        }
+    }
+
+    /// event がマウスやホイールのものとみなせるか
+    func isFromAnotherDevice(_ event: PointerEventInfo, now: TimeInterval) -> Bool {
+        guard isKnown, !isTouched else { return false }
+        if let releasedAt, now - releasedAt < Self.releaseGrace { return false }
+        let type = event.type
+        if PointerEventKind.downButton(type, buttonNumber: event.buttonNumber) != nil { return true }
+        if PointerEventKind.isMove(type) { return true }
+        if type == PointerEventKind.scrollWheel {
+            // 慣性のスクロールは、トラックパッドから指を離した後もしばらく届く
+            return event.momentumPhase == 0
+        }
+        return false
+    }
+}
+
+/// ポインタのタップが無効にされたときにすること
+enum PointerTapDisableResponse: Equatable {
+    /// 自分で無効にした（CGEvent.tapEnable(false) の後に、macOS が tapDisabledByUserInput を届ける）。何もしない
+    case ignore
+    /// 無効にされた間のイベントを取りこぼしたかもしれない。片付けの対象にし、有効にしておくはずなら有効にし直す
+    case recover
+
+    /// isPointerTapEnabled は、Nonet がポインタのタップを有効にしておくつもりか
+    static func response(to type: CGEventType, isPointerTapEnabled: Bool) -> PointerTapDisableResponse {
+        type == .tapDisabledByUserInput && !isPointerTapEnabled ? .ignore : .recover
+    }
+}
+
 /// CursorLockMethod ごとにすること
 struct CursorLockPlan: Equatable {
     /// 移動・ドラッグのイベントを捨てる
