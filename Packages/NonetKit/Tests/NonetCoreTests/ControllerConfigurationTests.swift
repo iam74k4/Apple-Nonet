@@ -76,7 +76,7 @@ import Testing
         let notice = try #require(h.controller.notice)
         // readFailed の説明は理由を含まないので、知らせの文全体を比べられる
         let reason = try #require(ConfigurationStoreError.readFailed(reason: "").errorDescription)
-        #expect(notice == ModelFixtures.text("\(reason)。Nonet を終了するまで、設定の変更は保存されません"))
+        #expect(notice == ModelFixtures.text("\(reason)。Nonet を終了するまで、設定の変更は保存されません。"))
         // 初期の設定のまま動く
         #expect(h.controller.status == .running)
         #expect(h.controller.configuration.settings.trigger == .rightOption)

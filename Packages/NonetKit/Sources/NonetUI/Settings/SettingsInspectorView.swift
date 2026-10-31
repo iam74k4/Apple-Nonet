@@ -45,7 +45,7 @@ struct SettingsEmptyCellChooser: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("このマスは空いています。アクションの種類を選んでください", bundle: .module)
+            Text("このマスは空いています。アクションの種類を選んでください。", bundle: .module)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

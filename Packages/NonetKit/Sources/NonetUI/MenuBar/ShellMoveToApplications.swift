@@ -96,7 +96,7 @@ public enum ShellMoveToApplications {
         if plan == .confirmReplace {
             guard ask(
                 String(localized: "アプリケーションフォルダの Nonet を置き換えますか？", bundle: .module),
-                String(localized: "アプリケーションフォルダにある Nonet（\(versionText(of: destination))）をゴミ箱に入れ、この Nonet（\(versionText(of: source))）に置き換えます。", bundle: .module),
+                String(localized: "アプリケーションフォルダにある Nonet（\(versionText(of: destination))）をゴミ箱に入れ、この Nonet（\(versionText(of: source))）に置き換えます", bundle: .module),
                 buttons: [String(localized: "置き換える", bundle: .module), String(localized: "キャンセル", bundle: .module)]
             ) else { return false }
         }
@@ -238,7 +238,7 @@ public enum ShellMoveToApplications {
     private static func explainManualMove() {
         _ = ask(
             String(localized: "アプリケーションフォルダに移せませんでした", bundle: .module),
-            String(localized: "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください。", bundle: .module),
+            String(localized: "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください", bundle: .module),
             buttons: [String(localized: "OK", bundle: .module)]
         )
     }

@@ -142,7 +142,7 @@ public enum NonetError: Error, Equatable, LocalizedError, Sendable {
             reason
         case .licenseRequired:
             // HUD は押せないので、次にすることのある場所（メニューバーの Nonet）を言う
-            String(localized: "試用期間が終了しました。メニューバーの Nonet から購入・登録できます", bundle: .module)
+            String(localized: "試用期間が終了しました。メニューバーの Nonet から購入・登録できます。", bundle: .module)
         }
     }
 }

@@ -63,7 +63,8 @@ struct OnboardingView: View {
                 }
                 .toggleStyle(.checkbox)
             } else if model.isAccessibilityGranted {
-                Text("許可されています。次へ進んでください", bundle: .module)
+                // 「許可されています」はカードの印に出ているので繰り返さない
+                Text("次へ進んでください", bundle: .module)
             } else {
                 Text("許可すると、自動で次へ進みます", bundle: .module)
             }
@@ -247,7 +248,7 @@ struct OnboardingWelcomeStep: View {
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 6) {
                     OnboardingBullet(Text("トリガーキーが押された・離されたことを知る", bundle: .module))
-                    OnboardingBullet(Text("トリガーキーを押している間、カーソルの移動とクリックを前面のアプリに渡さない", bundle: .module))
+                    OnboardingBullet(Text("トリガーキーを押している間、ポインタの移動とクリックを前面のアプリに渡さない", bundle: .module))
                     OnboardingBullet(Text("設定したキー入力を送る・メニュー項目を押す・選択中のテキストを読む", bundle: .module))
                 }
                 Text("入力した文字の内容は記録も送信もしません。設定は Mac の中だけに保存します。", bundle: .module)
@@ -410,9 +411,9 @@ struct OnboardingAppsStep: View {
         } label: {
             allSelected ? Text("すべて外す", bundle: .module) : Text("すべて選ぶ", bundle: .module)
         }
-        .buttonStyle(.plain)
+        // 文字だけだと見出しの一部に見えるので、押せると分かるリンクの見た目にする
+        .buttonStyle(.link)
         .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(Color.primary.opacity(0.8))
         .fixedSize()
     }
 }
@@ -466,6 +467,8 @@ struct OnboardingAppCard: View {
                         selectionMark
                     }
                 }
+                // 名前が2行のカードがあっても、同じ行のカードの説明の高さをそろえる（説明をカードの下に寄せる）
+                Spacer(minLength: 0)
                 Text(choice.summary)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)

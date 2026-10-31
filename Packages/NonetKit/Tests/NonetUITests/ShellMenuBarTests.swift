@@ -153,7 +153,7 @@ struct ShellMenuBarTests {
 
     @Test("ライセンスの行")
     func licenseText() {
-        #expect(MenuBarModel.licenseText(for: .trial(daysLeft: 3)) == L10n.ui("試用期間: 残り \(3) 日"))
+        #expect(MenuBarModel.licenseText(for: .trial(daysLeft: 3)) == L10n.ui("試用期間：残り\(3)日"))
         #expect(MenuBarModel.licenseText(for: .expired) == L10n.ui("試用期間が終了しました"))
         let info = LicenseInfo(licenseID: "1", licensee: "山田", email: nil, issuedAt: Date(timeIntervalSince1970: 0))
         #expect(MenuBarModel.licenseText(for: .licensed(info)) == L10n.ui("登録済み"))
@@ -168,7 +168,7 @@ struct ShellMenuBarTests {
     func licenseTextPlural() {
         for days in [1, 2] {
             #expect(MenuBarModel.licenseText(for: .trial(daysLeft: days))
-                == String(localized: "試用期間: 残り \(days) 日", bundle: .nonetUI, locale: Self.textLanguage))
+                == String(localized: "試用期間：残り\(days)日", bundle: .nonetUI, locale: Self.textLanguage))
         }
     }
 
@@ -196,7 +196,7 @@ struct ShellMenuBarTests {
             .turnOffInApp(xcode, isOn: false),
             .showOnboarding,
             .separator,
-            .trialInfo(L10n.ui("試用期間: 残り \(12) 日")),
+            .trialInfo(L10n.ui("試用期間：残り\(12)日")),
             .enterLicenseKey,
             .separator,
             .quit,
@@ -212,7 +212,7 @@ struct ShellMenuBarTests {
             .showOnboarding,
             .userGuide,
             .separator,
-            .trialInfo(L10n.ui("試用期間: 残り \(12) 日")),
+            .trialInfo(L10n.ui("試用期間：残り\(12)日")),
             .purchase,
             .enterLicenseKey,
             .separator,
@@ -292,13 +292,13 @@ struct ShellMenuBarTests {
         #expect(MenuBarEntry.toggleEnabled(isOn: true).title == L10n.ui("Nonet を有効にする"))
         #expect(MenuBarEntry.openSettings.title == L10n.ui("設定…"))
         #expect(MenuBarEntry.editButtons(.app(AppReference(bundleID: ShellFixtures.xcode, name: "Xcode"), name: "Xcode")).title
-            == L10n.ui("\("Xcode") のボタンを編集…"))
+            == L10n.ui("\("Xcode") のマスを編集…"))
         #expect(MenuBarEntry.editButtons(.newApp(AppReference(bundleID: "com.apple.iWork.Pages", name: "Pages"))).title
-            == L10n.ui("\("Pages") のボタンを作る…"))
+            == L10n.ui("\("Pages") のマスを作る…"))
         // 名前が分からなければ bundle ID
         #expect(MenuBarEntry.editButtons(.newApp(AppReference(bundleID: "com.example.app", name: " "))).title
-            == L10n.ui("\("com.example.app") のボタンを作る…"))
-        #expect(MenuBarEntry.editButtons(.global).title == L10n.ui("グローバルのボタンを編集…"))
+            == L10n.ui("\("com.example.app") のマスを作る…"))
+        #expect(MenuBarEntry.editButtons(.global).title == L10n.ui("グローバルのマスを編集…"))
         #expect(MenuBarEntry.showOnboarding.title == L10n.ui("初回の案内をもう一度"))
         #expect(MenuBarEntry.userGuide.title == L10n.ui("利用ガイド"))
         #expect(MenuBarEntry.purchase.title == L10n.ui("Nonet を購入…"))
@@ -362,7 +362,7 @@ struct ShellMenuBarTests {
             #expect(app.sendAction(try #require(item.action), to: item.target, from: item))
         }
         try press(L10n.ui("設定…"))
-        try press(L10n.ui("\("Pages") のボタンを作る…"))
+        try press(L10n.ui("\("Pages") のマスを作る…"))
         try press(L10n.ui("初回の案内をもう一度"))
         try press(L10n.ui("利用ガイド"))
         try press(L10n.ui("Nonet を購入…"))
@@ -374,7 +374,7 @@ struct ShellMenuBarTests {
         #expect(onboarding == 1)
         #expect(updates == 1)
         // 試用期間の行は知らせだけ（押せない）
-        #expect(menu.items.first { $0.title == L10n.ui("試用期間: 残り \(14) 日") }?.isEnabled == false)
+        #expect(menu.items.first { $0.title == L10n.ui("試用期間：残り\(14)日") }?.isEnabled == false)
         try press(L10n.ui("Nonet を有効にする"))
         #expect(!harness.controller.configuration.settings.isEnabled)
 
@@ -382,7 +382,7 @@ struct ShellMenuBarTests {
         menuBar.onEditButtons = nil
         menuBar.frontmostApp = nil
         menu.delegate?.menuNeedsUpdate?(menu)
-        try press(L10n.ui("グローバルのボタンを編集…"))
+        try press(L10n.ui("グローバルのマスを編集…"))
         #expect(opened == [.general, .license, .profiles])
     }
 

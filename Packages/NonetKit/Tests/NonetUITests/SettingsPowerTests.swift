@@ -43,9 +43,9 @@ private func pasteboard() -> NSPasteboard {
         var profile = try #require(h.xcodeProfile)
         #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) が前面にあるときに使う9マス"))
         profile.mode = .global
-        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) ではグローバルのボタンを使います。このプロファイルのボタンは残しています"))
+        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) ではグローバルのマスを使います。このプロファイルのマスは残しています。"))
         profile.mode = .off
-        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます"))
+        #expect(SettingsText.profileDescription(profile) == L10n.ui("\(profile.name) では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます。"))
         #expect(SettingsText.name(ProfileMode.off) == L10n.ui("このアプリでは Nonet を使わない"))
         #expect(SettingsProfileRow.badge(.profile) == nil)
         #expect(SettingsProfileRow.badge(.off) == L10n.ui("オフ"))
@@ -118,8 +118,8 @@ private func pasteboard() -> NSPasteboard {
     }
 
     @Test func theDialogsNoLongerSayItCannotBeUndone() {
-        #expect(!L10n.ui("このプロファイルのボタンもすべて削除します。⌘Z で元に戻せます。").isEmpty)
-        #expect(L10n.ui("このプロファイルのボタンもすべて削除します。⌘Z で元に戻せます。") != L10n.ui("このプロファイルの9マスはすべて消えます。元に戻せません。"))
+        #expect(!L10n.ui("このプロファイルのマスもすべて削除します。⌘Z で元に戻せます。").isEmpty)
+        #expect(L10n.ui("このプロファイルのマスもすべて削除します。⌘Z で元に戻せます。") != L10n.ui("このプロファイルの9マスはすべて消えます。元に戻せません。"))
     }
 }
 
@@ -130,7 +130,7 @@ private func pasteboard() -> NSPasteboard {
         h.model.changeKind(ofCell: safari.id, to: .openURL)
         h.model.updateAction(ofCell: safari.id, as: URLAction.self) { $0.url = "https://example.com" }
         h.model.updateCell(id: safari.id) { $0.icon = .symbol("link") }
-        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの変更"))
         h.model.undoManager.undo()
         #expect(cell(h, 0) == safari)
         #expect(!h.model.undoManager.canUndo)
@@ -175,7 +175,7 @@ private func pasteboard() -> NSPasteboard {
         #expect(!h.model.undoManager.canUndo)
         h.model.isEditingText = { false }
         h.model.textEditingDidEnd()
-        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの変更"))
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの変更"))
         h.model.undoManager.undo()
         #expect(cell(h, 0) == safari)
     }
@@ -315,14 +315,14 @@ private func pasteboard() -> NSPasteboard {
         #expect(pasted.title == safari.title)
         #expect(pasted.action == safari.action)
         #expect(h.model.undoNotice == nil)
-        #expect(h.model.undoManager.undoActionName == L10n.ui("ボタンの貼り付け"))
+        #expect(h.model.undoManager.undoActionName == L10n.ui("マスの貼り付け"))
 
         // 中身のあるマスに貼ると置き換え、グリッドの下から戻せる
         let terminal = try #require(cell(h, 2))
         h.model.selectCell(2)
         h.model.pasteCell(at: 2, from: board)
         #expect(cell(h, 2)?.title == safari.title)
-        #expect(h.model.undoNotice?.text == L10n.ui("マスの中身を貼り付けたボタンで置き換えました"))
+        #expect(h.model.undoNotice?.text == L10n.ui("マスを貼り付けたもので置き換えました"))
         h.model.undoFromNotice()
         #expect(cell(h, 2) == terminal)
 
@@ -353,7 +353,7 @@ private func pasteboard() -> NSPasteboard {
         let xcode = try #require(h.xcodeProfile)
         #expect(xcode.pages.allSatisfy { $0.cells.allSatisfy { $0 != nil } })
         h.model.copyCell(at: 0, toProfile: xcode.id)
-        #expect(h.model.gridMessage == L10n.ui("「\(xcode.name)」に空いているマスがありません。マスを空けるか、ページを追加してください"))
+        #expect(h.model.gridMessage == L10n.ui("「\(xcode.name)」に空いているマスがありません。マスを空けるか、ページを追加してください。"))
     }
 }
 
@@ -456,6 +456,18 @@ private func pasteboard() -> NSPasteboard {
         #expect(h.model.searchResults.isEmpty)
         h.model.profileQuery = "  "
         #expect(h.model.searchResults == SettingsSearchResults())
+    }
+
+    /// アプリ起動のマスのグリッドの説明は種類の名前だけになったが、開くアプリの名前でも見つかる
+    @Test func searchingFindsLaunchAppCellsByAppName() throws {
+        var configuration = NonetConfiguration(profiles: []).validated()
+        let global = configuration.globalProfile.id
+        var cell = SettingsFixtures.launch(SettingsFixtures.safari)
+        cell.title = "ウェブ"
+        configuration.setCell(cell, at: CellAddress(page: 0, index: 0), profileID: global)
+        let results = SettingsProfileSearch.results(for: "safari", in: configuration)
+        #expect(results.cells.map { $0.title } == ["ウェブ"])
+        #expect(results.cells.first?.detail == L10n.ui("アプリ起動"))
     }
 }
 

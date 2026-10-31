@@ -1,11 +1,11 @@
 // 担当: ui-shell
-// 初回の案内の後半: 角の長押しを試す・完了の画面（こつ・試用期間・ログイン時に起動）・起動したときの許可の案内
+// 初回の案内の後半: 角に指を置く呼び出しを試す・完了の画面（こつ・試用期間・ログイン時に起動）・起動したときの許可の案内
 import Foundation
 import NonetCore
 @testable import NonetUI
 import Testing
 
-@Suite("初回起動（角の長押し・完了・許可の案内）")
+@Suite("初回起動（角に指を置く呼び出し・完了・許可の案内）")
 @MainActor
 struct ShellOnboardingFinishTests {
     typealias Base = ShellOnboardingTests
@@ -24,9 +24,9 @@ struct ShellOnboardingFinishTests {
         return (model, harness)
     }
 
-    // MARK: - 角の長押し
+    // MARK: - 角に指を置く呼び出し
 
-    @Test("練習ができたら角の長押しを紹介する。「試してみる」で選んだ角の設定をオンにし、HUD から実行できたら知らせる")
+    @Test("練習ができたら角に指を置く呼び出しを紹介する。「試してみる」で選んだ角の設定をオンにし、HUD から実行できたら知らせる")
     func cornerTrial() throws {
         let clock = Base.Clock()
         let recorder = Base.Recorder()
@@ -40,14 +40,14 @@ struct ShellOnboardingFinishTests {
         #expect(harness.controller.configuration.settings.touchActivation == .topLeft)
         #expect(model.cornerTrial == .trying(.topLeft))
         #expect(ShellText.cornerTrialInstruction(.topLeft)
-            == L10n.ui("\(HUDAnnouncement.attributivePositionName(0))の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します"))
+            == L10n.ui("\(HUDAnnouncement.attributivePositionName(0))の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します。"))
 
-        // すぐにタップしたもの（角の長押しではない）は数えない
+        // すぐにタップしたもの（角に指を置く呼び出しではない）は数えない
         model.handleExecution(ShellFixtures.record(index: 4, date: clock.now.addingTimeInterval(3), fastTap: true))
         #expect(model.cornerTrial == .trying(.topLeft))
         model.handleExecution(ShellFixtures.record(index: 4, date: clock.now.addingTimeInterval(4), fastTap: false))
         #expect(model.cornerTrial == .succeeded(.topLeft))
-        #expect(recorder.announcements.last == L10n.ui("できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます"))
+        #expect(recorder.announcements.last == L10n.ui("できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます。"))
         // 試し終えても設定はそのまま
         #expect(harness.controller.configuration.settings.touchActivation == .topLeft)
     }
@@ -74,18 +74,18 @@ struct ShellOnboardingFinishTests {
 
     // MARK: - 完了
 
-    @Test("完了の画面のこつ: ボタンを変えるメニューの項目・角の長押し・HUD での実行のしかた")
+    @Test("完了の画面のこつ: マスを変えるメニューの項目・角に指を置く呼び出し・HUD での実行のしかた")
     func doneTips() throws {
         let (model, harness) = Base.make(frontmost: ShellFixtures.running(ShellFixtures.xcode, name: "Xcode"))
+        // 案内のウインドウの裏にあるアプリ（ここでは Xcode）の名前は出さない
         let xcodeName = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)).name
-        let menuTitle = L10n.ui("\(xcodeName) のボタンを編集…")
-        #expect(model.editButtonsTitle == menuTitle)
-        #expect(ShellText.doneEditTip(model.editButtonsTitle)
-            == L10n.ui("メニューバーの 3×3 のアイコン ›「\(menuTitle)」で、いま使っているアプリのボタンを変えられます"))
+        #expect(ShellText.doneEditTip
+            == L10n.ui("メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます"))
+        #expect(!ShellText.doneEditTip.contains(xcodeName))
         #expect(ShellText.doneCornerTip(.off)
-            == L10n.ui("設定 › 一般 の「トラックパッドだけで呼び出す」をオンにすると、トラックパッドの角を押したまま少し待つだけで HUD が出ます"))
+            == L10n.ui("設定 › 一般 の「トラックパッドだけで呼び出す」で角を選ぶと、トラックパッドの角に指を置いて少し待つだけで HUD が出ます"))
         #expect(ShellText.doneCornerTip(.topRight)
-            == L10n.ui("トラックパッドの\(HUDAnnouncement.attributivePositionName(2))の角を押したまま少し待つと、HUD が出ます。設定 › 一般 で変えられます"))
+            == L10n.ui("トラックパッドの\(HUDAnnouncement.attributivePositionName(2))の角に指を置いて少し待つと、HUD が出ます。設定 › 一般 で変えられます。"))
         #expect(ShellText.doneHUDTip(.onTriggerRelease)
             == L10n.ui("キーを押したまま指を置いて止めると、HUD（9マスの一覧）が出ます。指を滑らせて選び、指を置いたままキーを離すと実行します。慣れたら、すぐにタップするだけで実行できます。"))
         #expect(ShellText.doneHUDTip(.onFingerLift)
@@ -101,7 +101,7 @@ struct ShellOnboardingFinishTests {
         let language = Locale(identifier: Bundle.nonetUI.preferredLocalizations.first ?? "ja")
         for days in [1, 14] {
             #expect(ShellText.trialNote(daysLeft: days)
-                == String(localized: "試用期間はあと\(days)日です。購入はメニューバーからいつでもできます", bundle: .nonetUI, locale: language))
+                == String(localized: "試用期間はあと\(days)日です。購入はメニューバーからいつでもできます。", bundle: .nonetUI, locale: language))
         }
         let now = ShellControllerHarness.now
         let expired = LicenseManager(

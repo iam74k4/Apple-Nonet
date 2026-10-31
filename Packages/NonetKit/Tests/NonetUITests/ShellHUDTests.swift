@@ -196,6 +196,41 @@ struct ShellHUDTests {
         #expect(!hud.isShowingHUD)
     }
 
+    @Test("視差効果を減らす: メニューバーのアイコンは点滅させず、一度だけ光らせたままにする")
+    func calloutPulseRespectsReduceMotion() {
+        #expect(MenuBarCallout.pulsePlan(reduceMotion: false) == MenuBarCallout.PulsePlan(steps: 6, interval: 0.25))
+        // 2回の切り替え = 光って、steadyHighlightDuration の後に消える
+        let steady = MenuBarCallout.pulsePlan(reduceMotion: true)
+        #expect(steady == MenuBarCallout.PulsePlan(steps: 2, interval: MenuBarCallout.steadyHighlightDuration))
+        #expect(steady.interval >= 1)
+    }
+
+    @Test("視差効果を減らす: HUD とトーストはフェードせずにすぐ隠す")
+    func faderSkipsFadeWithReduceMotion() {
+        let panel = HUDOverlayPanel()
+        let fader = HUDPanelFader(panel: panel, reduceMotion: { true })
+        fader.show()
+        var hidden = false
+        fader.hide { hidden = true }
+        #expect(hidden)
+        #expect(!fader.isShowing)
+        #expect(!fader.isFading)
+        #expect(!panel.isVisible)
+
+        // ふだんは、見えているパネルを短くフェードしてから隠す
+        let animated = HUDPanelFader(panel: HUDOverlayPanel(), reduceMotion: { false })
+        animated.show()
+        var animatedHidden = false
+        let wasVisible = animated.panel.isVisible
+        animated.hide { animatedHidden = true }
+        if wasVisible {
+            #expect(animated.isFading)
+            #expect(!animatedHidden)
+        }
+        animated.hideImmediately()
+        #expect(!animated.isFading)
+    }
+
     @Test("出していない HUD の update と hide は何もしない")
     func updateBeforeShow() {
         let hud = HUDWindowController(screens: { [ShellHUDPlacementTests.main] }, mouseLocation: { CGPoint(x: 100, y: 100) })

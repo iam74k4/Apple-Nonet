@@ -332,14 +332,12 @@ private struct HUDPageIndicator: View {
                     .frame(width: metrics.dotSize, height: metrics.dotSize)
                     .padding(.leading, HUDPageDots.leadingSpace(before: page, globalPagesStart: globalPagesStart, metrics: metrics))
             }
-            Text(verbatim: "\(pageIndex + 1) / \(pageCount)")
-                .font(.system(size: metrics.detailFontSize).monospacedDigit())
-                .foregroundStyle(colors.secondaryText)
-                .padding(.leading, 14 * metrics.scale)
         }
         .frame(height: metrics.pageIndicatorHeight)
+        // 見るのは点だけ（「1 / 3」を並べると同じことを2回言う）。何ページ目かは VoiceOver の値で読む
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(HUDAnnouncement.pageDescription(pageIndex: pageIndex, pageCount: pageCount)))
+        .accessibilityLabel(Text("ページ", bundle: .module))
+        .accessibilityValue(Text(HUDAnnouncement.pageDescription(pageIndex: pageIndex, pageCount: pageCount)))
     }
 }
 

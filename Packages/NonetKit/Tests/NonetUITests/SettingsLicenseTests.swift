@@ -53,10 +53,10 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         #expect(day == end.formatted(.dateTime.month(.wide).day().locale(english)))
         #expect(day.contains("November"))
         let summary = SettingsText.summary(.trial(daysLeft: 14), trialEnd: end, locale: english)
-        #expect(summary.title == L10n.uiCounted("試用期間中（残り \(14) 日・\(day)まで）"))
+        #expect(summary.title == L10n.uiCounted("試用期間中（残り\(14)日・\(day)まで）"))
         #expect(summary.title.contains(day))
         // 終わる日が分からなければ、日数だけ
-        #expect(SettingsText.summary(.trial(daysLeft: 14)).title == L10n.uiCounted("試用期間中（残り \(14) 日）"))
+        #expect(SettingsText.summary(.trial(daysLeft: 14)).title == L10n.uiCounted("試用期間中（残り\(14)日）"))
     }
 
     /// エラーには次にすることを書く。公開鍵の無いビルドでは開発者の言葉を使わない
@@ -121,7 +121,7 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         h.model.copyToPasteboard = { copied.append($0) }
         h.model.copyLicenseKey()
         #expect(copied == [signed.key])
-        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("ライセンスキーをコピーしました。"), isError: false))
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("ライセンスキーをコピーしました"), isError: false))
 
         h.model.setEnteringAnotherKey(true)
         #expect(h.model.showsLicenseKeyField)
@@ -245,7 +245,7 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         // 同じキーをもう一度開いたら、もう登録済みと伝える
         h.model.openLicenseLink(.text(signed.key))
         #expect(h.model.pendingLicense == nil)
-        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("このライセンスキーは登録済みです。"), isError: false))
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("このライセンスキーは登録済みです"), isError: false))
         #expect(!h.model.showsLicenseKeyField)
     }
 

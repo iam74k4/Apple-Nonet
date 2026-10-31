@@ -93,11 +93,11 @@ struct SettingsRootView: View {
     private func confirmationMessage(_ confirmation: SettingsModel.Confirmation) -> String {
         switch confirmation {
         case .deleteProfile:
-            String(localized: "このプロファイルのボタンもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
+            String(localized: "このプロファイルのマスもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
         case .removePage:
-            String(localized: "このページのボタンもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
+            String(localized: "このページのマスもすべて削除します。⌘Z で元に戻せます。", bundle: .module)
         case .resetProfile:
-            String(localized: "今のボタンはすべて、プリセットの中身に置き換わります。⌘Z で元に戻せます。", bundle: .module)
+            String(localized: "今のマスはすべて、プリセットの中身に置き換わります。⌘Z で元に戻せます。", bundle: .module)
         case .deactivateLicense:
             String(localized: "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。", bundle: .module)
         case .importProfiles(let plan):

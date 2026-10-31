@@ -37,7 +37,7 @@ final class HUDOverlayPanel: NSPanel {
     }
 }
 
-/// パネルをすぐに出し、隠すときだけ短くフェードアウトする。
+/// パネルをすぐに出し、隠すときだけ短くフェードアウトする（「視差効果を減らす」のときはフェードせずにすぐ隠す）。
 /// フェードの途中で出し直したらフェードを捨てる（animator を使わず、自分のタイマーで確実に止める）
 @MainActor
 final class HUDPanelFader {
@@ -47,10 +47,16 @@ final class HUDPanelFader {
     /// show の後、hide されるまで true（フェード中は false）
     private(set) var isShowing = false
     private var fadeTimer: Timer?
+    /// システム設定 › アクセシビリティ › ディスプレイ › 視差効果を減らす（テストで差し替える）
+    private let reduceMotion: @MainActor () -> Bool
 
-    init(panel: NSPanel) {
+    init(panel: NSPanel, reduceMotion: @escaping @MainActor () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }) {
         self.panel = panel
+        self.reduceMotion = reduceMotion
     }
+
+    /// フェードが動いている（テスト用）
+    var isFading: Bool { fadeTimer != nil }
 
     /// 不透明のまま前に出す。最初のフレームを遅らせない
     func show() {
@@ -65,7 +71,8 @@ final class HUDPanelFader {
         guard isShowing else { return }
         isShowing = false
         cancelFade()
-        guard panel.isVisible else {
+        guard panel.isVisible, !reduceMotion() else {
+            panel.orderOut(nil)
             onHidden()
             return
         }

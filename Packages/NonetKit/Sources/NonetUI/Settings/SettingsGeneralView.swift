@@ -19,7 +19,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("トリガーキー", bundle: .module)
-                    Text("右側のキーだけに反応します。左の⌘や⌥はいつもどおり使えます", bundle: .module)
+                    Text(SettingsText.triggerDetail(model.settings.trigger))
                 }
                 if let warning = model.triggerWarning {
                     SettingsNote(text: warning, symbol: "exclamationmark.triangle", isWarning: true)
@@ -30,7 +30,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("トラックパッドだけで呼び出す", bundle: .module)
-                    Text("角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します", bundle: .module)
+                    Text("角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します。", bundle: .module)
                 }
                 Picker(selection: binding(\.fireMode)) {
                     ForEach(FireMode.allCases, id: \.self) { mode in
@@ -62,7 +62,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("HUD の位置", bundle: .module)
-                    Text("カーソルのあるディスプレイに出ます", bundle: .module)
+                    Text("ポインタのあるディスプレイに出ます", bundle: .module)
                 }
                 .pickerStyle(.segmented)
                 Picker(selection: binding(\.hudScale)) {
@@ -103,11 +103,11 @@ struct SettingsGeneralView: View {
                 }
                 .pickerStyle(.segmented)
                 Toggle(isOn: binding(\.showExecutionToast)) {
-                    Text("実行を知らせる", bundle: .module)
+                    Text("実行したことを表示", bundle: .module)
                     Text(SettingsText.executionToastDetail)
                 }
             } header: {
-                Text("知らせ", bundle: .module)
+                Text("フィードバック", bundle: .module)
             }
 
             Section {
@@ -121,7 +121,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     // 「詳細」の見出しの中なので、名前に「（詳細）」は付けない
-                    Text("カーソルの固定方法", bundle: .module)
+                    Text("ポインタの固定方法", bundle: .module)
                     Text(SettingsText.detail(model.settings.cursorLock))
                 }
             } header: {
@@ -157,7 +157,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text("プロファイルの書き出し / 読み込み", bundle: .module)
-                    Text("すべてのプロファイルを .\(ConfigurationStore.profileDocumentExtension) のファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックします", bundle: .module)
+                    Text("すべてのプロファイルを .\(ConfigurationStore.profileDocumentExtension) のファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックします。", bundle: .module)
                 }
                 SettingsNote(
                     text: String(localized: "ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください（スクリプトはあなたの権限で動きます）", bundle: .module),

@@ -47,7 +47,7 @@ public enum LicenseError: Error, Equatable, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .malformed:
-            String(localized: "ライセンスキーの形式が正しくありません。購入時のメールからキー全体をコピーしてください", bundle: .module)
+            String(localized: "ライセンスキーの形式が正しくありません。購入時のメールからキー全体をコピーしてください。", bundle: .module)
         case .invalidSignature:
             String(localized: "ライセンスキーが正しくありません", bundle: .module)
         case .wrongProduct:

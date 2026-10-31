@@ -66,9 +66,9 @@ enum OnDeviceAI {
             case .unavailable(.deviceNotEligible):
                 throw NonetError.unavailable(String(localized: "この Mac は Apple Intelligence に対応していないため、AI アクションを使えません", bundle: .nonetActions))
             case .unavailable(.appleIntelligenceNotEnabled):
-                throw NonetError.unavailable(String(localized: "Apple Intelligence がオフになっています。システム設定の「Apple Intelligence と Siri」でオンにしてください", bundle: .nonetActions))
+                throw NonetError.unavailable(String(localized: "Apple Intelligence がオフになっています。システム設定の「Apple Intelligence と Siri」でオンにしてください。", bundle: .nonetActions))
             case .unavailable(.modelNotReady):
-                throw NonetError.unavailable(String(localized: "Apple Intelligence の準備がまだ終わっていません。しばらくしてからもう一度お試しください", bundle: .nonetActions))
+                throw NonetError.unavailable(String(localized: "Apple Intelligence の準備がまだ終わっていません。しばらくしてからもう一度お試しください。", bundle: .nonetActions))
             case .unavailable:
                 throw NonetError.unavailable(String(localized: "Apple Intelligence を今は使えません", bundle: .nonetActions))
             }

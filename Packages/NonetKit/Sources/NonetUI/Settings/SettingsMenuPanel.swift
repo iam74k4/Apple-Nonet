@@ -89,7 +89,7 @@ struct SettingsMenuPanel: View {
         case .idle:
             placeholder(symbol: "filemenu.and.selection", text: browser.runningApps.isEmpty
                 ? String(localized: "メニューを読めるアプリが起動していません", bundle: .module)
-                : String(localized: "メニューを読むアプリを選んでください。対象のアプリは起動しておきます", bundle: .module))
+                : String(localized: "メニューを読むアプリを選んでください。対象のアプリは起動しておきます。", bundle: .module))
         case .loading:
             VStack(spacing: 8) {
                 ProgressView()
@@ -243,7 +243,7 @@ struct SettingsAddProfileSheet: View {
             if let source {
                 Text("「\(source.name)」を複製して使うアプリ", bundle: .module)
                     .font(.headline)
-                Text("選んだアプリに、「\(source.name)」のページとボタンをすべて写した新しいプロファイルを作ります。", bundle: .module)
+                Text("選んだアプリに、「\(source.name)」のページとマスをすべて写した新しいプロファイルを作ります", bundle: .module)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -279,7 +279,7 @@ struct SettingsAddProfileSheet: View {
                         }
                     }
                 } label: {
-                    Text("一覧に無いアプリを選ぶ…", bundle: .module)
+                    Text("一覧にないアプリを選ぶ…", bundle: .module)
                 }
                 Spacer()
                 Button(role: .cancel) {

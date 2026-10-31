@@ -95,7 +95,13 @@ import UniformTypeIdentifiers
         #expect(SettingsGrid.subtitle(for: app) == L10n.ui("アプリ起動"))
         var renamed = app
         renamed.title = "ブラウザ"
-        #expect(SettingsGrid.subtitle(for: renamed) == "Safari")
+        // アプリ起動はいつも種類の名前。開くアプリの名前はヘルプ・検索・VoiceOver に残す
+        #expect(SettingsGrid.subtitle(for: renamed) == L10n.ui("アプリ起動"))
+        #expect(SettingsGrid.detailContent(for: renamed).text == "Safari")
+        #expect(SettingsGrid.tooltip(for: renamed) == "Safari")
+        #expect(SettingsGrid.tooltip(for: shortcut) == nil)
+        #expect(SettingsGrid.tooltip(for: nil) == nil)
+        #expect(SettingsGrid.accessibilityLabel(index: 0, cell: renamed).contains("Safari"))
     }
 
     @Test func menuItemsShowTheirKey() {

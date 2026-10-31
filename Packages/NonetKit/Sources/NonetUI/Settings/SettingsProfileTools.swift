@@ -151,8 +151,8 @@ extension SettingsModel {
         finishRecording()
         selectCell(index)
         changeCells(
-            String(localized: "ボタンの貼り付け", bundle: .module),
-            notice: existing == nil ? nil : String(localized: "マスの中身を貼り付けたボタンで置き換えました", bundle: .module),
+            String(localized: "マスの貼り付け", bundle: .module),
+            notice: existing == nil ? nil : String(localized: "マスを貼り付けたもので置き換えました", bundle: .module),
             profileID: profileID,
             at: [address]
         ) {
@@ -173,7 +173,7 @@ extension SettingsModel {
         guard var cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: selectedProfile),
               let target = configuration.profile(id: targetID), targetID != selectedProfile.id else { return }
         guard let address = SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: target) else {
-            gridMessage = String(localized: "「\(target.name)」に空いているマスがありません。マスを空けるか、ページを追加してください", bundle: .module)
+            gridMessage = String(localized: "「\(target.name)」に空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
         cell.id = UUID()

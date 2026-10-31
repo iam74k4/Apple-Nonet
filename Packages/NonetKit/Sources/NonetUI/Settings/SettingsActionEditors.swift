@@ -49,12 +49,12 @@ struct SettingsKeystrokeEditor: View {
                         }
                     }
                     .controlSize(.small)
-                    Text("続けて押すと連続キーになります（4つまで）。Return や Tab もそのまま記録します。「完了」か、ほかの場所をクリックすると決まります。Esc で記録をやめます", bundle: .module)
+                    Text("続けて押すと連続キーになります（4つまで）。Return や Tab もそのまま記録します。「完了」か、ほかの場所をクリックすると決まります。Esc で記録をやめます。", bundle: .module)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     // 記録はこのアプリに届いたキーだけを見る。スクリーンショットなどのキーは macOS が先に使うので届かない
-                    Text("スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください", bundle: .module)
+                    Text("スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください。", bundle: .module)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -72,7 +72,7 @@ struct SettingsKeystrokeEditor: View {
                         }
                         .disabled(notation.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
-                    Text("例: ⌘L → ⌘C。スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できないので、ここに入力します", bundle: .module)
+                    Text("例: ⌘L → ⌘C。スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できないので、ここに入力します。", bundle: .module)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -123,7 +123,7 @@ struct SettingsKeystrokeEditor: View {
         .accessibilityLabel(String(localized: "送るキー", bundle: .module))
         .accessibilityValue(fieldText)
         .accessibilityHint(isRecording
-            ? String(localized: "記録中です。キーを押してください", bundle: .module)
+            ? String(localized: "記録中です。キーを押してください。", bundle: .module)
             : String(localized: "押すとキーの記録を始めます", bundle: .module))
     }
 
@@ -221,7 +221,7 @@ struct SettingsLaunchAppEditor: View {
                         }
                     }
                 } label: {
-                    Text("一覧に無いアプリを選ぶ…", bundle: .module)
+                    Text("一覧にないアプリを選ぶ…", bundle: .module)
                 }
                 .buttonStyle(.link)
                 .font(.system(size: 11))
@@ -361,7 +361,7 @@ struct SettingsURLEditor: View {
                         isWarning: check.isProblem
                     )
                 } else {
-                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます", bundle: .module))
+                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。", bundle: .module))
                 }
             }
         }
@@ -408,7 +408,7 @@ struct SettingsScriptEditor: View {
                 .pickerStyle(.segmented)
                 Text(script.runMode == .background
                     ? String(localized: "終わるまで待ち、失敗したらエラーの最後を表示します", bundle: .module)
-                    : String(localized: "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです", bundle: .module))
+                    : String(localized: "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです。", bundle: .module))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -529,7 +529,7 @@ struct SettingsScriptHelp: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("スクリプトに渡す環境変数", bundle: .module)
                 .font(.headline)
-            Text("実行したときの前面のアプリの情報です。値が無いものは設定されません。", bundle: .module)
+            Text("実行したときの前面のアプリの情報です。値がないものは設定されません。", bundle: .module)
                 .font(.system(size: 12))
                 .fixedSize(horizontal: false, vertical: true)
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 6) {
@@ -551,7 +551,7 @@ struct SettingsScriptHelp: View {
                 // コードの例は文の中に入れると途中で折り返されるので、それぞれの行に置く
                 Text(String(localized: "変数は次のように \" で囲んでください。", bundle: .module))
                 SettingsCodeLine(code: "\"$NONET_SELECTED_TEXT\"")
-                Text(String(localized: "無いかもしれない変数は、次のように既定値を付けると安全です。", bundle: .module))
+                Text(String(localized: "ないかもしれない変数は、次のように既定値を付けると安全です。", bundle: .module))
                 SettingsCodeLine(code: "${PROJECT_DIR:-$HOME}")
                 ForEach(Self.notes, id: \.self) { note in
                     Text(note)
@@ -670,7 +670,7 @@ struct SettingsShortcutEditor: View {
             }
         case .loaded(let names) where names.isEmpty:
             VStack(alignment: .leading, spacing: 4) {
-                SettingsNote(text: String(localized: "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください", bundle: .module), symbol: "info.circle")
+                SettingsNote(text: String(localized: "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください。", bundle: .module), symbol: "info.circle")
                 reloadButton(String(localized: "一覧を読み直す", bundle: .module))
             }
         case .loaded(let names):
@@ -744,7 +744,7 @@ struct SettingsMenuItemEditor: View {
                     Image(systemName: "filemenu.and.selection")
                 }
             }
-            SettingsNote(text: String(localized: "対象のアプリが起動している必要があります。メニューの名前は macOS の言語で変わるので、言語を変えたら割り当て直してください", bundle: .module))
+            SettingsNote(text: String(localized: "対象のアプリが起動している必要があります。メニューの名前は macOS の言語で変わるので、言語を変えたら割り当て直してください。", bundle: .module))
         }
     }
 }

@@ -22,11 +22,11 @@ enum MenuBarEditTarget: Equatable {
     var title: String {
         switch self {
         case .app(_, let name):
-            String(localized: "\(name) のボタンを編集…", bundle: .module)
+            String(localized: "\(name) のマスを編集…", bundle: .module)
         case .newApp(let app):
-            String(localized: "\(Self.displayName(app)) のボタンを作る…", bundle: .module)
+            String(localized: "\(Self.displayName(app)) のマスを作る…", bundle: .module)
         case .global:
-            String(localized: "グローバルのボタンを編集…", bundle: .module)
+            String(localized: "グローバルのマスを編集…", bundle: .module)
         }
     }
 
@@ -289,7 +289,7 @@ enum MenuBarModel {
         switch entitlement {
         case .trial(let daysLeft):
             // 数で文が変わる（1 day / 2 days）ので、文言の言語の規則で選ぶ
-            String(localized: "試用期間: 残り \(daysLeft) 日", bundle: .module, locale: .nonetUI)
+            String(localized: "試用期間：残り\(daysLeft)日", bundle: .module, locale: .nonetUI)
         case .licensed:
             String(localized: "登録済み", bundle: .module)
         case .expired:
