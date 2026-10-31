@@ -19,7 +19,7 @@ const figureData = {};
 for (const [, name, value] of figureTag[1].matchAll(/data-([a-z-]+)="([^"]*)"/g)) {
   figureData[name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
 }
-for (const key of ["captionHud", "captionTap", "labelPause", "labelPlay"]) {
+for (const key of ["captionRun", "captionCancel", "labelPause", "labelPlay"]) {
   assert.ok(figureData[key], `figure に data-${key} がありません`);
 }
 const cellsInPage = [...html.matchAll(/<div class="cell( on)?" data-cell data-label="([^"]+)"/g)].map((m) => ({
@@ -123,6 +123,7 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   const cells = cellsInPage.map((cell) => new FakeElement({ classes: ["cell"].concat(cell.on ? ["on"] : []), dataset: { label: cell.label } }));
   const demo = new FakeElement({ classes: ["demo"], dataset: { ...figureData } });
   const finger = new FakeElement({ classes: ["finger"] });
+  const trail = new FakeElement({ classes: ["trail"] });
   const ripple = new FakeElement({ classes: ["ripple"] });
   const toastText = new FakeElement({ text: cellsInPage[0].label });
   const caption = new FakeElement({ text: staticCaption });
@@ -131,6 +132,7 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   demo.selectors = {
     "[data-cell]": cells,
     ".finger": finger,
+    ".trail": trail,
     ".ripple": ripple,
     "[data-toast-text]": toastText,
     "[data-demo-caption]": caption,
@@ -163,54 +165,98 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   const highlighted = () => cells.flatMap((cell, i) => (cell.classList.contains("on") ? [i] : []));
   const is = (name) => demo.classList.contains(name);
   const setVisible = (visible) => observers.forEach((callback) => callback([{ isIntersecting: visible }]));
-  return { clock, demo, cells, finger, ripple, toastText, caption, toggle, motion, document, highlighted, is, setVisible };
+  const fired = () => cells.flatMap((cell, i) => (cell.classList.contains("fire") ? [i] : []));
+  return { clock, demo, cells, finger, trail, ripple, toastText, caption, toggle, motion, document, highlighted, fired, is, setVisible };
 }
 
 // MARK: - テスト
 
-function testPlaysTheHesitateThenTapStory() {
+// 指の位置（トラックパッドの %）。外枠は左右 11%・奥 17%・手前 15%（GridMapper.cancelFrame）
+const TOP_ROW = `${Math.round((17 + 68 / 6) * 100) / 100}%`; // 上の段のマスの中心
+const MIDDLE_ROW = "51%";
+
+function testOpensFromTheTopEdgeRunsThenCancelsInTheFrame() {
   const d = load();
   assert.ok(d.is("is-live"), "読み込んだら動き出す");
   assert.strictEqual(d.toggle.hidden, false, "一時停止のボタンを出す");
   assert.strictEqual(d.toggle.textContent, figureData.labelPause);
-  assert.strictEqual(d.caption.textContent, figureData.captionHud);
+  assert.strictEqual(d.caption.textContent, figureData.captionRun);
   assert.deepStrictEqual(d.highlighted(), [], "最初は何も光らない");
+  assert.ok(!d.is("hud-open") && !d.is("finger-down"));
+  assert.ok(!d.is("key-down"), "キーの絵はもう無い");
 
-  d.clock.advanceTo(1200);
-  assert.ok(d.is("key-down") && d.is("finger-down") && d.is("hud-open"), "キーを押し、指を置いて止まると HUD が出る");
-  assert.deepStrictEqual(d.highlighted(), [4], "指の下（中央）が光る");
+  // 実行する
+  d.clock.advanceTo(450);
+  assert.ok(d.is("finger-down") && d.is("slide-in"), "上の縁に指を置く");
+  assert.ok(!d.is("hud-open"), "置いただけでは開かない");
   assert.strictEqual(d.finger.style.left, "50%");
-  assert.strictEqual(d.finger.style.top, "50%");
+  assert.strictEqual(d.finger.style.top, "4%", "指は上の縁");
+  assert.strictEqual(d.trail.style.height, "4%", "滑らせた跡は上の縁から指まで");
 
-  d.clock.advanceTo(2100);
-  assert.deepStrictEqual(d.highlighted(), [5], "指を右へ動かすと右のマスが光る");
-  assert.ok(d.ripple.classList.contains("buzz"), "境界をまたぐと振動する");
+  d.clock.advanceTo(950);
+  assert.ok(d.is("hud-open"), "下へ滑らせると開く");
+  assert.ok(d.is("in-frame"), "開いた直後の指は上の外枠にいるので「離すとやめる」");
+  assert.deepStrictEqual(d.highlighted(), [], "外枠ではマスは光らない");
+  assert.strictEqual(d.finger.style.top, "12%");
+  assert.ok(d.ripple.classList.contains("buzz"), "開くと振動する");
 
-  d.clock.advanceTo(2900);
-  assert.deepStrictEqual(d.highlighted(), [2], "右上へ");
-  assert.strictEqual(d.finger.style.top, `${(0.5 / 3) * 100}%`);
+  d.clock.advanceTo(1700);
+  assert.ok(!d.is("in-frame") && !d.is("slide-in"), "マスに入ると外枠を出る");
+  assert.deepStrictEqual(d.highlighted(), [1], "指の下（上の段の中央）が光る");
+  assert.strictEqual(d.finger.style.top, TOP_ROW);
+  assert.strictEqual(d.trail.style.height, TOP_ROW, "跡は指について行く");
 
-  d.clock.advanceTo(4100);
-  assert.ok(!d.is("hud-open") && !d.is("key-down"), "キーを離すと HUD が閉じる");
+  d.clock.advanceTo(2500);
+  assert.deepStrictEqual(d.highlighted(), [0], "指を左へ滑らせると左上のマスが光る");
+  assert.strictEqual(d.finger.style.left, "24%");
+
+  d.clock.advanceTo(3350);
+  assert.ok(!d.is("finger-down"), "マスで指を離す");
+  assert.deepStrictEqual(d.fired(), [0], "離したマスを実行する");
+
+  d.clock.advanceTo(3600);
+  assert.ok(!d.is("hud-open"), "実行すると HUD が閉じる");
   assert.ok(d.is("toast-show"), "実行したマスを知らせる");
-  assert.strictEqual(d.toastText.textContent, cellsInPage[2].label);
-  assert.ok(d.cells[2].classList.contains("fire"));
+  assert.strictEqual(d.toastText.textContent, cellsInPage[0].label);
 
-  d.clock.advanceTo(5700);
-  assert.strictEqual(d.caption.textContent, figureData.captionTap, "続けて速押しの説明");
-  assert.ok(d.is("key-down"));
+  d.clock.advanceTo(4500);
+  assert.ok(!d.is("toast-show"));
 
-  d.clock.advanceTo(6100);
-  assert.ok(!d.is("hud-open"), "速押しでは HUD を出さない");
-  assert.ok(d.is("toast-show"));
-  assert.strictEqual(d.toastText.textContent, cellsInPage[0].label, "左上をタップ");
+  // やめる
+  d.clock.advanceTo(5100);
+  assert.strictEqual(d.caption.textContent, figureData.captionCancel, "続けて、やめ方の説明");
+  assert.deepStrictEqual(d.fired(), []);
+  assert.deepStrictEqual(d.highlighted(), []);
 
-  d.clock.advanceTo(7300);
-  assert.strictEqual(d.toastText.textContent, cellsInPage[8].label, "押したまま続けて右下をタップ");
+  d.clock.advanceTo(5250);
+  assert.strictEqual(d.finger.style.top, "4%", "もう一度、上の縁から");
 
-  d.clock.advanceTo(9500);
-  assert.strictEqual(d.caption.textContent, figureData.captionHud, "最初からくり返す");
-  assert.ok(!d.is("key-down") && !d.is("toast-show"));
+  d.clock.advanceTo(5750);
+  assert.ok(d.is("hud-open") && d.is("in-frame"), "開く");
+
+  d.clock.advanceTo(7200);
+  assert.ok(!d.is("in-frame"));
+  assert.deepStrictEqual(d.highlighted(), [4], "中央のマスへ");
+  assert.strictEqual(d.finger.style.top, MIDDLE_ROW);
+
+  d.clock.advanceTo(8000);
+  assert.ok(d.is("in-frame"), "右の外枠へ滑らせると、マスが暗くなり「離すとやめる」");
+  assert.deepStrictEqual(d.highlighted(), [], "外枠ではマスは光らない");
+  assert.strictEqual(d.finger.style.left, "94.5%");
+  assert.strictEqual(d.finger.style.top, MIDDLE_ROW);
+
+  d.clock.advanceTo(9050);
+  assert.ok(!d.is("finger-down"), "外枠で指を離す");
+
+  d.clock.advanceTo(9400);
+  assert.ok(!d.is("hud-open") && !d.is("in-frame"), "何も実行せずに閉じる");
+  assert.ok(!d.is("toast-show"), "知らせも出ない");
+  assert.deepStrictEqual(d.fired(), [], "どのマスも実行しない");
+  assert.strictEqual(d.toastText.textContent, cellsInPage[0].label);
+
+  d.clock.advanceTo(10700);
+  assert.strictEqual(d.caption.textContent, figureData.captionRun, "最初からくり返す");
+  assert.ok(!d.is("hud-open") && !d.is("toast-show"));
   assert.ok(d.clock.pending() > 0);
 }
 
@@ -222,7 +268,11 @@ function testPauseShowsTheStaticPicture() {
   assert.deepStrictEqual(d.highlighted(), [staticIndex]);
   assert.strictEqual(d.caption.textContent, staticCaption);
   assert.strictEqual(d.toggle.textContent, figureData.labelPlay);
-  assert.deepStrictEqual(d.finger.style, {}, "指は中央（CSS の既定）に戻る");
+  assert.deepStrictEqual(d.finger.style, {}, "指は中央のマス（CSS の既定）に戻る");
+  assert.deepStrictEqual(d.trail.style, {}, "跡は上の縁から中央のマスまで（CSS の既定）");
+  for (const name of ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show"]) {
+    assert.ok(!d.is(name), `静止画では ${name} を外す`);
+  }
   assert.strictEqual(d.clock.pending(), 0, "タイマーを残さない");
 
   d.toggle.dispatch("click");
@@ -262,7 +312,7 @@ function testPagesWithoutTheDemoAreUntouched() {
 }
 
 const tests = [
-  testPlaysTheHesitateThenTapStory,
+  testOpensFromTheTopEdgeRunsThenCancelsInTheFrame,
   testPauseShowsTheStaticPicture,
   testReducedMotionStartsPaused,
   testStopsWhileOffScreenOrHidden,

@@ -21,6 +21,14 @@
   --hud-hint: #9a9a9a;
   --hud-on-bg: #ffffff;
   --hud-on-fg: #111111;
+  /* HUD の9マスの周りの外枠（アプリの HUD と同じ。指が外枠にあるときは -on） */
+  --hud-frame: rgba(255, 255, 255, 0.035);
+  --hud-frame-line: rgba(255, 255, 255, 0.1);
+  --hud-frame-on: rgba(255, 255, 255, 0.13);
+  --hud-frame-line-on: rgba(255, 255, 255, 0.8);
+  /* デモのトラックパッドの外枠の帯 */
+  --pad-frame: #ececec;
+  --pad-frame-on: #d9d9d9;
   --toast-bg: rgba(17, 17, 17, 0.92);
   --toast-fg: #ffffff;
   --header-bg: rgba(255, 255, 255, 0.86);
@@ -47,6 +55,8 @@
     --hud-bg: #161616;
     --hud-border: #2c2c2c;
     --hud-cell: #232323;
+    --pad-frame: #1e1e1e;
+    --pad-frame-on: #343434;
     --toast-bg: rgba(242, 242, 242, 0.94);
     --toast-fg: #111111;
     --header-bg: rgba(11, 11, 11, 0.86);
@@ -601,10 +611,10 @@ kbd {
   left: 50%;
   top: calc(50% + 12px);
   width: 83%;
-  aspect-ratio: 400 / 250;
+  aspect-ratio: 400 / 260;
   display: flex;
   flex-direction: column;
-  gap: 3.5%;
+  gap: 3%;
   padding: 3.5%;
   border: 1px solid var(--hud-border);
   border-radius: 18px;
@@ -617,14 +627,30 @@ kbd {
 .hud-head {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   font-size: clamp(9px, 2.3vw, 11px);
   line-height: 1.2;
   color: var(--hud-hint);
+  white-space: nowrap;
 }
 
 .hud-title {
   color: var(--hud-title);
   font-weight: 500;
+}
+
+/* 9マスと、その周りの外枠（トラックパッドの外枠を表す帯。指を出して離すと、何も実行せずに閉じる）。
+   帯の幅の順はトラックパッドと同じ（奥がいちばん広く、左右がいちばん狭い） */
+.hud-pad {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: 4% 3% 3.6%;
+  border: 1px solid var(--hud-frame-line);
+  border-radius: 14px;
+  background: var(--hud-frame);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .hud-grid {
@@ -633,6 +659,10 @@ kbd {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  /* マスの下とすき間は外枠ではないので、HUD の地の色で塗る（明るく見えるのは外枠の帯だけ） */
+  border-radius: 12px;
+  background: var(--hud-bg);
+  box-shadow: 0 0 0 3px var(--hud-bg);
 }
 
 .cell {
@@ -650,7 +680,7 @@ kbd {
   line-height: 1.2;
   text-align: center;
   white-space: nowrap;
-  transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
 }
 
 .cell .icon {
@@ -671,6 +701,35 @@ kbd {
   40% {
     transform: scale(0.92);
   }
+}
+
+/* 指が外枠にあるときに、暗くしたマスの上に出す「✕ 離すとやめる」 */
+.hud-cancel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-frame-line-on);
+  border-radius: 9px;
+  background: var(--hud-bg);
+  color: var(--hud-title);
+  font-size: clamp(10px, 2.6vw, 13px);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
+.hud-cancel .icon {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.6;
 }
 
 .toast {
@@ -698,35 +757,26 @@ kbd {
   height: 14px;
 }
 
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-}
-
-.key {
-  display: grid;
-  place-items: center;
-  min-width: 64px;
-  height: 42px;
-  padding: 0 10px;
-  border: 1px solid var(--line-strong);
-  border-bottom-width: 3px;
-  border-radius: 9px;
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 13px;
-  font-weight: 500;
-  transition: background-color 0.1s ease, color 0.1s ease, transform 0.1s ease, border-bottom-width 0.1s ease;
-}
-
+/* トラックパッド。縁に沿った帯が外枠、内側が9マス。帯の幅はアプリと同じ割合
+   （左右 11%・奥 17%・手前 15%。GridMapper.cancelFrame。script.js の FRAME と合わせる） */
 .trackpad {
   position: relative;
-  width: 208px;
-  height: 130px;
+  width: 240px;
+  height: 150px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
+  background: var(--pad-frame);
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.trackpad-cells {
+  position: absolute;
+  left: 11%;
+  right: 11%;
+  top: 17%;
+  bottom: 15%;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
   background: var(--surface);
 }
 
@@ -743,11 +793,27 @@ kbd {
   stroke-dasharray: 4 4;
 }
 
+/* 手前の帯に置く「外枠」の文字 */
+.trackpad-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 15%;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  transform: translateX(-50%);
+  transition: color 0.12s ease;
+}
+
 .finger,
 .ripple {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 51%;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -762,6 +828,24 @@ kbd {
 
 .finger.jump {
   transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+/* 上の縁から指を滑らせた跡（静止画では、上の縁から中央のマスまで） */
+.trail {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 3px;
+  height: 51%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, var(--fg-muted));
+  transform: translateX(-50%);
+  transition: left 0.32s ease, height 0.32s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.trail.jump {
+  transition: opacity 0.3s ease;
 }
 
 .ripple {
@@ -786,15 +870,8 @@ kbd {
   }
 }
 
-/* JavaScript が無い・止めているときは静止画: キーを押し、中央に指を置き、HUD が出ている */
-.demo:not(.is-live) .key {
-  background: var(--fg);
-  color: var(--bg);
-  border-bottom-width: 1px;
-  transform: translateY(2px);
-}
-
-/* 動いているとき */
+/* JavaScript が無い・止めているときは、ここまでの静止画（上の縁から中央のマスまで指を滑らせ、HUD が出ている）。
+   動いているときは、script.js が付ける状態（hud-open・finger-down・slide-in・in-frame・toast-show）で見せる */
 .demo.is-live .hud {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.96);
@@ -815,11 +892,35 @@ kbd {
   transform: translate(-50%, -50%);
 }
 
-.demo.is-live.key-down .key {
-  background: var(--fg);
-  color: var(--bg);
-  border-bottom-width: 1px;
-  transform: translateY(2px);
+.demo.is-live .trail {
+  opacity: 0;
+}
+
+.demo.is-live.slide-in .trail {
+  opacity: 1;
+}
+
+/* 指が外枠にある: 外枠を明るくし、マスを暗くして「✕ 離すとやめる」を出す */
+.demo.is-live.in-frame .hud-pad {
+  border-color: var(--hud-frame-line-on);
+  background: var(--hud-frame-on);
+}
+
+.demo.is-live.in-frame .cell {
+  opacity: 0.3;
+}
+
+.demo.is-live.in-frame .hud-cancel {
+  opacity: 1;
+}
+
+.demo.is-live.in-frame .trackpad {
+  border-color: var(--fg);
+  background: var(--pad-frame-on);
+}
+
+.demo.is-live.in-frame .trackpad-label {
+  color: var(--fg);
 }
 
 .demo.is-live.toast-show .toast {
@@ -1148,6 +1249,12 @@ kbd {
 
 .ill .faint {
   fill: none;
+  stroke: var(--line-strong);
+}
+
+/* トラックパッドの外枠の帯 */
+.ill .band {
+  fill: var(--pad-frame);
   stroke: var(--line-strong);
 }
 

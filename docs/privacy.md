@@ -29,21 +29,21 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 どれも Mac の外には送りません。本アプリを削除するときにまとめて消せます（手順は[利用ガイド](user-guide.md#アンインストール)。キーチェーンの2つの項目（`com.iam74k4.Nonet.license.trial` と、名前が64桁の16進数のもの）は、キーチェーンアクセスで消せます）。設定の「情報」の「Nonet をアンインストール…」は、本アプリと設定のフォルダとキャッシュをゴミ箱に入れますが、ライセンスキーと試用の記録（環境設定とキーチェーン）は残します。入れ直したときに、登録し直さずに使えるようにするためです。
 
-アプリの「お問い合わせ…」で作るメールには、アプリと macOS の版・Mac の機種・トリガーキー・キーボードの種類だけが入り、送るかどうかはあなたが決めます。ライセンスキーや設定の中身は入りません。
+アプリの「お問い合わせ…」で作るメールには、アプリと macOS の版・Mac の機種・キーボードの種類だけが入り、送るかどうかはあなたが決めます。ライセンスキーや設定の中身は入りません。
 
 ### 3. アクセシビリティの許可の使い方
 
 本アプリは macOS の「アクセシビリティ」の許可を、次のことだけに使います。
 
-- トリガーキーが押された・離されたこと、その間にほかのキーが押されたことを知る。入力した文字の内容は、記録も保存も送信もしません。
-- トリガーキーを押している間、ポインタの移動・クリック・スクロールを前面のアプリに渡さない。
+- 9マスを開いている間、ポインタの移動・クリック・スクロール・ジェスチャーを前面のアプリに渡さず、ポインタを止めておく。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときはポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
+- 9マスを開いている間だけ、キーが押されたことを知り、押されたら何も実行せずに9マスを閉じる。キーボードのイベントタップは9マスを開いている間だけ有効にし、それ以外のときはキーボードのイベントが本アプリを通りません。押されたキーは手を加えずに前面のアプリに渡します。入力した文字の内容は、記録も保存も送信もしません。
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。メニュー項目のショートカットを送る前には、アプリのメニューにあるその項目のショートカットを読み、同じかを確かめる。
 - 設定画面で、起動中のアプリのメニューの一覧を読む。
 - あなたが設定したアクションを実行する直前に、そのアクションに渡すものを読む。スクリプトでは、前面のウィンドウで開いている書類の場所をいつも読み、選択中のテキストは、スクリプトに変数 `NONET_SELECTED_TEXT` が書かれているときだけ読む。ショートカットでは「選択中のテキストを渡す」がオンのときだけ、AI では毎回、選択中のテキストを読む。選択中のテキストを直接読めないアプリでは、⌘C でクリップボードを使って読み、クリップボードを元に戻す。読んだ内容はそのアクションに渡すだけで、保存も送信もしません。
 
 クリップボードを一時的に使うときは、パスワード管理アプリがパスワードとしてコピーしたもの（`org.nspasteboard.ConcealedType` の印があるもの）を読みも戻しもしません。macOS（15.4 以降）がクリップボードを読む前に確かめる設定のときは、その答えに従い、拒否されていればクリップボードを読みません。
 
-トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み、どのマスかを決めるためにメモリの中だけで使います。保存も送信もしません。
+トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み（この読み取りには許可は要りません）、9マスを開く動き（上の縁から指を滑らせる）を見分けることと、どのマスかを決めることのためにメモリの中だけで使います。保存も送信もしません。
 
 ### 4. オートメーション（Apple Events）
 
@@ -113,21 +113,21 @@ When it creates your first settings, the app reads the list of apps in your Dock
 
 None of this leaves your Mac. You can remove all of it when you uninstall the app (see the [user guide](user-guide.en.md#uninstalling); remove the two keychain items, `com.iam74k4.Nonet.license.trial` and the one named with 64 hexadecimal digits, with Keychain Access). “Uninstall Nonet…” on the About tab of Settings moves the app, its settings folder and its caches to the Trash, but keeps your license key and trial records (in the preferences and the keychain), so the app works again without registering if you reinstall it.
 
-When you use “Contact Support…” in the app, the email it creates contains only the versions of the app and macOS, your Mac model, your trigger key and your keyboard type. You decide whether to send it. It never includes your license key or your settings.
+When you use “Contact Support…” in the app, the email it creates contains only the versions of the app and macOS, your Mac model and your keyboard type. You decide whether to send it. It never includes your license key or your settings.
 
 ### 3. How the Accessibility permission is used
 
 The app uses the macOS Accessibility permission only to:
 
-- Detect when the trigger key is pressed or released and whether another key is pressed meanwhile. What you type is never recorded, stored or sent.
-- Keep pointer movement, clicks and scrolling from reaching the front app while you hold the trigger key.
+- Keep pointer movement, clicks, scrolling and gestures from reaching the front app, and hold the pointer still, while the nine buttons are open. The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
+- Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.
 - Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.
 - Read the menus of running apps in the settings window.
 - Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable `NONET_SELECTED_TEXT`. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.
 
 When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked `org.nspasteboard.ConcealedType`). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.
 
-Finger positions on the trackpad are read through macOS's multi-touch support and used only in memory to decide which button you are on. They are never stored or sent.
+Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge) and to decide which button you are on. They are never stored or sent.
 
 ### 4. Automation (Apple Events)
 

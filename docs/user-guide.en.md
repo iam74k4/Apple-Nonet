@@ -4,10 +4,11 @@
 
 ## About Nonet
 
-Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app, but only while you hold a key.
+Slide a finger in from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
 
-- The trackpad is split into a 3×3 grid, and **where you rest your finger** picks the button. The pointer position doesn't matter
-- Once you know the layout, press the key and tap right away to run a button. The HUD, an overlay that shows all nine buttons, appears only when you hesitate
+- Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it
+- The trackpad is split into a 3×3 grid, and **where your finger is** picks the button. The pointer position doesn't matter. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
+- If you change your mind, slide out to the frame around the nine buttons and lift your finger. Nothing runs
 - The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
 
 ### Requirements
@@ -34,10 +35,10 @@ Only one copy of Nonet runs at a time. If you open Nonet again while it's runnin
 
 The first time you open Nonet, the Welcome to Nonet window (the welcome guide) opens. Click **Open System Settings**, and macOS asks for permission. From there, open **System Settings › Privacy & Security › Accessibility** and turn on Nonet (macOS asks for your password or Touch ID). If macOS doesn't ask, or when you click the button again, Nonet opens that section of System Settings. Once you allow Nonet, the welcome guide comes back in front of System Settings and moves on automatically.
 
-**Why Nonet needs it**: macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:
+**Why Nonet needs it**: macOS requires this permission for apps that work with the pointer and keyboard while you use other apps. Nonet uses it only to:
 
-- Detect when you press and release the trigger key
-- Keep pointer movement and clicks from reaching the front app while you hold the trigger key
+- Keep pointer movement and clicks from reaching the front app while the nine buttons are open
+- Notice a key press while the nine buttons are open, so it can close them without running anything. While they're closed, Nonet doesn't look at the keyboard at all
 - Send the keystrokes you set up, choose menu items and read selected text
 
 **What Nonet doesn't collect**: Nonet never records or sends what you type. Your settings are stored only on your Mac (in `~/Library/Application Support/Nonet/`), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the [privacy policy](privacy.md).
@@ -52,11 +53,9 @@ The Welcome to Nonet window has three steps, shown at the top.
 
 1. **Accessibility**: the permission described above
 2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Xcode, Visual Studio Code, Safari, Slack, Zoom and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead (no preset puts Claude Code in the center)
-3. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Choose from the HUD (all nine buttons)**: hold the trigger key, rest your finger, and when the HUD appears, slide to the button named in the task and release the key (lift your finger instead if **Run on** is set to **Finger Lift**). The second is **Tap right away**: hold the trigger key and tap the named corner button right away. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
+3. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
-When both tasks are done, "There's also a no-key way" appears. Choose **Top-left corner** or **Top-right corner** and click **Try It Out** to choose that corner for **Open with the trackpad alone** and try it right there (**Turn Off** turns it off again; see "Using the trackpad alone" under Basics).
-
-At the end, "You're all set" shows four quick tips (rest your finger when you're not sure, swipe with two fingers, change a button, rest a finger in a top corner) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
+At the end, "You're all set" shows four quick tips (open from the top edge, lift in the frame to cancel, swipe left or right with two fingers, change a button) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
 
 The Global profile starts with a launcher of popular apps from your Mac (see [Global profile and launcher](#global-profile-and-launcher) under Basics).
 
@@ -64,49 +63,56 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 ## Basics
 
-### Trigger key
+### Opening the buttons
 
-The trigger key turns your trackpad into the nine buttons. By default it's **right ⌘** on a JIS keyboard and **right ⌥** on other keyboards (JIS keyboards have no right ⌥). You can also choose right ⇧ or fn (Globe) in Settings. Nonet responds only to the right-side key, so left ⌘, ⌥ and ⇧ work as usual. With fn (Globe), Nonet responds while you hold fn.
+1. Place one finger on the top edge (the far edge) of the trackpad
+2. Slide it straight down in one smooth move
 
-The examples below use right ⌘.
+The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger is still in the frame (outside the nine buttons), so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything.
 
-### Quick tap
+- They open when a finger placed on the top edge (within about 6 mm of the far edge) moves down about 5 mm within 0.4 seconds, more down than sideways. A slow move from the top edge counts as ordinary pointer movement
+- They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
+- The HUD appears on the display with the pointer (the **HUD position** setting)
 
-1. Press right ⌘
-2. Right away (in less than 0.3 seconds by default), tap where the button you want is
+### Choosing and running a button
 
-The button runs right away, without the HUD. Nonet briefly shows the button at the bottom of the screen. While you keep holding right ⌘, you can tap as many times as you like. A finger that was already resting on the trackpad before you pressed right ⌘, such as your thumb, doesn't count until it moves. While only that finger is touching, nothing is selected, and the HUD appears after a moment (0.6 seconds), as if you weren't touching the trackpad. Move that finger to choose a button in the HUD.
+1. Keep your finger down and slide it to choose a button. The button under your finger is highlighted, and each time you cross into another button, the trackpad gives a light tick
+2. Stop on the button you want, then lift your finger
 
-### The HUD
+The highlighted button runs, and the HUD closes.
 
-1. Press right ⌘
-2. Rest your finger on the trackpad (or wait a moment, 0.6 seconds, without touching it)
-3. The HUD appears, and the button under your finger is highlighted. Slide to the button you want
-4. Release right ⌘ with your finger still down to run the highlighted button
-
-The top of the HUD (the overview of all nine buttons) shows the profile name and the hint "Tap, or release right ⌘ to run". If the page has a name, it shows that too, like "Xcode · Debug". Even while the HUD is showing, a quick tap on a button runs it right away and closes the HUD. For your first 20 times, a line under the grid also tells you how to choose and how to cancel. The HUD appears on the display with the pointer.
-
-If you set **Run on** to **Finger Lift** in Settings, the button runs when you lift your finger instead of at step 4 (the hint reads "Lift your finger to run"). This also changes how you cancel (see the next section, [Canceling](#canceling)).
+- A button runs only if your finger stays on it for a moment (0.15 seconds) before you lift. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
+- Lifting right on the line between two buttons runs nothing, because it isn't clear which one you meant
+- Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
+- The top of the HUD shows the profile name and the hint "Lift on a button to run". If the page has a name, it shows that too, like "Xcode · Debug". For your first 20 times, a line under the grid also says "Slide to choose · Lift in the frame to cancel"
 
 ### Canceling
 
-With any setting:
+Any of these closes the buttons without running anything (you feel two light taps):
 
-- If you release right ⌘ without touching the trackpad, nothing happens
-- If you press any other key while holding right ⌘, Nonet steps aside right away and runs nothing. The key reaches the app as usual, so shortcuts like right ⌘C still work. To cancel on purpose, press a modifier key that does nothing on its own, such as **left ⇧**
+- **Lift in the frame**: slide out to the frame around the nine buttons and lift your finger. The frame is the band along the edges of the trackpad: 11% of the width at the left and right, 15% of the depth at the near edge and 17% at the far edge (1.5 to 1.7 cm on a trackpad about 15 cm wide). When your finger enters the frame, the buttons dim, the frame lights up and "✕ Lift to cancel" appears
+- **Press a key**: pressing any key while the buttons are open closes them right away. The key reaches the app as usual
+- **Lift on an empty button**: nothing happens on a button with no action
+- **Lift on the line between two buttons**: nothing runs on a border
 
-Depending on **Run on**:
+If the buttons stay open for 20 seconds, they close on their own.
 
-- **Key Release (the default)**: rest your finger, lift it first, then release right ⌘, and nothing runs (lifting quickly counts as a tap and runs the button)
-- **Finger Lift**: lifting your finger runs the highlighted button. To cancel while choosing in the HUD, **keep your finger down and press left ⇧**, or slide to an empty button, if there is one, and lift your finger there (nothing happens on an empty button)
+### Buttons that need a longer hold
 
-### The trackpad while you hold the key
+For buttons that do something you can't undo, such as sending or recording, turn on **Hold before running** in the inspector.
 
-While you hold right ⌘, the pointer stays put, and clicks and scrolling don't reach the front app. If you click, move or scroll with a mouse while you aren't touching the trackpad, Nonet steps aside without running anything, and the mouse action reaches the app as usual. Taps with two or more fingers don't run anything. Tapping an empty button runs nothing either (both give two light taps). If you hold right ⌘ for 20 seconds, Nonet steps aside on its own.
+- These buttons have a mark in the corner of the HUD
+- Keep your finger on the button for a moment (0.6 seconds), and its outline goes all the way around. Lift after that to run it. Lifting before the outline is complete runs nothing
+
+### The trackpad while the buttons are open
+
+While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you click, move or scroll with a mouse while you aren't touching the trackpad, Nonet closes the buttons without running anything, and the mouse action reaches the app as usual. Lifting while two fingers are down runs nothing either.
 
 ### Pages
 
-Hold right ⌘ and **swipe left or right with two fingers** to change pages. Moving two fingers to the left goes to the next page. Each swipe moves one page. At the first or last page it stops and gives two light taps. If the HUD isn't showing yet, it appears. The page dots under the HUD show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+While the nine buttons are open, **swipe left or right with two fingers** to change pages. Moving two fingers to the left goes to the next page. Each swipe moves one page. At the first or last page it stops and gives two light taps. The page dots under the HUD show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+
+After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
 Each profile can have up to three pages. Global pages follow an app profile's pages (the **Add Global pages after app pages** setting).
 
@@ -118,21 +124,7 @@ The Global profile starts as a launcher with up to 27 apps on three pages. Apps 
 
 ### Haptic feedback
 
-Each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs and twice when the page changes. It also ticks when resting a finger in a corner brings up the nine buttons. When nothing runs, for example after a tap on an empty button, a lift with two fingers, a swipe past the last page or a tap after the trial has ended, it gives two light taps. You can choose the strength with the **Haptic feedback** setting.
-
-### Using the trackpad alone
-
-You can also bring up the nine buttons without the trigger key, using only the trackpad. In the General tab of Settings, set **Open with the trackpad alone** to **Rest a finger in the top-left corner** or **Rest a finger in the top-right corner** (the default is **Off**). The trigger key keeps working as usual either way.
-
-1. Rest one finger in the corner you chose (the far left or far right corner of the trackpad) and keep it still for a moment (0.4 seconds)
-2. The trackpad gives a light tick, the HUD appears, and the corner button under your finger is highlighted. The pointer stays put
-3. Slide to the button you want, pause on it for a moment (0.15 seconds), and lift your finger to run the highlighted button
-
-- To cancel, lift your finger without sliding. Lifting right after sliding, without pausing on a button, also runs nothing, so a finger that was only meant to move the pointer doesn't run a button
-- Swipe left or right with two fingers to change pages. After a swipe, slide one finger again before you lift it (lifting right away runs nothing)
-- If you press any other key, Nonet steps aside without running anything. Pressing the trigger key switches to the usual trigger key controls
-- Nothing appears if your finger slides into the corner from elsewhere, if you touch with two or more fingers or your palm, if your finger moves while you wait, or while a mouse or trackpad button is held down (for example, when you click and start dragging), so moving the pointer through a corner doesn't bring it up
-- Once your trial has ended, the HUD doesn't appear. Instead, "Your trial has ended" and where to buy or register appear at the bottom of the screen
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can choose the strength with the **Haptic feedback** setting.
 
 ## Menu bar
 
@@ -143,10 +135,11 @@ Click the 3×3 icon in the menu bar to open the Nonet menu.
 | Status (the top line) | While Nonet is running, it shows the profile used for the front app, like "Xcode profile" or "Global profile". If something is wrong, it shows the problem, such as "Accessibility permission required", "Can't find a trackpad", "Unavailable while entering a password" or "Nonet is disabled". When the trial has ended it reads "Your trial has ended", and with 3 days or fewer left it reads, for example, "3 days left in your trial" |
 | Allow Accessibility Access… | Appears only when Nonet doesn't have permission. Opens the permission step of the welcome guide |
 | Dismiss Notice | Appears with a notice, for example when Nonet couldn't read its settings file |
-| Enable Nonet | Uncheck it and Nonet ignores the trigger key |
+| Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings. If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
+| Enable Nonet | Uncheck it, and sliding in from the top edge no longer opens the buttons |
 | Settings… | Opens the Settings window on the General tab |
 | Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, or **Switch profiles with the front app** is off, it opens the Global buttons |
-| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, the trigger key always reaches the app, and resting a finger in a corner doesn't bring up the nine buttons. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
+| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding in from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
 | Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason. Choose one to open that button on the Profiles tab of Settings |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | User Guide | Opens this guide |
@@ -165,11 +158,12 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 
 ### Profile list
 
-- **Global** at the top (marked Default) holds the nine buttons used in apps without a profile. You can't delete it
+- **Shared Buttons** at the top holds buttons that appear in the same spot in every app (see [Shared buttons](#shared-buttons) below)
+- **Global** below it (marked Default) holds the nine buttons used in apps without a profile. You can't delete it
 - App profiles are listed below it, under **Apps**. Drag to reorder them. The profile the front app is using now is marked In Use
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to see the three **When in Front** choices and **Duplicate for Another App…**, **Reset to Preset…** (only for apps with a preset), **Export This Profile…** and **Delete…**. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)
-- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off. In that app, neither the trigger key nor resting a finger in a corner brings up the nine buttons, and the keys and the trackpad work as usual (the trigger key reaches the app even if **Pass the trigger key to the front app** is off). **Turn Off in This App** in the Nonet menu switches it too
+- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off. In that app, sliding in from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
 - With 8 or more app profiles, a **Filter by name, button or keys** field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like `⌘B`). Results look like "Xcode › Build"
 - **Enable Nonet** under the list is the same switch as in the General settings
 
@@ -182,6 +176,15 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
 - Control-click a button to choose **Duplicate**, **Copy**, **Paste**, **Swap With**, **Copy to Profile**, **Delete** or **Test This Button**. On an empty button, choose an action type from **Add Action**, or use **Paste** and **Swap With**
+
+### Shared buttons
+
+Buttons you want in the same spot in every app, such as opening Settings or locking the screen, can be shared buttons.
+
+- Control-click a button and choose **Make Shared Button**. It then appears in the same spot on every page of every profile (app profiles, Global and the launcher)
+- Spots covered by a shared button are marked Shared. The profile's own button is kept, and **Stop Sharing** brings it back
+- Edit shared buttons under **Shared Buttons** at the top of the profile list. Control-click a shared button in a profile's grid to choose **Edit Shared Button**, **Copy** or **Stop Sharing**
+- If that spot already has a shared button, Nonet asks before replacing it (you can undo it with ⌘Z)
 
 ### Undo and earlier versions
 
@@ -205,6 +208,7 @@ The right column is where you set up the selected button. Changes are saved righ
 - **Name**: the name shown under the icon. If you leave it empty, Nonet names the button from its action
 - **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names), **App** (**Use This App's Icon**, available for Open App buttons and in app profiles) or **Text** (type 1–2 characters and click **Use**). **Restore Default Icon** goes back to the default
 - **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item or AI (see Action types)
+- **Hold before running**: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics)
 - **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings
 - **Clear This Button**: removes the action and leaves an empty button
 
@@ -242,7 +246,7 @@ Shortcuts like `⌘[` work correctly on JIS keyboards too.
 
 Opens the app, or brings it to the front if it's already running. Under **App to open**, click **Choose App…** and choose an installed app. For an app that isn't listed, click **Choose Another App…**. In the grid, the button's second line reads **Open App**. The app's name appears in the inspector and in the help tag when you hold the pointer over the button.
 
-Turn on **Hide if already in front** to hide the app when you tap the button again, so you can switch to it and back.
+Turn on **Hide if already in front** to hide the app when you run the button again, so you can switch to it and back.
 
 ### URL
 
@@ -335,15 +339,12 @@ Sends the selected text and the **Prompt** to the on-device language model (Appl
 
 Choose **Settings…** from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General, License and About. The General tab is grouped into these sections.
 
-### Trigger & HUD
+### Opening and HUD
 
 | Setting | Default | What it does |
 |---|---|---|
-| Enable Nonet | On | When off, Nonet ignores the trigger key. You can also switch it in the Nonet menu and under the profile list |
-| Trigger key | Right ⌘ on JIS keyboards, right ⌥ on others | Right Command (⌘), Right Option (⌥), Right Shift (⇧) or fn. Nonet responds only to the right-side key. On a JIS keyboard, choosing right ⌥ shows a warning |
-| Open with the trackpad alone | Off | Off, Rest a finger in the top-left corner, or Rest a finger in the top-right corner. Rest a finger in the corner for a moment to show the nine buttons, slide to a button, and lift your finger to run it (see [Using the trackpad alone](#using-the-trackpad-alone) under Basics) |
-| Run on | Key Release | Whether a button you choose in the HUD (the overview of all nine buttons) runs when you release the trigger key (Key Release) or when you lift your finger (Finger Lift). A quick tap runs right away with either setting, even with the HUD showing. Finger Lift changes how you cancel (see [Canceling](#canceling) under Basics) |
-| HUD delay after resting | 0.30 s | 0.15–0.80 s. Rest your finger this long to show the HUD. Shorter taps run right away. If you don't touch the trackpad, the HUD appears after a slightly longer wait (0.6 seconds) |
+| Enable Nonet | On | When off, sliding in from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list |
+| How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
 | HUD position | Center of Screen | Center of Screen or Near Pointer. The HUD appears on the display with the pointer |
 | HUD size | Standard | Standard, Large or Extra Large. Notices at the bottom of the screen use the same size. If it doesn't fit on the screen, Nonet makes it as large as fits |
 
@@ -358,17 +359,16 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 
 | Setting | Default | What it does |
 |---|---|---|
-| Haptic feedback | Medium | Off, Light, Medium or Strong. The trackpad ticks when your finger crosses into another button, the page changes or a button runs. Two light taps mean nothing ran |
-| Show a notice when a button runs | On | Shows a notice at the bottom of the screen when a button runs without the HUD, and when a slow button finishes |
+| Haptic feedback | Medium | Off, Light, Medium or Strong. Taps when the buttons open, when you cross an edge, when the page changes and when a button runs. Two light taps mean they closed without running anything |
+| Show a notice when a button runs | On | Shows a notice at the bottom of the screen when a slow button finishes |
 
-Slow buttons (background scripts, shortcuts and AI) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, whatever this setting is. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length (and for as long as you hold right ⌘).
+Slow buttons (background scripts, shortcuts and AI) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, whatever this setting is. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
 
 ### Advanced
 
 | Setting | Default | What it does |
 |---|---|---|
-| Pass the trigger key to the front app | On | When off, the trigger key itself doesn't reach the front app or other tools (see "Another tool also uses right ⌘" under Troubleshooting). In apps set to **Turn Off Nonet in This App**, the trigger key reaches the app even when this is off |
-| Pointer lock method | Automatic | Automatic (discards movement and moves the pointer back if it drifts), Discard Movement, Detach Pointer or Off (the pointer moves with your finger). Try another method if the pointer moves while you hold the trigger key |
+| Pointer lock method | Automatic | Automatic (discards movement and moves the pointer back if it drifts), Discard Movement, Detach Pointer or Off (the pointer moves with your finger). Try another method if the pointer moves while the nine buttons are open |
 
 ### Startup
 
@@ -403,7 +403,7 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 
 - You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the License tab of Settings
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
-- When the trial ends, the HUD shows "Your trial has ended. Buy Nonet or register a license key from its menu bar icon." and buttons no longer run (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Register License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
+- When the trial ends, sliding in from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Register License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
 - After you buy Nonet, your license key arrives by email. One license covers every Mac you use. You can get a full refund within 30 days of purchase
 - Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the License tab says why, and Nonet goes back to the trial if any trial time is left
 
@@ -421,7 +421,7 @@ Nonet checks for new versions automatically. When it finds one, the top-right sq
 
 The About tab of Settings shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
 
-**Contact Support…** opens an email to us in your email app. It contains only the versions of Nonet and macOS, your Mac model, your trigger key and your keyboard type (never your license key or your settings). You decide whether to send it.
+**Contact Support…** opens an email to us in your email app. It contains only the versions of Nonet and macOS, your Mac model and your keyboard type (never your license key or your settings). You decide whether to send it.
 
 ## Troubleshooting
 
@@ -435,7 +435,7 @@ When Nonet can't work, the top line of the Nonet menu and the banner at the top 
 
 ### “Nonet doesn't work while you enter a password”
 
-While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps. Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
+While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons. Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
 
 ### “Can't find a multi-touch trackpad”
 
@@ -446,37 +446,33 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Enable Nonet** is checked in the Nonet menu
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
-- Make sure you're holding the trigger key set in Settings. Nonet doesn't respond to left ⌘ or ⌥
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- While a Nonet window such as Settings is in front, Keystrokes, Script, Shortcut, Menu Item and AI buttons don't run, and Nonet shows "Didn't run because a Nonet window is in front. …" (Open App and URL buttons do run). Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
+- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge or moving slowly doesn't open the buttons (see [Opening the buttons](#opening-the-buttons) under Basics)
+- While a Nonet window such as Settings is in front, sliding in from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing
 
 When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder, and the Settings window opens right away.
 
+### The buttons open when you didn't mean to
+
+If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open your finger is in the frame. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+
 ### The pointer doesn't move or clicks don't work
 
-While you hold the trigger key, Nonet holds the pointer still and blocks clicks. If Nonet thinks the key is still down, any of these gets things back to normal:
+While the nine buttons are open, Nonet holds the pointer still and blocks clicks. If Nonet thinks they're still open, any of these gets things back to normal:
 
-- Press and release the trigger key (right ⌘ or the key you chose) once
-- Press any other key (this cancels right away)
-- Take your fingers off the trackpad, then move or click the mouse (the mouse action reaches the app as usual)
+- Take all your fingers off the trackpad
+- Press any key (this closes them right away)
+- Move or click the mouse (the mouse action reaches the app as usual)
 - Wait 20 seconds (long sessions end on their own)
 - If none of these work, choose **Quit Nonet** from the Nonet menu
 
-If the pointer moves a little while you hold the trigger key, try another **Pointer lock method** under Advanced.
-
-### No right ⌥ on a JIS keyboard
-
-JIS keyboards have no right ⌥. Choose right ⌘ (the default), right ⇧ or fn as the trigger key.
-
-### Another tool also uses right ⌘
-
-If you use a tool such as ⌘英かな or Karabiner-Elements that acts when you press right ⌘ by itself, it may react every time you use Nonet. Choose another trigger key, or change that tool's settings. If you turn off **Pass the trigger key to the front app**, the trigger key no longer reaches other apps and tools.
+If the pointer moves a little while the nine buttons are open, try another **Pointer lock method** under Advanced.
 
 ### The wrong button runs
 
-Buttons are chosen by the **absolute position** of your finger on the trackpad. For a button on the edge, tap near that edge of the trackpad. When you're not sure, rest your finger and check the HUD before the button runs. If quick taps keep bringing up the HUD, or the HUD doesn't appear when you rest your finger, change the **HUD delay after resting**. **Recent Runs** in the Nonet menu shows what ran.
+Buttons are chosen by the **absolute position** of your finger on the trackpad. Check which button is highlighted in the HUD before you lift. If the wrong one is highlighted, slide to the right one, or slide out to the frame and lift so nothing runs. Nothing runs on the line between two buttons, so lift in the middle of a button. For buttons that do something you can't undo, turn on **Hold before running** (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics). **Recent Runs** in the Nonet menu shows what ran.
 
 ### A script fails
 

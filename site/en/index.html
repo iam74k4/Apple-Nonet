@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nonet — Your trackpad, as nine buttons for every app</title>
-<meta name="description" content="Hold a key and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. An overlay of all nine appears only when you hesitate. 14-day free trial, one-time purchase, full refund within 30 days.">
+<meta name="description" content="Slide a finger in from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. Choose on an overlay of all nine and lift to run. 14-day free trial, one-time purchase, full refund within 30 days.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nonet">
 <meta property="og:title" content="Nonet — Your trackpad becomes nine buttons">
-<meta property="og:description" content="Hold a key and your trackpad becomes nine buttons that change with every app. No extra hardware, no shortcuts to memorize.">
+<meta property="og:description" content="Slide a finger in from the top edge and your trackpad becomes nine buttons that change with every app. No extra hardware, no shortcuts to memorize.">
 <meta property="og:url" content="https://nonet.astlog.dev/en/">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="ja_JP">
@@ -38,7 +38,7 @@
   "name": "Nonet",
   "url": "https://nonet.astlog.dev/en/",
   "inLanguage": "en",
-  "description": "Hold a key and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using.",
+  "description": "Slide a finger in from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "macOS 14 or later",
   "softwareRequirements": "A multi-touch trackpad (the built-in trackpad of a MacBook or a Magic Trackpad)",
@@ -60,6 +60,7 @@
   <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
   <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
   <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
 </svg>
 
@@ -112,7 +113,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Trackpad macro pad for Mac</p>
         <h1>Your trackpad becomes nine buttons.</h1>
-        <p class="lead">Hold a key and your MacBook trackpad turns into nine buttons that change with the app you are using. No extra device like a Stream Deck, and no shortcuts to memorize.</p>
+        <p class="lead">Slide a finger down from the top edge and your MacBook trackpad turns into nine buttons that change with the app you are using. No key to hold: choose with one finger and lift to run. No extra device like a Stream Deck, and no shortcuts to memorize.</p>
         <div class="cta">
           <a class="btn" href="thanks.html">Try free for 14 days</a>
           <a class="btn btn-secondary" href="#how">See how it works</a>
@@ -129,39 +130,43 @@
       </div>
 
       <figure class="demo" data-demo
-        data-caption-hud="Not sure? Rest your finger and the HUD, an overlay of all nine buttons, appears. Slide to a button and release the key to run it."
-        data-caption-tap="Once you know the layout, press and tap. It runs right away, no HUD."
+        data-caption-run="Slide a finger down from the top edge and the HUD opens. Slide to a button and lift to run it."
+        data-caption-cancel="To cancel, slide out to the frame around the buttons and lift. Nothing runs."
         data-label-pause="Pause animation"
         data-label-play="Play animation">
         <div class="demo-stage" aria-hidden="true">
           <div class="screen">
             <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
             <div class="hud">
-              <div class="hud-head"><span class="hud-title">Xcode</span><span>Release ⌥ to run</span></div>
-              <div class="hud-grid">
-                <div class="cell" data-cell data-label="Build"><svg class="icon"><use href="#i-play"/></svg>Build</div>
-                <div class="cell" data-cell data-label="Test"><svg class="icon"><use href="#i-check"/></svg>Test</div>
-                <div class="cell" data-cell data-label="Simulator"><svg class="icon"><use href="#i-phone"/></svg>Simulator</div>
-                <div class="cell" data-cell data-label="Terminal"><svg class="icon"><use href="#i-terminal"/></svg>Terminal</div>
-                <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
-                <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
-                <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
-                <div class="cell" data-cell data-label="Mute"><svg class="icon"><use href="#i-micoff"/></svg>Mute</div>
-                <div class="cell" data-cell data-label="Screenshot"><svg class="icon"><use href="#i-capture"/></svg>Screenshot</div>
+              <div class="hud-head"><span class="hud-title">Xcode</span><span>Lift on a button to run</span></div>
+              <div class="hud-pad">
+                <div class="hud-grid">
+                  <div class="cell" data-cell data-label="Build"><svg class="icon"><use href="#i-play"/></svg>Build</div>
+                  <div class="cell" data-cell data-label="Test"><svg class="icon"><use href="#i-check"/></svg>Test</div>
+                  <div class="cell" data-cell data-label="Simulator"><svg class="icon"><use href="#i-phone"/></svg>Simulator</div>
+                  <div class="cell" data-cell data-label="Terminal"><svg class="icon"><use href="#i-terminal"/></svg>Terminal</div>
+                  <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                  <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
+                  <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
+                  <div class="cell" data-cell data-label="Mute"><svg class="icon"><use href="#i-micoff"/></svg>Mute</div>
+                  <div class="cell" data-cell data-label="Screenshot"><svg class="icon"><use href="#i-capture"/></svg>Screenshot</div>
+                </div>
+                <div class="hud-cancel"><svg class="icon"><use href="#i-cross"/></svg>Lift to cancel</div>
               </div>
             </div>
             <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>Build</span></div>
           </div>
-          <div class="controls">
-            <div class="key">Right ⌥</div>
-            <div class="trackpad">
-              <svg class="trackpad-lines" viewBox="0 0 208 130" preserveAspectRatio="none"><path d="M69.3 0V130 M138.7 0V130 M0 43.3H208 M0 86.7H208" vector-effect="non-scaling-stroke"/></svg>
-              <span class="ripple"></span>
-              <span class="finger"></span>
+          <div class="trackpad">
+            <div class="trackpad-cells">
+              <svg class="trackpad-lines" viewBox="0 0 162 88" preserveAspectRatio="none"><path d="M54 0V88 M108 0V88 M0 29.3H162 M0 58.7H162" vector-effect="non-scaling-stroke"/></svg>
             </div>
+            <span class="trackpad-label">frame</span>
+            <span class="trail"></span>
+            <span class="ripple"></span>
+            <span class="finger"></span>
           </div>
         </div>
-        <figcaption data-demo-caption>While you hold right ⌥, your trackpad is nine buttons. The HUD, an overlay that shows all nine, appears only when you hesitate.</figcaption>
+        <figcaption data-demo-caption>Slide a finger down from the top edge of the trackpad and it becomes nine buttons. The HUD, an overlay that shows all nine, opens at once. Slide to a button and lift to run it.</figcaption>
         <button class="demo-toggle" type="button" data-demo-toggle hidden>Pause animation</button>
       </figure>
     </div>
@@ -179,7 +184,7 @@
         <li>
           <span class="num">02</span>
           <h3>Nothing to memorize</h3>
-          <p>See all nine buttons before you press. The HUD appears only when you hesitate, so it never gets in the way once you know the layout.</p>
+          <p>All nine buttons appear the moment you open them, so you choose by looking. Not sure? Lift in the frame and nothing runs.</p>
         </li>
         <li>
           <span class="num">03</span>
@@ -193,36 +198,37 @@
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
       <div class="section-head">
-        <h2 id="how-title">The HUD shows up only when you hesitate</h2>
-        <p>What you see depends on how quickly you touch the trackpad after pressing the key: speed for people who know their layout, reassurance for people who are still learning. The trackpad is split into a 3×3 grid, and the button is chosen by where your finger rests.</p>
+        <h2 id="how-title">Slide in from the top edge, lift on a button</h2>
+        <p>No key and no click. Put a finger on the top edge of the trackpad and slide it down to open the HUD, keep sliding to choose, and lift on a button to run it. The trackpad is split into a 3×3 grid of buttons with a frame around it.</p>
       </div>
       <div class="flows">
         <div class="flow">
-          <h3>When you know it: run without looking</h3>
+          <h3>To run a button</h3>
           <ol class="steps">
-            <li class="step"><b>Hold right ⌥</b><span>The trigger key</span></li>
-            <li class="step"><b>Tap right away</b><span>Within 0.3 s</span></li>
-            <li class="step is-goal"><b>It runs</b><span>No HUD, fastest</span></li>
+            <li class="step"><b>Touch the top edge</b><span>With one finger</span></li>
+            <li class="step is-hud"><b>Slide down</b><span>The HUD opens</span></li>
+            <li class="step"><b>Slide to choose</b><span>The button under your finger lights up</span></li>
+            <li class="step is-goal"><b>Lift on a button</b><span>It runs</span></li>
           </ol>
         </div>
         <div class="flow">
-          <h3>When you are not sure: look first</h3>
+          <h3>To cancel: nothing runs</h3>
           <ol class="steps">
-            <li class="step"><b>Hold right ⌥</b><span>The trigger key</span></li>
-            <li class="step"><b>Rest your finger</b><span>Which one was it?</span></li>
-            <li class="step is-hud"><b>The HUD appears</b><span>Slide to a button</span></li>
-            <li class="step is-goal"><b>Release ⌥</b><span>The button runs</span></li>
+            <li class="step"><b>Open from the top edge</b><span>Same as before</span></li>
+            <li class="step is-hud"><b>Slide out to the frame</b><span>“✕ Lift to cancel” appears</span></li>
+            <li class="step is-goal"><b>Lift in the frame</b><span>It closes without running anything</span></li>
           </ol>
         </div>
       </div>
       <ul class="notes">
-        <li>Keep holding the key to tap as many buttons as you like</li>
-        <li>To cancel, lift your finger before releasing the key. Nothing runs</li>
-        <li>While you hold the key the pointer stays put and clicks never reach the app</li>
-        <li>Change how long it waits before showing the HUD (0.15–0.8 s)</li>
+        <li>A slow move, two fingers, a palm or a click-and-drag doesn't open it</li>
+        <li>While the buttons are open the pointer stays put and clicks never reach the app</li>
+        <li>Pause on a button before you lift; lifting while you slide past doesn't run it</li>
+        <li>The frame is a band about 1.5–1.7 cm wide along the edges (on a 15 cm wide trackpad)</li>
+        <li>Press any key to close without running anything (the key still reaches your app)</li>
         <li>Swipe left or right with two fingers for the next page of nine</li>
-        <li>The trigger is right ⌥ by default (right ⌘ on JIS keyboards). Right ⇧ and fn work too</li>
-        <li>No key needed if you prefer: rest a finger in a top corner of the trackpad for a moment (Settings › General)</li>
+        <li>Buttons you can't undo, like Send, can be set to Hold before running</li>
+        <li>In apps set to Turn Off in This App, nothing opens and the trackpad works as usual</li>
       </ul>
     </div>
   </section>
@@ -290,7 +296,7 @@
             <circle class="ink" cx="173" cy="60" r="10"/>
           </svg>
           <h3>A tick at every edge</h3>
-          <p>On Force Touch trackpads, you feel a light tap each time your finger crosses into another button, so you know where you are without looking. Choose how strong it feels.</p>
+          <p>On Force Touch trackpads, you feel a light tick each time your finger crosses into another button, so you know where you are without looking. Choose how strong it feels.</p>
         </article>
         <article class="feature">
           <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
@@ -393,7 +399,7 @@
         <details id="faq-trial-end">
           <summary>What happens when the trial ends?</summary>
           <div class="answer">
-            <p>The HUD shows "Your trial has ended" and buttons no longer run. Your settings are kept, so entering a license key brings everything back immediately.</p>
+            <p>The buttons no longer open. Sliding in from the top edge shows "Your trial has ended" at the bottom of the screen instead. Your settings are kept, so entering a license key brings everything back immediately.</p>
           </div>
         </details>
         <details id="faq-requirements">
@@ -406,41 +412,48 @@
         <details id="faq-mouse">
           <summary>Can I use it with a mouse only?</summary>
           <div class="answer">
-            <p>No. Buttons are chosen by where your finger rests, so you need a trackpad. A Mac mini or Mac Studio works with a Magic Trackpad.</p>
+            <p>No. You open the buttons by sliding a finger in from the top edge of the trackpad and choose by where your finger is, so you need a trackpad. A Mac mini or Mac Studio works with a Magic Trackpad.</p>
           </div>
         </details>
         <details id="faq-permissions">
           <summary>Which permissions does Nonet need?</summary>
           <div class="answer">
-            <p>Accessibility (System Settings › Privacy &amp; Security). Nonet uses it to detect the trigger key, to hold the pointer and clicks while you press it, to send keystrokes and to choose menu items. Reading finger positions needs no permission.</p>
+            <p>Accessibility (System Settings › Privacy &amp; Security). Nonet uses it to hold the pointer and keep clicks from reaching the app while the buttons are open, to notice a key press so it can close them, and to send keystrokes, choose menu items and read the selected text for actions. Reading finger positions needs no permission.</p>
             <p>macOS asks once for Automation permission only when a script uses the browser's URL (NONET_BROWSER_URL). Running a script in Terminal doesn't ask.</p>
           </div>
         </details>
         <details id="faq-privacy">
           <summary>Does Nonet send what I type or how I use it?</summary>
           <div class="answer">
-            <p>No. Nonet never records or sends what you type. Settings are stored only on your Mac (<code>~/Library/Application Support/Nonet</code>) and there is no account. The network is used only to check for updates and to open the purchase page.</p>
+            <p>No. Nonet looks at the keyboard only while the nine buttons are open, and only to notice that a key was pressed so it can close them. It never records or sends what you type. Settings are stored only on your Mac (<code>~/Library/Application Support/Nonet</code>) and there is no account. The network is used only to check for updates and to open the purchase page.</p>
             <p>See the <a href="privacy.html">privacy policy</a> for details.</p>
           </div>
         </details>
-        <details id="faq-option-key">
-          <summary>I use ⌥ to type characters like @ or €. Will Nonet get in the way?</summary>
+        <details id="faq-accidental">
+          <summary>Will it open by accident while I use the trackpad as usual?</summary>
           <div class="answer">
-            <p>Usually not. If you press another key while holding the trigger, Nonet steps aside and the key reaches your app as usual.</p>
-            <p>The pointer and clicks pause while the trigger is held, so for ⌥-drag use left ⌥, or switch the trigger to right ⌘, right ⇧ or fn.</p>
+            <p>It opens only when one finger starts on the top edge of the trackpad and slides down quickly. A slow move, two or more fingers, a palm, a finger that moved into the edge from elsewhere, or a click-and-drag doesn't open it.</p>
+            <p>For apps where you don't want it, choose Turn Off in This App in the Nonet menu. In those apps, sliding in from the top edge leaves the trackpad working as usual.</p>
           </div>
         </details>
-        <details id="faq-jis">
-          <summary>Does it work with Japanese (JIS) keyboards?</summary>
+        <details id="faq-cancel">
+          <summary>How do I close it without running anything?</summary>
           <div class="answer">
-            <p>Yes. JIS keyboards have no right ⌥, so the default trigger there is right ⌘. You can also choose right ⇧ or fn.</p>
-            <p>If a tool such as Karabiner-Elements already uses a single press of right ⌘, pick a different trigger to avoid conflicts.</p>
+            <p>Slide your finger out to the frame, the band around the nine buttons, and lift it. In the frame the buttons dim and “✕ Lift to cancel” appears. Pressing any key also closes them, and the key still reaches your app. Two short buzzes tell you they closed without running anything.</p>
           </div>
         </details>
-        <details id="faq-without-key">
-          <summary>What if holding a key while tapping is hard for me?</summary>
+        <details id="faq-hold">
+          <summary>Could I run something I can't undo, like Send, by mistake?</summary>
           <div class="answer">
-            <p>You can open the nine buttons without a key. In Settings › General, choose a top corner for Open with the trackpad alone, then rest a finger in that corner of the trackpad for a moment and the overlay appears. Slide to a button, pause on it, then lift your finger to run it.</p>
+            <p>A button runs only if your finger pauses on it before you lift. Lifting while you slide past doesn't run it.</p>
+            <p>For buttons you can't undo, such as Send or Record, turn on Hold before running in the button's settings. It then runs only if you hold your finger on it for about 0.6 s, until its outline in the HUD has gone all the way around, and then lift.</p>
+          </div>
+        </details>
+        <details id="faq-keyboard">
+          <summary>Will it get in the way of typing or keyboard shortcuts?</summary>
+          <div class="answer">
+            <p>No. Opening the buttons uses only the trackpad, never a key. Nonet looks at the keyboard only while the nine buttons are open: pressing a key then closes them without running anything, and the key reaches your app as usual.</p>
+            <p>Shortcuts you record for a button work the same on JIS, US and other layouts.</p>
           </div>
         </details>
         <details id="faq-app-store">
@@ -458,7 +471,7 @@
         <details id="faq-stream-deck">
           <summary>How is this different from a Stream Deck?</summary>
           <div class="answer">
-            <p>Stream Deck is a dedicated device from Elgato with a grid of keys that each have their own display. Nonet is software that uses your MacBook trackpad as the buttons. You need no extra hardware, but there are no physical keys or per-key screens, and the buttons exist only while you hold the trigger key.</p>
+            <p>Stream Deck is a dedicated device from Elgato with a grid of keys that each have their own display. Nonet is software that uses your MacBook trackpad as the buttons. You need no extra hardware, but there are no physical keys or per-key screens, and the trackpad becomes buttons only when you slide in from the top edge to open them.</p>
           </div>
         </details>
       </div>

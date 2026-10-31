@@ -1,5 +1,5 @@
 // 販売ページのスクリプト。どれも、JavaScript が無くてもページが使える上での上乗せ:
-//   - HUD のデモを動かす（JavaScript が無いとき・動きを減らす設定のときは静止画のまま）
+//   - HUD のデモを動かす（上の縁から開いて実行・外枠で離してやめる。JavaScript が無いとき・動きを減らす設定のときは静止画のまま）
 //   - 言語の案内: 日本語のページを日本語を読まないブラウザで、英語のページを日本語を最初に選んだブラウザで
 //     開いたときだけ、もう一方の言語のページがあることを知らせる（自動では移動しない。閉じたら覚える）
 //   - Mac 以外の端末（iPhone・Android・Windows など）: ダウンロードの代わりに案内を出す
@@ -51,21 +51,39 @@
 
   // MARK: HUD のデモ
 
+  // 上の縁から指を下へ滑らせて開き、マスで離して実行する。続けて、もう一度開いて外枠で離し、何も実行せずに閉じる
   const setUpDemo = () => {
     const demo = doc.querySelector("[data-demo]");
     if (!demo) return;
 
     const cells = Array.from(demo.querySelectorAll("[data-cell]"));
     const finger = demo.querySelector(".finger");
+    const trail = demo.querySelector(".trail");
     const ripple = demo.querySelector(".ripple");
     const toastText = demo.querySelector("[data-toast-text]");
     const caption = demo.querySelector("[data-demo-caption]");
     const toggle = demo.querySelector("[data-demo-toggle]");
-    if (cells.length !== 9 || !finger || !ripple || !toastText || !caption || !toggle) return;
+    if (cells.length !== 9 || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
 
     const staticCaption = caption.textContent;
     const staticHighlight = cells.findIndex((cell) => cell.classList.contains("on"));
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const states = ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show"];
+
+    // トラックパッドの外枠（9マスの外側の帯）の幅（%）。アプリと同じ割合（GridMapper.cancelFrame）。
+    // style.css の .trackpad-cells と合わせる
+    const FRAME = { left: 11, right: 11, top: 17, bottom: 15 };
+
+    // 指の位置（トラックパッドの左上からの %）
+    const cellPoint = (index) => ({
+      x: FRAME.left + ((index % 3) + 0.5) * ((100 - FRAME.left - FRAME.right) / 3),
+      y: FRAME.top + (Math.floor(index / 3) + 0.5) * ((100 - FRAME.top - FRAME.bottom) / 3),
+    });
+    const EDGE = { x: 50, y: 4 }; // 上の縁に指を置いたところ
+    const OPENED = { x: 50, y: 12 }; // 下へ滑らせて開いたところ（指はまだ上の外枠にいる）
+    const RIGHT_FRAME = { x: 100 - FRAME.right / 2, y: cellPoint(4).y }; // 右の外枠
+
+    const percent = (value) => `${Math.round(value * 100) / 100}%`;
 
     let timers = [];
     let pausedByUser = reduceMotion.matches;
@@ -83,20 +101,21 @@
 
     const setState = (name, on) => demo.classList.toggle(name, on);
 
-    // トラックパッドの 3×3 の中心。指の位置はトラックパッドの絶対位置で決まる
-    const moveFinger = (index, { jump = false } = {}) => {
-      const column = index % 3;
-      const row = Math.floor(index / 3);
+    // 指と、上の縁から滑らせた跡を動かす。jump のときは滑らせずに、その場に置く
+    const place = ({ x, y }, { jump = false } = {}) => {
       finger.classList.toggle("jump", jump);
-      finger.style.left = `${((column + 0.5) / 3) * 100}%`;
-      finger.style.top = `${((row + 0.5) / 3) * 100}%`;
+      trail.classList.toggle("jump", jump);
+      finger.style.left = percent(x);
+      finger.style.top = percent(y);
+      trail.style.left = percent(x);
+      trail.style.height = percent(y);
     };
 
     const highlight = (index) => {
       cells.forEach((cell, i) => cell.classList.toggle("on", i === index));
     };
 
-    // マスの境界をまたいだときの振動
+    // 振動（開いたとき・マスの境界をまたいだとき・実行したとき。何も実行せずに閉じたときは2回）
     const buzz = () => {
       ripple.style.left = finger.style.left;
       ripple.style.top = finger.style.top;
@@ -112,77 +131,93 @@
       cell.classList.add("fire");
     };
 
+    const clearFire = () => cells.forEach((cell) => cell.classList.remove("fire"));
+
     const showToast = (index) => {
       toastText.textContent = cells[index].dataset.label || "";
       setState("toast-show", true);
     };
 
-    // HUD を出さずに即実行する速押し
-    const tap = (index) => {
-      moveFinger(index, { jump: true });
-      setState("finger-down", true);
-      later(170, () => {
-        setState("finger-down", false);
-        fire(index);
-        showToast(index);
+    // 上の縁に指を置き、下へ滑らせると開く。開いた直後の指は上の外枠にいるので、HUD は「離すとやめる」を出す。
+    // そのまま上の段の中央のマスまで滑らせる
+    const openFromTopEdge = (at) => {
+      later(at, () => {
+        place(EDGE, { jump: true });
+        setState("finger-down", true);
+        setState("slide-in", true);
+      });
+      later(at + 300, () => place(OPENED));
+      later(at + 520, () => {
+        setState("hud-open", true);
+        setState("in-frame", true);
+        buzz();
+      });
+      later(at + 1100, () => place(cellPoint(1)));
+      later(at + 1260, () => {
+        setState("in-frame", false);
+        setState("slide-in", false);
+        highlight(1);
+        buzz();
       });
     };
 
     const resetScene = () => {
-      ["hud-open", "key-down", "finger-down", "toast-show"].forEach((name) => setState(name, false));
+      states.forEach((name) => setState(name, false));
       highlight(-1);
-      moveFinger(4, { jump: true });
+      clearFire();
+      place(EDGE, { jump: true });
     };
 
     const scene = () => {
       clearTimers();
       resetScene();
-      caption.textContent = demo.dataset.captionHud || staticCaption;
+      caption.textContent = demo.dataset.captionRun || staticCaption;
 
-      // 迷ったとき: 指を置いて止まる → HUD → 指でなぞる → キーを離して実行
-      later(500, () => setState("key-down", true));
-      later(800, () => {
-        moveFinger(4, { jump: true });
-        setState("finger-down", true);
-      });
-      later(1150, () => {
-        finger.classList.remove("jump");
-        setState("hud-open", true);
-        highlight(4);
-      });
-      later(1900, () => moveFinger(5));
-      later(2060, () => {
-        highlight(5);
+      // 実行する: 上の縁から開く → 指を滑らせて選ぶ → マスで離す
+      openFromTopEdge(400);
+      later(2300, () => place(cellPoint(0)));
+      later(2460, () => {
+        highlight(0);
         buzz();
       });
-      later(2700, () => moveFinger(2));
-      later(2860, () => {
-        highlight(2);
-        buzz();
-      });
-      later(3800, () => {
-        setState("key-down", false);
-        fire(2);
-      });
-      later(4050, () => {
+      later(3300, () => {
         setState("finger-down", false);
+        fire(0);
+        buzz();
+      });
+      later(3500, () => {
         setState("hud-open", false);
-        showToast(2);
+        showToast(0);
       });
-      later(4900, () => setState("toast-show", false));
+      later(4400, () => setState("toast-show", false));
 
-      // 慣れたら: 押してすぐタップ（HUD は出ない）。押したまま続けて実行できる
-      later(5600, () => {
-        caption.textContent = demo.dataset.captionTap || staticCaption;
+      // やめる: もう一度開く → 外枠まで滑らせる（マスが暗くなり「離すとやめる」）→ 離すと、何も実行せずに閉じる
+      later(5000, () => {
+        caption.textContent = demo.dataset.captionCancel || staticCaption;
         highlight(-1);
-        setState("key-down", true);
+        clearFire();
       });
-      later(5850, () => tap(0));
-      later(6700, () => setState("toast-show", false));
-      later(7000, () => tap(8));
-      later(7850, () => setState("toast-show", false));
-      later(8200, () => setState("key-down", false));
-      later(9400, scene);
+      openFromTopEdge(5200);
+      later(7000, () => place(cellPoint(4)));
+      later(7160, () => {
+        highlight(4);
+        buzz();
+      });
+      later(7800, () => place(RIGHT_FRAME));
+      later(7960, () => {
+        highlight(-1);
+        setState("in-frame", true);
+      });
+      later(9000, () => {
+        setState("finger-down", false);
+        buzz();
+      });
+      later(9180, buzz);
+      later(9300, () => {
+        setState("hud-open", false);
+        setState("in-frame", false);
+      });
+      later(10600, scene);
     };
 
     const start = () => {
@@ -196,11 +231,13 @@
       running = false;
       clearTimers();
       setState("is-live", false);
-      ["hud-open", "key-down", "finger-down", "toast-show"].forEach((name) => setState(name, false));
-      finger.removeAttribute("style");
-      finger.classList.remove("jump");
+      states.forEach((name) => setState(name, false));
+      [finger, trail].forEach((element) => {
+        element.removeAttribute("style");
+        element.classList.remove("jump");
+      });
       ripple.classList.remove("buzz");
-      cells.forEach((cell) => cell.classList.remove("fire"));
+      clearFire();
       highlight(staticHighlight);
       caption.textContent = staticCaption;
     };

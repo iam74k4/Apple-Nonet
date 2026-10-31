@@ -35,7 +35,7 @@
 説明文:
 
 ```text
-キーを押している間だけ、トラックパッドをアプリごとの 3×3 のボタンにする常駐アプリ。非公開の MultitouchSupport で指の位置を読み、直販に向けて開発中。
+トラックパッドの上の縁から指を滑らせて、アプリごとの 3×3 のボタンを開く常駐アプリ。非公開の MultitouchSupport で指の位置を読み、直販に向けて開発中。
 ```
 
 既にある作品の説明文と同じ形にしてある（AppMixer は「〜で…を制御する常駐アプリ。Mac App Store で配布している。」、SaifuLog は「…家計簿アプリ。…形で開発中。」）。
@@ -58,7 +58,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 背景:
 
 ```text
-よく使う操作をボタン1つで呼び出したくても、ボタンの並んだ専用の機器を足せば机の上の物が増え、キーボードショートカットは覚えきれません。MacBook にもともとあるトラックパッドを、キーを押している間だけボタンとして使えれば、どちらも要らなくなると考えてつくっています。
+よく使う操作をボタン1つで呼び出したくても、ボタンの並んだ専用の機器を足せば机の上の物が増え、キーボードショートカットは覚えきれません。MacBook にもともとあるトラックパッドを、上の縁から指を滑らせたときだけボタンとして使えれば、どちらも要らなくなると考えてつくっています。
 
 使うボタンはアプリごとに違うので、前面のアプリに合わせて9マスが切り替わるようにしました。Xcode や Zoom など 15 のアプリには最初から9マスを用意しています。どのアプリでも使うグローバルのページは、macOS 26 で無くなった Launchpad の代わりに、Mac に入っているアプリを並べたランチャーから始まります。
 ```
@@ -74,9 +74,9 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 工夫:
 
 ```text
-指の位置は MultitouchSupport の生のフレームから読み、最後に置いた指の絶対位置でマスを決めます（ポインタの位置は使いません）。トリガーキーの検出と、押している間のポインタ・クリックの抑止は CGEventTap で行い、ポインタ用のタップは抑止の間だけ有効にして、ふだんのポインタのイベントをアプリに通さないようにしています。押している間にほかのキーが押されたら何も実行せずに終え、そのキーは前面のアプリに渡します。
+指の位置は MultitouchSupport の生のフレームから読み、最後に置いた指の絶対位置でマスを決めます（ポインタの位置は使いません）。9マスは、トラックパッドの上の縁で触れ始めた1本指がすぐに下へ滑ったときだけ開き、ゆっくりした動き・2本以上の指・手のひらでは開かないようにして、ふだんの操作と見分けています。開いている間のポインタ・クリックの抑止は CGEventTap で行い、キーボード用とポインタ用のタップは開いている間（ポインタ用はその直後の後片付けの間も）だけ有効にして、ふだんのキーとポインタのイベントをアプリに通さないようにしています。開いている間にキーが押されたら何も実行せずに閉じ、そのキーは前面のアプリに渡します。
 
-キーを押してすぐ（既定で 0.3 秒以内）のタップは HUD を出さずにその場で実行し、指を止めて迷ったときだけ HUD を出します。マスの境界をまたぐたびにトラックパッドを振動させる作りにし、非公開の MTActuator を優先して、使えなければ公開の NSHapticFeedbackManager に切り替えます。
+開くとすぐに HUD を出し、指を滑らせて選んだマスで離すと実行、9マスの外側の外枠で離すと何もせずに閉じます。滑らせて通りかかっただけのマスを実行しないよう、マスに 0.15 秒留まってから離したときだけ実行します。マスの境界をまたぐたびにトラックパッドを振動させる作りにし、非公開の MTActuator を優先して、使えなければ公開の NSHapticFeedbackManager に切り替えます。
 
 非公開のフレームワークを使うので Mac App Store には出せず、直販にしました。利用者のアカウントも、ライセンスを確かめるサーバーも持たず、ライセンスキーは Ed25519 で署名した文字列をアプリの中だけで確かめます。リリースは scripts/release.sh 1本で、Developer ID の署名と公証、DMG、Sparkle 2 のアップデートの配信情報（appcast）までをつくる形にし、外部のツールを差し替えたテストで手順を確かめています。
 ```
@@ -84,7 +84,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 成果:
 
 ```text
-まだ販売していません。14日間の試用のあとに買い切りで売る予定で、価格と販売サービスは決めていません。実機での手動テスト（速押し・HUD・ポインタとクリックの抑止・触覚・2本指スワイプ・ほかのキーとの同時押しなど9項目）は、これから製品版で通します。
+まだ販売していません。14日間の試用のあとに買い切りで売る予定で、価格と販売サービスは決めていません。実機での手動テスト（上の縁から開く・マスで離して実行・外枠やキーでやめる・ポインタとクリックの抑止・触覚・2本指スワイプなど）は、これから製品版で通します。
 
 自動テストは、Swift Testing のテスト 1,307 件と、リリースのスクリプト・販売ページ・ドキュメントのテスト 120 件です。scripts/test.sh がこれに加えてアプリのビルドと自己診断（--self-check）までを通します。macOS 14 以降を対象にし、アプリの画面と販売ページは日本語と英語で用意しています。
 ```
@@ -156,12 +156,12 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 枠 | 中身 | 形 | 代替テキスト |
 |---|---|---|---|
 | アイコン | `App/Assets.xcassets/AppIcon.appiconset/icon_256x256.png`（256×256 の PNG）をそのまま | 正方形・256×256 | なし |
-| メインの画像 | HUD の画面。Xcode を前面にして HUD を出し、真ん中の「Claude Code」が光っている。上にプロファイル名「Xcode」と「⌘を離して実行」（Xcode のプリセットの並びは ビルド・実行・テスト／シミュレータ・Claude Code・ターミナル／停止・クリーン・コミット） | 1440×900（16:10）の JPEG・1MB 未満 | `Nonet の HUD。Xcode の画面の上に9マス（ビルド・実行・テストなど）が出て、真ん中の「Claude Code」が白く光っている画面` |
-| ほかの画像 1 | 操作の動画（10〜15 秒）。トリガーキーを押してすぐタップ → その場で実行（下にトースト）、次に指を止める → HUD → キーを離して実行 | 16:10・H.264 の MP4・音なし・10MB 未満 | `Nonet の操作を収録した画面の動画。HUD を出さずに実行したマスの名前が画面の下に一瞬出たあと、HUD が出て指の位置に合わせて光るマスが移り、そのマスが実行される` |
+| メインの画像 | HUD の画面。Xcode を前面にして HUD を出し、真ん中の「Claude Code」が光っている。上にプロファイル名「Xcode」と「マスで指を離すと実行」（Xcode のプリセットの並びは ビルド・実行・テスト／シミュレータ・Claude Code・ターミナル／停止・クリーン・コミット） | 1440×900（16:10）の JPEG・1MB 未満 | `Nonet の HUD。Xcode の画面の上に9マス（ビルド・実行・テストなど）が出て、真ん中の「Claude Code」が白く光っている画面` |
+| ほかの画像 1 | 操作の動画（10〜15 秒）。上の縁から指を滑らせて開く → HUD を見ながら指を滑らせ、マスで離して実行、次にもう一度開いて外枠で離してやめる | 16:10・H.264 の MP4・音なし・10MB 未満 | `Nonet の操作を収録した画面の動画。HUD が出て、指の位置に合わせて光るマスが移り、そのマスが実行される。続けてもう一度 HUD を出し、「離すとやめる」が出たところで何も実行せずに閉じる` |
 | ほかの画像 2 | 設定のウィンドウ（プロファイル）。左にグローバルとアプリのプロファイル、中央に Xcode の 3×3、右にインスペクタ | 1440×900 の JPEG（ウィンドウを 16:10 の地に置く） | `設定のウィンドウ。左にグローバルとアプリのプロファイル、中央に Xcode の 3×3 のマス、右に選んだマスのアクションが並ぶ画面` |
 | ほかの画像 3 | メニューから割り当て。メニューを検索し、項目を空いたマスへドラッグしているところ | 1440×900 の JPEG | `メニューから割り当て。起動中のアプリのメニューを検索し、項目を空いたマスへドラッグしている画面` |
 | ほかの画像 4 | 初回の案内の「Mac にあるアプリから、9マスを用意しました」 | 1440×900 の JPEG | `初回の案内で、Mac に入っているアプリのうち9マスを用意してあるもの（Xcode・Safari など）を選ぶ画面` |
-| ほかの画像 5（任意） | 設定の「一般」（トリガーキー・HUD の待ち時間・触覚） | 1440×900 の JPEG | `全体の設定。トリガーキー・HUD が出るまでの時間・触覚の強さなどを選ぶ画面` |
+| ほかの画像 5（任意） | 設定の「一般」（開き方とやめ方の図・HUD の位置と大きさ・触覚） | 1440×900 の JPEG | `全体の設定。トラックパッドの図で開き方とやめ方を示し、HUD の位置と大きさ・触覚の強さなどを選ぶ画面` |
 
 - ほかの画像の中で、動画を先に置くか静止画を先に置くかは好みでよい（並び順の欄で変えられる）。メインの画像は動画にできない
 - 動画は実際のアプリを収録する。販売ページのデモ（`site/index.html` の `.demo`）は絵のアニメーションなので、使うなら代替テキストを「販売ページの操作のデモ（アニメーション）。…」にする。実機の手動テストが済むまでは、静止画だけでもよい
@@ -181,7 +181,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
   「次へ」で「Mac にあるアプリから、9マスを用意しました」の画面まで進め、⌘⇧4 → Space → ウィンドウをクリックで撮る。Xcode が選ばれているのを確かめて「次へ：試してみる」→「スキップ」→「完了」まで進め、メニューバーから終了する
 - 設定のウィンドウ（ほかの画像 2）: `"$app/Contents/MacOS/Nonet" --config-dir "$demo" --show-settings profiles` で開き、サイドバーで Xcode を、グリッドでマスを1つ選んでから ⌘⇧4 → Space で撮る（`--snapshot` はグローバルのプロファイルを選んだ状態しか書き出さない）
 - 一般（ほかの画像 5）: `"$app/Contents/MacOS/Nonet" --config-dir "$demo" --show-settings general --snapshot ~/Desktop/nonet-shots`（ウィンドウを PNG に書き出して終わる。画面収録の許可は要らない）
-- HUD（メインの画像）: トリガーキーを押したままでは ⌘⇧4 が押せない（ほかのキーで HUD が引っ込む）ので、Debug ビルドの `--preview-hud` を使う。`sleep 3; "$app/Contents/MacOS/Nonet" --config-dir "$demo" --preview-hud` を打ち、3秒のうちに Xcode を前面にして、HUD が出たら画面ごと撮る。Xcode のプロファイルがある見本の設定でないと、グローバルのランチャーが出る。Xcode には見せてよいプロジェクトを開いておき、パスやアカウント名が写っていないかを確かめる
+- HUD（メインの画像）: 9マスを開いている間はキーを押すと HUD が閉じ、⌘⇧4 で撮れないので、Debug ビルドの `--preview-hud` を使う。`sleep 3; "$app/Contents/MacOS/Nonet" --config-dir "$demo" --preview-hud` を打ち、3秒のうちに Xcode を前面にして、HUD が出たら画面ごと撮る。Xcode のプロファイルがある見本の設定でないと、グローバルのランチャーが出る。Xcode には見せてよいプロジェクトを開いておき、パスやアカウント名が写っていないかを確かめる
 - メニューから割り当て（ほかの画像 3）: 設定のウィンドウで「メニューから割り当て」を開き、項目をドラッグしている途中を ⌘⇧4 で撮る
 - 縮小と JPEG: 画面ごとの PNG は先に 16:10 に切る（幅 W なら高さ W×0.625。2560×1664 なら `sips -c 1600 2560 full.png --out crop.png`、2940×1912 なら `sips -c 1838 2940 full.png --out crop.png`）。そのあと `sips -z 900 1440 -s format jpeg -s formatOptions 85 crop.png --out main.jpg`。1MB（1,000,000 バイト）を超えたら品質を下げる。ウィンドウだけの画像は、16:10 の地（1440×900）に置いてから JPEG にする
 - 動画: ⌘⇧5 で 16:10 の範囲を収録し、H.264 で書き出す（QuickTime Player の書き出しでは HEVC を外す。AstLog は HEVC を受け付けない）。ffmpeg なら `ffmpeg -i in.mov -vf scale=1440:-2 -c:v libx264 -pix_fmt yuv420p -crf 23 -an -movflags +faststart out.mp4`。10MB を超えたら短くするか `-crf` を上げる
@@ -190,22 +190,23 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 
 | 書いたこと | 出どころ |
 |---|---|
-| キーを押している間だけ、トラックパッドがアプリごとの 3×3 のボタンになる | `README.md` の冒頭、`docs/user-guide.md`「Nonet とは」 |
+| トラックパッドの上の縁から指を滑らせると、アプリごとの 3×3 のボタンが開く | `README.md` の冒頭、`docs/user-guide.md`「Nonet とは」 |
 | メニューバーの常駐アプリ（Dock に出ない） | `docs/architecture.md` §1（`LSUIElement`）、`project.yml` |
 | 非公開の MultitouchSupport を dlopen で読み、指の位置を読む | `Packages/NonetKit/Sources/CMultitouch/CMultitouch.c`（`dlopen`）、`docs/spike-results.md` |
 | 指の位置を読むだけなら許可が要らない（検証用のアプリで確かめた） | `docs/spike-results.md`「確認できたこと」 |
-| 最後に置いた指の絶対位置でマスを決め、ポインタの位置は使わない | `docs/architecture.md` §5 の 2、`docs/user-guide.md`「Nonet とは」 |
-| CGEventTap でトリガーキーの検出とポインタ・クリックの抑止。ポインタ用のタップは抑止の間だけ有効 | `Packages/NonetKit/Sources/NonetPlatform/Input/EventTapKeyboardMonitor.swift`（冒頭の説明と `CGEvent.tapCreate`） |
-| ほかのキーが押されたら何も実行せずに終え、そのキーは前面アプリに渡す | `docs/architecture.md` §5 の 10、`docs/user-guide.md`「やめる」 |
-| 既定で 0.3 秒以内のタップは HUD なしで実行し、迷ったときだけ HUD | `docs/architecture.md` §5 の 3・4、`Settings.swift` の `hudDelay: Double = 0.3` |
-| 境界・ページ・実行で振動。MTActuator を優先し、使えなければ NSHapticFeedbackManager | `docs/architecture.md` §5 の 7 と §7、`NonetPlatform/Input/TrackpadHapticPlayer.swift` |
+| 最後に置いた指の絶対位置でマスを決め、ポインタの位置は使わない | `docs/architecture.md` §5 の 4、`docs/user-guide.md`「Nonet とは」 |
+| 上の縁で触れ始めた1本指がすぐに下へ滑ったときだけ開き、ゆっくりした動き・2本以上の指・手のひらでは開かない | `docs/architecture.md` §5 の 1、`NonetCore/Engine/EdgeSlideRecognizer.swift` |
+| CGEventTap で開いている間のポインタ・クリックの抑止とキーでの中断。キーボード用とポインタ用のタップは開いている間（ポインタ用は後片付けの間も）だけ有効 | `Packages/NonetKit/Sources/NonetPlatform/Input/EventTapKeyboardMonitor.swift`（冒頭の説明と `updateKeyboardTap`・`updatePointerTap`） |
+| 開いている間にキーが押されたら何も実行せずに閉じ、そのキーは前面アプリに渡す | `docs/architecture.md` §5 の 9、`docs/user-guide.md`「やめる（キャンセル）」 |
+| 開くとすぐに HUD。マスに 0.15 秒留まってから離すと実行し、外枠で離すとやめる | `docs/architecture.md` §5 の 3・4・6、`SessionEngine.swift` の `defaultLiftDwell`、`GridMapper.swift` の `GridInsets.cancelFrame` |
+| 境界・ページ・実行で振動。MTActuator を優先し、使えなければ NSHapticFeedbackManager | `docs/architecture.md` §5 の 5 と §7、`NonetPlatform/Input/TrackpadHapticPlayer.swift` |
 | Xcode や Zoom など 15 のアプリに9マスを用意 | `NonetCore/Model/Presets.swift` の `PresetLibrary.apps`（15件） |
 | グローバルのページは Launchpad の代わりのランチャーから始まる（macOS 26 で Launchpad が無くなった） | `docs/architecture.md` §6「プロファイルとページ」、`Presets.swift` の `makeGlobalProfile` |
 | Mac App Store ではなく直販。利用者のアカウントもライセンスのサーバーも無い | `README.md`、`docs/architecture.md` §1 |
 | ライセンスキーは Ed25519 の署名で、アプリの中だけで確かめる | `NonetCore/Licensing/License.swift`（`Curve25519.Signing`）、`docs/release.md` の冒頭 |
 | 14日間の試用のあと買い切り。価格・販売サービスは未定 | `README.md`、`site/index.html`（`¥TODO`・`TODO: 販売サービス名`） |
 | scripts/release.sh が Developer ID の署名・公証・DMG・Sparkle 2 の appcast までをつくる形。外部のツールを差し替えたテストで確かめている | `docs/release.md` §2.4、`scripts/release.sh`、`scripts/tests/release_test.sh` と `scripts/tests/fakes/` |
-| 実機での手動テスト（T1〜T9）はまだ | `docs/spike-results.md`「手動テスト」、`docs/architecture.md` §7 |
+| 実機での手動テストはまだ | `docs/release.md` §4「公開前のチェックリスト」の「アプリ」、`docs/architecture.md` §7 |
 | 9つの担当範囲と契約を先に決め、Claude Code の複数のセッションで並行に実装 | `docs/architecture.md` §3、コミットの `Co-Authored-By: Claude` と `Merge ui-shell` などの統合のコミット |
 | 操作のロジックは AppKit に触れないモジュールにあり、偽の実装を渡してテストする | `docs/architecture.md` §2（`NonetCore` は Foundation と Observation だけ、テストでは偽の実装を渡す） |
 | Swift Testing のテストの件数 | `cd Packages/NonetKit && swift test` の最後の3行（`Test run with … tests` の合計。引数つきのテストは引数ごとに数える） |
@@ -222,7 +223,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 成果の1段落目 | まだ販売していない・価格と販売サービスは未定・実機の手動テストはこれから | 販売を始めた月・価格・販売サービスを書く。手動テストが済んだら、その一文を消す |
 | 成果のテストの件数 | 書いた日の件数 | 下のコマンドで数え直す |
 | 成果の CI の一文 | 書いていない | コードを push して GitHub Actions が緑になったら、2段落目に「プッシュのたびに GitHub Actions でも同じ一式を動かしています。」を足す |
-| 工夫の触覚・ポインタの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（T5・T6）で方式が決まったら、それに合わせる |
+| 工夫の触覚・ポインタの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（ポインタの固定・触覚）で方式が決まったら、それに合わせる |
 | リンク `Download` | 入れない | 公証済みの DMG を出したら `Download` / `https://nonet.astlog.dev/download` を Website の次に足す |
 | リンク `Repository` | 入れない | リポジトリは非公開なので入れない |
 | 公開する | 外す（下書き） | nonet.astlog.dev が開き、`scripts/check-site.sh --strict` が通ったら入れる |
