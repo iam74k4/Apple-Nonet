@@ -23,6 +23,8 @@ struct ShellRenderTests {
         let global = PresetLibrary.makeGlobalProfile(installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID)))
         let models: [(String, HUDModel)] = [
             ("hud-xcode", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 4, pageCount: 1)),
+            // HUD で選ぶマス（クリーン）を速押しして出た HUD。光ったマスにも印が見える
+            ("hud-xcode-hud-only", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 7, pageCount: 1)),
             ("hud-launcher-pages", Self.hudModel(title: L10n.globalName, page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
             // 長い方の案内（練習中・指を離して実行）
             ("hud-practice", Self.hudModel(
@@ -249,7 +251,7 @@ struct ShellRenderTests {
             cells: page.cells.map { cell in
                 cell.map { cell in
                     let detail: String? = if case .keystroke(let keys) = cell.action { keys.displayString } else { nil }
-                    return HUDCell(title: cell.title, icon: cell.icon, detail: detail)
+                    return HUDCell(title: cell.title, icon: cell.icon, detail: detail, requiresHUD: cell.requiresHUD)
                 }
             },
             highlightedIndex: highlighted,

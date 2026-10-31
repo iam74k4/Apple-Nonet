@@ -6,11 +6,14 @@ public struct HUDCell: Equatable, Sendable {
     public var icon: CellIcon
     /// "⌘B" など。出さないなら nil
     public var detail: String?
+    /// HUD で選んだときだけ実行するマス（Cell.requiresHUD）。小さな印を付ける
+    public var requiresHUD: Bool
 
-    public init(title: String, icon: CellIcon, detail: String? = nil) {
+    public init(title: String, icon: CellIcon, detail: String? = nil, requiresHUD: Bool = false) {
         self.title = title
         self.icon = icon
         self.detail = detail
+        self.requiresHUD = requiresHUD
     }
 }
 

@@ -461,6 +461,7 @@ import Testing
                 #expect(madeCell?.title == originalCell?.title)
                 #expect(madeCell?.icon == originalCell?.icon)
                 #expect(madeCell?.action == originalCell?.action)
+                #expect(madeCell?.requiresHUD == originalCell?.requiresHUD)
             }
         }
     }

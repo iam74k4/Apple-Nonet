@@ -88,7 +88,9 @@ struct OnboardingPracticePage: Equatable {
             page.cells.indices.contains(index) ? page.cells[index]?.title : nil
         }
         let occupied = Set(titles.indices.filter { titles[$0] != nil })
-        guard let quick = Self.quickTapPreference.first(where: occupied.contains) else { return nil }
+        // HUD で選んだときだけ実行するマス（Cell.requiresHUD）は、すぐにタップしても実行しないので練習に使わない（そればかりなら使う）
+        let tappable = occupied.filter { page.cells.indices.contains($0) && page.cells[$0]?.requiresHUD != true }
+        guard let quick = Self.quickTapPreference.first(where: (tappable.isEmpty ? occupied : tappable).contains) else { return nil }
         // 中身のあるマスが1つしか無ければ、同じマスを違うやり方で押してもらう
         let hud = Self.hudPreference.first { occupied.contains($0) && $0 != quick } ?? quick
         profileName = page.profileName

@@ -13,6 +13,8 @@ private struct SessionTouch: Sendable {
     var isTapCandidate: Bool
     /// 置いた位置のマス（速押しと、HUD でのタップで実行するマス）
     var downCell: Int?
+    /// 置いた位置が内側の境界の線の帯（GridMapper.tapBoundaryBand）の中。すぐにタップ（速押し・HUD でのタップ）なら実行しない
+    var landedInBoundaryBand = false
     /// 2本以上の指が触れたことがある。このタッチでは実行しない（仕様 9）
     var isMultiFinger: Bool
     /// このタッチでページを切り替えた（1回のスワイプで1ページ。仕様 8）。端で止まったときも含む
@@ -91,6 +93,9 @@ struct SessionState: Sendable {
     private var slide: CornerSlide?
     /// 角の長押しのセッションで、いま光っているマスになった時刻（離したときに、そのマスに留まっていたかを測る）
     private var highlightSince: TimeInterval = 0
+    /// HUD で選ぶマス（hudOnlyCells）を速押ししたので、そのマスを光らせて出した HUD のマス。指を離していても、
+    /// 次に指を置く（ハイライトがその指を追う）か HUD を閉じるまで光らせておく
+    private var confirmationCell: Int?
     /// トリガーより前から置いていて、まだ動かしていない指（id → 測り始めた位置）。トリガーキーのセッションだけ。
     /// 1本だけでも数えず（親指を手前に休めたままトリガーを押し、そのままタップや取りやめができるように）、restingTolerance より動かしたらふつうの指にする
     private var restingFingers: [Int: FingerTracker.Finger] = [:]
@@ -325,6 +330,8 @@ struct SessionState: Sendable {
             return
         case .began:
             beginTouch(tracker, now: now)
+            // 指を置いただけ。HUD で選ぶマスを光らせていても、別のマスに置いたことを境界の触覚にしない
+            placedNewTouch = true
         case .moved:
             if startsTouchBesideRestingFingers(tracker) {
                 // トリガーより前から休めている指のほかに置いた: その指だけの新しいタッチ（すぐにタップの候補）
@@ -349,6 +356,7 @@ struct SessionState: Sendable {
         case .restarted:
             liftTouch(now: now, effects: &effects)
             beginTouch(tracker, now: now)
+            placedNewTouch = true
         }
         follow(tracker, effects: &effects, buzzesOnBoundary: !placedNewTouch)
     }
@@ -372,7 +380,8 @@ struct SessionState: Sendable {
             if touch.isMultiFinger {
                 rejectMultiFingerLift(touch, effects: &effects)
             } else if drain.allowsTap, now < drain.deadline, let cell = touch.downCell {
-                if isEmptyCell(cell) {
+                // 境界の帯・空きマスは実行しない。HUD で選ぶマスも、トリガーを離した後では HUD で確かめられないので実行しない
+                if touch.landedInBoundaryBand || isEmptyCell(cell) || isHUDOnlyCell(cell) {
                     effects.append(.haptic(.rejected))
                 } else {
                     execute(cell: cell, wasFastTap: true, effects: &effects)
@@ -426,6 +435,7 @@ struct SessionState: Sendable {
             self.touch?.restStart = now
         } else if touch == nil {
             // 休めていた指を滑らせ始めた: ハイライトで追えるよう、その指のタッチにする（トリガーより前から置いていたので、速押しにはしない）
+            confirmationCell = nil
             touch = SessionTouch(
                 physicalStart: tracker.gestureStart,
                 restStart: now,
@@ -476,9 +486,12 @@ struct SessionState: Sendable {
             // HUD を出していなければ速押しの候補（仕様 3・6）。HUD を出していれば HUD での選択（短ければタップ）
             isTapCandidate: !isHUDVisible,
             downCell: first.map { grid.cell(x: $0.x, y: $0.y) },
+            landedInBoundaryBand: first.map { grid.isInTapBoundaryBand(x: $0.x, y: $0.y) } ?? false,
             isMultiFinger: fingers.count >= 2,
             origin: first
         )
+        // HUD で選ぶマスを光らせていたら、ここからはハイライトが置いた指を追う
+        confirmationCell = nil
         tracked = nil
         swipeBaseline = nil
     }
@@ -495,7 +508,12 @@ struct SessionState: Sendable {
             rejectMultiFingerLift(touch, effects: &effects)
             clearHighlight(effects: &effects)
         } else if isHUDVisible {
-            if configuration.fireMode == .onFingerLift, let cell = highlight, !isEmptyCell(cell) {
+            if isQuickTap(touch, now: now), touch.landedInBoundaryBand {
+                // 境界の帯に落ちたタップ: どちらのマスを狙ったか分からないので実行しない（「指を離したとき」も、滑らせずにすぐ離したら同じ）。
+                // HUD は出したまま、ハイライトを消す
+                effects.append(.haptic(.rejected))
+                clearHighlight(effects: &effects)
+            } else if configuration.fireMode == .onFingerLift, let cell = highlight, !isEmptyCell(cell) {
                 // 仕様 5: onFingerLift なら1本指を離したときにハイライト中のマスを実行し、HUD を閉じる。
                 // 空きマスなら何もしない（仕様 12）ので、HUD は出したまま選び直せるようにする
                 hideHUD(effects: &effects)
@@ -514,8 +532,13 @@ struct SessionState: Sendable {
             }
         } else if touch.isTapCandidate, now < touch.restStart + configuration.hudDelay, let cell = touch.downCell {
             // 仕様 3: 速押し。置いた位置のマスを HUD なしで実行する。
-            // 空きマスは実行せずに離したのと同じ（hasExecuted にしないので、迷っていれば (a) の HUD が出る）。触覚で知らせる
-            if isEmptyCell(cell) {
+            // 空きマスと境界の帯は実行せずに離したのと同じ（hasExecuted にしないので、迷っていれば (a) の HUD が出る）。触覚で知らせる
+            if touch.landedInBoundaryBand || isEmptyCell(cell) {
+                effects.append(.haptic(.rejected))
+            } else if isHUDOnlyCell(cell) {
+                // HUD で選ぶマス: 実行せず、そのマスを光らせた HUD を出す（セッションは続く。HUD でもう一度選べば実行する）。
+                // 触覚は実行しなかったことを知らせる rejected（execute の1打と取り違えない2打）
+                showHUDForConfirmation(of: cell, effects: &effects)
                 effects.append(.haptic(.rejected))
             } else {
                 execute(cell: cell, wasFastTap: true, effects: &effects)
@@ -526,8 +549,14 @@ struct SessionState: Sendable {
     /// HUD が出ているときの、短く動かさない1本指のタップ。実行のタイミングが「キーを離したとき」のときだけ
     /// （「指を離したとき」は、離せばいつも光っているマスを実行する）。トリガーより前から置いていた指はタップにしない
     private func isTapInHUD(_ touch: SessionTouch, now: TimeInterval) -> Bool {
-        configuration.fireMode == .onTriggerRelease
-            && !touch.isPreTrigger
+        configuration.fireMode == .onTriggerRelease && isQuickTap(touch, now: now)
+    }
+
+    /// 置いた位置のあるタッチを、tapMaxDuration より短く tapMaxTravel より動かさずに離した（実行のタイミングに関係なく）。
+    /// トリガーより前から置いていた指はタップにしない
+    private func isQuickTap(_ touch: SessionTouch, now: TimeInterval) -> Bool {
+        !touch.isPreTrigger
+            && touch.downCell != nil
             && now - touch.physicalStart < SessionConfiguration.tapMaxDuration
             && touch.travel < SessionConfiguration.tapMaxTravel
     }
@@ -601,9 +630,11 @@ struct SessionState: Sendable {
         touch?.isPreTrigger == true ? nil : touch
     }
 
-    /// 2本以上の指が触れたタッチと、トリガーより前から休めている指だけのタッチはハイライトしない（実行されないマスを光らせないため）
+    /// 2本以上の指が触れたタッチと、トリガーより前から休めている指だけのタッチはハイライトしない（実行されないマスを光らせないため）。
+    /// 指を置いていなければ、HUD で選ぶマスの速押しで光らせたマス（confirmationCell）
     private var currentHighlight: Int? {
-        guard let touch, !touch.isMultiFinger, !touch.isPreTrigger else { return nil }
+        guard let touch else { return confirmationCell }
+        guard !touch.isMultiFinger, !touch.isPreTrigger else { return nil }
         return tracked?.cell
     }
 
@@ -627,9 +658,18 @@ struct SessionState: Sendable {
         effects.append(.showHUD(page: page, highlightedCell: highlight))
     }
 
+    /// HUD で選ぶマスの速押し: そのマスを光らせた HUD を出す。指を離していても、次に指を置くまで光らせておく
+    private mutating func showHUDForConfirmation(of cell: Int, effects: inout [SessionEffect]) {
+        confirmationCell = cell
+        isHUDVisible = true
+        highlight = cell
+        effects.append(.showHUD(page: page, highlightedCell: cell))
+    }
+
     private mutating func hideHUD(effects: inout [SessionEffect]) {
         isHUDVisible = false
         highlight = nil
+        confirmationCell = nil
         effects.append(.hideHUD)
     }
 
@@ -637,6 +677,12 @@ struct SessionState: Sendable {
     private func isEmptyCell(_ cell: Int) -> Bool {
         guard let occupied = configuration.occupiedCells, occupied.indices.contains(page) else { return false }
         return !occupied[page].contains(cell)
+    }
+
+    /// 今のページで、HUD で選んだときだけ実行するマス（Cell.requiresHUD）。分からなければ false
+    private func isHUDOnlyCell(_ cell: Int) -> Bool {
+        guard let hudOnly = configuration.hudOnlyCells, hudOnly.indices.contains(page) else { return false }
+        return hudOnly[page].contains(cell)
     }
 
     private mutating func execute(cell: Int, wasFastTap: Bool, effects: inout [SessionEffect]) {

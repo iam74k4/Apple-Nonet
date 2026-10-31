@@ -45,7 +45,7 @@ final class DebugPreview {
             pageIndex: 0,
             pageCount: pages.count,
             cells: page.cells.map { cell in
-                cell.map { HUDCell(title: $0.title, icon: $0.icon, detail: Self.detail(for: $0.action)) }
+                cell.map { HUDCell(title: $0.title, icon: $0.icon, detail: Self.detail(for: $0.action), requiresHUD: $0.requiresHUD) }
             },
             highlightedIndex: 4,
             // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く

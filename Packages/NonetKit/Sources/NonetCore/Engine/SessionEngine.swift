@@ -49,6 +49,11 @@ public struct SessionConfiguration: Equatable, Sendable {
     /// ページごとの、中身のあるマス（0〜8）。nil や範囲外のページは、すべてのマスに中身があるとみなす。
     /// 空きマス（仕様 12）の速押しを「実行せずに離した」と扱い、6 の (a) の HUD を止めないために使う
     public var occupiedCells: [Set<Int>]?
+    /// ページごとの、HUD で選んだときだけ実行するマス（0〜8。`Cell.requiresHUD`）。nil や範囲外のページは、どのマスも速押しで実行する。
+    /// このマスの速押しは実行せず、そのマスを光らせた HUD を出す（セッションは続く。HUD でもう一度選べば実行する）
+    public var hudOnlyCells: [Set<Int>]?
+    /// すぐにタップ（速押し・HUD でのタップ）を受け付けない、内側の境界の線の片側の幅（GridMapper.tapBoundaryBand）
+    public var tapBoundaryBand: Double
     public var activation: SessionActivation
 
     public init(
@@ -61,6 +66,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         swipeThreshold: Double = SessionConfiguration.defaultSwipeThreshold,
         maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration,
         occupiedCells: [Set<Int>]? = nil,
+        hudOnlyCells: [Set<Int>]? = nil,
+        tapBoundaryBand: Double = GridMapper.defaultTapBoundaryBand,
         activation: SessionActivation = .triggerKey
     ) {
         self.hudDelay = hudDelay
@@ -72,12 +79,14 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.swipeThreshold = swipeThreshold
         self.maxDuration = maxDuration
         self.occupiedCells = occupiedCells
+        self.hudOnlyCells = hudOnlyCells
+        self.tapBoundaryBand = tapBoundaryBand
         self.activation = activation
     }
 
     /// 全体の設定から作る。pageCount は前面アプリの resolvedPages の数
-    public init(settings: GlobalSettings, pageCount: Int, occupiedCells: [Set<Int>]? = nil) {
-        self.init(hudDelay: settings.hudDelay, fireMode: settings.fireMode, pageCount: pageCount, occupiedCells: occupiedCells)
+    public init(settings: GlobalSettings, pageCount: Int, occupiedCells: [Set<Int>]? = nil, hudOnlyCells: [Set<Int>]? = nil) {
+        self.init(hudDelay: settings.hudDelay, fireMode: settings.fireMode, pageCount: pageCount, occupiedCells: occupiedCells, hudOnlyCells: hudOnlyCells)
     }
 
     /// 範囲外の値を直したもの。エンジンはセッションの開始時にこれを使う
@@ -90,12 +99,13 @@ public struct SessionConfiguration: Equatable, Sendable {
         result.placementWindow = min(max(window, result.hudDelay), result.maxDuration)
         result.pageCount = max(pageCount, 1)
         result.hysteresis = GridMapper(hysteresis: hysteresis).hysteresis
+        result.tapBoundaryBand = GridMapper(tapBoundaryBand: tapBoundaryBand).tapBoundaryBand
         result.swipeThreshold = swipeThreshold.isFinite && swipeThreshold > 0 ? min(swipeThreshold, 1) : Self.defaultSwipeThreshold
         return result
     }
 
     var grid: GridMapper {
-        GridMapper(hysteresis: hysteresis, insets: edgeInsets)
+        GridMapper(hysteresis: hysteresis, insets: edgeInsets, tapBoundaryBand: tapBoundaryBand)
     }
 }
 
@@ -155,8 +165,8 @@ public enum SessionEffect: Equatable, Sendable {
     /// 表示中の HUD のページかハイライトが変わった
     case updateHUD(page: Int, highlightedCell: Int?)
     case hideHUD
-    /// boundary・pageChange・activation（角の長押しで始めたとき）・rejected（空きマスのすぐにタップ・2本以上の指で離した・
-    /// 端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
+    /// boundary・pageChange・activation（角の長押しで始めたとき）・rejected（空きマスや境界の帯のすぐにタップ・HUD で選ぶマスの速押し・
+    /// 2本以上の指で離した・端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したとき（空きマスでないとき）に controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする。
@@ -185,6 +195,10 @@ public enum SessionEffect: Equatable, Sendable {
 ///   分からないマス・ライセンス（13）・練習モード（14）は controller が `execute` を受けて判断する
 /// - HUD が出ているときも、短く（`tapMaxDuration`）動かさずに（`tapMaxTravel`）1本指でタップしたら、置いたマスを実行して HUD を閉じる
 ///   （実行のタイミングが「キーを離したとき」のとき。セッションは続く）
+/// - すぐにタップ（速押し・HUD でのタップ）の置いた位置が内側の境界の線の帯（`GridMapper.tapBoundaryBand`）の中なら、どちらのマスも実行せず
+///   `rejected` の触覚。滑らせて選ぶとき（HUD のハイライト・角の長押し）は帯を使わない（ハイライトにはヒステリシスがあり、選んだマスが見える）
+/// - HUD で選んだときだけ実行するマス（`hudOnlyCells`）の速押しは実行せず、そのマスを光らせた HUD を出して `rejected` の触覚
+///   （セッションは続く。HUD でもう一度タップする・指を置いたままトリガーを離す・「指を離したとき」なら指を置いて離すと実行する）
 /// - トリガーより前から置いて動かしていない指（`restingTolerance`）は数えない。その指だけでも、ハイライトも (b) の HUD も実行もしない
 ///   （HUD は (a) の時刻に出す）。ほかに置いた指は新しいタッチ。動かしたら、ふつうの指として数える。
 ///   ただし角の長押しのセッション中にトリガーを押したときは、そのセッションで選んでいた指をそのまま数える

@@ -69,6 +69,10 @@ struct SettingsRenderShots {
             model.selectCell(4)
             try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "profiles-script-\(suffix)")
 
+            // HUD で選んだときだけ実行するマス（Xcode のクリーン。グリッドとインスペクタの印）
+            model.selectCell(7)
+            try await render(SettingsInspectorView(model: model), size: CGSize(width: 310, height: 560), appearance, "inspector-hud-only-\(suffix)")
+
             // 最小の大きさ・キー入力のマス
             model.selectCell(0)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "profiles-min-keystroke-\(suffix)")

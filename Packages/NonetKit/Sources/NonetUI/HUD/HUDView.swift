@@ -25,6 +25,9 @@ struct HUDMetrics: Equatable {
     var cellTitleFontSize: CGFloat { 13 * scale }
     var detailFontSize: CGFloat { 11 * scale }
     var iconSize: CGFloat { 20 * scale }
+    /// HUD で選んだときだけ実行するマスの印（HUDOnlyBadge）の大きさと、マスの角からの距離
+    var badgeSize: CGFloat { 9 * scale }
+    var badgeInset: CGFloat { 7 * scale }
     var dotSize: CGFloat { 7 * scale }
     var dotSpacing: CGFloat { 8 * scale }
     /// アプリのページとグローバルのページの点の間に、さらに空ける幅
@@ -285,8 +288,15 @@ struct HUDCellView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            if cell?.requiresHUD == true {
+                HUDOnlyBadge(size: metrics.badgeSize, color: isHighlighted ? HUDPalette.highlightedDetail : colors.detail)
+                    .padding(metrics.badgeInset)
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
+        .accessibilityValue(Text(HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true)))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
     }
 }
@@ -395,11 +405,14 @@ enum HUDAnnouncement {
         return String(localized: "\(cell.title)、\(position)", bundle: .module)
     }
 
-    /// ハイライト中のマス。指が離れていれば nil
+    /// ハイライト中のマス。指が離れていれば nil。HUD で選んだときだけ実行するマスなら、そう言い添える
+    /// （すぐにタップして HUD が出たときに、なぜ実行しなかったかが分かるように）
     static func highlighted(in model: HUDModel) -> String? {
         guard let index = model.highlightedIndex, (0..<Page.cellCount).contains(index) else { return nil }
         let cell = model.cells.indices.contains(index) ? model.cells[index] : nil
-        return cellDescription(cell, index: index)
+        let description = cellDescription(cell, index: index)
+        guard cell?.requiresHUD == true else { return description }
+        return String(localized: "\(description)、\(HUDOnlyMark.accessibilityValue)", bundle: .module)
     }
 
     /// 前の表示から読み上げる内容が変わったときだけ文を返す（同じ文を何度も読ませない）

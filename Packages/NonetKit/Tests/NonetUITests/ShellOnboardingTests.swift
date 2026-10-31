@@ -784,6 +784,21 @@ struct ShellOnboardingTests {
         #expect(page.titles.compactMap { $0 }.count == occupied.count)
     }
 
+    /// HUD で選んだときだけ実行するマス（Cell.requiresHUD）は、すぐにタップしても実行しないので、すぐにタップの練習には選ばない
+    @Test func practiceQuickTapSkipsHUDOnlyCells() throws {
+        let cells: [Cell?] = (0..<Page.cellCount).map { index in
+            guard [0, 2, 6].contains(index) else { return nil }
+            return Cell(title: "マス\(index)", icon: .symbol("star"), action: .openURL(URLAction(url: "example.com")), requiresHUD: index == 2)
+        }
+        let page = try #require(OnboardingPracticePage(ResolvedPage(profileID: UUID(), profileName: "P", pageIndex: 0, cells: cells)))
+        #expect(page.quickTapTarget.index == 0)
+        #expect(page.hudTarget.index == 6)
+        // すべてが HUD で選ぶマスなら、仕方なくそのマスで練習する
+        let onlyHUD: [Cell?] = [Cell(title: "A", icon: .symbol("star"), action: .openURL(URLAction(url: "a")), requiresHUD: true)]
+        let fallback = try #require(OnboardingPracticePage(ResolvedPage(profileID: UUID(), profileName: "P", pageIndex: 0, cells: onlyHUD)))
+        #expect(fallback.quickTapTarget.index == 0)
+    }
+
     @Test("中身のあるマスが無いページでは練習できない（空きマスは押しても何も記録されない）。「設定を開く」でプロファイルを開く")
     func practiceWithoutButtons() throws {
         #expect(OnboardingPracticePage(nil) == nil)

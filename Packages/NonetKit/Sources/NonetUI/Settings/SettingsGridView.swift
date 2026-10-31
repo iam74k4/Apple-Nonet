@@ -125,6 +125,7 @@ struct SettingsGridCell: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground))
             .overlay(border)
+            .overlay(alignment: .topTrailing) { hudOnlyBadge }
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(Color.accentColor, lineWidth: 3)
@@ -141,6 +142,7 @@ struct SettingsGridCell: View {
             .help(SettingsGrid.tooltip(for: cell) ?? "")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
+            .accessibilityValue(HUDOnlyMark.accessibilityValue(requiresHUD: cell?.requiresHUD == true))
             .accessibilityHint(String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))
             .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
@@ -203,6 +205,15 @@ struct SettingsGridCell: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .truncationMode(.middle)
+    }
+
+    /// HUD で選んだときだけ実行するマス（Cell.requiresHUD）の印。HUD と同じ記号を右上に
+    @ViewBuilder
+    private var hudOnlyBadge: some View {
+        if cell?.requiresHUD == true {
+            HUDOnlyBadge(size: 10, color: .secondary)
+                .padding(8)
+        }
     }
 
     /// 「コントラストを上げる」のときは枠を太くする（色は SettingsPalette が濃くする）

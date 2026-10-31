@@ -8,6 +8,10 @@
 // 中央は指がいちばん置きやすく、迷った指が止まるマス。AI（Apple Intelligence）や Claude Code のように
 // Mac によっては動かないアクションは、使えない Mac では入れず、中央にはそのアプリの代わりのマスを置く（PresetCapabilities）。
 // Claude Code は押し間違えるとターミナルのウインドウが開くので、使える Mac でも中央には置かない
+//
+// 押し間違えると困るマス（相手に見える・送ってしまう・取り消せない・時間を失う）は、HUD で選んだときだけ実行する
+// （PresetBuilder.hudOnly。Cell.requiresHUD）。すぐにタップすると HUD が出てそのマスが光り、もう一度選ぶと実行する。
+// 会議のミュートは、咳や物音ですぐに切り替えたいので付けない。開くだけのもの（返信・コミットのシート・共有しない AirDrop の窓）にも付けない
 import Foundation
 
 /// プリセットの中身。アプリごとのデータは PresetData+*.swift に分けてある
@@ -33,6 +37,14 @@ enum PresetBuilder {
 
     static func script(_ title: String.LocalizationValue, _ symbol: String, _ action: ScriptAction) -> Cell {
         Cell(title: text(title), icon: .symbol(symbol), action: .script(action))
+    }
+
+    /// HUD で選んだときだけ実行するマスにする（Cell.requiresHUD）。押し間違えると相手に見える・送ってしまう・取り消せない・
+    /// 時間を失う操作に使う。すぐにタップしても実行せず、そのマスを光らせた HUD を出す
+    static func hudOnly(_ cell: Cell) -> Cell {
+        var cell = cell
+        cell.requiresHUD = true
+        return cell
     }
 
     /// 開発アプリの外側のマス。プロジェクトのフォルダで Claude Code を対話モードで開く。
