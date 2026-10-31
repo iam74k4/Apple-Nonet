@@ -45,6 +45,32 @@ import Testing
     }
 
     /// 編集 › 取り消す（⌘Z）はウィンドウの undoManager に届く。マスの変更を元に戻せるよう、設定の undoManager を返す
+    /// 終了ではウィンドウが閉じないので、AppDelegate が stop() の前に打ちかけの欄と記録中のキーを確定させ、一緒に書く
+    @Test func quittingCommitsTypingAndRecordingBeforeTheLastSave() throws {
+        let h = try SettingsHarness()
+        let window = makeController(h)
+        let model = window.model
+        model.createCell(kind: .shortcut, at: 1)
+        let shortcutID = try #require(model.selectedCell?.id)
+        let buffer = SettingsDraftBuffer(value: "", delay: .seconds(60)) { name in
+            model.updateAction(ofCell: shortcutID, as: ShortcutAction.self) { $0.name = name }
+        }
+        buffer.registry = model.pendingEdits
+        buffer.edit("翻訳")
+        model.createCell(kind: .keystroke, at: 3)
+        let keystrokeID = try #require(model.selectedCell?.id)
+        model.beginRecording(cellID: keystrokeID)
+        model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+
+        // AppDelegate.applicationWillTerminate と同じ順
+        window.commitPendingEdits()
+        h.controller.stop()
+        let saved = try #require(try h.store.load())
+        #expect(saved.globalProfile.pages[0].cells[1]?.action == .shortcut(ShortcutAction(name: "翻訳")))
+        #expect(saved.globalProfile.pages[0].cells[3]?.action == .keystroke(.key("b", .command)))
+        #expect(!h.controller.isRecordingKeys)
+    }
+
     @Test func undoGoesThroughTheSettingsUndoManager() throws {
         _ = NSApplication.shared
         let h = try SettingsHarness()

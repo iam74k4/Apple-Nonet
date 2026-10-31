@@ -57,20 +57,34 @@ extension SettingsModel {
 
     // MARK: - プリセットに戻す
 
-    /// そのプロファイルのアプリのプリセット。グローバルやプリセットの無いアプリは nil
+    /// そのプロファイルのアプリのプリセット。グローバルやプリセットの無いアプリは nil。
+    /// この Mac で動かないアクション（AI・Claude Code）は入れない（初回の設定やプロファイルの追加と同じ）
     func preset(forProfile id: UUID) -> AppPreset? {
         guard let app = configuration.profile(id: id)?.app else { return nil }
-        return PresetLibrary.preset(forBundleID: app.bundleID)
+        return PresetLibrary.preset(forBundleID: app.bundleID, capabilities: resolvedPresetCapabilities ?? services.presetEnvironment.capabilities)
     }
 
+    /// 確かめるシートを出している間に、claude を調べ終えるのを待っておく（調べ終える前は Claude Code のマスが入らないため）
     func requestResetProfile(_ id: UUID) {
         guard let profile = configuration.profile(id: id), preset(forProfile: id) != nil else { return }
         confirmation = .resetProfile(id: id, name: profile.name)
+        resolvedPresetCapabilities = nil
+        let environment = services.presetEnvironment
+        presetCapabilitiesTask?.cancel()
+        presetCapabilitiesTask = Task { [weak self] in
+            let capabilities = await environment.resolvedCapabilities()
+            guard !Task.isCancelled else { return }
+            self?.resolvedPresetCapabilities = capabilities
+        }
     }
 
     /// プロファイルのページをプリセットの中身にする。戻す前の設定を控えに残し、元に戻せるようにする
     func resetProfileToPreset(_ id: UUID) {
         guard let preset = preset(forProfile: id) else { return }
+        // 次に戻すときは、そのときに調べ直す（AI を使えるようになった・claude を入れたなど）
+        presetCapabilitiesTask?.cancel()
+        presetCapabilitiesTask = nil
+        resolvedPresetCapabilities = nil
         pendingEdits.flushAll()
         finishRecording()
         closeEditGroup()

@@ -386,6 +386,87 @@ struct ShellMenuBarTests {
         #expect(opened == [.general, .license, .profiles])
     }
 
+    /// メニューの「このアプリでは使わない」を押す。押す前に menuNeedsUpdate でメニューを作り直す
+    private func pressTurnOff(_ menuBar: MenuBarController) throws {
+        let menu = menuBar.menu
+        menu.delegate?.menuNeedsUpdate?(menu)
+        let item = try #require(menu.items.first { $0.title == L10n.ui("このアプリでは使わない") })
+        #expect(NSApplication.shared.sendAction(try #require(item.action), to: item.target, from: item))
+    }
+
+    private func makeMenuBar(_ harness: ShellControllerHarness, frontmost app: AppReference) -> MenuBarController {
+        let menuBar = MenuBarController(
+            controller: harness.controller,
+            license: harness.license,
+            onOpenSettings: { _ in },
+            onOpenOnboarding: {},
+            onCheckForUpdates: {}
+        )
+        menuBar.frontmostApp = { app }
+        return menuBar
+    }
+
+    @Test("「このアプリでは使わない」を2回選ぶと元に戻る。プロファイルの無かったアプリは、空のプロファイルで止めて、戻すと消す")
+    func turningOffTwiceRestoresAnAppWithoutAProfile() throws {
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        let notes = AppReference(bundleID: "com.apple.Notes", name: "メモ")
+        #expect(PresetLibrary.preset(forBundleID: notes.bundleID) != nil)
+        harness.controller.update { configuration in
+            configuration.profiles.removeAll { $0.app?.bundleID == notes.bundleID }
+        }
+        let before = harness.controller.configuration
+        let menuBar = makeMenuBar(harness, frontmost: notes)
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+
+        try pressTurnOff(menuBar)
+        #expect(harness.controller.configuration.isTurnedOff(forBundleID: notes.bundleID))
+        // プリセットのボタンは足さない（オフの間に設定画面で「このプロファイル」にしても、グローバルのボタンが増えたように見えない）
+        let created = harness.controller.configuration.profiles.first { $0.app?.bundleID == notes.bundleID }
+        #expect(created?.pages.allSatisfy { $0.cells.allSatisfy { $0 == nil } } == true)
+
+        try pressTurnOff(menuBar)
+        #expect(!harness.controller.configuration.isTurnedOff(forBundleID: notes.bundleID))
+        #expect(harness.controller.configuration == before)
+    }
+
+    @Test("「このアプリでは使わない」を2回選ぶと、オフにする前の使い方（グローバルを使う）に戻る")
+    func turningOffTwiceRestoresThePreviousMode() throws {
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        let pages = AppReference(bundleID: ShellFixtures.xcode, name: "Xcode")
+        #expect(PresetLibrary.preset(forBundleID: pages.bundleID) != nil)
+        var id: UUID?
+        harness.controller.update { configuration in
+            id = configuration.addAppProfile(for: pages, preset: PresetLibrary.preset(forBundleID: pages.bundleID))
+            configuration.setAppMode(.global, for: pages)
+        }
+        let profileID = try #require(id)
+        let before = harness.controller.configuration
+        let menuBar = makeMenuBar(harness, frontmost: pages)
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+
+        try pressTurnOff(menuBar)
+        #expect(harness.controller.configuration.profile(id: profileID)?.mode == .off)
+        try pressTurnOff(menuBar)
+        #expect(harness.controller.configuration.profile(id: profileID)?.mode == .global)
+        #expect(harness.controller.configuration == before)
+    }
+
+    @Test("設定画面でオフにしたアプリは、ボタンのあるプロファイルならそれを、無ければグローバルを使うように戻す")
+    func turningBackOnWithoutMemory() throws {
+        let harness = ShellControllerHarness()
+        harness.controller.start()
+        let pages = AppReference(bundleID: ShellFixtures.xcode, name: "Xcode")
+        harness.controller.update { configuration in
+            configuration.setAppMode(.off, for: pages, preset: PresetLibrary.preset(forBundleID: pages.bundleID))
+        }
+        let menuBar = makeMenuBar(harness, frontmost: pages)
+        defer { NSStatusBar.system.removeStatusItem(menuBar.statusItem) }
+        try pressTurnOff(menuBar)
+        #expect(harness.controller.configuration.appMode(forBundleID: pages.bundleID) == .profile)
+    }
+
     @Test("NonetController と LicenseManager から状態を集める")
     func stateFromController() throws {
         let harness = ShellControllerHarness(installed: [ShellFixtures.xcode], accessibilityGranted: false)

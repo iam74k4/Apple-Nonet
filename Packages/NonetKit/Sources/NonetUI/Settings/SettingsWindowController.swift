@@ -106,6 +106,13 @@ public final class SettingsWindowController {
         window.orderFrontRegardless()
     }
 
+    /// アプリを終える前に、打ちかけの欄と記録中のキーを確定させる（AppDelegate.applicationWillTerminate で、controller.stop() より先に呼ぶ）
+    public func commitPendingEdits() {
+        // 打っている欄を確定させる（windowWillClose と同じ）
+        window?.makeFirstResponder(nil)
+        model.applicationWillTerminate()
+    }
+
     func select(_ tab: SettingsTab) {
         model.selectTab(tab)
         showInWindow(tab)

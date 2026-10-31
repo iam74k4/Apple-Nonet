@@ -261,6 +261,67 @@ import Testing
         #expect(results == [true, false, true])
     }
 
+    /// 書けなかった設定は捨てず、間を空けて書き直す。終了時の flush（stop()）でも書き直す
+    @Test func aFailedSaveIsKeptAndRetried() {
+        let scheduler = ControllerFakeScheduler()
+        let writes = Writes()
+        let saver = makeSaver(writes, scheduler: scheduler)
+        writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
+        saver.schedule(configuration(hudDelay: 0.2))
+        scheduler.advance(by: 0.5)
+        #expect(saver.hasPendingSave)
+        #expect(saver.failureCount == 1)
+        // 失敗が続くと、書き直すまでの間を延ばす（2秒・4秒…1分まで）
+        scheduler.advance(by: ControllerConfigurationSaver.firstRetryInterval)
+        #expect(saver.failureCount == 2)
+        #expect(saver.retryInterval == ControllerConfigurationSaver.firstRetryInterval * 2)
+        #expect(scheduler.pending.map(\.delay) == [ControllerConfigurationSaver.firstRetryInterval * 2])
+        // 空きができたら、次の書き直しで書ける
+        writes.error = nil
+        scheduler.advance(by: ControllerConfigurationSaver.firstRetryInterval * 2)
+        #expect(writes.saved == [configuration(hudDelay: 0.2)])
+        #expect(!saver.hasPendingSave)
+        #expect(saver.failureCount == 0)
+        #expect(scheduler.pending.isEmpty)
+    }
+
+    /// 書き直しを待たずに終了しても（flush）、待っている設定を書く。書き直しを待つ間の変更は、いつもの間で書く
+    @Test func aFailedSaveIsWrittenByTheNextFlush() {
+        let scheduler = ControllerFakeScheduler()
+        let writes = Writes()
+        let saver = makeSaver(writes, scheduler: scheduler)
+        writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
+        saver.saveNow(configuration(hudDelay: 0.2))
+        writes.error = nil
+        // アプリの終了（NonetController.stop()）と同じ
+        saver.flush()
+        #expect(writes.saved == [configuration(hudDelay: 0.2)])
+
+        writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
+        saver.saveNow(configuration(hudDelay: 0.3))
+        writes.error = nil
+        saver.schedule(configuration(hudDelay: 0.4))
+        scheduler.advance(by: ControllerConfigurationSaver.defaultInterval)
+        #expect(writes.saved == [configuration(hudDelay: 0.2), configuration(hudDelay: 0.4)])
+        #expect(scheduler.pending.isEmpty)
+    }
+
+    @Test func retryIntervalIsCapped() {
+        let scheduler = ControllerFakeScheduler()
+        let writes = Writes()
+        writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
+        let saver = makeSaver(writes, scheduler: scheduler)
+        saver.saveNow(configuration(hudDelay: 0.2))
+        for _ in 0..<10 {
+            saver.flush()
+        }
+        #expect(saver.retryInterval == ControllerConfigurationSaver.maxRetryInterval)
+        // 読めないファイルを守るために止めたら、待っている設定も書き直しも捨てる
+        saver.isEnabled = false
+        #expect(!saver.hasPendingSave)
+        #expect(scheduler.pending.isEmpty)
+    }
+
     @Test func aDisabledSaverDropsEverything() {
         let scheduler = ControllerFakeScheduler()
         let writes = Writes()

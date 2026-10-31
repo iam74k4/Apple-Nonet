@@ -44,6 +44,9 @@ public final class MenuBarController {
     private let actionTarget = MenuBarActionTarget()
     private var observer: ShellObserver<MenuBarState>?
     private let callout = MenuBarCallout()
+    /// 「このアプリでは使わない」でオフにする前の使い方（アプリのプロファイルの id ごと。nil はプロファイルが無く、オフにするときに作った）。
+    /// もう一度選んだときに、そのとおりに戻す
+    private var modesBeforeTurningOff: [UUID: ProfileMode?] = [:]
 
     public init(
         controller: NonetController,
@@ -70,6 +73,34 @@ public final class MenuBarController {
         }, onChange: { [weak self] state in
             self?.applyIcon(state)
         })
+    }
+
+    /// メニューの「このアプリでは使わない」。オフにするときにプロファイルが無ければ、空のページで作る（グローバルのボタンを使っていたアプリに、
+    /// プリセットのボタンを足さない）。戻すときは、オフにする前の使い方に戻す（オフにするときに作ったプロファイルは、空のままなら消す）。
+    /// ほかで（設定画面で）オフにしたものは、ボタンのあるプロファイルならそれを、無ければグローバルを使う
+    private func toggleTurnedOff(_ app: AppReference, isOn: Bool) {
+        controller.update { configuration in
+            let existing = OnboardingModel.profile(forBundleID: app.bundleID, in: configuration.profiles)
+            if isOn {
+                if let existing, existing.mode == .off, let remembered = modesBeforeTurningOff.removeValue(forKey: existing.id) {
+                    let isEmpty = existing.pages.allSatisfy { page in page.cells.allSatisfy { $0 == nil } && page.name == nil }
+                    if let mode = remembered {
+                        configuration.setAppMode(mode, for: app)
+                    } else if isEmpty {
+                        configuration.removeProfile(id: existing.id)
+                    } else {
+                        configuration.setAppMode(.profile, for: app)
+                    }
+                    return
+                }
+                // 戻すときは、ボタンのあるプロファイルならそれを、無ければグローバルを使う
+                let hasButtons = existing?.pages.contains { page in page.cells.contains { $0 != nil } } ?? false
+                configuration.setAppMode(hasButtons ? .profile : .global, for: app)
+            } else {
+                guard let id = configuration.setAppMode(.off, for: app) else { return }
+                modesBeforeTurningOff[id] = .some(existing?.mode)
+            }
+        }
     }
 
     private func currentState() -> MenuBarState {
@@ -176,16 +207,7 @@ public final class MenuBarController {
             }
         case .turnOffInApp(let app, let isOn):
             let item = actionItem(entry) { [weak self] in
-                self?.controller.update { configuration in
-                    if isOn {
-                        // 戻すときは、ボタンのあるプロファイルならそれを、無ければグローバルを使う
-                        let hasButtons = OnboardingModel.profile(forBundleID: app.bundleID, in: configuration.profiles)?
-                            .pages.contains { page in page.cells.contains { $0 != nil } } ?? false
-                        configuration.setAppMode(hasButtons ? .profile : .global, for: app)
-                    } else {
-                        configuration.setAppMode(.off, for: app, preset: PresetLibrary.preset(forBundleID: app.bundleID))
-                    }
-                }
+                self?.toggleTurnedOff(app, isOn: isOn)
             }
             item.state = isOn ? NSControl.StateValue.on : NSControl.StateValue.off
             return item

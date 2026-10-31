@@ -182,6 +182,82 @@ import Testing
         #expect(try h.saved()?.profiles.contains { $0.id == xcode.id } == false)
     }
 
+    /// 3ページのうち2ページ目を消し（3ページ目は空けたマスがある）、続く操作を待つ。消えたページの次のページで空けたマスを返す
+    private func removeTheMiddlePageAfterClearingACell(_ h: SettingsHarness) throws -> Cell {
+        let globalID = h.model.selectedProfile.id
+        h.model.addPage()
+        h.model.addPage()
+        #expect(h.model.selectedProfile.pages.count == 3)
+        // 2ページ目にマスを置く（消すページ。中身があるので控えも残る）
+        h.model.selectPage(1)
+        h.model.createCell(kind: .openURL, at: 0)
+        // 3ページ目のマスを作ってから空にする
+        h.model.selectPage(2)
+        h.model.createCell(kind: .openURL, at: 4)
+        let cleared = try #require(h.model.selectedProfile.pages[2].cells[4])
+        h.model.clearCell(at: 4)
+        // 2ページ目を消す → 3ページ目が2ページ目になる
+        h.model.removePage(1, profileID: globalID)
+        #expect(h.model.selectedProfile.pages.count == 2)
+        return cleared
+    }
+
+    /// ページの追加も元に戻せる。消したページを戻す前に足したページを消すので、上限で戻せなくなることも、
+    /// その下のマスの取り消しが番号のずれた別のページに入ることもない
+    @Test func addingAPageIsUndoneBeforeARemovedPageIsRestored() throws {
+        let h = try harness()
+        let cleared = try removeTheMiddlePageAfterClearingACell(h)
+        h.model.addPage()
+        #expect(h.model.selectedProfile.pages.count == 3)
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ページを追加"))
+        h.model.undoManager.undo()   // 足したページを消す
+        #expect(h.model.selectedProfile.pages.count == 2)
+        h.model.undoManager.undo()   // 消したページを戻す
+        #expect(h.model.selectedProfile.pages.count == 3)
+        #expect(h.model.gridMessage == nil)
+        #expect(h.model.selectedProfile.pages[1].cells[0] != nil)
+        h.model.undoManager.undo()   // マスを空にしたことを戻す（元のページに）
+        #expect(h.model.selectedProfile.pages[2].cells[4]?.id == cleared.id)
+        // やり直すと、また空にしてページを消し、ページを足す
+        h.model.undoManager.redo()
+        h.model.undoManager.redo()
+        h.model.undoManager.redo()
+        let pages = h.model.selectedProfile.pages
+        #expect(pages.count == 3)
+        #expect(pages[1].cells[4] == nil)
+        #expect(pages[2].cells.allSatisfy { $0 == nil })
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ページを追加"))
+    }
+
+    /// 足したページにマスがあれば（取り消しに積まれない変更で）、ページは消さずに知らせる
+    @Test func anAddedPageWithCellsIsNotRemoved() throws {
+        let h = try harness()
+        let profileID = h.model.selectedProfile.id
+        h.model.addPage()
+        h.controller.update { $0.setCell(SettingsFixtures.launch(SettingsFixtures.figma), at: CellAddress(page: 1, index: 2), profileID: profileID) }
+        let before = h.controller.configuration
+        h.model.undoManager.undo()
+        #expect(h.controller.configuration == before)
+        #expect(h.model.gridMessage == L10n.ui("マスがその後に変わったため、元に戻せませんでした"))
+    }
+
+    /// 取り消しに積まれない変更でページが上限になり、消したページを戻せなければ、
+    /// その下に積んだマスの取り消しは忘れる（番号のずれた別のページにマスを入れない）
+    @Test func aPageThatCannotBeRestoredDropsTheCellUndoBelowIt() throws {
+        let h = try harness()
+        let profileID = h.model.selectedProfile.id
+        let cleared = try removeTheMiddlePageAfterClearingACell(h)
+        // 設定画面の外で（取り消しに積まれずに）ページが足された
+        h.controller.update { _ = $0.addPage(profileID: profileID) }
+        #expect(h.model.selectedProfile.pages.count == 3)
+        h.model.undoManager.undo()   // 上限で戻せない
+        #expect(h.model.selectedProfile.pages.count == 3)
+        #expect(h.model.gridMessage != nil)
+        #expect(!h.model.undoManager.canUndo)
+        h.model.undoManager.undo()
+        #expect(!h.model.selectedProfile.pages.contains { $0.cells.contains { $0?.id == cleared.id } })
+    }
+
     /// 間にほかの変更（元に戻せない変更）があって、覚えた中身と合わなければ何もしない
     @Test func aStaleUndoChangesNothing() throws {
         let h = try harness()
@@ -277,9 +353,11 @@ import Testing
         h.model.requestRemovePage(1)
         #expect(h.model.confirmation == nil)
         #expect(h.model.selectedProfile.pages.count == 1)
-        // 消したページが先に戻る
+        // 消したページが先に戻り、次に足したページが消える
         h.model.undoManager.undo()
         #expect(h.model.selectedProfile.pages.count == 2)
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages.count == 1)
         h.model.undoManager.undo()
         #expect(h.model.selectedProfile.id == xcode.id)
         #expect(cell(h, 0) == original)

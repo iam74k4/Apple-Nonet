@@ -170,19 +170,24 @@ extension ConfigurationStore {
         directory.appending(path: "Backups", directoryHint: .isDirectory)
     }
 
-    /// 残っている控え。新しいものから
+    /// 残っている控え。新しいものから。同じ秒の控えは、ファイル名の番号の大きい（後から作った）ものから
     public func backups() -> [ConfigurationBackup] {
         let fileManager = FileManager.default
         let names = (try? fileManager.contentsOfDirectory(atPath: backupsDirectory.path(percentEncoded: false))) ?? []
-        return names.compactMap { name -> ConfigurationBackup? in
+        return names.compactMap { name -> (backup: ConfigurationBackup, sequence: Int)? in
             let url = backupsDirectory.appending(path: name, directoryHint: .notDirectory)
             guard let parsed = Self.parseBackupName(name) else { return nil }
             let date = parsed.date
                 ?? (try? fileManager.attributesOfItem(atPath: url.path(percentEncoded: false))[.modificationDate] as? Date)
                 ?? .distantPast
-            return ConfigurationBackup(url: url, date: date, reason: parsed.reason)
+            return (ConfigurationBackup(url: url, date: date, reason: parsed.reason), parsed.sequence)
         }
-        .sorted { $0.date != $1.date ? $0.date > $1.date : $0.id > $1.id }
+        .sorted { lhs, rhs in
+            if lhs.backup.date != rhs.backup.date { return lhs.backup.date > rhs.backup.date }
+            if lhs.sequence != rhs.sequence { return lhs.sequence > rhs.sequence }
+            return lhs.backup.id > rhs.backup.id
+        }
+        .map(\.backup)
     }
 
     /// 設定を控えに残す（削除や読み込みの前など）。いちばん新しい控えと同じ中身なら、新しく書かずにそれを返す。
@@ -233,12 +238,18 @@ extension ConfigurationStore {
         }
         do {
             try FileManager.default.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
-            let base = "configuration-\(Self.backupTimestamp(for: now))-\(reason.rawValue)"
-            var url = backupsDirectory.appending(path: "\(base).json", directoryHint: .notDirectory)
-            var suffix = 2
+            let stamp = Self.backupTimestamp(for: now)
+            let base = "configuration-\(stamp)-\(reason.rawValue)"
+            // 同じ秒の控えがあれば、理由が違っても、それより大きい番号を付ける（番号で作った順に並べるため）
+            let sameSecond = existing.compactMap { backup -> Int? in
+                guard backup.id.hasPrefix("configuration-\(stamp)-") else { return nil }
+                return Self.parseBackupName(backup.id)?.sequence
+            }
+            var suffix = (sameSecond.max() ?? 0) + 1
+            var url = backupsDirectory.appending(path: suffix == 1 ? "\(base).json" : "\(base)-\(suffix).json", directoryHint: .notDirectory)
             while FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
-                url = backupsDirectory.appending(path: "\(base)-\(suffix).json", directoryHint: .notDirectory)
                 suffix += 1
+                url = backupsDirectory.appending(path: "\(base)-\(suffix).json", directoryHint: .notDirectory)
             }
             try data.write(to: url, options: .atomic)
             modelLogger.info("設定の控えを残した: \(url.lastPathComponent, privacy: .public)")
@@ -275,8 +286,9 @@ extension ConfigurationStore {
         return formatter
     }
 
-    /// configuration-<日時>-<理由>[-<番号>].json の日時と理由。控えのファイルでなければ nil。日時が読めなければ date は nil
-    static func parseBackupName(_ name: String) -> (date: Date?, reason: ConfigurationBackup.Reason)? {
+    /// configuration-<日時>-<理由>[-<番号>].json の日時と理由と番号（無ければ 1。同じ秒に作った順）。
+    /// 控えのファイルでなければ nil。日時が読めなければ date は nil
+    static func parseBackupName(_ name: String) -> (date: Date?, reason: ConfigurationBackup.Reason, sequence: Int)? {
         let prefix = "configuration-"
         guard name.hasPrefix(prefix), name.hasSuffix(".json") else { return nil }
         let body = name.dropFirst(prefix.count).dropLast(".json".count)
@@ -284,13 +296,21 @@ extension ConfigurationStore {
         let rest = body.dropFirst(stamp.count)
         // 長い名前から比べる（"delete-profile" を "delete-page" などと取り違えないように）
         let reasons = ConfigurationBackup.Reason.allCases.sorted { $0.rawValue.count > $1.rawValue.count }
-        guard let reason = reasons.first(where: { reason in
+        for reason in reasons {
             let tag = "-\(reason.rawValue)"
-            guard rest.hasPrefix(tag) else { return false }
+            guard rest.hasPrefix(tag) else { continue }
             let tail = rest.dropFirst(tag.count)
-            return tail.isEmpty || (tail.hasPrefix("-") && Int(tail.dropFirst()) != nil)
-        }) else { return nil }
-        return (backupDateFormatter().date(from: String(stamp)), reason)
+            let sequence: Int
+            if tail.isEmpty {
+                sequence = 1
+            } else if tail.hasPrefix("-"), let number = Int(tail.dropFirst()) {
+                sequence = number
+            } else {
+                continue
+            }
+            return (backupDateFormatter().date(from: String(stamp)), reason, sequence)
+        }
+        return nil
     }
 }
 
