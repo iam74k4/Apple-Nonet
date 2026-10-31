@@ -207,6 +207,9 @@ enum SettingsText {
 
     /// プロファイルの見出しの下の説明
     static func profileDescription(_ profile: Profile) -> String {
+        if profile.id == SharedCells.profileID {
+            return sharedCellsDescription
+        }
         if profile.isGlobal {
             return String(localized: "プロファイルのないアプリで使う9マス", bundle: .module)
         }
@@ -253,6 +256,9 @@ enum SettingsText {
         if result.replacedGlobal {
             lines.append(String(localized: "グローバルのページを置き換えました。", bundle: .module))
         }
+        if result.replacedSharedCells {
+            lines.append(String(localized: "共通マスを置き換えました。", bundle: .module))
+        }
         if result.appliedCount == 0 {
             lines.append(String(localized: "読み込めるプロファイルがありませんでした。", bundle: .module))
         }
@@ -297,6 +303,9 @@ enum SettingsText {
     static func importReplacementLines(_ plan: SettingsImportPlan) -> [String] {
         guard plan.replacesExisting else { return [] }
         var targets: [String] = []
+        if plan.result.replacedSharedCells {
+            targets.append(sharedCellsName)
+        }
         if plan.result.replacedGlobal {
             targets.append(String(localized: "グローバルのページ", bundle: .module))
         }

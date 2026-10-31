@@ -144,7 +144,7 @@ struct SettingsGeneralView: View {
                 LabeledContent {
                     HStack(spacing: 8) {
                         Button {
-                            Task { await model.exportProfiles(model.configuration.profiles, suggestedName: defaultExportName) }
+                            Task { await model.exportAllProfiles(suggestedName: defaultExportName) }
                         } label: {
                             Text("書き出す…", bundle: .module)
                         }

@@ -285,9 +285,30 @@ struct HUDCellView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topLeading) {
+            if cell?.isShared == true {
+                HUDSharedBadge(isHighlighted: isHighlighted, metrics: metrics, colors: colors)
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
+        .accessibilityValue(Text(HUDAnnouncement.sharedValue(cell) ?? ""))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+    }
+}
+
+/// 共通マス（どのアプリでも同じ位置に出るマス）の左上の小さな印
+struct HUDSharedBadge: View {
+    let isHighlighted: Bool
+    var metrics = HUDMetrics(scale: 1)
+    var colors: HUDColors = .standard
+
+    var body: some View {
+        Image(systemName: "pin.fill")
+            .font(.system(size: 8 * metrics.scale, weight: .semibold))
+            .foregroundStyle(isHighlighted ? HUDPalette.highlightedDetail : colors.detail)
+            .padding(6 * metrics.scale)
+            .accessibilityHidden(true)
     }
 }
 
@@ -393,6 +414,12 @@ enum HUDAnnouncement {
             return String(localized: "\(cell.title)、\(detail)、\(position)", bundle: .module)
         }
         return String(localized: "\(cell.title)、\(position)", bundle: .module)
+    }
+
+    /// 共通マスの VoiceOver の値（設定のグリッドと同じ文言）。共通マスでなければ nil
+    static func sharedValue(_ cell: HUDCell?) -> String? {
+        guard cell?.isShared == true else { return nil }
+        return String(localized: "sharedButton.accessibilityValue", defaultValue: "共通マス", bundle: .module)
     }
 
     /// ハイライト中のマス。指が離れていれば nil

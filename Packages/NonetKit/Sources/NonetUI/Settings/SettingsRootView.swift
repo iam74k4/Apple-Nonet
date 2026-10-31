@@ -88,6 +88,8 @@ struct SettingsRootView: View {
             String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .module)
         case .resetProfile(_, let name)?:
             String(localized: "「\(name)」をプリセットに戻しますか？", bundle: .module)
+        case .replaceSharedCell?:
+            String(localized: "共通マスを置き換えますか？", bundle: .module)
         case nil:
             ""
         }
@@ -105,6 +107,8 @@ struct SettingsRootView: View {
             String(localized: "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。", bundle: .module)
         case .importProfiles(let plan):
             SettingsText.importConfirmation(plan)
+        case .replaceSharedCell:
+            String(localized: "この位置にはもう共通マスがあります。このマスで置き換えると、すべてのアプリで変わります。⌘Z で元に戻せます。", bundle: .module)
         }
     }
 
@@ -114,6 +118,7 @@ struct SettingsRootView: View {
         case .deactivateLicense: String(localized: "登録を消す", bundle: .module)
         case .importProfiles(let plan): SettingsText.importConfirmationButton(plan)
         case .resetProfile: String(localized: "プリセットに戻す", bundle: .module)
+        case .replaceSharedCell: String(localized: "置き換える", bundle: .module)
         }
     }
 

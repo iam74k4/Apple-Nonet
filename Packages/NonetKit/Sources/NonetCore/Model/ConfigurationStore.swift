@@ -104,6 +104,11 @@ public struct ConfigurationStore: Sendable {
         try ProfileDocument.encode(profiles)
     }
 
+    /// すべての書き出し。共通マスがあれば一緒に書く（1つのプロファイルだけの書き出しには入れない）
+    public static func exportData(profiles: [Profile], sharedCells: SharedCells) throws -> Data {
+        try ProfileDocument.encode(profiles, sharedCells: sharedCells)
+    }
+
     /// 読み込んだプロファイル。id は振り直す。同じアプリやグローバルが重なっていてもそのまま返す
     /// （NonetConfiguration.importProfiles(_:) が外して数える）。読めなかったプロファイルの数も要るときは importDocument(from:)
     public static func importProfiles(from data: Data) throws -> [Profile] {
@@ -122,10 +127,13 @@ public struct ConfigurationStore: Sendable {
         public var profiles: [Profile]
         /// 読めなかったプロファイル（新しい版の Nonet の種類など）の数
         public var unreadableCount: Int
+        /// すべての書き出しに入っていた共通マス（マスの id は振り直してある）。無ければ空
+        public var sharedCells: SharedCells
 
-        public init(profiles: [Profile], unreadableCount: Int = 0) {
+        public init(profiles: [Profile], unreadableCount: Int = 0, sharedCells: SharedCells = .empty) {
             self.profiles = profiles
             self.unreadableCount = unreadableCount
+            self.sharedCells = sharedCells
         }
     }
 }

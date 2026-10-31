@@ -6,11 +6,14 @@ public struct HUDCell: Equatable, Sendable {
     public var icon: CellIcon
     /// "⌘B" など。出さないなら nil
     public var detail: String?
+    /// 共通マス（どのアプリでも同じ位置に出るマス）。HUD に小さな印を付ける
+    public var isShared: Bool
 
-    public init(title: String, icon: CellIcon, detail: String? = nil) {
+    public init(title: String, icon: CellIcon, detail: String? = nil, isShared: Bool = false) {
         self.title = title
         self.icon = icon
         self.detail = detail
+        self.isShared = isShared
     }
 }
 

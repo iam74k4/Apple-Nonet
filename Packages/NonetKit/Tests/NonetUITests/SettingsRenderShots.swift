@@ -218,6 +218,39 @@ struct SettingsRenderShots {
         }
     }
 
+    /// 共通マス: 共通マスの行と、アプリのプロファイルでの見え方（薄く出して「共通」の印、インスペクタの説明）
+    @Test func renderSharedCells() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for (suffix, appearance) in appearances {
+            let h = try harness()
+            let model = h.model
+            h.controller.update {
+                $0.setSharedCell(SettingsFixtures.key("ミュート", .key("m", [.command, .shift])), at: 0)
+                $0.setSharedCell(Cell(title: "スクリーンショット", icon: .symbol("camera.viewfinder"), action: .keystroke(.key("4", [.command, .shift]))), at: 8)
+            }
+            model.selectProfile(SharedCells.profileID)
+            model.selectCell(8)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "shared-row-\(suffix)")
+            model.selectProfile(try profile(named: "Xcode", in: h).id)
+            model.selectCell(0)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "shared-in-xcode-min-\(suffix)")
+            let hud = HUDModel(
+                title: "Xcode",
+                pageIndex: 0,
+                pageCount: 1,
+                cells: [
+                    HUDCell(title: "ミュート", icon: .symbol("mic.slash"), detail: "⇧⌘M", isShared: true),
+                    HUDCell(title: "ビルド", icon: .symbol("hammer"), detail: "⌘B"),
+                    nil, nil, nil, nil, nil, nil,
+                    HUDCell(title: "スクリーンショット", icon: .symbol("camera.viewfinder"), detail: "⇧⌘4", isShared: true),
+                ],
+                highlightedIndex: 8,
+                hint: "タップか、右⌘を離して実行"
+            )
+            try await render(HUDView(model: hud), size: HUDLayout.size(for: hud), appearance, "shared-hud-\(suffix)")
+        }
+    }
+
     @Test func renderLicensedAndExpired() async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let pair = LicenseSigner.generateKeyPair()

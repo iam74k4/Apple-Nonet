@@ -42,20 +42,21 @@ struct SettingsImportPlan: Identifiable, Equatable {
             Self.existingProfile(for: app, in: configuration)?.id
         })
         replacedNames = configuration.profiles.filter { replacedIDs.contains($0.id) }.map(\.name)
-        reviewedCells = Self.usedProfiles(in: document).flatMap { profile in
-            profile.pages.flatMap { page in
-                page.cells.compactMap { cell in
-                    cell.flatMap { cell in
-                        guard Self.needsReview(cell.action) else { return nil }
-                        return ReviewedCell(profileName: profile.name, cell: cell, pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys))
-                    }
-                }
+        // 共通マスはファイルでプロファイルの後ろにある。どのアプリでも出るので、ほかのマスと同じく中身を見せる
+        let sources: [(name: String, cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
+            (profile.name, profile.pages.flatMap(\.cells))
+        } + [(SettingsText.sharedCellsName, document.sharedCells.cells)]
+        reviewedCells = sources.flatMap { source -> [ReviewedCell] in
+            source.cells.compactMap { cell -> ReviewedCell? in
+                guard let cell, Self.needsReview(cell.action) else { return nil }
+                return ReviewedCell(profileName: source.name, cell: cell, pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys))
             }
         }
     }
 
-    /// 今の設定を上書きする（グローバルのページか、同じアプリのプロファイル）
-    var replacesExisting: Bool { result.replacedGlobal || !replacedNames.isEmpty }
+    /// 今の設定を上書きする（グローバルのページ・同じアプリのプロファイル・共通マス）。
+    /// 共通マスは、今は無くても、どのアプリでもその位置のマスの代わりに出るので置き換えとみなす
+    var replacesExisting: Bool { result.replacedGlobal || !replacedNames.isEmpty || result.replacedSharedCells }
 
     /// 新しく加わるアプリのプロファイルがある
     var addsProfiles: Bool { result.added > 0 }
@@ -66,7 +67,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// 読み込む前に確かめる（置き換わるものがあるか、何かを実行するマスがある）
     var needsConfirmation: Bool { replacesExisting || hasReviewedCells }
 
-    /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき）。設定はその時点のもので決める
+    /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき。共通マスも入れない）。設定はその時点のもので決める
     func newProfilesOnly(in configuration: NonetConfiguration) -> ConfigurationStore.ImportedProfiles {
         let profiles = document.profiles.filter { profile in
             guard let app = profile.app else { return false }
@@ -75,9 +76,13 @@ struct SettingsImportPlan: Identifiable, Equatable {
         return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount)
     }
 
-    /// 読み込みで実際に使われるプロファイルが、スクリプトのマスを含む（読み込んだ後の知らせ）
+    /// 読み込みで実際に使われるプロファイルか共通マスが、スクリプトのマスを含む（読み込んだ後の知らせ）
     static func containsScripts(in document: ConfigurationStore.ImportedProfiles) -> Bool {
-        containsScripts(usedProfiles(in: document))
+        let sharedScript = document.sharedCells.cells.contains { cell in
+            if case .script = cell?.action { return true }
+            return false
+        }
+        return sharedScript || containsScripts(usedProfiles(in: document))
     }
 
     static func containsScripts(_ profiles: [Profile]) -> Bool {
@@ -192,14 +197,22 @@ struct SettingsImportPlan: Identifiable, Equatable {
         for profile in document.profiles.indices {
             for page in document.profiles[profile].pages.indices {
                 for slot in document.profiles[profile].pages[page].cells.indices {
-                    guard case .menuItem(var menu)? = document.profiles[profile].pages[page].cells[slot]?.action,
-                          let keys = menu.keyEquivalent, keys.chords.count != 1 else { continue }
-                    menu.keyEquivalent = nil
-                    document.profiles[profile].pages[page].cells[slot]?.action = .menuItem(menu)
+                    document.profiles[profile].pages[page].cells[slot] = withoutLongMenuShortcut(document.profiles[profile].pages[page].cells[slot])
                 }
             }
         }
+        for position in document.sharedCells.occupiedPositions {
+            document.sharedCells[position] = withoutLongMenuShortcut(document.sharedCells[position])
+        }
         return document
+    }
+
+    private static func withoutLongMenuShortcut(_ cell: Cell?) -> Cell? {
+        guard var cell, case .menuItem(var menu) = cell.action,
+              let keys = menu.keyEquivalent, keys.chords.count != 1 else { return cell }
+        menu.keyEquivalent = nil
+        cell.action = .menuItem(menu)
+        return cell
     }
 
     // MARK: 読み込みの決まり
