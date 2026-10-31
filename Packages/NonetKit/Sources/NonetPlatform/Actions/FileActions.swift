@@ -1,8 +1,9 @@
 // 担当: platform-actions
 // Finder で選んでいるファイルを、開く・ゴミ箱に入れる・名前を変える・複製する・移す。
 // Finder の選択を読むのも、動かすのも Finder に頼む（AppleScript）。そうすると、デスクトップ・書類・外付けのディスクなど
-// アクセスに許可が要る場所のファイルも、Nonet が「Finder を操作する許可」だけで扱える。ゴミ箱に入れるのも Finder の
-// 「ゴミ箱に入れる」と同じなので、ゴミ箱から元の場所へ戻せる。完全な削除はしない
+// アクセスに許可が要る場所のファイルも、Nonet が「Finder を操作する許可」だけで扱える（Nonet 自身はファイルの場所を調べない）。
+// ゴミ箱に入れるのも Finder の「ゴミ箱に入れる」と同じなので、ゴミ箱から元の場所へ戻せる。完全な削除はしない。
+// 名前の変更は、Finder が前面なので、Finder の名前の変更（Return）を始めるだけにする（名前の入力は Finder が受ける）
 import AppKit
 import NonetCore
 
@@ -44,31 +45,31 @@ enum FinderSelection {
     static let limit = 500
     /// 開くファイルの数の上限（アプリやウインドウが何百も開かないように）
     static let openLimit = 20
-    static let readTimeout: TimeInterval = 5
+    /// 初めて使うときは、macOS の「Finder を操作しようとしています」の確認が出ている間も待つ（確認に答えるまでは、Finder に届かない）
+    static let readTimeout: TimeInterval = 30
 
     /// 選んでいるファイルの URL を JSON の配列で返す。上限を超えたことが分かるよう、1つ多く読む
     static let readScript = """
     JSON.stringify(Application('\(bundleID)').selection().slice(0, \(limit + 1)).map(item => item.url()));
     """
 
-    /// readScript の出力（file:// の URL の JSON の配列）をパスにする。ファイルの URL でないものは捨てる
+    /// readScript の出力（file:// の URL の JSON の配列）をパスにする。1つでもファイルの URL でなければ（検索結果や AirDrop などの項目）、
+    /// 一部だけを動かしてしまわないよう、全体を読めなかったことにする（nil）
     static func parse(_ output: String) -> [String]? {
         guard let data = output.trimmingCharacters(in: .whitespacesAndNewlines).data(using: .utf8),
               let urls = try? JSONDecoder().decode([String?].self, from: data) else { return nil }
-        return urls.compactMap { text in
-            guard let text, let url = URL(string: text), url.isFileURL else { return nil }
-            let path = url.path
-            return path.isEmpty ? nil : path
+        var paths: [String] = []
+        for text in urls {
+            guard let text, let url = URL(string: text), url.isFileURL, !url.path.isEmpty else { return nil }
+            paths.append(url.path)
         }
+        return paths
     }
 }
 
 // MARK: - 決まり（Finder に頼む前に確かめる）
 
 enum FilePlan {
-    /// 名前に使えない文字（/ は区切り、: は Finder が使えなくしている）
-    static let forbiddenNameCharacters: Set<Character> = ["/", ":"]
-
     /// 選んでいるファイルに、この操作をしてよいか。だめならその理由
     static func check(_ operation: FileOperation, paths: [String], home: String) throws {
         guard !paths.isEmpty else {
@@ -103,81 +104,35 @@ enum FilePlan {
         path.split(separator: "/").contains { $0 == ".Trash" || $0 == ".Trashes" }
     }
 
-    /// 丸ごと動かしてはいけない場所（ホーム・ディスクの一番上・システムのフォルダ）
+    /// 丸ごと動かしてはいけない場所（ホーム・ホームの標準のフォルダ・ディスクの一番上・システムのフォルダ・ほかの利用者のホーム・クラウドの置き場）
     static let protectedPaths: Set<String> = ["/Users", "/Applications", "/Library", "/System", "/Volumes", "/private", "/usr", "/bin", "/sbin", "/opt"]
+    static let protectedHomeFolders: Set<String> = [
+        "Desktop", "Documents", "Downloads", "Library", "Movies", "Music", "Pictures", "Public", "Applications", "Library/CloudStorage",
+    ]
 
     static func isProtected(_ path: String, home: String) -> Bool {
         let components = path.split(separator: "/")
         if components.isEmpty || path == home || protectedPaths.contains(path) { return true }
-        // /Volumes/<ディスク> そのもの
-        return components.count == 2 && components[0] == "Volumes"
+        // /Volumes/<ディスク>・/Users/<利用者> そのもの
+        if components.count == 2, components[0] == "Volumes" || components[0] == "Users" { return true }
+        if path.hasPrefix(home + "/") {
+            let relative = String(path.dropFirst(home.count + 1))
+            if protectedHomeFolders.contains(relative) { return true }
+            // ~/Library/CloudStorage/<サービス>（iCloud 以外のクラウドの置き場）そのもの
+            if relative.hasPrefix("Library/CloudStorage/"), relative.split(separator: "/").count == 3 { return true }
+        }
+        return false
     }
 
-    /// 移す先。"~" を直し、存在するフォルダでなければ nil
-    static func destination(_ text: String, fileExists: (String) -> Bool = directoryExists) -> String? {
+    /// 移す先。"~" を直し、前後の空白と末尾の "/" を除いた絶対パス。絶対パスにならない・ゴミ箱の中なら nil
+    /// （フォルダかどうかは Finder に頼む AppleScript が確かめる。Nonet は場所を調べない）
+    static func destination(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         var path = (trimmed as NSString).expandingTildeInPath
         guard path.hasPrefix("/") else { return nil }
         while path.count > 1, path.hasSuffix("/") { path.removeLast() }
-        return fileExists(path) ? path : nil
-    }
-
-    static func directoryExists(_ path: String) -> Bool {
-        var isDirectory: ObjCBool = false
-        return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
-    }
-
-    /// 入力された新しい名前を確かめて、使える名前を返す（前後の空白は除く）。使えなければ理由
-    static func validatedName(_ input: String) -> Result<String, NonetError> {
-        let name = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        if name.isEmpty || name == "." || name == ".." {
-            return .failure(.actionFailed(String(localized: "名前を入力してください", bundle: .nonetActions)))
-        }
-        if name.contains(where: { forbiddenNameCharacters.contains($0) || $0.isNewline }) {
-            return .failure(.actionFailed(String(localized: "名前に「/」「:」と改行は使えません", bundle: .nonetActions)))
-        }
-        if name.utf8.count > 255 {
-            return .failure(.actionFailed(String(localized: "名前が長すぎます", bundle: .nonetActions)))
-        }
-        return .success(name)
-    }
-}
-
-// MARK: - 名前を入力するダイアログ
-
-@MainActor
-protocol RenamePrompting {
-    /// 新しい名前を尋ねる。やめたら nil
-    func requestName(currentName: String) async -> String?
-}
-
-@MainActor
-struct AlertRenamePrompt: RenamePrompting {
-    func requestName(currentName: String) async -> String? {
-        let previous = NSWorkspace.shared.frontmostApplication
-        let alert = NSAlert()
-        alert.messageText = String(localized: "名前を変更", bundle: .nonetActions)
-        alert.informativeText = String(localized: "「\(currentName)」の新しい名前を入力してください", bundle: .nonetActions)
-        alert.addButton(withTitle: String(localized: "変更", bundle: .nonetActions))
-        alert.addButton(withTitle: String(localized: "キャンセル", bundle: .nonetActions))
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
-        field.stringValue = currentName
-        field.setAccessibilityLabel(String(localized: "新しい名前", bundle: .nonetActions))
-        alert.accessoryView = field
-        alert.window.initialFirstResponder = field
-        NSApplication.shared.activate()
-        // 拡張子の前までを選んでおく（Finder の名前の変更と同じ）
-        let baseLength = (currentName as NSString).deletingPathExtension.utf16.count
-        DispatchQueue.main.async {
-            field.currentEditor()?.selectedRange = NSRange(location: 0, length: baseLength)
-        }
-        let response = alert.runModal()
-        // 入力のあと、Finder へ戻す（Nonet に残ったままだと、続けてキーを打てない）
-        if let previous, !previous.isTerminated, previous.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-            previous.activate()
-        }
-        return response == .alertFirstButtonReturn ? field.stringValue : nil
+        return isInTrash(path) ? nil : path
     }
 }
 
@@ -185,60 +140,62 @@ struct AlertRenamePrompt: RenamePrompting {
 
 @MainActor
 final class FileActionRunner {
+    /// 開く・ゴミ箱に入れる・名前の変更の制限時間
     static let actionTimeout: TimeInterval = 60
+    /// 複製と移動は、大きなファイルやほかのディスクとの間で長く掛かる
+    static let copyTimeout: TimeInterval = 600
 
     private let osascript: any OsascriptRunning
-    private let prompt: any RenamePrompting
+    private let keys: any KeySending
     private let home: String
-    private let directoryExists: (String) -> Bool
+    private let frontmostBundleID: () -> String?
 
     init(
+        keys: any KeySending,
         osascript: any OsascriptRunning = Osascript(),
-        prompt: (any RenamePrompting)? = nil,
         home: String = FileManager.default.homeDirectoryForCurrentUser.path,
-        directoryExists: @escaping (String) -> Bool = FilePlan.directoryExists
+        frontmostBundleID: @escaping () -> String? = { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }
     ) {
+        self.keys = keys
         self.osascript = osascript
-        self.prompt = prompt ?? AlertRenamePrompt()
         self.home = home
-        self.directoryExists = directoryExists
+        self.frontmostBundleID = frontmostBundleID
     }
 
-    func run(_ action: FileAction, frontmost: RunningAppInfo?) async throws {
+    func run(_ action: FileAction) async throws {
+        // 9マスを開いたときの前面アプリではなく、今の前面アプリで確かめる（待っている間に変わることがある）。
         // 別のアプリが前面のとき、Finder の裏のウインドウで選んだままのファイルを動かさない
-        guard frontmost?.app.bundleID == FinderSelection.bundleID else {
-            throw NonetError.actionFailed(String(localized: "Finder を前面にして、ファイルを選んでから使ってください", bundle: .nonetActions))
-        }
-        // 移す先は、選択を読む前に確かめる
+        try requireFinderInFront()
         var destination: String?
         if action.operation == .move {
-            guard let path = FilePlan.destination(action.destination, fileExists: directoryExists) else {
+            guard let path = FilePlan.destination(action.destination) else {
                 throw NonetError.actionFailed(String(localized: "移動先のフォルダが見つかりません", bundle: .nonetActions))
             }
             destination = path
         }
         let paths = try await selection()
         try FilePlan.check(action.operation, paths: paths, home: home)
+        // 選択を読んでいる間に、前面が変わっていないことも確かめる
+        try requireFinderInFront()
         switch action.operation {
         case .open:
-            try await perform(FileScripts.open, paths)
+            try await perform(FileScripts.open, paths, timeout: Self.actionTimeout)
         case .trash:
-            try await perform(FileScripts.trash, paths)
+            try await perform(FileScripts.trash, paths, timeout: Self.actionTimeout)
         case .duplicate:
-            try await perform(FileScripts.duplicate, paths)
+            try await perform(FileScripts.duplicate, paths, timeout: Self.copyTimeout)
         case .move:
-            try await perform(FileScripts.move, [destination ?? ""] + paths)
+            try await perform(FileScripts.move, [destination ?? ""] + paths, timeout: Self.copyTimeout)
         case .rename:
-            try await rename(paths[0])
+            // Finder で選んだ1つのファイルの名前を、その場で書き換えられる状態にする（Return と同じ）
+            try await keys.send(KeySequence([KeyChord(.special(.returnKey))]))
         }
     }
 
-    private func rename(_ path: String) async throws {
-        let currentName = (path as NSString).lastPathComponent
-        guard let input = await prompt.requestName(currentName: currentName) else { return }
-        let name = try FilePlan.validatedName(input).get()
-        guard name != currentName else { return }
-        try await perform(FileScripts.rename, [path, name])
+    private func requireFinderInFront() throws {
+        guard frontmostBundleID() == FinderSelection.bundleID else {
+            throw NonetError.actionFailed(String(localized: "Finder を前面にして、ファイルを選んでから使ってください", bundle: .nonetActions))
+        }
     }
 
     private func selection() async throws -> [String] {
@@ -250,8 +207,8 @@ final class FileActionRunner {
         return paths
     }
 
-    private func perform(_ script: String, _ arguments: [String]) async throws {
-        _ = try await runScript(.appleScript, script, arguments, Self.actionTimeout)
+    private func perform(_ script: String, _ arguments: [String], timeout: TimeInterval) async throws {
+        _ = try await runScript(.appleScript, script, arguments, timeout)
     }
 
     /// 動かして、失敗していれば NonetError にする
@@ -273,62 +230,95 @@ final class FileActionRunner {
     }
 }
 
-/// Finder に頼む AppleScript。ファイルのパスや名前は、文に埋め込まず argv で渡す（引用符などで壊れない）
+/// Finder に頼む AppleScript。ファイルのパスは、文に埋め込まず argv で渡す（引用符などで壊れない）。
+/// パスを alias にすると、シンボリックリンクはリンク先に置き換わり、Finder がリンク先を動かしてしまう。
+/// だから、動かす操作では alias のパスが元のパスと同じか確かめ、違えば動かさない（error 1002）
 enum FileScripts {
-    private static let aliasList = """
-    on aliasList(paths)
+    /// Finder に頼むときの独自のエラー番号
+    enum ErrorNumber {
+        /// 移す先のフォルダが無い・フォルダではない
+        static let destination = 1001
+        /// シンボリックリンクなど、パスの指す先が違うもの
+        static let link = 1002
+        /// ゴミ箱の無いディスク（ネットワーク上の場所など）
+        static let noTrash = 1004
+    }
+
+    private static let handlers = """
+    on aliasList(paths, strict)
         set items_ to {}
         repeat with p in paths
-            set end of items_ to (POSIX file (contents of p)) as alias
+            set thePath to contents of p
+            set a to (POSIX file thePath) as alias
+            if strict and not my samePath(POSIX path of a, thePath) then error "link" number \(ErrorNumber.link)
+            set end of items_ to a
         end repeat
         return items_
     end aliasList
 
+    on samePath(a, b)
+        return (my normalizedPath(a)) is (my normalizedPath(b))
+    end samePath
+
+    on normalizedPath(t)
+        set t to t as text
+        repeat while t ends with "/" and (length of t) > 1
+            set t to text 1 thru -2 of t
+        end repeat
+        if t starts with "/private/" then set t to text 9 thru -1 of t
+        return t
+    end normalizedPath
+
     """
 
-    static let open = aliasList + """
+    /// 開くのは、シンボリックリンクならリンク先を開く（ダブルクリックと同じ）
+    static let open = handlers + """
     on run argv
-        set targets to aliasList(argv)
+        set targets to aliasList(argv, false)
         tell application "Finder" to open targets
     end run
     """
 
-    static let trash = aliasList + """
+    static let trash = handlers + """
     on run argv
-        set targets to aliasList(argv)
+        set targets to aliasList(argv, true)
+        repeat with a in targets
+            tell application "Finder" to set isLocal to local volume of (disk of (item a))
+            if not isLocal then error "no trash" number \(ErrorNumber.noTrash)
+        end repeat
         tell application "Finder" to delete targets
     end run
     """
 
-    static let duplicate = aliasList + """
+    static let duplicate = handlers + """
     on run argv
-        set targets to aliasList(argv)
+        set targets to aliasList(argv, true)
         tell application "Finder" to duplicate targets
     end run
     """
 
     /// argv の最初が移す先のフォルダ、残りが移すファイル。同じ名前があれば上書きせずに失敗する
-    static let move = aliasList + """
+    static let move = handlers + """
     on run argv
-        set destination to (POSIX file (item 1 of argv)) as alias
-        set targets to aliasList(rest of argv)
+        try
+            set destination to (POSIX file (item 1 of argv)) as alias
+            tell application "Finder" to set destinationClass to (class of (item destination)) as text
+        on error
+            error "destination" number \(ErrorNumber.destination)
+        end try
+        if destinationClass is not in {"folder", "disk"} then error "destination" number \(ErrorNumber.destination)
+        set targets to aliasList(rest of argv, true)
         tell application "Finder" to move targets to destination
-    end run
-    """
-
-    /// argv は、名前を変えるファイルと新しい名前。Finder の用語（target など）と同じ名前の変数は使えない
-    static let rename = """
-    on run argv
-        set theFile to (POSIX file (item 1 of argv)) as alias
-        set newName to item 2 of argv
-        tell application "Finder" to set name of theFile to newName
     end run
     """
 }
 
 enum FinderScriptFailure {
     static func error(for output: ProcessOutput) -> NonetError? {
-        if output.timedOut { return .timedOut }
+        if output.timedOut {
+            // 時間内に返事が無かっただけで、Finder の作業は続いていることがある
+            return .actionFailed(String(localized: "Finder が時間内に終わりませんでした。Finder の作業は続いていることがあるので、確かめてください", bundle: .nonetActions))
+        }
         guard !output.succeeded else { return nil }
         switch errorNumber(in: output.stderr) {
         case -1743:
@@ -338,6 +328,12 @@ enum FinderScriptFailure {
             return .actionFailed(String(localized: "Finder が起動していません", bundle: .nonetActions))
         case -48, -15267:
             return .actionFailed(String(localized: "同じ名前のファイルがあります", bundle: .nonetActions))
+        case FileScripts.ErrorNumber.destination:
+            return .actionFailed(String(localized: "移動先のフォルダが見つかりません", bundle: .nonetActions))
+        case FileScripts.ErrorNumber.link:
+            return .actionFailed(String(localized: "シンボリックリンクは、ここでは動かせません（リンク先を動かしてしまうため）", bundle: .nonetActions))
+        case FileScripts.ErrorNumber.noTrash:
+            return .actionFailed(String(localized: "ゴミ箱の無い場所（ネットワーク上のファイルなど）は、ここでは削除しません", bundle: .nonetActions))
         case -1728, -1700, -43:
             return .actionFailed(String(localized: "ファイルが見つかりません。選び直してください", bundle: .nonetActions))
         default:

@@ -850,3 +850,43 @@ struct SettingsFileEditor: View {
         model.updateAction(ofCell: cellID, as: FileAction.self, transform)
     }
 }
+
+// MARK: - 画面の撮影
+
+struct SettingsScreenCaptureEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let capture: ScreenCaptureAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "操作", bundle: .module)) {
+                Picker(selection: Binding(get: { capture.mode }, set: { mode in update { $0.mode = mode } })) {
+                    ForEach(ScreenCaptureMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                } label: {
+                    Text("操作", bundle: .module)
+                }
+                .labelsHidden()
+                .pickerStyle(.radioGroup)
+                Text(SettingsText.detail(capture.mode))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if capture.mode.supportsClipboard {
+                Toggle(isOn: Binding(get: { capture.toClipboard }, set: { isOn in update { $0.toClipboard = isOn } })) {
+                    Text("クリップボードにコピー（ファイルは作らない）", bundle: .module)
+                }
+                .toggleStyle(.checkbox)
+            }
+            SettingsNote(text: SettingsText.screenCaptureKeys)
+        }
+    }
+
+    /// 描画したときの capture ではなく、今の中身を書き換える
+    private func update(_ transform: (inout ScreenCaptureAction) -> Void) {
+        model.updateAction(ofCell: cellID, as: ScreenCaptureAction.self, transform)
+    }
+}

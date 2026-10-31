@@ -718,7 +718,18 @@
         }
       }
     },
+    "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。シンボリックリンクは、リンク先を動かしてしまうので動かしません。初めて使うときに、macOS が Nonet に Finder の操作を許可するか尋ねます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Works on the files selected in Finder, only while Finder is in front. It doesn't move symbolic links, because that would move what they point to. The first time you use it, macOS asks whether Nonet may control Finder."
+          }
+        }
+      }
+    },
     "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。初めて使うときに、Nonet が Finder を操作する許可を尋ねます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -759,12 +770,32 @@
         }
       }
     },
+    "Finder で選んでいるファイルに「%@」を実行しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run “%@” on the files selected in Finder?"
+          }
+        }
+      }
+    },
     "Finder で選んでいるファイルを" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "On the files selected in Finder"
+          }
+        }
+      }
+    },
+    "Finder の名前の変更（Return を押したときと同じ）を始めます。名前を入力して Return で決めます。1つだけ選んでいるときに使えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected."
           }
         }
       }
@@ -1455,6 +1486,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:"
+          }
+        }
+      }
+    },
+    "macOS のスクリーンショットのキーボードショートカットを送ります。システム設定で変えていれば、そのキーを使います。保存先は macOS のスクリーンショットの設定に従い、Nonet が画面を読むことはありません（画面収録の許可は要りません）。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends the macOS screenshot keyboard shortcut (the one you set in System Settings, if you changed it). Where files are saved follows the macOS screenshot settings. Nonet never reads your screen, so it doesn't need Screen Recording permission."
           }
         }
       }
@@ -3625,6 +3666,16 @@
         }
       }
     },
+    "クリップボードにコピー（ファイルは作らない）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy to clipboard (don't save a file)"
+          }
+        }
+      }
+    },
     "グローバルには、Mac にあるよく使うアプリを並べたランチャーを用意します。アプリのプロファイルは、あとから設定で追加できます。" : {
       "localizations" : {
         "en" : {
@@ -3757,11 +3808,22 @@
       }
     },
     "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only moves files to the Trash and never deletes them for good. It works like Finder's Move to Trash, so you can put them back."
+          }
+        }
+      }
+    },
+    "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。ネットワーク上のファイルなど、ゴミ箱の無い場所のものは入れません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only moves files to the Trash and never deletes them for good. It works like Finder's Move to Trash, so you can put them back. Files on places without a Trash, such as network volumes, are left alone."
           }
         }
       }
@@ -4119,6 +4181,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Double-click an app to choose it."
+          }
+        }
+      }
+    },
+    "テスト実行は、今 Finder で選んでいるファイルに、実際に働きます。選んでいるファイルを確かめてから実行してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A test run acts on the files selected in Finder right now. Check what is selected before you run it."
           }
         }
       }
@@ -6821,6 +6893,16 @@
         }
       }
     },
+    "実行する" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        }
+      }
+    },
     "実行するショートカット" : {
       "localizations" : {
         "en" : {
@@ -7141,6 +7223,46 @@
         }
       }
     },
+    "撮るウインドウを選ぶ画面を出します。クリックしたウインドウを撮ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the window picker. Captures the window you click."
+          }
+        }
+      }
+    },
+    "撮る範囲を選ぶ画面を出します。選んだ範囲を撮ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the area picker. Captures the area you select."
+          }
+        }
+      }
+    },
+    "撮影と収録のメニューを出します。画面収録は、ここで範囲を選んで始めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the capture and recording toolbar. Start a screen recording from there."
+          }
+        }
+      }
+    },
+    "操作" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operation"
+          }
+        }
+      }
+    },
     "文字" : {
       "localizations" : {
         "en" : {
@@ -7162,6 +7284,7 @@
       }
     },
     "新しい名前を入力するダイアログを開きます。1つだけ選んでいるときに使えます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7668,6 +7791,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Center of Screen"
+          }
+        }
+      }
+    },
+    "画面の撮影" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Capture"
+          }
+        }
+      }
+    },
+    "画面全体をすぐに撮ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captures the whole screen right away."
+          }
+        }
+      }
+    },
+    "画面収録を止めます。収録していないときは何も起きません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stops the screen recording. Does nothing when nothing is recording."
           }
         }
       }

@@ -75,6 +75,8 @@ final class SettingsModel {
         case resetProfile(id: UUID, name: String)
         /// プロファイルのマスで、その位置にもうある共通マスを置き換える（「共通マスにする」）
         case replaceSharedCell(profileID: UUID, address: CellAddress)
+        /// Finder で今選んでいるファイルを変える操作（ゴミ箱に入れる・名前の変更・複製・移動）のテスト実行。設定の画面からは、何を選んでいるかが見えない
+        case testRunFile(cellID: UUID, operation: String)
 
         var id: String {
             switch self {
@@ -84,6 +86,7 @@ final class SettingsModel {
             case .importProfiles(let plan): "import-\(plan.id)"
             case .resetProfile(let id, _): "reset-\(id)"
             case .replaceSharedCell(let id, let address): "shared-\(id)-\(address.page)-\(address.index)"
+            case .testRunFile(let id, _): "test-\(id)"
             }
         }
     }
@@ -944,6 +947,15 @@ final class SettingsModel {
     // MARK: - テスト実行
 
     func startTestRun(cellID: UUID) {
+        // ファイルを変える操作は、今 Finder で選んでいるファイルに実際に働くので、確かめてから行う
+        if case .file(let file)? = cell(id: cellID)?.action, file.operation.changesFiles {
+            confirmation = .testRunFile(cellID: cellID, operation: file.operation.title)
+            return
+        }
+        beginTestRun(cellID: cellID)
+    }
+
+    private func beginTestRun(cellID: UUID) {
         testTask?.cancel()
         testTask = Task { [weak self] in
             await self?.runTest(cellID: cellID)
@@ -1409,6 +1421,8 @@ final class SettingsModel {
             resetProfileToPreset(id)
         case .replaceSharedCell(let profileID, let address):
             makeShared(at: address, profileID: profileID)
+        case .testRunFile(let cellID, _):
+            beginTestRun(cellID: cellID)
         }
     }
 

@@ -50,6 +50,7 @@ enum ModelFixtures {
         .ai(AIAction(prompt: "要約して", output: .copyToClipboard)),
         .file(FileAction(operation: .trash)),
         .file(FileAction(operation: .move, destination: "~/Documents/整理")),
+        .screenCapture(ScreenCaptureAction(mode: .window, toClipboard: true)),
     ]
 
     static let allActions: [Action] = [

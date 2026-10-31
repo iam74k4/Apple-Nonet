@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file, .screenCapture]
 
     static func name(_ kind: ActionKind) -> String {
         switch kind {
@@ -17,6 +17,7 @@ enum SettingsActionKinds {
         case .menuItem: String(localized: "メニュー項目", bundle: .module)
         case .ai: String(localized: "AI", bundle: .module)
         case .file: String(localized: "ファイル", bundle: .module)
+        case .screenCapture: String(localized: "画面の撮影", bundle: .module)
         }
     }
 
@@ -31,6 +32,7 @@ enum SettingsActionKinds {
         case .menuItem: "filemenu.and.selection"
         case .ai: "sparkles"
         case .file: "doc"
+        case .screenCapture: "camera.viewfinder"
         }
     }
 }
@@ -48,6 +50,19 @@ extension SettingsActionKinds {
     }
 }
 
+extension SettingsActionKinds {
+    /// 撮影の操作のアイコン
+    static func symbol(_ mode: ScreenCaptureMode) -> String {
+        switch mode {
+        case .area: "rectangle.dashed"
+        case .window: "macwindow"
+        case .fullScreen: "display"
+        case .toolbar: "record.circle"
+        case .stopRecording: "stop.circle"
+        }
+    }
+}
+
 enum SettingsCellEditing {
     /// 種類を選んだときの中身。アプリやキーは後で決める
     static func defaultAction(for kind: ActionKind) -> Action {
@@ -61,6 +76,7 @@ enum SettingsCellEditing {
         case .ai: .ai(AIAction(prompt: "", output: .showResult))
         // 取り消しにくい操作ではなく、見るだけに近い「開く」から始める
         case .file: .file(FileAction(operation: .open))
+        case .screenCapture: .screenCapture(ScreenCaptureAction(mode: .area))
         }
     }
 
@@ -77,6 +93,9 @@ enum SettingsCellEditing {
         }
         if case .file(let file) = action {
             return .symbol(SettingsActionKinds.symbol(file.operation))
+        }
+        if case .screenCapture(let capture) = action {
+            return .symbol(SettingsActionKinds.symbol(capture.mode))
         }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
@@ -97,6 +116,7 @@ enum SettingsCellEditing {
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .file(let file): file.operation == .move && file.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .screenCapture: false
         }
     }
 
@@ -307,4 +327,12 @@ extension FileAction: SettingsActionContent {
     }
 
     var asAction: Action { .file(self) }
+}
+
+extension ScreenCaptureAction: SettingsActionContent {
+    static func content(of action: Action) -> ScreenCaptureAction? {
+        if case .screenCapture(let capture) = action { capture } else { nil }
+    }
+
+    var asAction: Action { .screenCapture(self) }
 }

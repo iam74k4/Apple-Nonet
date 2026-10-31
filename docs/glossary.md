@@ -73,6 +73,10 @@
 | Finder で選んでいるファイルを | On the files selected in Finder | Label above the File action's operations. |
 | 移動先のフォルダ / フォルダを選ぶ… / %@ へ移動 | Destination folder / Choose Folder… / Move to %@ | The Move operation's folder field, its button, and the summary used as the button's default name. |
 | 選んだファイル | Selected Files | Name of the Finder preset's second page (the File action's buttons). Its button 新規フォルダへ (⌃⌘N, "New Folder with Selection" in Finder) is "Into New Folder" because button names are at most 16 columns wide. |
+| 画面の撮影（アクションの種類） | Screen Capture | Action type for screenshots and screen recording. It only sends the macOS screenshot keyboard shortcuts; never call it "screen recording" in a way that suggests Nonet records the screen (it needs no Screen Recording permission). |
+| 範囲を撮影 / ウインドウを撮影 / 全画面を撮影 / 撮影・収録 / 収録を止める | Capture Area / Capture Window / Capture Screen / Capture Options / Stop Recording | The five operations of the Screen Capture action (button names are at most 16 columns). 撮影・収録 opens the macOS capture toolbar (⇧⌘5). |
+| クリップボードにコピー（ファイルは作らない） | Copy to clipboard (don't save a file) | Checkbox of the Screen Capture action. Not the same as the Output option クリップボードにコピー ("Copy to Clipboard"). |
+| Finder で選んでいるファイルに「%@」を実行しますか？ / 実行する | Run “%@” on the files selected in Finder? / Run | Confirmation before the Test Run of a File button that changes files. |
 | オートメーション（Finder） | Automation (Finder) | Permission name in the error "Automation (Finder) permission required." The macOS pane is Privacy & Security › Automation. |
 | 選択中のテキスト | selected text | Apple term. Error text: "Select some text first." |
 | 選択範囲 | selection | |

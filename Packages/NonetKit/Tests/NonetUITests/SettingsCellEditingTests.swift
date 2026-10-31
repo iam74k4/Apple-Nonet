@@ -10,12 +10,17 @@ import Testing
         for kind in ActionKind.allCases {
             #expect(!SettingsActionKinds.name(kind).isEmpty)
             #expect(SettingsCellEditing.defaultAction(for: kind).kind == kind)
-            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「開く」から始まり、すぐ使える（ゴミ箱や移動は選ぶまで働かない）
-            #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)) == (kind != .file))
+            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「開く」から、画面の撮影は「範囲を撮影」から始まり、すぐ使える
+            #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)) == (kind != .file && kind != .screenCapture))
             let cell = SettingsCellEditing.newCell(kind: kind)
             #expect(cell.title.isEmpty)
-            // ファイルは操作ごとのアイコン（「開く」から始まる）
-            #expect(cell.icon == .symbol(kind == .file ? SettingsActionKinds.symbol(FileOperation.open) : SettingsActionKinds.symbol(kind)))
+            // ファイルと画面の撮影は、操作ごとのアイコン（それぞれ「開く」「範囲を撮影」から始まる）
+            let expectedSymbol = switch kind {
+            case .file: SettingsActionKinds.symbol(FileOperation.open)
+            case .screenCapture: SettingsActionKinds.symbol(ScreenCaptureMode.area)
+            default: SettingsActionKinds.symbol(kind)
+            }
+            #expect(cell.icon == .symbol(expectedSymbol))
         }
     }
 

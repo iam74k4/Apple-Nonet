@@ -149,6 +149,8 @@ struct SettingsCellEditor: View {
             SettingsAIEditor(model: model, cellID: cell.id, ai: ai)
         case .file(let file):
             SettingsFileEditor(model: model, cellID: cell.id, file: file)
+        case .screenCapture(let capture):
+            SettingsScreenCaptureEditor(model: model, cellID: cell.id, capture: capture)
         }
     }
 }

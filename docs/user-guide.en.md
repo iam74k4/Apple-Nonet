@@ -216,7 +216,7 @@ The right column is where you set up the selected button. Changes are saved righ
 - **Empty button**: click an action type to create one
 - **Name**: the name shown under the icon. If you leave it empty, Nonet names the button from its action
 - **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names), **App** (**Use This App's Icon**, available for Open App buttons and in app profiles) or **Text** (type 1–2 characters and click **Use**). **Restore Default Icon** goes back to the default
-- **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI or File (see Action types)
+- **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI, File or Screen Capture (see Action types)
 - **Hold before running**: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics)
 - **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings
 - **Clear This Button**: removes the action and leaves an empty button
@@ -350,13 +350,29 @@ Opens, trashes, renames, duplicates or moves the files selected in Finder. Click
 
 - **Operation**:
   - Open: opens them with the default app, like a double-click. You can open up to 20 files at once
-  - Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash are left alone. When you choose it for a button, **Hold before running** turns on automatically (you can turn it off)
-  - Rename: opens a dialog to enter a new name. Works when exactly one file is selected. The name is selected up to the extension. “/”, “:” and line breaks aren't allowed
-  - Duplicate: makes a copy in the same place
+  - Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash, and files on places without a Trash (such as network volumes), are left alone. When you choose it for a button, **Hold before running** turns on automatically (you can turn it off)
+  - Rename: starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected
+  - Duplicate: makes a copy in the same place. Large files take a while (Nonet waits up to 10 minutes for Finder)
   - Move: moves them to the **Destination folder**. Choose it with **Choose Folder…** or type a path like `~/Documents`. If a file with the same name is already there, Nonet shows an error instead of overwriting it. A button without a destination does nothing
-- **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). If another app is in front, Nonet shows an error and does nothing, so it never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, the top of a disk or a system folder
+- **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). Nonet checks which app is in front right before it runs, so if another app is in front it shows an error and does nothing, and never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. It doesn't move symbolic links, because that would move what they point to (Open opens what the link points to, like a double-click). Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, one of its standard folders (Desktop, Documents and so on), the top of a disk, a system folder or another user's home folder
 - **Permission**: the first time you use it, macOS asks whether Nonet may control Finder (see [macOS asks for Automation permission](#macos-asks-for-automation-permission)). Nonet reads only the locations of the files selected in Finder, never what is inside them
+- **Test Run** in Settings asks first for operations that change files (anything but Open), because the Settings window can't show what is selected in Finder
 - The second page of the Finder preset (“Selected Files”) has Open, Duplicate, Rename and Move to Trash (Hold before running)
+
+### Screen Capture
+
+Starts a screenshot or a screen recording from the nine buttons. Nonet only sends the macOS screenshot keyboard shortcut, so it never reads your screen and doesn't need Screen Recording permission.
+
+- **Operation**:
+  - Capture Area: shows the area picker (⇧⌘4)
+  - Capture Window: shows the window picker (Nonet sends ⇧⌘4, waits a moment, then sends Space)
+  - Capture Screen: captures the whole screen right away (⇧⌘3)
+  - Capture Options: shows the capture and recording toolbar (⇧⌘5). Start a screen recording from there by choosing an area
+  - Stop Recording: stops the screen recording (⌃⌘Esc). Does nothing when nothing is recording
+- **Copy to clipboard (don't save a file)**: for area, window and screen captures, puts the picture on the clipboard instead of saving a file (the ⌃⇧⌘3 and ⌃⇧⌘4 shortcuts)
+- If you changed the keys in **System Settings › Keyboard › Keyboard Shortcuts › Screenshots**, Nonet sends those keys. If you turned the shortcut off, Nonet shows an error and does nothing
+- Where files are saved, the thumbnail after a capture and so on follow the macOS screenshot settings (the options in ⇧⌘5)
+- Works the same whichever app is in front
 
 ## General settings
 

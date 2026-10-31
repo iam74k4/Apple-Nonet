@@ -27,6 +27,11 @@ struct ModelSummaryTests {
             (.file(FileAction(operation: .move)), ModelFixtures.text("移動")),
             (.file(FileAction(operation: .move, destination: "/Users/me/Documents/")), ModelFixtures.text("\("Documents") へ移動")),
             (.file(FileAction(operation: .move, destination: "~")), ModelFixtures.text("\("~") へ移動")),
+            (.screenCapture(ScreenCaptureAction(mode: .area)), ModelFixtures.text("範囲を撮影")),
+            (.screenCapture(ScreenCaptureAction(mode: .window, toClipboard: true)), ModelFixtures.text("ウインドウを撮影")),
+            (.screenCapture(ScreenCaptureAction(mode: .fullScreen)), ModelFixtures.text("全画面を撮影")),
+            (.screenCapture(ScreenCaptureAction(mode: .toolbar)), ModelFixtures.text("撮影・収録")),
+            (.screenCapture(ScreenCaptureAction(mode: .stopRecording)), ModelFixtures.text("収録を止める")),
         ]
         for (action, expected) in cases {
             #expect(action.summary == expected)
@@ -60,7 +65,7 @@ struct ModelSummaryTests {
 
     @Test("アクションの種類")
     func kinds() {
-        #expect(ModelFixtures.nonKeystrokeActions.map(\.kind) == [.launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file, .file])
+        #expect(ModelFixtures.nonKeystrokeActions.map(\.kind) == [.launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file, .file, .screenCapture])
         #expect(Action.keystroke(.key("a")).kind == .keystroke)
     }
 }

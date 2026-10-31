@@ -90,6 +90,8 @@ struct SettingsRootView: View {
             String(localized: "「\(name)」をプリセットに戻しますか？", bundle: .module)
         case .replaceSharedCell?:
             String(localized: "共通マスを置き換えますか？", bundle: .module)
+        case .testRunFile(_, let operation)?:
+            String(localized: "Finder で選んでいるファイルに「\(operation)」を実行しますか？", bundle: .module)
         case nil:
             ""
         }
@@ -109,6 +111,8 @@ struct SettingsRootView: View {
             SettingsText.importConfirmation(plan)
         case .replaceSharedCell:
             String(localized: "この位置にはもう共通マスがあります。このマスで置き換えると、すべてのアプリで変わります。⌘Z で元に戻せます。", bundle: .module)
+        case .testRunFile:
+            String(localized: "テスト実行は、今 Finder で選んでいるファイルに、実際に働きます。選んでいるファイルを確かめてから実行してください。", bundle: .module)
         }
     }
 
@@ -119,12 +123,16 @@ struct SettingsRootView: View {
         case .importProfiles(let plan): SettingsText.importConfirmationButton(plan)
         case .resetProfile: String(localized: "プリセットに戻す", bundle: .module)
         case .replaceSharedCell: String(localized: "置き換える", bundle: .module)
+        case .testRunFile: String(localized: "実行する", bundle: .module)
         }
     }
 
     /// 何も消さない読み込み（スクリプトを含むだけ）は、赤いボタンにしない
     private func confirmationRole(_ confirmation: SettingsModel.Confirmation) -> ButtonRole? {
         if case .importProfiles(let plan) = confirmation, !plan.replacesExisting {
+            return nil
+        }
+        if case .testRunFile = confirmation {
             return nil
         }
         return .destructive

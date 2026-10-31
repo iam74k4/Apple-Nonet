@@ -112,7 +112,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
             file.operation.changesFiles
         case .openURL(let url):
             opensLocalFile(url.url) || opensAnotherTool(url.url)
-        case .launchApp:
+        case .launchApp, .screenCapture:
+            // 撮影のキーは、撮る範囲を利用者が選ぶか、macOS の撮影の画面が出るだけ（画面全体を撮るのも、ファイルかクリップボードに入るだけ）
             false
         }
     }
@@ -134,7 +135,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             pressesSubmitKey(keys, keys: translator)
         case .menuItem(let menu):
             menu.keyEquivalent.map { pressesSubmitKey($0, keys: translator) } ?? false
-        case .script, .ai, .openURL, .launchApp, .shortcut, .file:
+        case .script, .ai, .openURL, .launchApp, .shortcut, .file, .screenCapture:
             false
         }
     }

@@ -123,6 +123,16 @@
         }
       }
     },
+    "Finder が時間内に終わりませんでした。Finder の作業は続いていることがあるので、確かめてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finder didn't finish in time. It may still be working, so check in Finder."
+          }
+        }
+      }
+    },
     "Finder が起動していません" : {
       "localizations" : {
         "en" : {
@@ -214,12 +224,12 @@
         }
       }
     },
-    "「%@」の新しい名前を入力してください" : {
+    "macOS のスクリーンショットのキーボードショートカットがオフです。システム設定 › キーボード › キーボードショートカット › スクリーンショット で確かめてください" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enter a new name for “%@”."
+            "value" : "The macOS screenshot keyboard shortcut is turned off. Check System Settings › Keyboard › Keyboard Shortcuts › Screenshots."
           }
         }
       }
@@ -290,16 +300,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Automation (Finder)"
-          }
-        }
-      }
-    },
-    "キャンセル" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
           }
         }
       }
@@ -387,6 +387,16 @@
         }
       }
     },
+    "ゴミ箱の無い場所（ネットワーク上のファイルなど）は、ここでは削除しません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files on places without a Trash, such as network volumes, aren't deleted here."
+          }
+        }
+      }
+    },
     "ショートカット「%@」が失敗しました" : {
       "localizations" : {
         "en" : {
@@ -423,6 +433,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't run the shortcut."
+          }
+        }
+      }
+    },
+    "シンボリックリンクは、ここでは動かせません（リンク先を動かしてしまうため）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Symbolic links can't be moved here, because that would move what they point to."
           }
         }
       }
@@ -648,72 +668,12 @@
         }
       }
     },
-    "名前が長すぎます" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The name is too long."
-          }
-        }
-      }
-    },
-    "名前に「/」「:」と改行は使えません" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Names can't contain “/”, “:” or line breaks."
-          }
-        }
-      }
-    },
-    "名前を入力してください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter a name."
-          }
-        }
-      }
-    },
     "名前を変えるときは、ファイルを1つだけ選んでください" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "To rename, select just one file."
-          }
-        }
-      }
-    },
-    "名前を変更" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rename"
-          }
-        }
-      }
-    },
-    "変更" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rename"
-          }
-        }
-      }
-    },
-    "新しい名前" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New name"
           }
         }
       }

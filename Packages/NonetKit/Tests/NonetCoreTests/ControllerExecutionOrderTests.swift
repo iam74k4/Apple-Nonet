@@ -15,6 +15,8 @@ import Testing
         .shortcut(ShortcutAction(name: "日記", passSelectedText: true)),
         .ai(AIAction(prompt: "要約して", output: .showResult)),
         .ai(AIAction(prompt: "直して", output: .replaceSelection)),
+        .file(FileAction(operation: .duplicate)),
+        .file(FileAction(operation: .move, destination: "/tmp")),
     ]
     nonisolated static let serial: [Action] = [
         .keystroke(.key("s", [.command])),
@@ -22,9 +24,10 @@ import Testing
         .launchApp(LaunchAppAction(app: F.notes)),
         .openURL(URLAction(url: "https://example.com")),
         .script(ScriptAction(source: "claude", runMode: .terminal)),
-        // 名前を入力するダイアログを待つことがあるが、後のマスを待たせない（長く掛かる扱いにはしない）
         .file(FileAction(operation: .rename)),
         .file(FileAction(operation: .trash)),
+        .file(FileAction(operation: .open)),
+        .screenCapture(ScreenCaptureAction(mode: .window)),
     ]
 
     /// Safari の1ページ目: [first, 新しいタブ, タブを閉じる, 空…]

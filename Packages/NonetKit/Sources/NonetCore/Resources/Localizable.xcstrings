@@ -428,6 +428,16 @@
         }
       }
     },
+    "ウインドウを撮影" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Window"
+          }
+        }
+      }
+    },
     "エイリアスを作る" : {
       "localizations" : {
         "en" : {
@@ -1614,6 +1624,16 @@
         }
       }
     },
+    "全画面を撮影" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Screen"
+          }
+        }
+      }
+    },
     "写真" : {
       "localizations" : {
         "en" : {
@@ -1650,6 +1670,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Participants"
+          }
+        }
+      }
+    },
+    "収録を止める" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Recording"
           }
         }
       }
@@ -1816,6 +1846,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raise Hand"
+          }
+        }
+      }
+    },
+    "撮影・収録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Options"
           }
         }
       }
@@ -2165,6 +2205,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bulleted List"
+          }
+        }
+      }
+    },
+    "範囲を撮影" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Area"
           }
         }
       }

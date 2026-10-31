@@ -3,13 +3,12 @@ import NonetCore
 @testable import NonetPlatform
 import Testing
 
-/// Finder に頼む前の確かめ・Finder への依頼・失敗の読み替え。Finder は動かさず、osascript を偽物にする
+/// Finder に頼む前の確かめ・Finder への依頼・失敗の読み替え。Finder は動かさず、osascript とキーの送りを偽物にする
 @Suite("ファイルの操作")
 @MainActor
 struct ActionFileTests {
-    static let finder = RunningAppInfo(app: AppReference(bundleID: "com.apple.finder", name: "Finder"), processID: 100)
-    static let safari = RunningAppInfo(app: AppReference(bundleID: "com.apple.Safari", name: "Safari"), processID: 200)
     static let home = "/Users/tester"
+    static let finderID = "com.apple.finder"
 
     /// 呼ばれた依頼を覚えて、決めた出力を返す
     final class FakeOsascript: OsascriptRunning, @unchecked Sendable {
@@ -17,6 +16,7 @@ struct ActionFileTests {
             var language: String
             var source: String
             var arguments: [String]
+            var timeout: TimeInterval
         }
 
         private let lock = NSLock()
@@ -42,7 +42,7 @@ struct ActionFileTests {
         }
 
         func run(_ language: OsascriptLanguage, source: String, arguments: [String], timeout: TimeInterval) async throws -> ProcessOutput {
-            record(Call(language: language == .javaScript ? "js" : "as", source: source, arguments: arguments))
+            record(Call(language: language == .javaScript ? "js" : "as", source: source, arguments: arguments, timeout: timeout))
             if language == .javaScript {
                 return ProcessOutput(status: 0, wasSignaled: false, timedOut: false, stdout: selection, stderr: "")
             }
@@ -50,9 +50,22 @@ struct ActionFileTests {
         }
     }
 
-    struct FakePrompt: RenamePrompting {
-        var answer: String?
-        func requestName(currentName: String) async -> String? { answer }
+    final class FakeKeys: KeySending {
+        var sent: [[KeyChord]] = []
+        func send(_ sequence: KeySequence) async throws { sent.append(sequence.chords) }
+    }
+
+    /// 前面のアプリの bundleID を、呼ばれるたびに順に返す（最後のものを返し続ける）
+    final class Frontmost {
+        var ids: [String?]
+        private(set) var asked = 0
+
+        init(_ ids: [String?]) { self.ids = ids }
+
+        func next() -> String? {
+            defer { asked += 1 }
+            return ids[min(asked, ids.count - 1)]
+        }
     }
 
     private func urls(_ paths: [String]) -> String {
@@ -60,12 +73,10 @@ struct ActionFileTests {
         return String(decoding: (try? JSONEncoder().encode(list)) ?? Data(), as: UTF8.self)
     }
 
-    private func runner(_ osascript: FakeOsascript, answer: String? = nil, directories: Set<String> = ["/Users/tester/Documents"]) -> FileActionRunner {
-        FileActionRunner(osascript: osascript, prompt: FakePrompt(answer: answer), home: Self.home, directoryExists: { directories.contains($0) })
-    }
-
-    private func message(of error: any Error) -> String? {
-        (error as? NonetError)?.errorDescription
+    private func runner(_ osascript: FakeOsascript, keys: FakeKeys? = nil, frontmost: Frontmost? = nil) -> FileActionRunner {
+        let keys = keys ?? FakeKeys()
+        let frontmost = frontmost ?? Frontmost([Self.finderID])
+        return FileActionRunner(keys: keys, osascript: osascript, home: Self.home, frontmostBundleID: { frontmost.next() })
     }
 
     // MARK: Finder の選択
@@ -75,11 +86,18 @@ struct ActionFileTests {
         let output = urls(["/Users/tester/書類/見積 2026.pdf", "/Users/tester/フォルダ"]) + "\n"
         #expect(FinderSelection.parse(output) == ["/Users/tester/書類/見積 2026.pdf", "/Users/tester/フォルダ"])
         #expect(FinderSelection.parse("[]") == [])
-        // ファイルの URL でないものと、値の無いものは捨てる
-        #expect(FinderSelection.parse(#"["https://example.com/a", null, "file:///tmp/a"]"#) == ["/tmp/a"])
+        // 末尾に / の付くフォルダの URL
+        #expect(FinderSelection.parse(#"["file:///Users/tester/%E6%9B%B8%E9%A1%9E/"]"#) == ["/Users/tester/書類"])
         // 読めない出力は nil（空の選択とは別）
         #expect(FinderSelection.parse("missing value") == nil)
         #expect(FinderSelection.parse("") == nil)
+    }
+
+    @Test("ファイルの URL でないものが1つでもあれば、一部だけを動かさないよう全体を読めなかったことにする")
+    func anItemThatIsNotAFileMakesTheWholeSelectionUnreadable() {
+        #expect(FinderSelection.parse(#"["https://example.com/a", "file:///tmp/a"]"#) == nil)
+        #expect(FinderSelection.parse(#"[null, "file:///tmp/a"]"#) == nil)
+        #expect(FinderSelection.parse(#"["file:///tmp/a", ""]"#) == nil)
     }
 
     @Test("名前に改行を含むファイルも、1つのパスとして読む")
@@ -88,37 +106,49 @@ struct ActionFileTests {
         #expect(FinderSelection.parse(output) == ["/Users/tester/a\nb.txt"])
     }
 
+    @Test("選択を読む制限時間は、初めての許可の確認に答える間も待てる長さ")
+    func theReadWaitsForThePermissionPrompt() async throws {
+        let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
+        try await runner(osascript).run(FileAction(operation: .trash))
+        #expect(osascript.calls.first?.timeout == FinderSelection.readTimeout)
+        #expect(FinderSelection.readTimeout >= 30)
+    }
+
     // MARK: 前面のアプリ
 
     @Test("Finder が前面でないときは、選択を読まずに知らせる")
     func requiresFinderInFront() async {
         let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        for frontmost in [Self.safari, nil] {
+        for front in ["com.apple.Safari", nil] as [String?] {
             await #expect(throws: NonetError.self) {
-                try await runner(osascript).run(FileAction(operation: .trash), frontmost: frontmost)
+                try await runner(osascript, frontmost: Frontmost([front])).run(FileAction(operation: .trash))
             }
         }
         #expect(osascript.calls.isEmpty)
     }
 
-    // MARK: 選択の確かめ
-
-    @Test("何も選んでいないときは、何も動かさない")
-    func emptySelectionDoesNothing() async {
-        let osascript = FakeOsascript(selection: "[]")
+    @Test("実行する直前の前面アプリで確かめる。選択を読んでいる間に別のアプリが前面になったら、何も動かさない")
+    func checksTheFrontAppAgainAfterReadingTheSelection() async {
+        let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
+        let frontmost = Frontmost([Self.finderID, "com.apple.Preview"])
         await #expect(throws: NonetError.self) {
-            try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+            try await runner(osascript, frontmost: frontmost).run(FileAction(operation: .trash))
         }
         #expect(osascript.calls.map(\.language) == ["js"])
+        #expect(frontmost.asked == 2)
     }
 
-    @Test("読めない出力のときは、何も動かさない")
-    func unreadableSelectionDoesNothing() async {
-        let osascript = FakeOsascript(selection: "oops")
-        await #expect(throws: NonetError.self) {
-            try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+    // MARK: 選択の確かめ
+
+    @Test("何も選んでいない・読めない出力のときは、何も動かさない")
+    func emptyOrUnreadableSelectionDoesNothing() async {
+        for selection in ["[]", "oops", #"["https://example.com/a"]"#] {
+            let osascript = FakeOsascript(selection: selection)
+            await #expect(throws: NonetError.self) {
+                try await runner(osascript).run(FileAction(operation: .trash))
+            }
+            #expect(osascript.calls.map(\.language) == ["js"], Comment(rawValue: selection))
         }
-        #expect(osascript.calls.map(\.language) == ["js"])
     }
 
     @Test("多すぎる選択は動かさない。開くのは20個まで")
@@ -126,110 +156,134 @@ struct ActionFileTests {
         let many = (0...FinderSelection.limit).map { "/Users/tester/f\($0).txt" }
         let osascript = FakeOsascript(selection: urls(many))
         await #expect(throws: NonetError.self) {
-            try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+            try await runner(osascript).run(FileAction(operation: .trash))
         }
         let some = FakeOsascript(selection: urls((0...FinderSelection.openLimit).map { "/Users/tester/f\($0).txt" }))
         await #expect(throws: NonetError.self) {
-            try await runner(some).run(FileAction(operation: .open), frontmost: Self.finder)
+            try await runner(some).run(FileAction(operation: .open))
         }
         #expect(some.calls.map(\.language) == ["js"])
         // 20個ちょうどなら開く
         let exact = FakeOsascript(selection: urls((1...FinderSelection.openLimit).map { "/Users/tester/f\($0).txt" }))
-        try await runner(exact).run(FileAction(operation: .open), frontmost: Self.finder)
+        try await runner(exact).run(FileAction(operation: .open))
         #expect(exact.calls.last?.arguments.count == FinderSelection.openLimit)
     }
 
-    @Test("ゴミ箱の中のファイルや、ホーム・ディスクの一番上は、ゴミ箱に入れない")
-    func refusesProtectedAndTrashedItems() async {
-        let protectedPaths = [
-            "/Users/tester/.Trash/old.txt", "/Volumes/Backup/.Trashes/501/x", "/Users/tester", "/Applications", "/Volumes/Backup", "/",
-        ]
-        for path in protectedPaths {
+    @Test("ゴミ箱の中のファイルは、ゴミ箱に入れない")
+    func refusesFilesAlreadyInTheTrash() async {
+        for path in ["/Users/tester/.Trash/old.txt", "/Volumes/Backup/.Trashes/501/x"] {
             let osascript = FakeOsascript(selection: urls([path]))
             await #expect(throws: NonetError.self) {
-                try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+                try await runner(osascript).run(FileAction(operation: .trash))
             }
-            #expect(osascript.calls.map(\.language) == ["js"], "\(path)")
+            #expect(osascript.calls.map(\.language) == ["js"], Comment(rawValue: path))
         }
     }
 
-    @Test("ゴミ箱の中のファイルは、ゴミ箱の外へ移せる")
-    func trashedItemsCanBeMovedOut() async throws {
-        let osascript = FakeOsascript(selection: urls(["/Users/tester/.Trash/old.txt"]))
-        try await runner(osascript).run(FileAction(operation: .move, destination: "/Users/tester/Documents"), frontmost: Self.finder)
-        #expect(osascript.calls.last?.arguments == ["/Users/tester/Documents", "/Users/tester/.Trash/old.txt"])
+    @Test("ホーム・ホームの標準のフォルダ・ディスクの一番上・システムのフォルダ・ほかの利用者のホーム・クラウドの置き場は、開く以外の操作をしない",
+          arguments: [
+              "/Users/tester", "/Users/tester/Desktop", "/Users/tester/Documents", "/Users/tester/Downloads", "/Users/tester/Library",
+              "/Users/tester/Library/CloudStorage/Dropbox", "/Users/other", "/Applications", "/Volumes/Backup", "/System", "/",
+          ])
+    func refusesProtectedPlacesForEveryChangingOperation(path: String) async throws {
+        for operation in FileOperation.allCases where operation.changesFiles {
+            let osascript = FakeOsascript(selection: urls([path]))
+            await #expect(throws: NonetError.self) {
+                try await runner(osascript).run(FileAction(operation: operation, destination: "/Users/tester/Documents/x"))
+            }
+            #expect(osascript.calls.map(\.language) == ["js"], Comment(rawValue: "\(operation) \(path)"))
+        }
+        // 開くだけなら、ダブルクリックと同じ
+        let open = FakeOsascript(selection: urls([path]))
+        try await runner(open).run(FileAction(operation: .open))
+        #expect(open.calls.map(\.language) == ["js", "as"], Comment(rawValue: path))
+    }
+
+    @Test("標準のフォルダの中のファイルや、ほかのディスクの中のフォルダは動かせる")
+    func protectedPlacesAreOnlyTheFoldersThemselves() {
+        for path in ["/Users/tester/Desktop/a.txt", "/Users/tester/Documents/案件/資料", "/Volumes/Backup/photos", "/Users/tester/Library/CloudStorage/Dropbox/a.txt", "/Users/other/a.txt"] {
+            #expect(!FilePlan.isProtected(path, home: Self.home), Comment(rawValue: path))
+        }
     }
 
     // MARK: 各操作
 
     @Test("ゴミ箱に入れる: 選んだファイルのパスを、そのまま引数で渡す")
     func trashesTheSelection() async throws {
-        let paths = ["/Users/tester/a \"1\".txt", "/Users/tester/-b.txt", "/Users/tester/書類"]
+        let paths = ["/Users/tester/a \"1\".txt", "/Users/tester/-b.txt", "/Users/tester/書類/資料"]
         let osascript = FakeOsascript(selection: urls(paths))
-        try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+        try await runner(osascript).run(FileAction(operation: .trash))
         let call = try #require(osascript.calls.last)
         #expect(osascript.calls.map(\.language) == ["js", "as"])
         #expect(call.source == FileScripts.trash)
-        #expect(call.source.contains("delete targets"))
         #expect(call.arguments == paths)
+        #expect(call.timeout == FileActionRunner.actionTimeout)
     }
 
-    @Test("開く・複製は、それぞれの依頼を選んだファイルに出す")
+    @Test("開く・複製: それぞれの依頼を選んだファイルに出す。複製は長く待つ")
     func opensAndDuplicates() async throws {
         let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        try await runner(osascript).run(FileAction(operation: .open), frontmost: Self.finder)
-        try await runner(osascript).run(FileAction(operation: .duplicate), frontmost: Self.finder)
+        try await runner(osascript).run(FileAction(operation: .open))
+        try await runner(osascript).run(FileAction(operation: .duplicate))
         let scripts = osascript.calls.filter { $0.language == "as" }
         #expect(scripts.map(\.source) == [FileScripts.open, FileScripts.duplicate])
         #expect(scripts.allSatisfy { $0.arguments == ["/Users/tester/a.txt"] })
+        #expect(scripts.map(\.timeout) == [FileActionRunner.actionTimeout, FileActionRunner.copyTimeout])
     }
 
-    @Test("移動: 先頭の引数が移動先（前後の空白と末尾の / は除く）。フォルダが無ければ選択も読まない")
+    @Test("移動: 先頭の引数が移動先（前後の空白と末尾の / は除く）。移動先が使えないときは選択も読まない")
     func movesToTheDestination() async throws {
         let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt", "/Users/tester/b.txt"]))
-        let spaced = FileAction(operation: .move, destination: "  /Users/tester/Documents/  ")
-        try await runner(osascript).run(spaced, frontmost: Self.finder)
+        try await runner(osascript).run(FileAction(operation: .move, destination: "  /Users/tester/Documents/  "))
         let call = try #require(osascript.calls.last)
         #expect(call.source == FileScripts.move)
         #expect(call.arguments == ["/Users/tester/Documents", "/Users/tester/a.txt", "/Users/tester/b.txt"])
+        #expect(call.timeout == FileActionRunner.copyTimeout)
 
         let missing = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        for destination in ["", "   ", "/Users/tester/Nowhere", "relative/path"] {
+        for destination in ["", "   ", "relative/path", "/Users/tester/.Trash", "/Users/tester/.Trash/old"] {
             await #expect(throws: NonetError.self) {
-                try await runner(missing).run(FileAction(operation: .move, destination: destination), frontmost: Self.finder)
+                try await runner(missing).run(FileAction(operation: .move, destination: destination))
             }
         }
         #expect(missing.calls.isEmpty)
     }
 
-    @Test("名前を変える: ダイアログで入力した名前を、前後の空白を除いて渡す")
-    func renames() async throws {
-        let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        try await runner(osascript, answer: "  b \"2\".txt \n").run(FileAction(operation: .rename), frontmost: Self.finder)
-        let call = try #require(osascript.calls.last)
-        #expect(call.source == FileScripts.rename)
-        #expect(call.arguments == ["/Users/tester/a.txt", "b \"2\".txt"])
+    @Test("移動先は、Nonet が場所を調べず、文字だけで決める（~ はホームに直す）")
+    func destinations() {
+        #expect(FilePlan.destination("/Users/tester/Documents") == "/Users/tester/Documents")
+        #expect(FilePlan.destination("  /Users/tester/Documents///  ") == "/Users/tester/Documents")
+        #expect(FilePlan.destination("/") == "/")
+        #expect(FilePlan.destination("~") == NSHomeDirectory())
+        #expect(FilePlan.destination("~/Documents") == NSHomeDirectory() + "/Documents")
+        #expect(FilePlan.destination("") == nil)
+        #expect(FilePlan.destination("dest") == nil)
+        #expect(FilePlan.destination("/Volumes/Backup/.Trashes/501") == nil)
     }
 
-    @Test("名前を変える: やめたとき・同じ名前・使えない名前・複数選択では変えない")
-    func renameDoesNothingWhenNotNeeded() async throws {
-        let one = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        try await runner(one, answer: nil).run(FileAction(operation: .rename), frontmost: Self.finder)
-        try await runner(one, answer: "a.txt").run(FileAction(operation: .rename), frontmost: Self.finder)
-        #expect(one.calls.allSatisfy { $0.language == "js" })
+    @Test("名前を変える: 選んだものが1つだけのとき、Finder の名前の変更（Return）を始める。osascript では何も頼まない")
+    func renameStartsFindersOwnRename() async throws {
+        let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
+        let keys = FakeKeys()
+        try await runner(osascript, keys: keys).run(FileAction(operation: .rename))
+        #expect(keys.sent == [[KeyChord(.special(.returnKey))]])
+        #expect(osascript.calls.map(\.language) == ["js"])
+    }
 
-        for name in ["", "  ", ".", "..", "x/y", "x:y", "a\nb", String(repeating: "あ", count: 100)] {
+    @Test("名前を変える: 複数選んでいる・何も選んでいない・Finder が前面でないときは、Return を送らない")
+    func renameDoesNotSendReturnUnlessOneFileIsSelected() async {
+        for selection in [urls(["/Users/tester/a.txt", "/Users/tester/b.txt"]), "[]"] {
+            let keys = FakeKeys()
             await #expect(throws: NonetError.self) {
-                try await runner(one, answer: name).run(FileAction(operation: .rename), frontmost: Self.finder)
+                try await runner(FakeOsascript(selection: selection), keys: keys).run(FileAction(operation: .rename))
             }
+            #expect(keys.sent.isEmpty)
         }
-        #expect(one.calls.allSatisfy { $0.language == "js" })
-
-        let two = FakeOsascript(selection: urls(["/Users/tester/a.txt", "/Users/tester/b.txt"]))
+        let keys = FakeKeys()
         await #expect(throws: NonetError.self) {
-            try await runner(two, answer: "c.txt").run(FileAction(operation: .rename), frontmost: Self.finder)
+            try await runner(FakeOsascript(selection: urls(["/Users/tester/a.txt"])), keys: keys, frontmost: Frontmost(["com.apple.Safari"])).run(FileAction(operation: .rename))
         }
-        #expect(two.calls.map(\.language) == ["js"])
+        #expect(keys.sent.isEmpty)
     }
 
     // MARK: Finder からの失敗
@@ -245,25 +299,36 @@ struct ActionFileTests {
             failure: failed("execution error: Finder へ Apple イベントを送信する権限がありません。 (-1743)")
         )
         await #expect(throws: NonetError.permissionDenied(ActionText.finderAutomation)) {
-            try await runner(osascript).run(FileAction(operation: .trash), frontmost: Self.finder)
+            try await runner(osascript).run(FileAction(operation: .trash))
         }
     }
 
-    @Test("失敗の番号を、分かる言葉にする")
+    @Test("失敗の番号ごとに、決まった言葉にする")
     func mapsErrorNumbers() {
-        func error(_ stderr: String) -> NonetError? { FinderScriptFailure.error(for: failed(stderr)) }
-        #expect(error("12:20: execution error: エラー (-1743)") == .permissionDenied(ActionText.finderAutomation))
-        #expect(error("execution error: Finder は起動していません。 (-600)") != nil)
-        for number in [-48, -15267, -1728, -1700] {
-            let reason = error("129:134: execution error: 失敗 (\(number))")
-            #expect(reason != nil)
-            #expect(reason != .permissionDenied(ActionText.finderAutomation))
+        func message(_ stderr: String) -> String? { FinderScriptFailure.error(for: failed(stderr))?.errorDescription }
+        func text(_ key: String.LocalizationValue) -> String { String(localized: key, bundle: .nonetActions) }
+        #expect(FinderScriptFailure.error(for: failed("12:20: execution error: エラー (-1743)")) == .permissionDenied(ActionText.finderAutomation))
+        #expect(message("execution error: Finder は起動していません。 (-600)") == text("Finder が起動していません"))
+        #expect(message("execution error: x (-609)") == text("Finder が起動していません"))
+        for number in [-48, -15267] {
+            #expect(message("129:134: execution error: 失敗 (\(number))") == text("同じ名前のファイルがあります"), Comment(rawValue: "\(number)"))
         }
+        for number in [-1728, -1700, -43] {
+            #expect(message("execution error: 失敗 (\(number))") == text("ファイルが見つかりません。選び直してください"), Comment(rawValue: "\(number)"))
+        }
+        #expect(message("execution error: destination (\(FileScripts.ErrorNumber.destination))") == text("移動先のフォルダが見つかりません"))
+        #expect(message("execution error: link (\(FileScripts.ErrorNumber.link))") == text("シンボリックリンクは、ここでは動かせません（リンク先を動かしてしまうため）"))
+        #expect(message("execution error: no trash (\(FileScripts.ErrorNumber.noTrash))") == text("ゴミ箱の無い場所（ネットワーク上のファイルなど）は、ここでは削除しません"))
         // 知らない番号でも、標準エラーの末尾を添えて知らせる
-        #expect(error("execution error: こわれた (-99999)")?.errorDescription?.contains("こわれた") == true)
-        #expect(error("") != nil)
-        #expect(FinderScriptFailure.error(for: failed("", status: 0, timedOut: true)) == .timedOut)
+        #expect(message("execution error: こわれた (-99999)")?.contains("こわれた") == true)
+        #expect(message("") == text("ファイルの操作に失敗しました"))
         #expect(FinderScriptFailure.error(for: ProcessOutput(status: 0, wasSignaled: false, timedOut: false, stdout: "", stderr: "")) == nil)
+    }
+
+    @Test("時間切れのときは、Finder の作業が続いていることがあると伝える")
+    func timeoutMessageSaysFinderMayStillBeWorking() {
+        let message = FinderScriptFailure.error(for: failed("", status: 0, timedOut: true))?.errorDescription
+        #expect(message == String(localized: "Finder が時間内に終わりませんでした。Finder の作業は続いていることがあるので、確かめてください", bundle: .nonetActions))
     }
 
     @Test("エラーの番号は、最後の行の終わりの括弧から読む")
@@ -276,39 +341,58 @@ struct ActionFileTests {
 
     // MARK: 依頼の書き方
 
-    @Test("依頼の文には、ファイルのパスも名前も埋め込まない（引数で渡す）")
+    @Test("依頼の文には、ファイルのパスも名前も埋め込まない（引数で渡す）。完全な削除や上書きの語は使わない")
     func scriptsTakeEverythingFromArguments() {
-        for script in [FileScripts.open, FileScripts.trash, FileScripts.duplicate, FileScripts.move, FileScripts.rename] {
+        for script in [FileScripts.open, FileScripts.trash, FileScripts.duplicate, FileScripts.move] {
             #expect(script.contains("on run argv"))
             #expect(!script.contains("/Users"))
-            // 完全な削除（empty trash・rm・delete のあとの permanently）は使わない
             #expect(!script.contains("empty"))
             #expect(!script.contains("rm "))
+            #expect(!script.contains("replacing"))
         }
         #expect(FileScripts.trash.contains("delete targets"))
-        #expect(!FileScripts.move.contains("replacing"))
     }
 
-    @Test("移動先は存在するフォルダだけ。~ はホームに直す")
-    func destinations() throws {
+    @Test("動かす操作は、パスの指す先が違う（シンボリックリンク）ものを動かさない。開くだけは、リンク先を開く")
+    func scriptsRefuseSymbolicLinksExceptWhenOpening() {
+        for script in [FileScripts.trash, FileScripts.duplicate] {
+            #expect(script.contains("aliasList(argv, true)"))
+        }
+        #expect(FileScripts.move.contains("aliasList(rest of argv, true)"))
+        #expect(FileScripts.open.contains("aliasList(argv, false)"))
+        #expect(FileScripts.trash.contains("local volume"))
+    }
+
+    @Test("どの依頼の文も、AppleScript として組み立てられる（osacompile）")
+    func scriptsCompile() async throws {
         let directory = try ActionTemporaryDirectory()
-        let folder = try directory.subdirectory("dest")
-        let file = directory.url.appendingPathComponent("file.txt")
-        try Data().write(to: file)
-        #expect(FilePlan.destination(folder.path) == folder.path)
-        #expect(FilePlan.destination("  \(folder.path)  ") == folder.path)
-        #expect(FilePlan.destination(file.path) == nil)
-        #expect(FilePlan.destination("") == nil)
-        #expect(FilePlan.destination("dest") == nil)
-        let home = FilePlan.destination("~")
-        #expect(home == (NSHomeDirectory() as NSString).expandingTildeInPath)
+        for (name, script) in [("open", FileScripts.open), ("trash", FileScripts.trash), ("duplicate", FileScripts.duplicate), ("move", FileScripts.move)] {
+            let output = try await ProcessRunner.run(ProcessRequest(
+                executable: URL(fileURLWithPath: "/usr/bin/osacompile"),
+                arguments: ["-e", script, "-o", directory.url.appendingPathComponent("\(name).scpt").path],
+                environment: nil,
+                currentDirectory: nil,
+                timeout: 30
+            ))
+            #expect(output.succeeded, Comment(rawValue: "\(name): \(output.stderr)"))
+        }
     }
 
-    @Test("名前の確かめ: 前後の空白を除き、255バイトまで")
-    func nameValidation() throws {
-        #expect(try FilePlan.validatedName("  報告書 final.docx ").get() == "報告書 final.docx")
-        #expect(try FilePlan.validatedName(String(repeating: "a", count: 255)).get().utf8.count == 255)
-        #expect(throws: NonetError.self) { try FilePlan.validatedName(String(repeating: "a", count: 256)).get() }
-        #expect(throws: NonetError.self) { try FilePlan.validatedName(String(repeating: "あ", count: 86)).get() }
+    @Test("本物の osascript に、\"-\" で始まる引数や引用符・日本語を、そのまま引数として渡せる（Finder は使わない）")
+    func realOsascriptPassesArgumentsUntouched() async throws {
+        let source = """
+        on run argv
+            set out to ""
+            repeat with a in argv
+                set out to out & (contents of a) & "|"
+            end repeat
+            return out
+        end run
+        """
+        let output = try await Osascript().run(.appleScript, source: source, arguments: ["-b.txt", "a \"1\".txt", "書類", "--"], timeout: 20)
+        #expect(output.succeeded, Comment(rawValue: output.stderr))
+        #expect(output.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == "-b.txt|a \"1\".txt|書類|--|")
+        let js = try await Osascript().run(.javaScript, source: "JSON.stringify([1, 'あ'])", arguments: [], timeout: 20)
+        #expect(js.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == #"[1,"あ"]"#)
     }
 }

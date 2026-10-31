@@ -92,6 +92,7 @@
             <li><a href="#menu-item">Menu Item</a></li>
             <li><a href="#ai">AI</a></li>
             <li><a href="#file">File</a></li>
+            <li><a href="#screen-capture">Screen Capture</a></li>
           </ol>
         </li>
         <li><a href="#general">General settings</a>
@@ -320,7 +321,7 @@
       <li><strong>Empty button</strong>: click an action type to create one</li>
       <li><strong>Name</strong>: the name shown under the icon. If you leave it empty, Nonet names the button from its action</li>
       <li><strong>Icon</strong>: click the icon to the left of the name (Change icon). Choose <strong>Symbol</strong> (SF Symbols, searched by their English names), <strong>App</strong> (<strong>Use This App's Icon</strong>, available for Open App buttons and in app profiles) or <strong>Text</strong> (type 1–2 characters and click <strong>Use</strong>). <strong>Restore Default Icon</strong> goes back to the default</li>
-      <li><strong>Action type</strong>: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI or File (see Action types)</li>
+      <li><strong>Action type</strong>: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI, File or Screen Capture (see Action types)</li>
       <li><strong>Hold before running</strong>: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see <a href="#hold-buttons">Buttons that need a longer hold</a> under Basics)</li>
       <li><strong>Test This Button</strong>: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings</li>
       <li><strong>Clear This Button</strong>: removes the action and leaves an empty button</li>
@@ -449,15 +450,33 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
       <li><strong>Operation</strong>:
         <ul>
           <li>Open: opens them with the default app, like a double-click. You can open up to 20 files at once</li>
-          <li>Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash are left alone. When you choose it for a button, <strong>Hold before running</strong> turns on automatically (you can turn it off)</li>
-          <li>Rename: opens a dialog to enter a new name. Works when exactly one file is selected. The name is selected up to the extension. “/”, “:” and line breaks aren't allowed</li>
-          <li>Duplicate: makes a copy in the same place</li>
+          <li>Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash, and files on places without a Trash (such as network volumes), are left alone. When you choose it for a button, <strong>Hold before running</strong> turns on automatically (you can turn it off)</li>
+          <li>Rename: starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected</li>
+          <li>Duplicate: makes a copy in the same place. Large files take a while (Nonet waits up to 10 minutes for Finder)</li>
           <li>Move: moves them to the <strong>Destination folder</strong>. Choose it with <strong>Choose Folder…</strong> or type a path like <code>~/Documents</code>. If a file with the same name is already there, Nonet shows an error instead of overwriting it. A button without a destination does nothing</li>
         </ul>
       </li>
-      <li><strong>Target</strong>: the files selected in Finder, while Finder is in front (desktop icons count too). If another app is in front, Nonet shows an error and does nothing, so it never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, the top of a disk or a system folder</li>
+      <li><strong>Target</strong>: the files selected in Finder, while Finder is in front (desktop icons count too). Nonet checks which app is in front right before it runs, so if another app is in front it shows an error and does nothing, and never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. It doesn't move symbolic links, because that would move what they point to (Open opens what the link points to, like a double-click). Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, one of its standard folders (Desktop, Documents and so on), the top of a disk, a system folder or another user's home folder</li>
       <li><strong>Permission</strong>: the first time you use it, macOS asks whether Nonet may control Finder (see <a href="#automation">macOS asks for Automation permission</a>). Nonet reads only the locations of the files selected in Finder, never what is inside them</li>
+      <li><strong>Test Run</strong> in Settings asks first for operations that change files (anything but Open), because the Settings window can't show what is selected in Finder</li>
       <li>The second page of the Finder preset (“Selected Files”) has Open, Duplicate, Rename and Move to Trash (Hold before running)</li>
+    </ul>
+    <h3 id="screen-capture">Screen Capture</h3>
+    <p>Starts a screenshot or a screen recording from the nine buttons. Nonet only sends the macOS screenshot keyboard shortcut, so it never reads your screen and doesn't need Screen Recording permission.</p>
+    <ul>
+      <li><strong>Operation</strong>:
+        <ul>
+          <li>Capture Area: shows the area picker (⇧⌘4)</li>
+          <li>Capture Window: shows the window picker (Nonet sends ⇧⌘4, waits a moment, then sends Space)</li>
+          <li>Capture Screen: captures the whole screen right away (⇧⌘3)</li>
+          <li>Capture Options: shows the capture and recording toolbar (⇧⌘5). Start a screen recording from there by choosing an area</li>
+          <li>Stop Recording: stops the screen recording (⌃⌘Esc). Does nothing when nothing is recording</li>
+        </ul>
+      </li>
+      <li><strong>Copy to clipboard (don't save a file)</strong>: for area, window and screen captures, puts the picture on the clipboard instead of saving a file (the ⌃⇧⌘3 and ⌃⇧⌘4 shortcuts)</li>
+      <li>If you changed the keys in <strong>System Settings › Keyboard › Keyboard Shortcuts › Screenshots</strong>, Nonet sends those keys. If you turned the shortcut off, Nonet shows an error and does nothing</li>
+      <li>Where files are saved, the thumbnail after a capture and so on follow the macOS screenshot settings (the options in ⇧⌘5)</li>
+      <li>Works the same whichever app is in front</li>
     </ul>
 
     <h2 id="general">General settings</h2>

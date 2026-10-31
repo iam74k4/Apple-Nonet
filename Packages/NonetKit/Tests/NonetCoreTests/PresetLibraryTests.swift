@@ -251,6 +251,8 @@ import Testing
             case .file(let file):
                 // 移動は先のフォルダを決める必要があるので、プリセットには入れない
                 #expect(file.operation != .move)
+            case .screenCapture:
+                break
             case .keystroke, .shortcut:
                 break
             }

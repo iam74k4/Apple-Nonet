@@ -1613,3 +1613,61 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .open)))
     }
 }
+
+/// 画面の撮影（スクリーンショットと画面収録）の設定と、ファイルのテスト実行の確認
+@Suite @MainActor struct SettingsScreenCaptureAndTestRunTests {
+    @Test func aNewCaptureCellStartsWithAnAreaShotAndTheModeIconFollows() {
+        #expect(SettingsCellEditing.defaultAction(for: .screenCapture) == .screenCapture(ScreenCaptureAction(mode: .area)))
+        #expect(!SettingsCellEditing.isIncomplete(.screenCapture(ScreenCaptureAction(mode: .stopRecording))))
+        #expect(SettingsActionKinds.symbol(.screenCapture) == "camera.viewfinder")
+        var cell = SettingsCellEditing.newCell(kind: .screenCapture)
+        for mode in ScreenCaptureMode.allCases {
+            cell = SettingsCellEditing.replacingAction(.screenCapture(ScreenCaptureAction(mode: mode)), in: cell)
+            #expect(cell.icon == .symbol(SettingsActionKinds.symbol(mode)), "\(mode)")
+            #expect(cell.title == mode.title, "\(mode)")
+        }
+    }
+
+    @Test func capturesAreNotInTheImportReview() {
+        for mode in ScreenCaptureMode.allCases {
+            #expect(!SettingsImportPlan.needsReview(.screenCapture(ScreenCaptureAction(mode: mode, toClipboard: true))))
+        }
+    }
+
+    @Test func theClipboardChoiceIsKeptWhenSwitchingMode() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .screenCapture, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.updateAction(ofCell: id, as: ScreenCaptureAction.self) { $0.toClipboard = true }
+        h.model.updateAction(ofCell: id, as: ScreenCaptureAction.self) { $0.mode = .fullScreen }
+        #expect(h.model.cell(id: id)?.action == .screenCapture(ScreenCaptureAction(mode: .fullScreen, toClipboard: true)))
+        // 別の種類の編集は、撮影のマスを変えない
+        h.model.updateAction(ofCell: id, as: FileAction.self) { $0.operation = .trash }
+        #expect(h.model.cell(id: id)?.action == .screenCapture(ScreenCaptureAction(mode: .fullScreen, toClipboard: true)))
+    }
+
+    @Test func testRunningAFileOperationThatChangesFilesAsksFirst() async throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.chooseFileOperation(.trash, forCell: id)
+        h.model.startTestRun(cellID: id)
+        #expect(h.model.confirmation == .testRunFile(cellID: id, operation: FileOperation.trash.title))
+        #expect(h.model.testRun(for: id) == nil)
+        // やめたら、何も実行しない
+        h.model.confirmation = nil
+        #expect(h.model.testRun(for: id) == nil)
+    }
+
+    @Test func testRunningOpenOrAnotherKindDoesNotAsk() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.startTestRun(cellID: id)
+        #expect(h.model.confirmation == nil)
+        h.model.createCell(kind: .screenCapture, at: 2)
+        let capture = try #require(h.model.selectedCell?.id)
+        h.model.startTestRun(cellID: capture)
+        #expect(h.model.confirmation == nil)
+    }
+}

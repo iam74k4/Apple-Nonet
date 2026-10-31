@@ -28,10 +28,12 @@ public enum Action: Codable, Equatable, Sendable {
     case ai(AIAction)
     /// Finder で選んでいるファイルを、開く・ゴミ箱に入れる・名前を変える・複製する・移す
     case file(FileAction)
+    /// スクリーンショットと画面収録（macOS のスクリーンショットのキーボードショートカットを送る）
+    case screenCapture(ScreenCaptureAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, screenCapture
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -159,6 +161,40 @@ public struct FileAction: Codable, Equatable, Sendable {
     }
 }
 
+/// スクリーンショットと画面収録の操作。macOS 自身のキーボードショートカット（システム設定 › キーボード › キーボードショートカット › スクリーンショット）を送るので、
+/// 画面収録の許可は要らない
+public enum ScreenCaptureMode: String, Codable, CaseIterable, Sendable {
+    /// 範囲を選んで撮る（⇧⌘4）
+    case area
+    /// ウインドウを選んで撮る（⇧⌘4 のあと Space）
+    case window
+    /// 画面全体を撮る（⇧⌘3）
+    case fullScreen
+    /// 撮影と収録のメニューを出す（⇧⌘5）。画面収録はここから始める
+    case toolbar
+    /// 画面収録を止める（⌃⌘Esc）
+    case stopRecording
+
+    /// 撮った絵をファイルではなくクリップボードに入れられる
+    public var supportsClipboard: Bool {
+        switch self {
+        case .area, .window, .fullScreen: true
+        case .toolbar, .stopRecording: false
+        }
+    }
+}
+
+public struct ScreenCaptureAction: Codable, Equatable, Sendable {
+    public var mode: ScreenCaptureMode
+    /// 撮った絵をファイルに保存せず、クリップボードに入れる（supportsClipboard のモードだけ）
+    public var toClipboard: Bool
+
+    public init(mode: ScreenCaptureMode, toClipboard: Bool = false) {
+        self.mode = mode
+        self.toClipboard = toClipboard
+    }
+}
+
 extension Action {
     public var kind: ActionKind {
         switch self {
@@ -170,6 +206,7 @@ extension Action {
         case .menuItem: .menuItem
         case .ai: .ai
         case .file: .file
+        case .screenCapture: .screenCapture
         }
     }
 
@@ -195,6 +232,21 @@ extension Action {
             String(localized: "AI", bundle: .module)
         case .file(let action):
             action.summary
+        case .screenCapture(let action):
+            action.mode.title
+        }
+    }
+}
+
+extension ScreenCaptureMode {
+    /// 操作の名前（HUD や設定画面に出す）
+    public var title: String {
+        switch self {
+        case .area: String(localized: "範囲を撮影", bundle: .module)
+        case .window: String(localized: "ウインドウを撮影", bundle: .module)
+        case .fullScreen: String(localized: "全画面を撮影", bundle: .module)
+        case .toolbar: String(localized: "撮影・収録", bundle: .module)
+        case .stopRecording: String(localized: "収録を止める", bundle: .module)
         }
     }
 }
@@ -303,6 +355,8 @@ extension Action {
             self = .ai(try AIAction(from: decoder))
         case .file:
             self = .file(try FileAction(from: decoder))
+        case .screenCapture:
+            self = .screenCapture(try ScreenCaptureAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -328,6 +382,8 @@ extension Action {
         case .ai(let action):
             try action.encode(to: encoder)
         case .file(let action):
+            try action.encode(to: encoder)
+        case .screenCapture(let action):
             try action.encode(to: encoder)
         }
     }
@@ -497,6 +553,30 @@ extension FileAction {
         // 移す先は、移すときだけ書く（使わない設定の書式を増やさない）
         if operation == .move {
             try container.encode(destination, forKey: .destination)
+        }
+    }
+}
+
+extension ScreenCaptureAction {
+    private enum CodingKeys: String, CodingKey {
+        case mode, toClipboard
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 知らないモードを別のモードとして読まない（読めなければ、そのマスは空きになる）
+        self.init(
+            mode: try container.decode(ScreenCaptureMode.self, forKey: .mode),
+            toClipboard: container.decodeLossy(Bool.self, forKey: .toClipboard, default: false)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(mode, forKey: .mode)
+        // クリップボードに入れるときだけ書く（使わない設定の書式を増やさない）
+        if toClipboard, mode.supportsClipboard {
+            try container.encode(true, forKey: .toClipboard)
         }
     }
 }

@@ -50,7 +50,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 次の2つのときだけ、他のアプリに Apple Events を送ります。macOS が初回に、そのアプリを操作する許可を確認します。
 
 - スクリプトに変数 `NONET_BROWSER_URL` が書かれていて、前面のアプリが対応しているブラウザ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）のとき、実行する直前にそのブラウザに、表示中のページの URL を問い合わせます。読んだ URL はそのスクリプトに渡すだけで、保存も送信もしません。
-- 「ファイル」のアクションを実行するとき、前面のアプリが Finder であれば、Finder に、選んでいるファイルの場所を問い合わせ、あなたが設定した操作（開く・ゴミ箱に入れる・名前を変更・複製・移動）を Finder に頼みます。読むのはファイルの場所（名前とフォルダ）だけで、ファイルの中身は読みません。場所は操作に使うだけで、保存も送信もしません。ゴミ箱に入れるときも、完全には削除しません。
+- 「ファイル」のアクションを実行するとき、前面のアプリが Finder であれば、Finder に、選んでいるファイルの場所を問い合わせ、あなたが設定した操作（開く・ゴミ箱に入れる・複製・移動）を Finder に頼みます（名前の変更は、Return キーを送って Finder の名前の変更を始めます）。読むのはファイルの場所（名前とフォルダ）だけで、ファイルの中身は読みません。場所は操作に使うだけで、保存も送信もしません。ゴミ箱に入れるときも、完全には削除しません。
 
 スクリプトをターミナルで実行するときは、一時ファイルをターミナルで開くだけで、Apple Events は使いません。
 
@@ -59,6 +59,8 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 スクリプト・ショートカット・URL など、あなたが設定したアクションは、あなたの権限で Mac の中で実行されます。そのアクションがどんな情報を扱い、どこへ送るかは、アクションの中身によります。
 
 プロファイルを読み込むとき、スクリプト・キー入力・メニュー項目・AI のマスや、Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製する・移すマス、Mac の中のファイルを開くマスがあれば、本アプリは読み込む前に、そのマスと中身のすべて（スクリプトのすべての行・押すキー・メニュー項目とショートカット・AI への指示と結果の出し方・ファイルの操作と移動先・開くファイルの場所）を並べて確かめます。Return と同じ働きのキーや ⌃ の付いたキーを押すマスと、注意が要る命令（curl・`| sh`・rm -rf など）を含む行は目立たせ、中身を最後までスクロールするまで読み込めません。ほかの人から受け取ったプロファイルは、中身を確かめ、信頼できるものだけを読み込んでください。
+
+スクリーンショットと画面収録のアクションは、macOS のスクリーンショットのキーボードショートカットを送るだけです。本アプリが画面の内容を読むことも、「画面収録」の許可を求めることもありません。
 
 AI のアクションは、Apple の Foundation Models フレームワークを使い、Mac の中の言語モデルで処理します。本アプリが選択中のテキストを外部に送ることはありません。結果で選択範囲を置き換えるときは、結果をクリップボードに一時的に置いて ⌘V で貼り付け、元のクリップボードに戻します（クリップボードの履歴を残すアプリに残らないよう、`org.nspasteboard.TransientType` の印を付けます）。
 
@@ -139,7 +141,7 @@ Finger positions on the trackpad are read through macOS's multi-touch support (r
 The app sends Apple Events to other apps in only two cases. macOS asks for your permission to control that app the first time.
 
 - When a script contains the variable `NONET_BROWSER_URL` and the front app is a supported browser (Safari, Google Chrome, Arc, Microsoft Edge or Brave), the app asks that browser for the URL of the page it shows, just before the script runs. The URL is passed only to that script and is never stored or sent.
-- When a File action runs and the front app is Finder, the app asks Finder for the location of the files you have selected, and asks Finder to do what you configured (open, move to the Trash, rename, duplicate or move). It reads only the location (name and folder) of each file, never what is inside it. The locations are used only for that operation and are never stored or sent. Moving to the Trash never deletes files for good.
+- When a File action runs and the front app is Finder, the app asks Finder for the location of the files you have selected, and asks Finder to do what you configured (open, move to the Trash, duplicate or move; for rename, it sends the Return key to start Finder's rename). It reads only the location (name and folder) of each file, never what is inside it. The locations are used only for that operation and are never stored or sent. Moving to the Trash never deletes files for good.
 
 Running a script in Terminal does not use Apple Events; the app only opens a temporary file in Terminal.
 
@@ -148,6 +150,8 @@ Running a script in Terminal does not use Apple Events; the app only opens a tem
 Actions you configure, such as scripts, shortcuts and URLs, run on your Mac with your privileges. What information they handle and where they send it depends on what they do.
 
 When you import profiles, the app first lists any Script, Keystrokes, Menu Item and AI buttons, any File buttons that move to the Trash, rename, duplicate or move the files selected in Finder, and any buttons that open a file on your Mac, together with everything they do (every line of the script, the keys, the menu item and its keyboard shortcut, the AI prompt and output, the file operation and destination, or the location of the file), and asks you to confirm. Buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (such as curl, `| sh` and rm -rf) are highlighted, and you can't import until you scroll to the end. Check profiles you receive from someone else, and import them only if you trust them.
+
+The Screenshot and screen recording action only sends the macOS screenshot keyboard shortcut. The app never reads what is on your screen and never asks for Screen Recording permission.
 
 AI actions use Apple's Foundation Models framework and are processed by the on-device language model. The app never sends your selected text anywhere. To replace the selected text with the result, the app puts the result on the clipboard for a moment, pastes it with ⌘V and then restores the clipboard. It marks the result `org.nspasteboard.TransientType` so that clipboard history apps do not keep it.
 

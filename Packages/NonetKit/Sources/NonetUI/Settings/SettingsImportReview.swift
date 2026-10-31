@@ -130,7 +130,7 @@ extension SettingsText {
                 let destination = file.destination.trimmingCharacters(in: .whitespacesAndNewlines)
                 lines.append((String(localized: "移動先: \(destination.isEmpty ? String(localized: "未設定", bundle: .module) : visibleLine(destination))", bundle: .module), .label))
             }
-        case .launchApp, .shortcut:
+        case .launchApp, .shortcut, .screenCapture:
             break
         }
         if reviewed.pressesSubmitKey {
