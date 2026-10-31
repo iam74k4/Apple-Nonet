@@ -3,7 +3,7 @@
 キーを押している間だけ、MacBook のトラックパッドが「アプリごとに変わる 3×3 の9つのボタン」になる macOS のメニューバーアプリ。
 
 - トリガーキー（JIS 配列は右⌘、それ以外は右⌥）を押してすぐタップすれば、その場で実行。迷って指を止めたときだけ HUD が出る
-- 前面のアプリごとに9マス×最大3ページ。プリセット・メニューからの割り当て・ランチャー・触覚・スクリプトと AI
+- 前面のアプリごとに9マス×最大3ページ。プリセット・メニューからの割り当て・ランチャー・触覚・スクリプトと AI。設定でトラックパッドの上の角の長押しからも呼び出せる
 - macOS 14 以降。非公開の `MultitouchSupport.framework` を使うので Mac App Store ではなく直販（Developer ID 署名と公証、Sparkle でアップデート）。14日間の試用 → 買い切り。アカウントもサーバーも無い
 
 ## リポジトリの構成
@@ -18,7 +18,8 @@
 | `site/` | 販売ページ（静的な HTML。日本語と `en/`）。利用規約・特定商取引法に基づく表記・プライバシーポリシー・ダウンロードのページ（`thanks.html`）・`robots.txt`・`sitemap.xml` も |
 | `docs/` | 設計・リリースの手順・利用ガイド・プライバシーポリシー |
 | `Spikes/NonetSpike/` | フェーズ0の技術検証アプリ（使い捨て） |
-| `.github/workflows/ci.yml` | プッシュとプルリクエストで `scripts/test.sh` を動かす |
+| `.github/workflows/ci.yml` | main への push・main へのプルリクエスト・手動の実行（workflow_dispatch）で `scripts/test.sh` を動かす（リポジトリは非公開で、macOS の実行時間を節約するため、ほかのブランチへの push では動かさない） |
+| `.github/workflows/site.yml` | 販売ページの確認（`site/` などを変えたとき）と、手動の実行での本番へのデプロイ（[docs/hosting.md](docs/hosting.md)） |
 
 ## はじめる
 
@@ -57,6 +58,7 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --notes notes/1.2.0.md 1.2.
 - [docs/feature-plan.md](docs/feature-plan.md): 機能の検討（モックからの整理）
 - [docs/spike-results.md](docs/spike-results.md): フェーズ0の技術検証の結果
 - [docs/release.md](docs/release.md): リリースと販売の手順、公開前のチェックリスト
+- [docs/hosting.md](docs/hosting.md): 販売ページとアップデートの配布（Cloudflare）・GitHub の設定
 - [docs/user-guide.md](docs/user-guide.md): 利用ガイド（利用者向け）
 - [docs/user-guide.en.md](docs/user-guide.en.md): User guide (English)
 - [docs/glossary.md](docs/glossary.md): 英語用語集（英語にするときの訳語の基準）

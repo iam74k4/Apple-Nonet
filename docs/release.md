@@ -296,14 +296,13 @@ git push origin v1.2.0
 
 ## 3. 販売とライセンスの届け方
 
-アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。どれを使うかは**オーナーが決める**。
+アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。販売サービスは Paddle か Lemon Squeezy（販売代理店 = Merchant of Record。3.4）に決めた。どちらにするかは**オーナーが決める**。
 
 | 方法 | 向いているとき | 注意 |
 |---|---|---|
 | Lemon Squeezy | 海外にも売る。消費税・VAT を販売代行（Merchant of Record）として扱ってほしい | 独自のライセンスキー機能はあるが、形が違うのでアプリは検証できない。自前のキーを届けるには Webhook が要る |
 | Paddle | 同上。手数料と審査の条件を比べて選ぶ | Webhook（`transaction.completed`）でキーを発行する |
-| Gumroad | まず手軽に始めたい | 販売の通知（Ping）を Webhook として受けられる |
-| 手動（メール） | 発売直後で数が少ない | 販売の通知を見て `nonet-license issue` で発行し、メールで送る。数が増えたら自動化する |
+| 手動（メール） | 発売直後で数が少ない（販売は上のどちらか） | 販売の通知を見て `nonet-license issue` で発行し、メールで送る。数が増えたら自動化する |
 
 税の扱いと手数料は各社の最新の規約で確かめる。
 
@@ -314,13 +313,25 @@ cd Packages/NonetKit
 swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> --name "購入者の名前" --email buyer@example.com
 ```
 
-送る文面の例:
+送る文面の例（`<キー>` は発行したキー。キーは base64url と `.` だけなので、URL にそのまま入れられる）:
 
-> Nonet をご購入いただきありがとうございます。ライセンスキーは次のとおりです。
+> Nonet をご購入いただきありがとうございます。
 >
-> （キー）
+> Nonet を入れた Mac で、次のリンクを開くと登録できます。
 >
-> メニューバーの Nonet のアイコンから「ライセンス」を開き、キーを貼り付けて登録してください。キーはこの Mac の中だけで確認され、ネットワークには送られません。
+> Nonet に登録する: nonet://register?key=<キー>
+>
+> リンクを開けないときは、メニューバーの Nonet のアイコンから「ライセンスキーを入力…」を選び、次のライセンスキーを貼り付けて「登録」を押してください。
+>
+> ライセンスキー: <キー>
+>
+> ライセンス ID: <ライセンス ID>（問い合わせのときにお知らせください。登録には使えません）
+>
+> 1つのライセンスで、あなたが使うすべての Mac に使えます。キーはこの Mac の中だけで確認され、ネットワークには送られません。
+
+- リンクやファイルを開くと、Nonet は設定の「ライセンス」のタブにキーを入れ、登録者を見せて「このライセンスキーを登録しますか？」と尋ねる（黙っては登録しない）。HTML のメールなら「Nonet に登録する」をリンクの文字にしてよい
+- キーを書いたテキストファイルを `<名前>.nonetlicense` として添えてもよい（UTF-8、64 KiB まで。「License key:」などの前後の文があってもキーだけを読む）。開くとリンクと同じように尋ねる
+- ライセンス ID を貼り付けられたときは、アプリが「これはライセンス ID です」と知らせる。キーと ID は別の行に書く
 
 発行したキー・名前・メールアドレス・注文番号は、再発行に備えて記録しておく（[privacy.md](privacy.md) の「購入のときの情報」の範囲で）。
 
@@ -378,7 +389,7 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 **鍵とアカウント**
 - [ ] Developer ID Application 証明書（`.p12`）・Sparkle の秘密鍵・ライセンスの秘密鍵を、それぞれ2か所にバックアップした
 - [ ] どの秘密鍵もリポジトリに入っていない（`git log -p | grep -i private` などで確かめる）
-- [ ] `Config/Nonet.xcconfig` の6つの値を入れ、コミットした（公開鍵の `//` は `/$()/`）
+- [ ] `Config/Nonet.xcconfig` の7つの値を入れ、コミットした（公開鍵の `//` は `/$()/`）
 - [ ] `Packages/NonetKit` で `nonet-license issue` を動かし、アプリの公開鍵（xcconfig）との照合が通った（「注意」が出ない）
 - [ ] プライバシーポリシーに書いた試用の記録のキーチェーンの項目を、アプリが本当に作る（`App/AppDelegate.swift` が `SystemTrialRecordKeychain()` を渡している。`scripts/release.sh` も確かめる）
 
@@ -386,7 +397,8 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - [ ] 実機での手動テスト（[spike-results.md](spike-results.md) の T1〜T9）を製品版で通した。カーソルの固定・触覚・2本指スワイプ・「タップでクリック」の抑止と、トラックパッドの開始し直し（スリープ・蓋の開け閉め・Magic Trackpad のつなぎ直し・ファストユーザスイッチ）は [architecture.md](architecture.md) §7 の未確認の点
 - [ ] JIS と US のキーボード、内蔵トラックパッドと Magic Trackpad で試した
 - [ ] 新しいユーザーで、初回起動 → アクセシビリティの許可 → プリセット → 練習まで通した
-- [ ] 試用の終了（HUD の帯・実行の代わりのトースト）と、キーの登録で元に戻ることを確かめた
+- [ ] 試用の終了（HUD の帯・実行の代わりのトースト・試用期間の終了のウインドウ・設定の帯）と、キーの登録で元に戻ることを確かめた
+- [ ] 購入のメールの `nonet://register?key=…` のリンクと `.nonetlicense` のファイルで、登録してよいかを尋ねられ、登録できた
 - [ ] `scripts/sync-strings.sh` で文言を集め、英語の訳を入れた（`scripts/test.sh` の `--check` が通る）
 - [ ] Developer ID で署名したビルド（dry run の `build/release/<版>/export/Nonet.app`）で、環境設定と `~/Library/Application Support/Nonet/` を消して起動し直しても試用が続き、キーチェーンの許可を聞かれない
 - [ ] `scripts/test.sh` が通る（CI も緑）
