@@ -112,6 +112,53 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
     }
 
+    @Test("ページを切り替える線: 9マスの高さに合わせる。外枠の幅は上と下で違うが、線の中心は9マスの中心と同じ")
+    func pagingBarLineUpWithTheGrid() {
+        for scale in [1.0, 1.5] {
+            let metrics = HUDMetrics(scale: scale)
+            for (banner, footnote) in [(nil, nil), ("試用期間が終了しました", nil), (nil, "指を滑らせて選ぶ"), ("試用期間が終了しました", "指を滑らせて選ぶ")] as [(String?, String?)] {
+                var model = Self.model(pageCount: 3, banner: banner)
+                model.footnote = footnote
+                let insets = metrics.gridInsets(for: model)
+                let bar = metrics.pagingBarInsets(for: model)
+                let height = metrics.size(for: model).height
+                // 線は、上は9マスの上の縁、下は9マスの下の縁から、同じだけ内側に入る
+                #expect(bar.top - insets.top == bar.bottom - insets.bottom)
+                #expect(bar.top - insets.top == metrics.cellCornerRadius)
+                // 線の中心（上の余白と下の余白の差の半分だけ、パネルの中心からずれる）が、9マスの中心と同じ
+                let barCenter = bar.top + (height - bar.top - bar.bottom) / 2
+                let gridCenter = insets.top + (height - insets.top - insets.bottom) / 2
+                #expect(abs(barCenter - gridCenter) < 0.001, "\(scale) \(String(describing: banner)) \(String(describing: footnote))")
+                #expect(height - bar.top - bar.bottom > 0)
+            }
+        }
+    }
+
+    @Test("ページを切り替える線の進み具合: 止め始めてからの時間に比例し、0〜1に収まる")
+    func pagingBarProgress() {
+        #expect(HUDEdgePagingBar.progress(elapsed: 0, duration: 0.5) == 0)
+        #expect(HUDEdgePagingBar.progress(elapsed: 0.25, duration: 0.5) == 0.5)
+        #expect(HUDEdgePagingBar.progress(elapsed: 0.5, duration: 0.5) == 1)
+        #expect(HUDEdgePagingBar.progress(elapsed: 3, duration: 0.5) == 1)
+        // 時計が戻った・壊れた値でも、はみ出さない
+        #expect(HUDEdgePagingBar.progress(elapsed: -1, duration: 0.5) == 0)
+        #expect(HUDEdgePagingBar.progress(elapsed: .nan, duration: 0.5) == 0)
+        #expect(HUDEdgePagingBar.progress(elapsed: 0.1, duration: .nan) == 0)
+        // 待たない設定（0以下）なら、最初から満ちている
+        #expect(HUDEdgePagingBar.progress(elapsed: 0, duration: 0) == 1)
+    }
+
+    @Test("ページを切り替える線は、反対側に移ったときと、ページを切り替えて数え直すときに作り直す（満ちたまま残らない）")
+    func pagingBarRestartsEachTimeTheDwellStartsAgain() {
+        let first = HUDEdgePaging(edge: .right, since: 1, duration: 0.5)
+        // 進み具合が満ちていく間（同じ止め始め）は、同じ線のまま
+        #expect(HUDEdgePagingBar.restartID(for: first) == HUDEdgePagingBar.restartID(for: HUDEdgePaging(edge: .right, since: 1, duration: 0.5)))
+        // ページを切り替えて、次の1ページを数え始めた
+        #expect(HUDEdgePagingBar.restartID(for: first) != HUDEdgePagingBar.restartID(for: HUDEdgePaging(edge: .right, since: 1.5, duration: 0.9)))
+        // 反対側の外枠に移った
+        #expect(HUDEdgePagingBar.restartID(for: first) != HUDEdgePagingBar.restartID(for: HUDEdgePaging(edge: .left, since: 1, duration: 0.5)))
+    }
+
     @Test("題名の横の一言: 少し長く止めるマスの案内が先、次に練習中。どちらも無ければ出さない（ページの点を出す）")
     func topNotes() {
         var model = Self.model(highlighted: 4)

@@ -50,6 +50,12 @@ struct HUDMetrics: Equatable {
         return (top * scale, bottom * scale)
     }
 
+    /// 左右の外枠に出す進み具合の線の、上と下の余白。9マスの高さに合わせる（上と下で外枠の幅が違うので、同じ値にはしない）
+    func pagingBarInsets(for model: HUDModel) -> (top: CGFloat, bottom: CGFloat) {
+        let insets = gridInsets(for: model)
+        return (insets.top + cellCornerRadius, insets.bottom + cellCornerRadius)
+    }
+
     func size(for model: HUDModel) -> CGSize {
         let insets = gridInsets(for: model)
         let grid = 3 * cellHeight + 2 * cellSpacing
@@ -394,9 +400,13 @@ struct HUDView: View {
             if inFrame, let paging = model.edgePaging, !reduceMotion {
                 // 指を止めている側の外枠に、ページを切り替えるまでの進み具合。
                 // 「視差効果を減らす」では出さない（伸びない線は、最初から「済んだ」ように見える。文は「離すとやめる」の下に出る）
+                let bar = metrics.pagingBarInsets(for: model)
                 HUDEdgePagingBar(paging: paging, color: theme.ring, animates: !reduceMotion)
+                    // 止め始めるたび（反対側に移った・ページを切り替えた）に作り直して、最初から伸ばす
+                    .id(HUDEdgePagingBar.restartID(for: paging))
                     .frame(width: max(metrics.frameSide - 6 * metrics.scale, 3 * metrics.scale))
-                    .padding(.vertical, insets.top + metrics.cellCornerRadius)
+                    .padding(.top, bar.top)
+                    .padding(.bottom, bar.bottom)
                     .padding(.horizontal, 3 * metrics.scale)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: paging.edge == .left ? .leading : .trailing)
             }
@@ -690,30 +700,35 @@ struct HUDEdgePagingBar: View {
     let paging: HUDEdgePaging
     var color = Color.white
     let animates: Bool
-    @State private var progress: CGFloat = 0
+    /// この線を作った（止め始めた）時刻。呼び出し側が止め始めるたびに id を変えて作り直すので、そのたびに最初から数える
+    @State private var startedAt = Date()
 
     var body: some View {
-        ZStack {
-            Capsule().fill(color.opacity(0.2))
-            if animates {
-                Capsule().fill(color)
-                    .scaleEffect(x: 1, y: progress, anchor: .center)
-            } else {
-                Capsule().fill(color.opacity(0.6))
+        TimelineView(.animation(paused: !animates)) { context in
+            ZStack {
+                Capsule().fill(color.opacity(0.2))
+                if animates {
+                    Capsule().fill(color)
+                        .scaleEffect(x: 1, y: Self.progress(elapsed: context.date.timeIntervalSince(startedAt), duration: paging.duration), anchor: .center)
+                } else {
+                    Capsule().fill(color.opacity(0.6))
+                }
             }
         }
-        .onAppear { start() }
-        .onChange(of: paging.since) { start() }
         .accessibilityHidden(true)
     }
 
-    /// 止め始めた（外枠のその側に入った・ページを切り替えた）ところから、duration で伸ばし切る
-    private func start() {
-        guard animates else { return }
-        var reset = Transaction()
-        reset.disablesAnimations = true
-        withTransaction(reset) { progress = 0 }
-        withAnimation(.linear(duration: max(paging.duration, 0))) { progress = 1 }
+    /// 止め始めてから elapsed 秒たったときの進み具合（0〜1）。duration が0以下なら、最初から満ちている
+    static func progress(elapsed: TimeInterval, duration: TimeInterval) -> CGFloat {
+        guard duration.isFinite, elapsed.isFinite else { return 0 }
+        guard duration > 0 else { return 1 }
+        return CGFloat(min(max(elapsed / duration, 0), 1))
+    }
+
+    /// 線を作り直す目印。反対側に移ったときと、ページを切り替えて数え直すとき（since が変わる）に変わる。
+    /// 状態を0に戻してからアニメーションで1にする書き方だと、同じ更新の中で0への書き込みが消え、満ちたまま残る
+    static func restartID(for paging: HUDEdgePaging) -> String {
+        "\(paging.edge)-\(paging.since)"
     }
 }
 
