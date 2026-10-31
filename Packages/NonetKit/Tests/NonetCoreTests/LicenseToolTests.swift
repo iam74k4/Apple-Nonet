@@ -318,11 +318,12 @@ private final class FakeToolEnvironment {
         environment.currentDirectory = "/work/repo/Packages/NonetKit"
     }
 
-    /// base64 が「//」を含む本物の鍵の組（約1%）
+    /// base64 が「//」を含む本物の鍵の組（約1%）。「///」は含まない（「//」を「/$()/」に書き換えると「//」が残り、
+    /// xcconfig ではそこから後ろがコメントになるので、テストが偶然に落ちる）
     private static let slashedKeys: (privateKeyBase64: String, publicKeyBase64: String) = {
         while true {
             let keys = LicenseSigner.generateKeyPair()
-            if keys.publicKeyBase64.contains("//") { return keys }
+            if keys.publicKeyBase64.contains("//"), !keys.publicKeyBase64.contains("///") { return keys }
         }
     }()
 
