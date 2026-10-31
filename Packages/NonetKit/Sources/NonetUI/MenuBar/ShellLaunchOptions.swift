@@ -27,6 +27,8 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var demoBackdrop: URL?
     /// --demo-script: --demo で、実機の指の代わりに台本どおりの指の動きを入れる（終わったらアプリを終える）
     public var demoScript = false
+    /// --demo-start-file <パス>: --demo-script で、このファイルができてから台本を始め、終わったらこのファイルが消えるまで背景を出したままにする（録画が始まってから動かし、録画が止まってから終えるため）。付けなければすぐ始め、終わったら少し見せて終える
+    public var demoStartFile: URL?
     /// --preview-toast: トーストを繰り返し出す
     public var previewToast = false
     /// --preview-result: 結果のパネルを出す
@@ -75,6 +77,11 @@ public struct ShellLaunchOptions: Equatable, Sendable {
             case "--demo-script":
                 options.demo = true
                 options.demoScript = true
+            case "--demo-start-file":
+                if let next, !next.hasPrefix("--") {
+                    options.demoStartFile = URL(fileURLWithPath: (next as NSString).expandingTildeInPath)
+                    index += 1
+                }
             case "--demo-app":
                 if let next, !next.hasPrefix("--") {
                     options.demoBundleID = next

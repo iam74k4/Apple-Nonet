@@ -1,8 +1,9 @@
 // 画面の一部を H.264 の MP4 に収録する（販売ページ・ポートフォリオのデモ動画用。macOS 14 以降）。
 // screencapture -v は、ここの環境では録画を始められなかったので、ScreenCaptureKit で書く。ポインタは写さない。
 // コンパイル: swiftc -O scripts/record-screen.swift -o build/record-screen
-// 使い方: build/record-screen <出力の .mp4> <秒> <x> <y> <幅> <高さ> <出力の幅> <出力の高さ> [ビットレート bps（既定 3000000）] [最初に捨てる秒（既定 0）]
-//   x・y・幅・高さは、画面の左上を原点にした pt。最初に捨てる秒は、デモのアプリが背景を敷く前の画面を残さないため
+// 使い方: build/record-screen <出力の .mp4> <最長の秒> <x> <y> <幅> <高さ> <出力の幅> <出力の高さ> [ビットレート bps（既定 3000000）] [最初に捨てる秒（既定 0）]
+//   x・y・幅・高さは、画面の左上を原点にした pt。最初に捨てる秒は、デモのアプリが背景を敷く前の画面を残さないため。
+//   最長の秒より前に SIGINT（kill -INT）を送ると、そこで止めて書き終える（呼ぶ側が、写したい場面の終わりに止める）
 import AVFoundation
 import ScreenCaptureKit
 
@@ -12,6 +13,7 @@ final class FrameWriter: NSObject, SCStreamOutput {
     private let skip: TimeInterval
     private var firstTime: CMTime?
     private var sessionStarted = false
+    private var lastTime = CMTime.zero
     private(set) var frames = 0
 
     init(url: URL, width: Int, height: Int, bitrate: Int, skip: TimeInterval) throws {
@@ -46,20 +48,52 @@ final class FrameWriter: NSObject, SCStreamOutput {
         }
         if input.isReadyForMoreMediaData {
             input.append(sampleBuffer)
+            lastTime = time
             frames += 1
         }
     }
 
-    func finish() async {
+    /// 最後の画面を、tail 秒だけ長く見せて書き終える（画面が変わらない間はフレームが来ないので、そのままだと最後の画面がすぐ終わる）
+    func finish(tail: TimeInterval) async {
         guard sessionStarted else { return }
         input.markAsFinished()
+        writer.endSession(atSourceTime: lastTime + CMTime(seconds: tail, preferredTimescale: 600))
         await writer.finishWriting()
+    }
+}
+
+/// SIGINT か、最長の秒のどちらか早いほうまで待つ
+enum StopSignal {
+    /// 受け取るまで消えないよう、持っておく（持たないと、待つ前に片付けられて、信号が届かない）
+    private static var source: DispatchSourceSignal?
+
+    static func wait(upTo seconds: Double) async {
+        // バックグラウンドで始めたシェルのコマンドは SIGINT が無視されている。DispatchSource で受けるには、無視にしておく
+        signal(SIGINT, SIG_IGN)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let lock = NSLock()
+            var finished = false
+            func resume() {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !finished else { return }
+                finished = true
+                continuation.resume()
+            }
+            let source = DispatchSource.makeSignalSource(signal: SIGINT, queue: .global())
+            source.setEventHandler { resume() }
+            source.resume()
+            Self.source = source
+            DispatchQueue.global().asyncAfter(deadline: .now() + seconds) { resume() }
+        }
     }
 }
 
 @main
 struct RecordScreen {
     static func main() async {
+        // ファイルにつないでも1行ずつ出す（呼ぶ側が「収録を始めました」を待って次の操作に進むため）
+        setvbuf(stdout, nil, _IOLBF, 0)
         let args = CommandLine.arguments
         guard args.count >= 9, let seconds = Double(args[2]),
               let x = Double(args[3]), let y = Double(args[4]), let width = Double(args[5]), let height = Double(args[6]),
@@ -89,10 +123,10 @@ struct RecordScreen {
             let stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: configuration, delegate: nil)
             try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: DispatchQueue(label: "record-screen"))
             try await stream.startCapture()
-            print("record-screen: 収録を始めました（\(seconds) 秒）")
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            print("record-screen: 収録を始めました（最長 \(seconds) 秒）")
+            await StopSignal.wait(upTo: seconds)
             try await stream.stopCapture()
-            await output.finish()
+            await output.finish(tail: 1.0)
             print("record-screen: \(output.frames) フレームを \(url.path) に書きました")
         } catch {
             FileHandle.standardError.write(Data("record-screen: \(error)\n".utf8))

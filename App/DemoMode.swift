@@ -12,15 +12,24 @@ import SwiftUI
 
 // MARK: - 差し替えるサービス
 
+/// 標準エラーに1行ずつ書く（標準出力はファイルにつなぐと、終わるまで溜まって、録画を始める目印にならない）
+enum DemoLog {
+    static func write(_ line: String) {
+        FileHandle.standardError.write(Data((line + "\n").utf8))
+    }
+}
+
 @MainActor
 final class DemoTouchSource: TouchSource {
-    /// 台本の最初の時刻までの、最初の画面（背景と図だけ）を見せる秒数
+    /// 台本の最初の時刻までの、最初の画面（背景と図だけ）を見せる秒数（開始のファイルを待つときは 0）
     static let leadIn: TimeInterval = 1.0
 
     private let base: any TouchSource
     private let scheduler: any Scheduler
     private let model: DemoTrackpadModel
     private let scripted: Bool
+    /// このファイルができてから台本を始める。nil ならすぐ
+    private let startFile: URL?
     private var timer: Timer?
     private var startedAt: TimeInterval = 0
     private var wasTouching = false
@@ -29,11 +38,12 @@ final class DemoTouchSource: TouchSource {
 
     var isAvailable: Bool { scripted || base.isAvailable }
 
-    init(base: any TouchSource, scheduler: any Scheduler, model: DemoTrackpadModel, scripted: Bool) {
+    init(base: any TouchSource, scheduler: any Scheduler, model: DemoTrackpadModel, scripted: Bool, startFile: URL?) {
         self.base = base
         self.scheduler = scheduler
         self.model = model
         self.scripted = scripted
+        self.startFile = startFile
         base.onFrame = { [weak self] frame in
             MainActor.assumeIsolated { self?.deliver(frame) }
         }
@@ -44,7 +54,8 @@ final class DemoTouchSource: TouchSource {
             try base.start()
             return
         }
-        startedAt = scheduler.now + Self.leadIn
+        // 開始のファイルを待つ間は、台本の時刻を進めない（録画が始まったあとで動かす）
+        startedAt = startFile == nil ? scheduler.now + Self.leadIn : .infinity
         let timer = Timer(timeInterval: 1.0 / 120, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.step() }
         }
@@ -61,6 +72,11 @@ final class DemoTouchSource: TouchSource {
     /// 台本の指を、いまの時刻の分だけ進める（実機のフレームと同じく、触れている間だけ指を入れ、離れたら空のフレームを1回送る）
     private func step() {
         let now = scheduler.now
+        if startedAt == .infinity {
+            guard let startFile, FileManager.default.fileExists(atPath: startFile.path) else { return }
+            startedAt = now
+            DemoLog.write("demo: started")
+        }
         let time = now - startedAt
         guard time >= 0 else { return }
         if time >= DemoScript.duration {
@@ -100,7 +116,7 @@ final class DemoKeyboardMonitor: KeyboardMonitor {
 @MainActor
 final class DemoPerformer: ActionPerforming {
     func perform(_ action: Action, context: ActionContext) async throws {
-        print("demo: perform \(action)")
+        DemoLog.write("demo: perform \(action)")
     }
 }
 
@@ -219,7 +235,7 @@ struct DemoTrackpadView: View {
 final class DemoSession {
     /// 撮る範囲の縦横比（AstLog の画像と同じ 16:10）。画面の上の端から、幅いっぱいに撮る
     static let aspect: CGFloat = 1.6
-    static let padSize = CGSize(width: 330, height: 220)
+    static let padSize = CGSize(width: 380, height: 253)
 
     let model = DemoTrackpadModel()
     private let options: ShellLaunchOptions
@@ -232,7 +248,13 @@ final class DemoSession {
 
     func services(from live: NonetServices) -> NonetServices {
         var services = live
-        let source = DemoTouchSource(base: live.touchSource, scheduler: live.scheduler, model: model, scripted: options.demoScript)
+        let source = DemoTouchSource(
+            base: live.touchSource,
+            scheduler: live.scheduler,
+            model: model,
+            scripted: options.demoScript,
+            startFile: options.demoStartFile
+        )
         source.onFinished = { [weak self] in self?.finish() }
         services.touchSource = source
         services.keyboard = DemoKeyboardMonitor()
@@ -262,7 +284,7 @@ final class DemoSession {
         overlay = window(frame: NSRect(origin: origin, size: Self.padSize), level: NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)) {
             NSHostingView(rootView: DemoTrackpadView(model: model))
         }
-        print("demo: capture-region=\(Int(region.minX)),\(Int(region.minY)),\(Int(region.width)),\(Int(region.height))")
+        DemoLog.write("demo: capture-region=\(Int(region.minX)),\(Int(region.minY)),\(Int(region.width)),\(Int(region.height))")
     }
 
     private func window(frame: NSRect, level: NSWindow.Level, content: () -> NSView) -> NSWindow {
@@ -279,12 +301,23 @@ final class DemoSession {
         return window
     }
 
-    /// 台本が終わった。最後の画面を少し見せてから終える
+    /// 台本が終わった。開始のファイルがあるときは、呼ぶ側が録画を止めてそのファイルを消すまで、背景を出したままにする
+    /// （背景が消えると、録画にユーザーの画面が写る）。ファイルを使わないときは、少し見せてから終える
     private func finish() {
-        print("demo: finished")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            NSApplication.shared.terminate(nil)
+        DemoLog.write("demo: finished")
+        guard let file = options.demoStartFile else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { NSApplication.shared.terminate(nil) }
+            return
         }
+        let deadline = Date().addingTimeInterval(60)
+        let timer = Timer(timeInterval: 0.1, repeats: true) { timer in
+            MainActor.assumeIsolated {
+                guard !FileManager.default.fileExists(atPath: file.path) || Date() > deadline else { return }
+                timer.invalidate()
+                NSApplication.shared.terminate(nil)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     private func app(for bundleID: String) -> AppReference {

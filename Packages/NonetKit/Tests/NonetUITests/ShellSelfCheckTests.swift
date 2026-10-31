@@ -247,7 +247,7 @@ struct ShellSelfCheckTests {
             "--show-settings", "license",
             "--show-onboarding", "--preview-hud", "--preview-app", "com.apple.dt.Xcode",
             "--preview-backdrop", "/tmp/backdrop.png", "--preview-toast", "--preview-result",
-            "--demo-script", "--demo-app", "us.zoom.xos", "--demo-backdrop", "/tmp/demo.png",
+            "--demo-script", "--demo-app", "us.zoom.xos", "--demo-backdrop", "/tmp/demo.png", "--demo-start-file", "/tmp/go",
             "--simulate-expired-trial", "--self-check", "--snapshot", "/tmp/shots",
         ])
         #expect(options.configDirectory?.path == "/tmp/nonet config")
@@ -260,6 +260,7 @@ struct ShellSelfCheckTests {
         #expect(options.demoScript)
         #expect(options.demoBundleID == "us.zoom.xos")
         #expect(options.demoBackdrop?.path == "/tmp/demo.png")
+        #expect(options.demoStartFile?.path == "/tmp/go")
         #expect(options.previewToast)
         #expect(options.previewResult)
         #expect(options.simulateExpiredTrial)
