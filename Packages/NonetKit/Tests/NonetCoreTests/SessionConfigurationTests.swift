@@ -19,13 +19,13 @@ import NonetCore
         #expect(configuration.sanitized == configuration)
     }
 
-    /// 外枠の幅（仕様: 左右 7%・手前 10%・奥 12%）
+    /// 外枠の幅（仕様: 左右 11%・手前 15%・奥 17%）
     @Test func theCancelFrameMatchesTheSpec() {
         let frame = GridInsets.cancelFrame
-        #expect(frame.left == 0.07)
-        #expect(frame.right == 0.07)
-        #expect(frame.bottom == 0.10)
-        #expect(frame.top == 0.12)
+        #expect(frame.left == 0.11)
+        #expect(frame.right == 0.11)
+        #expect(frame.bottom == 0.15)
+        #expect(frame.top == 0.17)
         // 開いた瞬間の指（上の縁の帯から entryTravel 動いたところ）は、まだ上の外枠にいる
         #expect(frame.top >= EdgeSlideRecognizer.entryBandHeight + EdgeSlideRecognizer.entryTravel)
     }

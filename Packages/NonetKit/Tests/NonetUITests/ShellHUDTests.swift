@@ -22,11 +22,11 @@ struct ShellHUDTests {
 
     @Test("HUD の大きさはモックどおり。帯とページの点の分だけ高くなる")
     func hudSize() {
-        // 9マスの周りの外枠（奥 14・手前 12）の分だけ、モックより高い
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 504, height: 341))
-        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == CGSize(width: 504, height: 366))
+        // 9マスの周りの外枠（奥 18・手前 16）の分だけ、モックより高い
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 504, height: 349))
+        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == CGSize(width: 504, height: 374))
         let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
-        #expect(both == CGSize(width: 504, height: 406))
+        #expect(both == CGSize(width: 504, height: 414))
         // 外枠に指があるか・進み具合では大きさは変わらない
         var inFrame = Self.model()
         inFrame.isFingerInFrame = true

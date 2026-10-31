@@ -32,7 +32,7 @@ struct ShellHoldMarkTests {
 
     /// 印を付けても HUD の大きさは変わらない。印は HUD の大きさの設定に合わせる
     @Test func theBadgeDoesNotChangeTheLayout() {
-        #expect(HUDLayout.size(for: Self.model(highlighted: 8)) == CGSize(width: 504, height: 341))
+        #expect(HUDLayout.size(for: Self.model(highlighted: 8)) == CGSize(width: 504, height: 349))
         #expect(HUDMetrics(scale: 1.5).badgeSize == HUDMetrics(scale: 1).badgeSize * 1.5)
     }
 }

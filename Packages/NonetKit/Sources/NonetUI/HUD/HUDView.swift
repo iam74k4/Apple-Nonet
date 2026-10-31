@@ -69,11 +69,11 @@ enum HUDLayout {
     /// 9マスの下の使い始めの案内（11pt で2行まで）
     static let footnoteHeight: CGFloat = 28
     static let pageGroupGap: CGFloat = 8
-    /// 9マスの周りの外枠（トラックパッドの外枠を表す）の幅。トラックパッドの割合（左右 7%・奥 12%・手前 10%）の順を保ち、
-    /// 帯として見分けられて、9マスを小さくしすぎない幅にする
-    static let frameSide: CGFloat = 10
-    static let frameTop: CGFloat = 14
-    static let frameBottom: CGFloat = 12
+    /// 9マスの周りの外枠（トラックパッドの外枠を表す）の幅。トラックパッドの割合（左右 11%・奥 17%・手前 15%）の順を保ち、
+    /// 帯として見分けられて、9マスを小さくしすぎない幅にする（割合どおりにするとマスが細くなりすぎるので、帯は控えめにする）
+    static let frameSide: CGFloat = 13
+    static let frameTop: CGFloat = 18
+    static let frameBottom: CGFloat = 16
     /// 外枠の角の丸み（マスの角の丸み 12 と外枠の幅が作る、外側の丸み）
     static let padCornerRadius: CGFloat = 18
     /// 9マスの下の塗らない部分を、マスより外へ広げる幅（外枠の帯とマスの間に少しすき間を空ける）

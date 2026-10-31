@@ -12,8 +12,8 @@ import Testing
         #expect(grid.zone(x: 0.03, y: 0.5) == .frame)
         #expect(grid.zone(x: 0.97, y: 0.5) == .frame)
         #expect(grid.zone(x: 0.5, y: 0.5) == .cell(4))
-        #expect(grid.zone(x: 0.1, y: 0.85) == .cell(0))
-        #expect(grid.zone(x: 0.9, y: 0.12) == .cell(8))
+        #expect(grid.zone(x: 0.15, y: 0.8) == .cell(0))
+        #expect(grid.zone(x: 0.85, y: 0.2) == .cell(8))
         // 境目ちょうどは9マスの中
         #expect(grid.zone(x: frame.left, y: 0.5) == .cell(3))
         #expect(grid.zone(x: 0.5, y: 1 - frame.top) == .cell(1))

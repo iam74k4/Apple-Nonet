@@ -25,11 +25,11 @@ struct ShellHUDAppearanceTests {
 
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 504, height: 341))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 630, height: 426.25))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 756, height: 511.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 504, height: 349))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 630, height: 436.25))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 756, height: 523.5))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 504, height: 341))
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 504, height: 349))
         #expect(HUDMetrics(scale: 1.5).headerFontSize == 18)
         #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 19.5)
     }
