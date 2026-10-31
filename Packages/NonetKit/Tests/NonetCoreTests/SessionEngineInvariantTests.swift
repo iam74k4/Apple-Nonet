@@ -28,10 +28,10 @@ private struct RandomInputs {
     init(seed: UInt64) {
         random = SeededGenerator(state: seed)
         configuration = SessionConfiguration(
-            hudDelay: [0, 0.15, 0.3, 0.5, 0.8].randomElement(using: &random) ?? 0.3,
-            fireMode: Bool.random(using: &random) ? .onTriggerRelease : .onFingerLift,
             pageCount: Int.random(in: 0...3, using: &random),
-            maxDuration: Bool.random(using: &random) ? 20 : 3
+            maxDuration: Bool.random(using: &random) ? 20 : 3,
+            occupiedCells: Bool.random(using: &random) ? [[0, 1, 2, 4, 6, 8], [3, 5]] : nil,
+            holdCells: Bool.random(using: &random) ? [[4, 8], [5]] : nil
         )
     }
 
@@ -39,11 +39,9 @@ private struct RandomInputs {
         advanceTime()
         let roll = Double.random(in: 0..<1, using: &random)
         switch roll {
-        case ..<0.08:
-            return .triggerDown(at: time, configuration: configuration)
-        case ..<0.16:
-            return .triggerUp(at: time)
-        case ..<0.18:
+        case ..<0.12:
+            return .open(at: time, configuration: configuration)
+        case ..<0.15:
             return .interrupted(at: time)
         case ..<0.33:
             // 頼まれた時刻ちょうどの tick も混ぜる
@@ -96,21 +94,15 @@ private struct RandomInputs {
 /// 出力の並びと、エンジンの見える状態の決まり
 private struct InvariantChecker {
     let pageCount: Int
-    let fireMode: FireMode
     var inSession = false
     var hud: SessionHUDState?
     var latestTime = -Double.infinity
     /// 直前のフレームで触れていた指
     var touchingIDs: Set<Int> = []
-    /// セッションを始めたときに触れていて、まだ離れていない指（エンジンはほかの指を置いたら数えない）
-    var preTriggerIDs: Set<Int> = []
-    /// トリガーより後に置いた指が、いまのタッチ（その数が 0 になるまで）で同時に触れた最大数
-    var activeMaxFingers = 0
     var issues: [String] = []
 
     init(configuration: SessionConfiguration) {
         pageCount = max(configuration.pageCount, 1)
-        fireMode = configuration.fireMode
     }
 
     mutating func check(_ input: SessionInput, _ effects: [SessionEffect], engine: SessionEngine, step: Int) {
@@ -118,20 +110,17 @@ private struct InvariantChecker {
             issues.append("step \(step) \(input): \(message) in \(effects)")
         }
         let inputTime: TimeInterval
-        let activeMaxBefore = activeMaxFingers
-        var liftedInThisFrame = false
-        var activeNow = 0
+        let touchingBefore = touchingIDs
+        var liftedEveryFinger = false
         switch input {
-        case .triggerDown(let time, _), .triggerUp(let time), .interrupted(let time), .tick(let time):
+        case .open(let time, _), .interrupted(let time), .tick(let time):
             inputTime = time
         case .touches(let frame):
             inputTime = frame.timestamp
             let ids = Set(frame.touching.map(\.id))
-            liftedInThisFrame = !touchingIDs.subtracting(ids).isEmpty
+            // 前のフレームの指がすべて離れた（離すと同時に置いた指は、新しいタッチ）
+            liftedEveryFinger = !touchingIDs.isEmpty && touchingIDs.isDisjoint(with: ids)
             touchingIDs = ids
-            preTriggerIDs.formIntersection(ids)
-            activeNow = ids.subtracting(preTriggerIDs).count
-            activeMaxFingers = activeNow == 0 ? 0 : max(activeMaxFingers, activeNow)
         }
         latestTime = max(latestTime, inputTime)
 
@@ -144,10 +133,10 @@ private struct InvariantChecker {
             switch effect {
             case .beginPointerSuppression:
                 if inSession { fail("セッション中に begin") }
-                guard case .triggerDown = input else { fail("triggerDown 以外で begin"); break }
+                guard case .open = input else { fail("open 以外で begin"); break }
+                if touchingIDs.isEmpty { fail("指が触れていないのに開いた") }
+                if !Self.isShow(next) { fail("begin の次が showHUD でない") }
                 inSession = true
-                preTriggerIDs = touchingIDs
-                activeMaxFingers = 0
             case .endPointerSuppression:
                 if !inSession { fail("セッション外で end") }
                 guard case .sessionEnded = next else { fail("end の次が sessionEnded でない"); break }
@@ -155,15 +144,14 @@ private struct InvariantChecker {
                 if case .endPointerSuppression? = previous {} else { fail("sessionEnded の前が end でない") }
                 if hud != nil { fail("HUD を出したまま終えた") }
                 inSession = false
-            case .showHUD(let page, let cell):
+            case .showHUD(let state):
                 if !inSession || hud != nil { fail("show できない状態") }
-                Self.checkRange(page: page, cell: cell, pageCount: pageCount, fail: fail)
-                hud = SessionHUDState(page: page, highlightedCell: cell)
-            case .updateHUD(let page, let cell):
-                let state = SessionHUDState(page: page, highlightedCell: cell)
+                Self.check(state, pageCount: pageCount, fail: fail)
+                hud = state
+            case .updateHUD(let state):
                 if hud == nil { fail("HUD が無いのに update") }
                 if hud == state { fail("何も変わらない update") }
-                Self.checkRange(page: page, cell: cell, pageCount: pageCount, fail: fail)
+                Self.check(state, pageCount: pageCount, fail: fail)
                 hud = state
             case .hideHUD:
                 if hud == nil { fail("HUD が無いのに hide") }
@@ -172,32 +160,41 @@ private struct InvariantChecker {
                 if !inSession { fail("セッション外の触覚") }
                 if event == .execute { fail("execute の触覚はエンジンが出さない") }
                 if event == .boundary, hud == nil { fail("HUD が無いのに boundary") }
-            case .execute(let page, let cell, let wasFastTap):
+                if event == .activation, !Self.isShow(previous) { fail("開いたとき以外の activation") }
+            case .execute(let page, let cell):
                 if !inSession { fail("セッション外で実行") }
                 Self.checkRange(page: page, cell: cell, pageCount: pageCount, fail: fail)
-                switch input {
-                case .touches:
-                    // トリガーより前から休めている指は触れたままでよい（エンジンは数えない）
-                    if !liftedInThisFrame || activeNow != 0 { fail("指が離れていないのに実行") }
-                    if activeMaxBefore > 1 { fail("2本以上の指のタッチで実行") }
-                    // HUD から実行する（指を離したとき・HUD でのタップ）ときは、先に HUD を閉じる
-                    if !wasFastTap, previous != .hideHUD { fail("HUD を閉じずに指を離して HUD から実行") }
-                    if wasFastTap, hud != nil { fail("HUD を出したまま速押し") }
-                case .triggerUp:
-                    if wasFastTap || fireMode != .onTriggerRelease { fail("トリガーを離したときの実行の種類が違う") }
-                    if activeMaxBefore > 1 { fail("2本以上の指のタッチで実行") }
-                default:
-                    fail("tick・中断・押下で実行")
-                }
+                guard case .touches = input else { fail("指を離したフレーム以外で実行"); break }
+                if !liftedEveryFinger { fail("指が離れていないのに実行") }
+                if touchingBefore.count != 1 { fail("1本指で離していないのに実行") }
+                // 先に HUD を閉じ、その後に抑止をやめて released で終える
+                if previous != .hideHUD { fail("HUD を閉じずに実行") }
+                if next != .endPointerSuppression(dropsLateClicks: true) { fail("実行の後に抑止をやめていない") }
             case .requestTick(let time):
                 if next != nil { fail("requestTick が最後でない") }
                 if !inSession { fail("セッション外で tick を頼んだ") }
                 if !(time > latestTime) { fail("過去の tick を頼んだ") }
             }
+            if case .sessionEnded(let reason) = effect {
+                let ran = effects.contains { if case .execute = $0 { true } else { false } }
+                if (reason == .released) != ran { fail("released と実行が合わない") }
+                if case .cancelled = reason, !effects.contains(.haptic(.rejected)) { fail("指を離してやめたのに rejected が無い") }
+            }
         }
         if engine.isInSession != inSession { fail("isInSession が出力と合わない") }
         if engine.hud != hud { fail("hud が出力と合わない") }
         if let page = engine.pageIndex, !(0..<pageCount).contains(page) { fail("ページが範囲外") }
+    }
+
+    private static func isShow(_ effect: SessionEffect?) -> Bool {
+        guard case .showHUD? = effect else { return false }
+        return true
+    }
+
+    private static func check(_ state: SessionHUDState, pageCount: Int, fail: (String) -> Void) {
+        checkRange(page: state.page, cell: state.highlightedCell, pageCount: pageCount, fail: fail)
+        if state.isInFrame, state.highlightedCell != nil { fail("外枠にいるのにマスが光っている") }
+        if let hold = state.hold, hold.cell != state.highlightedCell { fail("進み具合が光っているマスのものでない") }
     }
 
     private static func checkRange(page: Int, cell: Int?, pageCount: Int, fail: (String) -> Void) {
@@ -259,8 +256,8 @@ private struct InvariantChecker {
             }
         }
         #expect(seen == [
-            "begin", "end", "show", "update", "hide", "boundary", "pageChange", "rejected",
-            "fastTap", "hudExecute", "tick", "released", "cancelled", "interrupted", "timeout",
+            "begin", "end", "show", "update", "hide", "activation", "boundary", "pageChange", "rejected",
+            "execute", "tick", "released", "cancelled", "interrupted", "timeout",
         ])
     }
 
@@ -272,9 +269,15 @@ private struct InvariantChecker {
         case .updateHUD: "update"
         case .hideHUD: "hide"
         case .haptic(let event): "\(event)"
-        case .execute(_, _, let wasFastTap): wasFastTap ? "fastTap" : "hudExecute"
+        case .execute: "execute"
         case .requestTick: "tick"
-        case .sessionEnded(let reason): "\(reason)"
+        case .sessionEnded(let reason):
+            switch reason {
+            case .released: "released"
+            case .cancelled: "cancelled"
+            case .interrupted: "interrupted"
+            case .timeout: "timeout"
+            }
         }
     }
 }

@@ -22,10 +22,16 @@ struct ShellHUDTests {
 
     @Test("HUD の大きさはモックどおり。帯とページの点の分だけ高くなる")
     func hudSize() {
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 504, height: 315))
-        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == CGSize(width: 504, height: 340))
+        // 9マスの周りの外枠（奥 14・手前 12）の分だけ、モックより高い
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 504, height: 341))
+        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == CGSize(width: 504, height: 366))
         let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
-        #expect(both == CGSize(width: 504, height: 380))
+        #expect(both == CGSize(width: 504, height: 406))
+        // 外枠に指があるか・進み具合では大きさは変わらない
+        var inFrame = Self.model()
+        inFrame.isFingerInFrame = true
+        inFrame.hold = HUDHold(cellIndex: 0, duration: 0.6, isReady: false)
+        #expect(HUDLayout.size(for: inFrame) == HUDLayout.size(for: Self.model()))
     }
 
     @Test("マスの位置の呼び方")
@@ -62,6 +68,27 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 8)) == L10n.ui("\("スクショ")、\("⇧⌘4")、\(L10n.ui("右下"))"))
         #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: nil)) == nil)
         #expect(HUDAnnouncement.announcement(from: center, to: Self.model(highlighted: 5)) == L10n.ui("空きマス、\(L10n.ui("右"))"))
+    }
+
+    @Test("読み上げ: 外枠に入ったら「離すとやめる」、少し長く止めるマスを止め終えたら「離すと実行」")
+    func frameAndHoldAnnouncements() {
+        let center = Self.model(highlighted: 4)
+        var inFrame = Self.model(highlighted: nil)
+        inFrame.isFingerInFrame = true
+        #expect(HUDAnnouncement.cancelLabel == L10n.ui("離すとやめる"))
+        #expect(HUDAnnouncement.announcement(from: center, to: inFrame) == L10n.ui("離すとやめる"))
+        // 外枠の中で動いても読み直さない。マスに戻れば、そのマスを読む
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: inFrame) == nil)
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: center) == L10n.ui("\("Claude Code")、\(L10n.ui("中央"))"))
+        // 開いた直後（指は上の外枠）は、プロファイル名と「離すとやめる」
+        #expect(HUDAnnouncement.announcement(from: nil, to: inFrame) == ["Xcode", L10n.ui("離すとやめる")].joined(separator: L10n.ui("、")))
+
+        var holding = Self.model(highlighted: 4)
+        holding.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.6, isReady: false)
+        var ready = holding
+        ready.hold?.isReady = true
+        #expect(HUDAnnouncement.announcement(from: holding, to: ready) == L10n.ui("離すと実行"))
+        #expect(HUDAnnouncement.announcement(from: ready, to: ready) == nil)
     }
 
     @Test("読み上げ: ページが変わったらページから読み直す")
@@ -102,36 +129,23 @@ struct ShellHUDTests {
         #expect(try duration(title: "A", detail: String(repeating: "b", count: 500)) == 8)
     }
 
-    @Test("失敗のトーストは、トリガーキーを押している間は消さず、離してから少しして消す")
-    func failureToastWaitsForTheTriggerRelease() {
+    @Test("トーストは時間どおりに消す（失敗は読めるだけ長く）")
+    func toastsHideOnTime() {
         let failure = ToastModel(title: "ビルド", detail: "だめ", style: .failure)
         var schedule = HUDToastSchedule()
         let hideAt = schedule.show(failure, at: 10)
         #expect(hideAt == Double(13))
-        _ = schedule.setTriggerHeld(true, at: 11)
         let beforeDeadline = schedule.deadlineReached(at: 12)
-        let atDeadlineWhileHeld = schedule.deadlineReached(at: 13)
+        let atDeadline = schedule.deadlineReached(at: 13)
         #expect(!beforeDeadline)
-        #expect(!atDeadlineWhileHeld)
-        #expect(schedule.waitsForRelease)
-        let afterRelease = schedule.setTriggerHeld(false, at: 20)
-        #expect(afterRelease == 20 + HUDToastSchedule.afterRelease)
-        let hidesAfterRelease = schedule.deadlineReached(at: 21)
-        #expect(hidesAfterRelease)
-
-        // 押していなければ、時間どおりに消す。成功のトーストは押していても消す
-        var plain = HUDToastSchedule()
-        _ = plain.show(failure, at: 0)
-        let plainHides = plain.deadlineReached(at: 3)
-        #expect(plainHides)
+        #expect(atDeadline)
         var success = HUDToastSchedule()
-        _ = success.setTriggerHeld(true, at: 0)
         let successHideAt = success.show(ToastModel(title: "ビルド", style: .success), at: 0)
         #expect(successHideAt == 0.8)
         let successHides = success.deadlineReached(at: 0.8)
         #expect(successHides)
-        let successRelease = success.setTriggerHeld(false, at: 1)
-        #expect(successRelease == nil)
+        success.hidden()
+        #expect(success.hideAt == nil)
         // 実行中のトーストは時間では消さない
         var running = HUDToastSchedule()
         let runningHideAt = running.show(ToastModel(title: "要約", style: .running), at: 0)

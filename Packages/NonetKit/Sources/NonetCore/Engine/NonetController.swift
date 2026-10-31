@@ -7,7 +7,7 @@ let controllerLogger = Logger(subsystem: "com.iam74k4.Nonet", category: "engine"
 
 public enum ControllerStatus: Equatable, Sendable {
     case stopped
-    /// トリガーを待っている
+    /// 上の縁からの滑り込みを待っている
     case running
     /// 設定で無効にしている
     case disabled
@@ -15,7 +15,7 @@ public enum ControllerStatus: Equatable, Sendable {
     case needsAccessibility
     /// マルチタッチのトラックパッドが無い
     case noTrackpad
-    /// パスワード入力中などで、キーを監視できない
+    /// パスワード入力中などで、キーを監視できない（開いている間にキーで閉じられないので、開かない）
     case secureInputActive
 }
 
@@ -28,8 +28,6 @@ public struct ExecutionRecord: Equatable, Sendable {
     public var succeeded: Bool
     /// 失敗の理由など
     public var message: String?
-    /// HUD を出さずに実行した
-    public var wasFastTap: Bool
     public var date: Date
     /// 結果の出し方が「画面に表示」のアクション（AI・裏のスクリプト・ショートカット）の結果。設定画面のテスト実行の下に出す
     public var output: String?
@@ -42,7 +40,6 @@ public struct ExecutionRecord: Equatable, Sendable {
         address: CellAddress,
         succeeded: Bool,
         message: String?,
-        wasFastTap: Bool,
         date: Date,
         output: String? = nil,
         profileID: UUID? = nil
@@ -52,16 +49,26 @@ public struct ExecutionRecord: Equatable, Sendable {
         self.address = address
         self.succeeded = succeeded
         self.message = message
-        self.wasFastTap = wasFastTap
         self.date = date
         self.output = output
         self.profileID = profileID
     }
 }
 
-/// Nonet の本体。トリガー → 速押し / HUD → 実行 の流れを動かし、設定を持つ。
-/// 仕様は docs/architecture.md の「操作の仕様」。セッションの規則は SessionEngine が持ち、
-/// ここはキーボード・トラックパッド・タイマーをエンジンに渡し、エンジンの出力を HUD・触覚・実行につなぐ
+/// 9マスを開いて、何も実行せずに指を離して閉じたときの記録。初回の案内の練習（外枠に出してやめる）で使う
+public struct CancellationRecord: Equatable, Sendable {
+    public var reason: SessionCancellation
+    public var date: Date
+
+    public init(reason: SessionCancellation, date: Date) {
+        self.reason = reason
+        self.date = date
+    }
+}
+
+/// Nonet の本体。上の縁からの滑り込みで開く → 滑らせて選ぶ → 指を離して実行 の流れを動かし、設定を持つ。
+/// 仕様は docs/architecture.md の「操作の仕様」。開く動きは EdgeSlideRecognizer、セッションの規則は SessionEngine が持ち、
+/// ここはトラックパッド・キーボード・タイマーをそれらに渡し、出力を HUD・触覚・実行につなぐ
 @MainActor
 @Observable
 public final class NonetController {
@@ -72,7 +79,7 @@ public final class NonetController {
     /// それでも前面にならないとき（起動に時間がかかるとき）に確かめ直す間隔と回数
     static let activationRetryInterval: TimeInterval = 0.2
     static let activationRetryCount = 8
-    /// トリガーで license.refresh() を呼び直さない間隔。refresh は試用の記録を保存先に書くので、トリガーのたびには呼ばない
+    /// 開いたときに license.refresh() を呼び直さない間隔。refresh は試用の記録を保存先に書くので、開くたびには呼ばない
     /// （実行してよいかは canExecuteActions がいつでも正しく答え、日付の変化などでは ui-shell が呼ぶ）
     static let licenseRefreshInterval: TimeInterval = 60
     /// recentExecutions に残す数
@@ -88,12 +95,14 @@ public final class NonetController {
     /// 最近の実行（新しい順、最大 recentExecutionLimit 個）。失敗・試用期間の終了などで実行しなかったものも含む。
     /// 練習モードの記録（実際には実行していない）は含まない。メニューの「最近の実行」などで使う
     public private(set) var recentExecutions: [ExecutionRecord] = []
+    /// 最後に、9マスを開いて何も実行せずに指を離したとき（外枠で離した など）。練習モードでも記録する
+    public private(set) var lastCancellation: CancellationRecord?
     /// true の間はアクションを実行せず、lastExecution に記録だけする（初回起動の練習用）
     public var isPracticeMode = false
     /// true の間はセッションを始めない（設定画面でキーを記録しているとき）
     public var isRecordingKeys = false {
         didSet {
-            // 記録するキーで HUD が出たりマスが実行されたりしないように、始まっているセッションは何も実行せずに終える
+            // 記録しているところでマスが実行されないように、始まっているセッションは何も実行せずに終える
             if isRecordingKeys, !oldValue {
                 endSession()
             }
@@ -125,17 +134,12 @@ public final class NonetController {
     @ObservationIgnored private var serviceFailures: [String: String] = [:]
     /// 保存の失敗で出した notice。保存できたら消す
     @ObservationIgnored private var saveFailureNotice: String?
-    /// トリガーで最後に license.refresh() を頼んだ時刻（Scheduler.now）
+    /// 開いたときに最後に license.refresh() を頼んだ時刻（Scheduler.now）
     @ObservationIgnored private var lastLicenseRefresh: TimeInterval?
-    /// トラックパッドの角の長押し（GlobalSettings.touchActivation）。フレームはセッションの外の分もすべて渡す
-    @ObservationIgnored private var cornerHold = CornerHoldRecognizer()
-    /// 角の長押しを待っている指の、合図の時刻に動くタイマー
-    @ObservationIgnored private var cornerHoldTask: (any ScheduledTask)?
-    @ObservationIgnored private var cornerHoldDeadline: TimeInterval?
+    /// 開く動き（上の縁からの滑り込み）。フレームはセッションの外の分もすべて渡す
+    @ObservationIgnored private var opener = EdgeSlideRecognizer()
     /// 使い始めの案内と試用期間の知らせを、何回・いつ出したか
     @ObservationIgnored private let guidance: any HUDGuidanceStoring
-    /// HUD に知らせた、トリガーキーを押しているか（失敗のトーストを押している間は消さない）
-    @ObservationIgnored private var isTriggerHeldForHUD = false
     /// トラックパッドに指が触れているか（キーボードモニターに知らせ、マウスのイベントを見分けてもらう）
     @ObservationIgnored private var isTrackpadTouched = false
     /// 「実行中」のトーストを出した実行（終わるまで）と、いま画面に出ている「実行中」のトーストの実行
@@ -180,7 +184,7 @@ public final class NonetController {
         services.keyboard.onEvent = { [weak self] event in
             self?.handleKeyboard(event)
         }
-        // セッションの外のフレームも渡す（トリガーより前から置いていた指を速押しと間違えないため。角の長押しを見分けるため）
+        // セッションの外のフレームも渡す（開く動きを見分けるため。開いたときに触れている指をエンジンが知っておくため）
         services.touchSource.onFrame = { [weak self] frame in
             self?.receiveTouches(frame)
         }
@@ -204,7 +208,6 @@ public final class NonetController {
             tickTask = nil
             pollTask?.cancel()
             pollTask = nil
-            cancelCornerHoldTimer()
             services.keyboard.onEvent = nil
             services.touchSource.onFrame = nil
             services.frontmostApp.onChange = nil
@@ -215,13 +218,9 @@ public final class NonetController {
             if services.keyboard.isSuppressingPointer {
                 services.keyboard.isSuppressingPointer = false
             }
-            if services.keyboard.interruptsWithoutTrigger {
-                services.keyboard.interruptsWithoutTrigger = false
-            }
             engine = SessionEngine()
             session = nil
-            cornerHold = CornerHoldRecognizer()
-            syncTriggerHeld()
+            opener = EdgeSlideRecognizer()
             controllerLogger.info("停止しました")
         }
         saver.flush()
@@ -272,7 +271,7 @@ public final class NonetController {
             profilePageCount: profile?.pages.count ?? 1
         )
         guard license.canExecuteActions else {
-            return refuseWithoutLicense(target, wasFastTap: false)
+            return refuseWithoutLicense(target)
         }
         let profileApp = profile?.app
         return await executions.enqueue { turn in
@@ -292,20 +291,20 @@ public final class NonetController {
                 try await services.performer.perform(activate, context: ActionContext(frontmostApp: services.frontmostApp.current))
             } catch {
                 // 別のアプリにキーを送らないよう、マスは実行しない
-                return fail(target, wasFastTap: false, error: error)
+                return fail(target, error: error)
             }
             await waitUntilFrontmost(app)
             if !isFrontmost(app), ControllerExecutionPolicy.sendsInputToFrontmostApp(action) {
                 // 起動に時間が掛かっている。送ると、いま前面にある Nonet の設定ウィンドウなどに届く
                 let reason = String(localized: "\(app.nameOrBundleID) が前面になりませんでした", bundle: .module)
-                return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
+                return fail(target, error: NonetError.actionFailed(reason))
             }
         } else if ControllerExecutionPolicy.sendsInputToFrontmostApp(action) {
             let reason = String(localized: "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください。", bundle: .module)
-            return fail(target, wasFastTap: false, error: NonetError.actionFailed(reason))
+            return fail(target, error: NonetError.actionFailed(reason))
         }
         let context = ActionContext(frontmostApp: services.frontmostApp.current)
-        return await perform(target, context: context, turn: turn, wasFastTap: false, showsSuccessToast: false, showsSuccessAfterRunning: false)
+        return await perform(target, context: context, turn: turn, showsSuccessAfterRunning: false)
     }
 
     /// 前面に来るまで少し待つ。起動に時間がかかるアプリは、前面に来るまで（最長で約2秒）待つ
@@ -339,49 +338,82 @@ public final class NonetController {
 
     // MARK: - キーボード
 
+    /// 開いている間だけ届く（キーボードモニターは、ポインタを抑止している間だけキーボードを見る）
     private func handleKeyboard(_ event: KeyboardEvent) {
-        let now = services.scheduler.now
         switch event {
-        case .triggerDown:
-            guard beginSession(.triggerKey, at: now) else { return }
-            // フレームが届かなくなったトラックパッドを、利用者が触れる前に開始し直す（すぐに戻る）
-            services.touchSource.revalidate()
-        case .triggerUp:
-            send(.triggerUp(at: now))
         case .interrupted:
-            send(.interrupted(at: now))
+            send(.interrupted(at: services.scheduler.now))
         }
     }
 
-    /// セッションを始める。トリガーキーと角の長押しのどちらもここを通る（同じ条件で始め、同じ前面アプリのページを使う）。
-    /// 始めたら true
-    private func beginSession(_ activation: SessionActivation, at now: TimeInterval) -> Bool {
-        guard canBeginSession() else { return false }
-        let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current, activation: activation)
-        // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
-        send(.triggerDown(at: now, configuration: next.engineConfiguration), starting: next)
-        refreshLicenseAfterTrigger()
-        return true
+    // MARK: - 開く
+
+    /// トラックパッドのフレーム。エンジンに渡してから、開く動きを見る（開いたとき、エンジンはこのフレームの指で選び始める）
+    private func receiveTouches(_ frame: TouchFrame) {
+        let touching = !frame.touching.isEmpty
+        if touching != isTrackpadTouched {
+            isTrackpadTouched = touching
+            services.keyboard.isTrackpadTouched = touching
+        }
+        send(.touches(frame))
+        switch opener.apply(frame, isSessionActive: engine.isInSession) {
+        case .none:
+            break
+        case .touchBeganInBand:
+            // 開く動きの間に指を滑らせた分だけポインタが動くので、触れ始めた位置を覚えておき、開いたらそこへ戻す
+            services.keyboard.rememberPointerLocation()
+        case .slid:
+            openFromEdge()
+        }
     }
 
-    /// セッションを始められるか。トリガーキーと角の長押し（試用期間が終わっていて始めないときの知らせも）が同じ条件で使う
+    /// 上の縁からの滑り込みを見分けた。開いてよければセッションを始める。
+    /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ など）・始められない状態
+    /// （無効・許可なし・セキュア入力・「このアプリでは Nonet を使わない」）・Nonet のウィンドウがキー（練習中を除く）なら、
+    /// 何もしない（ポインタはそのまま動く）。試用期間が終わっていたら開かず、終わったことと次にすることをトースト1つと触覚で知らせる
+    /// （開く動きは1つのタッチで1回なので、トーストも1回）
+    private func openFromEdge() {
+        guard !services.keyboard.isMouseButtonDown else {
+            controllerLogger.debug("ボタンが押されているため、開きません")
+            return
+        }
+        guard canBeginSession() else { return }
+        // Nonet のウィンドウ（設定など）がキーなら開かない。送るキーや読む選択範囲が Nonet のウィンドウのものになり、
+        // 設定でマスをドラッグするなど、トラックパッドを使っている最中でもある。初回の案内の練習は、案内のウィンドウの上で試す
+        guard isPracticeMode || !services.frontmostApp.isOwnWindowKey else {
+            controllerLogger.debug("Nonet のウィンドウがキーなので、開きません")
+            return
+        }
+        guard license.canExecuteActions else {
+            controllerLogger.notice("試用期間が終わっているため、開きません")
+            playHaptic(.rejected, strength: configuration.settings.haptics)
+            showToast(ControllerPresentation.trialEndedToast)
+            return
+        }
+        let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current)
+        // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
+        send(.open(at: services.scheduler.now, configuration: next.engineConfiguration), starting: next)
+        refreshLicenseAfterOpening()
+    }
+
+    /// セッションを始められるか（開く前と、試用期間が終わっていて開かないときの知らせの前に確かめる）
     private func canBeginSession() -> Bool {
         guard isStarted, !isRecordingKeys else { return false }
-        // セキュア入力は2秒ごとにしか確かめないので、トリガーのたびに確かめ直す
-        // （パスワード欄に入った直後に始めないため・離れた直後から使えるようにするため）
+        // セキュア入力は2秒ごとにしか確かめないので、開くたびに確かめ直す
+        // （パスワード欄に入った直後に開かないため・離れた直後から使えるようにするため）
         if status == .secureInputActive || services.permissions.isSecureInputActive {
             refreshServices()
         }
         guard status == .running else { return false }
-        // 「このアプリでは Nonet を使わない」アプリが前面なら始めない。ポインタを止めず、HUD も出さない（トリガーキーはそのまま渡る）。
-        // 角の長押しで試用期間の終了を知らせるトーストと触覚も出さない（仕様 1: そのアプリでは何もしない）
+        // 「このアプリでは Nonet を使わない」アプリが前面なら開かない。ポインタを止めず、HUD も出さない。
+        // 試用期間の終了を知らせるトーストと触覚も出さない（仕様: そのアプリでは何もしない）
         return !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID)
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
-    /// 保存先への書き込みがあるので、トリガーのイベントを返してから行い、licenseRefreshInterval に1回までにする。
+    /// 保存先への書き込みがあるので、フレームの処理を返してから行い、licenseRefreshInterval に1回までにする。
     /// ライセンスがあれば試用を数えなくてよいので呼ばない。実行してよいかは canExecuteActions がいつでも正しく答える
-    private func refreshLicenseAfterTrigger() {
+    private func refreshLicenseAfterOpening() {
         if case .licensed = license.entitlement { return }
         let now = services.scheduler.now
         if let last = lastLicenseRefresh, now >= last, now - last < Self.licenseRefreshInterval { return }
@@ -391,76 +423,9 @@ public final class NonetController {
         }
     }
 
-    // MARK: - 角の長押し
-
-    /// トラックパッドのフレーム。エンジンに渡してから、セッションの外なら角の長押しを見る
-    private func receiveTouches(_ frame: TouchFrame) {
-        let touching = !frame.touching.isEmpty
-        if touching != isTrackpadTouched {
-            isTrackpadTouched = touching
-            services.keyboard.isTrackpadTouched = touching
-        }
-        send(.touches(frame))
-        let fired = cornerHold.apply(frame, corner: configuration.settings.touchActivation, isSessionActive: engine.isInSession)
-        cornerHoldChanged(fired: fired)
-    }
-
-    /// 長押しを待っている指があれば、合図の時刻にタイマーを置く（指を止めている間にフレームが来なくても始められるように）
-    private func cornerHoldChanged(fired: Bool) {
-        if fired {
-            cancelCornerHoldTimer()
-            beginCornerHoldSession()
-            return
-        }
-        guard let deadline = cornerHold.deadline else {
-            cancelCornerHoldTimer()
-            return
-        }
-        guard deadline != cornerHoldDeadline else { return }
-        cancelCornerHoldTimer()
-        cornerHoldDeadline = deadline
-        cornerHoldTask = services.scheduler.schedule(after: max(0, deadline - services.scheduler.now)) { [weak self] in
-            guard let self else { return }
-            self.cornerHoldTask = nil
-            self.cornerHoldDeadline = nil
-            let fired = self.cornerHold.tick(
-                at: self.services.scheduler.now,
-                corner: self.configuration.settings.touchActivation,
-                isSessionActive: self.engine.isInSession
-            )
-            self.cornerHoldChanged(fired: fired)
-        }
-    }
-
-    private func cancelCornerHoldTimer() {
-        cornerHoldTask?.cancel()
-        cornerHoldTask = nil
-        cornerHoldDeadline = nil
-    }
-
-    /// 角の長押しで、トリガーキーと同じ道筋（beginSession）でセッションを始める。試用期間が終わっていたら始めない
-    /// （角に指を置いただけで、何も実行できない HUD と帯が出ないように）。そのときは、トリガーキーでマスを押したときと同じく、
-    /// 終わったことと次にすることをトースト1つと触覚で知らせる。
-    /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ など）なら、何もしない
-    private func beginCornerHoldSession() {
-        guard !services.keyboard.isMouseButtonDown else {
-            controllerLogger.debug("ボタンが押されているため、角の長押しでは始めません")
-            return
-        }
-        guard license.canExecuteActions else {
-            guard canBeginSession() else { return }
-            controllerLogger.notice("試用期間が終わっているため、角の長押しでは始めません")
-            playHaptic(.rejected, strength: configuration.settings.haptics)
-            showToast(ControllerPresentation.trialEndedToast)
-            return
-        }
-        guard beginSession(.cornerHold, at: services.scheduler.now) else { return }
-        controllerLogger.debug("角の長押しでセッションを始めました")
-    }
-
     // MARK: - エンジン
 
-    /// starting はトリガーを押したときに決めた、新しいセッションで使うもの
+    /// starting は開いたときに決めた、新しいセッションで使うもの
     private func send(_ input: SessionInput, starting: ControllerSession? = nil) {
         pendingInputs.append((input, starting))
         guard !isHandlingInput else { return }
@@ -472,15 +437,6 @@ public final class NonetController {
                 apply(effect, starting: next.starting)
             }
         }
-        syncTriggerHeld()
-    }
-
-    /// トリガーキーを押しているかを HUD に知らせる（変わったときだけ）
-    private func syncTriggerHeld() {
-        let held = engine.isTriggerHeld
-        guard held != isTriggerHeldForHUD else { return }
-        isTriggerHeldForHUD = held
-        hud.setTriggerHeld(held)
     }
 
     private func apply(_ effect: SessionEffect, starting: ControllerSession?) {
@@ -490,28 +446,25 @@ public final class NonetController {
             if let starting {
                 session = starting
             }
+            // ポインタを触れ始めた位置に戻して止め、キーボードを見始める（キーが押されたら閉じる）
             services.keyboard.isSuppressingPointer = true
-            // 角の長押しのセッションはトリガーを押していないので、ほかのキーで終えられるよう、モニターに見てもらう
-            if session?.activation == .cornerHold {
-                services.keyboard.interruptsWithoutTrigger = true
-            }
         case .endPointerSuppression(let dropsLateClicks):
             services.keyboard.endPointerSuppression(dropsLateClicks: dropsLateClicks)
-        case .showHUD(let page, let highlightedCell):
+        case .showHUD(let state):
             prepareFirstHUD()
             guard let session else { return }
-            hud.show(hudModel(session, page: page, highlightedCell: highlightedCell), position: session.settings.hudPosition)
+            hud.show(hudModel(session, state: state), position: session.settings.hudPosition)
             isHUDVisible = true
-        case .updateHUD(let page, let highlightedCell):
+        case .updateHUD(let state):
             guard let session, isHUDVisible else { return }
-            hud.update(hudModel(session, page: page, highlightedCell: highlightedCell))
+            hud.update(hudModel(session, state: state))
         case .hideHUD:
             hideHUD()
         case .haptic(let event):
             playHaptic(event, strength: session?.settings.haptics ?? configuration.settings.haptics)
-        case .execute(let page, let cell, let wasFastTap):
+        case .execute(let page, let cell):
             guard let session else { return }
-            execute(page: page, cell: cell, wasFastTap: wasFastTap, in: session)
+            execute(page: page, cell: cell, in: session)
         case .requestTick(let time):
             scheduleTick(at: time)
         case .sessionEnded(let reason):
@@ -520,11 +473,11 @@ public final class NonetController {
             if services.keyboard.isSuppressingPointer {
                 services.keyboard.isSuppressingPointer = false
             }
-            if services.keyboard.interruptsWithoutTrigger {
-                services.keyboard.interruptsWithoutTrigger = false
-            }
             hideHUD()
             session = nil
+            if case .cancelled(let cancellation) = reason {
+                lastCancellation = CancellationRecord(reason: cancellation, date: currentDate())
+            }
             controllerLogger.debug("セッションが終わりました: \(String(describing: reason), privacy: .public)")
         }
     }
@@ -548,8 +501,8 @@ public final class NonetController {
 
     // MARK: - HUD と触覚
 
-    private func hudModel(_ session: ControllerSession, page: Int, highlightedCell: Int?) -> HUDModel {
-        session.hudModel(page: page, highlightedCell: highlightedCell, isPracticeMode: isPracticeMode, isTrialEnded: !license.canExecuteActions)
+    private func hudModel(_ session: ControllerSession, state: SessionHUDState) -> HUDModel {
+        session.hudModel(state, isPracticeMode: isPracticeMode, isTrialEnded: !license.canExecuteActions)
     }
 
     /// セッションで最初に HUD を出すとき、使い始めの案内（最初の HUDGuidance.beginnerSessionLimit 回）と、
@@ -593,44 +546,34 @@ public final class NonetController {
 
     // MARK: - 実行
 
-    private func execute(page: Int, cell: Int, wasFastTap: Bool, in session: ControllerSession) {
-        // 空きマスは何もしない（エンジンが中身を知らなかったとき）。すぐにタップしたなら、受け付けなかったことを触覚で知らせる
+    private func execute(page: Int, cell: Int, in session: ControllerSession) {
+        // 空きマスは何もしない（エンジンが中身を知らなかったとき）。受け付けなかったことを触覚で知らせる
         guard let target = session.target(page: page, cell: cell) else {
-            if wasFastTap {
-                playHaptic(.rejected, strength: session.settings.haptics)
-            }
+            playHaptic(.rejected, strength: session.settings.haptics)
             return
         }
         guard license.canExecuteActions else {
             playHaptic(.rejected, strength: session.settings.haptics)
-            refuseWithoutLicense(target, wasFastTap: wasFastTap)
+            refuseWithoutLicense(target)
             return
         }
-        // Nonet のウィンドウ（設定など）がキーなら、前面アプリに働きかけるマスは実行しない。セッションは直前のアプリの
-        // ページを使うが、送るキーや読む選択範囲は Nonet のウィンドウのものになる。アプリを開く・URL は実行する。
-        // 練習モードは何も実行しないので、初回の案内のウィンドウがキーでも記録する
+        // Nonet のウィンドウ（設定など）がキーなら、前面アプリに働きかけるマスは実行しない（開くときにも確かめるが、
+        // 開いている間に結果のパネルなどがキーになったときのため）。送るキーや読む選択範囲が Nonet のウィンドウのものになる。
+        // アプリを開く・URL は実行する。練習モードは何も実行しないので、初回の案内のウィンドウがキーでも記録する
         if !isPracticeMode, ControllerExecutionPolicy.dependsOnFrontmostApp(target.cell.action), services.frontmostApp.isOwnWindowKey {
             playHaptic(.rejected, strength: session.settings.haptics)
-            refuseInOwnWindow(target, wasFastTap: wasFastTap)
+            refuseInOwnWindow(target)
             return
         }
         playHaptic(.execute, strength: session.settings.haptics)
         if isPracticeMode {
-            record(target, succeeded: true, message: nil, wasFastTap: wasFastTap, isPractice: true)
+            record(target, succeeded: true, message: nil, isPractice: true)
             return
         }
         let context = ActionContext(frontmostApp: session.frontmostApp)
-        let showsSuccessToast = wasFastTap && session.settings.showExecutionToast
         let showsSuccessAfterRunning = session.settings.showExecutionToast
         executions.enqueue { [weak self] turn in
-            _ = await self?.perform(
-                target,
-                context: context,
-                turn: turn,
-                wasFastTap: wasFastTap,
-                showsSuccessToast: showsSuccessToast,
-                showsSuccessAfterRunning: showsSuccessAfterRunning
-            )
+            _ = await self?.perform(target, context: context, turn: turn, showsSuccessAfterRunning: showsSuccessAfterRunning)
         }
     }
 
@@ -641,8 +584,6 @@ public final class NonetController {
         _ target: ControllerTarget,
         context: ActionContext,
         turn: ControllerExecutionTurn,
-        wasFastTap: Bool,
-        showsSuccessToast: Bool,
         showsSuccessAfterRunning: Bool
     ) async -> ExecutionRecord {
         // 長く掛かるアクション（裏のスクリプト・ショートカット・AI）は、文脈を読み終えるころに順番を譲る。
@@ -655,15 +596,15 @@ public final class NonetController {
             if let output {
                 hideRunningToast(run)
                 hud.showResult(ControllerPresentation.result(target.cell, output: output))
-            } else if showsSuccessToast || (didShowRunning && showsSuccessAfterRunning) {
+            } else if didShowRunning && showsSuccessAfterRunning {
                 showToast(ControllerPresentation.successToast(target.cell))
             } else {
                 hideRunningToast(run)
             }
-            return record(target, succeeded: true, message: nil, wasFastTap: wasFastTap, output: output)
+            return record(target, succeeded: true, message: nil, output: output)
         } catch {
             finishRunningToast(run)
-            return fail(target, wasFastTap: wasFastTap, error: error)
+            return fail(target, error: error)
         }
     }
 
@@ -703,39 +644,38 @@ public final class NonetController {
     }
 
     @discardableResult
-    private func refuseWithoutLicense(_ target: ControllerTarget, wasFastTap: Bool) -> ExecutionRecord {
+    private func refuseWithoutLicense(_ target: ControllerTarget) -> ExecutionRecord {
         controllerLogger.notice("試用期間が終わっているため実行しません")
         let message = NonetError.licenseRequired.localizedDescription
         showToast(ControllerPresentation.failureToast(target, message: message))
-        return record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
+        return record(target, succeeded: false, message: message)
     }
 
     /// 設定画面からは「このマスをテスト実行」で試せる（直前のアプリを前面に戻してから実行する）
-    private func refuseInOwnWindow(_ target: ControllerTarget, wasFastTap: Bool) {
+    private func refuseInOwnWindow(_ target: ControllerTarget) {
         controllerLogger.notice("Nonet のウィンドウがキーなので実行しません（\(target.cell.action.kind.rawValue, privacy: .public)）")
         let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。", bundle: .module)
         showToast(ControllerPresentation.failureToast(target, message: message))
-        record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
+        record(target, succeeded: false, message: message)
     }
 
-    private func fail(_ target: ControllerTarget, wasFastTap: Bool, error: any Error) -> ExecutionRecord {
+    private func fail(_ target: ControllerTarget, error: any Error) -> ExecutionRecord {
         let message = error.localizedDescription
         // 理由にはスクリプトの出力などが入ることがあるので、ログでは伏せる
         controllerLogger.error("実行に失敗しました（\(target.cell.action.kind.rawValue, privacy: .public)）: \(message, privacy: .private)")
         showToast(ControllerPresentation.failureToast(target, message: message))
-        return record(target, succeeded: false, message: message, wasFastTap: wasFastTap)
+        return record(target, succeeded: false, message: message)
     }
 
     /// isPractice は練習モードの記録（実際には実行していない）。lastExecution にだけ残し、recentExecutions には入れない
     @discardableResult
-    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, wasFastTap: Bool, output: String? = nil, isPractice: Bool = false) -> ExecutionRecord {
+    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, output: String? = nil, isPractice: Bool = false) -> ExecutionRecord {
         let record = ExecutionRecord(
             cellTitle: target.cell.title,
             profileName: target.profileName,
             address: target.address,
             succeeded: succeeded,
             message: message,
-            wasFastTap: wasFastTap,
             date: currentDate(),
             output: output,
             profileID: target.profileID
@@ -766,7 +706,7 @@ public final class NonetController {
             // 許可が無い間はセッションを始められないので、指の位置も読まない（指が触れるたびにメインスレッドを起こさない）
             if hasPermission {
                 hasTrackpad = startTouchSource()
-                // トラックパッドが無ければキーボードは見張らない（トリガーを飲み込む設定のとき、使えないキーにしないため）
+                // トラックパッドが無ければ開くことも無いので、イベントタップは作らない
                 if hasTrackpad {
                     isGranted = startKeyboard()
                 }
@@ -870,32 +810,20 @@ public final class NonetController {
     }
 
     private func applyKeyboardSettings() {
-        let settings = configuration.settings
         let keyboard = services.keyboard
-        if keyboard.trigger != settings.trigger {
-            keyboard.trigger = settings.trigger
-        }
-        // Nonet を使わないアプリでは、トリガーキーも前面のアプリに渡す（キーを飲み込まない）
-        let frontmostBundleID = services.frontmostApp.current?.app.bundleID
-        let passTrigger = settings.passTriggerToApps || configuration.isTurnedOff(forBundleID: frontmostBundleID)
-        if keyboard.passTriggerToApps != passTrigger {
-            keyboard.passTriggerToApps = passTrigger
-        }
-        if keyboard.cursorLock != settings.cursorLock {
-            keyboard.cursorLock = settings.cursorLock
+        let cursorLock = configuration.settings.cursorLock
+        if keyboard.cursorLock != cursorLock {
+            keyboard.cursorLock = cursorLock
         }
     }
 
     private func configurationDidChange(from previous: NonetConfiguration) {
         let old = previous.settings
         let new = configuration.settings
-        if old.isEnabled != new.isEnabled || old.trigger != new.trigger || old.passTriggerToApps != new.passTriggerToApps {
-            // 押しているキーの扱いが変わるので、始まっているセッションは何も実行せずに終える
-            endSession()
-        }
         applyKeyboardSettings()
         if old.isEnabled != new.isEnabled {
             controllerLogger.info("\(new.isEnabled ? "有効" : "無効", privacy: .public)にしました")
+            // 無効にしたら、始まっているセッションは何も実行せずに終える（refreshServices が状態を変えるときに終える）
             refreshServices()
         }
         updateActiveProfile()
@@ -983,7 +911,6 @@ public final class NonetController {
         let presets = PresetLibrary.apps(for: environment.capabilities)
             .filter { services.installedApps.isInstalled(bundleID: $0.app.bundleID) }
         return .initial(
-            trigger: .defaultKey(isJIS: services.isJISKeyboard),
             appPresets: presets,
             installedBundleIDs: Set(installedLaunchers),
             dockApps: environment.dockApps()

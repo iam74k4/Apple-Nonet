@@ -15,7 +15,7 @@ struct ShellRenderTests {
     static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
 
     /// 既定の引数に使うので、メインアクターに縛らない
-    nonisolated static let releaseHint = ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false)
+    nonisolated static let releaseHint = ControllerPresentation.hint(isPracticeMode: false)
 
     @Test("HUD")
     func hud() throws {
@@ -23,16 +23,16 @@ struct ShellRenderTests {
         let global = PresetLibrary.makeGlobalProfile(installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID)))
         let models: [(String, HUDModel)] = [
             ("hud-xcode", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 4, pageCount: 1)),
-            // HUD で選ぶマス（クリーン）を速押しして出た HUD。光ったマスにも印が見える
-            ("hud-xcode-hud-only", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 7, pageCount: 1)),
+            // 少し長く止めるマス（クリーン）を光らせた HUD（止め終えた）。光ったマスにも印が見える
+            ("hud-xcode-hold", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 7, pageCount: 1)),
             ("hud-launcher-pages", Self.hudModel(title: L10n.globalName, page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
-            // 長い方の案内（練習中・指を離して実行）
+            // 長い方の案内（練習中）
             ("hud-practice", Self.hudModel(
                 title: "Xcode",
                 page: xcode.pages[0],
                 highlighted: 2,
                 pageCount: 1,
-                hint: ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: true)
+                hint: ControllerPresentation.hint(isPracticeMode: true)
             )),
             ("hud-empty-banner", HUDModel(
                 title: "とても長い名前のアプリケーションのプロファイル（テスト用の長いタイトル）",
@@ -55,6 +55,53 @@ struct ShellRenderTests {
             store.model = model
             try Self.render(
                 HUDRootView(store: store).background(Color(white: 0.82)),
+                size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
+                appearance: .aqua,
+                name: name
+            )
+        }
+
+        // 外枠と、少し長く止めるマスの進み具合（Xcode のクリーン）。「コントラストを上げる」・「視差効果を減らす」も
+        var page = xcode.pages[0]
+        let clean = try #require(page.cells.firstIndex { $0?.requiresHold == true })
+        page.cells[clean]?.requiresHold = true
+        let base = Self.hudModel(title: "Xcode", page: page, highlighted: nil, pageCount: 1)
+        func variant(_ transform: (inout HUDModel) -> Void) -> HUDModel {
+            var model = base
+            transform(&model)
+            return model
+        }
+        let states: [(String, HUDModel, HUDColors, Bool, Double?)] = [
+            ("hud-state-cell", variant { $0.highlightedIndex = 4 }, .standard, false, nil),
+            ("hud-state-frame", variant { $0.isFingerInFrame = true }, .standard, false, nil),
+            ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .increased, false, nil),
+            ("hud-state-hold", variant {
+                $0.highlightedIndex = clean
+                $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
+            }, .standard, false, 0.55),
+            ("hud-state-hold-reduce-motion", variant {
+                $0.highlightedIndex = clean
+                $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
+            }, .standard, true, nil),
+            ("hud-state-hold-ready", variant {
+                $0.highlightedIndex = clean
+                $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: true)
+            }, .standard, false, nil),
+            ("hud-state-contrast-cell", variant { $0.highlightedIndex = 4 }, .increased, false, nil),
+            ("hud-state-large-frame", variant {
+                $0.isFingerInFrame = true
+                $0.scale = 1.5
+                $0.footnote = ControllerPresentation.beginnerFootnote(pageCount: 2)
+                $0.pageCount = 2
+            }, .standard, false, nil),
+        ]
+        for (name, model, colors, reduceMotion, progress) in states {
+            let size = HUDLayout.size(for: model)
+            let margin = HUDLayout.shadowMargin
+            try Self.render(
+                HUDView(model: model, colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress)
+                    .padding(margin)
+                    .background(Color(white: 0.82)),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
                 appearance: .aqua,
                 name: name
@@ -170,23 +217,19 @@ struct ShellRenderTests {
             none.0.next()
             try Self.renderOnboarding(none.0, appearance: appearance, name: "onboarding-2-empty-\(suffix)")
 
-            // 3. 試してみる（HUD から・違うマス・すぐにタップ・HUD から押した・成功と角の紹介・角を試す・試せない）
+            // 3. 試してみる（開いてマスで離す・違うマス・外枠でやめる・マスで離してしまった・成功・試せない）
             granted.0.applySelection()
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-practice-\(suffix)")
             let page = try #require(granted.0.practicePage)
-            let wrong = (0..<Page.cellCount).first { $0 != page.hudTarget.index && page.titles[$0] != nil } ?? 0
-            granted.0.handleExecution(ShellFixtures.record(index: wrong, date: Date().addingTimeInterval(60), title: page.titles[wrong] ?? "", fastTap: false))
+            let wrong = (0..<Page.cellCount).first { $0 != page.runTarget.index && page.titles[$0] != nil } ?? 0
+            granted.0.handleExecution(ShellFixtures.record(index: wrong, date: Date().addingTimeInterval(60), title: page.titles[wrong] ?? ""))
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-wrong-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: page.hudTarget.index, date: Date().addingTimeInterval(61), fastTap: false))
-            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-quicktap-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: Date().addingTimeInterval(62), fastTap: false))
-            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-usedhud-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: page.quickTapTarget.index, date: Date().addingTimeInterval(63), fastTap: true))
+            granted.0.handleExecution(ShellFixtures.record(index: page.runTarget.index, date: Date().addingTimeInterval(61)))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-cancel-\(suffix)")
+            granted.0.handleExecution(ShellFixtures.record(index: wrong, date: Date().addingTimeInterval(62), title: page.titles[wrong] ?? ""))
+            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-ran-\(suffix)")
+            granted.0.handleCancellation(ShellFixtures.cancellation(date: Date().addingTimeInterval(63)))
             try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-success-\(suffix)")
-            granted.0.tryCornerActivation()
-            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-corner-\(suffix)")
-            granted.0.handleExecution(ShellFixtures.record(index: 4, date: Date().addingTimeInterval(64), fastTap: false))
-            try Self.renderOnboarding(granted.0, appearance: appearance, name: "onboarding-3-corner-done-\(suffix)")
             waiting.0.next()
             waiting.0.applySelection()
             try Self.renderOnboarding(waiting.0, appearance: appearance, name: "onboarding-3-blocked-\(suffix)")
@@ -251,7 +294,7 @@ struct ShellRenderTests {
             cells: page.cells.map { cell in
                 cell.map { cell in
                     let detail: String? = if case .keystroke(let keys) = cell.action { keys.displayString } else { nil }
-                    return HUDCell(title: cell.title, icon: cell.icon, detail: detail, requiresHUD: cell.requiresHUD)
+                    return HUDCell(title: cell.title, icon: cell.icon, detail: detail, requiresHold: cell.requiresHold)
                 }
             },
             highlightedIndex: highlighted,

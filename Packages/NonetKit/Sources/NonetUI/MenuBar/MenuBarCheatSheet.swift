@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// メニューの先頭の早見表（前面のアプリでトリガーを押したときに出る9マス）の中身と寸法。AppKit に触れない
+// メニューの先頭の早見表（前面のアプリで9マスを開いたときに出るマス）の中身と寸法。AppKit に触れない
 import CoreGraphics
 import Foundation
 import NonetCore
@@ -11,7 +11,7 @@ struct MenuBarCellLocation: Equatable, Sendable {
     var address: CellAddress
 }
 
-/// メニューの先頭の早見表。NonetController がトリガーを押したときと同じ決め方（NonetConfiguration.resolvedPages）で、
+/// メニューの先頭の早見表。NonetController が9マスを開いたときと同じ決め方（NonetConfiguration.resolvedPages）で、
 /// 前面のアプリのページを並べる。HUD と同じく最初のページから見せ、‹ › でほかのページも見られる
 struct MenuBarCheatSheet: Equatable {
     /// 前面のアプリで使うページ（resolvedPages の並び）。アプリのページの後ろにグローバルのページが続くこともある
@@ -29,7 +29,7 @@ struct MenuBarCheatSheet: Equatable {
     }
 
     /// frontApp は Nonet を数えない前面のアプリ（分からなければ nil でグローバル）。
-    /// 「このアプリでは使わない」アプリではトリガーを押しても何も出ないので、マスの代わりにそう言う
+    /// 「このアプリでは使わない」アプリでは9マスが開かないので、マスの代わりにそう言う
     init(frontApp: AppReference?, configuration: NonetConfiguration) {
         let globalID = configuration.globalProfile.id
         if let frontApp, configuration.isTurnedOff(forBundleID: frontApp.bundleID) {

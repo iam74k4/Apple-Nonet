@@ -1,4 +1,4 @@
-// 担当: presets。押し間違えると困るマスを、HUD で選んだときだけ実行するようにしてあるか（Cell.requiresHUD）
+// 担当: presets。押し間違えると困るマスを、HUD で選んだときだけ実行するようにしてあるか（Cell.requiresHold）
 import Foundation
 import Testing
 @testable import NonetCore
@@ -23,14 +23,14 @@ import Testing
         ]
     }
 
-    static func hudOnlyTitles(_ preset: AppPreset) -> Set<String> {
-        Set(preset.pages.flatMap(\.cells).compactMap { $0 }.filter(\.requiresHUD).map(\.title))
+    static func holdTitles(_ preset: AppPreset) -> Set<String> {
+        Set(preset.pages.flatMap(\.cells).compactMap { $0 }.filter(\.requiresHold).map(\.title))
     }
 
     @Test(arguments: PresetCapabilities.allCombinations)
     func riskyCellsAreHUDOnlyOnEveryMac(capabilities: PresetCapabilities) {
         for preset in PresetLibrary.apps(for: capabilities) {
-            #expect(Self.hudOnlyTitles(preset) == Self.expected[preset.app.bundleID] ?? [], "\(preset.app.bundleID)")
+            #expect(Self.holdTitles(preset) == Self.expected[preset.app.bundleID] ?? [], "\(preset.app.bundleID)")
         }
     }
 
@@ -40,14 +40,14 @@ import Testing
         for capabilities in PresetCapabilities.allCombinations {
             let preset = try #require(PresetLibrary.preset(forBundleID: bundleID, capabilities: capabilities))
             let mute = try #require(preset.pages[0].cells.compactMap { $0 }.first { $0.title == Self.text("ミュート") })
-            #expect(!mute.requiresHUD)
+            #expect(!mute.requiresHold)
         }
     }
 
     @Test func theLauncherHasNoHUDOnlyCells() {
         let installed = Set(PresetLibrary.launcherCandidates.map(\.bundleID))
         let global = PresetLibrary.makeGlobalProfile(installedBundleIDs: installed)
-        #expect(global.pages.flatMap(\.cells).compactMap { $0 }.allSatisfy { !$0.requiresHUD })
+        #expect(global.pages.flatMap(\.cells).compactMap { $0 }.allSatisfy { !$0.requiresHold })
     }
 
     /// プリセットから作ったプロファイルにも引き継ぐ（初回起動・プロファイルを追加・プリセットに戻す）
@@ -56,12 +56,12 @@ import Testing
         let profile = preset.makeProfile()
         let send = try #require(profile.pages[0].cells[8])
         #expect(send.title == Self.text("送信"))
-        #expect(send.requiresHUD)
-        #expect(profile.pages[0].cells.compactMap { $0 }.filter(\.requiresHUD).count == 1)
+        #expect(send.requiresHold)
+        #expect(profile.pages[0].cells.compactMap { $0 }.filter(\.requiresHold).count == 1)
 
         var configuration = NonetConfiguration(settings: GlobalSettings(), profiles: [Profile(kind: .global)])
         let id = configuration.addAppProfile(for: preset.app, preset: preset)
-        #expect(configuration.profiles.first { $0.id == id }?.pages[0].cells[8]?.requiresHUD == true)
+        #expect(configuration.profiles.first { $0.id == id }?.pages[0].cells[8]?.requiresHold == true)
     }
 
     /// すでにあるプロファイル（この設定より前に作ったもの）は変えない。読み込んでも印は付かない
@@ -76,6 +76,6 @@ import Testing
         let profile = try ModelFixtures.decode(Profile.self, json)
         let send = try #require(profile.pages[0].cells[8])
         #expect(send.title == "送信")
-        #expect(!send.requiresHUD)
+        #expect(!send.requiresHold)
     }
 }

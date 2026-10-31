@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 public enum SettingsTab: String, CaseIterable, Sendable {
     /// プロファイルと9マスの編集
     case profiles
-    /// トリガーや HUD など全体の設定
+    /// 開き方の説明や HUD など全体の設定
     case general
     case license
     case about

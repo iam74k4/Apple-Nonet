@@ -10,9 +10,10 @@ struct StoreBackupTests {
     /// プロファイルの id はいつも同じ（何度作っても等しい）
     private static let base = ModelFixtures.configuration().validated()
 
-    private func configuration(_ haptics: HapticStrength = .medium, hudDelay: Double = 0.3) -> NonetConfiguration {
+    private func configuration(_ haptics: HapticStrength = .medium, profileName: String = "base") -> NonetConfiguration {
         var configuration = Self.base
-        configuration.settings = GlobalSettings(hudDelay: hudDelay, haptics: haptics)
+        configuration.settings = GlobalSettings(haptics: haptics)
+        configuration.profiles[0].pages[0].name = profileName
         return configuration.validated()
     }
 
@@ -73,13 +74,13 @@ struct StoreBackupTests {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
             for index in 0..<13 {
-                store.makeBackup(of: configuration(hudDelay: 0.2 + Double(index) * 0.01), reason: .beforeDeletingPage, now: Self.start + Double(index))
+                store.makeBackup(of: configuration(profileName: "p\(index)"), reason: .beforeDeletingPage, now: Self.start + Double(index))
             }
             let backups = store.backups()
             #expect(backups.count == ConfigurationStore.maxBackups)
             #expect(backups.first?.date == Self.start + 12)
             #expect(backups.last?.date == Self.start + 3)
-            #expect(try store.loadBackup(backups[0]).settings.hudDelay == 0.32)
+            #expect(try store.loadBackup(backups[0]).profiles[0].pages[0].name == "p12")
         }
     }
 
@@ -108,11 +109,11 @@ struct StoreBackupTests {
             let store = ConfigurationStore(directory: directory)
             var made: [URL] = []
             for index in 0..<(ConfigurationStore.maxBackups + 2) {
-                let backup = try #require(store.makeBackup(of: configuration(hudDelay: 0.2 + Double(index) * 0.01), reason: .beforeDeletingPage, now: Self.start))
+                let backup = try #require(store.makeBackup(of: configuration(profileName: "p\(index)"), reason: .beforeDeletingPage, now: Self.start))
                 made.append(backup.url)
             }
             #expect(store.backups().map(\.url) == Array(made.reversed().prefix(ConfigurationStore.maxBackups)))
-            #expect(try store.loadBackup(try #require(store.backups().first)) == configuration(hudDelay: 0.2 + Double(ConfigurationStore.maxBackups + 1) * 0.01))
+            #expect(try store.loadBackup(try #require(store.backups().first)) == configuration(profileName: "p\(ConfigurationStore.maxBackups + 1)"))
         }
     }
 

@@ -47,51 +47,28 @@ enum HUDToastLayout {
     }
 }
 
-/// トーストを消す時刻の決め方。失敗のトーストは、トリガーキーを押している間は消さず、離してから afterRelease 秒で消す
-/// （トラックパッドを見ながら続けてタップしていても、離した後で読めるように）
+/// トーストを消す時刻の決め方
 struct HUDToastSchedule: Equatable {
-    /// 失敗のトーストを、押していたトリガーキーを離してから消すまでの秒数
-    static let afterRelease: TimeInterval = 1
-
     private(set) var style: ToastModel.Style?
     /// 消す時刻。nil なら時間では消さない
     private(set) var hideAt: TimeInterval?
-    private(set) var isTriggerHeld = false
-    /// 消す時刻が来たが、トリガーキーを押していたので離すのを待っている
-    private(set) var waitsForRelease = false
 
     /// 出した。消す時刻を返す（nil なら時間では消さない）
     mutating func show(_ toast: ToastModel, at now: TimeInterval) -> TimeInterval? {
         style = toast.style
-        waitsForRelease = false
         hideAt = HUDToastLayout.duration(for: toast).map { now + $0 }
         return hideAt
     }
 
     /// 消す時刻が来た（タイマー）。いま消すなら true
-    mutating func deadlineReached(at now: TimeInterval) -> Bool {
-        guard let hideAt, now >= hideAt else { return false }
-        if style == .failure, isTriggerHeld {
-            self.hideAt = nil
-            waitsForRelease = true
-            return false
-        }
-        return true
-    }
-
-    /// トリガーキーを押した・離した。離して、消すのを待っていたなら、新しい消す時刻を返す
-    mutating func setTriggerHeld(_ held: Bool, at now: TimeInterval) -> TimeInterval? {
-        isTriggerHeld = held
-        guard !held, waitsForRelease else { return nil }
-        waitsForRelease = false
-        hideAt = now + Self.afterRelease
-        return hideAt
+    func deadlineReached(at now: TimeInterval) -> Bool {
+        guard let hideAt else { return false }
+        return now >= hideAt
     }
 
     mutating func hidden() {
         style = nil
         hideAt = nil
-        waitsForRelease = false
     }
 }
 
@@ -212,13 +189,6 @@ final class HUDToastPresenter {
         schedule.hidden()
         fader.hide { [weak self] in
             self?.store.toast = nil
-        }
-    }
-
-    /// トリガーキーを押している間は、失敗のトーストを消さない
-    func setTriggerHeld(_ held: Bool) {
-        if let hideAt = schedule.setTriggerHeld(held, at: now()) {
-            startTimer(until: hideAt)
         }
     }
 

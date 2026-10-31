@@ -510,7 +510,7 @@ struct ShellMenuBarTests {
         await Self.drainMainQueue()
         #expect(seen == [true, false])
         // 同じ値なら知らせない
-        harness.controller.update { $0.settings.hudDelay = 0.5 }
+        harness.controller.update { $0.settings.haptics = .strong }
         await Self.drainMainQueue()
         #expect(seen == [true, false])
         observer.cancel()
@@ -593,12 +593,9 @@ struct ShellMenuBarTests {
         }
     }
 
-    @Test("トリガーキーの呼び方と練習の案内")
-    func triggerText() {
-        #expect(ShellText.triggerName(.rightCommand) == L10n.ui("右⌘"))
-        #expect(ShellText.triggerName(.rightOption) == L10n.ui("右⌥"))
-        #expect(ShellText.triggerName(.rightShift) == L10n.ui("右⇧"))
-        #expect(ShellText.triggerName(.function) == L10n.ui("fn"))
+    @Test("ようこその説明は、上の縁から指を滑らせることを言う")
+    func welcomeText() {
+        #expect(ShellText.welcomeSubtitle == L10n.ui("トラックパッドの上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンになります"))
     }
 
     @Test("メニューバーのアイコンが見えているか: 画面の中で、ノッチのある画面ではノッチの右のメニューバーにあるとき")

@@ -18,7 +18,6 @@ enum SelfCheck {
             version: AppInfo.fullVersion,
             permissions: SystemPermissions(),
             installedApps: WorkspaceInstalledApps(),
-            isJISKeyboard: KeyboardLayout.isJIS,
             multitouch: MultitouchProbe.check(),
             license: license
         )

@@ -14,6 +14,8 @@ public final class HUDWindowController: HUDPresenting {
     private let mouseLocation: () -> CGPoint
     /// システム設定の「コントラストを上げる」。HUD とトーストを出すたびに読み直す
     private let prefersIncreasedContrast: () -> Bool
+    /// システム設定の「視差効果を減らす」。HUD を出すたびに読み直す
+    private let prefersReducedMotion: () -> Bool
 
     private let hudStore = HUDStore()
     private lazy var hudPanel: HUDOverlayPanel = {
@@ -35,18 +37,21 @@ public final class HUDWindowController: HUDPresenting {
         self.init(
             screens: { HUDScreenGeometry.current() },
             mouseLocation: { NSEvent.mouseLocation },
-            prefersIncreasedContrast: { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast }
+            prefersIncreasedContrast: { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast },
+            prefersReducedMotion: { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
         )
     }
 
     init(
         screens: @escaping () -> [HUDScreenGeometry],
         mouseLocation: @escaping () -> CGPoint,
-        prefersIncreasedContrast: @escaping () -> Bool = { false }
+        prefersIncreasedContrast: @escaping () -> Bool = { false },
+        prefersReducedMotion: @escaping () -> Bool = { false }
     ) {
         self.screens = screens
         self.mouseLocation = mouseLocation
         self.prefersIncreasedContrast = prefersIncreasedContrast
+        self.prefersReducedMotion = prefersReducedMotion
     }
 
     /// HUD を表示中か（フェードアウト中は含まない）
@@ -67,6 +72,7 @@ public final class HUDWindowController: HUDPresenting {
         let model = HUDPlacement.fitted(model, in: screen)
         hudStore.model = model
         hudStore.increasedContrast = prefersIncreasedContrast()
+        hudStore.reduceMotion = prefersReducedMotion()
         let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), position: position, cursor: cursor, screen: screen)
         place(frame, screen: screen)
         hudFader.show()
@@ -109,10 +115,6 @@ public final class HUDWindowController: HUDPresenting {
 
     public func hideToast() {
         toast.hide()
-    }
-
-    public func setTriggerHeld(_ held: Bool) {
-        toast.setTriggerHeld(held)
     }
 
     public func showResult(_ result: ResultModel) {

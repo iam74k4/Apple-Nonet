@@ -332,10 +332,10 @@ struct ConfigurationInitialTests {
             // 同じアプリのプリセットが2つあっても、プロファイルは1つ
             AppPreset(app: ModelFixtures.xcode, category: "開発", summary: "", pages: [ModelFixtures.page(["別"])]),
         ]
-        let configuration = NonetConfiguration.initial(trigger: .rightOption, appPresets: presets, globalProfile: launcher)
+        let configuration = NonetConfiguration.initial(appPresets: presets, globalProfile: launcher)
 
         #expect(configuration.version == NonetConfiguration.currentVersion)
-        #expect(configuration.settings == GlobalSettings(trigger: .rightOption))
+        #expect(configuration.settings == GlobalSettings())
         #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Xcode", "Figma"])
         #expect(configuration.globalProfile.modelTitles == launcher.modelTitles)
         #expect(configuration.profiles[1].modelTitles[0][0...1] == ["ビルド", "テスト"])
@@ -347,7 +347,7 @@ struct ConfigurationInitialTests {
     @Test("グローバルとして渡したものがアプリのプロファイルでも、グローバルとして使う")
     func initialForcesGlobalKind() {
         let notGlobal = Profile(kind: .app(ModelFixtures.safari), pages: [ModelFixtures.page(["a"])])
-        let configuration = NonetConfiguration.initial(trigger: .rightCommand, appPresets: [], globalProfile: notGlobal)
+        let configuration = NonetConfiguration.initial(appPresets: [], globalProfile: notGlobal)
         #expect(configuration.profiles.count == 1)
         #expect(configuration.globalProfile.isGlobal)
         #expect(configuration.globalProfile.modelTitles == notGlobal.modelTitles)

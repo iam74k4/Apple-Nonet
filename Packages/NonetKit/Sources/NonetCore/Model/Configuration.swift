@@ -57,21 +57,19 @@ extension NonetConfiguration {
     /// 初回起動時の設定。グローバルは Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
     /// アプリのプロファイルは渡されたプリセットから作る
     public static func initial(
-        trigger: TriggerKey,
         appPresets: [AppPreset],
         installedBundleIDs: Set<String>,
         dockApps: [AppReference] = []
     ) -> NonetConfiguration {
         initial(
-            trigger: trigger,
             appPresets: appPresets,
             globalProfile: PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
         )
     }
 
-    static func initial(trigger: TriggerKey, appPresets: [AppPreset], globalProfile: Profile) -> NonetConfiguration {
+    static func initial(appPresets: [AppPreset], globalProfile: Profile) -> NonetConfiguration {
         let global = Profile(id: globalProfile.id, kind: .global, pages: globalProfile.pages)
-        var configuration = NonetConfiguration(settings: GlobalSettings(trigger: trigger), profiles: [global])
+        var configuration = NonetConfiguration(settings: GlobalSettings(), profiles: [global])
         for preset in appPresets {
             configuration.addAppProfile(for: preset.app, preset: preset)
         }
@@ -328,7 +326,7 @@ extension NonetConfiguration {
         return settings.appendGlobalPages ? appPages + globalPages : appPages
     }
 
-    /// 壊れた設定を直したもの（グローバルが先頭に1つ、ページ数、マス数、重複 id、hudDelay の範囲など）
+    /// 壊れた設定を直したもの（グローバルが先頭に1つ、ページ数、マス数、重複 id など）
     public func validated() -> NonetConfiguration {
         // 共通マスの id は設定画面が使うので、プロファイルには使わない
         var usedProfileIDs: Set<UUID> = [SharedCells.profileID]
@@ -392,7 +390,7 @@ extension NonetConfiguration {
         }
         return NonetConfiguration(
             version: Self.currentVersion,
-            settings: settings.validated(),
+            settings: settings,
             profiles: [globalProfile] + apps,
             sharedCells: shared
         )

@@ -184,10 +184,3 @@ final class MainQueueTask: ScheduledTask {
         action()
     }
 }
-
-public enum KeyboardLayout {
-    /// 物理キーボードが JIS 配列か
-    public static var isJIS: Bool {
-        Int(KBGetLayoutType(Int16(LMGetKbdType()))) == kKeyboardJIS
-    }
-}

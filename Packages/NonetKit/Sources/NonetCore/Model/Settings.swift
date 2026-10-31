@@ -1,48 +1,6 @@
 // 担当: core-model（公開 API は契約）
 import Foundation
 
-/// トラックパッドを 9 マスに切り替えるキー。どれも右側のキーだけに反応する
-public enum TriggerKey: String, Codable, CaseIterable, Sendable {
-    case rightCommand
-    case rightOption
-    case rightShift
-    /// fn（🌐）。左右の区別が無い
-    case function
-
-    /// JIS 配列には右⌥が無いので右⌘、それ以外は右⌥
-    public static func defaultKey(isJIS: Bool) -> TriggerKey {
-        isJIS ? .rightCommand : .rightOption
-    }
-
-    /// "⌘" など
-    public var symbol: String {
-        switch self {
-        case .rightCommand: "⌘"
-        case .rightOption: "⌥"
-        case .rightShift: "⇧"
-        case .function: "fn"
-        }
-    }
-
-    /// 「右⌘」など。HUD の「タップか 右⌘を離して実行」に使う（JIS 配列には⌘が2つあるので、右か左かまで言う）。
-    /// 呼び方は利用ガイドとメニューバー（ShellText.triggerName）に合わせる
-    public var localizedName: String {
-        switch self {
-        case .rightCommand: String(localized: "右⌘", bundle: .module)
-        case .rightOption: String(localized: "右⌥", bundle: .module)
-        case .rightShift: String(localized: "右⇧", bundle: .module)
-        case .function: String(localized: "fn", bundle: .module)
-        }
-    }
-}
-
-public enum FireMode: String, Codable, CaseIterable, Sendable {
-    /// HUD を見ながら選び、トリガーキーを離したときに実行する
-    case onTriggerRelease
-    /// HUD を見ながら選び、マスから指を離したときに実行する
-    case onFingerLift
-}
-
 public enum HUDPosition: String, Codable, CaseIterable, Sendable {
     case screenCenter
     case nearCursor
@@ -52,7 +10,7 @@ public enum HapticStrength: String, Codable, CaseIterable, Sendable {
     case off, light, medium, strong
 }
 
-/// トリガーを押している間、カーソルが動かないようにする方法
+/// 9マスを開いている間、ポインタが動かないようにする方法
 public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     /// 移動イベントを捨て、それでもずれたら元の位置に戻す
     case automatic
@@ -80,79 +38,60 @@ public enum HUDScale: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// トリガーキーを使わずに、トラックパッドだけで9マスを出す方法。トリガーキーはどれを選んでもいつもどおり使える
-public enum TouchActivation: String, Codable, CaseIterable, Sendable {
-    /// 使わない
-    case off
-    /// 左上の角に1本指を置いて、少し待つ（CornerHoldRecognizer）
-    case topLeft
-    /// 右上の角に1本指を置いて、少し待つ
-    case topRight
-}
-
 public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
-    public var trigger: TriggerKey
-    public var fireMode: FireMode
-    /// 置いた指を止めてから HUD を出すまでの秒数。これより短いタップはその場で実行する（0.15〜0.8）。
-    /// 指を置かないときに HUD を出すまでの時間は別（SessionConfiguration.placementWindow）
-    public var hudDelay: Double
     public var hudPosition: HUDPosition
     /// 前面アプリのプロファイルに自動で切り替える。false なら常にグローバル
     public var autoSwitchProfiles: Bool
     /// アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにする
     public var appendGlobalPages: Bool
     public var haptics: HapticStrength
-    /// false ならトリガーキーのイベントを前面アプリに渡さない
-    public var passTriggerToApps: Bool
-    /// HUD を出さずに実行したとき、実行したマスを一瞬表示する
+    /// 時間の掛かるマスが終わったときに、実行したマスを一瞬表示する
     public var showExecutionToast: Bool
     public var cursorLock: CursorLockMethod
-    /// トラックパッドの角の長押しで9マスを出す。既定は使わない
-    public var touchActivation: TouchActivation
     /// HUD とトーストの大きさ。既定は標準
     public var hudScale: HUDScale
 
     public init(
         isEnabled: Bool = true,
-        trigger: TriggerKey = .rightCommand,
-        fireMode: FireMode = .onTriggerRelease,
-        hudDelay: Double = 0.3,
         hudPosition: HUDPosition = .screenCenter,
         autoSwitchProfiles: Bool = true,
         appendGlobalPages: Bool = true,
         haptics: HapticStrength = .medium,
-        passTriggerToApps: Bool = true,
         showExecutionToast: Bool = true,
         cursorLock: CursorLockMethod = .automatic,
-        touchActivation: TouchActivation = .off,
         hudScale: HUDScale = .standard
     ) {
         self.isEnabled = isEnabled
-        self.trigger = trigger
-        self.fireMode = fireMode
-        self.hudDelay = hudDelay
         self.hudPosition = hudPosition
         self.autoSwitchProfiles = autoSwitchProfiles
         self.appendGlobalPages = appendGlobalPages
         self.haptics = haptics
-        self.passTriggerToApps = passTriggerToApps
         self.showExecutionToast = showExecutionToast
         self.cursorLock = cursorLock
-        self.touchActivation = touchActivation
         self.hudScale = hudScale
     }
-
-    public static let hudDelayRange: ClosedRange<Double> = 0.15...0.8
 }
 
 // MARK: - Codable
-// 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）
+// 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）。
+// トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）は、
+// 書いてあっても読み飛ばし、もう書かない（前の版はそれらが無ければ既定値で読む）
 
 extension GlobalSettings {
+    /// トリガーキーで開いていた版の項目。読み飛ばし、もう書かない
+    static let retiredKeys: Set<String> = ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation"]
+
+    /// 設定ファイル（JSONSerialization で読んだもの）から、settings の retiredKeys を除いたもの。
+    /// 読み飛ばした項目を、保存すると失われる中身とみなさない（その原本を configuration.lossy-… に残さない）
+    static func removingRetiredKeys(from object: Any) -> Any {
+        guard var root = object as? [String: Any], let settings = root["settings"] as? [String: Any] else { return object }
+        root["settings"] = settings.filter { !retiredKeys.contains($0.key) }
+        return root
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, trigger, fireMode, hudDelay, hudPosition, autoSwitchProfiles
-        case appendGlobalPages, haptics, passTriggerToApps, showExecutionToast, cursorLock, touchActivation, hudScale
+        case isEnabled, hudPosition, autoSwitchProfiles, appendGlobalPages, haptics, showExecutionToast, cursorLock, hudScale
     }
 
     public init(from decoder: any Decoder) throws {
@@ -160,17 +99,12 @@ extension GlobalSettings {
         let defaults = GlobalSettings()
         self.init(
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
-            trigger: container.decodeLossy(TriggerKey.self, forKey: .trigger, default: defaults.trigger),
-            fireMode: container.decodeLossy(FireMode.self, forKey: .fireMode, default: defaults.fireMode),
-            hudDelay: container.decodeLossy(Double.self, forKey: .hudDelay, default: defaults.hudDelay),
             hudPosition: container.decodeLossy(HUDPosition.self, forKey: .hudPosition, default: defaults.hudPosition),
             autoSwitchProfiles: container.decodeLossy(Bool.self, forKey: .autoSwitchProfiles, default: defaults.autoSwitchProfiles),
             appendGlobalPages: container.decodeLossy(Bool.self, forKey: .appendGlobalPages, default: defaults.appendGlobalPages),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
-            passTriggerToApps: container.decodeLossy(Bool.self, forKey: .passTriggerToApps, default: defaults.passTriggerToApps),
             showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
             cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock),
-            touchActivation: container.decodeLossy(TouchActivation.self, forKey: .touchActivation, default: defaults.touchActivation),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale)
         )
     }
@@ -178,33 +112,15 @@ extension GlobalSettings {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(isEnabled, forKey: .isEnabled)
-        try container.encode(trigger, forKey: .trigger)
-        try container.encode(fireMode, forKey: .fireMode)
-        try container.encode(hudDelay, forKey: .hudDelay)
         try container.encode(hudPosition, forKey: .hudPosition)
         try container.encode(autoSwitchProfiles, forKey: .autoSwitchProfiles)
         try container.encode(appendGlobalPages, forKey: .appendGlobalPages)
         try container.encode(haptics, forKey: .haptics)
-        try container.encode(passTriggerToApps, forKey: .passTriggerToApps)
         try container.encode(showExecutionToast, forKey: .showExecutionToast)
         try container.encode(cursorLock, forKey: .cursorLock)
-        // 使わない（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ使わないとして読む）
-        if touchActivation != .off {
-            try container.encode(touchActivation, forKey: .touchActivation)
-        }
-        // 標準（既定）なら書かない。touchActivation と同じく、前の版と同じ書式のままにする
+        // 標準（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ標準として読む）
         if hudScale != .standard {
             try container.encode(hudScale, forKey: .hudScale)
         }
-    }
-
-    /// 範囲外の値を直したもの
-    func validated() -> GlobalSettings {
-        var settings = self
-        let range = GlobalSettings.hudDelayRange
-        settings.hudDelay = hudDelay.isFinite
-            ? min(max(hudDelay, range.lowerBound), range.upperBound)
-            : GlobalSettings().hudDelay
-        return settings
     }
 }

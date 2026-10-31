@@ -16,16 +16,17 @@ public struct Cell: Codable, Equatable, Identifiable, Sendable {
     public var title: String
     public var icon: CellIcon
     public var action: Action
-    /// HUD で選んだときだけ実行する（送信・録画など、押し間違えると困るマス）。すぐにタップ（速押し）では実行せず、
-    /// このマスを光らせた HUD を出す（SessionConfiguration.hudOnlyCells）。設定ファイルには true のときだけ書く
-    public var requiresHUD: Bool
+    /// 少し長く止めてから実行する（送信・録画など、押し間違えると困るマス）。このマスで指を離して実行するには、
+    /// ふつうより長く（SessionConfiguration.holdDwell）止める（SessionConfiguration.holdCells）。
+    /// 設定ファイルの名前は前の版と同じ requiresHUD で、true のときだけ書く
+    public var requiresHold: Bool
 
-    public init(id: UUID = UUID(), title: String, icon: CellIcon, action: Action, requiresHUD: Bool = false) {
+    public init(id: UUID = UUID(), title: String, icon: CellIcon, action: Action, requiresHold: Bool = false) {
         self.id = id
         self.title = title
         self.icon = icon
         self.action = action
-        self.requiresHUD = requiresHUD
+        self.requiresHold = requiresHold
     }
 }
 
@@ -65,8 +66,8 @@ public enum ProfileMode: String, Codable, CaseIterable, Sendable {
     case profile
     /// このプロファイルは使わず、グローバルのページを使う（中身は残す。以前の「無効」）
     case global
-    /// このアプリでは Nonet を使わない。トリガーキーでも角の長押しでもセッションを始めず、
-    /// キーとポインタはそのまま前面アプリに届く（NonetConfiguration.isTurnedOff(forBundleID:)）
+    /// このアプリでは Nonet を使わない。トラックパッドの上の縁から指を滑らせても9マスを開かず、
+    /// ポインタはそのまま前面アプリに届く（NonetConfiguration.isTurnedOff(forBundleID:)）
     case off
 }
 
@@ -184,7 +185,9 @@ extension CellIcon {
 
 extension Cell {
     private enum CodingKeys: String, CodingKey {
-        case id, title, icon, action, requiresHUD
+        case id, title, icon, action
+        /// 前の版（HUD で選んだときだけ実行する）と同じ名前のまま読み書きする
+        case requiresHold = "requiresHUD"
     }
 
     /// requiresHUD が無い・読めなければ false（この設定より前の書式）
@@ -196,7 +199,7 @@ extension Cell {
             title: container.decodeLossy(String.self, forKey: .title, default: ""),
             icon: container.decodeLossy(CellIcon.self, forKey: .icon, default: .fallback(for: action)),
             action: action,
-            requiresHUD: container.decodeLossy(Bool.self, forKey: .requiresHUD, default: false)
+            requiresHold: container.decodeLossy(Bool.self, forKey: .requiresHold, default: false)
         )
     }
 
@@ -207,8 +210,8 @@ extension Cell {
         try container.encode(title, forKey: .title)
         try container.encode(icon, forKey: .icon)
         try container.encode(action, forKey: .action)
-        if requiresHUD {
-            try container.encode(true, forKey: .requiresHUD)
+        if requiresHold {
+            try container.encode(true, forKey: .requiresHold)
         }
     }
 }

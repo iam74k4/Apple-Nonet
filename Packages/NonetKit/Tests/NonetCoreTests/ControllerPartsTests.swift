@@ -13,7 +13,7 @@ import Testing
 
     @Test func hudModelMapsThePageAndClampsOutOfRangeValues() {
         let pages = pages(frontmost: F.safari)
-        let model = ControllerPresentation.hudModel(pages: pages, page: 1, highlightedCell: 0, hint: "案内", banner: "帯")
+        let model = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 1, highlightedCell: 0), hint: "案内", banner: "帯")
         #expect(model.title == "Safari")
         #expect(model.pageIndex == 1)
         #expect(model.pageCount == 3)
@@ -24,15 +24,15 @@ import Testing
         #expect(model.hint == "案内")
         #expect(model.banner == "帯")
 
-        let beyond = ControllerPresentation.hudModel(pages: pages, page: 9, highlightedCell: 12, hint: "", banner: nil)
+        let beyond = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 9, highlightedCell: 12), hint: "", banner: nil)
         #expect(beyond.pageIndex == 2)
         #expect(beyond.title == ModelFixtures.globalName)
         #expect(beyond.highlightedIndex == nil)
-        #expect(ControllerPresentation.hudModel(pages: pages, page: -1, highlightedCell: -1, hint: "", banner: nil).pageIndex == 0)
+        #expect(ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: -1, highlightedCell: -1), hint: "", banner: nil).pageIndex == 0)
     }
 
     @Test func hudModelWithoutPagesIsEmptyButValid() {
-        let model = ControllerPresentation.hudModel(pages: [], page: 0, highlightedCell: nil, hint: "", banner: nil)
+        let model = ControllerPresentation.hudModel(pages: [], state: SessionHUDState(page: 0, highlightedCell: nil), hint: "", banner: nil)
         #expect(model.title == "")
         #expect(model.pageCount == 1)
         #expect(model.cells == Array(repeating: nil, count: Page.cellCount))
@@ -46,16 +46,11 @@ import Testing
         #expect(ControllerPresentation.hudCell(F.newTab) == HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: ControllerPresentation.detail(for: F.newTab.action)))
     }
 
-    /// どのキーか（右⌘ など。JIS 配列には⌘が2つある）まで言い、「キーを離したとき」でもタップで実行できることを言う
-    @Test func hintsNameTheTriggerKeyAndSayTappingWorks() {
-        let release = { (trigger: TriggerKey) in ModelFixtures.text("タップか、\(trigger.localizedName)を離して実行") }
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightCommand, isPracticeMode: false) == release(.rightCommand))
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .function, isPracticeMode: false) == release(.function))
-        #expect(ControllerPresentation.hint(fireMode: .onFingerLift, trigger: .rightCommand, isPracticeMode: false) == ModelFixtures.text("指を離して実行"))
-        #expect(ControllerPresentation.hint(fireMode: .onTriggerRelease, trigger: .rightOption, isPracticeMode: true) == ModelFixtures.text("練習中 · \(release(.rightOption))"))
-        #expect(TriggerKey.allCases.map(\.localizedName) == [
-            ModelFixtures.text("右⌘"), ModelFixtures.text("右⌥"), ModelFixtures.text("右⇧"), ModelFixtures.text("fn"),
-        ])
+    /// HUD の右上の案内は、マスで指を離すと実行すること（練習中はそう添える）
+    @Test func theHintSaysLiftOnAButtonToRun() {
+        let lift = ModelFixtures.text("マスで指を離すと実行")
+        #expect(ControllerPresentation.hint(isPracticeMode: false) == lift)
+        #expect(ControllerPresentation.hint(isPracticeMode: true) == ModelFixtures.text("練習中 · \(lift)"))
     }
 
     /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
@@ -74,17 +69,10 @@ import Testing
 
     @Test func beginnerFootnotesExplainChoosingCancellingAndPages() {
         let choose = ModelFixtures.text("指を滑らせて選ぶ")
+        let cancel = ModelFixtures.text("外枠で指を離すとやめる")
         let pages = ModelFixtures.text("2本指のスワイプでページを切り替え")
-        let release = ModelFixtures.text("先に指を離してから\(TriggerKey.rightCommand.localizedName)を離すとやめる")
-        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightCommand, pageCount: 1)
-            == [choose, release].joined(separator: " · "))
-        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightCommand, pageCount: 3)
-            == [choose, release, pages].joined(separator: " · "))
-        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onFingerLift, activation: .triggerKey, trigger: .rightCommand, pageCount: 1)
-            == [choose, ModelFixtures.text("やめるときは指を置いたまま左の⇧を押す")].joined(separator: " · "))
-        // 角の長押しは、実行のタイミングの設定に関係なく、滑らせずに離すとやめる
-        #expect(ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .cornerHold, trigger: .rightCommand, pageCount: 2)
-            == [choose, ModelFixtures.text("滑らせずに離すとやめる"), pages].joined(separator: " · "))
+        #expect(ControllerPresentation.beginnerFootnote(pageCount: 1) == [choose, cancel].joined(separator: " · "))
+        #expect(ControllerPresentation.beginnerFootnote(pageCount: 3) == [choose, cancel, pages].joined(separator: " · "))
     }
 
     /// アプリのページの後ろにつなげたグローバルのページの位置（ページの点をそこで離す）
@@ -92,8 +80,22 @@ import Testing
         #expect(ControllerPresentation.globalPagesStart(pages(frontmost: F.safari)) == 2)
         #expect(ControllerPresentation.globalPagesStart(pages(frontmost: nil)) == nil)
         #expect(ControllerPresentation.globalPagesStart([]) == nil)
-        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), page: 0, highlightedCell: nil, hint: "", banner: nil)
+        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), state: SessionHUDState(page: 0, highlightedCell: nil), hint: "", banner: nil)
         #expect(model.globalPagesStart == 2)
+    }
+
+    /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ
+    @Test func theHUDModelCarriesTheFrameAndTheHold() {
+        let all = pages(frontmost: F.safari)
+        let inFrame = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true), hint: "", banner: nil)
+        #expect(inFrame.isFingerInFrame)
+        #expect(inFrame.highlightedIndex == nil)
+        let hold = SessionHold(cell: 2, since: 5, duration: 0.6, isReady: false)
+        let holding = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 2, hold: hold), hint: "", banner: nil)
+        #expect(holding.hold == HUDHold(cellIndex: 2, since: 5, duration: 0.6, isReady: false))
+        #expect(!holding.isFingerInFrame)
+        let elsewhere = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 4, hold: hold), hint: "", banner: nil)
+        #expect(elsewhere.hold == nil)
     }
 
     @Test func toastsAndResultsCarryTheCell() {
@@ -133,11 +135,9 @@ import Testing
     @Test func theSessionResolvesPagesForTheFrontmostApp() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
         #expect(session.pages.map(\.profileName) == ["Safari", "Safari", ModelFixtures.globalName])
-        // 中身のあるマスも渡す（空きマスの速押しで HUD を止めないため）。HUD で選ぶマスは無い
+        // 中身のあるマスも渡す（空きマスで離したらやめる）。少し長く止めるマスは無い
         let occupied: [Set<Int>] = [[0, 2, 4, 8], [0], [0, 8]]
-        #expect(session.engineConfiguration == SessionConfiguration(
-            hudDelay: 0.3, fireMode: .onTriggerRelease, pageCount: 3, occupiedCells: occupied, hudOnlyCells: [[], [], []]
-        ))
+        #expect(session.engineConfiguration == SessionConfiguration(pageCount: 3, occupiedCells: occupied, holdCells: [[], [], []]))
 
         let other = ControllerSession(configuration: F.configuration(), frontmostApp: nil)
         #expect(other.pages.map(\.profileName) == [ModelFixtures.globalName])
@@ -170,17 +170,16 @@ import Testing
     }
 
     @Test func theHUDModelUsesTheSessionSettings() {
-        let settings = F.settings { $0.fireMode = .onFingerLift }
-        let session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
-        let model = session.hudModel(page: 0, highlightedCell: 4, isPracticeMode: false, isTrialEnded: true)
-        #expect(model.hint == ModelFixtures.text("指を離して実行"))
+        let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
+        let model = session.hudModel(SessionHUDState(page: 0, highlightedCell: 4), isPracticeMode: false, isTrialEnded: true)
+        #expect(model.hint == ModelFixtures.text("マスで指を離すと実行"))
         #expect(model.banner == ControllerPresentation.trialEndedBanner)
         #expect(model.bannerStyle == .warning)
         #expect(model.highlightedIndex == 4)
         #expect(model.footnote == nil)
         #expect(model.scale == 1)
         #expect(model.globalPagesStart == 2)
-        #expect(session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: true, isTrialEnded: false).banner == nil)
+        #expect(session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: true, isTrialEnded: false).banner == nil)
     }
 
     /// 使い始めの案内・試用期間の残り日数（知らせの見た目）・HUD の大きさは、セッションで決めたとおりに出す
@@ -189,13 +188,13 @@ import Testing
         var session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
         session.showsBeginnerHint = true
         session.trialReminderDays = 2
-        let model = session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: false, isTrialEnded: false)
+        let model = session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: false, isTrialEnded: false)
         #expect(model.banner == ControllerPresentation.trialReminderBanner(daysLeft: 2))
         #expect(model.bannerStyle == .info)
-        #expect(model.footnote == ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightOption, pageCount: 3))
+        #expect(model.footnote == ControllerPresentation.beginnerFootnote(pageCount: 3))
         #expect(model.scale == 1.5)
         // 試用期間が終わっていれば、終わった帯を出す
-        #expect(session.hudModel(page: 0, highlightedCell: nil, isPracticeMode: false, isTrialEnded: true).banner == ControllerPresentation.trialEndedBanner)
+        #expect(session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: false, isTrialEnded: true).banner == ControllerPresentation.trialEndedBanner)
     }
 }
 
@@ -213,21 +212,25 @@ import Testing
         }
     }
 
-    private func configuration(hudDelay: Double) -> NonetConfiguration {
-        NonetConfiguration(settings: GlobalSettings(hudDelay: hudDelay), profiles: [])
+    /// 中身で見分けられる設定（variant ごとに HUD の大きさ・触覚の強さの組が違う）
+    private func configuration(variant: Double) -> NonetConfiguration {
+        let scales = HUDScale.allCases
+        let strengths = HapticStrength.allCases
+        let step = Int((variant * 10).rounded())
+        return NonetConfiguration(settings: GlobalSettings(haptics: strengths[step % strengths.count], hudScale: scales[step / strengths.count % scales.count]), profiles: [])
     }
 
     @Test func writesTheLatestConfigurationOnceAfterTheInterval() {
         let scheduler = ControllerFakeScheduler()
         let writes = Writes()
         let saver = makeSaver(writes, scheduler: scheduler)
-        saver.schedule(configuration(hudDelay: 0.2))
+        saver.schedule(configuration(variant: 0.2))
         scheduler.advance(by: 0.3)
-        saver.schedule(configuration(hudDelay: 0.4))
+        saver.schedule(configuration(variant: 0.4))
         #expect(saver.hasPendingSave)
         #expect(writes.saved.isEmpty)
         scheduler.advance(by: 0.2)
-        #expect(writes.saved == [configuration(hudDelay: 0.4)])
+        #expect(writes.saved == [configuration(variant: 0.4)])
         #expect(!saver.hasPendingSave)
         #expect(scheduler.pending.isEmpty)
     }
@@ -236,13 +239,13 @@ import Testing
         let scheduler = ControllerFakeScheduler()
         let writes = Writes()
         let saver = makeSaver(writes, scheduler: scheduler)
-        saver.schedule(configuration(hudDelay: 0.2))
+        saver.schedule(configuration(variant: 0.2))
         saver.flush()
-        #expect(writes.saved == [configuration(hudDelay: 0.2)])
+        #expect(writes.saved == [configuration(variant: 0.2)])
         #expect(scheduler.pending.isEmpty)
         saver.flush()
         #expect(writes.saved.count == 1)
-        saver.saveNow(configuration(hudDelay: 0.5))
+        saver.saveNow(configuration(variant: 0.5))
         #expect(writes.saved.count == 2)
     }
 
@@ -252,13 +255,13 @@ import Testing
         let saver = makeSaver(writes, scheduler: scheduler)
         var results: [Bool] = []
         saver.onResult = { results.append((try? $0.get()) != nil) }
-        saver.saveNow(configuration(hudDelay: 0.2))
+        saver.saveNow(configuration(variant: 0.2))
         writes.error = ConfigurationStoreError.writeFailed(reason: "x")
-        saver.saveNow(configuration(hudDelay: 0.3))
+        saver.saveNow(configuration(variant: 0.3))
         #expect(results == [true, false])
         // 失敗しても、次の変更でまた書こうとする
         writes.error = nil
-        saver.schedule(configuration(hudDelay: 0.4))
+        saver.schedule(configuration(variant: 0.4))
         scheduler.advance(by: 1)
         #expect(results == [true, false, true])
     }
@@ -269,7 +272,7 @@ import Testing
         let writes = Writes()
         let saver = makeSaver(writes, scheduler: scheduler)
         writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
-        saver.schedule(configuration(hudDelay: 0.2))
+        saver.schedule(configuration(variant: 0.2))
         scheduler.advance(by: 0.5)
         #expect(saver.hasPendingSave)
         #expect(saver.failureCount == 1)
@@ -281,7 +284,7 @@ import Testing
         // 空きができたら、次の書き直しで書ける
         writes.error = nil
         scheduler.advance(by: ControllerConfigurationSaver.firstRetryInterval * 2)
-        #expect(writes.saved == [configuration(hudDelay: 0.2)])
+        #expect(writes.saved == [configuration(variant: 0.2)])
         #expect(!saver.hasPendingSave)
         #expect(saver.failureCount == 0)
         #expect(scheduler.pending.isEmpty)
@@ -293,18 +296,18 @@ import Testing
         let writes = Writes()
         let saver = makeSaver(writes, scheduler: scheduler)
         writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
-        saver.saveNow(configuration(hudDelay: 0.2))
+        saver.saveNow(configuration(variant: 0.2))
         writes.error = nil
         // アプリの終了（NonetController.stop()）と同じ
         saver.flush()
-        #expect(writes.saved == [configuration(hudDelay: 0.2)])
+        #expect(writes.saved == [configuration(variant: 0.2)])
 
         writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
-        saver.saveNow(configuration(hudDelay: 0.3))
+        saver.saveNow(configuration(variant: 0.3))
         writes.error = nil
-        saver.schedule(configuration(hudDelay: 0.4))
+        saver.schedule(configuration(variant: 0.4))
         scheduler.advance(by: ControllerConfigurationSaver.defaultInterval)
-        #expect(writes.saved == [configuration(hudDelay: 0.2), configuration(hudDelay: 0.4)])
+        #expect(writes.saved == [configuration(variant: 0.2), configuration(variant: 0.4)])
         #expect(scheduler.pending.isEmpty)
     }
 
@@ -313,7 +316,7 @@ import Testing
         let writes = Writes()
         writes.error = ConfigurationStoreError.writeFailed(reason: "disk full")
         let saver = makeSaver(writes, scheduler: scheduler)
-        saver.saveNow(configuration(hudDelay: 0.2))
+        saver.saveNow(configuration(variant: 0.2))
         for _ in 0..<10 {
             saver.flush()
         }
@@ -328,11 +331,11 @@ import Testing
         let scheduler = ControllerFakeScheduler()
         let writes = Writes()
         let saver = makeSaver(writes, scheduler: scheduler)
-        saver.schedule(configuration(hudDelay: 0.2))
+        saver.schedule(configuration(variant: 0.2))
         saver.isEnabled = false
         #expect(!saver.hasPendingSave)
-        saver.schedule(configuration(hudDelay: 0.3))
-        saver.saveNow(configuration(hudDelay: 0.4))
+        saver.schedule(configuration(variant: 0.3))
+        saver.saveNow(configuration(variant: 0.4))
         scheduler.advance(by: 1)
         saver.flush()
         #expect(writes.saved.isEmpty)

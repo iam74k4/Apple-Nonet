@@ -25,11 +25,11 @@ struct ShellHUDAppearanceTests {
 
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 504, height: 315))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 630, height: 393.75))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 756, height: 472.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 504, height: 341))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 630, height: 426.25))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 756, height: 511.5))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 504, height: 315))
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 504, height: 341))
         #expect(HUDMetrics(scale: 1.5).headerFontSize == 18)
         #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 19.5)
     }
@@ -60,12 +60,10 @@ struct ShellHUDAppearanceTests {
         #expect(HUDPlacement.fittedScale(for: Self.model(pageCount: 3, footnote: "案内", scale: 1.25), in: main) == 1.25)
     }
 
-    @Test("トーストを出していなくても、消す・トリガーキーの知らせは何もしない")
+    @Test("トーストを出していなくても、消すのは何もしない")
     func toastCallsWithoutAToast() {
         let hud = HUDWindowController(screens: { [] }, mouseLocation: { .zero }, prefersIncreasedContrast: { true })
-        hud.setTriggerHeld(true)
         hud.hideToast()
-        hud.setTriggerHeld(false)
         #expect(!hud.isShowingHUD)
     }
 

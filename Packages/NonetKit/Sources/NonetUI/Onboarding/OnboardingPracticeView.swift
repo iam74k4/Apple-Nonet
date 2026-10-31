@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 3. 試してみる: HUD から選ぶ → すぐにタップ の2つの課題と、その後の「角に指を置いて呼び出す」の紹介
+// 3. 試してみる: 上の縁から開いてマスで離す → 外枠で離してやめる の2つの課題
 import NonetCore
 import SwiftUI
 
@@ -30,9 +30,6 @@ struct OnboardingPracticeStep: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            if blocker == nil, let trial = model.cornerTrial {
-                OnboardingCornerCard(model: model, trial: trial)
-            }
         }
         .padding(.horizontal, OnboardingLayout.horizontalPadding)
         .padding(.top, 6)
@@ -46,33 +43,31 @@ struct OnboardingPracticeTasks: View {
 
     var body: some View {
         let state = model.practice
-        let quickTapDetail: String? = switch state {
-        case .hud: nil
-        case .quickTap: ShellText.practiceQuickTapInstruction(trigger: model.trigger, target: page.quickTapTarget)
-        case .succeeded: ShellText.practiceQuickTapDone(page.quickTapTarget)
+        let cancelDetail: String? = switch state {
+        case .run: nil
+        case .cancel: ShellText.practiceCancelInstruction
+        case .succeeded: ShellText.practiceCancelDone
         }
         VStack(alignment: .leading, spacing: 14) {
             OnboardingTaskRow(
                 number: 1,
-                // この画面で HUD と言うのはここが最初
-                title: Text("HUD（9マスの一覧）から選ぶ", bundle: .module),
-                status: state == .hud ? .current : .done,
-                detail: state == .hud
-                    ? ShellText.practiceHUDInstruction(trigger: model.trigger, fireMode: model.fireMode, target: page.hudTarget)
-                    : ShellText.practiceHUDDone
+                // この画面で HUD と言うのは手順が最初（「HUD（9マスの一覧）」）
+                title: Text("開いて、マスで離す", bundle: .module),
+                status: state == .run ? .current : .done,
+                detail: state == .run ? ShellText.practiceRunInstruction(page.runTarget) : ShellText.practiceRunDone
             )
             OnboardingTaskRow(
                 number: 2,
-                title: Text("すぐにタップ", bundle: .module),
-                status: state == .hud ? .upcoming : state == .quickTap ? .current : .done,
-                detail: quickTapDetail
+                title: Text("外枠で離して、やめる", bundle: .module),
+                status: state == .run ? .upcoming : state == .cancel ? .current : .done,
+                detail: cancelDetail
             )
-            if let feedback = model.practiceFeedback, let text = Self.text(for: feedback, state: state, page: page) {
+            if let feedback = model.practiceFeedback {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "arrow.uturn.backward.circle")
                         .font(.system(size: 15))
                         .accessibilityHidden(true)
-                    Text(text)
+                    Text(Self.text(for: feedback, page: page))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .font(.system(size: 12))
@@ -84,16 +79,10 @@ struct OnboardingPracticeTasks: View {
         }
     }
 
-    static func text(for feedback: OnboardingPracticeFeedback, state: OnboardingPracticeState, page: OnboardingPracticePage) -> String? {
+    static func text(for feedback: OnboardingPracticeFeedback, page: OnboardingPracticePage) -> String {
         switch feedback {
-        case .wrongCell(let index, let title):
-            switch state {
-            case .hud: ShellText.practiceWrongCell(index: index, title: title, target: page.hudTarget)
-            case .quickTap: ShellText.practiceWrongCell(index: index, title: title, target: page.quickTapTarget)
-            case .succeeded: nil
-            }
-        case .tooQuick: ShellText.practiceTooQuick
-        case .usedHUD: ShellText.practiceUsedHUD
+        case .wrongCell(let index, let title): ShellText.practiceWrongCell(index: index, title: title, target: page.runTarget)
+        case .ranInsteadOfCancelling(let title): ShellText.practiceRanInsteadOfCancelling(title)
         }
     }
 }
@@ -158,110 +147,74 @@ struct OnboardingTaskRow: View {
     }
 }
 
-/// 練習ができた後の「キーを使わない方法もあります」。選んだ角で設定をオンにして、その場で試してもらう
-struct OnboardingCornerCard: View {
-    let model: OnboardingModel
-    let trial: OnboardingCornerTrial
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "hand.point.up.left")
-                .font(.system(size: 18))
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("キーを使わない方法もあります", bundle: .module)
-                    .font(.system(size: 14, weight: .semibold))
-                switch trial {
-                case .offered:
-                    Text("トラックパッドの左上か右上の角に指を置いて少し待つと、HUD が出ます", bundle: .module)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 10) {
-                        Picker(selection: Binding(get: { model.cornerChoice }, set: { model.cornerChoice = $0 })) {
-                            Text("左上の角", bundle: .module).tag(TouchActivation.topLeft)
-                            Text("右上の角", bundle: .module).tag(TouchActivation.topRight)
-                        } label: {
-                            Text("トラックパッドだけで呼び出す", bundle: .module)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .fixedSize()
-                        Button { model.tryCornerActivation() } label: { Text("試してみる", bundle: .module) }
-                    }
-                    .controlSize(.small)
-                case .trying(let corner):
-                    Text(ShellText.cornerTrialInstruction(corner))
-                        .font(.system(size: 12))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button { model.turnOffCornerActivation() } label: { Text("オフに戻す", bundle: .module) }
-                        .controlSize(.small)
-                case .succeeded:
-                    Label {
-                        Text(ShellText.cornerTrialDone)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill")
-                    }
-                    .font(.system(size: 12))
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
-    }
-}
-
-/// トラックパッドを上から見た図。いま HUD に出るページのボタンの名前を並べ、いまの課題のマスに印を付ける
+/// トラックパッドを上から見た図。外枠（やめる場所）と、その内側の9マスにいま HUD に出るページのボタンの名前を並べる。
+/// 上の縁の矢印は開き方（上の縁から下へ滑らせる）。いまの課題の場所（マスか外枠）に印を付ける
 struct OnboardingTrackpadFigure: View {
     let page: OnboardingPracticePage?
     let state: OnboardingPracticeState
     let feedback: OnboardingPracticeFeedback?
 
+    /// 外枠の幅（図の幅・高さに対する割合）。トラックパッドの外枠（GridInsets.cancelFrame）と同じ割合で描く
+    private static let frame = GridInsets.cancelFrame
+
     private var currentTarget: OnboardingPracticeTarget? {
-        switch state {
-        case .hud: page?.hudTarget
-        case .quickTap: page?.quickTapTarget
-        case .succeeded: nil
-        }
+        state == .run ? page?.runTarget : nil
     }
 
+    private var isFrameTarget: Bool { state == .cancel }
+
     private var doneIndices: Set<Int> {
-        guard let page else { return [] }
-        switch state {
-        case .hud: return []
-        case .quickTap: return [page.hudTarget.index]
-        case .succeeded: return [page.hudTarget.index, page.quickTapTarget.index]
-        }
+        guard let page, state != .run else { return [] }
+        return [page.runTarget.index]
     }
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let height = geometry.size.height
+            let inner = CGRect(
+                x: width * Self.frame.left,
+                y: height * Self.frame.top,
+                width: width * (1 - Self.frame.left - Self.frame.right),
+                height: height * (1 - Self.frame.top - Self.frame.bottom)
+            )
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .fill(isFrameTarget ? Color.primary.opacity(0.12) : Color.primary.opacity(0.04))
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.secondary.opacity(0.45))
+                    .strokeBorder(isFrameTarget ? Color.primary.opacity(0.8) : Color.secondary.opacity(0.45), lineWidth: isFrameTarget ? 1.5 : 1)
+                // 9マス（外枠の内側）
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .frame(width: inner.width, height: inner.height)
+                    .offset(x: inner.minX, y: inner.minY)
                 Path { path in
                     for line in 1...2 {
-                        let x = width * CGFloat(line) / 3
-                        let y = height * CGFloat(line) / 3
-                        path.move(to: CGPoint(x: x, y: 6))
-                        path.addLine(to: CGPoint(x: x, y: height - 6))
-                        path.move(to: CGPoint(x: 6, y: y))
-                        path.addLine(to: CGPoint(x: width - 6, y: y))
+                        let x = inner.minX + inner.width * CGFloat(line) / 3
+                        let y = inner.minY + inner.height * CGFloat(line) / 3
+                        path.move(to: CGPoint(x: x, y: inner.minY + 4))
+                        path.addLine(to: CGPoint(x: x, y: inner.maxY - 4))
+                        path.move(to: CGPoint(x: inner.minX + 4, y: y))
+                        path.addLine(to: CGPoint(x: inner.maxX - 4, y: y))
                     }
                 }
                 .stroke(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 ForEach(0..<Page.cellCount, id: \.self) { index in
                     cell(index)
-                        .frame(width: width / 3, height: height / 3)
-                        .offset(x: CGFloat(index % 3) * width / 3, y: CGFloat(index / 3) * height / 3)
+                        .opacity(isFrameTarget ? 0.45 : 1)
+                        .frame(width: inner.width / 3, height: inner.height / 3)
+                        .offset(x: inner.minX + CGFloat(index % 3) * inner.width / 3, y: inner.minY + CGFloat(index / 3) * inner.height / 3)
+                }
+                // 開き方: 上の縁から下へ
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: width, height: inner.minY)
+                if isFrameTarget {
+                    Text("外枠で離す", bundle: .module)
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: width, height: height * Self.frame.bottom)
+                        .offset(y: inner.maxY)
                 }
             }
         }
@@ -272,6 +225,8 @@ struct OnboardingTrackpadFigure: View {
     private var accessibilityLabel: Text {
         if let currentTarget {
             Text(ShellText.practiceFigureLabel(currentTarget))
+        } else if isFrameTarget {
+            Text(ShellText.practiceFigureCancelLabel)
         } else {
             Text("トラックパッドの図", bundle: .module)
         }
@@ -282,16 +237,17 @@ struct OnboardingTrackpadFigure: View {
         let isTarget = currentTarget?.index == index
         let isDone = doneIndices.contains(index)
         let isWrong = feedback == .wrongCell(index: index, title: Self.title(of: feedback))
-        return VStack(spacing: 4) {
+        return VStack(spacing: 3) {
             marker(isTarget: isTarget, isDone: isDone, isWrong: isWrong)
-                .frame(height: 22)
+                .frame(height: 20)
             if let title {
                 Text(title)
                     .font(.system(size: 10, weight: isTarget ? .bold : .regular))
                     .foregroundStyle(isTarget || isDone ? Color.primary : Color.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
             }
         }
     }
@@ -308,20 +264,20 @@ struct OnboardingTrackpadFigure: View {
             ZStack {
                 Circle()
                     .strokeBorder(Color.primary.opacity(0.25), lineWidth: 1)
-                    .frame(width: 22, height: 22)
+                    .frame(width: 20, height: 20)
                 Circle()
                     .fill(Color.primary)
-                    .frame(width: 12, height: 12)
+                    .frame(width: 11, height: 11)
             }
         } else if isDone {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 15))
+                .font(.system(size: 14))
         } else if isWrong {
             Circle()
                 .strokeBorder(Color.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
-                .frame(width: 18, height: 18)
+                .frame(width: 16, height: 16)
         } else {
-            Color.clear.frame(width: 22, height: 22)
+            Color.clear.frame(width: 20, height: 20)
         }
     }
 }

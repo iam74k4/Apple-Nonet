@@ -1041,10 +1041,6 @@ final class SettingsModel {
         controller.update { $0.settings[keyPath: keyPath] = value }
     }
 
-    var triggerWarning: String? {
-        SettingsText.triggerWarning(trigger: settings.trigger, isJISKeyboard: services.isJISKeyboard)
-    }
-
     /// システム設定から戻ったときなど。望んでいた状態になっていれば、前の知らせは消す
     /// （システム設定の「ログイン項目」で許可されたのに、できなかったと出し続けないように）
     func refreshLoginItem() {
@@ -1339,7 +1335,7 @@ final class SettingsModel {
         guard let supportEmail else { return nil }
         return SettingsSupportMail(
             address: supportEmail,
-            details: SettingsSupportMail.currentDetails(trigger: settings.trigger, isJISKeyboard: services.isJISKeyboard)
+            details: SettingsSupportMail.currentDetails()
         )
     }
 
@@ -1414,7 +1410,7 @@ final class SettingsModel {
         }
     }
 
-    /// ほかのアプリに移ったら記録を終える（記録中はトリガーキーが効かないため）
+    /// ほかのアプリに移ったら記録を終える（記録中は9マスが開かないため）
     func windowDidResignKey() {
         finishRecording()
         closeEditGroup()

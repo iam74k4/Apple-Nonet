@@ -16,8 +16,7 @@ struct SettingsSupportMail: Equatable {
         var macOSVersion: String
         /// 「Mac14,2」
         var macModel: String
-        var trigger: TriggerKey
-        /// JIS / ANSI / ISO
+        /// JIS / ANSI / ISO（キー入力のマスの不具合を調べるため）
         var keyboardType: String
     }
 
@@ -39,7 +38,6 @@ struct SettingsSupportMail: Equatable {
             "Nonet: \(version)",
             "macOS: \(details.macOSVersion)",
             "Mac: \(details.macModel)",
-            String(localized: "トリガーキー: \(SettingsText.name(details.trigger))", bundle: .module),
             String(localized: "キーボード: \(details.keyboardType)", bundle: .module),
         ]
         return lines.joined(separator: "\n")
@@ -65,8 +63,8 @@ struct SettingsSupportMail: Equatable {
 
     // MARK: - この Mac の情報
 
-    /// 今の Mac とアプリの情報。trigger は設定のトリガーキー、isJISKeyboard は NonetServices の値（ほかの画面と同じ判定）
-    static func currentDetails(trigger: TriggerKey, isJISKeyboard: Bool, bundle: Bundle = .main) -> Details {
+    /// 今の Mac とアプリの情報
+    static func currentDetails(bundle: Bundle = .main) -> Details {
         let info = bundle.infoDictionary ?? [:]
         let os = ProcessInfo.processInfo.operatingSystemVersion
         var macOS = "\(os.majorVersion).\(os.minorVersion)"
@@ -81,8 +79,7 @@ struct SettingsSupportMail: Equatable {
             build: info["CFBundleVersion"] as? String,
             macOSVersion: macOS,
             macModel: sysctlString("hw.model") ?? "?",
-            trigger: trigger,
-            keyboardType: isJISKeyboard ? "JIS" : keyboardType()
+            keyboardType: keyboardType()
         )
     }
 

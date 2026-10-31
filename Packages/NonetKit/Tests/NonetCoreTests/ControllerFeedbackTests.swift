@@ -1,4 +1,4 @@
-// 担当: engine。実行の知らせ（最近の実行・実行中のトースト・トリガーを押している間の失敗のトースト・触覚）と、
+// 担当: engine。実行の知らせ（最近の実行・実行中のトースト・触覚）と、
 // HUD の使い始めの案内・試用期間の知らせ・HUD の大きさ・トラックパッドに触れているかの知らせ
 import Foundation
 import Testing
@@ -17,13 +17,9 @@ import Testing
         return NonetConfiguration(settings: F.settings(transform), profiles: [global, safari]).validated()
     }
 
-    /// HUD を出し、指を休めてからトリガーを離して cell を実行する
+    /// 開いて、cell で止めてから離して実行する
     private func runFromTheHUD(_ h: ControllerHarness, cell: Int) {
-        h.pressTrigger()
-        h.touch(on: cell)
-        h.advance(0.4)
-        h.releaseTrigger()
-        h.lift()
+        h.run(cell, dwell: 0.4)
     }
 
     // MARK: 最近の実行
@@ -32,11 +28,9 @@ import Testing
         let h = try ControllerHarness()
         h.performer.failure = { $0 == F.newTab.action ? NonetError.timedOut : nil }
         h.start()
-        h.pressTrigger()
         for index in 0..<12 {
-            h.tap(index.isMultiple(of: 2) ? 2 : 0)
+            h.run(index.isMultiple(of: 2) ? 2 : 0)
         }
-        h.releaseTrigger()
         await h.settle()
 
         let recent = h.controller.recentExecutions
@@ -50,13 +44,15 @@ import Testing
         #expect(recent.allSatisfy { $0.profileID == safariID })
     }
 
+    /// 実行しなかったもの（開いている間に Nonet のウィンドウがキーになった）も残す
     @Test func refusedRunsAreRecentToo() async throws {
-        let h = try ControllerHarness(trialEnded: true)
+        let h = try ControllerHarness()
         h.start()
-        h.fastTap(2)
+        h.open()
+        h.frontmost.isOwnWindowKey = true
+        h.choose(2)
         await h.settle()
         #expect(h.controller.recentExecutions.map(\.succeeded) == [false])
-        #expect(h.controller.recentExecutions.first?.message == NonetError.licenseRequired.errorDescription)
     }
 
     // MARK: 実行中のトースト
@@ -89,7 +85,7 @@ import Testing
         let h = try ControllerHarness(configuration: buildConfiguration { $0.showExecutionToast = false })
         h.performer.holdsAction = { $0 == Self.build.action }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(1)
         #expect(h.hud.toasts.map(\.style) == [.running])
@@ -104,7 +100,7 @@ import Testing
         h.performer.holdsAction = { $0 == Self.build.action }
         h.performer.failure = { $0 == Self.build.action ? NonetError.timedOut : nil }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(1)
         h.performer.release(Self.build.action)
@@ -118,7 +114,7 @@ import Testing
         h.performer.holdsAction = { $0 == F.summarize.action }
         h.performer.output = { $0 == F.summarize.action ? "要約です" : nil }
         h.start()
-        h.fastTap(4)
+        h.run(4)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(1)
         h.performer.release(F.summarize.action)
@@ -128,13 +124,14 @@ import Testing
         #expect(h.hud.results.count == 1)
     }
 
+    /// すぐに終わった長く掛かるマスは「実行中」も成功も出さない（HUD から実行したので、見れば分かる）
     @Test func aQuickLongRunningCellShowsNoRunningToast() async throws {
         let h = try ControllerHarness(configuration: buildConfiguration())
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.settle()
         h.advance(1)
-        #expect(h.hud.toasts == [ControllerPresentation.successToast(Self.build)])
+        #expect(h.hud.toasts.isEmpty)
         #expect(h.hud.toastHides == 0)
     }
 
@@ -142,7 +139,7 @@ import Testing
         let h = try ControllerHarness(configuration: buildConfiguration { $0.showExecutionToast = false })
         h.performer.holdsAction = { $0 == F.newTab.action }
         h.start()
-        h.fastTap(1)
+        h.run(1)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(1)
         #expect(h.hud.toasts.isEmpty)
@@ -150,43 +147,20 @@ import Testing
         await h.settle()
     }
 
-    // MARK: トリガーを押している間
-
-    @Test func theHUDIsToldWhileTheTriggerIsHeld() async throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.pressTrigger()
-        #expect(h.hud.triggerHeldChanges == [true])
-        h.advance(0.05)
-        h.touch(on: 2)
-        // 指より先に離した（指が離れるのを待っている間）も、もう押していない
-        h.releaseTrigger()
-        #expect(h.hud.triggerHeldChanges == [true, false])
-        h.lift()
-        h.pressTrigger()
-        h.interrupt()
-        #expect(h.hud.triggerHeldChanges == [true, false, true, false])
-        await h.settle()
-    }
-
-    @Test func aCornerHoldIsNotATriggerHold() throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.touchActivation = .topLeft }))
-        h.start()
-        h.touch(x: 0.05, y: 0.95)
-        h.advance(CornerHoldRecognizer.holdDuration)
-        #expect(h.hud.isVisible)
-        #expect(h.hud.triggerHeldChanges.isEmpty)
-    }
-
     // MARK: 触覚
 
-    @Test func aRefusedTapInTheHUDBuzzesInsteadOfTheExecuteHaptic() async throws {
+    /// 実行を断ったとき（開いている間に Nonet のウィンドウがキーになった）は、execute の代わりに rejected
+    @Test func aRefusedRunBuzzesInsteadOfTheExecuteHaptic() async throws {
         let h = try ControllerHarness()
         h.start()
+        h.open()
+        h.advance(0.05)
+        h.touch(on: 2)
+        h.advance(0.3)
         h.frontmost.isOwnWindowKey = true
-        runFromTheHUD(h, cell: 2)
+        h.lift()
         await h.settle()
-        #expect(h.haptics.events == [.rejected])
+        #expect(h.haptics.events == [.activation, .boundary, .rejected])
         #expect(h.performer.calls.isEmpty)
     }
 
@@ -209,36 +183,35 @@ import Testing
         let h = try ControllerHarness()
         h.guidance.hudSessionCount = HUDGuidance.beginnerSessionLimit - 2
         h.start()
-        let footnote = ControllerPresentation.beginnerFootnote(fireMode: .onTriggerRelease, activation: .triggerKey, trigger: .rightOption, pageCount: 3)
+        let footnote = ControllerPresentation.beginnerFootnote(pageCount: 3)
 
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.footnote == footnote)
         // HUD の中身が変わっても、1つのセッションでは1回だけ数える
         h.touch(on: 4)
         h.touch(on: 5)
         #expect(h.hud.current?.footnote == footnote)
         #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit - 1)
-        h.lift()
-        h.releaseTrigger()
+        h.closeIfOpen()
 
-        // HUD を出さなかったセッションは数えない
-        h.fastTap(2)
+        // 開かなかった（試しに上の縁から横へ滑らせた）ものは数えない
+        h.touch(x: 0.3, y: ControllerHarness.edgeY)
+        h.advance(0.05)
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.lift()
         #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit - 1)
 
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.footnote == footnote)
         #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit)
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         // 出し終えたら出さず、もう数えない
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.isVisible)
         #expect(h.hud.current?.footnote == nil)
         #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit)
-        h.releaseTrigger()
+        h.closeIfOpen()
         await h.settle()
     }
 
@@ -251,8 +224,7 @@ import Testing
         h.start()
         #expect(h.license.entitlement == .trial(daysLeft: HUDGuidance.trialReminderDays))
 
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.banner == ControllerPresentation.trialReminderBanner(daysLeft: HUDGuidance.trialReminderDays))
         #expect(h.hud.current?.bannerStyle == .info)
         #expect(h.guidance.lastTrialReminder == today)
@@ -260,29 +232,25 @@ import Testing
         h.touch(on: 4)
         #expect(h.hud.current?.banner != nil)
         h.advance(0.3)
-        h.lift()
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         // 同じ日はもう出さない
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.banner == nil)
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         // 次の日はまた出す
         h.controller.currentDate = { today.addingTimeInterval(86_400) }
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.bannerStyle == .info)
         #expect(h.hud.current?.banner != nil)
-        h.releaseTrigger()
+        h.closeIfOpen()
     }
 
     @Test func theTrialIsNotMentionedBeforeTheLastDays() throws {
         let h = try ControllerHarness(trialDaysUsed: Double(LicenseManager.trialDays - HUDGuidance.trialReminderDays) - 1)
         h.start()
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.isVisible)
         #expect(h.hud.current?.banner == nil)
         #expect(h.guidance.lastTrialReminder == nil)
@@ -291,8 +259,7 @@ import Testing
     @Test func aLicenseNeverShowsTheTrialBanner() throws {
         let h = try ControllerHarness(licensed: true)
         h.start()
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.banner == nil)
     }
 
@@ -300,12 +267,12 @@ import Testing
 
     @Test func theHUDAndToastsUseTheChosenSize() async throws {
         let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.hudScale = .large }))
+        h.performer.failure = { _ in NonetError.timedOut }
         h.start()
-        h.pressTrigger()
-        h.advance(SessionConfiguration.defaultPlacementWindow)
+        h.open()
         #expect(h.hud.current?.scale == HUDScale.large.factor)
-        h.releaseTrigger()
-        h.fastTap(2)
+        h.closeIfOpen()
+        h.run(2)
         await h.settle()
         #expect(h.hud.toasts.map(\.scale) == [HUDScale.large.factor])
     }

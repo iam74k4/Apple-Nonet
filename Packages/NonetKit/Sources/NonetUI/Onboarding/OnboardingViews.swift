@@ -230,7 +230,7 @@ struct OnboardingWelcomeStep: View {
                     .font(.system(size: 24, weight: .bold))
                     .fixedSize(horizontal: false, vertical: true)
                     .onboardingHeading()
-                    Text(ShellText.welcomeSubtitle(model.trigger))
+                    Text(ShellText.welcomeSubtitle)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -247,8 +247,8 @@ struct OnboardingWelcomeStep: View {
                     .font(.system(size: 13))
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 6) {
-                    OnboardingBullet(Text("トリガーキーが押された・離されたことを知る", bundle: .module))
-                    OnboardingBullet(Text("トリガーキーを押している間、ポインタの移動とクリックを前面のアプリに渡さない", bundle: .module))
+                    OnboardingBullet(Text("9マスを開いている間、ポインタの移動とクリックを前面のアプリに渡さない", bundle: .module))
+                    OnboardingBullet(Text("9マスを開いている間だけ、キーが押されたことを知る（押されたら閉じる）", bundle: .module))
                     OnboardingBullet(Text("設定したキー入力を送る・メニュー項目を押す・選択中のテキストを読む", bundle: .module))
                 }
                 Text("入力した文字の内容は記録も送信もしません。設定は Mac の中だけに保存します。", bundle: .module)

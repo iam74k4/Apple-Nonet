@@ -2,7 +2,7 @@
 import Foundation
 
 /// 触れている指を置いた順に覚える。セッションの外でも動かし続け、
-/// トリガーを押す前から置いていた指を見分けられるようにする
+/// 9マスを開いたときに触れている指（開く動きの指）を知っておけるようにする
 struct FingerTracker: Sendable {
     struct Finger: Equatable, Sendable {
         var id: Int

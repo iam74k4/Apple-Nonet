@@ -28,7 +28,7 @@ import Testing
     private func configuration(first: Cell) -> NonetConfiguration {
         let global = Profile(kind: .global, pages: [Page(cells: [F.docs])])
         let safari = Profile(kind: .app(F.safari), pages: [Page(cells: [first, F.newTab, F.closeTab])])
-        return NonetConfiguration(settings: GlobalSettings(trigger: .rightOption), profiles: [global, safari]).validated()
+        return NonetConfiguration(settings: GlobalSettings(), profiles: [global, safari]).validated()
     }
 
     /// 1つ目のマスが action。その実行は release まで終わらない
@@ -44,25 +44,25 @@ import Testing
         let h = try ControllerHarness(configuration: configuration(first: Self.build))
         h.performer.holdsAction = { $0 == Self.build.action }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         // 数秒後に、別のセッションで ⌘T を速押しする（ビルドはまだ終わっていない）
         h.advance(3)
-        h.fastTap(1)
+        h.run(1)
         await h.waitUntil { h.performer.finished.count == 1 }
 
         #expect(h.performer.actions == [Self.build.action, F.newTab.action])
         #expect(h.performer.finished == [F.newTab.action])
         #expect(h.performer.calls.last?.frontmostApp == F.safariApp)
-        // ビルドが終わらないうちは「実行中」のトーストを出し、後の速押しのトーストがそれを置き換える
+        // ビルドが終わらないうちは「実行中」のトーストを出したまま（後のマスは HUD から実行したので、成功のトーストは出さない）
         let running = ControllerPresentation.runningToast(Self.build)
-        #expect(h.hud.toasts.map(\.title) == [running.title, F.newTab.title])
+        #expect(h.hud.toasts.map(\.title) == [running.title])
         #expect(h.controller.lastExecution?.cellTitle == F.newTab.title)
 
         // ビルドの結果は、終わったときに知らせる
         h.performer.release(Self.build.action)
         await h.settle()
-        #expect(h.hud.toasts.map(\.title) == [running.title, F.newTab.title, Self.build.title])
+        #expect(h.hud.toasts.map(\.title) == [running.title, Self.build.title])
         #expect(h.controller.lastExecution?.cellTitle == Self.build.title)
         #expect(h.controller.lastExecution?.succeeded == true)
     }
@@ -71,10 +71,10 @@ import Testing
     func aLongRunningActionHoldsLaterTapsOnlyBriefly(_ action: Action) async throws {
         let h = try harness(first: action)
         h.start()
-        h.pressTrigger()
-        h.tap(0)
+        h.open()
+        h.choose(0)
         await h.waitUntil { h.performer.calls.count == 1 }
-        h.tap(1)
+        h.choose(1)
         // 始めに前面アプリの選択などを読むので、少しの間は後のキー入力を送らない
         await h.waitUntil { h.performer.calls.count > 1 }
         #expect(h.performer.actions == [action])
@@ -82,7 +82,7 @@ import Testing
         await h.waitUntil { h.performer.calls.count == 2 }
         #expect(h.performer.actions == [action, F.newTab.action])
         #expect(h.performer.waitingActions == [action])
-        h.releaseTrigger()
+        h.closeIfOpen()
 
         h.performer.release(action)
         await h.settle()
@@ -92,9 +92,9 @@ import Testing
     @Test func aLongRunningActionThatFinishesQuicklyDoesNotHoldAnything() async throws {
         let h = try ControllerHarness(configuration: configuration(first: Self.build))
         h.start()
-        h.pressTrigger()
-        h.tap(0)
-        h.tap(1)
+        h.open()
+        h.choose(0)
+        h.choose(1)
         await h.settle()
         #expect(h.performer.actions == [Self.build.action, F.newTab.action])
         #expect(h.scheduler.pending.allSatisfy { $0.delay != P.longRunningHold })
@@ -104,7 +104,7 @@ import Testing
         let h = try ControllerHarness(configuration: configuration(first: Self.build))
         h.performer.holdsAction = { $0 == Self.build.action }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(P.longRunningHold)
 
@@ -129,10 +129,10 @@ import Testing
         h.performer.holdsAction = { $0 == Self.build.action }
         h.performer.failure = { $0 == Self.build.action ? NonetError.timedOut : nil }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(P.longRunningHold)
-        h.fastTap(1)
+        h.run(1)
         await h.waitUntil { h.performer.finished.count == 1 }
         h.performer.release(Self.build.action)
         await h.settle()
@@ -141,7 +141,6 @@ import Testing
         let title = ControllerPresentation.failureTitle(ControllerTarget(cell: Self.build, profileName: "Safari", address: CellAddress(page: 0, index: 0)))
         #expect(h.hud.toasts == [
             ControllerPresentation.runningToast(Self.build),
-            ToastModel(title: F.newTab.title, icon: F.newTab.icon, style: .success),
             ToastModel(title: title, detail: message, icon: Self.build.icon, style: .failure),
         ])
         let record = try #require(h.controller.lastExecution)
@@ -157,17 +156,17 @@ import Testing
         h.performer.holdsAction = { $0 == summarize.action }
         h.performer.output = { $0 == summarize.action ? "要約です" : nil }
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(P.longRunningHold)
-        h.fastTap(2)
+        h.run(2)
         await h.waitUntil { h.performer.finished.count == 1 }
         #expect(h.hud.results.isEmpty)
 
         h.performer.release(summarize.action)
         await h.settle()
         #expect(h.hud.results == [ResultModel(title: summarize.title, text: "要約です", icon: summarize.icon)])
-        #expect(h.hud.toasts.map(\.title) == [ControllerPresentation.runningToast(summarize).title, F.closeTab.title])
+        #expect(h.hud.toasts.map(\.title) == [ControllerPresentation.runningToast(summarize).title])
     }
 
     // MARK: 1つずつ実行するアクション
@@ -176,10 +175,10 @@ import Testing
     func otherActionsHoldLaterTapsUntilTheyFinish(_ action: Action) async throws {
         let h = try harness(first: action)
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         h.advance(P.longRunningHold)
-        h.fastTap(1)
+        h.run(1)
         await h.waitUntil { h.performer.calls.count > 1 }
         #expect(h.performer.actions == [action])
 
@@ -193,10 +192,10 @@ import Testing
     @Test func aStuckActionHoldsLaterTapsOnlyUpToTheLimit() async throws {
         let h = try harness(first: .keystroke(.key("s", [.command])))
         h.start()
-        h.fastTap(0)
+        h.run(0)
         await h.waitUntil { h.performer.calls.count == 1 }
         let started = h.scheduler.now
-        h.fastTap(1)
+        h.run(1)
         h.scheduler.advance(to: started + P.holdLimit - 0.01)
         await h.waitUntil { h.performer.calls.count > 1 }
         #expect(h.performer.calls.count == 1)

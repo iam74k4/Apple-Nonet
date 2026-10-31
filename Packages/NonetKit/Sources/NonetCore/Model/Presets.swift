@@ -81,7 +81,7 @@ public struct AppPreset: Identifiable, Sendable {
     public func makeProfile() -> Profile {
         let pages = pages.map { page in
             Page(cells: page.cells.map { cell in
-                cell.map { Cell(title: $0.title, icon: $0.icon, action: $0.action, requiresHUD: $0.requiresHUD) }
+                cell.map { Cell(title: $0.title, icon: $0.icon, action: $0.action, requiresHold: $0.requiresHold) }
             })
         }
         return Profile(kind: .app(app), pages: pages)

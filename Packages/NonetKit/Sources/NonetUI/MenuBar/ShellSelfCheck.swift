@@ -32,7 +32,6 @@ public enum ShellSelfCheck {
         public var multitouch: Multitouch
         public var accessibilityGranted: Bool
         public var entitlement: Entitlement
-        public var isJISKeyboard: Bool
 
         public init(
             version: String,
@@ -42,8 +41,7 @@ public enum ShellSelfCheck {
             configurationRoundTripError: String?,
             multitouch: Multitouch,
             accessibilityGranted: Bool,
-            entitlement: Entitlement,
-            isJISKeyboard: Bool
+            entitlement: Entitlement
         ) {
             self.version = version
             self.presetCount = presetCount
@@ -53,7 +51,6 @@ public enum ShellSelfCheck {
             self.multitouch = multitouch
             self.accessibilityGranted = accessibilityGranted
             self.entitlement = entitlement
-            self.isJISKeyboard = isJISKeyboard
         }
 
         /// 失敗とみなすもの。権限・トラックパッドの有無・試用の状態は Mac によるので失敗にしない
@@ -89,7 +86,6 @@ public enum ShellSelfCheck {
                 "multitouch": multitouchObject,
                 "accessibilityGranted": accessibilityGranted,
                 "license": Self.licenseObject(entitlement),
-                "jisKeyboard": isJISKeyboard,
             ]
         }
 
@@ -163,7 +159,6 @@ public enum ShellSelfCheck {
         version: String,
         permissions: any PermissionsProviding,
         installedApps: any InstalledAppsProviding,
-        isJISKeyboard: Bool,
         multitouch: Multitouch,
         license: LicenseManager,
         workDirectory: URL = FileManager.default.temporaryDirectory
@@ -180,15 +175,13 @@ public enum ShellSelfCheck {
             configurationRoundTripError: roundTripError,
             multitouch: multitouch,
             accessibilityGranted: permissions.isAccessibilityGranted,
-            entitlement: license.entitlement,
-            isJISKeyboard: isJISKeyboard
+            entitlement: license.entitlement
         )
     }
 
     /// プリセットをすべて入れた設定を directory に保存して読み直し、同じかを確かめる。成功なら nil
     public static func configurationRoundTrip(in directory: URL) -> String? {
         let configuration = NonetConfiguration.initial(
-            trigger: .rightCommand,
             appPresets: PresetLibrary.apps,
             installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID))
         )

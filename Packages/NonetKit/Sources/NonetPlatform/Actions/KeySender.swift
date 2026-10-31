@@ -71,7 +71,7 @@ enum KeyEventFactory {
     }
 }
 
-/// 前面アプリにキーを送る。トリガーキーを押したままでも混ざらないよう、
+/// 前面アプリにキーを送る。利用者が押したままの修飾キーが混ざらないよう、
 /// 自前の状態を持つイベントソースから、フラグを明示したイベントを HID の位置に流す
 @MainActor
 final class KeySender {
@@ -85,7 +85,7 @@ final class KeySender {
     init() {
         let source = CGEventSource(stateID: .privateState)
         source?.userData = SyntheticKeyEvent.userData
-        // 既定では送った直後の 0.25 秒、本物のキー入力が止められる。トリガーを離したことを取りこぼさないようにする
+        // 既定では送った直後の 0.25 秒、本物のキー入力が止められる。続けて押されたキーを取りこぼさないようにする
         source?.localEventsSuppressionInterval = 0
         source?.setLocalEventsFilterDuringSuppressionState(
             [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents],

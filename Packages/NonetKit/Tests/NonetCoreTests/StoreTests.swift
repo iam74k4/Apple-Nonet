@@ -28,7 +28,7 @@ struct StoreFileTests {
     func saveAndLoad() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory.appending(path: "nested/Nonet", directoryHint: .isDirectory))
-            var configuration = ModelFixtures.configuration(settings: GlobalSettings(trigger: .rightOption, hudDelay: 0.45))
+            var configuration = ModelFixtures.configuration(settings: GlobalSettings(hudPosition: .nearCursor, haptics: .light))
             let safariID = configuration.profiles[1].id
             for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
                 configuration.setCell(ModelFixtures.cell("\(index)", action: action), at: CellAddress(page: 0, index: index), profileID: safariID)
@@ -47,15 +47,15 @@ struct StoreFileTests {
     func saveAndLoadValidate() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
-            let broken = NonetConfiguration(settings: GlobalSettings(hudDelay: 5), profiles: [ModelFixtures.profile(ModelFixtures.safari)])
+            let broken = NonetConfiguration(settings: GlobalSettings(haptics: .light), profiles: [ModelFixtures.profile(ModelFixtures.safari)])
             try store.save(broken)
             let loaded = try #require(try store.load())
             #expect(loaded.profiles.first?.isGlobal == true)
-            #expect(loaded.settings.hudDelay == 0.8)
+            #expect(loaded.settings.haptics == .light)
 
             // 手で書き換えられた壊れたファイルも直して返す
             let hand = #"""
-            {"version": 1, "settings": {"hudDelay": 0.01}, "profiles": [
+            {"version": 1, "settings": {"haptics": "ultra"}, "profiles": [
               {"kind": {"type": "app", "app": {"bundleID": "a", "name": "A"}}},
               {"kind": {"type": "app", "app": {"bundleID": "a", "name": "A2"}}},
               {"kind": {"type": "global"}}, {"kind": {"type": "global"}}
@@ -63,7 +63,7 @@ struct StoreFileTests {
             """#
             try Data(hand.utf8).write(to: store.fileURL)
             let repaired = try #require(try store.load())
-            #expect(repaired.settings.hudDelay == 0.15)
+            #expect(repaired.settings.haptics == .medium)
             #expect(repaired.profiles.map(\.name) == [ModelFixtures.globalName, "A"])
         }
     }
@@ -76,7 +76,7 @@ struct StoreFileTests {
             var second = first
             second.settings.haptics = .off
             var third = second
-            third.settings.trigger = .rightShift
+            third.settings.hudPosition = .nearCursor
 
             try store.save(first)
             #expect(!FileManager.default.fileExists(atPath: store.backupFileURL.path(percentEncoded: false)))
@@ -211,7 +211,7 @@ struct StoreFileTests {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
             let future = #"""
-            {"version": 2, "settings": {"trigger": "rightShift", "newThing": 1}, "profiles": [
+            {"version": 2, "settings": {"hudPosition": "nearCursor", "newThing": 1}, "profiles": [
               {"kind": {"type": "global"}, "pages": [{"cells": [
                 {"title": "未来", "action": {"type": "hologram"}},
                 {"title": "今", "action": {"type": "openURL", "url": "https://a.example"}}
@@ -223,7 +223,7 @@ struct StoreFileTests {
 
             let configuration = try #require(try store.load())
             #expect(configuration.version == 1)
-            #expect(configuration.settings.trigger == .rightShift)
+            #expect(configuration.settings.hudPosition == .nearCursor)
             #expect(configuration.profiles.count == 1)
             #expect(configuration.globalProfile.modelTitles[0][0...1] == [nil, "今"])
 
@@ -240,8 +240,8 @@ struct StoreFileTests {
     func repeatedDowngrade() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
-            let first = #"{"version": 2, "settings": {"trigger": "rightShift"}, "profiles": [{"kind": {"type": "global"}}]}"#
-            let second = #"{"version": 2, "settings": {"trigger": "function"}, "profiles": [{"kind": {"type": "global"}}, {"kind": {"type": "website"}}]}"#
+            let first = #"{"version": 2, "settings": {"hudScale": "large"}, "profiles": [{"kind": {"type": "global"}}]}"#
+            let second = #"{"version": 2, "settings": {"hudScale": "extraLarge"}, "profiles": [{"kind": {"type": "global"}}, {"kind": {"type": "website"}}]}"#
 
             // 2.0 → 1.x: v2 の原本を残し、編集すると v1 で書く
             try Data(first.utf8).write(to: store.fileURL)
@@ -252,7 +252,7 @@ struct StoreFileTests {
             // 2.0 に上げて使い続け、また 1.x に戻す
             try Data(second.utf8).write(to: store.fileURL)
             configuration = try #require(try store.load())
-            #expect(configuration.settings.trigger == .function)
+            #expect(configuration.settings.hudScale == .extraLarge)
             for haptics in [HapticStrength.light, .strong] {
                 configuration.settings.haptics = haptics
                 try store.save(configuration)
@@ -280,12 +280,12 @@ struct StoreFileTests {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
             // 今の版が 2 で、v1 → v2 の手順があったとして
-            let old = #"{"version": 1, "settings": {"trigger": "rightShift"}, "profiles": [{"kind": {"type": "global"}}]}"#
+            let old = #"{"version": 1, "settings": {"hudPosition": "nearCursor"}, "profiles": [{"kind": {"type": "global"}}]}"#
             try Data(old.utf8).write(to: store.fileURL)
             let steps: [Int: ConfigurationMigration.Step] = [1: { $0 }]
 
             let configuration = try #require(try store.load(currentVersion: 2, steps: steps))
-            #expect(configuration.settings.trigger == .rightShift)
+            #expect(configuration.settings.hudPosition == .nearCursor)
             #expect(try String(contentsOf: directory.appending(path: "configuration.v1.json"), encoding: .utf8) == old)
 
             _ = try store.load(currentVersion: 2, steps: steps)
@@ -337,7 +337,7 @@ struct StoreLossyFileTests {
         ]}
         """#,
         // 知らない設定の値・知らない設定の項目
-        #"{"version": 1, "settings": {"trigger": "leftControl"}, "profiles": [{"kind": {"type": "global"}}]}"#,
+        #"{"version": 1, "settings": {"hudPosition": "topLeft"}, "profiles": [{"kind": {"type": "global"}}]}"#,
         #"{"version": 1, "settings": {"hudOpacity": 0.5}, "profiles": [{"kind": {"type": "global"}}]}"#,
         // アクションの知らない項目
         #"""
@@ -365,8 +365,8 @@ struct StoreLossyFileTests {
           {"cells": [{"title": "4", "action": {"type": "openURL", "url": "u"}}]}
         ]}]}
         """#,
-        // 範囲外の値
-        #"{"version": 1, "settings": {"hudDelay": 5}, "profiles": [{"kind": {"type": "global"}}]}"#,
+        // 型の違う値
+        #"{"version": 1, "settings": {"hudScale": 3}, "profiles": [{"kind": {"type": "global"}}]}"#,
     ]
 
     @Test("原本を configuration.lossy-<日時>.json に残し、2回保存した後も残っている", arguments: lossyFiles)
@@ -448,7 +448,7 @@ struct StoreLossyFileTests {
     func savedFileIsNotCopied() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
-            var configuration = ModelFixtures.configuration(settings: GlobalSettings(trigger: .function, hudDelay: 0.55))
+            var configuration = ModelFixtures.configuration(settings: GlobalSettings(hudPosition: .nearCursor, haptics: .strong))
             let xcodeID = configuration.profiles[2].id
             for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
                 configuration.setCell(ModelFixtures.cell("\(index)", action: action), at: CellAddress(page: 1, index: index), profileID: xcodeID)
@@ -542,15 +542,15 @@ struct StoreMigrationTests {
 
     @Test("古い版のファイルを移行してから読む（v0 → v1 の手順があったとして）")
     func decodeOldVersionThroughMigration() throws {
-        // 仮の v0: トリガーキーを "triggerKey" に、プロファイルを "boards" に書いていた
+        // 仮の v0: 触覚を "feedback" に、プロファイルを "boards" に書いていた
         let old = #"""
-        {"version": 0, "settings": {"triggerKey": "rightShift"}, "boards": [{"kind": {"type": "global"}}]}
+        {"version": 0, "settings": {"feedback": "strong"}, "boards": [{"kind": {"type": "global"}}]}
         """#
         let steps: [Int: ConfigurationMigration.Step] = [
             0: { object in
                 var object = object
                 var settings = object["settings"] as? [String: Any] ?? [:]
-                settings["trigger"] = settings.removeValue(forKey: "triggerKey")
+                settings["haptics"] = settings.removeValue(forKey: "feedback")
                 object["settings"] = settings
                 object["profiles"] = object.removeValue(forKey: "boards")
                 return object
@@ -567,7 +567,7 @@ struct StoreMigrationTests {
         )
         #expect(fileVersion == 1)
         #expect(configuration.version == 2)
-        #expect(configuration.settings.trigger == .rightShift)
+        #expect(configuration.settings.haptics == .strong)
         #expect(configuration.profiles.map(\.isGlobal) == [true])
     }
 

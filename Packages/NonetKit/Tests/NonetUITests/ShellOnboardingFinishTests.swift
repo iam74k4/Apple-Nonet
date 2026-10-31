@@ -1,11 +1,11 @@
 // 担当: ui-shell
-// 初回の案内の後半: 角に指を置く呼び出しを試す・完了の画面（こつ・試用期間・ログイン時に起動）・起動したときの許可の案内
+// 初回の案内の後半: 完了の画面（こつ・試用期間・ログイン時に起動）・起動したときの許可の案内
 import Foundation
 import NonetCore
 @testable import NonetUI
 import Testing
 
-@Suite("初回起動（角に指を置く呼び出し・完了・許可の案内）")
+@Suite("初回起動（完了・許可の案内）")
 @MainActor
 struct ShellOnboardingFinishTests {
     typealias Base = ShellOnboardingTests
@@ -18,80 +18,26 @@ struct ShellOnboardingFinishTests {
     ) throws -> (OnboardingModel, ShellControllerHarness) {
         let (model, harness) = Base.make(clock: clock, frontmost: frontmost, recorder: recorder)
         Base.enterPractice(model)
-        model.handleExecution(try Base.hudRecord(model, date: clock.now.addingTimeInterval(1)))
-        model.handleExecution(try Base.quickTapRecord(model, date: clock.now.addingTimeInterval(2)))
+        model.handleExecution(try Base.runRecord(model, date: clock.now.addingTimeInterval(1)))
+        model.handleCancellation(ShellFixtures.cancellation(date: clock.now.addingTimeInterval(2)))
         #expect(model.practice == .succeeded)
         return (model, harness)
     }
 
-    // MARK: - 角に指を置く呼び出し
-
-    @Test("練習ができたら角に指を置く呼び出しを紹介する。「試してみる」で選んだ角の設定をオンにし、HUD から実行できたら知らせる")
-    func cornerTrial() throws {
-        let clock = Base.Clock()
-        let recorder = Base.Recorder()
-        let (model, harness) = try Self.practiced(recorder: recorder, clock: clock)
-        #expect(model.cornerTrial == .offered)
-        #expect(model.cornerChoice == .topRight)
-        #expect(harness.controller.configuration.settings.touchActivation == .off)
-
-        model.cornerChoice = .topLeft
-        model.tryCornerActivation()
-        #expect(harness.controller.configuration.settings.touchActivation == .topLeft)
-        #expect(model.cornerTrial == .trying(.topLeft))
-        #expect(ShellText.cornerTrialInstruction(.topLeft)
-            == L10n.ui("\(HUDAnnouncement.attributivePositionName(0))の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します。"))
-
-        // すぐにタップしたもの（角に指を置く呼び出しではない）は数えない
-        model.handleExecution(ShellFixtures.record(index: 4, date: clock.now.addingTimeInterval(3), fastTap: true))
-        #expect(model.cornerTrial == .trying(.topLeft))
-        model.handleExecution(ShellFixtures.record(index: 4, date: clock.now.addingTimeInterval(4), fastTap: false))
-        #expect(model.cornerTrial == .succeeded(.topLeft))
-        #expect(recorder.announcements.last == L10n.ui("できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます。"))
-        // 試し終えても設定はそのまま
-        #expect(harness.controller.configuration.settings.touchActivation == .topLeft)
-    }
-
-    @Test("「オフに戻す」で設定を戻して紹介に戻る。もうオンなら、その角を選んでおく")
-    func cornerTrialTurnOff() throws {
-        let (model, harness) = try Self.practiced()
-        model.tryCornerActivation()
-        #expect(harness.controller.configuration.settings.touchActivation == .topRight)
-        model.turnOffCornerActivation()
-        #expect(harness.controller.configuration.settings.touchActivation == .off)
-        #expect(model.cornerTrial == .offered)
-
-        let (again, againHarness) = Base.make()
-        againHarness.controller.update { $0.settings.touchActivation = .topLeft }
-        Base.enterPractice(again)
-        // 練習ができるまでは何もしない
-        again.tryCornerActivation()
-        #expect(again.cornerTrial == nil)
-        again.handleExecution(try Base.hudRecord(again, date: Base.Clock().now.addingTimeInterval(1)))
-        again.handleExecution(try Base.quickTapRecord(again, date: Base.Clock().now.addingTimeInterval(2)))
-        #expect(again.cornerChoice == .topLeft)
-    }
-
     // MARK: - 完了
 
-    @Test("完了の画面のこつ: マスを変えるメニューの項目・角に指を置く呼び出し・HUD での実行のしかた")
+    @Test("完了の画面のこつ: 上の縁から開く・外枠でやめる・マスを変えるメニューの項目")
     func doneTips() throws {
-        let (model, harness) = Base.make(frontmost: ShellFixtures.running(ShellFixtures.xcode, name: "Xcode"))
+        let (_, harness) = Base.make(frontmost: ShellFixtures.running(ShellFixtures.xcode, name: "Xcode"))
         // 案内のウインドウの裏にあるアプリ（ここでは Xcode）の名前は出さない
         let xcodeName = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)).name
         #expect(ShellText.doneEditTip
             == L10n.ui("メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます"))
         #expect(!ShellText.doneEditTip.contains(xcodeName))
-        #expect(ShellText.doneCornerTip(.off)
-            == L10n.ui("設定 › 一般 の「トラックパッドだけで呼び出す」で角を選ぶと、トラックパッドの角に指を置いて少し待つだけで HUD が出ます"))
-        #expect(ShellText.doneCornerTip(.topRight)
-            == L10n.ui("トラックパッドの\(HUDAnnouncement.attributivePositionName(2))の角に指を置いて少し待つと、HUD が出ます。設定 › 一般 で変えられます。"))
-        #expect(ShellText.doneHUDTip(.onTriggerRelease)
-            == L10n.ui("キーを押したまま指を置いて止めると、HUD（9マスの一覧）が出ます。指を滑らせて選び、指を置いたままキーを離すと実行します。慣れたら、すぐにタップするだけで実行できます。"))
-        #expect(ShellText.doneHUDTip(.onFingerLift)
-            == L10n.ui("キーを押したまま指を置いて止めると、HUD（9マスの一覧）が出ます。指を滑らせて選び、指を離すと実行します。慣れたら、すぐにタップするだけで実行できます。"))
-        harness.controller.update { $0.settings.touchActivation = .topLeft }
-        #expect(model.cornerActivation == .topLeft)
+        #expect(ShellText.doneOpenTip
+            == L10n.ui("トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。"))
+        #expect(ShellText.doneCancelTip
+            == L10n.ui("9マスの外側の外枠まで指を滑らせて離すと、何も実行せずに閉じます。キーを押しても閉じます。"))
     }
 
     @Test("完了の画面の試用期間の一行: 試用中だけ、残りの日数を文言の言語の規則で数える")

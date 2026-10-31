@@ -108,12 +108,12 @@ import Testing
         #expect(Planner.Reason.wake.isUnconditional)
         #expect(Planner.Reason.sessionActive.isUnconditional)
         // 触れているデバイスとは関係ないことが多いので、指が離れるまで待つ
-        for reason in [Planner.Reason.hotPlug, .display, .retry, .deviceListChanged, .silent] {
+        for reason in [Planner.Reason.hotPlug, .display, .retry, .deviceListChanged] {
             #expect(!reason.isUnconditional, "\(reason)")
         }
     }
 
-    @Test(arguments: [Planner.Reason.display, .retry, .deviceListChanged, .silent])
+    @Test(arguments: [Planner.Reason.display, .retry, .deviceListChanged])
     func newReasonsWaitForTheLiftLikeHotPlug(reason: Planner.Reason) {
         var planner = touchingPlanner(on: 7, at: 10)
         planner.request(reason)
@@ -179,41 +179,9 @@ import Testing
         #expect(!recovery.needsRestart(listed: [11, 9]))
     }
 
-    @Test func theTriggerRestartsDevicesThatHaveSentNoFrameForAWhile() {
-        var recovery = Recovery()
-        _ = recovery.restarted(attempted: [7], started: [7], at: 100)
-        // 開始し直した直後は、まだ触れていないだけかもしれない
-        #expect(!recovery.needsRestartOnTrigger(now: 100 + Recovery.silentRestartInterval - 0.1))
-        #expect(recovery.needsRestartOnTrigger(now: 100 + Recovery.silentRestartInterval))
-        // 開始し直したら、また間を置く
-        _ = recovery.restarted(attempted: [7], started: [7], at: 111)
-        #expect(!recovery.needsRestartOnTrigger(now: 112))
-        #expect(recovery.needsRestartOnTrigger(now: 111 + Recovery.silentRestartInterval))
-    }
-
-    @Test func framesKeepTheTriggerFromRestarting() {
-        var recovery = Recovery()
-        _ = recovery.restarted(attempted: [7], started: [7], at: 100)
-        recovery.frameArrived()
-        #expect(recovery.hasReceivedFrames)
-        #expect(!recovery.needsRestartOnTrigger(now: 1000))
-        // 開始し直すと数え直す
-        _ = recovery.restarted(attempted: [7], started: [7], at: 1000)
-        #expect(!recovery.hasReceivedFrames)
-        #expect(recovery.needsRestartOnTrigger(now: 1000 + Recovery.silentRestartInterval))
-    }
-
-    @Test func theTriggerNeverRestartsWithoutDevices() {
-        var recovery = Recovery()
-        #expect(!recovery.needsRestartOnTrigger(now: 1000))
-        _ = recovery.restarted(attempted: [], started: [], at: 0)
-        #expect(!recovery.needsRestartOnTrigger(now: 1000))
-    }
-
     @Test func intervalsStayCheap() {
         // どれも数秒より短くしない（一覧を作るのも開始し直すのもメインスレッドで動く）
         #expect(Recovery.listCheckInterval >= 5)
-        #expect(Recovery.silentRestartInterval >= 5)
         #expect(Recovery.retryDelays.allSatisfy { $0 >= 1 })
         #expect(Recovery.retryDelays == Recovery.retryDelays.sorted())
     }
@@ -221,11 +189,8 @@ import Testing
     @Test func resetForgetsEverything() {
         var recovery = Recovery()
         _ = recovery.restarted(attempted: [7], started: [], at: 0)
-        recovery.frameArrived()
         recovery.reset()
         #expect(recovery.attempted.isEmpty)
         #expect(recovery.failures == 0)
-        #expect(!recovery.hasReceivedFrames)
-        #expect(!recovery.needsRestartOnTrigger(now: 1000))
     }
 }

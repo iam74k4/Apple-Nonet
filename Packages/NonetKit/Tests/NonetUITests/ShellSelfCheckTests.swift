@@ -21,8 +21,7 @@ struct ShellSelfCheckTests {
             configurationRoundTripError: roundTripError,
             multitouch: multitouch,
             accessibilityGranted: false,
-            entitlement: entitlement,
-            isJISKeyboard: true
+            entitlement: entitlement
         )
     }
 
@@ -42,7 +41,7 @@ struct ShellSelfCheckTests {
         let json = try Self.decode(report)
         #expect(Set(json.keys) == [
             "ok", "failures", "version", "presets", "launcherCandidates", "installedLauncherCandidates",
-            "configurationRoundTrip", "multitouch", "accessibilityGranted", "license", "jisKeyboard",
+            "configurationRoundTrip", "multitouch", "accessibilityGranted", "license",
         ])
         #expect(json["ok"] as? Bool == true)
         #expect((json["failures"] as? [String])?.isEmpty == true)
@@ -51,7 +50,6 @@ struct ShellSelfCheckTests {
         #expect(json["launcherCandidates"] as? Int == 38)
         #expect(json["installedLauncherCandidates"] as? Int == 12)
         #expect(json["accessibilityGranted"] as? Bool == false)
-        #expect(json["jisKeyboard"] as? Bool == true)
         let roundTrip = try #require(json["configurationRoundTrip"] as? [String: Any])
         #expect(roundTrip["ok"] as? Bool == true)
         #expect(roundTrip["error"] == nil)
@@ -129,7 +127,6 @@ struct ShellSelfCheckTests {
             version: "2.0",
             permissions: harness.permissions,
             installedApps: harness.installedApps,
-            isJISKeyboard: false,
             multitouch: .init(loaded: true, deviceCount: 2, trackpadAvailable: true),
             license: harness.license,
             workDirectory: work
@@ -140,7 +137,6 @@ struct ShellSelfCheckTests {
         #expect(report.launcherCandidateCount == PresetLibrary.launcherCandidates.count)
         #expect(report.installedLauncherCandidateCount == 2)
         #expect(report.accessibilityGranted)
-        #expect(!report.isJISKeyboard)
         #expect(report.entitlement == .trial(daysLeft: 14))
         #expect(report.configurationRoundTripError == nil)
         #expect(try FileManager.default.contentsOfDirectory(atPath: work.path).isEmpty)

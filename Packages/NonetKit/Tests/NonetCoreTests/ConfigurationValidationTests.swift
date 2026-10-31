@@ -93,18 +93,9 @@ struct ConfigurationValidationTests {
         #expect(configuration.profiles[1].modelTitles[1][0] == "x")
     }
 
-    @Test("hudDelay を範囲に収める", arguments: [
-        (0.0, 0.15), (-1.0, 0.15), (0.1, 0.15), (0.15, 0.15), (0.3, 0.3), (0.8, 0.8), (2.0, 0.8),
-        (Double.infinity, 0.3), (-Double.infinity, 0.3), (Double.nan, 0.3),
-    ])
-    func clampsHUDDelay(_ value: Double, _ expected: Double) {
-        let configuration = NonetConfiguration(settings: GlobalSettings(hudDelay: value), profiles: []).validated()
-        #expect(configuration.settings.hudDelay == expected)
-    }
-
-    @Test("ほかの設定は変えない")
-    func keepsOtherSettings() {
-        let settings = GlobalSettings(isEnabled: false, trigger: .rightShift, fireMode: .onFingerLift, hudDelay: 0.5, haptics: .off)
+    @Test("全体の設定は変えない")
+    func keepsSettings() {
+        let settings = GlobalSettings(isEnabled: false, hudPosition: .nearCursor, haptics: .off, cursorLock: .none, hudScale: .large)
         #expect(NonetConfiguration(settings: settings, profiles: []).validated().settings == settings)
     }
 
@@ -137,7 +128,7 @@ struct ConfigurationValidationTests {
     func repairsEverythingAtOnce() {
         let shared = UUID()
         var broken = NonetConfiguration(
-            settings: GlobalSettings(hudDelay: 9),
+            settings: GlobalSettings(haptics: .strong),
             profiles: [
                 ModelFixtures.profile(ModelFixtures.xcode, pageCount: 3),
                 ModelFixtures.profile(ModelFixtures.xcode),
@@ -165,6 +156,5 @@ struct ConfigurationValidationTests {
             && profiles.allSatisfy { $0.pages.allSatisfy { $0.cells.count == Page.cellCount } }
             && Set(profiles.map(\.id)).count == profiles.count
             && Set(configuration.modelCellIDs).count == configuration.modelCellIDs.count
-            && GlobalSettings.hudDelayRange.contains(configuration.settings.hudDelay)
     }
 }
