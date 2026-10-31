@@ -8,6 +8,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
     struct ReviewedCell: Equatable {
         var profileName: String
         var cell: Cell
+        /// Return と同じ働きのキー（Return・Enter・⌃M・⌃J・⌃C など、今のキー配列で改行や Enter の文字になるもの）か ⌃ の付いたキーを押す。
+        /// コマンドの実行やメッセージの送信になりうるので、確かめるときに目立たせる
+        var pressesSubmitKey = false
     }
 
     let id = UUID()
@@ -19,11 +22,17 @@ struct SettingsImportPlan: Identifiable, Equatable {
     var result: NonetConfiguration.ImportResult
     /// 置き換わる自分のアプリのプロファイルの名前（設定の並び順）
     var replacedNames: [String]
-    /// 読み込まれるプロファイルの、スクリプト・Return を押すか長いキー入力・Mac の中のファイルを開く URL のマス（ファイルの並び順）。
-    /// どれもその人の権限で動くので、何も置き換わらなくても読み込む前に中身を見せて確かめる
+    /// 読み込まれるプロファイルの、スクリプト・キー入力・メニュー項目・AI・Mac の中のファイルを開く URL のマス（ファイルの並び順。数に上限は無い）。
+    /// どれもその人の権限で動くので、何も置き換わらなくても読み込む前に中身をすべて見せて確かめる
     var reviewedCells: [ReviewedCell]
 
-    init(document: ConfigurationStore.ImportedProfiles, configuration: NonetConfiguration, fileName: String) {
+    /// keys は Return と同じ働きのキーを見分けるのに使う、今のキー配列（テストでは偽物）
+    init(
+        document: ConfigurationStore.ImportedProfiles,
+        configuration: NonetConfiguration,
+        fileName: String,
+        keys: (any SettingsKeyCharacterTranslating)? = nil
+    ) {
         self.fileName = SettingsText.singleLine(fileName, limit: SettingsText.importFileNameLimit)
         let document = Self.withoutLongMenuShortcuts(document)
         self.document = document
@@ -36,7 +45,10 @@ struct SettingsImportPlan: Identifiable, Equatable {
         reviewedCells = Self.usedProfiles(in: document).flatMap { profile in
             profile.pages.flatMap { page in
                 page.cells.compactMap { cell in
-                    cell.flatMap { Self.needsReview($0.action) ? ReviewedCell(profileName: profile.name, cell: $0) : nil }
+                    cell.flatMap { cell in
+                        guard Self.needsReview(cell.action) else { return nil }
+                        return ReviewedCell(profileName: profile.name, cell: cell, pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys))
+                    }
                 }
             }
         }
@@ -81,33 +93,86 @@ struct SettingsImportPlan: Identifiable, Equatable {
 
     // MARK: 中身を見せるマス
 
-    /// 読み込む前に中身を見せるアクション。スクリプト、Return を押すか設定画面で入れられるより長いキー入力
-    /// （コマンドを打って実行できる）、Mac の中のファイルを開く URL（.command や .app も開ける）
+    /// 読み込む前に中身を見せるアクション。スクリプト、キー入力（短くても、⌃R・r・m・⌃M のように履歴のコマンドを実行できる）、
+    /// メニュー項目（ショートカットのキーも見せる）、AI（選択テキストを渡し、結果で置き換えうる）、
+    /// Mac の中のファイルを開く URL（.command や .app も開ける）
     static func needsReview(_ action: Action) -> Bool {
         switch action {
-        case .script:
+        case .script, .keystroke, .menuItem, .ai:
             true
-        case .keystroke(let keys):
-            keys.chords.count > SettingsKeyRecorder.maximumChords || pressesReturn(keys)
         case .openURL(let url):
             opensLocalFile(url.url)
-        case .launchApp, .shortcut, .menuItem, .ai:
+        case .launchApp, .shortcut:
             false
         }
     }
 
-    /// Return（テンキーの Enter を含む）を押す
-    static func pressesReturn(_ keys: KeySequence) -> Bool {
+    /// キー入力かメニュー項目のショートカットが、Return と同じ働きのキーか ⌃ の付いたキーを押す
+    static func pressesSubmitKey(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> Bool {
+        switch action {
+        case .keystroke(let keys):
+            pressesSubmitKey(keys, keys: translator)
+        case .menuItem(let menu):
+            menu.keyEquivalent.map { pressesSubmitKey($0, keys: translator) } ?? false
+        case .script, .ai, .openURL, .launchApp, .shortcut:
+            false
+        }
+    }
+
+    /// Return・Enter のキーコード（kVK_Return・kVK_Powerbook_KeypadEnter・kVK_ANSI_KeypadEnter）
+    static let submitKeyCodes: Set<UInt16> = [36, 52, 76]
+    /// Return と同じ働きの文字（CR・LF・ETX（Enter））
+    static let submitScalars: Set<Unicode.Scalar> = ["\r", "\n", "\u{3}"]
+
+    /// Return と同じ働きのキーを押すか。キー配列に頼らずに決まるもの（Return・Enter のキー、⌃ の付いたキー、改行の文字）に加え、
+    /// 今のキー配列でその打鍵が入力する文字（UCKeyTranslate）が CR・LF・ETX なら押すとみなす（⌥ などで改行になるキー配列もある）
+    static func pressesSubmitKey(_ keys: KeySequence, keys translator: (any SettingsKeyCharacterTranslating)?) -> Bool {
         keys.chords.contains { chord in
+            // ⌃M（CR）・⌃J（LF）・⌃C（ETX）・⌃O（行を実行）など。⌃ の付いたキーはすべて目立たせる
+            if chord.modifiers.contains(.control) { return true }
             switch chord.key {
             case .special(let key):
-                key == .returnKey
+                return key == .returnKey
             case .keyCode(let code):
-                // kVK_Return・kVK_ANSI_KeypadEnter
-                code == 0x24 || code == 0x4C
+                if submitKeyCodes.contains(code) { return true }
             case .character(let character):
-                character.unicodeScalars.contains { $0 == "\r" || $0 == "\n" || $0 == "\u{3}" }
+                if character.unicodeScalars.contains(where: submitScalars.contains) { return true }
+                // 修飾キーの無い文字は、その文字のまま入力される
+                if chord.modifiers.isEmpty { return false }
             }
+            guard let typed = translator?.characters(for: chord) else { return false }
+            return typed.unicodeScalars.contains(where: submitScalars.contains)
+        }
+    }
+
+    // MARK: 注意が要るスクリプトの行
+
+    /// ネットワークから取ってきたものを実行する・隠したものを実行する・ファイルを消す、のに使われる命令。行に含まれていれば目立たせる
+    static let suspiciousPatterns: [(name: String, regex: Regex<Substring>)] = [
+        ("curl", #/(?i)\bcurl\b/#),
+        ("wget", #/(?i)\bwget\b/#),
+        ("base64", #/(?i)\bbase64\b/#),
+        ("eval", #/(?i)\beval\b/#),
+        // 「| sh」「|bash」「| sudo /bin/zsh」「| /usr/bin/env bash」
+        ("| sh", #/(?i)\|\s*(?:sudo\s+)?(?:\S*/)?(?:env\s+)?(?:ba|z|da|k|c|tc|fi)?sh\b/#),
+        ("osascript", #/(?i)\bosascript\b/#),
+    ]
+
+    /// 行に含まれる、注意が要る命令の名前（suspiciousPatterns と rm -rf）。無ければ空
+    static func suspiciousTerms(in line: String) -> [String] {
+        var terms = suspiciousPatterns.filter { line.contains($0.regex) }.map(\.name)
+        if removesRecursively(line) {
+            terms.append("rm -rf")
+        }
+        return terms
+    }
+
+    /// rm に、再帰（-r・-R）と強制（-f）の両方のオプションが付いている（「rm -rf」「rm -fr」「rm -r -f」「rm -Rf」）
+    static func removesRecursively(_ line: String) -> Bool {
+        line.matches(of: #/\brm\s+((?:-\S+\s+)*-\S+)/#).contains { match in
+            let options = match.output.1.split(whereSeparator: \.isWhitespace).filter { $0.hasPrefix("-") && !$0.hasPrefix("--") }
+            let letters = options.joined()
+            return (letters.contains("r") || letters.contains("R")) && letters.contains("f")
         }
     }
 

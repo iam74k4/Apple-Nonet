@@ -179,8 +179,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return DebugPreview.temporaryLicense(verifier: verifier)
         }
         #endif
-        // 試用の記録はキーチェーンにも置く（Developer ID で署名したビルドでだけ働く。docs/privacy.md）
-        return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain()))
+        // 試用の記録はキーチェーンにも置く（Developer ID で署名したビルドでだけ働く。docs/privacy.md）。
+        // 記録をすべて消されても、2つ目の項目（marker）と以前に使った跡（Backups・Caches のフォルダ）で、試用をやり直させない
+        return LicenseManager(verifier: verifier, storage: UserDefaultsLicenseStorage(
+            keychain: SystemTrialRecordKeychain(),
+            marker: SystemTrialRecordKeychain.machineMarker(),
+            evidence: FileTrialUsageEvidence.standard()
+        ))
     }
 
     /// お問い合わせの宛先、試用期間が終わったときのウィンドウ、起動の途中に届いたライセンスのリンク

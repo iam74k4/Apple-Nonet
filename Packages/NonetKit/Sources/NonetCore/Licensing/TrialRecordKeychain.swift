@@ -1,7 +1,10 @@
 // 担当: keys-license
 // 試用の記録の3つ目の置き場所。環境設定と Application Support/Nonet を消す（アンインストールツールなど）だけで試用をやり直せないようにする。
-// NonetCore で Security と LocalAuthentication を使うのはこのファイルだけ（docs/architecture.md「ライセンス」の例外）
+// NonetCore で Security と LocalAuthentication を使うのはこのファイルだけ（docs/architecture.md「ライセンス」の例外）。
+// 2つ目の印（machineMarker）の名前を作るために、IOKit で Mac の識別子（IOPlatformUUID）も読む（ハッシュにして使い、そのものは保存しない）
+import CryptoKit
 import Foundation
+import IOKit
 import LocalAuthentication
 import os
 import Security
@@ -30,13 +33,48 @@ public final class SystemTrialRecordKeychain: TrialRecordKeychain {
 
     /// 使うか（Developer ID で署名した Nonet 本体か）
     let isEnabled: Bool
+    /// 項目のサービスとアカウント（ふつうは service・account。machineMarker は目立たない名前）
+    let itemService: String
+    let itemAccount: String
+    /// キーチェーンアクセスに出る名前。nil ならサービスの名前が出る
+    let itemLabel: String?
 
     public convenience init() {
         self.init(isEnabled: Self.isDistributedApp())
     }
 
-    init(isEnabled: Bool) {
+    init(isEnabled: Bool, service: String = SystemTrialRecordKeychain.service, account: String = SystemTrialRecordKeychain.account, label: String? = "Nonet") {
         self.isEnabled = isEnabled
+        itemService = service
+        itemAccount = account
+        itemLabel = label
+    }
+
+    /// 2つ目の置き場所（同じ記録を写す印）。サービスの名前は、この Mac の識別子とアプリの bundle ID から作った SHA-256 で、
+    /// 名前から Nonet のものとは分からない。キーチェーンアクセスで com.iam74k4.Nonet.license.trial を消しても、こちらが残れば試用は続きから数える
+    /// （UserDefaultsLicenseStorage の marker）。Mac の識別子を読めなければ使わない。Developer ID で署名した Nonet 本体でだけ動くのは同じ
+    public static func machineMarker(bundleID: String = Bundle.main.bundleIdentifier ?? LicenseInfo.productID) -> SystemTrialRecordKeychain {
+        guard let platformUUID = platformUUID() else {
+            return SystemTrialRecordKeychain(isEnabled: false)
+        }
+        let name = markerName(platformUUID: platformUUID, bundleID: bundleID)
+        return SystemTrialRecordKeychain(isEnabled: isDistributedApp(), service: name, account: String(name.prefix(16)), label: nil)
+    }
+
+    /// SHA-256(IOPlatformUUID + 改行 + bundle ID) の 16 進（小文字 64 文字）。同じ Mac と同じアプリなら毎回同じ
+    static func markerName(platformUUID: String, bundleID: String) -> String {
+        let digest = SHA256.hash(data: Data((platformUUID.uppercased() + "\n" + bundleID.lowercased()).utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// この Mac の IOPlatformUUID。読めなければ nil
+    static func platformUUID() -> String? {
+        let entry = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+        guard entry != 0 else { return nil }
+        defer { IOObjectRelease(entry) }
+        let value = IORegistryEntryCreateCFProperty(entry, kIOPlatformUUIDKey as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue()
+        guard let uuid = value as? String, !uuid.isEmpty else { return nil }
+        return uuid
     }
 
     public func readTrialRecord() -> Data? {
@@ -66,7 +104,9 @@ public final class SystemTrialRecordKeychain: TrialRecordKeychain {
         if status == errSecItemNotFound {
             status = perform { query in
                 query[kSecValueData as String] = data
-                query[kSecAttrLabel as String] = "Nonet"
+                if let label = itemLabel {
+                    query[kSecAttrLabel as String] = label
+                }
                 return SecItemAdd(query as CFDictionary, nil)
             }
         }
@@ -79,8 +119,8 @@ public final class SystemTrialRecordKeychain: TrialRecordKeychain {
     private func perform(_ operation: (inout [String: Any]) -> OSStatus) -> OSStatus {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
-            kSecAttrAccount as String: Self.account,
+            kSecAttrService as String: itemService,
+            kSecAttrAccount as String: itemAccount,
         ]
         var withoutInteraction = query
         let context = LAContext()

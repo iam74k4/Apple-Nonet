@@ -141,6 +141,18 @@ enum MenuPathResolver {
     }
 }
 
+enum MenuShortcutLookup {
+    /// パスのタイトル（と対になるタイトル）でたどった項目の、アプリのメニューにあるショートカット。
+    /// 項目が無い・今は使えない・ショートカットが無ければ nil。保存したショートカットでは探さない
+    /// （保存したキーが本当にその項目のものかを確かめるのに使うため。読み込んだファイルのキーで、別の項目を押させない）
+    static func shortcut<Tree: MenuTree>(at path: [String], in tree: Tree) -> KeySequence? {
+        guard let node = try? MenuPathResolver.resolve(path, keyEquivalent: nil, in: tree) else { return nil }
+        let attributes = tree.attributes(of: node)
+        guard attributes.isEnabled else { return nil }
+        return attributes.keyEquivalent
+    }
+}
+
 /// 状態で入れ替わるメニュー項目のタイトルの対
 enum MenuToggleTitles {
     /// 先頭が入れ替わるもの（英語）。後ろに空白か終わりが続くときだけ

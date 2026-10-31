@@ -17,6 +17,13 @@ struct SettingsLicenseView: View {
         Form {
             Section {
                 statusCard(SettingsText.summary(entitlement, trialEnd: model.license.trialEndDate))
+                // 登録してあったキーを無効にした（返金など）。黙って試用に戻さず、理由を言う
+                if let revoked = model.license.revokedLicense {
+                    Label(SettingsText.revokedLicenseNotice(revoked), systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if case .licensed(let info) = entitlement {
                     LabeledContent {
                         // 文言と同じ言語で出す（Locale.current のままだと、英語の画面で日付だけ日本語になることがある）

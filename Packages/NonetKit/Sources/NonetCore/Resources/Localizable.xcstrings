@@ -355,6 +355,16 @@
         }
       }
     },
+    "このライセンスキーは無効にされています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This license key has been deactivated"
+          }
+        }
+      }
+    },
     "やめるときは指を置いたまま左の⇧を押す" : {
       "localizations" : {
         "en" : {

@@ -202,13 +202,41 @@ struct ActionMenuTitleMatcherTests {
 
 @Suite("メニュー項目の押し方")
 struct ActionMenuPlanTests {
-    @Test("対象が前面でショートカットがあればキーを送り、ほかはメニューを押す")
+    @Test("対象が前面で、ショートカットがメニューの項目のものと同じならキーを送り、ほかはメニューを押す")
     func plan() {
         let keys = KeySequence.key("b", .command)
-        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: keys) == .sendKeys)
-        #expect(MenuActionPlan.decide(isTargetFrontmost: false, keyEquivalent: keys) == .pressMenu)
-        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: nil) == .pressMenu)
-        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: KeySequence([])) == .pressMenu)
+        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: keys, shortcutInMenu: keys) == .sendKeys)
+        #expect(MenuActionPlan.decide(isTargetFrontmost: false, keyEquivalent: keys, shortcutInMenu: keys) == .pressMenu)
+        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: nil, shortcutInMenu: keys) == .pressMenu)
+        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: KeySequence([]), shortcutInMenu: KeySequence([])) == .pressMenu)
+        // 読み込んだファイルの「コピー」に ⌥⇧⌘⌫（ゴミ箱を空にする）が付いていても、メニューの ⌘C と違うので送らない
+        let emptyTrash = KeySequence.special(.delete, [.option, .shift, .command])
+        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: emptyTrash, shortcutInMenu: .key("c", .command)) == .pressMenu)
+        // メニューに項目が無い・使えない・ショートカットが無い・読めない
+        #expect(MenuActionPlan.decide(isTargetFrontmost: true, keyEquivalent: keys, shortcutInMenu: nil) == .pressMenu)
+    }
+
+    @Test("メニューから読むショートカットは、タイトルでたどった使える項目のもの。保存したキーでは探さない")
+    func shortcutInMenu() {
+        let tree = FakeMenuTree(bar: [
+            FakeMenu("Apple"),
+            FakeMenu("Finder", [FakeMenu("ゴミ箱を空にする…", modifiers: 0x02 | 0x01, glyph: 0x17)]),
+            FakeMenu("編集", [
+                FakeMenu("コピー", char: "C"),
+                FakeMenu("ペースト", enabled: false, char: "V"),
+                FakeMenu("すべてを選択"),
+                FakeMenu("ツールバーを表示", char: "T", modifiers: 0x02),
+            ]),
+        ])
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "コピー"], in: tree) == .key("c", .command))
+        // 使えない・ショートカットが無い・無い項目
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "ペースト"], in: tree) == nil)
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "すべてを選択"], in: tree) == nil)
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "消去"], in: tree) == nil)
+        #expect(MenuShortcutLookup.shortcut(at: ["Finder", "片付け"], in: tree) == nil)
+        // 状態でタイトルが変わる項目は、対になるタイトルでも探す
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "ツールバーを非表示"], in: tree) == .key("t", [.option, .command]))
+        #expect(MenuShortcutLookup.shortcut(at: ["編集", "コピー"], in: FakeMenuTree(bar: [], error: AXCallError(code: .apiDisabled))) == nil)
     }
 }
 

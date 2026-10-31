@@ -46,22 +46,19 @@ struct SettingsRootView: View {
         .sheet(isPresented: $model.isShowingBackups) {
             SettingsBackupsSheet(model: model)
         }
+        // 読み込む前の確認は、マスの中身をすべて見せるシート（SettingsImportReviewSheet）。ほかはアラート
+        .sheet(item: Binding(get: { importPlan }, set: { if $0 == nil { model.confirmation = nil } })) { plan in
+            SettingsImportReviewSheet(model: model, plan: plan)
+        }
         .alert(
             confirmationTitle,
-            isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
+            isPresented: Binding(get: { model.confirmation != nil && importPlan == nil }, set: { if !$0 { model.confirmation = nil } }),
             presenting: model.confirmation
         ) { confirmation in
             Button(role: confirmationRole(confirmation)) {
                 model.confirm(confirmation)
             } label: {
                 Text(confirmationButton(confirmation))
-            }
-            if case .importProfiles(let plan) = confirmation, plan.replacesExisting, plan.addsProfiles {
-                Button {
-                    model.importNewProfilesOnly(plan)
-                } label: {
-                    Text("新しいプロファイルだけ追加", bundle: .module)
-                }
             }
             Button(role: .cancel) {
                 model.confirmation = nil
@@ -71,6 +68,12 @@ struct SettingsRootView: View {
         } message: { confirmation in
             Text(confirmationMessage(confirmation))
         }
+    }
+
+    /// 確かめている読み込み（シートで出す）
+    private var importPlan: SettingsImportPlan? {
+        if case .importProfiles(let plan)? = model.confirmation { return plan }
+        return nil
     }
 
     private var confirmationTitle: String {

