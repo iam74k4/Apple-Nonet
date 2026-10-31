@@ -13,6 +13,8 @@ public final class MenuBarController {
     public var onEditButtons: ((AppReference?) -> Void)?
     /// 「最近の実行」で選んだボタンを設定で開く
     public var onShowRun: ((ExecutionRecord) -> Void)?
+    /// 早見表で押したマスを設定で開く（プロファイルの id と、プロファイル内のページとマス）。nil なら設定の「プロファイル」を開く
+    public var onShowCell: ((UUID, CellAddress) -> Void)?
     /// 前面のアプリ（Nonet を数えない）。「◯◯のボタンを編集…」の◯◯を決める。nil ならいつもグローバル
     public var frontmostApp: (@MainActor () -> AppReference?)?
     /// 購入ページ（「Nonet を購入…」）と利用ガイド（「利用ガイド」）。無いページの項目は出さない
@@ -44,6 +46,8 @@ public final class MenuBarController {
     private let actionTarget = MenuBarActionTarget()
     private var observer: ShellObserver<MenuBarState>?
     private let callout = MenuBarCallout()
+    /// メニューの先頭の早見表。最初にメニューを開いたときに作り、開くたびに中身だけ入れ直す（開くのを遅くしない）
+    private(set) var cheatSheetItem: NSMenuItem?
     /// 「このアプリでは使わない」でオフにする前の使い方（アプリのプロファイルの id ごと。nil はプロファイルが無く、オフにするときに作った）。
     /// もう一度選んだときに、そのとおりに戻す
     private var modesBeforeTurningOff: [UUID: ProfileMode?] = [:]
@@ -67,12 +71,18 @@ public final class MenuBarController {
         menu.delegate = menuDelegate
         statusItem.menu = menu
         menuDelegate.onNeedsUpdate = { [weak self] in self?.rebuildMenu() }
+        menuDelegate.onHighlight = { [weak self] item in self?.highlightChanged(item) }
+        menuDelegate.onClose = { [weak self] in self?.cheatSheetView?.resetPointerState() }
 
         observer = ShellObserver({ [weak self] in
             self?.currentState() ?? MenuBarState(status: .stopped, isEnabled: false, entitlement: .expired)
         }, onChange: { [weak self] state in
             self?.applyIcon(state)
         })
+        // 早見表のビュー（SwiftUI）を最初に作って描くのは数十ミリ秒かかるので、最初にメニューを開くときに待たせないよう、起動の後の手すきに作っておく
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.prepareCheatSheet() }
+        }
     }
 
     /// メニューの「このアプリでは使わない」。オフにするときにプロファイルが無ければ、空のページで作る（グローバルのボタンを使っていたアプリに、
@@ -170,6 +180,14 @@ public final class MenuBarController {
             item.isEnabled = false
             item.image = NSImage(systemSymbolName: Self.statusSymbol(iconState), accessibilityDescription: nil)
             return item
+        case .cheatSheet(let sheet):
+            guard sheet.turnedOffText == nil else {
+                // 知らせだけ（押せない）。すぐ下の「このアプリでは使わない」で戻せる
+                let item = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                return item
+            }
+            return cheatSheetMenuItem(sheet)
         case .notice(let text):
             let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
             item.isEnabled = false
@@ -257,6 +275,72 @@ public final class MenuBarController {
         }
     }
 
+    // MARK: - 早見表
+
+    /// 早見表のビュー（テストから押す）
+    var cheatSheetView: MenuBarCheatSheetView? {
+        cheatSheetItem?.view as? MenuBarCheatSheetView
+    }
+
+    /// 早見表の項目。2回目からは作り直さず、中身を今の前面のアプリのものにする。
+    /// マスはビューの中の透明なボタンで押す。キーボードで項目を選んで Return を押すと、見ているページを設定で開く
+    private func cheatSheetMenuItem(_ sheet: MenuBarCheatSheet) -> NSMenuItem {
+        let screen = statusItem.button?.window?.screen ?? NSScreen.main
+        let density = MenuBarCheatSheetLayout.density(forVisibleScreenHeight: screen?.visibleFrame.height)
+        let increasedContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+        if let item = cheatSheetItem, let view = item.view as? MenuBarCheatSheetView {
+            view.update(sheet: sheet, density: density, increasedContrast: increasedContrast)
+            item.title = sheet.title
+            return item
+        }
+        let view = MenuBarCheatSheetView(sheet: sheet, density: density, increasedContrast: increasedContrast)
+        let item = NSMenuItem(title: sheet.title, action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
+        item.target = actionTarget
+        item.representedObject = MenuBarAction { [weak self, weak view] in
+            guard let self, let location = view?.store.sheet.pageLocation else { return }
+            self.showCell(location)
+        }
+        item.isEnabled = true
+        item.view = view
+        view.onOpen = { [weak self] location in self?.openFromCheatSheet(location) }
+        // 項目の名前（VoiceOver と文字で選ぶとき）を見ているページに合わせる
+        view.onPageChange = { [weak item, weak view] in
+            guard let item, let view else { return }
+            item.title = view.store.sheet.title
+        }
+        cheatSheetItem = item
+        return item
+    }
+
+    private func prepareCheatSheet() {
+        guard cheatSheetItem == nil, let sheet = currentState().cheatSheet, sheet.turnedOffText == nil else { return }
+        cheatSheetMenuItem(sheet).view?.layoutSubtreeIfNeeded()
+    }
+
+    /// 早見表のマスを押した。メニューを閉じ、閉じ終わってから設定を開く（メニューの項目を選んだときと同じ順）
+    private func openFromCheatSheet(_ location: MenuBarCellLocation) {
+        menu.cancelTracking()
+        // メニューが開いている間は動かない（イベントを追う間の run loop の mode では動かない）
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated { self?.showCell(location) }
+        }
+    }
+
+    private func showCell(_ location: MenuBarCellLocation) {
+        if let show = onShowCell {
+            show(location.profileID, location.address)
+        } else {
+            onOpenSettings(.profiles)
+        }
+    }
+
+    /// キーボードで早見表の行に来たときだけ枠を描く（ポインタで乗ったときはマスのハイライトで足りる）
+    private func highlightChanged(_ item: NSMenuItem?) {
+        guard let view = cheatSheetView else { return }
+        let isKeyboard = NSApplication.shared.currentEvent?.type == .keyDown
+        view.store.isKeyboardHighlighted = item != nil && item === cheatSheetItem && isKeyboard
+    }
+
     private func actionItem(_ entry: MenuBarEntry, _ action: @escaping @MainActor () -> Void) -> NSMenuItem {
         let item = NSMenuItem(title: entry.title, action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
         item.target = actionTarget
@@ -277,9 +361,19 @@ public final class MenuBarController {
 /// NSMenuDelegate は NSObject が要るので、MenuBarController（契約で NSObject ではない）の代わりに受ける
 private final class MenuBarMenuDelegate: NSObject, NSMenuDelegate {
     var onNeedsUpdate: (@MainActor () -> Void)?
+    var onHighlight: (@MainActor (NSMenuItem?) -> Void)?
+    var onClose: (@MainActor () -> Void)?
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         MainActor.assumeIsolated { onNeedsUpdate?() }
+    }
+
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        MainActor.assumeIsolated { onHighlight?(item) }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        MainActor.assumeIsolated { onClose?() }
     }
 }
 
