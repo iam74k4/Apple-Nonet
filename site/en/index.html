@@ -59,6 +59,10 @@
   <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
   <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
   <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
+  <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M14 4l6 6-2 2-6-6z M12 8l-8 8 2 2 8-8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M4 15l8-8 7 7-5 5H9z M9 19h11"/></symbol>
   <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
@@ -141,15 +145,15 @@
               <div class="hud-head"><span class="hud-title">Xcode</span><span>Lift on a button to run</span></div>
               <div class="hud-pad">
                 <div class="hud-grid">
-                  <div class="cell" data-cell data-label="Build"><svg class="icon"><use href="#i-play"/></svg>Build</div>
+                  <div class="cell" data-cell data-label="Build"><svg class="icon"><use href="#i-hammer"/></svg>Build</div>
+                  <div class="cell" data-cell data-label="Run"><svg class="icon"><use href="#i-play"/></svg>Run</div>
                   <div class="cell" data-cell data-label="Test"><svg class="icon"><use href="#i-check"/></svg>Test</div>
                   <div class="cell" data-cell data-label="Simulator"><svg class="icon"><use href="#i-phone"/></svg>Simulator</div>
-                  <div class="cell" data-cell data-label="Terminal"><svg class="icon"><use href="#i-terminal"/></svg>Terminal</div>
-                  <div class="cell on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                  <div class="cell on" data-cell data-label="Open Quickly"><svg class="icon"><use href="#i-search"/></svg>Open Quickly</div>
+                  <div class="cell" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
+                  <div class="cell" data-cell data-label="Stop"><svg class="icon"><use href="#i-stop"/></svg>Stop</div>
+                  <div class="cell" data-cell data-label="Clean"><svg class="icon"><use href="#i-eraser"/></svg>Clean</div>
                   <div class="cell" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg>Commit</div>
-                  <div class="cell" data-cell data-label="Slack"><svg class="icon"><use href="#i-message"/></svg>Slack</div>
-                  <div class="cell" data-cell data-label="Mute"><svg class="icon"><use href="#i-micoff"/></svg>Mute</div>
-                  <div class="cell" data-cell data-label="Screenshot"><svg class="icon"><use href="#i-capture"/></svg>Screenshot</div>
                 </div>
                 <div class="hud-cancel"><svg class="icon"><use href="#i-cross"/></svg>Lift to cancel</div>
               </div>
@@ -254,7 +258,7 @@
             <rect class="tile" x="78" y="88" width="32" height="20" rx="5"/><rect class="tile" x="114" y="88" width="32" height="20" rx="5"/><rect class="tile" x="150" y="88" width="32" height="20" rx="5"/>
           </svg>
           <h3>A profile for each app</h3>
-          <p>Build and test in Xcode, mute and share your screen in Zoom. The nine buttons follow the app in front, and popular apps come with a ready-made layout.</p>
+          <p>Build and test in Xcode, mute and share your screen in Zoom, duplicate or trash the selected files in Finder. The nine buttons follow the app in front, and popular apps come with a ready-made layout.</p>
         </article>
         <article class="feature">
           <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
@@ -318,9 +322,11 @@
             <li>Shortcut</li>
             <li>Menu item</li>
             <li>AI</li>
+            <li>File</li>
+            <li>Screen Capture</li>
           </ul>
-          <h3>Seven kinds of actions</h3>
-          <p>Record a shortcut like ⌘B, or a sequence like ⌘L then ⌘C, just by pressing it. Recorded shortcuts work the same on JIS, US and other layouts, and you can run anything from the Shortcuts app.</p>
+          <h3>Nine kinds of actions</h3>
+          <p>Record a shortcut like ⌘B, or a sequence like ⌘L then ⌘C, just by pressing it. Recorded shortcuts work the same on JIS, US and other layouts, and you can run anything from the Shortcuts app. Trash or duplicate the files selected in Finder, or start a screenshot or a screen recording.</p>
         </article>
       </div>
     </div>
@@ -419,7 +425,7 @@
           <summary>Which permissions does Nonet need?</summary>
           <div class="answer">
             <p>Accessibility (System Settings › Privacy &amp; Security). Nonet uses it to hold the pointer and keep clicks from reaching the app while the buttons are open, to notice a key press so it can close them, and to send keystrokes, choose menu items and read the selected text for actions. Reading finger positions needs no permission.</p>
-            <p>macOS asks once for Automation permission only when a script uses the browser's URL (NONET_BROWSER_URL). Running a script in Terminal doesn't ask.</p>
+            <p>macOS asks once for Automation permission only when a script uses the browser's URL (NONET_BROWSER_URL) or a File action asks Finder about the selected files. Running a script in Terminal doesn't ask. Screen Capture only sends the macOS screenshot keys, so it needs no Screen Recording permission.</p>
           </div>
         </details>
         <details id="faq-privacy">

@@ -15,12 +15,16 @@ import Testing
         "us.zoom.xos", "com.tinyspeck.slackmacgap", "com.microsoft.teams2", "com.apple.Safari",
         "com.google.Chrome", "company.thebrowser.Browser", "com.apple.finder", "notion.id",
         "com.apple.Terminal", "com.apple.mail", "com.apple.Notes",
+        "com.microsoft.Outlook", "com.microsoft.Excel", "com.microsoft.Word", "com.microsoft.Powerpoint",
+        "com.apple.iWork.Keynote", "com.apple.iWork.Pages", "com.apple.iWork.Numbers",
+        "com.adobe.Photoshop", "com.apple.FinalCut", "md.obsidian",
     ]
 
     /// 中央が AI（選択中のテキストを扱う）のアプリ
     static let aiCenterBundleIDs: Set<String> = [
         "com.apple.Safari", "com.google.Chrome", "company.thebrowser.Browser", "com.apple.mail",
         "com.apple.Notes", "com.tinyspeck.slackmacgap", "notion.id", "com.microsoft.teams2",
+        "com.microsoft.Outlook", "com.microsoft.Word", "com.apple.iWork.Pages", "md.obsidian",
     ]
 
     /// Claude Code が外側のマスにある開発アプリ。中央はそのアプリでいちばん使うキー
@@ -29,7 +33,7 @@ import Testing
     ]
 
     /// 選択範囲を置き換えてよいアプリ（自分で書いた文章を選ぶ場所）。それ以外は結果を表示するだけ
-    static let replaceSelectionBundleIDs: Set<String> = ["com.apple.Notes", "notion.id"]
+    static let replaceSelectionBundleIDs: Set<String> = ["com.apple.Notes", "notion.id", "com.microsoft.Word", "com.apple.iWork.Pages", "md.obsidian"]
 
     /// ⌘⌃⌥ なしで送るキー。Figma のキャンバス用ショートカットは既定が ⇧ だけ
     static let shiftOnlyExceptions: Set<String> = [
@@ -305,6 +309,7 @@ import Testing
     @Test func everyAppHasAKnownCenterKind() {
         let classified = Self.aiCenterBundleIDs.union(Self.claudeCodeBundleIDs)
             .union(["com.figma.Desktop", "us.zoom.xos", "com.apple.finder"])
+            .union(["com.microsoft.Excel", "com.microsoft.Powerpoint", "com.apple.iWork.Keynote", "com.apple.iWork.Numbers", "com.adobe.Photoshop", "com.apple.FinalCut"])
         for bundleID in Self.bundleIDs {
             #expect(classified.contains(bundleID), "中央の種類が決まっていない: \(bundleID)")
         }

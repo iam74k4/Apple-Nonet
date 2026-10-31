@@ -39,7 +39,7 @@ extension PresetData {
     /// 隠しファイルの表示 ⇧⌘. はこのページに載っていないので入れない。
     /// 2ページ目は、Finder で選んだファイルへの操作。開く・複製・名前の変更・ゴミ箱に入れるは Nonet のファイルのアクション
     /// （Finder が前面のときだけ動く）。ゴミ箱に入れるは押し間違えると困るので、少し長く止めてから実行する。
-    /// 名前の変更と移動は Finder のキーに無い（移動は先のフォルダを決める必要があるので入れない）
+    /// 名前の変更と移動は Finder のキーに無い（移動は先のフォルダを決める必要があるので入れない）。右下は、デスクトップの絵を撮る「範囲を撮影」
     static var finder: AppPreset {
         PresetBuilder.preset(
             KnownApp.finder,
@@ -65,7 +65,7 @@ extension PresetData {
                     PresetBuilder.key("エイリアスを作る", "arrowshape.turn.up.right", .key("a", [.control, .command])),
                     PresetBuilder.key("元のファイル", "arrow.uturn.backward", .key("r", .command)),
                     PresetBuilder.key("サイドバーに追加", "sidebar.left", .key("t", [.control, .command])),
-                    PresetBuilder.key("スライドショー", "play.rectangle", .key("y", [.option, .command])),
+                    PresetBuilder.capture("範囲を撮影", "rectangle.dashed", ScreenCaptureAction(mode: .area)),
                 ], name: PresetBuilder.text("選んだファイル")),
             ],
             summary: { "選んだファイルの操作、クイックルック、AirDrop など\($0)個" }
@@ -89,7 +89,7 @@ extension PresetData {
                 PresetBuilder.key("見出し1", "textformat.size.larger", .key("1", [.option, .command])),
                 PresetBuilder.key("ToDo", "checklist", .key("4", [.option, .command])),
                 PresetBuilder.key("箇条書き", "list.bullet", .key("5", [.option, .command])),
-            ], fallbackIndex: 1, capabilities),
+            ], fallbackIndex: 1, filler: PresetBuilder.key("新規ウインドウ", "macwindow.badge.plus", .key("n", [.shift, .command])), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "新規ページ、検索、校正など\(count)個"
@@ -116,7 +116,7 @@ extension PresetData {
                 PresetBuilder.key("箇条書き", "list.bullet", .key("7", [.shift, .command])),
                 PresetBuilder.key("本文", "text.alignleft", .key("b", [.shift, .command])),
                 PresetBuilder.key("検索", "magnifyingglass", .key("f", [.option, .command])),
-            ], fallbackIndex: 1, capabilities),
+            ], fallbackIndex: 1, filler: PresetBuilder.key("新規フォルダ", "folder.badge.plus", .key("n", [.shift, .command])), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "チェックリスト、表、校正など\(count)個"

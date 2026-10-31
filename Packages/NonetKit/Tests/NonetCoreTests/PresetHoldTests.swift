@@ -8,14 +8,18 @@ import Testing
         ModelFixtures.text(key)
     }
 
-    /// HUD で選んだときだけ実行するマスの名前。ここに無いプリセットには1つも無い
-    static var expected: [String: Set<String>] {
+    /// HUD で選んだときだけ実行するマスの名前。ここに無いプリセットには1つも無い。
+    /// AI を使えない Mac では、Teams の中央にミュートが移り、空いた位置に挙手（押し間違えると参加者に見える）が入る
+    static func expected(_ capabilities: PresetCapabilities) -> [String: Set<String>] {
         [
             // 押し間違えると参加者みんなに見える（録画は参加者に知らされる）
             "us.zoom.xos": [text("ビデオ"), text("画面共有"), text("挙手"), text("録画")],
-            "com.microsoft.teams2": [text("ビデオ"), text("画面共有")],
+            "com.microsoft.teams2": capabilities.appleIntelligence ? [text("ビデオ"), text("画面共有")] : [text("ビデオ"), text("画面共有"), text("挙手")],
             // 送ったメールは取り消せない
             "com.apple.mail": [text("送信")],
+            "com.microsoft.Outlook": [text("送信")],
+            // 書き出しが始まり、時間が掛かる
+            "com.apple.FinalCut": [text("共有")],
             // ビルドフォルダを消すので、次のビルドが最初からになる
             "com.apple.dt.Xcode": [text("クリーン")],
             // 実行中のコマンドを止めてしまう
@@ -32,7 +36,7 @@ import Testing
     @Test(arguments: PresetCapabilities.allCombinations)
     func riskyCellsAreHUDOnlyOnEveryMac(capabilities: PresetCapabilities) {
         for preset in PresetLibrary.apps(for: capabilities) {
-            #expect(Self.holdTitles(preset) == Self.expected[preset.app.bundleID] ?? [], "\(preset.app.bundleID)")
+            #expect(Self.holdTitles(preset) == Self.expected(capabilities)[preset.app.bundleID] ?? [], "\(preset.app.bundleID)")
         }
     }
 

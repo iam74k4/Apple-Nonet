@@ -23,7 +23,7 @@ extension PresetData {
                 PresetBuilder.key("タブを復元", "arrow.uturn.backward", .key("t", [.shift, .command])),
                 // ⌘L でアドレス欄を選び（URL 全体が選択される）、⌘C でコピーする
                 PresetBuilder.key("リンクをコピー", "link", .sequence(.key("l", .command), .key("c", .command))),
-            ], fallbackIndex: 6, capabilities),
+            ], fallbackIndex: 6, filler: PresetBuilder.key("新規ウインドウ", "macwindow.badge.plus", .key("n", .command)), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "タブ、戻る・進む、要約など\(count)個"
@@ -53,7 +53,7 @@ extension PresetData {
                 PresetBuilder.key("タブを復元", "arrow.uturn.backward", .key("t", [.shift, .command])),
                 // ⌘L でアドレスバーへ移り（URL が選択される）、⌘C でコピーする
                 PresetBuilder.key("リンクをコピー", "link", .sequence(.key("l", .command), .key("c", .command))),
-            ], fallbackIndex: 6, capabilities),
+            ], fallbackIndex: 6, filler: PresetBuilder.key("新規ウインドウ", "macwindow.badge.plus", .key("n", .command)), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "タブ、戻る・進む、要約など\(count)個"
@@ -86,7 +86,7 @@ extension PresetData {
                 PresetBuilder.key("タブを復元", "arrow.uturn.backward", .key("t", [.shift, .command])),
                 PresetBuilder.findOnPage(),
                 PresetBuilder.key("新規ウインドウ", "macwindow.badge.plus", .key("n", .command)),
-            ], fallbackIndex: 7, capabilities),
+            ], fallbackIndex: 7, filler: PresetBuilder.key("サイドバー", "sidebar.left", .key("s", .command)), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "Little Arc、リンクをコピー、要約など\(count)個"

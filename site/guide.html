@@ -172,7 +172,7 @@
     <p>「Nonet へようこそ」のウィンドウは、上に並んだ3つの段階で進みます。</p>
     <ol>
       <li><strong>アクセシビリティ</strong>: 上の許可です</li>
-      <li><strong>アプリを選ぶ</strong>: Mac に入っているアプリのうち、プリセット（最初から用意した9マス）のあるものが並びます（Xcode・Visual Studio Code・Safari・Slack・Zoom など）。最初はすべて選ばれています。使うものだけを選び、「次へ：試してみる」を押します。「すべて選ぶ」「すべて外す」でまとめて切り替えられます。Apple Intelligence を使えない Mac では AI のマスを、<code>claude</code> コマンドのない Mac では Claude Code のマスを入れず、中央には代わりのマスを置きます（Claude Code のマスは、どのプリセットでも中央には置きません）</li>
+      <li><strong>アプリを選ぶ</strong>: Mac に入っているアプリのうち、プリセット（最初から用意した9マス）のあるものが並びます（Finder・Safari・メール・Outlook・Zoom・Slack・Excel・Word・PowerPoint・Keynote・Pages・Numbers・Notion・メモ・Obsidian・Figma・Photoshop・Final Cut Pro・Xcode・Visual Studio Code など）。最初はすべて選ばれています。使うものだけを選び、「次へ：試してみる」を押します。「すべて選ぶ」「すべて外す」でまとめて切り替えられます。Apple Intelligence を使えない Mac では AI のマスを、<code>claude</code> コマンドのない Mac では Claude Code のマスを入れず、中央には代わりのマスを置きます。AI のマスの代わりに中央へ移したマスの元の位置には、別のマスが入るので9マスのままです（Claude Code のマスは、どのプリセットでも中央には置きません）</li>
       <li><strong>試してみる</strong>: 練習モードで2つ試します。図には、いま HUD に出るマスの名前が並びます。1つ目は「開いて、マスで離す」: トラックパッドの上の縁に指を置いて下へ滑らせ、HUD が開いたら案内のマスまで指を滑らせて、そこで離します（違うマスで離したときは、案内のマスがどこにあるかを教えます）。2つ目は「外枠で離して、やめる」: もう一度上の縁から開き、今度は指を外枠（9マスの外側）まで滑らせてから離します。練習中は何も実行されません。「スキップ」で飛ばせます。試せないときは、理由と直すためのボタンが出ます。Nonet が無効なら「Nonet を有効にする」、トラックパッドがなければ「もう一度確かめる」、いま使うページのマスがすべて空いていれば「設定を開く」、試用期間が終わっていれば「ライセンスキーを入力…」（ライセンスキーを登録すると、この知らせは消えます）</li>
     </ol>
     <p>最後に「準備ができました」と、こつが4つ（上の縁から開く・外枠で離すとやめる・左右の外枠で止めてページを切り替える・マスを変える）と試用期間の残りが出ます。「Mac にログインしたら Nonet を自動で起動する」は最初から選ばれていて、「完了」か「設定を開く」で反映します（システム設定での許可が要るときは、そう知らせます）。「完了」で閉じると、メニューバーの Nonet のアイコンが光り、その下に「Nonet はここにいます」と出ます。アイコンが見えないときは、見つけ方が画面に出ます。「設定を開く」を押すと、そのまま設定のウィンドウが開きます。</p>
@@ -383,7 +383,7 @@
         <tbody>
           <tr><td><code>NONET_APP_BUNDLE_ID</code></td><td>前面のアプリの bundle ID</td><td><code>com.apple.dt.Xcode</code></td></tr>
           <tr><td><code>NONET_APP_NAME</code></td><td>前面のアプリの名前</td><td><code>Xcode</code></td></tr>
-          <tr><td><code>NONET_DOCUMENT_PATH</code></td><td>前面のウィンドウで開いている書類</td><td><code>/Users/you/dev/App/App.xcodeproj</code></td></tr>
+          <tr><td><code>NONET_DOCUMENT_PATH</code></td><td>前面のウィンドウで開いている書類（Visual Studio Code・Cursor など、書類の場所を macOS に知らせないアプリでは空）</td><td><code>/Users/you/dev/App/App.xcodeproj</code></td></tr>
           <tr><td><code>NONET_PROJECT_DIR</code></td><td>書類から決めたプロジェクトのフォルダ</td><td><code>/Users/you/dev/App</code></td></tr>
           <tr><td><code>PROJECT_DIR</code></td><td><code>NONET_PROJECT_DIR</code> と同じ</td><td><code>/Users/you/dev/App</code></td></tr>
           <tr><td><code>NONET_BROWSER_URL</code></td><td>ブラウザで表示中のページ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）</td><td><code>https://example.com/article</code></td></tr>
@@ -392,6 +392,7 @@
       </table>
     </div>
     <p>選択中のテキスト（<code>NONET_SELECTED_TEXT</code>）とブラウザの URL（<code>NONET_BROWSER_URL</code>）は、スクリプトにその変数の名前が書かれているときだけ読みます（読むために ⌘C を送ったり、ブラウザに問い合わせたりするため）。名前が書かれていないスクリプトでは、⌘C を送らず、ブラウザにも問い合わせません（オートメーションの確認も出ません）。選択中のテキストを直接読めないアプリでは、⌘C でコピーして読み、クリップボードは元に戻します。別のファイルのスクリプトを呼ぶだけのときは、コメントでよいので、使う変数の名前を書いておいてください（下の例）。ほかの変数（<code>NONET_APP_BUNDLE_ID</code>・<code>NONET_APP_NAME</code>・<code>NONET_DOCUMENT_PATH</code>・<code>NONET_PROJECT_DIR</code>・<code>PROJECT_DIR</code>）は、値があればいつも設定します。</p>
+    <p>Visual Studio Code と Cursor は、開いている書類の場所を macOS に知らせません（ウインドウの題名も「Code」だけです）。そのため、これらのアプリの前では <code>NONET_DOCUMENT_PATH</code> と <code>PROJECT_DIR</code> が空になり、プリセットの Claude Code のマスはホームフォルダで開きます。プロジェクトのフォルダで開きたいときは、スクリプトの <code>cd "${PROJECT_DIR:-$HOME}"</code> をそのフォルダの場所に書き換えてください。</p>
     <p>プロジェクトのフォルダは次のように決めます。</p>
     <ul>
       <li>書類が <code>.xcodeproj</code>・<code>.xcworkspace</code>・<code>.swiftpm</code> なら、その入っているフォルダ</li>

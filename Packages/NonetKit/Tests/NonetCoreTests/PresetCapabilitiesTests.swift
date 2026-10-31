@@ -19,6 +19,10 @@ import Testing
         ("com.tinyspeck.slackmacgap", .key("k", .command)),
         ("notion.id", .key("p", .command)),
         ("com.apple.Notes", .key("l", [.shift, .command])),
+        ("com.microsoft.Outlook", .key("e", .control)),
+        ("com.microsoft.Word", .key("h", .control)),
+        ("com.apple.iWork.Pages", .key("w", [.shift, .command])),
+        ("md.obsidian", .key("o", .command)),
     ]
 
     /// Claude Code が無くても変わらない中央
@@ -78,20 +82,23 @@ import Testing
         }
     }
 
-    /// 使えない Mac のプリセットは、全部入りのマスを動かしたか除いただけ（キーの決まりは PresetLibraryTests で確かめている）
+    /// 使えない Mac のプリセットは、全部入りのマスを動かしたか除いたか、AI の代わりに空いた位置へ1つ足しただけ
+    /// （キーの決まりは PresetLibraryTests で確かめている）
     @Test(arguments: PresetCapabilities.allCombinations)
-    func reducedPresetsOnlyMoveOrDropCells(capabilities: PresetCapabilities) throws {
+    func reducedPresetsOnlyMoveDropOrFillCells(capabilities: PresetCapabilities) throws {
         for preset in PresetLibrary.apps(for: capabilities) {
             let full = try Self.preset(preset.app.bundleID, .all)
             let fullActions = Self.filled(full).map(\.action)
             let actions = Self.filled(preset).map(\.action)
-            for action in actions {
-                #expect(fullActions.contains(action), "\(preset.app.bundleID): \(action)")
-            }
+            let aiCount = fullActions.filter { $0.kind == .ai }.count
+            // AI のマスがあったプリセットだけ、AI を使えない Mac で1つ（空いた位置を埋めるマス）を足す
+            let added = actions.filter { !fullActions.contains($0) }
+            #expect(added.count == (capabilities.appleIntelligence ? 0 : aiCount), "\(preset.app.bundleID): \(added)")
+            #expect(added.allSatisfy { $0.kind != .ai })
             #expect(Set(Self.filled(preset).map(\.title)).count == actions.count)
-            let missing = (capabilities.appleIntelligence ? 0 : fullActions.filter { $0.kind == .ai }.count)
+            let missing = (capabilities.appleIntelligence ? 0 : aiCount)
                 + (capabilities.claudeCode ? 0 : Self.filled(full).filter(Self.usesTerminal).count)
-            #expect(actions.count == fullActions.count - missing, "\(preset.app.bundleID)")
+            #expect(actions.count == fullActions.count - missing + added.count, "\(preset.app.bundleID)")
         }
     }
 
@@ -103,10 +110,14 @@ import Testing
         let full = try Self.preset(bundleID, .all).pages[0].cells
         let reduced = try Self.preset(bundleID, Self.noAI).pages[0].cells
         #expect(reduced[Self.center]?.action == .keystroke(expected))
-        // 移したマスの元の位置は空き、ほかのマスは同じ位置のまま
+        // 移したマスの元の位置には、AI を使える Mac には無い別のマスが入り（9マスのまま）、ほかのマスは同じ位置のまま
         let from = try #require(full.firstIndex { $0?.action == .keystroke(expected) })
         #expect(from != Self.center)
-        #expect(reduced[from] == nil)
+        let filler = try #require(reduced[from], "\(bundleID) の \(from) が空")
+        #expect(filler.action.kind != .ai)
+        let fullActions = full.compactMap { $0?.action }
+        #expect(!fullActions.contains(filler.action), "\(bundleID): \(filler.title) は AI を使える Mac にもある")
+        #expect(reduced.allSatisfy { $0 != nil }, "\(bundleID) に空きマスがある")
         for index in full.indices where index != from && index != Self.center {
             #expect(reduced[index]?.action == full[index]?.action, "\(bundleID) の \(index)")
         }
@@ -169,14 +180,15 @@ import Testing
 
     @Test func summariesWithoutAI() throws {
         let expected: [(String, String.LocalizationValue)] = [
-            ("com.apple.Safari", "タブ、戻る・進む、ページ内検索など\(8)個"),
-            ("com.google.Chrome", "タブ、戻る・進む、ページ内検索など\(8)個"),
-            ("company.thebrowser.Browser", "Little Arc、リンクをコピー、ページ内検索など\(8)個"),
-            ("com.apple.mail", "返信、アーカイブ、転送など\(8)個"),
-            ("com.microsoft.teams2", "ミュート、ビデオ、画面共有など\(8)個"),
-            ("com.tinyspeck.slackmacgap", "スレッド、未読、会話へ移動など\(8)個"),
-            ("notion.id", "新規ページ、検索、コメントなど\(8)個"),
-            ("com.apple.Notes", "チェックリスト、表、見出しなど\(8)個"),
+            // AI を使えない Mac でも、空いた位置に別のマスが入るので9個のまま
+            ("com.apple.Safari", "タブ、戻る・進む、ページ内検索など\(9)個"),
+            ("com.google.Chrome", "タブ、戻る・進む、ページ内検索など\(9)個"),
+            ("company.thebrowser.Browser", "Little Arc、リンクをコピー、ページ内検索など\(9)個"),
+            ("com.apple.mail", "返信、アーカイブ、転送など\(9)個"),
+            ("com.microsoft.teams2", "ミュート、ビデオ、画面共有など\(9)個"),
+            ("com.tinyspeck.slackmacgap", "スレッド、未読、会話へ移動など\(9)個"),
+            ("notion.id", "新規ページ、検索、コメントなど\(9)個"),
+            ("com.apple.Notes", "チェックリスト、表、見出しなど\(9)個"),
         ]
         for (bundleID, summary) in expected {
             #expect(try Self.preset(bundleID, .none).summary == ModelFixtures.text(summary), "\(bundleID)")
@@ -218,11 +230,11 @@ import Testing
 
     // MARK: - プロファイルにする
 
-    @Test func profileFromAReducedPresetKeepsTheEmptySlot() throws {
+    @Test func profileFromAReducedPresetStaysFull() throws {
         let preset = try Self.preset("com.apple.Safari", .none)
         let profile = preset.makeProfile()
         #expect(profile.pages[0].cells.count == Page.cellCount)
-        #expect(profile.pages[0].cells.compactMap { $0 }.count == 8)
+        #expect(profile.pages[0].cells.compactMap { $0 }.count == 9)
         #expect(profile.pages[0].cells[Self.center]?.action == .keystroke(.key("f", .command)))
     }
 

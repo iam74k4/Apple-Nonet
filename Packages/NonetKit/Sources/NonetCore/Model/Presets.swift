@@ -97,22 +97,34 @@ public enum PresetLibrary {
 
     /// この Mac でできることに合わせたプリセット。使えないアクションは入れず、中央には代わりのマスを置く
     public static func apps(for capabilities: PresetCapabilities) -> [AppPreset] {
+        // 初回の案内の「アプリを選ぶ」はこの順に並ぶので、誰でも使うもの（Finder・ブラウザ・メール・会議）を先に、
+        // オフィス・ドキュメント・デザインと映像、開発の順にする
         [
+            PresetData.finder,
+            PresetData.safari(capabilities),
+            PresetData.chrome(capabilities),
+            PresetData.arc(capabilities),
+            PresetData.mail(capabilities),
+            PresetData.outlook(capabilities),
+            PresetData.zoom,
+            PresetData.teams(capabilities),
+            PresetData.slack(capabilities),
+            PresetData.excel,
+            PresetData.word(capabilities),
+            PresetData.powerPoint,
+            PresetData.keynote,
+            PresetData.pages(capabilities),
+            PresetData.numbers,
+            PresetData.notion(capabilities),
+            PresetData.notes(capabilities),
+            PresetData.obsidian(capabilities),
+            PresetData.figma,
+            PresetData.photoshop,
+            PresetData.finalCut,
             PresetData.xcode(capabilities),
             PresetData.vsCode(capabilities),
             PresetData.cursor(capabilities),
             PresetData.terminal(capabilities),
-            PresetData.figma,
-            PresetData.zoom,
-            PresetData.slack(capabilities),
-            PresetData.teams(capabilities),
-            PresetData.safari(capabilities),
-            PresetData.chrome(capabilities),
-            PresetData.arc(capabilities),
-            PresetData.finder,
-            PresetData.notion(capabilities),
-            PresetData.mail(capabilities),
-            PresetData.notes(capabilities),
         ]
     }
 

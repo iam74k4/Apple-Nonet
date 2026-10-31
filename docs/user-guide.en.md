@@ -52,7 +52,7 @@ The first time you use a File action, or a script uses the URL of the page shown
 The Welcome to Nonet window has three steps, shown at the top.
 
 1. **Accessibility**: the permission described above
-2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Xcode, Visual Studio Code, Safari, Slack, Zoom and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead (no preset puts Claude Code in the center)
+2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Finder, Safari, Mail, Outlook, Zoom, Slack, Excel, Word, PowerPoint, Keynote, Pages, Numbers, Notion, Notes, Obsidian, Figma, Photoshop, Final Cut Pro, Xcode, Visual Studio Code and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead, and a different button fills the slot it leaves, so the page still has nine (no preset puts Claude Code in the center)
 3. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
 At the end, "You're all set" shows four quick tips (open from the top edge, lift in the frame to cancel, hold in the side frame to change pages, change a button) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
@@ -280,13 +280,15 @@ These describe the front app when the script runs. **Variables without a value a
 |---|---|---|
 | `NONET_APP_BUNDLE_ID` | Bundle ID of the front app | `com.apple.dt.Xcode` |
 | `NONET_APP_NAME` | Name of the front app | `Xcode` |
-| `NONET_DOCUMENT_PATH` | Document open in the front window | `/Users/you/dev/App/App.xcodeproj` |
+| `NONET_DOCUMENT_PATH` | Document open in the front window (empty in apps that don't tell macOS where the document is, such as Visual Studio Code and Cursor) | `/Users/you/dev/App/App.xcodeproj` |
 | `NONET_PROJECT_DIR` | Project folder that contains the document | `/Users/you/dev/App` |
 | `PROJECT_DIR` | Same as `NONET_PROJECT_DIR` | `/Users/you/dev/App` |
 | `NONET_BROWSER_URL` | URL of the current page in Safari, Google Chrome, Arc, Microsoft Edge or Brave | `https://example.com/article` |
 | `NONET_SELECTED_TEXT` | Selected text | |
 
 Nonet reads the selected text (`NONET_SELECTED_TEXT`) and the browser URL (`NONET_BROWSER_URL`) only when the script contains the variable's name, because reading them can mean sending ⌘C or asking the browser. A script that doesn't contain these names never sends ⌘C and never asks the browser, so no Automation prompt appears. In apps whose selection can't be read directly, Nonet copies it with ⌘C and then restores the clipboard. If your script only calls a script in another file, write the names of the variables it uses in your script, even in a comment (see the last example below). The other variables (`NONET_APP_BUNDLE_ID`, `NONET_APP_NAME`, `NONET_DOCUMENT_PATH`, `NONET_PROJECT_DIR` and `PROJECT_DIR`) are always set when they have a value.
+
+Visual Studio Code and Cursor don't tell macOS where the open document is (their window title is just “Code”). In front of these apps, `NONET_DOCUMENT_PATH` and `PROJECT_DIR` are empty, so the preset's Claude Code button opens in your home folder. To open it in a project, replace `cd "${PROJECT_DIR:-$HOME}"` in the script with that folder.
 
 Nonet finds the project folder like this:
 

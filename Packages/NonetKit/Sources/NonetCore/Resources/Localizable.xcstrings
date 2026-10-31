@@ -387,6 +387,16 @@
         }
       }
     },
+    "すべてブレード" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blade All"
+          }
+        }
+      }
+    },
     "ほかのアプリの上で試してください" : {
       "localizations" : {
         "en" : {
@@ -458,6 +468,26 @@
         }
       }
     },
+    "オフィス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Office"
+          }
+        }
+      }
+    },
+    "オートSUM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AutoSum"
+          }
+        }
+      }
+    },
     "カレンダー" : {
       "localizations" : {
         "en" : {
@@ -484,6 +514,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quick Look"
+          }
+        }
+      }
+    },
+    "クイック切替" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Switcher"
+          }
+        }
+      }
+    },
+    "クイック切替、検索、校正など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Quick Switcher, Search and Proofread"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Quick Switcher, Search and Proofread"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "クイック切替、検索、閲覧モードなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Quick Switcher, Search and Reading View"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Quick Switcher, Search and Reading View"
+                }
+              }
+            }
           }
         }
       }
@@ -518,6 +602,16 @@
         }
       }
     },
+    "グループ化" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Group"
+          }
+        }
+      }
+    },
     "グループ解除" : {
       "localizations" : {
         "en" : {
@@ -534,6 +628,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global"
+          }
+        }
+      }
+    },
+    "コピーで新規" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layer via Copy"
           }
         }
       }
@@ -612,6 +716,50 @@
         }
       }
     },
+    "コメント、変更の承認、単語数など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Comment, Accept Change and Word Count"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Comment, Accept Change and Word Count"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "コメント、変更の承認、校正など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Comment, Accept Change and Proofread"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Comment, Accept Change and Proofread"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "コンポーネント化" : {
       "localizations" : {
         "en" : {
@@ -682,6 +830,16 @@
         }
       }
     },
+    "スキップ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip Slide"
+          }
+        }
+      }
+    },
     "スクリプト" : {
       "localizations" : {
         "en" : {
@@ -703,12 +861,53 @@
         }
       }
     },
+    "スペルチェック" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spelling"
+          }
+        }
+      }
+    },
+    "スライドへ移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Slide"
+          }
+        }
+      }
+    },
+    "スライドを複製" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate Slide"
+          }
+        }
+      }
+    },
     "スライドショー" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Slideshow"
+          }
+        }
+      }
+    },
+    "スライド一覧" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide Sorter"
           }
         }
       }
@@ -763,6 +962,36 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "セルの書式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format Cells"
+          }
+        }
+      }
+    },
+    "セルを結合" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge Cells"
+          }
+        }
+      }
+    },
+    "ソロ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo"
           }
         }
       }
@@ -1051,12 +1280,42 @@
         }
       }
     },
+    "トランジション" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transition"
+          }
+        }
+      }
+    },
+    "トーンカーブ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Curves"
+          }
+        }
+      }
+    },
     "ドキュメント" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Writing"
+          }
+        }
+      }
+    },
+    "ハイライト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlight"
           }
         }
       }
@@ -1145,12 +1404,64 @@
         }
       }
     },
+    "フィルタ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
+          }
+        }
+      }
+    },
+    "フィルター" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
+          }
+        }
+      }
+    },
+    "フィルター、並べ替え、オートSUMなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Filter, Sort and AutoSum"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Filter, Sort and AutoSum"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "フォルダへ移動" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Go to Folder"
+          }
+        }
+      }
+    },
+    "フラグ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flag"
           }
         }
       }
@@ -1188,7 +1499,6 @@
       }
     },
     "ブックマーク" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1208,12 +1518,54 @@
         }
       }
     },
+    "ブレード" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blade"
+          }
+        }
+      }
+    },
+    "ブレード、トランジション、共有など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Blade, Transition and Share"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Blade, Transition and Share"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "プレビュー" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preview"
+          }
+        }
+      }
+    },
+    "プロパティ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Property"
           }
         }
       }
@@ -1244,6 +1596,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't export the profiles."
+          }
+        }
+      }
+    },
+    "ページへ移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go to Page"
           }
         }
       }
@@ -1503,6 +1865,16 @@
         }
       }
     },
+    "レイヤーを結合" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge Layers"
+          }
+        }
+      }
+    },
     "上の階層へ" : {
       "localizations" : {
         "en" : {
@@ -1513,12 +1885,52 @@
         }
       }
     },
+    "不可視文字" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invisibles"
+          }
+        }
+      }
+    },
+    "並べ替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort"
+          }
+        }
+      }
+    },
     "中断" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Interrupt"
+          }
+        }
+      }
+    },
+    "今日の日付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's Date"
+          }
+        }
+      }
+    },
+    "今日フラグ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flag for Today"
           }
         }
       }
@@ -1570,6 +1982,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To cancel, lift your finger before releasing %@"
+          }
+        }
+      }
+    },
+    "先頭から再生" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play from Start"
           }
         }
       }
@@ -1634,6 +2056,70 @@
         }
       }
     },
+    "共有" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        }
+      }
+    },
+    "再生" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        }
+      }
+    },
+    "再生、新しいスライド、発表者ツールなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Play, New Slide and Presenter View"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Play, New Slide and Presenter View"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "再生、新規スライド、発表者ノートなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Play, New Slide and Presenter Notes"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Play, New Slide and Presenter Notes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "写真" : {
       "localizations" : {
         "en" : {
@@ -1654,12 +2140,52 @@
         }
       }
     },
+    "列を右に追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Column Right"
+          }
+        }
+      }
+    },
+    "前のシート" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Sheet"
+          }
+        }
+      }
+    },
     "前のタブ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Tab"
+          }
+        }
+      }
+    },
+    "前の未読" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Unread"
+          }
+        }
+      }
+    },
+    "単語数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word Count"
           }
         }
       }
@@ -1737,6 +2263,36 @@
         }
       }
     },
+    "変更を却下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject Change"
+          }
+        }
+      }
+    },
+    "変更を承認" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept Change"
+          }
+        }
+      }
+    },
+    "変更履歴" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track Changes"
+          }
+        }
+      }
+    },
     "外枠で指を離すとやめる" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1795,6 +2351,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hold in the side frame to change pages"
+          }
+        }
+      }
+    },
+    "形式を選んで貼付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Special"
           }
         }
       }
@@ -1860,12 +2426,32 @@
         }
       }
     },
+    "改ページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page Break"
+          }
+        }
+      }
+    },
     "整形" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Format"
+          }
+        }
+      }
+    },
+    "新しいスライド" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Slide"
           }
         }
       }
@@ -1901,6 +2487,26 @@
         }
       }
     },
+    "新規シート" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Sheet"
+          }
+        }
+      }
+    },
+    "新規スライド" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Slide"
+          }
+        }
+      }
+    },
     "新規タブ" : {
       "localizations" : {
         "en" : {
@@ -1917,6 +2523,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Chat"
+          }
+        }
+      }
+    },
+    "新規ノート" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Note"
           }
         }
       }
@@ -1960,6 +2576,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Into New Folder"
+          }
+        }
+      }
+    },
+    "新規プロジェクト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Project"
           }
         }
       }
@@ -2048,12 +2674,54 @@
         }
       }
     },
+    "新規レイヤー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Layer"
+          }
+        }
+      }
+    },
+    "新規レイヤー、自由変形、結合など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including New Layer, Free Transform and Merge"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including New Layer, Free Transform and Merge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "既読/未読" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Read/Unread"
+          }
+        }
+      }
+    },
+    "映像" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
           }
         }
       }
@@ -2074,6 +2742,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export"
+          }
+        }
+      }
+    },
+    "書式なし貼付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Plain Text"
+          }
+        }
+      }
+    },
+    "最前面へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring to Front"
+          }
+        }
+      }
+    },
+    "最背面へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send to Back"
           }
         }
       }
@@ -2114,6 +2812,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search"
+          }
+        }
+      }
+    },
+    "検索と置換" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find and Replace"
+          }
+        }
+      }
+    },
+    "標準" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal Style"
+          }
+        }
+      }
+    },
+    "次のシート" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Sheet"
           }
         }
       }
@@ -2179,12 +2907,42 @@
         }
       }
     },
+    "現在から再生" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play from Here"
+          }
+        }
+      }
+    },
     "画面共有" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share Screen"
+          }
+        }
+      }
+    },
+    "発表者ツール" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter View"
+          }
+        }
+      }
+    },
+    "発表者ノート" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presenter Notes"
           }
         }
       }
@@ -2229,6 +2987,16 @@
         }
       }
     },
+    "置換" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        }
+      }
+    },
     "翻訳" : {
       "localizations" : {
         "en" : {
@@ -2249,12 +3017,74 @@
         }
       }
     },
+    "自由変形" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free Transform"
+          }
+        }
+      }
+    },
+    "行の追加、フィルタ、並べ替えなど%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Add Row, Filter and Sort"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Add Row, Filter and Sort"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "行を上に追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Row Above"
+          }
+        }
+      }
+    },
+    "行を下に追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Row Below"
+          }
+        }
+      }
+    },
     "表" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Table"
+          }
+        }
+      }
+    },
+    "表示レイヤー結合" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merge Visible"
           }
         }
       }
@@ -2305,6 +3135,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Heading 1"
+          }
+        }
+      }
+    },
+    "見出し2" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heading 2"
+          }
+        }
+      }
+    },
+    "見出し、コメント、変更履歴など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Heading, Comment and Track Changes"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Heading, Comment and Track Changes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "見出し、コメント、校正など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including Heading, Comment and Proofread"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including Heading, Comment and Proofread"
+                }
+              }
+            }
           }
         }
       }
@@ -2420,6 +3304,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "読み込み" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
           }
         }
       }
@@ -2561,6 +3455,16 @@
         }
       }
     },
+    "選択解除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect"
+          }
+        }
+      }
+    },
     "録画" : {
       "localizations" : {
         "en" : {
@@ -2587,6 +3491,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Development"
+          }
+        }
+      }
+    },
+    "閲覧モード" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading View"
           }
         }
       }

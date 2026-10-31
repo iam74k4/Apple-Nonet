@@ -36,6 +36,11 @@ enum PresetBuilder {
         Cell(title: text(title), icon: .symbol(symbol), action: .file(action))
     }
 
+    /// スクリーンショットと画面収録（macOS のショートカットを送る）
+    static func capture(_ title: String.LocalizationValue, _ symbol: String, _ action: ScreenCaptureAction) -> Cell {
+        Cell(title: text(title), icon: .symbol(symbol), action: .screenCapture(action))
+    }
+
     static func launch(_ title: String.LocalizationValue, _ symbol: String, _ app: AppReference) -> Cell {
         Cell(title: text(title), icon: .symbol(symbol), action: .launchApp(LaunchAppAction(app: app)))
     }
@@ -66,12 +71,13 @@ enum PresetBuilder {
     }
 
     /// 中央に AI を置く並び。cells の中央は AI のマス。
-    /// AI を使えない Mac では、fallbackIndex のマスを中央へ移し、元の位置は空ける（ほかのマスの位置は変えない）
-    static func aiCentered(_ cells: [Cell?], fallbackIndex: Int, _ capabilities: PresetCapabilities) -> [Cell?] {
+    /// AI を使えない Mac では、fallbackIndex のマスを中央へ移し、空いた元の位置に filler を入れる（ほかのマスの位置は変えない）。
+    /// filler は AI を使える Mac には無い、そのアプリの9マスに入れそびれていた操作にする
+    static func aiCentered(_ cells: [Cell?], fallbackIndex: Int, filler: Cell, _ capabilities: PresetCapabilities) -> [Cell?] {
         guard !capabilities.appleIntelligence else { return cells }
         var cells = cells
         cells[centerIndex] = cells[fallbackIndex]
-        cells[fallbackIndex] = nil
+        cells[fallbackIndex] = filler
         return cells
     }
 
@@ -145,6 +151,12 @@ enum KnownApp {
     static var faceTime: AppReference { AppReference(bundleID: "com.apple.FaceTime", name: "FaceTime") }
     static var appStore: AppReference { AppReference(bundleID: "com.apple.AppStore", name: "App Store") }
     static var xcode: AppReference { AppReference(bundleID: "com.apple.dt.Xcode", name: "Xcode") }
+    // iWork（bundleID は /Applications の Info.plist、14.5 で確認）
+    static var keynote: AppReference { AppReference(bundleID: "com.apple.iWork.Keynote", name: "Keynote") }
+    static var pages: AppReference { AppReference(bundleID: "com.apple.iWork.Pages", name: "Pages") }
+    static var numbers: AppReference { AppReference(bundleID: "com.apple.iWork.Numbers", name: "Numbers") }
+    /// Mac App Store 専売（itunes.apple.com/lookup?id=424389933 の bundleId で確認）
+    static var finalCut: AppReference { AppReference(bundleID: "com.apple.FinalCut", name: "Final Cut Pro") }
 
     // ほかの会社のアプリ（製品名なので訳さない）
     static var chrome: AppReference { AppReference(bundleID: "com.google.Chrome", name: "Google Chrome") }
@@ -175,6 +187,9 @@ enum KnownApp {
     static var line: AppReference { AppReference(bundleID: "jp.naver.line.mac", name: "LINE") }
     static var discord: AppReference { AppReference(bundleID: "com.hnc.Discord", name: "Discord") }
     static var obsidian: AppReference { AppReference(bundleID: "md.obsidian", name: "Obsidian") }
+    /// Homebrew の cask が無く、Adobe の文書にも載っていない。MacScripter などの投稿で製品版・ベータ版とも同じと確かめた
+    /// （リリースの前に、インストール済みの Photoshop で `osascript -e 'id of app "Adobe Photoshop 2026"'` を確かめる。docs/release.md）
+    static var photoshop: AppReference { AppReference(bundleID: "com.adobe.Photoshop", name: "Adobe Photoshop") }
 
     private static func apple(_ bundleID: String, _ name: String.LocalizationValue) -> AppReference {
         AppReference(bundleID: bundleID, name: PresetBuilder.text(name))

@@ -52,7 +52,7 @@ extension PresetData {
                 PresetBuilder.key("会話へ移動", "arrow.right.circle", .key("k", .command)),
                 // 次の未読のチャンネルか DM へ移る。押し間違えても移動するだけ
                 PresetBuilder.key("次の未読", "arrow.down.circle", .special(.downArrow, [.option, .shift])),
-            ], fallbackIndex: 7, capabilities),
+            ], fallbackIndex: 7, filler: PresetBuilder.key("前の未読", "arrow.up.circle", .special(.upArrow, [.option, .shift])), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "スレッド、翻訳、未読など\(count)個"
@@ -84,7 +84,8 @@ extension PresetData {
                 PresetBuilder.holdBeforeRunning(PresetBuilder.key("ビデオ", "video", .key("o", [.shift, .command]))),
                 // 共有するコンテンツのトレイを開く（Zoom の画面共有と同じ印にそろえる）
                 PresetBuilder.holdBeforeRunning(PresetBuilder.key("画面共有", "display", .key("e", [.shift, .command]))),
-            ], fallbackIndex: 6, capabilities),
+            // 挙手は Zoom と同じく、押し間違えると参加者に見えるので少し長く止めてから実行する
+            ], fallbackIndex: 6, filler: PresetBuilder.holdBeforeRunning(PresetBuilder.key("挙手", "hand.raised", .key("k", [.shift, .command]))), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "ミュート、検索、要約など\(count)個"
@@ -114,7 +115,7 @@ extension PresetData {
                 PresetBuilder.key("受信", "tray.and.arrow.down", .key("n", [.shift, .command])),
                 PresetBuilder.key("既読/未読", "envelope.badge", .key("u", [.shift, .command])),
                 PresetBuilder.holdBeforeRunning(PresetBuilder.key("送信", "paperplane", .key("d", [.shift, .command]))),
-            ], fallbackIndex: 5, capabilities),
+            ], fallbackIndex: 5, filler: PresetBuilder.key("フラグ", "flag", .key("l", [.shift, .command])), capabilities),
             summary: { count in
                 if capabilities.appleIntelligence {
                     "返信、アーカイブ、要約など\(count)個"
