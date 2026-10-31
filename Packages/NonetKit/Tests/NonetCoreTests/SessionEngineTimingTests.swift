@@ -120,10 +120,11 @@ import NonetCore
         #expect(s.log.hapticEvents == [.boundary, .boundary])
     }
 
+    /// 境界の線のすぐ外（帯 GridMapper.tapBoundaryBand の外）なら、置いた位置のマスを実行する。帯の中は SessionEngineMisfireTests
     @Test func fastTapNearABorderUsesTheCellUnderTheLandingPoint() {
         var s = SessionScenario()
         s.pressTrigger(at: 0)
-        s.touch(x: 1.0 / 3 + 0.001, y: 0.5, at: 0.05)
+        s.touch(x: 1.0 / 3 + 0.03, y: 0.5, at: 0.05)
         #expect(s.lift(at: 0.1).executions == [.execute(page: 0, cell: 4, wasFastTap: true)])
     }
 

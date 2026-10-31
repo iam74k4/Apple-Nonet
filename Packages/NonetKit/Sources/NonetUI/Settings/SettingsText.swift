@@ -544,6 +544,18 @@ enum SettingsText {
         return sections.joined(separator: "\n\n")
     }
 
+    // MARK: インスペクタ
+
+    /// Cell.requiresHUD のチェックボックス。押し間違えると困るマス（送信・録画など）に付ける
+    static var hudOnlyTitle: String {
+        String(localized: "すぐのタップでは実行しない（HUD で選んだときだけ）", bundle: .module)
+    }
+
+    /// 「指を離したとき」でも、HUD で光ったマスにもう一度触れて離せば実行するので、どちらの実行のタイミングでも「もう一度タップ」で言える
+    static var hudOnlyDetail: String {
+        String(localized: "すぐにタップすると HUD が出てこのマスが光り、もう一度タップすると実行します", bundle: .module)
+    }
+
     // MARK: テスト実行
 
     static func testResult(_ record: ExecutionRecord) -> String {

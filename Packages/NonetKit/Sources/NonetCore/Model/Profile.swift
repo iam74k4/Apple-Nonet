@@ -16,12 +16,16 @@ public struct Cell: Codable, Equatable, Identifiable, Sendable {
     public var title: String
     public var icon: CellIcon
     public var action: Action
+    /// HUD で選んだときだけ実行する（送信・録画など、押し間違えると困るマス）。すぐにタップ（速押し）では実行せず、
+    /// このマスを光らせた HUD を出す（SessionConfiguration.hudOnlyCells）。設定ファイルには true のときだけ書く
+    public var requiresHUD: Bool
 
-    public init(id: UUID = UUID(), title: String, icon: CellIcon, action: Action) {
+    public init(id: UUID = UUID(), title: String, icon: CellIcon, action: Action, requiresHUD: Bool = false) {
         self.id = id
         self.title = title
         self.icon = icon
         self.action = action
+        self.requiresHUD = requiresHUD
     }
 }
 
@@ -180,9 +184,10 @@ extension CellIcon {
 
 extension Cell {
     private enum CodingKeys: String, CodingKey {
-        case id, title, icon, action
+        case id, title, icon, action, requiresHUD
     }
 
+    /// requiresHUD が無い・読めなければ false（この設定より前の書式）
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let action = try container.decode(Action.self, forKey: .action)
@@ -190,16 +195,21 @@ extension Cell {
             id: container.decodeLossy(UUID.self, forKey: .id, default: UUID()),
             title: container.decodeLossy(String.self, forKey: .title, default: ""),
             icon: container.decodeLossy(CellIcon.self, forKey: .icon, default: .fallback(for: action)),
-            action: action
+            action: action,
+            requiresHUD: container.decodeLossy(Bool.self, forKey: .requiresHUD, default: false)
         )
     }
 
+    /// requiresHUD は true のときだけ書く（この設定より前の版と同じ書式のまま）
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(title, forKey: .title)
         try container.encode(icon, forKey: .icon)
         try container.encode(action, forKey: .action)
+        if requiresHUD {
+            try container.encode(true, forKey: .requiresHUD)
+        }
     }
 }
 

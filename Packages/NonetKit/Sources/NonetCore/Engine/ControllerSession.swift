@@ -28,7 +28,9 @@ struct ControllerSession: Equatable, Sendable {
     var engineConfiguration: SessionConfiguration {
         // 空きマスの速押しで 6 の (a) の HUD が止まらないように、中身のあるマスを渡す
         let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
-        var configuration = SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied)
+        // HUD で選んだときだけ実行するマスは、速押しでは実行せずに HUD を出す
+        let hudOnly = pages.map { page in Set(page.cells.indices.filter { page.cells[$0]?.requiresHUD == true }) }
+        var configuration = SessionConfiguration(settings: settings, pageCount: pages.count, occupiedCells: occupied, hudOnlyCells: hudOnly)
         configuration.activation = activation
         return configuration
     }

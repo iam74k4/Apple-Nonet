@@ -17,6 +17,8 @@ extension PresetData {
     /// スクショ ⇧⌘4（システム全体のショートカットで、前面アプリに送っても撮れるとは限らない）、
     /// ターミナルの起動（グローバルのランチャーにある）。代わりに、ファイルや記号へすぐ移れるクイックオープン
     /// 中央: クイックオープン。Claude Code はその右（以前ターミナルのあった位置）
+    /// HUD で選んだときだけ実行する（PresetBuilder.hudOnly）: クリーン（ビルドフォルダを消すので、押し間違えると次のビルドが最初からになる）。
+    /// コミットはシートが開くだけなので付けない
     static func xcode(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.xcode,
@@ -33,7 +35,7 @@ extension PresetData {
                 PresetBuilder.key("クイックオープン", "magnifyingglass", .key("o", [.shift, .command])),
                 PresetBuilder.claudeCode(capabilities),
                 PresetBuilder.key("停止", "stop.fill", .key(".", .command)),
-                PresetBuilder.key("クリーン", "eraser", .key("k", [.shift, .command])),
+                PresetBuilder.hudOnly(PresetBuilder.key("クリーン", "eraser", .key("k", [.shift, .command]))),
                 PresetBuilder.key("コミット", "arrow.triangle.branch", .key("c", [.option, .command])),
             ],
             summary: { count in
@@ -112,6 +114,7 @@ extension PresetData {
     /// 出典: https://support.apple.com/guide/terminal/keyboard-shortcuts-trmlshtcts/mac
     /// タブの移動は ⇧⌘[ / ⇧⌘] ではなく、キー配列に関係しない ⌃Tab / ⌃⇧Tab（同じページに載っている）を使う
     /// 中央: 新規タブ。Claude Code はその上（以前新規タブのあった位置）
+    /// HUD で選んだときだけ実行する（PresetBuilder.hudOnly）: 中断（実行中のコマンドを止めてしまう）
     static func terminal(_ capabilities: PresetCapabilities) -> AppPreset {
         PresetBuilder.preset(
             KnownApp.terminal,
@@ -124,7 +127,7 @@ extension PresetData {
                 PresetBuilder.key("新規タブ", "plus.square.on.square", .key("t", .command)),
                 PresetBuilder.key("次のタブ", "chevron.forward", .special(.tab, .control)),
                 // ⌘. は実行中のコマンドに ⌃C を送る
-                PresetBuilder.key("中断", "stop.circle", .key(".", .command)),
+                PresetBuilder.hudOnly(PresetBuilder.key("中断", "stop.circle", .key(".", .command))),
                 PresetBuilder.key("クリア", "eraser", .key("k", .command)),
                 PresetBuilder.key("分割", "rectangle.split.1x2", .key("d", .command)),
             ],

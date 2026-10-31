@@ -41,7 +41,7 @@ public enum ControllerPresentation {
     }
 
     static func hudCell(_ cell: Cell) -> HUDCell {
-        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action))
+        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHUD: cell.requiresHUD)
     }
 
     /// キー入力のマスだけ「⌘B」のように送るキーを添える
