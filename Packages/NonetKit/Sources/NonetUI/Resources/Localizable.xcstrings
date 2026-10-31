@@ -723,6 +723,16 @@
         }
       }
     },
+    "HUD で選んだときだけ実行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs only when chosen in the HUD"
+          }
+        }
+      }
+    },
     "HUD で選んだマスを、トリガーキーを離したときに実行します。速押しはどちらでもその場で実行します" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2259,6 +2269,16 @@
         }
       }
     },
+    "すぐにタップすると HUD が出てこのマスが光り、もう一度タップすると実行します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A quick tap opens the HUD with this button highlighted; tap again to run it"
+          }
+        }
+      }
+    },
     "すぐにタップすると、その場で実行されます。迷ったら指を置いたまま止めると、9マスの一覧（HUD）が出ます。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2299,6 +2319,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "すぐにタップできました。%1$@のマスは「%2$@」です。慣れたら、これがいちばん速い使い方です。"
+          }
+        }
+      }
+    },
+    "すぐのタップでは実行しない（HUD で選んだときだけ）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't run on a quick tap (only when chosen in the HUD)"
           }
         }
       }
