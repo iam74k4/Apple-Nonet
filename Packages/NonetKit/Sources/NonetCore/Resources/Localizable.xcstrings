@@ -3,15 +3,15 @@
   "strings" : {
     "%@ › %@" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ › %2$@"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "%1$@ › %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "%1$@ › %2$@"
           }
         }
@@ -19,16 +19,16 @@
     },
     "%@ › %@（%lldページ目）" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ › %2$@（%3$lldページ目）"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ › %2$@ (page %3$lld)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ › %2$@（%3$lldページ目）"
           }
         }
       }
@@ -54,6 +54,17 @@
       }
     },
     "%@。Nonet を終了するまで、設定の変更は保存されません" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Changes you make before you quit Nonet won't be saved."
+          }
+        }
+      }
+    },
+    "%@。Nonet を終了するまで、設定の変更は保存されません。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -243,6 +254,17 @@
       }
     },
     "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Didn't run because a Nonet window is in front. In Settings, use “Test This Button” to try it."
+          }
+        }
+      }
+    },
+    "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -673,6 +695,17 @@
       }
     },
     "タップか %@を離して実行" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap, or release %@ to run"
+          }
+        }
+      }
+    },
+    "タップか、%@を離して実行" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1306,6 +1339,17 @@
       }
     },
     "ライセンスキーの形式が正しくありません。購入時のメールからキー全体をコピーしてください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This license key isn't in the right format. Copy the entire key from your purchase email."
+          }
+        }
+      }
+    },
+    "ライセンスキーの形式が正しくありません。購入時のメールからキー全体をコピーしてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1616,6 +1660,17 @@
       }
     },
     "新しい版の Nonet で書き出されたファイルです。Nonet をアップデートしてください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file was exported by a newer version of Nonet. Update Nonet and try again."
+          }
+        }
+      }
+    },
+    "新しい版の Nonet で書き出されたファイルです。Nonet をアップデートしてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2032,6 +2087,17 @@
       }
     },
     "設定ファイルが壊れていたため読み込めませんでした。元のファイルは「%@」として残しています" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the settings file because it was damaged. The original file was kept as “%@”."
+          }
+        }
+      }
+    },
+    "設定ファイルが壊れていたため読み込めませんでした。元のファイルは「%@」として残しています。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2062,6 +2128,17 @@
       }
     },
     "試用期間が終了しました。メニューバーの Nonet から購入・登録できます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended. Buy Nonet or register a license key from its menu bar icon."
+          }
+        }
+      }
+    },
+    "試用期間が終了しました。メニューバーの Nonet から購入・登録できます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2169,6 +2246,17 @@
       }
     },
     "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's no app to send this to. Switch to the app you want to use, then try again."
+          }
+        }
+      }
+    },
+    "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {

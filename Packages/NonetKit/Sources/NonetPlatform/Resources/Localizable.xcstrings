@@ -72,6 +72,17 @@
       }
     },
     "Apple Intelligence がオフになっています。システム設定の「Apple Intelligence と Siri」でオンにしてください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence is turned off. Turn it on in System Settings › Apple Intelligence & Siri."
+          }
+        }
+      }
+    },
+    "Apple Intelligence がオフになっています。システム設定の「Apple Intelligence と Siri」でオンにしてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -82,6 +93,17 @@
       }
     },
     "Apple Intelligence の準備がまだ終わっていません。しばらくしてからもう一度お試しください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence isn't ready yet. Try again later."
+          }
+        }
+      }
+    },
+    "Apple Intelligence の準備がまだ終わっていません。しばらくしてからもう一度お試しください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -102,6 +124,17 @@
       }
     },
     "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the selected text because Nonet isn't allowed to read the clipboard. Allow it in System Settings › Privacy & Security."
+          }
+        }
+      }
+    },
+    "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -192,6 +225,17 @@
       }
     },
     "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the selected text without losing what's on the clipboard. Copy the selected text with ⌘C, then try again."
+          }
+        }
+      }
+    },
+    "クリップボードの中身を保てないため、選択テキストを読めませんでした。選択したテキストを ⌘C でコピーしてから、もう一度実行してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -202,6 +246,17 @@
       }
     },
     "コマンドが見つかりません。インストールされているか、ターミナルで command -v %@ を確かめてください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command not found. Check that it's installed with command -v %@ in Terminal."
+          }
+        }
+      }
+    },
+    "コマンドが見つかりません。インストールされているか、ターミナルで command -v %@ を確かめてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -212,6 +267,17 @@
       }
     },
     "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command not found. Check in Terminal that it's installed."
+          }
+        }
+      }
+    },
+    "コマンドが見つかりません。インストールされているか、ターミナルで確かめてください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -332,6 +398,17 @@
       }
     },
     "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select some text first. To use a single line, select it without the line break at the end."
+          }
+        }
+      }
+    },
+    "テキストを選択してから実行してください。1行だけを使うときは、行末の改行を含めずに選択してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
