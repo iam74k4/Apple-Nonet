@@ -643,7 +643,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With the nine buttons open, rest your finger on the left or right frame to switch to the page on that side. Each app can have up to three pages."
+            "value" : "With the nine buttons open, hold your finger in the left or right frame to switch to the page on that side. Each app can have up to three pages."
           }
         }
       }
@@ -4183,7 +4183,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Rest your finger on the left or right frame to change pages."
+            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Hold your finger in the left or right frame to change pages."
           }
         }
       }
@@ -6838,7 +6838,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rest on the side frame to change pages"
+            "value" : "Hold in the side frame to change pages"
           }
         }
       }
@@ -7265,7 +7265,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rest for the previous page"
+            "value" : "Hold for the previous page"
           }
         }
       }
@@ -7275,7 +7275,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rest for the next page"
+            "value" : "Hold for the next page"
           }
         }
       }

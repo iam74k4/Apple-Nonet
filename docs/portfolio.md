@@ -76,7 +76,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 ```text
 指の位置は MultitouchSupport の生のフレームから読み、最後に置いた指の絶対位置でマスを決めます（ポインタの位置は使いません）。9マスは、トラックパッドの上の縁で触れ始めた1本指がすぐに下へ滑ったときだけ開き、ゆっくりした動き・2本以上の指・手のひらでは開かないようにして、ふだんの操作と見分けています。開いている間のポインタ・クリックの抑止は CGEventTap で行い、キーボード用とポインタ用のタップは開いている間（ポインタ用はその直後の後片付けの間も）だけ有効にして、ふだんのキーとポインタのイベントをアプリに通さないようにしています。開いている間にキーが押されたら何も実行せずに閉じ、そのキーは前面のアプリに渡します。
 
-開くとすぐに HUD を出し、指を滑らせて選んだマスで離すと実行、9マスの外側の外枠で離すと何もせずに閉じます。滑らせて通りかかっただけのマスを実行しないよう、マスに 0.15 秒留まってから離したときだけ実行します。マスの境界をまたぐたびにトラックパッドを振動させる作りにし、非公開の MTActuator を優先して、使えなければ公開の NSHapticFeedbackManager に切り替えます。
+開くとすぐに HUD を出し、指を滑らせて選んだマスで離すと実行、9マスの外側の外枠で離すと何もせずに閉じます。滑らせて通りかかっただけのマスを実行しないよう、マスに 0.1 秒留まってから離したときだけ実行します。左右の外枠に指を止めるとページが切り替わります。マスの境界をまたぐたびにトラックパッドを振動させる作りにし、非公開の MTActuator を優先して、使えなければ公開の NSHapticFeedbackManager に切り替えます。
 
 非公開のフレームワークを使うので Mac App Store には出せず、直販にしました。利用者のアカウントも、ライセンスを確かめるサーバーも持たず、ライセンスキーは Ed25519 で署名した文字列をアプリの中だけで確かめます。リリースは scripts/release.sh 1本で、Developer ID の署名と公証、DMG、Sparkle 2 のアップデートの配信情報（appcast）までをつくる形にし、外部のツールを差し替えたテストで手順を確かめています。
 ```
@@ -198,7 +198,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 上の縁で触れ始めた1本指がすぐに下へ滑ったときだけ開き、ゆっくりした動き・2本以上の指・手のひらでは開かない | `docs/architecture.md` §5 の 1、`NonetCore/Engine/EdgeSlideRecognizer.swift` |
 | CGEventTap で開いている間のポインタ・クリックの抑止とキーでの中断。キーボード用とポインタ用のタップは開いている間（ポインタ用は後片付けの間も）だけ有効 | `Packages/NonetKit/Sources/NonetPlatform/Input/EventTapKeyboardMonitor.swift`（冒頭の説明と `updateKeyboardTap`・`updatePointerTap`） |
 | 開いている間にキーが押されたら何も実行せずに閉じ、そのキーは前面アプリに渡す | `docs/architecture.md` §5 の 9、`docs/user-guide.md`「やめる（キャンセル）」 |
-| 開くとすぐに HUD。マスに 0.15 秒留まってから離すと実行し、外枠で離すとやめる | `docs/architecture.md` §5 の 3・4・6、`SessionEngine.swift` の `defaultLiftDwell`、`GridMapper.swift` の `GridInsets.cancelFrame` |
+| 開くとすぐに HUD。マスに 0.1 秒留まってから離すと実行し、外枠で離すとやめる | `docs/architecture.md` §5 の 3・4・6、`SessionEngine.swift` の `defaultLiftDwell`、`GridMapper.swift` の `GridInsets.cancelFrame` |
 | 境界・ページ・実行で振動。MTActuator を優先し、使えなければ NSHapticFeedbackManager | `docs/architecture.md` §5 の 5 と §7、`NonetPlatform/Input/TrackpadHapticPlayer.swift` |
 | Xcode や Zoom など 15 のアプリに9マスを用意 | `NonetCore/Model/Presets.swift` の `PresetLibrary.apps`（15件） |
 | グローバルのページは Launchpad の代わりのランチャーから始まる（macOS 26 で Launchpad が無くなった） | `docs/architecture.md` §6「プロファイルとページ」、`Presets.swift` の `makeGlobalProfile` |

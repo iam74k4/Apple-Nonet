@@ -22,7 +22,8 @@
 | 指を止める | hold your finger (on a button) | Keeping the finger still on a button before lifting. Used for 少し長く止めてから実行: "hold your finger on this button a little longer before lifting". Not "rest", "wait" or "press and hold". |
 | 指を離す | lift your finger | App: "Lift on a button to run", "Lift in the frame to cancel", "Lift to cancel". |
 | やめる（キャンセル） | cancel | "To cancel, …". The HUD says "Lift to cancel" while the finger is in the frame. The button label is "Cancel". |
-| 2本指で左右にスワイプ | swipe left or right with two fingers | Site wording. The noun is "two-finger swipe". |
+| 左右の外枠で止める | hold your finger in the left or right frame | The main way to change pages: hold the finger in the side frame, beside the rows, for 0.5 s. HUD: "Hold for the next page" / "Hold for the previous page" under "Lift to cancel". Short form: "Hold in the side frame to change pages". |
+| 2本指で左右にスワイプ | swipe left or right with two fingers | The other way to change pages. The noun is "two-finger swipe". |
 | ページ | page | "up to three pages (27 buttons)", "the next page of nine". |
 | HUD の下の点 | page dots | The dots under the HUD that show the current page. |
 | プロファイル | profile | Site: "A profile for each app". |
@@ -140,7 +141,7 @@
 | 初回の案内 / 初回の案内をもう一度 | welcome guide / Show Welcome Guide | Menu item without an ellipsis, because it only opens a window. |
 | アプリを選ぶ / 試してみる | Choose Apps / Try It Out | Onboarding steps and buttons. Apple uses "choose" for user decisions and "select" for text or list items. |
 | 試してみましょう / 開いて、マスで離す / 外枠で離して、やめる / いまの課題 / この後の課題 / 済み | Try it out / Open and lift on a button / Cancel in the frame / Current task / Next task / Done | The practice step's heading, its two tasks and their states. The first task: "Place a finger on the top edge of the trackpad and slide it down to open the HUD, which shows all nine buttons. Slide to “%@” and lift your finger there." |
-| 使いながら覚えられる、4つのこつ / 上の縁から開く / 外枠で離すとやめる / 2本指で左右にスワイプ / マスを変える | Four quick tips to learn as you go. / Open from the top edge / Lift in the frame to cancel / Swipe left or right with two fingers / Change a button | The tips on the welcome guide's last page (You're all set). |
+| 使いながら覚えられる、4つのこつ / 上の縁から開く / 外枠で離すとやめる / 左右の外枠で止めてページを切り替える / マスを変える | Four quick tips to learn as you go. / Open from the top edge / Lift in the frame to cancel / Hold in the side frame to change pages / Change a button | The tips on the welcome guide's last page (You're all set). |
 | Nonet を使うには、あと1つ許可が必要です / 今後表示しない | One more step to start using Nonet / Don't show again | The permission step when the welcome guide reopens at launch without Accessibility permission. |
 | Mac にログインしたら Nonet を自動で起動する | Open Nonet automatically when you log in | Checkbox on the last page of the welcome guide, checked by default. |
 | 練習モード | practice mode | "Nothing runs in practice mode." |
@@ -151,8 +152,10 @@
 | 取り消す / やり直す / カット / コピー / ペースト / ペーストしてスタイルを合わせる / 削除 / すべてを選択 | Undo / Redo / Cut / Copy / Paste / Paste and Match Style / Delete / Select All | Edit menu of the hidden main menu. These are Apple's standard item names. The menu itself is "Edit" (its own key, `menu.edit`, because 編集 is also the symbol group "Editing"). |
 | ウインドウ / 閉じる / しまう | Window / Close / Minimize | Window menu of the hidden main menu (⌘W, ⌘M). |
 | マスで指を離すと実行（HUD の案内） | Lift on a button to run | HUD hint at the top right. In practice mode it reads "Practice · Lift on a button to run". |
+| 止めると次のページ / 止めると前のページ（HUD） | Hold for the next page / Hold for the previous page | Second line under "✕ Lift to cancel" while the finger is in the left or right frame and there is a page on that side. |
+| そのまま止めて待つ（HUD の案内） | Keep your finger still | HUD hint at the top right while the finger is on a Hold before running button and the outline is still going around. It changes to "Lift to run" when ready. |
 | 離すとやめる（HUD） | Lift to cancel | Shown with ✕ in the HUD while the finger is in the frame (the buttons dim and the frame brightens). It also shows right after opening, because the finger is still in the top part of the frame. |
-| 指を滑らせて選ぶ / 外枠で指を離すとやめる / 2本指のスワイプでページを切り替え | Slide to choose / Lift in the frame to cancel / Swipe with two fingers to change pages | The beginner line under the grid for the first 20 HUD sessions, joined with " · ". The last part appears only when there are several pages. |
+| 指を滑らせて選ぶ / 外枠で指を離すとやめる / 左右の外枠で止めるとページを切り替え | Slide to choose / Lift in the frame to cancel / Hold in the left or right frame to change pages | The beginner line under the grid for the first 20 HUD sessions, joined with " · ". The last part appears only when there are several pages. |
 | 「%@」を実行中… | Running “%@”… | Notice while a slow button runs. |
 | %@ › %@ / %@ › %@（%lldページ目） | %1$@ › %2$@ / %1$@ › %2$@ (page %3$lld) | Title of a failure notice: profile › button, plus the page when the profile has more than one. |
 | アクセシビリティ | Accessibility | Name of the System Settings pane, so it is capitalized: "Accessibility permission". |

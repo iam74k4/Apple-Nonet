@@ -55,7 +55,7 @@ The Welcome to Nonet window has three steps, shown at the top.
 2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Xcode, Visual Studio Code, Safari, Slack, Zoom and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead (no preset puts Claude Code in the center)
 3. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
-At the end, "You're all set" shows four quick tips (open from the top edge, lift in the frame to cancel, swipe left or right with two fingers, change a button) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
+At the end, "You're all set" shows four quick tips (open from the top edge, lift in the frame to cancel, hold in the side frame to change pages, change a button) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
 
 The Global profile starts with a launcher of popular apps from your Mac (see [Global profile and launcher](#global-profile-and-launcher) under Basics).
 
@@ -70,7 +70,7 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger is still in the frame (outside the nine buttons), so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything.
 
-- They open when a finger placed on the top edge (within about 6 mm of the far edge) moves down about 5 mm within 0.4 seconds, more down than sideways. A slow move from the top edge counts as ordinary pointer movement
+- They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down. A slow move from the top edge, or a move along the edge, counts as ordinary pointer movement
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - The HUD appears on the display with the pointer (the **HUD position** setting)
 
@@ -81,10 +81,10 @@ The nine buttons open, the HUD (the overview of all nine buttons) appears on the
 
 The highlighted button runs, and the HUD closes.
 
-- A button runs only if your finger stays on it for a moment (0.15 seconds) before you lift. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
-- Lifting right on the line between two buttons runs nothing, because it isn't clear which one you meant
+- A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
+- Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant
 - Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
-- The top of the HUD shows the profile name and the hint "Lift on a button to run". If the page has a name, it shows that too, like "Xcode · Debug". For your first 20 times, a line under the grid also says "Slide to choose · Lift in the frame to cancel"
+- The top of the HUD shows the profile name and the hint "Lift on a button to run". If the page has a name, it shows that too, like "Xcode · Debug". For your first 20 times, a line under the grid also says "Slide to choose · Lift in the frame to cancel" (and "Hold in the left or right frame to change pages" if there are several pages)
 
 ### Canceling
 
@@ -102,7 +102,7 @@ If the buttons stay open for 20 seconds, they close on their own.
 For buttons that do something you can't undo, such as sending or recording, turn on **Hold before running** in the inspector.
 
 - These buttons have a mark in the corner of the HUD
-- Keep your finger on the button for a moment (0.6 seconds), and its outline goes all the way around. Lift after that to run it. Lifting before the outline is complete runs nothing
+- Keep your finger on the button for a moment (0.45 seconds), and its outline goes all the way around. While you wait, the top right of the HUD says "Keep your finger still". When the outline is complete, the trackpad ticks once and the hint changes to "Lift to run". Lift after that to run it. Lifting before the outline is complete runs nothing
 
 ### The trackpad while the buttons are open
 
@@ -110,9 +110,15 @@ While the nine buttons are open, the pointer stays put, and clicks and scrolling
 
 ### Pages
 
-While the nine buttons are open, **swipe left or right with two fingers** to change pages. Moving two fingers to the left goes to the next page. Each swipe moves one page. At the first or last page it stops and gives two light taps. The page dots under the HUD show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+While the nine buttons are open, **hold your finger in the left or right frame** to switch to the page on that side. The right frame goes to the next page, and the left frame goes to the previous page.
 
-After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
+1. Slide your finger out to the left or right frame (beside the rows of buttons, not in a corner) and hold it there
+2. After about 0.5 seconds, the page changes and the trackpad gives two taps. If you keep holding it there, it moves one more page every 0.9 seconds
+3. Slide back onto the buttons to choose one, then lift to run it
+
+While you hold it there, a bar grows in that side of the frame, and "Hold for the next page" (or "Hold for the previous page" on the left) appears under "✕ Lift to cancel". Lifting in the frame still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page. The page dots under the HUD show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+
+You can also **swipe left or right with two fingers**. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
 Each profile can have up to three pages. Global pages follow an app profile's pages (the **Add Global pages after app pages** setting).
 
@@ -124,7 +130,7 @@ The Global profile starts as a launcher with up to 27 apps on three pages. Apps 
 
 ### Haptic feedback
 
-When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can choose the strength with the **Haptic feedback** setting.
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can choose the strength with the **Haptic feedback** setting.
 
 ## Menu bar
 
@@ -353,7 +359,7 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Setting | Default | What it does |
 |---|---|---|
 | Switch profiles with the front app | On | When off, Nonet always uses the Global profile |
-| Add Global pages after app pages | On | Global pages follow the app's pages, so you can reach them with a two-finger swipe. You can't change it while Switch profiles with the front app is off |
+| Add Global pages after app pages | On | Global pages follow the app's pages, so you can reach them by changing pages. You can't change it while Switch profiles with the front app is off |
 
 ### Feedback
 

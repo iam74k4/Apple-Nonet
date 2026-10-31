@@ -1642,7 +1642,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rest on the left or right frame to change pages"
+            "value" : "Hold in the left or right frame to change pages"
           }
         }
       }
