@@ -718,6 +718,16 @@
         }
       }
     },
+    "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。初めて使うときに、Nonet が Finder を操作する許可を尋ねます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Works on the files selected in Finder, only while Finder is in front. The first time you use it, macOS asks whether Nonet may control Finder."
+          }
+        }
+      }
+    },
     "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください" : {
       "localizations" : {
         "en" : {
@@ -735,6 +745,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In the Finder, drag Nonet to the Applications folder, then open it from there."
+          }
+        }
+      }
+    },
+    "Finder で選んだファイルを: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the files selected in Finder: %@"
+          }
+        }
+      }
+    },
+    "Finder で選んでいるファイルを" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the files selected in Finder"
           }
         }
       }
@@ -3726,6 +3756,16 @@
         }
       }
     },
+    "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only moves files to the Trash and never deletes them for good. It works like Finder's Move to Trash, so you can put them back."
+          }
+        }
+      }
+    },
     "サードパーティのソフトウェア" : {
       "localizations" : {
         "en" : {
@@ -4535,6 +4575,16 @@
         }
       }
     },
+    "ファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        }
+      }
+    },
     "ファイルやフォルダとして開きます" : {
       "localizations" : {
         "en" : {
@@ -4571,6 +4621,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Feedback"
+          }
+        }
+      }
+    },
+    "フォルダを選ぶ…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Folder…"
           }
         }
       }
@@ -6568,6 +6628,16 @@
         }
       }
     },
+    "同じ場所にコピーを作ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makes a copy in the same place."
+          }
+        }
+      }
+    },
     "名前を変更…" : {
       "localizations" : {
         "en" : {
@@ -7091,6 +7161,16 @@
         }
       }
     },
+    "新しい名前を入力するダイアログを開きます。1つだけ選んでいるときに使えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens a dialog to enter a new name. Works when exactly one file is selected."
+          }
+        }
+      }
+    },
     "既定" : {
       "localizations" : {
         "en" : {
@@ -7128,6 +7208,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens in the default app. App URLs like obsidian:// work too."
+          }
+        }
+      }
+    },
+    "既定のアプリで開きます（ダブルクリックと同じ）。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens with the default app, like a double-click."
           }
         }
       }
@@ -7314,7 +7404,18 @@
         }
       }
     },
+    "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたり、Finder で選んだファイルを動かしたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The following buttons run scripts, type keys, choose menu items, send selected text to AI, open files or move files selected in Finder, with your permissions. Check everything they do, and import only files you trust."
+          }
+        }
+      }
+    },
     "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7380,6 +7481,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hold for the next page"
+          }
+        }
+      }
+    },
+    "決めたフォルダに移します。同じ名前のファイルがあるときは、上書きせずに知らせます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moves them to the folder you choose. If a file with the same name is there, it tells you instead of overwriting it."
           }
         }
       }
@@ -7727,6 +7838,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Discard Movement"
+          }
+        }
+      }
+    },
+    "移動先: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination: %@"
+          }
+        }
+      }
+    },
+    "移動先のフォルダ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination folder"
+          }
+        }
+      }
+    },
+    "移動先のフォルダを決めてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a destination folder."
+          }
+        }
+      }
+    },
+    "移動先のフォルダを選ぶ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Destination Folder"
           }
         }
       }

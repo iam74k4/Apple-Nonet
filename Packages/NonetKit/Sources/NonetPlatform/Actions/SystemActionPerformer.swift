@@ -3,14 +3,16 @@
 import AppKit
 import NonetCore
 
-/// Action を実行する（キー送出・アプリ起動・URL・スクリプト・ショートカット・メニュー・AI）
+/// Action を実行する（キー送出・アプリ起動・URL・スクリプト・ショートカット・メニュー・AI・ファイル）
 @MainActor
 public final class SystemActionPerformer: ActionPerforming {
     private let keySender: KeySender
     private let contextReader: ContextReader
+    private let fileRunner: FileActionRunner
 
     public init() {
         keySender = KeySender()
+        fileRunner = FileActionRunner()
         contextReader = ContextReader(keySender: keySender)
         // 前に起動していたときに開かれずに残ったターミナル用のファイル（選択テキストなどが入っている）を消す
         TerminalCommandFile.removeStaleFilesInBackground()
@@ -57,6 +59,8 @@ public final class SystemActionPerformer: ActionPerforming {
             try await pressMenuItem(menuItem, frontmost: frontmost)
         case .ai(let ai):
             return try await runAI(ai, frontmost: frontmost)
+        case .file(let file):
+            try await fileRunner.run(file, frontmost: frontmost)
         }
         return nil
     }

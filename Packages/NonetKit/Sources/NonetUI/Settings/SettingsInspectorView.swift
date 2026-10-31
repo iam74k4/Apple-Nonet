@@ -147,6 +147,8 @@ struct SettingsCellEditor: View {
             SettingsMenuItemEditor(model: model, menu: menu)
         case .ai(let ai):
             SettingsAIEditor(model: model, cellID: cell.id, ai: ai)
+        case .file(let file):
+            SettingsFileEditor(model: model, cellID: cell.id, file: file)
         }
     }
 }

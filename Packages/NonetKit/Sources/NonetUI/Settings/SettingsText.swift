@@ -566,3 +566,26 @@ struct SettingsStatusBanner: Equatable {
 fileprivate extension String {
     var nilIfEmpty: String? { isEmpty ? nil : self }
 }
+
+extension SettingsText {
+    /// ファイルの操作の説明
+    static func detail(_ operation: FileOperation) -> String {
+        switch operation {
+        case .open:
+            String(localized: "既定のアプリで開きます（ダブルクリックと同じ）。", bundle: .module)
+        case .trash:
+            String(localized: "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。", bundle: .module)
+        case .rename:
+            String(localized: "新しい名前を入力するダイアログを開きます。1つだけ選んでいるときに使えます。", bundle: .module)
+        case .duplicate:
+            String(localized: "同じ場所にコピーを作ります。", bundle: .module)
+        case .move:
+            String(localized: "決めたフォルダに移します。同じ名前のファイルがあるときは、上書きせずに知らせます。", bundle: .module)
+        }
+    }
+
+    /// ファイルの操作の対象と許可の説明
+    static var fileTarget: String {
+        String(localized: "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。初めて使うときに、Nonet が Finder を操作する許可を尋ねます。", bundle: .module)
+    }
+}

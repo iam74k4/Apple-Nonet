@@ -1100,7 +1100,7 @@ import Testing
     }
 
     static var reviewIntro: String {
-        L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。")
+        L10n.ui("次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたり、Finder で選んだファイルを動かしたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。")
     }
 
     static var submitWarning: String {
@@ -1512,5 +1512,104 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         case .special:
             nil
         }
+    }
+}
+
+/// ファイルのアクション（Finder で選んでいるファイルの操作）の設定
+@Suite @MainActor struct SettingsFileActionTests {
+    private func review(_ action: Action) -> [String] {
+        let reviewed = SettingsImportPlan.ReviewedCell(profileName: "p", cell: Cell(title: "t", icon: .symbol("doc"), action: action), pressesSubmitKey: false)
+        return SettingsText.reviewLines(for: reviewed).map(\.text)
+    }
+
+    @Test func onlyOpeningSkipsTheImportReview() {
+        for operation in FileOperation.allCases {
+            #expect(SettingsImportPlan.needsReview(.file(FileAction(operation: operation))) == (operation != .open), "\(operation)")
+        }
+        #expect(!SettingsImportPlan.pressesSubmitKey(.file(FileAction(operation: .trash)), keys: nil))
+    }
+
+    @Test func theReviewShowsTheOperationAndTheDestination() {
+        #expect(review(.file(FileAction(operation: .trash))) == [L10n.ui("Finder で選んだファイルを: \(FileOperation.trash.title)")])
+        let move = review(.file(FileAction(operation: .move, destination: "~/Downloads\u{202E}")))
+        #expect(move.count == 2)
+        #expect(move[1] == L10n.ui("移動先: \("~/Downloads⟨U+202E⟩")"))
+        #expect(review(.file(FileAction(operation: .move)))[1] == L10n.ui("移動先: \(L10n.ui("未設定"))"))
+    }
+
+    @Test func aNewFileCellOpensAndAMoveWithoutAFolderIsIncomplete() {
+        #expect(SettingsCellEditing.defaultAction(for: .file) == .file(FileAction(operation: .open)))
+        #expect(!SettingsCellEditing.isIncomplete(.file(FileAction(operation: .trash))))
+        #expect(SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move))))
+        #expect(SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move, destination: "  "))))
+        #expect(!SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move, destination: "~/Documents"))))
+        #expect(SettingsActionKinds.symbol(.file) == "doc")
+    }
+
+    @Test func theIconFollowsTheOperationUnlessTheUserPickedOne() {
+        var cell = SettingsCellEditing.newCell(kind: .file)
+        for operation in FileOperation.allCases {
+            cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: operation, destination: "/a")), in: cell)
+            #expect(cell.icon == .symbol(SettingsActionKinds.symbol(operation)), "\(operation)")
+        }
+        // 利用者が選んだアイコンは変えない
+        cell.icon = .symbol("star")
+        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .trash)), in: cell)
+        #expect(cell.icon == .symbol("star"))
+        // 種類を替えたら、その種類のアイコンに戻る（自動のアイコンのとき）
+        var automatic = SettingsCellEditing.newCell(kind: .file)
+        automatic = SettingsCellEditing.replacingAction(.file(FileAction(operation: .trash)), in: automatic)
+        automatic = SettingsCellEditing.changingKind(of: automatic, to: .openURL)
+        #expect(automatic.icon == .symbol(SettingsActionKinds.symbol(.openURL)))
+    }
+
+    @Test func theTitleFollowsTheOperationUntilTheUserNamesIt() {
+        var cell = SettingsCellEditing.newCell(kind: .file)
+        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .trash)), in: cell)
+        #expect(cell.title == FileOperation.trash.title)
+        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .move, destination: "/a/整理")), in: cell)
+        #expect(cell.title == L10n.core("\("整理") へ移動"))
+        cell.title = "片付け"
+        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .duplicate)), in: cell)
+        #expect(cell.title == "片付け")
+    }
+
+    @Test func choosingTheTrashTurnsOnTheHoldOnceAndLeavesItToTheUserAfter() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        #expect(h.model.cell(id: id)?.requiresHold == false)
+        // ゴミ箱に入れるを選ぶと、押し間違えを防ぐ「少し長く止めてから実行」が入る
+        h.model.chooseFileOperation(.trash, forCell: id)
+        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .trash)))
+        #expect(h.model.cell(id: id)?.requiresHold == true)
+        // 外したら、選び直さない限り戻さない
+        h.model.setRequiresHold(false, ofCell: id)
+        h.model.chooseFileOperation(.trash, forCell: id)
+        #expect(h.model.cell(id: id)?.requiresHold == false)
+        // 別の操作へ変えても、手動の設定を変えない
+        h.model.setRequiresHold(true, ofCell: id)
+        h.model.chooseFileOperation(.duplicate, forCell: id)
+        #expect(h.model.cell(id: id)?.requiresHold == true)
+        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .duplicate)))
+    }
+
+    @Test func theDestinationSurvivesChangingTheOperation() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.chooseFileOperation(.move, forCell: id)
+        h.model.updateAction(ofCell: id, as: FileAction.self) { $0.destination = "~/Documents" }
+        h.model.chooseFileOperation(.rename, forCell: id)
+        h.model.chooseFileOperation(.move, forCell: id)
+        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .move, destination: "~/Documents")))
+    }
+
+    @Test func aFileCellDoesNotChangeWhenAnotherKindIsEdited() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.updateAction(ofCell: id, as: URLAction.self) { $0.url = "https://example.com" }
+        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .open)))
     }
 }

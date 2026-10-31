@@ -39,6 +39,10 @@ struct ModelCodingRoundTripTests {
              #"{"type":"menuItem","app":{"bundleID":"com.figma.Desktop","name":"Figma"},"path":["A"],"keyEquivalent":[{"type":"character","character":"k","modifiers":["option"]}]}"#),
             (.ai(AIAction(prompt: "要約")),
              #"{"type":"ai","prompt":"要約","output":"showResult"}"#),
+            (.file(FileAction(operation: .trash)),
+             #"{"type":"file","operation":"trash"}"#),
+            (.file(FileAction(operation: .move, destination: "~/Downloads")),
+             #"{"type":"file","operation":"move","destination":"~/Downloads"}"#),
         ]
         for (action, json) in cases {
             #expect(try ModelFixtures.jsonObject(action) == ModelFixtures.jsonObject(json), "\(action.kind)")

@@ -51,6 +51,8 @@ protocol SettingsFileChoosing: AnyObject {
     func chooseImportSource() async -> URL?
     /// 一覧に無いアプリを選ぶ
     func chooseApplication() async -> URL?
+    /// ファイルを移す先のフォルダを選ぶ
+    func chooseFolder() async -> URL?
 }
 
 @MainActor
@@ -907,6 +909,18 @@ final class SettingsModel {
 
     func chooseApp(_ app: AppReference, forCell id: UUID) {
         updateCell(id: id) { $0 = SettingsCellEditing.choosingApp(app, in: $0) }
+    }
+
+    /// ファイルの操作を選ぶ。ゴミ箱に入れるは、押し間違えを防ぐため「少し長く止めてから実行」にする（あとで外せる）
+    func chooseFileOperation(_ operation: FileOperation, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: FileAction.self, { $0.operation = operation }) else { return }
+            let wasTrash = FileAction.content(of: cell.action)?.operation == .trash
+            cell = updated
+            if operation == .trash, !wasTrash {
+                cell.requiresHold = true
+            }
+        }
     }
 
     func cell(id: UUID) -> Cell? {

@@ -20,6 +20,8 @@ import Testing
             "com.apple.dt.Xcode": [text("クリーン")],
             // 実行中のコマンドを止めてしまう
             "com.apple.Terminal": [text("中断")],
+            // 選んだファイルをゴミ箱に入れる（ゴミ箱から戻せるが、押し間違えるとファイルが消えたように見える）
+            "com.apple.finder": [text("ゴミ箱に入れる")],
         ]
     }
 

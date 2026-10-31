@@ -22,6 +22,9 @@ import Testing
         .launchApp(LaunchAppAction(app: F.notes)),
         .openURL(URLAction(url: "https://example.com")),
         .script(ScriptAction(source: "claude", runMode: .terminal)),
+        // 名前を入力するダイアログを待つことがあるが、後のマスを待たせない（長く掛かる扱いにはしない）
+        .file(FileAction(operation: .rename)),
+        .file(FileAction(operation: .trash)),
     ]
 
     /// Safari の1ページ目: [first, 新しいタブ, タブを閉じる, 空…]

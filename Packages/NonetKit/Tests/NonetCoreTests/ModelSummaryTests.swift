@@ -20,6 +20,13 @@ struct ModelSummaryTests {
             (.menuItem(MenuItemAction(path: ["編集", ""])), "編集"),
             (.menuItem(MenuItemAction(path: [])), ModelFixtures.text("メニュー項目")),
             (.ai(AIAction(prompt: "要約して")), "AI"),
+            (.file(FileAction(operation: .open)), ModelFixtures.text("開く")),
+            (.file(FileAction(operation: .trash)), ModelFixtures.text("ゴミ箱に入れる")),
+            (.file(FileAction(operation: .rename)), ModelFixtures.text("名前を変更")),
+            (.file(FileAction(operation: .duplicate)), ModelFixtures.text("複製")),
+            (.file(FileAction(operation: .move)), ModelFixtures.text("移動")),
+            (.file(FileAction(operation: .move, destination: "/Users/me/Documents/")), ModelFixtures.text("\("Documents") へ移動")),
+            (.file(FileAction(operation: .move, destination: "~")), ModelFixtures.text("\("~") へ移動")),
         ]
         for (action, expected) in cases {
             #expect(action.summary == expected)
@@ -53,7 +60,7 @@ struct ModelSummaryTests {
 
     @Test("アクションの種類")
     func kinds() {
-        #expect(ModelFixtures.nonKeystrokeActions.map(\.kind) == [.launchApp, .openURL, .script, .shortcut, .menuItem, .ai])
+        #expect(ModelFixtures.nonKeystrokeActions.map(\.kind) == [.launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file, .file])
         #expect(Action.keystroke(.key("a")).kind == .keystroke)
     }
 }

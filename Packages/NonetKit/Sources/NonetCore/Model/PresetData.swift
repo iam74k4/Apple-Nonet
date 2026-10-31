@@ -31,6 +31,11 @@ enum PresetBuilder {
         Cell(title: text(title), icon: .symbol(symbol), action: .keystroke(keys))
     }
 
+    /// Finder で選んでいるファイルへの操作
+    static func file(_ title: String.LocalizationValue, _ symbol: String, _ action: FileAction) -> Cell {
+        Cell(title: text(title), icon: .symbol(symbol), action: .file(action))
+    }
+
     static func launch(_ title: String.LocalizationValue, _ symbol: String, _ app: AppReference) -> Cell {
         Cell(title: text(title), icon: .symbol(symbol), action: .launchApp(LaunchAppAction(app: app)))
     }
@@ -105,9 +110,18 @@ enum PresetBuilder {
         cells: [Cell?],
         summary: (Int) -> String.LocalizationValue
     ) -> AppPreset {
-        let page = Page(cells: cells)
-        let count = page.cells.compactMap { $0 }.count
-        return AppPreset(app: app, category: text(category), summary: text(summary(count)), pages: [page])
+        preset(app, category: category, pages: [Page(cells: cells)], summary: summary)
+    }
+
+    /// 複数ページのプリセット。summary には、全部のページに入っているマスの数を渡す
+    static func preset(
+        _ app: AppReference,
+        category: String.LocalizationValue,
+        pages: [Page],
+        summary: (Int) -> String.LocalizationValue
+    ) -> AppPreset {
+        let count = pages.flatMap(\.cells).compactMap { $0 }.count
+        return AppPreset(app: app, category: text(category), summary: text(summary(count)), pages: pages)
     }
 }
 

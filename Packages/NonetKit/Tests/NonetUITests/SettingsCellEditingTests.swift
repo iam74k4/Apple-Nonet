@@ -10,10 +10,12 @@ import Testing
         for kind in ActionKind.allCases {
             #expect(!SettingsActionKinds.name(kind).isEmpty)
             #expect(SettingsCellEditing.defaultAction(for: kind).kind == kind)
-            #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)))
+            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「開く」から始まり、すぐ使える（ゴミ箱や移動は選ぶまで働かない）
+            #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)) == (kind != .file))
             let cell = SettingsCellEditing.newCell(kind: kind)
             #expect(cell.title.isEmpty)
-            #expect(cell.icon == .symbol(SettingsActionKinds.symbol(kind)))
+            // ファイルは操作ごとのアイコン（「開く」から始まる）
+            #expect(cell.icon == .symbol(kind == .file ? SettingsActionKinds.symbol(FileOperation.open) : SettingsActionKinds.symbol(kind)))
         }
     }
 

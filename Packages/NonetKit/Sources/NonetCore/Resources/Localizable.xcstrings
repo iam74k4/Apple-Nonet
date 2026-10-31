@@ -53,6 +53,16 @@
         }
       }
     },
+    "%@ へ移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to %@"
+          }
+        }
+      }
+    },
     "%@。Nonet を終了するまで、設定の変更は保存されません" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -418,6 +428,16 @@
         }
       }
     },
+    "エイリアスを作る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make Alias"
+          }
+        }
+      }
+    },
     "エージェント表示" : {
       "localizations" : {
         "en" : {
@@ -592,12 +612,32 @@
         }
       }
     },
+    "ゴミ箱に入れる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Trash"
+          }
+        }
+      }
+    },
     "サイドバー" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sidebar"
+          }
+        }
+      }
+    },
+    "サイドバーに追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to Sidebar"
           }
         }
       }
@@ -649,6 +689,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Set Status"
+          }
+        }
+      }
+    },
+    "スライドショー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slideshow"
           }
         }
       }
@@ -1493,6 +1543,16 @@
         }
       }
     },
+    "元のファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Original"
+          }
+        }
+      }
+    },
     "先に指を離してから%@を離すとやめる" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1633,6 +1693,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "right ⌥"
+          }
+        }
+      }
+    },
+    "名前を変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
           }
         }
       }
@@ -1822,6 +1892,7 @@
       }
     },
     "新規フォルダ、クイックルック、AirDrop など%lld個" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -1839,6 +1910,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "新規フォルダへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Into New Folder"
           }
         }
       }
@@ -2064,6 +2145,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share Screen"
+          }
+        }
+      }
+    },
+    "移動" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
           }
         }
       }
@@ -2388,12 +2479,54 @@
         }
       }
     },
+    "選んだファイル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected Files"
+          }
+        }
+      }
+    },
+    "選んだファイルの操作、クイックルック、AirDrop など%lld個" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld button, including actions on the selected files, Quick Look and AirDrop"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld buttons, including actions on the selected files, Quick Look and AirDrop"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "録画" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Record"
+          }
+        }
+      }
+    },
+    "開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
           }
         }
       }

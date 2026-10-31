@@ -123,6 +123,56 @@
         }
       }
     },
+    "Finder が起動していません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finder isn't running."
+          }
+        }
+      }
+    },
+    "Finder でファイルを選んでから使ってください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select files in Finder first."
+          }
+        }
+      }
+    },
+    "Finder で選んでいるファイルを読めませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the files selected in Finder."
+          }
+        }
+      }
+    },
+    "Finder を前面にして、ファイルを選んでから使ってください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bring Finder to the front and select files first."
+          }
+        }
+      }
+    },
+    "Finder を操作できませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't control Finder."
+          }
+        }
+      }
+    },
     "Nonet がクリップボードを読むことが許可されていないため、選択テキストを読めませんでした。システム設定の「プライバシーとセキュリティ」で許可してください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -160,6 +210,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't open the URL."
+          }
+        }
+      }
+    },
+    "「%@」の新しい名前を入力してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a new name for “%@”."
           }
         }
       }
@@ -204,12 +264,42 @@
         }
       }
     },
+    "このフォルダは、ここでは動かせません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder can't be moved here."
+          }
+        }
+      }
+    },
     "アクセシビリティ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accessibility"
+          }
+        }
+      }
+    },
+    "オートメーション（Finder）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automation (Finder)"
+          }
+        }
+      }
+    },
+    "キャンセル" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
           }
         }
       }
@@ -283,6 +373,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Command not found. Check in Terminal that it's installed."
+          }
+        }
+      }
+    },
+    "ゴミ箱の中のファイルは、ここでは削除しません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files already in the Trash aren't deleted here."
           }
         }
       }
@@ -428,6 +528,26 @@
         }
       }
     },
+    "ファイルが見つかりません。選び直してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't find the file. Select it again."
+          }
+        }
+      }
+    },
+    "ファイルの操作に失敗しました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't finish the file operation."
+          }
+        }
+      }
+    },
     "メニュー項目「%@」は今は使えません" : {
       "localizations" : {
         "en" : {
@@ -478,6 +598,16 @@
         }
       }
     },
+    "一度に開けるのは%lld個までです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can open up to %lld files at once."
+          }
+        }
+      }
+    },
     "出力が大きすぎるため、使えませんでした（%lld KB まで）" : {
       "localizations" : {
         "en" : {
@@ -504,6 +634,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Can't find the front app."
+          }
+        }
+      }
+    },
+    "同じ名前のファイルがあります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A file with the same name already exists."
+          }
+        }
+      }
+    },
+    "名前が長すぎます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The name is too long."
+          }
+        }
+      }
+    },
+    "名前に「/」「:」と改行は使えません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Names can't contain “/”, “:” or line breaks."
+          }
+        }
+      }
+    },
+    "名前を入力してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a name."
+          }
+        }
+      }
+    },
+    "名前を変えるときは、ファイルを1つだけ選んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To rename, select just one file."
+          }
+        }
+      }
+    },
+    "名前を変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
+          }
+        }
+      }
+    },
+    "変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rename"
+          }
+        }
+      }
+    },
+    "新しい名前" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New name"
+          }
+        }
+      }
+    },
+    "移動先のフォルダが見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't find the destination folder."
+          }
+        }
+      }
+    },
+    "選んでいるファイルが多すぎます（%lld個まで）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many files are selected (up to %lld)."
           }
         }
       }

@@ -26,10 +26,12 @@ public enum Action: Codable, Equatable, Sendable {
     case menuItem(MenuItemAction)
     /// 端末内の言語モデルで、選択中のテキストを処理する（macOS 26 以降）
     case ai(AIAction)
+    /// Finder で選んでいるファイルを、開く・ゴミ箱に入れる・名前を変える・複製する・移す
+    case file(FileAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -129,6 +131,34 @@ public struct AIAction: Codable, Equatable, Sendable {
     }
 }
 
+/// Finder で選んでいるファイルへの操作。ゴミ箱に入れるだけで、完全な削除はしない
+public enum FileOperation: String, Codable, CaseIterable, Sendable {
+    /// 既定のアプリで開く（ダブルクリックと同じ）
+    case open
+    /// ゴミ箱に入れる（Finder の「ゴミ箱に入れる」と同じ。「元に戻す」で戻せる）
+    case trash
+    /// 名前を変える（入力のダイアログを出す。1つだけ選んでいるとき）
+    case rename
+    /// 同じ場所に複製する（「○○のコピー」）
+    case duplicate
+    /// 決めたフォルダに移す
+    case move
+
+    /// 取り消しにくい・選んだものを動かす操作。開く以外
+    public var changesFiles: Bool { self != .open }
+}
+
+public struct FileAction: Codable, Equatable, Sendable {
+    public var operation: FileOperation
+    /// 移す先のフォルダ（move のとき。"~" で始めてもよい）。ほかの操作では使わない
+    public var destination: String
+
+    public init(operation: FileOperation, destination: String = "") {
+        self.operation = operation
+        self.destination = destination
+    }
+}
+
 extension Action {
     public var kind: ActionKind {
         switch self {
@@ -139,6 +169,7 @@ extension Action {
         case .shortcut: .shortcut
         case .menuItem: .menuItem
         case .ai: .ai
+        case .file: .file
         }
     }
 
@@ -162,7 +193,40 @@ extension Action {
             action.path.last(where: { $0.trimmedNonEmpty != nil }) ?? String(localized: "メニュー項目", bundle: .module)
         case .ai:
             String(localized: "AI", bundle: .module)
+        case .file(let action):
+            action.summary
         }
+    }
+}
+
+extension FileOperation {
+    /// 操作の名前（HUD や設定画面に出す）
+    public var title: String {
+        switch self {
+        case .open: String(localized: "開く", bundle: .module)
+        case .trash: String(localized: "ゴミ箱に入れる", bundle: .module)
+        case .rename: String(localized: "名前を変更", bundle: .module)
+        case .duplicate: String(localized: "複製", bundle: .module)
+        case .move: String(localized: "移動", bundle: .module)
+        }
+    }
+}
+
+extension FileAction {
+    /// 移す先のフォルダの名前（空なら nil）
+    public var destinationName: String? {
+        guard let path = destination.trimmedNonEmpty else { return nil }
+        var trimmed = path
+        while trimmed.count > 1, trimmed.hasSuffix("/") { trimmed.removeLast() }
+        let name = trimmed.split(separator: "/").last.map(String.init)
+        return name ?? trimmed
+    }
+
+    var summary: String {
+        if operation == .move, let name = destinationName {
+            return String(localized: "\(name) へ移動", bundle: .module)
+        }
+        return operation.title
     }
 }
 
@@ -237,6 +301,8 @@ extension Action {
             self = .menuItem(try MenuItemAction(from: decoder))
         case .ai:
             self = .ai(try AIAction(from: decoder))
+        case .file:
+            self = .file(try FileAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -260,6 +326,8 @@ extension Action {
         case .menuItem(let action):
             try action.encode(to: encoder)
         case .ai(let action):
+            try action.encode(to: encoder)
+        case .file(let action):
             try action.encode(to: encoder)
         }
     }
@@ -406,5 +474,29 @@ extension AIAction {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(prompt, forKey: .prompt)
         try container.encode(output, forKey: .output)
+    }
+}
+
+extension FileAction {
+    private enum CodingKeys: String, CodingKey {
+        case operation, destination
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 知らない操作を別の操作（ゴミ箱に入れる・移すなど）として読まないよう、読めなければマスごと読めないことにする
+        self.init(
+            operation: try container.decode(FileOperation.self, forKey: .operation),
+            destination: container.decodeLossy(String.self, forKey: .destination, default: "")
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(operation, forKey: .operation)
+        // 移す先は、移すときだけ書く（使わない設定の書式を増やさない）
+        if operation == .move {
+            try container.encode(destination, forKey: .destination)
+        }
     }
 }

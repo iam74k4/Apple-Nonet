@@ -45,7 +45,7 @@ The first time you open Nonet, the Welcome to Nonet window (the welcome guide) o
 
 You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
 
-The first time a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
+The first time you use a File action, or a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
 
 ### Welcome guide
 
@@ -216,7 +216,7 @@ The right column is where you set up the selected button. Changes are saved righ
 - **Empty button**: click an action type to create one
 - **Name**: the name shown under the icon. If you leave it empty, Nonet names the button from its action
 - **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names), **App** (**Use This App's Icon**, available for Open App buttons and in app profiles) or **Text** (type 1–2 characters and click **Use**). **Restore Default Icon** goes back to the default
-- **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item or AI (see Action types)
+- **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI or File (see Action types)
 - **Hold before running**: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics)
 - **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings
 - **Clear This Button**: removes the action and leaves an empty button
@@ -344,6 +344,20 @@ Sends the selected text and the **Prompt** to the on-device language model (Appl
 - If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
 - When Nonet restores the clipboard, a copied image comes back in one image format, and files copied in the Finder come back as files without their icons
 
+### File
+
+Opens, trashes, renames, duplicates or moves the files selected in Finder. Click a file in Finder to select it, open the nine buttons, and choose this button to use it on that file right away.
+
+- **Operation**:
+  - Open: opens them with the default app, like a double-click. You can open up to 20 files at once
+  - Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash are left alone. When you choose it for a button, **Hold before running** turns on automatically (you can turn it off)
+  - Rename: opens a dialog to enter a new name. Works when exactly one file is selected. The name is selected up to the extension. “/”, “:” and line breaks aren't allowed
+  - Duplicate: makes a copy in the same place
+  - Move: moves them to the **Destination folder**. Choose it with **Choose Folder…** or type a path like `~/Documents`. If a file with the same name is already there, Nonet shows an error instead of overwriting it. A button without a destination does nothing
+- **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). If another app is in front, Nonet shows an error and does nothing, so it never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, the top of a disk or a system folder
+- **Permission**: the first time you use it, macOS asks whether Nonet may control Finder (see [macOS asks for Automation permission](#macos-asks-for-automation-permission)). Nonet reads only the locations of the files selected in Finder, never what is inside them
+- The second page of the Finder preset (“Selected Files”) has Open, Duplicate, Rename and Move to Trash (Hold before running)
+
 ## General settings
 
 Choose **Settings…** from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General, License and About. The General tab is grouped into these sections.
@@ -392,7 +406,7 @@ You can export profiles to a .nonetprofile file to back them up or to share them
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
 - **Import…**: adds the profiles in a file (files over 20 MB can't be imported). In either of these cases, Nonet first asks "Import “file name”?":
   - Importing would replace something you have (the file contains a Global profile, a profile for an app you already have a profile for, or shared buttons). Nonet lists what would be replaced. Importing shared buttons replaces all of your current shared buttons, including those in positions the file doesn't define
-  - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
+  - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, File buttons that trash, rename, duplicate or move the files selected in Finder, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, the file operation and destination, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
 - **Restore an Earlier Version…**: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)
 
 In the list, buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (curl, wget, base64, eval, `| sh` (also bash, zsh and others), osascript and rm -rf) are marked in orange with an explanation. If the file has buttons that run something, you can't click **Import**, **Replace and Import** or **Add New Profiles Only** until you scroll to the end of the list (Nonet shows "Scroll to the end to check everything before you can import.").
@@ -494,7 +508,9 @@ Buttons are chosen by the **absolute position** of your finger on the trackpad. 
 
 When a script contains `NONET_BROWSER_URL` and a supported browser (Safari, Google Chrome, Arc, Microsoft Edge or Brave) is in front, Nonet asks that browser for the URL of the current page just before the script runs. The first time, macOS asks whether Nonet may control that browser. If you want to use the URL, allow it and run the button again. If you don't allow it, the script still runs, without `NONET_BROWSER_URL`.
 
-If you denied it and want it later, turn on the browser under Nonet in **System Settings › Privacy & Security › Automation**.
+The first time you use a File action, macOS asks whether Nonet may control Finder. Nonet uses it to read the files selected in Finder and to open, trash, rename, duplicate or move them. If you don't allow it, File buttons show “Automation (Finder) permission required.” and do nothing.
+
+If you denied it and want it later, turn on the browser or Finder under Nonet in **System Settings › Privacy & Security › Automation**.
 
 ### A Menu Item action fails
 

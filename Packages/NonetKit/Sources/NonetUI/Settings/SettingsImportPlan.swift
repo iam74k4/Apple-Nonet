@@ -101,11 +101,15 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// 読み込む前に中身を見せるアクション。スクリプト、キー入力（短くても、⌃R・r・m・⌃M のように履歴のコマンドを実行できる）、
     /// メニュー項目（ショートカットのキーも見せる）、AI（選択テキストを渡し、結果で置き換えうる）、
     /// ショートカット.app のショートカット（何でも実行できる）、
+    /// Finder で選んだファイルを動かす（ゴミ箱に入れる・名前を変える・複製する・移す）、
     /// Mac の中のファイルを開く URL（.command や .app も開ける）と、別のものを動かす URL（ショートカットの実行・ssh・共有フォルダなど）
     static func needsReview(_ action: Action) -> Bool {
         switch action {
         case .script, .keystroke, .menuItem, .ai, .shortcut:
             true
+        case .file(let file):
+            // Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製する・移す。開くだけなら見せない（ダブルクリックと同じ）
+            file.operation.changesFiles
         case .openURL(let url):
             opensLocalFile(url.url) || opensAnotherTool(url.url)
         case .launchApp:
@@ -130,7 +134,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             pressesSubmitKey(keys, keys: translator)
         case .menuItem(let menu):
             menu.keyEquivalent.map { pressesSubmitKey($0, keys: translator) } ?? false
-        case .script, .ai, .openURL, .launchApp, .shortcut:
+        case .script, .ai, .openURL, .launchApp, .shortcut, .file:
             false
         }
     }

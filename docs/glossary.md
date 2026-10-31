@@ -68,6 +68,12 @@
 | クリップボードにコピー | Copy to Clipboard | Output option. Same wording as the Shortcuts action. |
 | 画面に表示 | Show Result | Output option. It opens the "result panel", which has Copy and Close buttons. |
 | 結果のパネル | result panel | |
+| ファイル（アクションの種類） | File | Action type for the files selected in Finder. Singular, like Script and Shortcut. Not "File Management" (that is the preset category ファイル of the Finder preset). |
+| 開く / ゴミ箱に入れる / 名前を変更 / 複製 / 移動 | Open / Move to Trash / Rename / Duplicate / Move | The five operations of the File action. "Move to Trash" is Finder's own term. Never "Delete": Nonet never deletes files for good. 開く in the File action is "Open", not the Xcode button ファイルを開く ("Go to File"). |
+| Finder で選んでいるファイルを | On the files selected in Finder | Label above the File action's operations. |
+| 移動先のフォルダ / フォルダを選ぶ… / %@ へ移動 | Destination folder / Choose Folder… / Move to %@ | The Move operation's folder field, its button, and the summary used as the button's default name. |
+| 選んだファイル | Selected Files | Name of the Finder preset's second page (the File action's buttons). Its button 新規フォルダへ (⌃⌘N, "New Folder with Selection" in Finder) is "Into New Folder" because button names are at most 16 columns wide. |
+| オートメーション（Finder） | Automation (Finder) | Permission name in the error "Automation (Finder) permission required." The macOS pane is Privacy & Security › Automation. |
 | 選択中のテキスト | selected text | Apple term. Error text: "Select some text first." |
 | 選択範囲 | selection | |
 | クリップボード | clipboard | Lowercase in prose. |

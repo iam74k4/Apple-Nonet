@@ -192,6 +192,7 @@ final class SettingsFakeFiles: SettingsFileChoosing {
     var exportURL: URL?
     var importURL: URL?
     var applicationURL: URL?
+    var folderURL: URL?
     private(set) var suggestedNames: [String] = []
 
     func chooseExportDestination(suggestedName: String) async -> URL? {
@@ -201,6 +202,7 @@ final class SettingsFakeFiles: SettingsFileChoosing {
 
     func chooseImportSource() async -> URL? { importURL }
     func chooseApplication() async -> URL? { applicationURL }
+    func chooseFolder() async -> URL? { folderURL }
 }
 
 enum SettingsFixtures {

@@ -58,7 +58,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>スクリプトに渡すために、ブラウザで表示中のページの URL を取得します。</string>
+	<string>スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを読んで動かします。</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Takanari Okazaki</string>
 	<key>NonetLicensePublicKey</key>

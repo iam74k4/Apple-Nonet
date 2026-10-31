@@ -100,7 +100,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        case .keystroke, .launchApp, .openURL, .menuItem: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .file: false
         }
     }
 
@@ -117,7 +117,7 @@ enum ControllerExecutionPolicy {
         // 裏のスクリプトとショートカットも、出力で選択範囲を置き換えるなら ⌘V を送る
         case .script(let script): script.runMode == .background && script.output == .replaceSelection
         case .shortcut(let shortcut): shortcut.output == .replaceSelection
-        case .launchApp, .openURL, .menuItem: false
+        case .launchApp, .openURL, .menuItem, .file: false
         }
     }
 
@@ -126,7 +126,7 @@ enum ControllerExecutionPolicy {
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
         case .launchApp, .openURL: false
-        case .keystroke, .script, .shortcut, .menuItem, .ai: true
+        case .keystroke, .script, .shortcut, .menuItem, .ai, .file: true
         }
     }
 }

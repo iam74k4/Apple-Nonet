@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file]
 
     static func name(_ kind: ActionKind) -> String {
         switch kind {
@@ -16,6 +16,7 @@ enum SettingsActionKinds {
         case .shortcut: String(localized: "ショートカット", bundle: .module)
         case .menuItem: String(localized: "メニュー項目", bundle: .module)
         case .ai: String(localized: "AI", bundle: .module)
+        case .file: String(localized: "ファイル", bundle: .module)
         }
     }
 
@@ -29,6 +30,20 @@ enum SettingsActionKinds {
         case .shortcut: "square.2.layers.3d"
         case .menuItem: "filemenu.and.selection"
         case .ai: "sparkles"
+        case .file: "doc"
+        }
+    }
+}
+
+extension SettingsActionKinds {
+    /// ファイルの操作のアイコン（Finder のプリセットの2ページ目と同じ）
+    static func symbol(_ operation: FileOperation) -> String {
+        switch operation {
+        case .open: "arrow.up.right.square"
+        case .trash: "trash"
+        case .rename: "pencil"
+        case .duplicate: "plus.square.on.square"
+        case .move: "folder"
         }
     }
 }
@@ -44,6 +59,8 @@ enum SettingsCellEditing {
         case .shortcut: .shortcut(ShortcutAction(name: ""))
         case .menuItem: .menuItem(MenuItemAction(path: []))
         case .ai: .ai(AIAction(prompt: "", output: .showResult))
+        // 取り消しにくい操作ではなく、見るだけに近い「開く」から始める
+        case .file: .file(FileAction(operation: .open))
         }
     }
 
@@ -57,6 +74,9 @@ enum SettingsCellEditing {
     static func defaultIcon(for action: Action) -> CellIcon {
         if case .launchApp(let launch) = action, !launch.app.bundleID.isEmpty {
             return .app(bundleID: launch.app.bundleID)
+        }
+        if case .file(let file) = action {
+            return .symbol(SettingsActionKinds.symbol(file.operation))
         }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
@@ -76,6 +96,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .file(let file): file.operation == .move && file.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
@@ -278,4 +299,12 @@ extension AIAction: SettingsActionContent {
     }
 
     var asAction: Action { .ai(self) }
+}
+
+extension FileAction: SettingsActionContent {
+    static func content(of action: Action) -> FileAction? {
+        if case .file(let file) = action { file } else { nil }
+    }
+
+    var asAction: Action { .file(self) }
 }

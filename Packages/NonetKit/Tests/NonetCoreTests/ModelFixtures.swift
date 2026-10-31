@@ -48,6 +48,8 @@ enum ModelFixtures {
         .shortcut(ShortcutAction(name: "マイクのミュート", passSelectedText: true)),
         .menuItem(MenuItemAction(app: figma, path: ["オブジェクト", "自動レイアウトを追加"], keyEquivalent: .key("a", [.shift]))),
         .ai(AIAction(prompt: "要約して", output: .copyToClipboard)),
+        .file(FileAction(operation: .trash)),
+        .file(FileAction(operation: .move, destination: "~/Documents/整理")),
     ]
 
     static let allActions: [Action] = [

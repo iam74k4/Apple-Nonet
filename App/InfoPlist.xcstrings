@@ -8,13 +8,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet asks your browser for the URL of the current page to pass it to your script."
+            "value" : "Nonet asks your browser for the URL of the current page to pass it to your script, and asks Finder for the files you've selected so it can open, move, rename, duplicate or trash them."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "スクリプトに渡すために、ブラウザで表示中のページの URL を取得します。"
+            "value" : "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを読んで動かします。"
           }
         }
       }

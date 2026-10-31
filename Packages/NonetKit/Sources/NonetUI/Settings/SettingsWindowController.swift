@@ -331,6 +331,17 @@ final class SettingsWindowCoordinator: NSObject, NSToolbarDelegate, NSWindowDele
         return await run(panel)
     }
 
+    func chooseFolder() async -> URL? {
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "移動先のフォルダを選ぶ", bundle: .module)
+        panel.prompt = String(localized: "選ぶ", bundle: .module)
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        return await run(panel)
+    }
+
     /// 設定ウィンドウにシートとして出す（ウィンドウが無ければ単独で）。
     /// プロファイルの追加のシートが開いていれば、その上に重ねる（ウィンドウに出すと、シートが閉じるまで待たされる）
     private func run(_ panel: NSSavePanel) async -> URL? {

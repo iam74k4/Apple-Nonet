@@ -60,6 +60,11 @@ enum ActionText {
         String(localized: "アクセシビリティ", bundle: .nonetActions)
     }
 
+    /// Finder を操作する許可（システム設定の「プライバシーとセキュリティ」の「オートメーション」）
+    static var finderAutomation: String {
+        String(localized: "オートメーション（Finder）", bundle: .nonetActions)
+    }
+
     /// エラーに添える標準エラーの末尾。空行を除き、長い行は切り詰める
     static func lastLines(of text: String, count: Int = 3, maxLineLength: Int = 200) -> [String] {
         let lines = text

@@ -795,3 +795,58 @@ struct SettingsAIEditor: View {
         model.updateAction(ofCell: cellID, as: AIAction.self, transform)
     }
 }
+
+// MARK: - ファイル
+
+struct SettingsFileEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let file: FileAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "Finder で選んでいるファイルを", bundle: .module)) {
+                Picker(selection: Binding(get: { file.operation }, set: { model.chooseFileOperation($0, forCell: cellID) })) {
+                    ForEach(FileOperation.allCases, id: \.self) { operation in
+                        Text(operation.title).tag(operation)
+                    }
+                } label: {
+                    Text("Finder で選んでいるファイルを", bundle: .module)
+                }
+                .labelsHidden()
+                .pickerStyle(.radioGroup)
+                Text(SettingsText.detail(file.operation))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if file.operation == .move {
+                SettingsField(title: String(localized: "移動先のフォルダ", bundle: .module)) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        SettingsCommitTextField(value: file.destination, placeholder: "~/Documents", accessibilityLabel: String(localized: "移動先のフォルダ", bundle: .module)) { text in
+                            update { $0.destination = text.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        }
+                        Button {
+                            Task {
+                                guard let url = await model.files?.chooseFolder() else { return }
+                                update { $0.destination = url.path }
+                            }
+                        } label: {
+                            Text("フォルダを選ぶ…", bundle: .module)
+                        }
+                        .controlSize(.small)
+                        if file.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            SettingsNote(text: String(localized: "移動先のフォルダを決めてください", bundle: .module), symbol: "exclamationmark.triangle", isWarning: true)
+                        }
+                    }
+                }
+            }
+            SettingsNote(text: SettingsText.fileTarget)
+        }
+    }
+
+    /// 描画したときの file ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
+    private func update(_ transform: (inout FileAction) -> Void) {
+        model.updateAction(ofCell: cellID, as: FileAction.self, transform)
+    }
+}
