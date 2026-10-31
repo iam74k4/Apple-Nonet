@@ -8,6 +8,14 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+# 本番を出すブランチ。これ以外からは --allow-branch が要る
+RELEASE_BRANCH="main"
+
+# Release の実行ファイルに入っていてはいけない、DEBUG ビルドだけのコードの印（verify_app が strings で探す）。
+# App/DemoMode.swift と App/DebugPreview.swift は #if DEBUG の中にある: 型の名前と、そこだけが出す文言。
+# --demo-script などの起動引数の名前は入れない（NonetUI の ShellLaunchOptions が、どのビルドでも読むので）
+DEBUG_ONLY_MARKERS=(DemoSession DebugPreview DemoTrackpadView DemoFrontmostApp "demo: capture-region=")
+
 usage() {
   cat <<'EOF'
 使い方: scripts/release.sh [オプション] <バージョン> <ビルド番号>
@@ -25,7 +33,9 @@ usage() {
   --force-local-appcast
                      公開中の appcast を取ってこずに、手元の appcast.xml（NONET_RELEASES_DIR）をそのまま使う。
                      公開中のビルドが手元に無いと止まるが、手元が正しいと分かっているときだけ付ける
-  --allow-dirty      コミットしていない変更があっても続ける
+  --allow-dirty      コミットしていない変更があっても続ける（本番はそのままでは止まる。--dry-run は警告だけ。
+                     .claude/ の中の未追跡のファイルは数えない）
+  --allow-branch     main 以外のブランチから出す（本番はそのままでは止まる。--dry-run は警告だけ）
   -h, --help         この説明を表示する
 
 環境変数:
@@ -34,6 +44,9 @@ usage() {
   NONET_DOWNLOAD_URL_PREFIX  DMG を置く URL（既定: appcast.xml と同じ場所）
   NONET_SPARKLE_KEY_ACCOUNT  Sparkle の秘密鍵のキーチェーンのアカウント名（既定: ed25519）
   NONET_NOTARY_TIMEOUT       公証の結果を待つ上限（既定: 1h）
+  NONET_SELF_CHECK_TIMEOUT   書き出したアプリの --self-check を待つ上限（秒。既定: 60）
+
+始めに、ビルドするコミット・ブランチ・コミットしていない変更の有無を表示する。
 
 できるもの:
   build/release/<バージョン>/   作業用（アーカイブ・書き出した .app・ログ）
@@ -266,8 +279,9 @@ signature_problems() {
   return 0
 }
 
-# コミットしていない変更（git status --porcelain）。--notes のファイルがリポジトリの中にあれば、それだけは数えない
-# （アプリには入らないので、リリースの後でタグと一緒にコミットすればよい）
+# コミットしていない変更（git status --porcelain）。次のものは数えない:
+# - --notes のファイルがリポジトリの中にあれば、それだけ（アプリには入らないので、リリースの後でタグと一緒にコミットすればよい）
+# - .claude/ の中の未追跡のファイル（手元の道具の状態を置く場所で、アプリには入らない）。追跡しているファイルの変更は数える
 uncommitted_changes() {
   local root="$1" notes="$2" root_real notes_real
   local pathspecs=(":(top)")
@@ -278,7 +292,61 @@ uncommitted_changes() {
       pathspecs+=(":(exclude,literal)${notes_real#"$root_real"/}")
     fi
   fi
-  git -C "$root" status --porcelain -- "${pathspecs[@]}" 2>/dev/null || true
+  { git -C "$root" status --porcelain -- "${pathspecs[@]}" 2>/dev/null || true; } | { grep -vE '^\?\? "?\.claude(/|$)' || true; }
+}
+
+# ビルドの元（コミット・ブランチ・コミットしていない変更・push 済みか）を調べて GIT_* に入れる。
+# git の作業ツリーでなければ GIT_IN_REPO=0（何も確かめない）
+inspect_source() {
+  GIT_IN_REPO=0
+  GIT_COMMIT=""
+  GIT_BRANCH=""
+  GIT_DIRTY=""
+  GIT_HAS_REMOTE=0
+  GIT_REMOTE_BRANCHES=""
+  git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  GIT_IN_REPO=1
+  GIT_COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+  # detached HEAD のときは空
+  GIT_BRANCH="$(git -C "$ROOT" branch --show-current 2>/dev/null || true)"
+  GIT_DIRTY="$(uncommitted_changes "$ROOT" "$NOTES")"
+  if [[ -n "$(git -C "$ROOT" remote 2>/dev/null || true)" ]]; then
+    GIT_HAS_REMOTE=1
+    # 手元にある origin/* の情報による（ネットワークは使わない）
+    GIT_REMOTE_BRANCHES="$(git -C "$ROOT" branch -r --contains HEAD 2>/dev/null | grep -v ' -> ' | sed 's/^[* ]*//' | tr '\n' ' ' || true)"
+  fi
+}
+
+# いちばん始めに、何をビルドするか（コミット・ブランチ・コミットしていない変更）を目立つように出す。
+# ここに出したものが、公開する DMG の元になる
+print_source() {
+  local count
+  step "ビルドするもの（Nonet $VERSION、ビルド $BUILD）"
+  if [[ "$GIT_IN_REPO" == 0 ]]; then
+    warn "git の作業ツリーではないので、コミットとブランチを確かめられません"
+    return 0
+  fi
+  info "コミット:     ${GIT_COMMIT:-（分かりません）}"
+  if [[ -n "$GIT_BRANCH" ]]; then
+    info "ブランチ:     $GIT_BRANCH"
+  else
+    info "ブランチ:     （どのブランチでもありません。detached HEAD）"
+  fi
+  if [[ -z "$GIT_DIRTY" ]]; then
+    info "作業ツリー:   きれい"
+  else
+    count="$(grep -c . <<<"$GIT_DIRTY" || true)"
+    warn "作業ツリー:   コミットしていない変更があります（${count} 件）。この変更も DMG に入ります"
+    head -n 5 <<<"$GIT_DIRTY" | sed 's/^/        /' >&2
+    [[ "$count" -le 5 ]] || info "        ほか $((count - 5)) 件"
+  fi
+  if [[ "$GIT_HAS_REMOTE" == 0 ]]; then
+    info "push:         リモートがありません"
+  elif [[ -n "$GIT_REMOTE_BRANCHES" ]]; then
+    info "push:         済み（${GIT_REMOTE_BRANCHES% }）"
+  else
+    warn "push:         このコミットを含むリモートのブランチがありません（まだ push していないか、origin の情報が古い）"
+  fi
 }
 
 parse_args() {
@@ -286,6 +354,7 @@ parse_args() {
   FIRST_RELEASE=0
   FORCE_LOCAL_APPCAST=0
   ALLOW_DIRTY=0
+  ALLOW_BRANCH=0
   NOTES=""
   VERSION=""
   BUILD=""
@@ -300,6 +369,7 @@ parse_args() {
       --first-release) FIRST_RELEASE=1 ;;
       --force-local-appcast) FORCE_LOCAL_APPCAST=1 ;;
       --allow-dirty) ALLOW_DIRTY=1 ;;
+      --allow-branch) ALLOW_BRANCH=1 ;;
       --notes)
         [[ $# -ge 2 && -n "$2" ]] || usage_error "--notes にはファイルを指定してください"
         NOTES="$2"
@@ -326,8 +396,8 @@ parse_args() {
 
 # 時間のかかる作業の前に、足りないものをまとめて知らせる
 preflight() {
-  local problems="" missing line dirty appcast_url dmg_url=""
-  local tools=(xcodegen xcodebuild xcrun codesign spctl hdiutil security ditto plutil curl file)
+  local problems="" missing line branch appcast_url dmg_url=""
+  local tools=(xcodegen xcodebuild xcrun codesign spctl hdiutil security ditto plutil curl file strings perl)
 
   missing="$(missing_commands "${tools[@]}")"
   [[ -z "$missing" ]] || problems+="必要なコマンドがありません: $(printf '%s' "$missing" | tr '\n' ' ')（XcodeGen は brew install xcodegen）"$'\n'
@@ -383,13 +453,25 @@ preflight() {
     fi
   fi
 
-  if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    dirty="$(uncommitted_changes "$ROOT" "$NOTES")"
-    if [[ -n "$dirty" ]]; then
-      if [[ "$DRY_RUN" == 1 || "$ALLOW_DIRTY" == 1 ]]; then
-        warn "コミットしていない変更があります"
+  # ビルドの元（inspect_source が調べたもの）。本番は、きれいな main のコミットだけを出す
+  if [[ "$GIT_IN_REPO" == 1 ]]; then
+    if [[ -n "$GIT_DIRTY" ]]; then
+      if [[ "$ALLOW_DIRTY" == 1 ]]; then
+        warn "コミットしていない変更があります（--allow-dirty なので続けます）"
+      elif [[ "$DRY_RUN" == 1 ]]; then
+        warn "コミットしていない変更があります（dry run なので続けますが、本番ではここで止まります）"
       else
         problems+="コミットしていない変更があります。コミットしてから出すか、--allow-dirty を付けてください"$'\n'
+      fi
+    fi
+    if [[ "$GIT_BRANCH" != "$RELEASE_BRANCH" ]]; then
+      branch="${GIT_BRANCH:-detached HEAD}"
+      if [[ "$ALLOW_BRANCH" == 1 ]]; then
+        warn "$RELEASE_BRANCH ではないブランチ $branch から出します（--allow-branch）"
+      elif [[ "$DRY_RUN" == 1 ]]; then
+        warn "ブランチが $RELEASE_BRANCH ではありません（いまは $branch）。dry run なので続けますが、本番ではここで止まります"
+      else
+        problems+="ブランチが $RELEASE_BRANCH ではありません（いまは $branch）。$RELEASE_BRANCH に切り替えて出すか、別のブランチから出すと決めているときだけ --allow-branch を付けてください"$'\n'
       fi
     fi
   fi
@@ -550,7 +632,61 @@ write_export_options() {
 EOF
 }
 
-# 書き出した .app が、署名・版・販売用の値のすべてで正しいか
+# Release の実行ファイルに、DEBUG ビルドだけのコードの印（DEBUG_ONLY_MARKERS）が入っていれば、見つけた印を1行で出す。
+# strings -a は Mach-O のどこにある文字列も読む（Swift の型の名前を含む）ので、シンボルを消した実行ファイルでも見つかる
+debug_marker_problems() {
+  local executable="$1" name list="$WORK/strings.txt" marker found args=()
+  name="${executable#"$WORK/"}"
+  for marker in "${DEBUG_ONLY_MARKERS[@]}"; do
+    args+=(-e "$marker")
+  done
+  if [[ ! -f "$executable" ]] || ! strings -a "$executable" >"$list" 2>/dev/null; then
+    printf '%s を strings で読めません（DEBUG ビルドだけのコードが入っていないか確かめられません）\n' "$name"
+    return 0
+  fi
+  found="$(grep -oF "${args[@]}" "$list" | sort -u | tr '\n' ' ' || true)"
+  [[ -z "$found" ]] ||
+    printf '%s に DEBUG ビルドだけのコード（%s）が入っています。Release でビルドしたか、#if DEBUG の外に出ていないか確かめてください\n' "$name" "${found% }"
+  return 0
+}
+
+# get-task-allow の付いた署名（Debug ビルドの署名）は、ほかのプロセスがデバッガーでつなげるので、公証にも通らない。付いていれば問題を1行出す
+entitlement_problems() {
+  local path="$1" entitlements
+  # <key>…</key><true/> を空白の違いに関係なく探す
+  entitlements="$(codesign -d --entitlements :- "$path" 2>/dev/null | tr -d '[:space:]' || true)"
+  if [[ "$entitlements" == *"<key>com.apple.security.get-task-allow</key><true/>"* ]]; then
+    printf '%s が com.apple.security.get-task-allow の付いた署名です（Debug ビルドの署名になっていないか確かめてください）\n' "${path#"$WORK/"}"
+  fi
+  return 0
+}
+
+# 書き出したアプリを --self-check で動かし、ok と報告するか。そうでなければ問題を1行出す。
+# 終わらなければ NONET_SELF_CHECK_TIMEOUT 秒（既定 60）で止める
+self_check_problem() {
+  local executable="$1" name out="$WORK/self-check.json" err="$WORK/self-check.err" limit="${NONET_SELF_CHECK_TIMEOUT:-60}"
+  local status=0 ok failures detail
+  name="${executable#"$WORK/"}"
+  if [[ ! -x "$executable" ]]; then
+    printf '%s を実行できません（--self-check を動かせません）\n' "$name"
+    return 0
+  fi
+  # perl の alarm は exec の後も残るので、アプリが終わらなければ SIGALRM で止まる
+  perl -e 'alarm shift; exec @ARGV' "$limit" "$executable" --self-check >"$out" 2>"$err" </dev/null || status=$?
+  ok="$(plist_value "$out" ok)"
+  [[ "$status" != 0 || "$ok" != true ]] || return 0
+  failures="$(plutil -extract failures json -o - "$out" 2>/dev/null || true)"
+  detail="$(cat "$out" "$err" 2>/dev/null | head -c 300 | tr '\n' ' ' || true)"
+  if [[ "$status" == 142 ]]; then
+    printf '%s --self-check が %s 秒たっても終わりません\n' "$name" "$limit"
+  else
+    printf '%s --self-check が ok になりませんでした（終了コード %s、ok: %s、failures: %s）%s\n' \
+      "$name" "$status" "${ok:-なし}" "${failures:-不明}" "${detail:+ 出力: $detail}"
+  fi
+  return 0
+}
+
+# 書き出した .app が、署名・版・販売用の値・DEBUG ビルドのコードが無いこと・自己診断のすべてで正しいか
 verify_app() {
   local app="$1" plist="$1/Contents/Info.plist" problems="" file kind runtime main_executable key expected actual
   codesign --verify --deep --strict --verbose=2 "$app" >/dev/null 2>"$WORK/codesign-verify.log" || {
@@ -586,6 +722,11 @@ verify_app() {
     [[ "$actual" == "$expected" ]] || problems+="Info.plist の $key が「$actual」です（期待: $expected）"$'\n'
   done
 
+  # 署名や Info.plist だけでなく、中身も確かめる: DEBUG ビルドのコードと署名が混ざっていないこと、実際に動くこと
+  problems+="$(debug_marker_problems "$main_executable")"$'\n'
+  problems+="$(entitlement_problems "$app")"$'\n'
+  problems+="$(self_check_problem "$main_executable")"$'\n'
+
   problems="$(sed '/^$/d' <<<"$problems")"
   if [[ -n "$problems" ]]; then
     error "書き出したアプリに問題があります:"
@@ -593,6 +734,7 @@ verify_app() {
     exit 1
   fi
   info "署名・版・販売用の値を確かめました"
+  info "DEBUG ビルドだけのコードと get-task-allow が無いこと、--self-check が ok であることを確かめました"
 }
 
 # 公証に出して結果を待つ。通らなければログを見せて止まる
@@ -671,6 +813,8 @@ main() {
 
   local mode=""
   [[ "$DRY_RUN" == 0 ]] || mode="、dry run"
+  inspect_source
+  print_source
   step "準備を確かめる（Nonet $VERSION、ビルド $BUILD$mode）"
   preflight
   local config="$ROOT/Config/Nonet.xcconfig"
@@ -749,7 +893,7 @@ main() {
   local app="$WORK/export/Nonet.app"
   [[ -d "$app" ]] || die "書き出しは終わりましたが $app がありません"
 
-  step "署名を確かめる"
+  step "書き出したアプリを確かめる（署名・版・DEBUG のコード・自己診断）"
   verify_app "$app"
 
   if [[ "$DRY_RUN" == 0 ]]; then

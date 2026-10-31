@@ -8,6 +8,16 @@ Packages/NonetKit/.swiftpm/
 # ライセンスの秘密鍵は絶対にコミットしない
 *.private-key
 secrets/
+# 証明書と鍵の書き出し（Developer ID 証明書の .p12、App Store Connect / 公証の API キーの .p8 など）と、
+# Cloudflare の手元の秘密（wrangler dev の .dev.vars）・環境変数のファイル。docs/release.md は .p12 の書き出しを勧めている
+*.p12
+*.p8
+*.pem
+*.cer
+.dev.vars
+.env
+.env.*
+!.env.example
 # Cloudflare の Worker（cloudflare/）の依存と、wrangler dev の手元の状態
 cloudflare/node_modules/
 .wrangler/

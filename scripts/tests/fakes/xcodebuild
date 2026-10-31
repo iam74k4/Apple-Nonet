@@ -6,6 +6,10 @@
 #   FAKE_NESTED_MACHO             1 なら Sparkle.framework に Mach-O の実行ファイルを入れる
 #   FAKE_NO_SPARKLE_ARTIFACTS     1 ならパッケージの解決で Sparkle のツールを置かない
 #   FAKE_SELF_CHECK_STATUS        作ったアプリを動かしたときの終了コード（既定は 0）
+#   FAKE_SELF_CHECK_OUTPUT        --self-check で作ったアプリが出す1行（既定は、終了コードが 0 なら ok: true、そうでなければ ok: false の JSON。
+#                                 空文字にすると何も出さない）
+#   FAKE_SELF_CHECK_HANG          1 なら --self-check で終わらない（NONET_SELF_CHECK_TIMEOUT の確認用）
+#   FAKE_APP_DEBUG_TEXT           作ったアプリの実行ファイルに足す文字列（DEBUG ビルドだけのコードが混ざった Release の再現）
 set -euo pipefail
 printf 'xcodebuild %s\n' "$*" >>"${FAKE_LOG:?}"
 
@@ -37,13 +41,28 @@ fi
 write_app() {
   local app="$1"
   mkdir -p "$app/Contents/MacOS"
-  # アプリの実行ファイルの代わり。呼ばれたら FAKE_LOG に記録し、FAKE_SELF_CHECK_STATUS で終わる
+  # アプリの実行ファイルの代わり。呼ばれたら FAKE_LOG に記録し、--self-check には JSON を1行出して FAKE_SELF_CHECK_STATUS で終わる
   cat >"$app/Contents/MacOS/Nonet" <<'APP'
 #!/bin/sh
 printf 'Nonet %s\n' "$*" >>"${FAKE_LOG:?}"
+printf 'Nonet executable: %s\n' "$0" >>"$FAKE_LOG"
+[ "${FAKE_SELF_CHECK_HANG:-}" != 1 ] || exec sleep 30
+if [ "$*" = "--self-check" ]; then
+  status="${FAKE_SELF_CHECK_STATUS:-0}"
+  if [ -n "${FAKE_SELF_CHECK_OUTPUT+x}" ]; then
+    [ -z "$FAKE_SELF_CHECK_OUTPUT" ] || printf '%s\n' "$FAKE_SELF_CHECK_OUTPUT"
+  elif [ "$status" = 0 ]; then
+    printf '%s\n' '{"accessibilityGranted":false,"configurationRoundTrip":{"ok":true},"failures":[],"installedLauncherCandidates":3,"launcherCandidates":9,"multitouch":{"devices":1,"loaded":true,"trackpadAvailable":true},"ok":true,"presets":20,"version":"1.0.0 (1)"}'
+  else
+    printf '%s\n' '{"configurationRoundTrip":{"ok":true},"failures":["multitouch"],"multitouch":{"devices":0,"loaded":false},"ok":false,"presets":20,"version":"1.0.0 (1)"}'
+  fi
+fi
 exit "${FAKE_SELF_CHECK_STATUS:-0}"
 APP
   chmod +x "$app/Contents/MacOS/Nonet"
+  if [[ -n "${FAKE_APP_DEBUG_TEXT:-}" ]]; then
+    printf '# %s\n' "$FAKE_APP_DEBUG_TEXT" >>"$app/Contents/MacOS/Nonet"
+  fi
   cat >"$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

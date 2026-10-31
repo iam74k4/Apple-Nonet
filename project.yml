@@ -102,6 +102,10 @@ targets:
       configs:
         Debug:
           CODE_SIGN_IDENTITY: "Apple Development"
+          # 開発用のビルドは、本番の appcast を見に行かない（Info.plist の SUFeedURL が空になり、アプリは Sparkle を動かさない）。
+          # 同じ bundle ID の製品版を入れた Mac で、開発用のビルドが製品版のアップデートを受け取らないようにする。
+          # Config/Nonet.xcconfig の値は変えない: Release は xcconfig の値のまま
+          NONET_APPCAST_URL: ""
         Release:
           CODE_SIGN_IDENTITY: "Developer ID Application"
           OTHER_CODE_SIGN_FLAGS: "--timestamp"

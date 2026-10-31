@@ -4,6 +4,7 @@
 #   FAKE_CODESIGN_DETAILS          -dvv で出す内容（既定は Developer ID・hardened runtime・タイムスタンプつき）
 #   FAKE_CODESIGN_NESTED_DETAILS   .app の中のファイル（Frameworks・XPCServices など）に -dvv したときの内容
 #   FAKE_CODESIGN_SIGN_STATUS      署名の終了コード
+#   FAKE_CODESIGN_GET_TASK_ALLOW   --entitlements の答えに com.apple.security.get-task-allow を足す（true か false。Debug の署名の再現）
 set -euo pipefail
 printf 'codesign %s\n' "$*" >>"${FAKE_LOG:?}"
 
@@ -23,7 +24,22 @@ TeamIdentifier=$team"
 
 case " $* " in
   *" --verify "*)
+    # 本物と同じく、失敗の理由は標準エラーに出す
+    if [[ "${FAKE_CODESIGN_VERIFY_STATUS:-0}" != 0 ]]; then
+      printf '%s: code object is not signed at all\n' "$target" >&2
+    fi
     exit "${FAKE_CODESIGN_VERIFY_STATUS:-0}"
+    ;;
+  *" --entitlements "*)
+    # codesign -d --entitlements :- <パス>: 付いているエンタイトルメントの plist を標準出力に出す（Executable= などは標準エラー）
+    printf 'Executable=%s\n' "$target" >&2
+    printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n'
+    printf '\t<key>com.apple.security.automation.apple-events</key>\n\t<true/>\n'
+    case "${FAKE_CODESIGN_GET_TASK_ALLOW:-}" in
+      true) printf '\t<key>com.apple.security.get-task-allow</key>\n\t<true/>\n' ;;
+      false) printf '\t<key>com.apple.security.get-task-allow</key>\n\t<false/>\n' ;;
+    esac
+    printf '</dict>\n</plist>\n'
     ;;
   *" -dvv "* | *" -d "* | *" --display "*)
     if [[ "$target" == */Nonet.app/Contents/* && -n "${FAKE_CODESIGN_NESTED_DETAILS:-}" ]]; then

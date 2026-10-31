@@ -189,8 +189,8 @@ site.yml の中でも、トークンは wrangler を呼ぶ step の env にだ�
 
 `scripts/publish.sh <バージョン>` がすること:
 
-1. 準備を確かめる: `cloudflare/node_modules/.bin/wrangler`（無ければ `cd cloudflare && npm ci`）、`node`・`curl`、`NONET_RELEASES_DIR` の `Nonet-<バージョン>.dmg` と `appcast.xml`、`Config/Nonet.xcconfig` の `NONET_APPCAST_URL`
-2. 手元の appcast.xml を Worker と同じ読み方で読み、その版の項目の URL が `https://nonet.astlog.dev/updates/Nonet-<バージョン>.dmg`、`length` が DMG の大きさと同じで、既定のチャンネルで最新か（`/download` の行き先になるか）を確かめる。項目のデルタが手元にあり、大きさが合うかも見る
+1. 準備を確かめる: `cloudflare/node_modules/.bin/wrangler`（無ければ `cd cloudflare && npm ci`）、`node`・`curl`・`codesign`・`xcrun`・`spctl`、`NONET_RELEASES_DIR` の `Nonet-<バージョン>.dmg` と `appcast.xml`、`Config/Nonet.xcconfig` の `NONET_APPCAST_URL`
+2. 手元の appcast.xml を Worker と同じ読み方で読み、その版の項目の URL が `https://nonet.astlog.dev/updates/Nonet-<バージョン>.dmg`、`length` が DMG の大きさと同じで、既定のチャンネルで最新か（`/download` の行き先になるか）を確かめる。項目のデルタが手元にあり、大きさが合うかも見る。DMG の署名・公証のステープル・Gatekeeper の評価（`codesign --verify`・`xcrun stapler validate`・`spctl -a -t open --context context:primary-signature`）と、項目（DMG とデルタ）の `sparkle:edSignature` も確かめる（通らなければ、ネットワークに触れる前に止まる。dry run でも同じ）
 3. 公開中の appcast を写しを使わずに取り、手元より新しくないか（別の Mac から出していないか）を確かめる。R2 の DMG・デルタの ETag（中身の MD5）を手元と比べ、もう公開した版のファイルを別の中身で差し替えようとしていれば止まる
 4. 公開中の appcast を `NONET_RELEASES_DIR/appcast-history/<日時>-before-<バージョン>.xml` に控える（「5. 戻す」で使う）
 5. `wrangler r2 object put nonet-updates/<名前> --file … --content-type … --remote` で、DMG → その版のデルタ（同じ中身がもう R2 にあるものは飛ばす）→ appcast.xml の順に上げる。途中で失敗したらそこで止まる。appcast.xml より前で止まれば、公開中の版は変わらない
