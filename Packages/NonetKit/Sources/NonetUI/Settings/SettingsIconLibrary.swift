@@ -80,16 +80,15 @@ enum SettingsIconLibrary {
         return String(trimmed.prefix(2))
     }
 
-    /// アイコンの種類（ピッカーのタブ）
+    /// アイコンの種類（ピッカーのタブ）。前の版の「文字」のアイコンは HUD に出るが、新しくは作れない
     enum Kind: String, CaseIterable, Identifiable {
-        case symbol, app, text
+        case symbol, app
         var id: String { rawValue }
 
         init(_ icon: CellIcon) {
             switch icon {
-            case .symbol: self = .symbol
+            case .symbol, .text: self = .symbol
             case .app: self = .app
-            case .text: self = .text
             }
         }
 
@@ -97,7 +96,6 @@ enum SettingsIconLibrary {
             switch self {
             case .symbol: String(localized: "記号", bundle: .module)
             case .app: String(localized: "アプリ", bundle: .module)
-            case .text: String(localized: "文字", bundle: .module)
             }
         }
     }

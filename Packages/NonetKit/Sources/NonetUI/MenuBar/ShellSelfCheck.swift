@@ -185,10 +185,11 @@ public enum ShellSelfCheck {
             appPresets: PresetLibrary.apps,
             installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID))
         )
-        // 共通マスも往復に含める（書き出しと読み込みの崩れを、製品版でも自己診断で見つけられるように）
-        configuration.setSharedCell(
+        // 少し長く止めるマスも往復に含める（書き出しと読み込みの崩れを、製品版でも自己診断で見つけられるように）
+        configuration.setCell(
             Cell(title: "self-check", icon: .symbol("checkmark"), action: .keystroke(.key("b", .command)), requiresHold: true),
-            at: 8
+            at: CellAddress(page: 0, index: 8),
+            profileID: configuration.globalProfile.id
         )
         let store = ConfigurationStore(directory: directory)
         do {

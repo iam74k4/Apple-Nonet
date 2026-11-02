@@ -129,9 +129,9 @@ extension SettingsModel {
         return [NSItemProvider(item: data as NSData, typeIdentifier: UTType.nonetCell.identifier)]
     }
 
-    /// グリッドに出ているマス（共通マスの位置なら共通マス）
+    /// グリッドに出ているマス
     private func cellData(at index: Int) -> Data? {
-        guard let cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: displayedProfile) else { return nil }
+        guard let cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: selectedProfile) else { return nil }
         return try? JSONEncoder().encode(cell)
     }
 
@@ -139,12 +139,10 @@ extension SettingsModel {
         pasteboard.availableType(from: [.nonetCell]) != nil
     }
 
-    /// ⌘V。コピーしたマスを index に入れる（新しい id で）。中身のあるマスなら置き換え、グリッドの下でも元に戻せるようにする。
-    /// 共通マスが代わりに出ている位置には貼らない
+    /// ⌘V。コピーしたマスを index に入れる（新しい id で）。中身のあるマスなら置き換え、グリッドの下でも元に戻せるようにする
     func pasteCell(at index: Int, from pasteboard: NSPasteboard = .general) {
         let address = CellAddress(page: pageIndex, index: index)
-        guard !isCoveredByShared(address),
-              let data = pasteboard.data(forType: .nonetCell), var cell = try? JSONDecoder().decode(Cell.self, from: data) else { return }
+        guard let data = pasteboard.data(forType: .nonetCell), var cell = try? JSONDecoder().decode(Cell.self, from: data) else { return }
         cell.id = UUID()
         let profileID = selectedProfile.id
         let existing = SettingsGrid.cell(at: address, in: selectedProfile)
@@ -171,11 +169,11 @@ extension SettingsModel {
         configuration.profiles.filter { $0.id != selectedProfile.id }
     }
 
-    /// index のマスを、ほかのプロファイルの最初の空きマスへ写す（共通マスの位置は空きにしない）。空きが無ければ知らせる。グリッドの下から元に戻せる
+    /// index のマスを、ほかのプロファイルの最初の空きマスへ写す。空きが無ければ知らせる。グリッドの下から元に戻せる
     func copyCell(at index: Int, toProfile targetID: UUID) {
-        guard var cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: displayedProfile),
+        guard var cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: selectedProfile),
               let target = configuration.profile(id: targetID), targetID != selectedProfile.id else { return }
-        guard let address = SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: displayed(target)) else {
+        guard let address = SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: target) else {
             gridMessage = String(localized: "「\(target.name)」に空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
@@ -194,12 +192,9 @@ extension SettingsModel {
 
     // MARK: - 隣のマスと入れ替え
 
-    /// その向きに隣のマスがある（端では入れ替えられない）。どちらかに共通マスが代わりに出ていれば入れ替えない
+    /// その向きに隣のマスがある（端では入れ替えられない）
     func canSwapCell(at index: Int, _ direction: SettingsGridDirection) -> Bool {
-        let neighbor = SettingsGrid.neighbor(of: index, direction)
-        return neighbor != index
-            && !isCoveredByShared(CellAddress(page: pageIndex, index: index))
-            && !isCoveredByShared(CellAddress(page: pageIndex, index: neighbor))
+        SettingsGrid.neighbor(of: index, direction) != index
     }
 
     /// 隣のマスと入れ替える（⌥⌘＋矢印キー・右クリック・VoiceOver）。入れ替えた先を選ぶ

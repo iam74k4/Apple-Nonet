@@ -9,19 +9,15 @@ public struct NonetConfiguration: Codable, Equatable, Sendable {
     public var settings: GlobalSettings
     /// 先頭は必ずグローバルのプロファイル。アプリのプロファイルは bundleID ごとに1つまで
     public var profiles: [Profile]
-    /// 共通マス。すべてのプロファイルのすべてのページで、その位置のマスの代わりに出る（resolvedPages(frontmostBundleID:)）
-    public var sharedCells: SharedCells
 
     public init(
         version: Int = NonetConfiguration.currentVersion,
         settings: GlobalSettings = GlobalSettings(),
-        profiles: [Profile],
-        sharedCells: SharedCells = .empty
+        profiles: [Profile]
     ) {
         self.version = version
         self.settings = settings
         self.profiles = profiles
-        self.sharedCells = sharedCells
     }
 }
 
@@ -34,16 +30,13 @@ public struct ResolvedPage: Equatable, Sendable {
     public var cells: [Cell?]
     /// ページの名前（Page.name）。無ければ nil
     public var pageName: String?
-    /// cells のうち、共通マスが代わりに出ている位置（NonetConfiguration.sharedCells）
-    public var sharedIndices: Set<Int>
 
-    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil, sharedIndices: Set<Int> = []) {
+    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil) {
         self.profileID = profileID
         self.profileName = profileName
         self.pageIndex = pageIndex
         self.cells = cells
         self.pageName = pageName
-        self.sharedIndices = sharedIndices
     }
 
     /// HUD の題名。ページに名前があれば「Xcode · デバッグ」、無ければプロファイルの名前だけ
@@ -151,13 +144,7 @@ extension NonetConfiguration {
         self = validated()
     }
 
-    /// profileID が SharedCells.profileID なら、共通マス（1ページ目の address.index の位置）を変える
     public mutating func setCell(_ cell: Cell?, at address: CellAddress, profileID: UUID) {
-        if profileID == SharedCells.profileID {
-            guard address.page == 0 else { return }
-            setSharedCell(cell, at: address.index)
-            return
-        }
         guard let index = profileIndex(id: profileID) else { return }
         profiles[index].normalizePages()
         guard Self.contains(address, in: profiles[index]) else { return }
@@ -169,27 +156,8 @@ extension NonetConfiguration {
         profiles[index].pages[address.page].cells[address.index] = cell
     }
 
-    /// 共通マスを置く（nil なら外す）。外すと、各プロファイルのその位置のマスがまた出る。位置が 0〜8 でなければ何もしない
-    public mutating func setSharedCell(_ cell: Cell?, at position: Int) {
-        guard SharedCells.positions.contains(position) else { return }
-        var cell = cell
-        // 写したマスなど、ほかと id が同じなら新しい id にする
-        if let id = cell?.id, containsCell(id: id, except: .shared(position)) {
-            cell?.id = UUID()
-        }
-        sharedCells[position] = cell
-    }
-
-    /// 2つのマスを入れ替える（片方が空きマスなら移動になる）。profileID が SharedCells.profileID なら共通マスどうし
+    /// 2つのマスを入れ替える（片方が空きマスなら移動になる）
     public mutating func swapCells(_ a: CellAddress, _ b: CellAddress, profileID: UUID) {
-        if profileID == SharedCells.profileID {
-            guard a.page == 0, b.page == 0, a != b,
-                  SharedCells.positions.contains(a.index), SharedCells.positions.contains(b.index) else { return }
-            let first = sharedCells[a.index]
-            sharedCells[a.index] = sharedCells[b.index]
-            sharedCells[b.index] = first
-            return
-        }
         guard let index = profileIndex(id: profileID) else { return }
         profiles[index].normalizePages()
         let profile = profiles[index]
@@ -311,21 +279,19 @@ extension NonetConfiguration {
 
     /// 前面アプリで使うページの並び。
     /// アプリのプロファイルがあればそのページ、その後ろにグローバルのページ。無ければグローバルのページだけ。使い方が global・off のプロファイルは使わない
-    /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
-    /// どのページも、共通マス（sharedCells）のある位置はそのマスに置き換える（ResolvedPage.sharedIndices）
+    /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）
     public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
-        let globalPages = Self.resolve(globalProfile, shared: sharedCells)
+        let globalPages = Self.resolve(globalProfile)
         guard let bundleID = frontmostBundleID,
               let appProfile = appProfile(forBundleID: bundleID) else {
             return globalPages
         }
-        return Self.resolve(appProfile, shared: sharedCells) + globalPages
+        return Self.resolve(appProfile) + globalPages
     }
 
     /// 壊れた設定を直したもの（グローバルが先頭に1つ、ページ数、マス数、重複 id など）
     public func validated() -> NonetConfiguration {
-        // 共通マスの id は設定画面が使うので、プロファイルには使わない
-        var usedProfileIDs: Set<UUID> = [SharedCells.profileID]
+        var usedProfileIDs = Set<UUID>()
         var usedCellIDs = Set<UUID>()
         var seenBundleIDs = Set<String>()
         var global: Profile?
@@ -369,17 +335,6 @@ extension NonetConfiguration {
             }
         }
 
-        var shared = sharedCells
-        for position in shared.occupiedPositions {
-            guard var cell = shared[position] else { continue }
-            if !usedCellIDs.insert(cell.id).inserted {
-                cell.id = Self.uniqueID(avoiding: usedCellIDs)
-                usedCellIDs.insert(cell.id)
-            }
-            cell.action = cell.action.validated()
-            shared[position] = cell
-        }
-
         let globalProfile = global ?? Profile(id: Self.uniqueID(avoiding: usedProfileIDs), kind: .global)
         if global == nil {
             modelLogger.warning("グローバルのプロファイルが無かったので、空のものを加えた")
@@ -387,8 +342,7 @@ extension NonetConfiguration {
         return NonetConfiguration(
             version: Self.currentVersion,
             settings: settings,
-            profiles: [globalProfile] + apps,
-            sharedCells: shared
+            profiles: [globalProfile] + apps
         )
     }
 }
@@ -406,15 +360,12 @@ extension NonetConfiguration {
         public var replacedGlobal: Bool
         /// 同じアプリの重複・bundleID の無いアプリ・読めなかったプロファイルなどで使わなかった数
         public var skipped: Int
-        /// 共通マスを置き換えた（すべての書き出しに共通マスが入っていたとき）
-        public var replacedSharedCells: Bool
 
-        public init(added: Int = 0, replaced: Int = 0, replacedGlobal: Bool = false, skipped: Int = 0, replacedSharedCells: Bool = false) {
+        public init(added: Int = 0, replaced: Int = 0, replacedGlobal: Bool = false, skipped: Int = 0) {
             self.added = added
             self.replaced = replaced
             self.replacedGlobal = replacedGlobal
             self.skipped = skipped
-            self.replacedSharedCells = replacedSharedCells
         }
 
         /// 設定に反映したプロファイルの数
@@ -471,17 +422,11 @@ extension NonetConfiguration {
     }
 
     /// 書き出しファイルから読めたものを加える（ConfigurationStore.importDocument(from:) の結果）。
-    /// 読めなかったプロファイルも skipped に数える。共通マスが入っていれば、今の共通マスをすべてそれに置き換える
-    /// （グローバルのページと同じく丸ごと。入っていなければ今の共通マスはそのまま）
+    /// 読めなかったプロファイルも skipped に数える
     @discardableResult
     public mutating func importProfiles(_ document: ConfigurationStore.ImportedProfiles) -> ImportResult {
-        if !document.sharedCells.isEmpty {
-            // 先に入れ、importProfiles(_:) の validated() で既存のマスと重なった id を振り直す
-            sharedCells = document.sharedCells
-        }
         var result = importProfiles(document.profiles)
         result.skipped += max(document.unreadableCount, 0)
-        result.replacedSharedCells = !document.sharedCells.isEmpty
         return result
     }
 }
@@ -514,7 +459,6 @@ extension NonetConfiguration {
     /// containsCell(id:except:) で数えない場所（マスを置こうとしている場所）
     private enum CellSlot {
         case profile(Int, CellAddress)
-        case shared(Int)
     }
 
     private func containsCell(id: UUID, except excluded: CellSlot) -> Bool {
@@ -529,29 +473,15 @@ extension NonetConfiguration {
                 }
             }
         }
-        for position in sharedCells.occupiedPositions where sharedCells[position]?.id == id {
-            if case .shared(let excludedPosition) = excluded, excludedPosition == position {
-                continue
-            }
-            return true
-        }
         return false
     }
 
-    private static func resolve(_ profile: Profile, shared: SharedCells) -> [ResolvedPage] {
+    private static func resolve(_ profile: Profile) -> [ResolvedPage] {
         var profile = profile
         profile.normalizePages()
         let name = profile.name
-        let sharedIndices = Set(shared.occupiedPositions)
         return profile.pages.enumerated().map { pageIndex, page in
-            ResolvedPage(
-                profileID: profile.id,
-                profileName: name,
-                pageIndex: pageIndex,
-                cells: shared.overlaying(page.cells),
-                pageName: page.name,
-                sharedIndices: sharedIndices
-            )
+            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name)
         }
     }
 
@@ -568,7 +498,7 @@ extension NonetConfiguration {
 
 extension NonetConfiguration {
     private enum CodingKeys: String, CodingKey {
-        case version, settings, profiles, sharedCells
+        case version, settings, profiles
     }
 
     public init(from decoder: any Decoder) throws {
@@ -581,19 +511,14 @@ extension NonetConfiguration {
         let profiles = container.contains(.profiles)
             ? try container.decode([LossyElement<Profile>].self, forKey: .profiles)
             : []
-        // 共通マスの無い（前の版の）ファイルは共通マス無し。読めなければ共通マス無しにする（プロファイルは読む）
-        let sharedCells = container.decodeLossy(SharedCells.self, forKey: .sharedCells, default: .empty)
-        self.init(version: version, settings: settings, profiles: profiles.compactMap(\.value), sharedCells: sharedCells)
+        // 前の版の共通マス（sharedCells）は読まない（原本は configuration.lossy-… に残る）
+        self.init(version: version, settings: settings, profiles: profiles.compactMap(\.value))
     }
 
-    /// sharedCells は共通マスがあるときだけ書く（無ければ前の版と同じ書式のまま）
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(version, forKey: .version)
         try container.encode(settings, forKey: .settings)
         try container.encode(profiles, forKey: .profiles)
-        if !sharedCells.isEmpty {
-            try container.encode(sharedCells, forKey: .sharedCells)
-        }
     }
 }

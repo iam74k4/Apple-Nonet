@@ -573,11 +573,6 @@ struct HUDCellView: View {
                     .padding(metrics.badgeInset)
             }
         }
-        .overlay(alignment: .topLeading) {
-            if cell?.isShared == true {
-                HUDSharedBadge(isHighlighted: isFilled, metrics: metrics, theme: theme)
-            }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
         .accessibilityValue(Text(HUDAnnouncement.cellValue(cell)))
@@ -732,21 +727,6 @@ struct HUDEdgePagingBar: View {
     }
 }
 
-/// 共通マス（どのアプリでも同じ位置に出るマス）の左上の小さな印
-struct HUDSharedBadge: View {
-    let isHighlighted: Bool
-    var metrics = HUDMetrics(scale: 1)
-    var theme = HUDTheme(surface: .solid)
-
-    var body: some View {
-        Image(systemName: "pin.fill")
-            .font(.system(size: 8 * metrics.scale, weight: .semibold))
-            .foregroundStyle(isHighlighted ? AnyShapeStyle(theme.highlightedDetail) : theme.detail)
-            .padding(6 * metrics.scale)
-            .accessibilityHidden(true)
-    }
-}
-
 private struct HUDBannerView: View {
     let text: String
     let style: HUDBannerStyle
@@ -851,17 +831,9 @@ enum HUDAnnouncement {
         return String(localized: "\(cell.title)、\(position)", bundle: .module)
     }
 
-    /// 共通マスの VoiceOver の値（設定のグリッドと同じ文言）。共通マスでなければ nil
-    static func sharedValue(_ cell: HUDCell?) -> String? {
-        guard cell?.isShared == true else { return nil }
-        return String(localized: "sharedButton.accessibilityValue", defaultValue: "共通マス", bundle: .module)
-    }
-
-    /// マスの VoiceOver の値。共通マス・少し長く止めてから実行するマスなら、それを並べる
+    /// マスの VoiceOver の値。少し長く止めてから実行するマスなら、それを言う
     static func cellValue(_ cell: HUDCell?) -> String {
-        [sharedValue(cell) ?? "", HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true)]
-            .filter { !$0.isEmpty }
-            .joined(separator: "、")
+        HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true)
     }
 
     /// 指が外枠にあるときの「離すとやめる」（HUD の中央と読み上げ）

@@ -16,12 +16,10 @@ struct SettingsGridView: View {
                 GridRow {
                     ForEach(0..<3, id: \.self) { column in
                         let index = row * SettingsGrid.columns + column
-                        let shared = model.sharedCell(at: index)
                         SettingsGridCell(
                             model: model,
                             index: index,
-                            cell: shared ?? (page.cells.indices.contains(index) ? page.cells[index] : nil),
-                            isShared: shared != nil,
+                            cell: page.cells.indices.contains(index) ? page.cells[index] : nil,
                             isSelected: model.selectedIndex == index,
                             dragItem: SettingsDragItem(payload: .cell(
                                 profileID: profile.id,
@@ -93,7 +91,7 @@ struct SettingsGridView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(localized: "\(SettingsText.profileName(profile)) のページ \(model.pageIndex + 1)", bundle: .module))
+        .accessibilityLabel(String(localized: "\(profile.name) のページ \(model.pageIndex + 1)", bundle: .module))
     }
 
     static func isOptionCommand(_ modifiers: EventModifiers) -> Bool {
@@ -115,8 +113,6 @@ struct SettingsGridCell: View {
     let model: SettingsModel
     let index: Int
     let cell: Cell?
-    /// 共通マスが代わりに出ている（薄く出して「共通」の印を付け、その場では編集しない）
-    var isShared = false
     let isSelected: Bool
     let dragItem: SettingsDragItem
     let onSelect: () -> Void
@@ -126,19 +122,10 @@ struct SettingsGridCell: View {
 
     var body: some View {
         content
-            .opacity(isShared ? SettingsSharedBadge.dimmedOpacity : 1)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground))
             .overlay(border)
             .overlay(alignment: .topTrailing) { holdBadge }
-            .overlay(alignment: .topLeading) {
-                if isShared {
-                    // 狭いマスでは文字を省き、アイコンと重ならないようにする
-                    GeometryReader { proxy in
-                        SettingsSharedBadge(showsLabel: proxy.size.width >= SettingsSharedBadge.labelMinimumWidth)
-                    }
-                }
-            }
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(Color.accentColor, lineWidth: 3)
@@ -146,37 +133,23 @@ struct SettingsGridCell: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 12))
             .onTapGesture(perform: onSelect)
-            .modifier(SettingsDraggableIfFilled(item: cell == nil || isShared ? nil : dragItem, preview: cell))
+            .modifier(SettingsDraggableIfFilled(item: cell == nil ? nil : dragItem, preview: cell))
             .dropDestination(for: SettingsDragItem.self) { items, _ in
                 guard let item = items.first else { return false }
                 return model.handleDrop(item.payload, onto: index)
-            } isTargeted: { isDropTarget = $0 && !isShared }
+            } isTargeted: { isDropTarget = $0 }
             .contextMenu {
-                if isShared {
-                    SettingsSharedCellMenu(model: model, index: index)
-                } else {
-                    contextMenu
-                }
+                contextMenu
             }
             .help(SettingsGrid.tooltip(for: cell) ?? "")
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
-            .accessibilityValue(
-                [isShared ? SettingsText.sharedCellAccessibilityValue : "", HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true)]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: "、")
-            )
-            .accessibilityHint(isShared ? SettingsText.sharedCellNote : String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))
+            .accessibilityValue(HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true))
+            .accessibilityHint(String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))
             .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
             .accessibilityActions {
-                if isShared {
-                    Button(String(localized: "共通マスを編集", bundle: .module)) { model.editSharedCell(at: index) }
-                    Button(SettingsModel.stopSharingActionName) { model.stopSharing(at: index) }
-                } else if let cell {
-                    if model.canMakeShared(at: index) {
-                        Button(SettingsModel.makeSharedActionName) { model.requestMakeShared(at: index) }
-                    }
+                if let cell {
                     Button(String(localized: "複製", bundle: .module)) { model.duplicateCell(at: index) }
                     Button(String(localized: "削除", bundle: .module)) { model.clearCell(at: index) }
                     Button(String(localized: "このマスをテスト実行", bundle: .module)) { model.startTestRun(cellID: cell.id) }
@@ -261,6 +234,7 @@ struct SettingsGridCell: View {
         }
     }
 
+    /// 右クリックの項目は3つだけ（複製・削除・テスト実行。空きマスではアクションを追加）。コピー・ペースト・隣との入れ替えはキー（⌘C・⌘V・⌥⌘＋矢印）とドラッグで。
     /// キーの印（⌘D など）は付けない。右クリックのメニューの項目に付けると、文字の欄を打っている間のキーまで取られることがあるため
     @ViewBuilder
     private var contextMenu: some View {
@@ -270,34 +244,10 @@ struct SettingsGridCell: View {
             } label: {
                 Text("複製", bundle: .module)
             }
-            Button {
-                model.selectCell(index)
-                model.copyCell(at: index)
+            Button(role: .destructive) {
+                model.clearCell(at: index)
             } label: {
-                Text("コピー", bundle: .module)
-            }
-            pasteButton
-            swapMenu
-            Menu {
-                ForEach(model.copyTargets) { target in
-                    Button(target.name) { model.copyCell(at: index, toProfile: target.id) }
-                }
-            } label: {
-                Text("ほかのプロファイルにコピー", bundle: .module)
-            }
-            if model.canMakeShared(at: index) {
-                Button(SettingsModel.makeSharedActionName) { model.requestMakeShared(at: index) }
-            }
-            Divider()
-            if model.isSharedCellsSelected {
-                // 共通マスの行では、消すと各アプリのマスに戻る
-                Button(SettingsModel.stopSharingActionName, role: .destructive) { model.stopSharing(at: index) }
-            } else {
-                Button(role: .destructive) {
-                    model.clearCell(at: index)
-                } label: {
-                    Text("削除", bundle: .module)
-                }
+                Text("削除", bundle: .module)
             }
             Divider()
             Button {
@@ -314,29 +264,6 @@ struct SettingsGridCell: View {
             } label: {
                 Text("アクションを追加", bundle: .module)
             }
-            pasteButton
-            swapMenu
-        }
-    }
-
-    private var pasteButton: some View {
-        Button {
-            model.pasteCell(at: index)
-        } label: {
-            Text("ペースト", bundle: .module)
-        }
-        .disabled(!model.canPasteCell())
-    }
-
-    /// 隣のマスと入れ替え（端の向きは選べない）。空きマスとなら移動になる
-    private var swapMenu: some View {
-        Menu {
-            ForEach(SettingsGrid.swapDirections, id: \.self) { direction in
-                Button(SettingsText.swapName(direction)) { model.swapCell(at: index, direction) }
-                    .disabled(!model.canSwapCell(at: index, direction))
-            }
-        } label: {
-            Text("隣と入れ替え", bundle: .module)
         }
     }
 }

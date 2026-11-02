@@ -562,15 +562,12 @@ final class OnboardingModel {
         let selected = presets.filter { addedIDs.contains($0.app.bundleID) }
         if replacesProfiles {
             let settings = controller.configuration.settings
-            // 案内を開いたまま設定で作った共通マスは、プロファイルを作り直しても残す
-            let sharedCells = controller.configuration.sharedCells
             var configuration = NonetConfiguration.initial(
                 appPresets: selected,
                 installedBundleIDs: installedLauncherIDs,
                 dockApps: presetEnvironment.dockApps()
             )
             configuration.settings = settings
-            configuration.sharedCells = sharedCells
             controller.replaceConfiguration(configuration)
             // 戻って選び直すのはよいが、この後に設定で編集したものは消さない
             profilesSnapshot = controller.configuration.profiles

@@ -42,10 +42,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
             Self.existingProfile(for: app, in: configuration)?.id
         })
         replacedNames = configuration.profiles.filter { replacedIDs.contains($0.id) }.map(\.name)
-        // 共通マスはファイルでプロファイルの後ろにある。どのアプリでも出るので、ほかのマスと同じく中身を見せる
         let sources: [(name: String, cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
             (profile.name, profile.pages.flatMap(\.cells))
-        } + [(SettingsText.sharedCellsName, document.sharedCells.cells)]
+        }
         reviewedCells = sources.flatMap { source -> [ReviewedCell] in
             source.cells.compactMap { cell -> ReviewedCell? in
                 guard let cell, Self.needsReview(cell.action) else { return nil }
@@ -54,9 +53,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
         }
     }
 
-    /// 今の設定を上書きする（グローバルのページ・同じアプリのプロファイル・共通マス）。
-    /// 共通マスは、今は無くても、どのアプリでもその位置のマスの代わりに出るので置き換えとみなす
-    var replacesExisting: Bool { result.replacedGlobal || !replacedNames.isEmpty || result.replacedSharedCells }
+    /// 今の設定を上書きする（グローバルのページ・同じアプリのプロファイル）
+    var replacesExisting: Bool { result.replacedGlobal || !replacedNames.isEmpty }
 
     /// 新しく加わるアプリのプロファイルがある
     var addsProfiles: Bool { result.added > 0 }
@@ -67,7 +65,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// 読み込む前に確かめる（置き換わるものがあるか、何かを実行するマスがある）
     var needsConfirmation: Bool { replacesExisting || hasReviewedCells }
 
-    /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき。共通マスも入れない）。設定はその時点のもので決める
+    /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき）。設定はその時点のもので決める
     func newProfilesOnly(in configuration: NonetConfiguration) -> ConfigurationStore.ImportedProfiles {
         let profiles = document.profiles.filter { profile in
             guard let app = profile.app else { return false }
@@ -76,13 +74,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
         return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount)
     }
 
-    /// 読み込みで実際に使われるプロファイルか共通マスが、スクリプトのマスを含む（読み込んだ後の知らせ）
+    /// 読み込みで実際に使われるプロファイルが、スクリプトのマスを含む（読み込んだ後の知らせ）
     static func containsScripts(in document: ConfigurationStore.ImportedProfiles) -> Bool {
-        let sharedScript = document.sharedCells.cells.contains { cell in
-            if case .script = cell?.action { return true }
-            return false
-        }
-        return sharedScript || containsScripts(usedProfiles(in: document))
+        containsScripts(usedProfiles(in: document))
     }
 
     static func containsScripts(_ profiles: [Profile]) -> Bool {
@@ -215,9 +209,6 @@ struct SettingsImportPlan: Identifiable, Equatable {
                     document.profiles[profile].pages[page].cells[slot] = withoutLongMenuShortcut(document.profiles[profile].pages[page].cells[slot])
                 }
             }
-        }
-        for position in document.sharedCells.occupiedPositions {
-            document.sharedCells[position] = withoutLongMenuShortcut(document.sharedCells[position])
         }
         return document
     }

@@ -90,8 +90,7 @@ final class DebugPreview {
                     title: $0.title,
                     icon: $0.icon,
                     detail: Self.detail(for: $0.action),
-                    requiresHold: $0.requiresHold || index == holdIndex,
-                    isShared: page.sharedIndices.contains(index)
+                    requiresHold: $0.requiresHold || index == holdIndex
                 )
             }
         }

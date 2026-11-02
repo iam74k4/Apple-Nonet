@@ -533,21 +533,6 @@ struct ShellOnboardingTests {
         #expect(configuration.appProfile(forBundleID: ShellFixtures.xcode) != nil)
     }
 
-    @Test("初回の案内を開いたまま設定で共通マスを作っても、プロファイルを作り直すときに捨てない")
-    func sharedCellsSurviveReplacingProfiles() throws {
-        let (model, harness) = Self.make()
-        model.next()
-        #expect(model.replacesProfiles)
-        var configuration = harness.controller.configuration
-        let cell = Cell(title: "共通", icon: .symbol("star"), action: .keystroke(.key("b", .command)))
-        configuration.setSharedCell(cell, at: 8)
-        harness.controller.replaceConfiguration(configuration)
-        // プロファイルは変えていないので、まだ作り直す
-        #expect(model.replacesProfiles)
-        model.applySelection()
-        #expect(harness.controller.configuration.sharedCells[8]?.title == "共通")
-    }
-
     @Test("初回の案内を開いたまま設定でプロファイルを編集したら、「次へ」は足すだけ")
     func editWhileFirstGuideOpen() throws {
         let (model, harness) = Self.make()

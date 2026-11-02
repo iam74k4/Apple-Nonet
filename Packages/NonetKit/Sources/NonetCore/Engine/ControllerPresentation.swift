@@ -17,10 +17,7 @@ public enum ControllerPresentation {
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
-        let sharedIndices = resolved?.sharedIndices ?? []
-        let cells = Page(cells: resolved?.cells ?? []).cells.enumerated().map { index, cell in
-            cell.map { hudCell($0, isShared: sharedIndices.contains(index)) }
-        }
+        let cells = Page(cells: resolved?.cells ?? []).cells.map { $0.map(hudCell) }
         let highlight = state.highlightedCell.flatMap { (0..<Page.cellCount).contains($0) ? $0 : nil }
         let hold = state.hold.flatMap { hold in
             hold.cell == highlight ? HUDHold(cellIndex: hold.cell, since: hold.since, duration: hold.duration, isReady: hold.isReady) : nil
@@ -50,8 +47,8 @@ public enum ControllerPresentation {
         return pages.firstIndex { $0.profileID != first.profileID }
     }
 
-    static func hudCell(_ cell: Cell, isShared: Bool = false) -> HUDCell {
-        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHold: cell.requiresHold, isShared: isShared)
+    static func hudCell(_ cell: Cell) -> HUDCell {
+        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHold: cell.requiresHold)
     }
 
     /// キー入力のマスだけ「⌘B」のように送るキーを添える

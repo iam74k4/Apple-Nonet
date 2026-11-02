@@ -8,15 +8,12 @@ public struct HUDCell: Equatable, Sendable {
     public var detail: String?
     /// 少し長く止めてから実行するマス（Cell.requiresHold）。小さな印を付ける
     public var requiresHold: Bool
-    /// 共通マス（どのアプリでも同じ位置に出るマス）。HUD に小さな印を付ける
-    public var isShared: Bool
 
-    public init(title: String, icon: CellIcon, detail: String? = nil, requiresHold: Bool = false, isShared: Bool = false) {
+    public init(title: String, icon: CellIcon, detail: String? = nil, requiresHold: Bool = false) {
         self.title = title
         self.icon = icon
         self.detail = detail
         self.requiresHold = requiresHold
-        self.isShared = isShared
     }
 }
 

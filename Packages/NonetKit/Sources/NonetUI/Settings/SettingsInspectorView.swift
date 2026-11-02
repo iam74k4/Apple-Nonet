@@ -20,10 +20,7 @@ struct SettingsInspectorView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    if let shared = model.sharedCell(at: index) {
-                        // 共通マスはその場では編集せず、共通マスの行で編集する（プロファイルのマスは残っている）
-                        SettingsSharedCellNote(model: model, cell: shared, index: index)
-                    } else if let cell = model.selectedCell {
+                    if let cell = model.selectedCell {
                         SettingsCellEditor(model: model, cell: cell, profile: model.selectedProfile)
                             .id(cell.id)
                     } else {
@@ -268,7 +265,6 @@ struct SettingsIconPicker: View {
 
     @State private var kind: SettingsIconLibrary.Kind
     @State private var query = ""
-    @State private var text: String
 
     init(icon: CellIcon, suggestedAppBundleID: String?, defaultIcon: CellIcon, choose: @escaping (CellIcon) -> Void) {
         self.icon = icon
@@ -276,11 +272,6 @@ struct SettingsIconPicker: View {
         self.defaultIcon = defaultIcon
         self.choose = choose
         _kind = State(initialValue: SettingsIconLibrary.Kind(icon))
-        if case .text(let value) = icon {
-            _text = State(initialValue: value)
-        } else {
-            _text = State(initialValue: "")
-        }
     }
 
     var body: some View {
@@ -298,7 +289,6 @@ struct SettingsIconPicker: View {
             switch kind {
             case .symbol: symbolGrid
             case .app: appChoice
-            case .text: textChoice
             }
 
             if icon != defaultIcon {
@@ -379,34 +369,4 @@ struct SettingsIconPicker: View {
         }
     }
 
-    private var textChoice: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                TextField(text: $text, prompt: Text("1〜2文字", bundle: .module)) {
-                    Text("アイコンの文字", bundle: .module)
-                }
-                .labelsHidden()
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 100)
-                .onSubmit(applyText)
-                Button(action: applyText) {
-                    Text("使う", bundle: .module)
-                }
-                .disabled(SettingsIconLibrary.normalizedText(text) == nil)
-                if let normalized = SettingsIconLibrary.normalizedText(text) {
-                    CellIconView(.text(normalized), size: 18)
-                }
-            }
-            Text("1〜2文字（3文字目からは切ります）", bundle: .module)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func applyText() {
-        if let normalized = SettingsIconLibrary.normalizedText(text) {
-            text = normalized
-            choose(.text(normalized))
-        }
-    }
 }

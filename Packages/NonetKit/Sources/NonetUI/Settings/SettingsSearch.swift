@@ -9,8 +9,6 @@ struct SettingsCellMatch: Equatable, Identifiable {
     var profileName: String
     var address: CellAddress
     var pageName: String?
-    /// ページを言わない（ページの無い共通マス）
-    var hidesPage = false
     var title: String
     /// マスに出す説明（"⌘B" など）
     var detail: String
@@ -18,9 +16,8 @@ struct SettingsCellMatch: Equatable, Identifiable {
 
     var id: String { "\(profileID.uuidString)-\(address.page)-\(address.index)" }
 
-    /// 「Xcode › ページ 1 › ビルド」（ページに名前があればその名前）。共通マスは「共通マス › ビルド」
+    /// 「Xcode › ページ 1 › ビルド」（ページに名前があればその名前）
     var path: String {
-        guard !hidesPage else { return "\(profileName) › \(title)" }
         let page = SettingsText.pageTitle(index: address.page, name: pageName)
         return "\(profileName) › \(page) › \(title)"
     }
@@ -39,23 +36,19 @@ enum SettingsProfileSearch {
     static let cellLimit = 60
 
     /// query が空なら空の結果。大文字と小文字・全角と半角・かなの種類を区別しない。
-    /// 修飾キーを含むキーの表記（⌘B、cmd+b など）なら、そのキーを送るボタンも探す。
-    /// 共通マスは「共通マス › …」で探し、プロファイルの中で共通マスに隠れているマスは探さない
+    /// 修飾キーを含むキーの表記（⌘B、cmd+b など）なら、そのキーを送るボタンも探す
     static func results(for query: String, in configuration: NonetConfiguration) -> SettingsSearchResults {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return SettingsSearchResults() }
         let keys = keyQuery(query)
         var results = SettingsSearchResults()
-        let sharedPositions = Set(configuration.sharedCells.occupiedPositions)
-        let shared = Profile(id: SharedCells.profileID, kind: .global, pages: [configuration.sharedCells.page])
-        for profile in [shared] + configuration.profiles {
-            let isShared = profile.id == SharedCells.profileID
-            if !isShared, matches(profile.name, query) {
+        for profile in configuration.profiles {
+            if matches(profile.name, query) {
                 results.profiles.append(profile)
             }
             for (pageIndex, page) in profile.pages.enumerated() {
                 for (index, cell) in page.cells.enumerated() {
-                    guard let cell, results.cells.count < cellLimit, isShared || !sharedPositions.contains(index) else { continue }
+                    guard let cell, results.cells.count < cellLimit else { continue }
                     let title = SettingsGrid.displayTitle(for: cell)
                     let subtitle = SettingsGrid.subtitleContent(for: cell)
                     let detail = SettingsGrid.detailContent(for: cell)
@@ -68,10 +61,9 @@ enum SettingsProfileSearch {
                     guard found else { continue }
                     results.cells.append(SettingsCellMatch(
                         profileID: profile.id,
-                        profileName: SettingsText.profileName(profile),
+                        profileName: profile.name,
                         address: CellAddress(page: pageIndex, index: index),
                         pageName: page.name,
-                        hidesPage: isShared,
                         title: title,
                         detail: subtitle.text,
                         detailIsKeys: subtitle.isKeys

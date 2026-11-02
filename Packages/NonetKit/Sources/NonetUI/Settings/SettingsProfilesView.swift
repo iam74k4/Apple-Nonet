@@ -136,8 +136,6 @@ struct SettingsSidebar: View {
     private var profileList: some View {
         List(selection: Binding(get: { model.selectedProfile.id }, set: { model.selectProfile($0) })) {
             Section {
-                SettingsSharedCellsRow(count: model.configuration.sharedCells.count)
-                    .tag(SharedCells.profileID)
                 globalRow
                     .tag(model.configuration.globalProfile.id)
                     .contextMenu { SettingsProfileContextMenu(model: model, profile: model.configuration.globalProfile) }
@@ -392,7 +390,7 @@ struct SettingsEditorCenter: View {
 
     private func header(_ profile: Profile, showsModeLabel: Bool) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Text(SettingsText.profileName(profile))
+            Text(profile.name)
                 .font(.system(size: 22, weight: .bold))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -479,8 +477,7 @@ struct SettingsPageBar: View {
     private func bar(compactPages: Bool, compactMenuButton: Bool) -> some View {
         let profile = model.selectedProfile
         return HStack(spacing: 6) {
-            // 共通マスはページが無い（どのページでも同じ位置に出る）
-            if !model.isSharedCellsSelected {
+            do {
                 ForEach(profile.pages.indices, id: \.self) { index in
                     pageButton(
                         index,

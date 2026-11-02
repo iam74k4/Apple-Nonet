@@ -82,6 +82,8 @@ import Testing
     @Test func iconKindFollowsTheIcon() {
         #expect(SettingsIconLibrary.Kind(.symbol("star")) == .symbol)
         #expect(SettingsIconLibrary.Kind(.app(bundleID: "a")) == .app)
-        #expect(SettingsIconLibrary.Kind(.text("AB")) == .text)
+        // 前の版の「文字」のアイコンは、記号のタブで開く（新しくは作れない）
+        #expect(SettingsIconLibrary.Kind(.text("AB")) == .symbol)
+        #expect(SettingsIconLibrary.Kind.allCases == [.symbol, .app])
     }
 }

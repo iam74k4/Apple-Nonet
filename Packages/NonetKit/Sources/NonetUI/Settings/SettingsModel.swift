@@ -71,8 +71,6 @@ final class SettingsModel {
         case importProfiles(SettingsImportPlan)
         /// プロファイルの中身をプリセットに戻す
         case resetProfile(id: UUID, name: String)
-        /// プロファイルのマスで、その位置にもうある共通マスを置き換える（「共通マスにする」）
-        case replaceSharedCell(profileID: UUID, address: CellAddress)
         /// Finder で今選んでいるファイルを変える操作（ゴミ箱に入れる・名前の変更・複製・移動）のテスト実行。設定の画面からは、何を選んでいるかが見えない
         case testRunFile(cellID: UUID, operation: String)
 
@@ -83,7 +81,6 @@ final class SettingsModel {
             case .deactivateLicense: "license"
             case .importProfiles(let plan): "import-\(plan.id)"
             case .resetProfile(let id, _): "reset-\(id)"
-            case .replaceSharedCell(let id, let address): "shared-\(id)-\(address.page)-\(address.index)"
             case .testRunFile(let id, _): "test-\(id)"
             }
         }
@@ -272,9 +269,9 @@ final class SettingsModel {
     var settings: GlobalSettings { configuration.settings }
     var appProfiles: [Profile] { configuration.profiles.filter { !$0.isGlobal } }
 
-    /// 選んでいるプロファイル。消えていればグローバル。共通マスの行なら、共通マスを1ページにしたもの（sharedCellsProfile）
+    /// 選んでいるプロファイル。消えていればグローバル
     var selectedProfile: Profile {
-        selectedProfileID.flatMap(editableProfile(id:)) ?? configuration.globalProfile
+        selectedProfileID.flatMap(configuration.profile(id:)) ?? configuration.globalProfile
     }
 
     var pageIndex: Int {
@@ -290,14 +287,13 @@ final class SettingsModel {
         selectedIndex.map { CellAddress(page: pageIndex, index: $0) }
     }
 
-    /// 選んでいるマス（プロファイルのもの）。共通マスが代わりに出ている位置では nil（そこでは編集しない）
+    /// 選んでいるマス
     var selectedCell: Cell? {
-        guard let address = selectedAddress, !isCoveredByShared(address) else { return nil }
+        guard let address = selectedAddress else { return nil }
         return SettingsGrid.cell(at: address, in: selectedProfile)
     }
 
-    /// 共通マスは1ページだけ
-    var canAddPage: Bool { !isSharedCellsSelected && selectedProfile.pages.count < Profile.maxPages }
+    var canAddPage: Bool { selectedProfile.pages.count < Profile.maxPages }
     var canRemovePage: Bool { selectedProfile.pages.count > 1 }
 
     // MARK: - タブ
@@ -610,11 +606,11 @@ final class SettingsModel {
         selectCell(SettingsGrid.neighbor(of: current, direction))
     }
 
-    /// マスを空にする（確かめずに消すので、元に戻せるようにする）。共通マスが代わりに出ている位置では何もしない
+    /// マスを空にする（確かめずに消すので、元に戻せるようにする）
     func clearCell(at index: Int) {
         let profileID = selectedProfile.id
         let address = CellAddress(page: pageIndex, index: index)
-        guard !isCoveredByShared(address), let cell = SettingsGrid.cell(at: address, in: selectedProfile) else { return }
+        guard let cell = SettingsGrid.cell(at: address, in: selectedProfile) else { return }
         if recordingCellID == cell.id {
             cancelRecording()
         }
@@ -628,12 +624,12 @@ final class SettingsModel {
         }
     }
 
-    /// 次の空きマスに写す（共通マスの位置には置かない）。空きが無ければ知らせる
+    /// 次の空きマスに写す。空きが無ければ知らせる
     func duplicateCell(at index: Int) {
         let profile = selectedProfile
         let address = CellAddress(page: pageIndex, index: index)
-        guard !isCoveredByShared(address), var copy = SettingsGrid.cell(at: address, in: profile) else { return }
-        guard let target = SettingsGrid.nextEmptyAddress(after: address, in: displayedProfile) else {
+        guard var copy = SettingsGrid.cell(at: address, in: profile) else { return }
+        guard let target = SettingsGrid.nextEmptyAddress(after: address, in: profile) else {
             gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
@@ -650,7 +646,7 @@ final class SettingsModel {
     func createCell(kind: ActionKind, at index: Int) {
         let profileID = selectedProfile.id
         let address = CellAddress(page: pageIndex, index: index)
-        guard SettingsGrid.isEmpty(address, in: displayedProfile) else { return }
+        guard SettingsGrid.isEmpty(address, in: selectedProfile) else { return }
         // 右クリックで作るときも、記録中のマスから離れるので記録を終える
         finishRecording()
         let cell = SettingsCellEditing.newCell(kind: kind)
@@ -661,14 +657,13 @@ final class SettingsModel {
         gridMessage = nil
     }
 
-    /// ドラッグで落とされたもの。受け取れたら true。共通マスが代わりに出ている位置には落とせない
+    /// ドラッグで落とされたもの。受け取れたら true
     @discardableResult
     func handleDrop(_ payload: SettingsDragPayload, onto index: Int) -> Bool {
         let target = CellAddress(page: pageIndex, index: index)
-        guard !isCoveredByShared(target) else { return false }
         switch payload {
         case .cell(let profileID, let source) where profileID == selectedProfile.id:
-            guard source != target, !isCoveredByShared(source) else { return false }
+            guard source != target else { return false }
             swapCells(source, target)
             return true
         case .menuItem(let id):
@@ -683,17 +678,15 @@ final class SettingsModel {
     /// ページの見出しに落とされたマスを、そのページの最初の空きマスへ移す。受け取れたら true
     @discardableResult
     func handleDrop(_ payload: SettingsDragPayload, ontoPage page: Int) -> Bool {
-        let profile = displayedProfile
+        let profile = selectedProfile
         guard case .cell(let profileID, let source) = payload, profileID == profile.id, source.page != page,
-              !isCoveredByShared(source), profile.pages.indices.contains(page),
+              profile.pages.indices.contains(page),
               let empty = SettingsGrid.firstEmptyIndex(in: profile.pages[page]) else { return false }
         swapCells(source, CellAddress(page: page, index: empty))
         return true
     }
 
-    /// 共通マスが代わりに出ている位置とは入れ替えない（見えないプロファイルのマスを動かさない）
     func swapCells(_ source: CellAddress, _ destination: CellAddress) {
-        guard !isCoveredByShared(source), !isCoveredByShared(destination) else { return }
         let profileID = selectedProfile.id
         let actionName = SettingsGrid.isEmpty(destination, in: selectedProfile)
             ? String(localized: "マスの移動", bundle: .module)
@@ -706,12 +699,11 @@ final class SettingsModel {
         selectedIndex = destination.index
     }
 
-    /// メニュー項目を割り当てる。address が nil なら選んでいる空きマスか、最初の空きマス（共通マスの位置は空きにしない）
+    /// メニュー項目を割り当てる。address が nil なら選んでいる空きマスか、最初の空きマス
     func assignMenuItem(_ item: MenuItemNode, to address: CellAddress? = nil) {
         let profile = selectedProfile
-        if let address, isCoveredByShared(address) { return }
         guard let target = address
-            ?? SettingsGrid.assignmentTarget(selected: selectedAddress, currentPage: pageIndex, in: displayedProfile) else {
+            ?? SettingsGrid.assignmentTarget(selected: selectedAddress, currentPage: pageIndex, in: profile) else {
             gridMessage = String(localized: "空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
             return
         }
@@ -769,7 +761,7 @@ final class SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         undoNotice = nil
-        guard editableProfile(id: profileID) != nil else { return }
+        guard configuration.profile(id: profileID) != nil else { return }
         let addresses = snapshots.map(\.address)
         let current = cellSnapshots(at: addresses, profileID: profileID)
         let restored = snapshots.map { snapshot in
@@ -805,7 +797,7 @@ final class SettingsModel {
     }
 
     func cellSnapshots(at addresses: [CellAddress], profileID: UUID) -> [SettingsCellSnapshot] {
-        guard let profile = editableProfile(id: profileID) else { return [] }
+        guard let profile = configuration.profile(id: profileID) else { return [] }
         return addresses.map { SettingsCellSnapshot(address: $0, cell: SettingsGrid.cell(at: $0, in: profile)) }
     }
 
@@ -864,9 +856,9 @@ final class SettingsModel {
 
     // MARK: - インスペクタ
 
-    /// id のマスを書き換える（入れ替えた後でも同じマスに届くよう、場所ではなく id で探す。共通マスも）
+    /// id のマスを書き換える（入れ替えた後でも同じマスに届くよう、場所ではなく id で探す）
     func updateCell(id: UUID, _ transform: (inout Cell) -> Void) {
-        for profile in editableProfiles {
+        for profile in configuration.profiles {
             guard let address = SettingsGrid.address(ofCell: id, in: profile),
                   var cell = SettingsGrid.cell(at: address, in: profile) else { continue }
             let original = cell
@@ -925,7 +917,7 @@ final class SettingsModel {
     }
 
     func cell(id: UUID) -> Cell? {
-        for profile in editableProfiles {
+        for profile in configuration.profiles {
             if let address = SettingsGrid.address(ofCell: id, in: profile) {
                 return SettingsGrid.cell(at: address, in: profile)
             }
@@ -934,7 +926,7 @@ final class SettingsModel {
     }
 
     private func location(ofCell id: UUID) -> (profile: Profile, cell: Cell)? {
-        for profile in editableProfiles {
+        for profile in configuration.profiles {
             if let address = SettingsGrid.address(ofCell: id, in: profile), let cell = SettingsGrid.cell(at: address, in: profile) {
                 return (profile, cell)
             }
@@ -1123,15 +1115,19 @@ final class SettingsModel {
 
     // MARK: - 書き出しと読み込み
 
-    /// sharedCells はすべての書き出しのときだけ渡す（1つのプロファイルの書き出しに共通マスは入れない）
-    func exportProfiles(_ profiles: [Profile], sharedCells: SharedCells = .empty, suggestedName: String) async {
+    func exportProfiles(_ profiles: [Profile], suggestedName: String) async {
         guard let files, let url = await files.chooseExportDestination(suggestedName: suggestedName) else { return }
-        exportProfiles(profiles, sharedCells: sharedCells, to: url)
+        exportProfiles(profiles, to: url)
     }
 
-    func exportProfiles(_ profiles: [Profile], sharedCells: SharedCells = .empty, to url: URL) {
+    /// すべての書き出し
+    func exportAllProfiles(suggestedName: String) async {
+        await exportProfiles(configuration.profiles, suggestedName: suggestedName)
+    }
+
+    func exportProfiles(_ profiles: [Profile], to url: URL) {
         do {
-            let data = try ConfigurationStore.exportData(profiles: profiles, sharedCells: sharedCells)
+            let data = try ConfigurationStore.exportData(profiles: profiles)
             try data.write(to: url, options: .atomic)
             fileMessage = SettingsMessage(
                 text: String(localized: "\(profiles.count)個のプロファイルを「\(url.lastPathComponent)」に書き出しました。", bundle: .module, locale: .nonetUI),
@@ -1201,14 +1197,10 @@ final class SettingsModel {
         closeEditGroup()
         backupStore?.makeBackup(of: configuration, reason: .beforeImport)
         let before = configuration.profiles
-        let sharedBefore = configuration.sharedCells
         var result = NonetConfiguration.ImportResult()
         controller.update { result = $0.importProfiles(document) }
         // 置き換わったプロファイルの分だけ忘れる。新しいプロファイルを加えただけなら、ほかの変更は戻せるままにする
-        var replacedIDs = before.filter { configuration.profile(id: $0.id)?.pages != $0.pages }.map(\.id)
-        if configuration.sharedCells != sharedBefore {
-            replacedIDs.append(SharedCells.profileID)
-        }
+        let replacedIDs = before.filter { configuration.profile(id: $0.id)?.pages != $0.pages }.map(\.id)
         discardCellUndo(forProfiles: replacedIDs)
         fileMessage = SettingsMessage(
             // 重なっていて読み込まなかったプロファイルのスクリプトは数えない（読み込む前の確認と同じ決まり）
@@ -1417,8 +1409,6 @@ final class SettingsModel {
             applyImport(plan.document)
         case .resetProfile(let id, _):
             resetProfileToPreset(id)
-        case .replaceSharedCell(let profileID, let address):
-            makeShared(at: address, profileID: profileID)
         case .testRunFile(let cellID, _):
             beginTestRun(cellID: cellID)
         }
