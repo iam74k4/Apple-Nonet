@@ -33,14 +33,8 @@ struct ModelHUDScaleCodingTests {
 }
 
 @MainActor
-@Suite("HUD の使い始めの案内と試用期間の知らせ")
+@Suite("試用期間の知らせ")
 struct ControllerGuidanceTests {
-    @Test func theBeginnerHintIsShownForTheFirstSessions() {
-        #expect(HUDGuidance.showsBeginnerHint(sessionCount: 0))
-        #expect(HUDGuidance.showsBeginnerHint(sessionCount: HUDGuidance.beginnerSessionLimit - 1))
-        #expect(!HUDGuidance.showsBeginnerHint(sessionCount: HUDGuidance.beginnerSessionLimit))
-    }
-
     @Test func theTrialReminderIsDueOnceADayInTheLastDays() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
@@ -57,21 +51,15 @@ struct ControllerGuidanceTests {
         #expect(HUDGuidance.isTrialReminderDue(daysLeft: days, lastShown: nextMorning, now: morning, calendar: calendar))
     }
 
-    @Test func theUserDefaultsStoreKeepsTheCountAndTheDate() throws {
+    @Test func theUserDefaultsStoreKeepsTheDate() throws {
         let suite = "NonetGuidanceTests-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = UserDefaultsHUDGuidanceStore(defaults: defaults)
-        #expect(store.hudSessionCount == 0)
         #expect(store.lastTrialReminder == nil)
-        store.hudSessionCount = 3
         let date = Date(timeIntervalSinceReferenceDate: 815_000_000)
         store.lastTrialReminder = date
         let reopened = UserDefaultsHUDGuidanceStore(defaults: defaults)
-        #expect(reopened.hudSessionCount == 3)
         #expect(reopened.lastTrialReminder == date)
-        // 壊れた値は 0
-        defaults.set(-5, forKey: UserDefaultsHUDGuidanceStore.hudSessionCountKey)
-        #expect(reopened.hudSessionCount == 0)
     }
 }

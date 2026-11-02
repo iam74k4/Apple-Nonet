@@ -9,16 +9,14 @@ import Testing
 @Suite("HUD の大きさと見た目")
 @MainActor
 struct ShellHUDAppearanceTests {
-    static func model(pageCount: Int = 1, banner: String? = nil, footnote: String? = nil, scale: Double = 1) -> HUDModel {
+    static func model(pageCount: Int = 1, banner: String? = nil, scale: Double = 1) -> HUDModel {
         HUDModel(
             title: "Xcode",
             pageIndex: 0,
             pageCount: pageCount,
             cells: Array(repeating: nil, count: 9),
             highlightedIndex: nil,
-            hint: "",
             banner: banner,
-            footnote: footnote,
             scale: scale
         )
     }
@@ -34,22 +32,14 @@ struct ShellHUDAppearanceTests {
         #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 18)
     }
 
-    @Test("使い始めの案内の分だけ高くなる")
-    func footnoteHeight() {
-        let plain = HUDLayout.size(for: Self.model())
-        let withFootnote = HUDLayout.size(for: Self.model(footnote: "指を滑らせて選ぶ"))
-        #expect(withFootnote.height == plain.height + HUDLayout.footnoteHeight)
-        #expect(HUDLayout.size(for: Self.model(footnote: "案内", scale: 1.5)).height == withFootnote.height * 1.5)
-    }
-
     @Test("画面に収まらない大きさは、収まるところまで小さくする")
     func fittingOnScreen() {
         let main = ShellHUDPlacementTests.main
         #expect(HUDPlacement.fittedScale(for: Self.model(scale: 1.5), in: main) == 1.5)
-        let small = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 800, height: 500), visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 470))
-        let fitted = HUDPlacement.fittedScale(for: Self.model(pageCount: 3, banner: "帯", footnote: "案内", scale: 1.5), in: small)
+        let small = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 800, height: 400), visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 370))
+        let fitted = HUDPlacement.fittedScale(for: Self.model(pageCount: 3, banner: "帯", scale: 1.5), in: small)
         #expect(fitted < 1.5)
-        var model = Self.model(pageCount: 3, banner: "帯", footnote: "案内", scale: 1.5)
+        var model = Self.model(pageCount: 3, banner: "帯", scale: 1.5)
         model = HUDPlacement.fitted(model, in: small)
         let size = HUDLayout.size(for: model)
         let margin = HUDPlacement.edgeMargin + HUDLayout.shadowMargin
@@ -57,7 +47,7 @@ struct ShellHUDAppearanceTests {
         #expect(size.width <= small.visibleFrame.width - 2 * margin + 1e-9)
         // 大きな画面では、選んだ大きさのまま
         #expect(HUDPlacement.fittedScale(for: Self.model(scale: 1), in: main) == 1)
-        #expect(HUDPlacement.fittedScale(for: Self.model(pageCount: 3, footnote: "案内", scale: 1.25), in: main) == 1.25)
+        #expect(HUDPlacement.fittedScale(for: Self.model(pageCount: 3, scale: 1.25), in: main) == 1.25)
     }
 
     @Test("トーストを出していなくても、消すのは何もしない")

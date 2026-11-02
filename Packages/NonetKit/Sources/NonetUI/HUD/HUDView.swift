@@ -19,7 +19,6 @@ struct HUDMetrics: Equatable {
     var cellCornerRadius: CGFloat { HUDLayout.cellCornerRadius * scale }
     var bannerHeight: CGFloat { HUDLayout.bannerHeight * scale }
     var bannerSpacing: CGFloat { HUDLayout.bannerSpacing * scale }
-    var footnoteHeight: CGFloat { HUDLayout.footnoteHeight * scale }
     var frameSide: CGFloat { HUDLayout.frameSide * scale }
     var frameTop: CGFloat { HUDLayout.frameTop * scale }
     var frameBottom: CGFloat { HUDLayout.frameBottom * scale }
@@ -43,11 +42,7 @@ struct HUDMetrics: Equatable {
         if model.banner != nil {
             top += HUDLayout.bannerHeight + HUDLayout.bannerSpacing
         }
-        var bottom = HUDLayout.frameBottom
-        if model.footnote != nil {
-            bottom += HUDLayout.footnoteHeight
-        }
-        return (top * scale, bottom * scale)
+        return (top * scale, HUDLayout.frameBottom * scale)
     }
 
     /// 左右の外枠に出す進み具合の線の、上と下の余白。9マスの高さに合わせる（上と下で外枠の幅が違うので、同じ値にはしない）
@@ -74,8 +69,6 @@ enum HUDLayout {
     static let cellCornerRadius: CGFloat = 10
     static let bannerHeight: CGFloat = 24
     static let bannerSpacing: CGFloat = 6
-    /// 9マスの下の使い始めの案内（11pt で2行まで）
-    static let footnoteHeight: CGFloat = 32
     static let pageGroupGap: CGFloat = 6
     /// 外枠の幅。トラックパッドの割合（左右 11%・奥 17%・手前 15%）の順を保つ（奥が最も広く、題名とページの点が入る）。
     /// 割合どおりにするとマスが細くなりすぎるので、帯は控えめにする
@@ -383,18 +376,6 @@ struct HUDView: View {
                 grid
                     .padding(.horizontal, metrics.frameSide)
                     .opacity(inFrame ? colors.dimmedCellOpacity : 1)
-                if let footnote = model.footnote {
-                    Text(footnote)
-                        .font(.system(size: metrics.detailFontSize))
-                        .foregroundStyle(theme.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
-                        .padding(.horizontal, metrics.frameSide)
-                        .padding(.top, 4 * metrics.scale)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: metrics.footnoteHeight, alignment: .top)
-                }
                 Spacer(minLength: 0)
             }
             if inFrame, let paging = model.edgePaging, !reduceMotion {
@@ -855,26 +836,18 @@ enum HUDAnnouncement {
         return [cancelLabel, edgePagingLabel(edge)].joined(separator: String(localized: "、", bundle: .module))
     }
 
-    /// HUD の左上の題名の右に出す一言。練習中は「練習中」、少し長く止めるマスを光らせている間はその案内。無ければ nil（ページの点を出す）
+    /// HUD の左上の題名の右に出す一言。練習中だけ「練習中」。無ければ nil（ページの点を出す）。
+    /// 少し長く止めるマスの進み具合は、マスの縁の輪が見せる（文は VoiceOver にだけ読む）
     static func topNote(for model: HUDModel) -> String? {
-        if let hold = model.hold, hold.cellIndex == model.highlightedIndex {
-            return hold.isReady ? holdReady : holdWaiting
-        }
-        return model.isPractice ? String(localized: "練習中", bundle: .module) : nil
+        model.isPractice ? String(localized: "練習中", bundle: .module) : nil
     }
 
-    /// 少し長く止めるマスを止めている途中の、右上の案内
+    /// 少し長く止めるマスを止めている途中（VoiceOver）
     static var holdWaiting: String {
         String(localized: "そのまま止めて待つ", bundle: .module)
     }
 
-    /// HUD の右上の案内。少し長く止めるマスを光らせている間は、止め終えるまで「そのまま止めて待つ」、止め終えたら「離すと実行」
-    static func hint(for model: HUDModel) -> String {
-        guard let hold = model.hold, hold.cellIndex == model.highlightedIndex else { return model.hint }
-        return hold.isReady ? holdReady : holdWaiting
-    }
-
-    /// 少し長く止めるマスを止め終えたとき
+    /// 少し長く止めるマスを止め終えたとき（VoiceOver）
     static var holdReady: String {
         String(localized: "離すと実行", bundle: .module)
     }

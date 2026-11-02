@@ -11,8 +11,6 @@ struct ControllerSession: Equatable, Sendable {
     let settings: GlobalSettings
     /// このセッションで HUD を出した（使い始めの案内と試用期間の知らせは、最初に出したときに決める）
     var hasShownHUD = false
-    /// 9マスの下に使い始めの案内を出す
-    var showsBeginnerHint = false
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
 
@@ -52,15 +50,12 @@ struct ControllerSession: Equatable, Sendable {
         } else {
             nil
         }
-        let footnote = showsBeginnerHint ? ControllerPresentation.beginnerFootnote(pageCount: pages.count) : nil
         return ControllerPresentation.hudModel(
             pages: pages,
             state: state,
-            hint: ControllerPresentation.hint(isPracticeMode: isPracticeMode),
             isPractice: isPracticeMode,
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
-            footnote: footnote,
             scale: settings.hudScale.factor
         )
     }

@@ -54,8 +54,7 @@ final class ControllerHarness {
     let clock = ControllerFakeClock(Date(timeIntervalSinceReferenceDate: 815_000_000))
     let licenseStorage = ControllerFakeLicenseStorage()
     /// 使い始めの案内と試用期間の知らせの記録（UserDefaults に書かない）。既定は使い始めの案内を出し終えた人
-    /// （HUD の中身を比べるテストに案内が混ざらないように。案内のテストは hudSessionCount を 0 にする）
-    let guidance = MemoryHUDGuidanceStore(hudSessionCount: HUDGuidance.beginnerSessionLimit)
+    let guidance = MemoryHUDGuidanceStore()
     let license: LicenseManager
     let controller: NonetController
     /// いま触れている指

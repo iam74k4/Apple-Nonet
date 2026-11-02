@@ -15,7 +15,6 @@ struct ShellRenderTests {
     static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
 
     /// 既定の引数に使うので、メインアクターに縛らない
-    nonisolated static let releaseHint = ControllerPresentation.hint(isPracticeMode: false)
 
     @Test("HUD")
     func hud() throws {
@@ -26,14 +25,8 @@ struct ShellRenderTests {
             // 少し長く止めるマス（クリーン）を光らせた HUD（止め終えた）。光ったマスにも印が見える
             ("hud-xcode-hold", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 7, pageCount: 1)),
             ("hud-launcher-pages", Self.hudModel(title: L10n.globalName, page: global.pages[0], highlighted: 2, pageIndex: 1, pageCount: 3)),
-            // 長い方の案内（練習中）
-            ("hud-practice", Self.hudModel(
-                title: "Xcode",
-                page: xcode.pages[0],
-                highlighted: 2,
-                pageCount: 1,
-                hint: ControllerPresentation.hint(isPracticeMode: true)
-            )),
+            // 練習中（題名の横に「練習中」）
+            ("hud-practice", Self.hudModel(title: "Xcode", page: xcode.pages[0], highlighted: 2, pageCount: 1, isPractice: true)),
             ("hud-empty-banner", HUDModel(
                 title: "とても長い名前のアプリケーションのプロファイル（テスト用の長いタイトル）",
                 pageIndex: 0,
@@ -44,7 +37,6 @@ struct ShellRenderTests {
                     HUDCell(title: "T", icon: .text("あ"), detail: nil),
                 ],
                 highlightedIndex: 5,
-                hint: Self.releaseHint,
                 banner: ControllerPresentation.trialEndedBanner
             )),
         ]
@@ -91,7 +83,6 @@ struct ShellRenderTests {
             ("hud-state-large-frame", variant {
                 $0.isFingerInFrame = true
                 $0.scale = 1.5
-                $0.footnote = ControllerPresentation.beginnerFootnote(pageCount: 2)
                 $0.pageCount = 2
             }, .standard, false, nil),
         ]
@@ -286,7 +277,7 @@ struct ShellRenderTests {
 
     // MARK: - 部品
 
-    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int, hint: String = releaseHint) -> HUDModel {
+    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int, isPractice: Bool = false) -> HUDModel {
         HUDModel(
             title: title,
             pageIndex: pageIndex,
@@ -298,7 +289,7 @@ struct ShellRenderTests {
                 }
             },
             highlightedIndex: highlighted,
-            hint: hint
+            isPractice: isPractice
         )
     }
 

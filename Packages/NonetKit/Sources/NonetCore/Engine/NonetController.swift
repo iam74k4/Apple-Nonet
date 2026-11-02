@@ -539,17 +539,10 @@ public final class NonetController {
         session.hudModel(state, isPracticeMode: isPracticeMode, isTrialEnded: !license.canExecuteActions)
     }
 
-    /// セッションで最初に HUD を出すとき、使い始めの案内（最初の HUDGuidance.beginnerSessionLimit 回）と、
-    /// 試用期間の残り日数の帯（残り HUDGuidance.trialReminderDays 日から、1日に1回）を出すかを決めて記録する
+    /// セッションで最初に HUD を出すとき、試用期間の残り日数の帯（残り HUDGuidance.trialReminderDays 日から、1日に1回）を出すかを決めて記録する
     private func prepareFirstHUD() {
         guard var current = session, !current.hasShownHUD else { return }
         current.hasShownHUD = true
-        let count = guidance.hudSessionCount
-        current.showsBeginnerHint = HUDGuidance.showsBeginnerHint(sessionCount: count)
-        // 数え終えたら書かない
-        if current.showsBeginnerHint {
-            guidance.hudSessionCount = count + 1
-        }
         let now = currentDate()
         if case .trial(let daysLeft) = license.entitlement, license.canExecuteActions,
            HUDGuidance.isTrialReminderDue(daysLeft: daysLeft, lastShown: guidance.lastTrialReminder, now: now) {

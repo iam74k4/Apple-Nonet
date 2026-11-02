@@ -17,7 +17,7 @@ struct ShellHUDTests {
             nil, nil, nil,
             HUDCell(title: "スクショ", icon: .text("S"), detail: "⇧⌘4"),
         ]
-        return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, hint: "⌘を離して実行", banner: banner)
+        return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, banner: banner)
     }
 
     @Test("HUD の大きさ: 題名とページの点は上の外枠に入るので、ページが増えても高さは変わらない。帯の分だけ高くなる")
@@ -116,9 +116,8 @@ struct ShellHUDTests {
     func pagingBarLineUpWithTheGrid() {
         for scale in [1.0, 1.5] {
             let metrics = HUDMetrics(scale: scale)
-            for (banner, footnote) in [(nil, nil), ("試用期間が終了しました", nil), (nil, "指を滑らせて選ぶ"), ("試用期間が終了しました", "指を滑らせて選ぶ")] as [(String?, String?)] {
-                var model = Self.model(pageCount: 3, banner: banner)
-                model.footnote = footnote
+            for banner in [nil, "試用期間が終了しました"] as [String?] {
+                let model = Self.model(pageCount: 3, banner: banner)
                 let insets = metrics.gridInsets(for: model)
                 let bar = metrics.pagingBarInsets(for: model)
                 let height = metrics.size(for: model).height
@@ -128,7 +127,7 @@ struct ShellHUDTests {
                 // 線の中心（上の余白と下の余白の差の半分だけ、パネルの中心からずれる）が、9マスの中心と同じ
                 let barCenter = bar.top + (height - bar.top - bar.bottom) / 2
                 let gridCenter = insets.top + (height - insets.top - insets.bottom) / 2
-                #expect(abs(barCenter - gridCenter) < 0.001, "\(scale) \(String(describing: banner)) \(String(describing: footnote))")
+                #expect(abs(barCenter - gridCenter) < 0.001, "\(scale) \(String(describing: banner))")
                 #expect(height - bar.top - bar.bottom > 0)
             }
         }
@@ -159,29 +158,14 @@ struct ShellHUDTests {
         #expect(HUDEdgePagingBar.restartID(for: first) != HUDEdgePagingBar.restartID(for: HUDEdgePaging(edge: .left, since: 1, duration: 0.5)))
     }
 
-    @Test("題名の横の一言: 少し長く止めるマスの案内が先、次に練習中。どちらも無ければ出さない（ページの点を出す）")
+    @Test("題名の横の一言: 練習中だけ「練習中」。少し長く止めるマスを止めていても、文は出さない（マスの輪が見せる）")
     func topNotes() {
         var model = Self.model(highlighted: 4)
         #expect(HUDAnnouncement.topNote(for: model) == nil)
+        model.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.45, isReady: false)
+        #expect(HUDAnnouncement.topNote(for: model) == nil)
         model.isPractice = true
         #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("練習中"))
-        model.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.45, isReady: false)
-        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("そのまま止めて待つ"))
-        model.hold?.isReady = true
-        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("離すと実行"))
-        // 光っているのが別のマスなら、止めている案内は出さない
-        model.hold = HUDHold(cellIndex: 5, since: 1, duration: 0.45, isReady: false)
-        #expect(HUDAnnouncement.topNote(for: model) == L10n.ui("練習中"))
-    }
-
-    @Test("右上の案内: 少し長く止めるマスを止めている間は「そのまま止めて待つ」、止め終えたら「離すと実行」")
-    func holdHints() {
-        var holding = Self.model(highlighted: 4)
-        #expect(HUDAnnouncement.hint(for: holding) == holding.hint)
-        holding.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.45, isReady: false)
-        #expect(HUDAnnouncement.hint(for: holding) == L10n.ui("そのまま止めて待つ"))
-        holding.hold?.isReady = true
-        #expect(HUDAnnouncement.hint(for: holding) == L10n.ui("離すと実行"))
     }
 
     @Test("読み上げ: ページが変わったらページから読み直す")
@@ -196,7 +180,7 @@ struct ShellHUDTests {
     @Test("ハイライトの番号が範囲外なら読まない")
     func outOfRangeHighlight() {
         #expect(HUDAnnouncement.highlighted(in: Self.model(highlighted: 12)) == nil)
-        let short = HUDModel(title: "A", pageIndex: 0, pageCount: 1, cells: [], highlightedIndex: 3, hint: "")
+        let short = HUDModel(title: "A", pageIndex: 0, pageCount: 1, cells: [], highlightedIndex: 3)
         #expect(HUDAnnouncement.highlighted(in: short) == L10n.ui("空きマス、\(L10n.ui("左"))"))
     }
 

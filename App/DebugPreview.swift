@@ -113,11 +113,8 @@ final class DebugPreview {
             isFingerInFrame: inFrame,
             hold: hold,
             edgePaging: edgePaging,
-            // アプリのカタログには無い文言なので、NonetController と同じものを NonetCore から引く
             isPractice: controller.isPracticeMode,
-            hint: ControllerPresentation.hint(isPracticeMode: controller.isPracticeMode),
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
-            footnote: ControllerPresentation.beginnerFootnote(pageCount: pages.count),
             scale: configuration.settings.hudScale.factor
         )
         hud.show(model, position: configuration.settings.hudPosition)

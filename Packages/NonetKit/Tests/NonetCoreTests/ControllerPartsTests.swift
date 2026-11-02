@@ -13,7 +13,7 @@ import Testing
 
     @Test func hudModelMapsThePageAndClampsOutOfRangeValues() {
         let pages = pages(frontmost: F.safari)
-        let model = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 1, highlightedCell: 0), hint: "案内", banner: "帯")
+        let model = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 1, highlightedCell: 0), banner: "帯")
         #expect(model.title == "Safari")
         #expect(model.pageIndex == 1)
         #expect(model.pageCount == 3)
@@ -21,18 +21,17 @@ import Testing
         #expect(model.cells[0]?.title == F.reload.title)
         #expect(model.cells[1...].allSatisfy { $0 == nil })
         #expect(model.highlightedIndex == 0)
-        #expect(model.hint == "案内")
         #expect(model.banner == "帯")
 
-        let beyond = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 9, highlightedCell: 12), hint: "", banner: nil)
+        let beyond = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 9, highlightedCell: 12), banner: nil)
         #expect(beyond.pageIndex == 2)
         #expect(beyond.title == ModelFixtures.globalName)
         #expect(beyond.highlightedIndex == nil)
-        #expect(ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: -1, highlightedCell: -1), hint: "", banner: nil).pageIndex == 0)
+        #expect(ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: -1, highlightedCell: -1), banner: nil).pageIndex == 0)
     }
 
     @Test func hudModelWithoutPagesIsEmptyButValid() {
-        let model = ControllerPresentation.hudModel(pages: [], state: SessionHUDState(page: 0, highlightedCell: nil), hint: "", banner: nil)
+        let model = ControllerPresentation.hudModel(pages: [], state: SessionHUDState(page: 0, highlightedCell: nil), banner: nil)
         #expect(model.title == "")
         #expect(model.pageCount == 1)
         #expect(model.cells == Array(repeating: nil, count: Page.cellCount))
@@ -44,13 +43,6 @@ import Testing
         #expect(ControllerPresentation.detail(for: .keystroke(KeySequence([]))) == nil)
         #expect(ControllerPresentation.detail(for: F.docs.action) == nil)
         #expect(ControllerPresentation.hudCell(F.newTab) == HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: ControllerPresentation.detail(for: F.newTab.action)))
-    }
-
-    /// HUD の右上の案内は、マスで指を離すと実行すること（練習中はそう添える）
-    @Test func theHintSaysLiftOnAButtonToRun() {
-        let lift = ModelFixtures.text("マスで指を離すと実行")
-        #expect(ControllerPresentation.hint(isPracticeMode: false) == lift)
-        #expect(ControllerPresentation.hint(isPracticeMode: true) == ModelFixtures.text("練習中 · \(lift)"))
     }
 
     /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
@@ -67,35 +59,26 @@ import Testing
         ))
     }
 
-    @Test func beginnerFootnotesExplainChoosingCancellingAndPages() {
-        let choose = ModelFixtures.text("指を滑らせて選ぶ")
-        let run = ModelFixtures.text("マスで離すと実行")
-        let cancel = ModelFixtures.text("外枠で離すとやめる")
-        let pages = ModelFixtures.text("左右の外枠で止めるとページ切り替え")
-        #expect(ControllerPresentation.beginnerFootnote(pageCount: 1) == [choose, run, cancel].joined(separator: " · "))
-        #expect(ControllerPresentation.beginnerFootnote(pageCount: 3) == [choose, run, cancel, pages].joined(separator: " · "))
-    }
-
     /// アプリのページの後ろにつなげたグローバルのページの位置（ページの点をそこで離す）
     @Test func globalPagesStartWhereTheProfileChanges() {
         #expect(ControllerPresentation.globalPagesStart(pages(frontmost: F.safari)) == 2)
         #expect(ControllerPresentation.globalPagesStart(pages(frontmost: nil)) == nil)
         #expect(ControllerPresentation.globalPagesStart([]) == nil)
-        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), state: SessionHUDState(page: 0, highlightedCell: nil), hint: "", banner: nil)
+        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), state: SessionHUDState(page: 0, highlightedCell: nil), banner: nil)
         #expect(model.globalPagesStart == 2)
     }
 
     /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ
     @Test func theHUDModelCarriesTheFrameAndTheHold() {
         let all = pages(frontmost: F.safari)
-        let inFrame = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true), hint: "", banner: nil)
+        let inFrame = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true), banner: nil)
         #expect(inFrame.isFingerInFrame)
         #expect(inFrame.highlightedIndex == nil)
         let hold = SessionHold(cell: 2, since: 5, duration: 0.6, isReady: false)
-        let holding = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 2, hold: hold), hint: "", banner: nil)
+        let holding = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 2, hold: hold), banner: nil)
         #expect(holding.hold == HUDHold(cellIndex: 2, since: 5, duration: 0.6, isReady: false))
         #expect(!holding.isFingerInFrame)
-        let elsewhere = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 4, hold: hold), hint: "", banner: nil)
+        let elsewhere = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 0, highlightedCell: 4, hold: hold), banner: nil)
         #expect(elsewhere.hold == nil)
     }
 
@@ -173,26 +156,22 @@ import Testing
     @Test func theHUDModelUsesTheSessionSettings() {
         let session = ControllerSession(configuration: F.configuration(), frontmostApp: F.safariApp)
         let model = session.hudModel(SessionHUDState(page: 0, highlightedCell: 4), isPracticeMode: false, isTrialEnded: true)
-        #expect(model.hint == ModelFixtures.text("マスで指を離すと実行"))
         #expect(model.banner == ControllerPresentation.trialEndedBanner)
         #expect(model.bannerStyle == .warning)
         #expect(model.highlightedIndex == 4)
-        #expect(model.footnote == nil)
         #expect(model.scale == 1)
         #expect(model.globalPagesStart == 2)
         #expect(session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: true, isTrialEnded: false).banner == nil)
     }
 
-    /// 使い始めの案内・試用期間の残り日数（知らせの見た目）・HUD の大きさは、セッションで決めたとおりに出す
+    /// 試用期間の残り日数（知らせの見た目）・HUD の大きさは、セッションで決めたとおりに出す
     @Test func theHUDModelCarriesTheGuidanceAndTheScale() {
         let settings = F.settings { $0.hudScale = .extraLarge }
         var session = ControllerSession(configuration: F.configuration(settings: settings), frontmostApp: F.safariApp)
-        session.showsBeginnerHint = true
         session.trialReminderDays = 2
         let model = session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: false, isTrialEnded: false)
         #expect(model.banner == ControllerPresentation.trialReminderBanner(daysLeft: 2))
         #expect(model.bannerStyle == .info)
-        #expect(model.footnote == ControllerPresentation.beginnerFootnote(pageCount: 3))
         #expect(model.scale == 1.5)
         // 試用期間が終わっていれば、終わった帯を出す
         #expect(session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: false, isTrialEnded: true).banner == ControllerPresentation.trialEndedBanner)

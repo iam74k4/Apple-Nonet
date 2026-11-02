@@ -2,17 +2,15 @@
 // NonetController が HUD・トースト・結果のパネルに渡すものを作る純粋な関数
 import Foundation
 
-/// hint・trialEndedBanner・trialReminderBanner・beginnerFootnote だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
+/// trialEndedBanner・trialReminderBanner だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
 public enum ControllerPresentation {
     /// page は resolvedPages での位置。範囲外は端に寄せる
     static func hudModel(
         pages: [ResolvedPage],
         state: SessionHUDState,
-        hint: String,
         isPractice: Bool = false,
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
-        footnote: String? = nil,
         scale: Double = 1
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
@@ -32,10 +30,8 @@ public enum ControllerPresentation {
             hold: hold,
             edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
             isPractice: isPractice,
-            hint: hint,
             banner: banner,
             bannerStyle: bannerStyle,
-            footnote: footnote,
             globalPagesStart: globalPagesStart(pages),
             scale: scale
         )
@@ -58,27 +54,7 @@ public enum ControllerPresentation {
         return text.isEmpty ? nil : text
     }
 
-    /// 案内の文。マスで指を離すと実行する（外枠で離すとやめることは、外枠に出たときに HUD が言う）。
-    /// HUD には出さない（使い始めの案内が言う。練習中は、HUD が題名の横に「練習中」を出す）
-    public static func hint(isPracticeMode: Bool) -> String {
-        let base = String(localized: "マスで指を離すと実行", bundle: .module)
-        guard isPracticeMode else { return base }
-        return String(localized: "練習中 · \(base)", bundle: .module)
-    }
 
-    /// 使い始めの数回（HUDGuidance.beginnerSessionLimit）だけ、9マスの下に出す案内。選び方・実行のしかた・やめ方、ページが複数ならページの変え方
-    public static func beginnerFootnote(pageCount: Int) -> String {
-        var parts = [
-            String(localized: "指を滑らせて選ぶ", bundle: .module),
-            String(localized: "マスで離すと実行", bundle: .module),
-            String(localized: "外枠で離すとやめる", bundle: .module),
-        ]
-        if pageCount > 1 {
-            parts.append(String(localized: "左右の外枠で止めるとページ切り替え", bundle: .module))
-        }
-        // 区切りの「 · 」は言語によらない（HUD の「練習中 · …」と同じ）
-        return parts.joined(separator: " · ")
-    }
 
     /// 試用期間が終わった後の帯と、実行しなかったときのトーストの説明。HUD は押せないので、次にする場所を言う
     public static var trialEndedBanner: String {

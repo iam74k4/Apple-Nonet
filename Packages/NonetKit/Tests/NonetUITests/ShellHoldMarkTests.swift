@@ -13,7 +13,7 @@ struct ShellHoldMarkTests {
             nil, nil, nil, nil, nil, nil, nil,
             HUDCell(title: "録画", icon: .symbol("record.circle"), detail: "⇧⌘R", requiresHold: true),
         ]
-        return HUDModel(title: "Zoom", pageIndex: 0, pageCount: 1, cells: cells, highlightedIndex: highlighted, hint: "⌘を離して実行")
+        return HUDModel(title: "Zoom", pageIndex: 0, pageCount: 1, cells: cells, highlightedIndex: highlighted)
     }
 
     @Test func theFlagIsOffByDefault() {

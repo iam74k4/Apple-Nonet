@@ -35,7 +35,6 @@ import Testing
         #expect(model.title == "Safari")
         #expect(model.isFingerInFrame)
         #expect(model.highlightedIndex == nil)
-        #expect(model.hint == ControllerPresentation.hint(isPracticeMode: false))
         #expect(h.haptics.plays == [.init(event: .activation, strength: .medium)])
     }
 

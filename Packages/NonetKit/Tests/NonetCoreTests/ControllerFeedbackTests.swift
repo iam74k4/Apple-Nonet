@@ -163,44 +163,6 @@ import Testing
         #expect(h.keyboard.trackpadTouchReports == [false, true, false])
     }
 
-    // MARK: 使い始めの案内
-
-    @Test func beginnersSeeAFootnoteForTheFirstHUDSessions() async throws {
-        let h = try ControllerHarness()
-        h.guidance.hudSessionCount = HUDGuidance.beginnerSessionLimit - 2
-        h.start()
-        let footnote = ControllerPresentation.beginnerFootnote(pageCount: 3)
-
-        h.open()
-        #expect(h.hud.current?.footnote == footnote)
-        // HUD の中身が変わっても、1つのセッションでは1回だけ数える
-        h.touch(on: 4)
-        h.touch(on: 5)
-        #expect(h.hud.current?.footnote == footnote)
-        #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit - 1)
-        h.closeIfOpen()
-
-        // 開かなかった（試しに上の縁から横へ滑らせた）ものは数えない
-        h.touch(x: 0.3, y: ControllerHarness.edgeY)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        h.lift()
-        #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit - 1)
-
-        h.open()
-        #expect(h.hud.current?.footnote == footnote)
-        #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit)
-        h.closeIfOpen()
-
-        // 出し終えたら出さず、もう数えない
-        h.open()
-        #expect(h.hud.isVisible)
-        #expect(h.hud.current?.footnote == nil)
-        #expect(h.guidance.hudSessionCount == HUDGuidance.beginnerSessionLimit)
-        h.closeIfOpen()
-        await h.settle()
-    }
-
     // MARK: 試用期間の残り日数
 
     @Test func theLastDaysOfTheTrialAreShownOnceADay() throws {
