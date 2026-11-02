@@ -467,7 +467,7 @@ private func pasteboard() -> NSPasteboard {
         configuration.setCell(cell, at: CellAddress(page: 0, index: 0), profileID: global)
         let results = SettingsProfileSearch.results(for: "safari", in: configuration)
         #expect(results.cells.map { $0.title } == ["ウェブ"])
-        #expect(results.cells.first?.detail == L10n.ui("アプリ起動"))
+        #expect(results.cells.first?.detail == L10n.ui("開く"))
     }
 }
 

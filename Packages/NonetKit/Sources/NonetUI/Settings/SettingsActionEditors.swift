@@ -172,7 +172,34 @@ struct SettingsRecorderAreaReader: NSViewRepresentable {
     }
 }
 
-// MARK: - アプリ起動
+// MARK: - 開く（アプリか URL）
+
+/// 「開く」の編集欄。アプリ（launchApp）と URL（openURL）は、設定の画面では1つの種類に見せ、ここで切り替える
+struct SettingsOpenEditor: View {
+    let model: SettingsModel
+    let cell: Cell
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Picker(selection: Binding(get: { cell.action.kind }, set: { model.changeKind(ofCell: cell.id, to: $0) })) {
+                Text("アプリ", bundle: .module).tag(ActionKind.launchApp)
+                Text("URL", bundle: .module).tag(ActionKind.openURL)
+            } label: {
+                Text("開くもの", bundle: .module)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            switch cell.action {
+            case .launchApp(let launch):
+                SettingsLaunchAppEditor(model: model, cellID: cell.id, launch: launch)
+            case .openURL(let url):
+                SettingsURLEditor(model: model, cellID: cell.id, url: url)
+            default:
+                EmptyView()
+            }
+        }
+    }
+}
 
 struct SettingsLaunchAppEditor: View {
     let model: SettingsModel
@@ -442,61 +469,12 @@ struct SettingsScriptEditor: View {
                     }
                 }
             }
-            if Self.showsOutput(script) {
-                SettingsCommandOutputField(
-                    output: script.output,
-                    caption: String(localized: "スクリプトの標準出力を、最後の改行を除いて使います", bundle: .module)
-                ) { output in
-                    update { $0.output = output }
-                }
-            }
         }
-    }
-
-    /// 結果の出し方を選べるか。ターミナルで実行するときは、出力はターミナルのウインドウに出る
-    static func showsOutput(_ script: ScriptAction) -> Bool {
-        script.runMode == .background
     }
 
     /// 描画したときの script ではなく、今の中身を書き換える（入力欄の確定は遅れて届くため）
     private func update(_ transform: (inout ScriptAction) -> Void) {
         model.updateAction(ofCell: cellID, as: ScriptAction.self, transform)
-    }
-}
-
-/// スクリプト（裏で実行）とショートカットの「結果の出し方」。AI と同じ選択肢の前に「出力を使わない」を置く
-enum SettingsCommandOutput {
-    /// nil は「出力を使わない」（既定。以前の設定もこれ）
-    static let choices: [AIOutput?] = [nil] + AIOutput.allCases.map(Optional.some)
-
-    static func name(_ output: AIOutput?) -> String {
-        guard let output else { return String(localized: "出力を使わない", bundle: .module) }
-        return SettingsText.name(output)
-    }
-}
-
-/// スクリプトとショートカットの「結果の出し方」の欄
-struct SettingsCommandOutputField: View {
-    let output: AIOutput?
-    let caption: String
-    let set: (AIOutput?) -> Void
-
-    var body: some View {
-        SettingsField(title: String(localized: "結果の出し方", bundle: .module)) {
-            Picker(selection: Binding(get: { output }, set: set)) {
-                ForEach(SettingsCommandOutput.choices, id: \.self) { choice in
-                    Text(SettingsCommandOutput.name(choice)).tag(choice)
-                }
-            } label: {
-                Text("結果の出し方", bundle: .module)
-            }
-            .labelsHidden()
-            .pickerStyle(.radioGroup)
-            Text(caption)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
     }
 }
 
@@ -618,12 +596,7 @@ struct SettingsShortcutEditor: View {
                 Text("翻訳や要約など、テキストを受け取るショートカットで使います", bundle: .module)
             }
             .toggleStyle(.checkbox)
-            SettingsCommandOutputField(
-                output: shortcut.output,
-                caption: String(localized: "ショートカットの出力をテキストとして、最後の改行を除いて使います", bundle: .module)
-            ) { output in
-                update { $0.output = output }
-            }
+            SettingsNote(text: String(localized: "ショートカットがテキストを返したときは、結果のパネルに出します", bundle: .module))
         }
         .onAppear { list.loadIfNeeded() }
     }

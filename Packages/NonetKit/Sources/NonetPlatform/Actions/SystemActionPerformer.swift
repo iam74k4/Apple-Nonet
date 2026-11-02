@@ -27,7 +27,7 @@ public final class SystemActionPerformer: ActionPerforming {
         }
     }
 
-    /// perform と同じだが、結果の出し方が「画面に表示」の AI・裏のスクリプト・ショートカットの結果を返す（ほかは nil）。
+    /// perform と同じだが、結果の出し方が「画面に表示」の AI と、裏のスクリプト・ショートカットの出力を返す（ほかは nil）。
     /// 呼び出し側が結果を表示できるときはこちらを使う
     public func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
         do {
@@ -94,10 +94,10 @@ public final class SystemActionPerformer: ActionPerforming {
                 timeout: ScriptRunner.effectiveTimeout(script.timeout),
                 shellPath: shellPath
             )
-            guard let destination = script.output else { return nil }
-            return try await deliver(output, to: destination, selection: reading.selectionSource, frontmost: frontmost)
+            // 出力があれば結果のパネルに出す（空なら何も出さない）
+            return try CommandOutput.text(from: output)
         case .terminal:
-            // 出力はターミナルのウインドウに出るので、結果の出し方は使わない
+            // 出力はターミナルのウインドウに出る
             try await TerminalCommandFile.open(source: script.source, variables: variables, workingDirectory: workingDirectory.path)
             return nil
         }
@@ -110,22 +110,12 @@ public final class SystemActionPerformer: ActionPerforming {
         if shortcut.passSelectedText {
             reading = await contextReader.read(.forShortcut(shortcut), app: frontmost)
         }
-        let output = try await ShortcutRunner.run(
-            name: shortcut.name,
-            input: reading?.info.selectedText,
-            wantsTextOutput: shortcut.output != nil
-        )
-        guard let destination = shortcut.output else { return nil }
-        return try await deliver(output, to: destination, selection: reading?.selectionSource, frontmost: frontmost)
+        let output = try await ShortcutRunner.run(name: shortcut.name, input: reading?.info.selectedText, wantsTextOutput: true)
+        // 出力があれば結果のパネルに出す（空なら何も出さない）
+        return try CommandOutput.text(from: output)
     }
 
-    // MARK: - 結果の出し方
-
-    /// スクリプトとショートカットの出力を、選んだ出し方で使う。出力が空なら何もしない
-    private func deliver(_ output: ProcessOutput, to destination: AIOutput, selection: SelectionSource?, frontmost: RunningAppInfo?) async throws -> String? {
-        guard let text = try CommandOutput.text(from: output) else { return nil }
-        return try await deliver(text, to: destination, selection: selection, frontmost: frontmost)
-    }
+    // MARK: - AI の結果の出し方
 
     /// 結果を選んだ出し方で使う。画面に出すものを返す（置き換えた・コピーしたなら nil）
     private func deliver(_ text: String, to destination: AIOutput, selection: SelectionSource?, frontmost: RunningAppInfo?) async throws -> String? {

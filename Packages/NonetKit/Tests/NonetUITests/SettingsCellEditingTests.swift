@@ -6,7 +6,9 @@ import Testing
 
 @Suite struct SettingsCellEditingTests {
     @Test func everyKindHasANameASymbolAndADefault() {
-        #expect(Set(SettingsActionKinds.ordered) == Set(ActionKind.allCases))
+        // URL は「開く」の中で切り替えるので、一覧には並べない
+        #expect(Set(SettingsActionKinds.ordered + [.openURL]) == Set(ActionKind.allCases))
+        #expect(SettingsActionKinds.menuKind(of: .openURL(URLAction(url: ""))) == .launchApp)
         for kind in ActionKind.allCases {
             #expect(!SettingsActionKinds.name(kind).isEmpty)
             #expect(SettingsCellEditing.defaultAction(for: kind).kind == kind)

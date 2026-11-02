@@ -98,7 +98,8 @@ struct SettingsCellEditor: View {
                 }
             }
             SettingsField(title: String(localized: "アクションの種類", bundle: .module)) {
-                Picker(selection: Binding(get: { cell.action.kind }, set: { model.changeKind(ofCell: cell.id, to: $0) })) {
+                // URL のマスも、種類の一覧では「開く」（launchApp）として見せる（SettingsOpenEditor の中でアプリと URL を切り替える）
+                Picker(selection: Binding(get: { SettingsActionKinds.menuKind(of: cell.action) }, set: { model.changeKind(ofCell: cell.id, to: $0) })) {
                     ForEach(SettingsActionKinds.ordered, id: \.self) { kind in
                         Label(SettingsActionKinds.name(kind), systemImage: SettingsActionKinds.symbol(kind))
                             .tag(kind)
@@ -135,10 +136,8 @@ struct SettingsCellEditor: View {
         switch cell.action {
         case .keystroke(let keys):
             SettingsKeystrokeEditor(model: model, cellID: cell.id, keys: keys)
-        case .launchApp(let launch):
-            SettingsLaunchAppEditor(model: model, cellID: cell.id, launch: launch)
-        case .openURL(let url):
-            SettingsURLEditor(model: model, cellID: cell.id, url: url)
+        case .launchApp, .openURL:
+            SettingsOpenEditor(model: model, cell: cell)
         case .script(let script):
             SettingsScriptEditor(model: model, cellID: cell.id, script: script)
         case .shortcut(let shortcut):

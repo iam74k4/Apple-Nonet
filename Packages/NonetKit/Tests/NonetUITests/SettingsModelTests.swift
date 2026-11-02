@@ -1307,7 +1307,7 @@ import Testing
         for tool in ["shortcuts://run-shortcut?name=x", " SSH://host ", "smb://host/share", "vnc://host"] {
             #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: tool))), "\(tool)")
         }
-        #expect(SettingsImportPlan.needsReview(.shortcut(ShortcutAction(name: "x", passSelectedText: false, output: nil))))
+        #expect(SettingsImportPlan.needsReview(.shortcut(ShortcutAction(name: "x", passSelectedText: false))))
         #expect(!SettingsImportPlan.needsReview(.launchApp(LaunchAppAction(app: AppReference(bundleID: "com.apple.Safari", name: "Safari"), hideIfFrontmost: false))))
         let h = try SettingsHarness()
         let open = Cell(title: "資料", icon: .symbol("doc"), action: .openURL(URLAction(url: "~/Downloads/run.command")))

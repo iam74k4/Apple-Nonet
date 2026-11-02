@@ -30,11 +30,8 @@ import Testing
         #expect(record.output == "out")
     }
 
-    @Test func scriptsAndShortcutsThatReplaceTheSelectionSendInput() {
-        #expect(ControllerExecutionPolicy.sendsInputToFrontmostApp(.script(ScriptAction(source: "x", output: .replaceSelection))))
-        #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.script(ScriptAction(source: "x", runMode: .terminal, output: .replaceSelection))))
-        #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.script(ScriptAction(source: "x", output: .copyToClipboard))))
-        #expect(ControllerExecutionPolicy.sendsInputToFrontmostApp(.shortcut(ShortcutAction(name: "s", output: .replaceSelection))))
-        #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.shortcut(ShortcutAction(name: "s"))))
+    @Test func scriptsAndShortcutsNeverSendInput() {
+        #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.script(ScriptAction(source: "x"))))
+        #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.shortcut(ShortcutAction(name: "s", passSelectedText: true))))
     }
 }

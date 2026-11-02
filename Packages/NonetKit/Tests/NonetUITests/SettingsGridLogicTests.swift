@@ -92,11 +92,11 @@ import UniformTypeIdentifiers
         // 名前と同じ説明は出さず、種類の名前にする
         #expect(SettingsGrid.subtitle(for: shortcut) == L10n.ui("ショートカット"))
         let app = SettingsFixtures.launch(SettingsFixtures.safari)
-        #expect(SettingsGrid.subtitle(for: app) == L10n.ui("アプリ起動"))
+        #expect(SettingsGrid.subtitle(for: app) == L10n.ui("開く"))
         var renamed = app
         renamed.title = "ブラウザ"
         // アプリ起動はいつも種類の名前。開くアプリの名前はヘルプ・検索・VoiceOver に残す
-        #expect(SettingsGrid.subtitle(for: renamed) == L10n.ui("アプリ起動"))
+        #expect(SettingsGrid.subtitle(for: renamed) == L10n.ui("開く"))
         #expect(SettingsGrid.detailContent(for: renamed).text == "Safari")
         #expect(SettingsGrid.tooltip(for: renamed) == "Safari")
         #expect(SettingsGrid.tooltip(for: shortcut) == nil)
@@ -124,7 +124,7 @@ import UniformTypeIdentifiers
         #expect(SettingsGrid.subtitleContent(for: menuWithoutKey) == ("整列", false))
         let script = Cell(title: "Claude Code", icon: .symbol("sparkles"), action: .script(ScriptAction(source: "claude", runMode: .terminal)))
         #expect(SettingsGrid.subtitleContent(for: script) == (L10n.core("ターミナル"), false))
-        #expect(SettingsGrid.subtitleContent(for: SettingsFixtures.launch(SettingsFixtures.safari)) == (L10n.ui("アプリ起動"), false))
+        #expect(SettingsGrid.subtitleContent(for: SettingsFixtures.launch(SettingsFixtures.safari)) == (L10n.ui("開く"), false))
         let unset = Cell(title: "", icon: .symbol("keyboard"), action: .keystroke(KeySequence([])))
         #expect(SettingsGrid.subtitleContent(for: unset) == (L10n.ui("未設定"), false))
         // 名前と同じキーの表記は種類の名前に変わるので、等幅にしない

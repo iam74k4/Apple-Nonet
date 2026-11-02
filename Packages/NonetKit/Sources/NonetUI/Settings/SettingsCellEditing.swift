@@ -4,13 +4,18 @@ import Foundation
 import NonetCore
 
 enum SettingsActionKinds {
-    /// インスペクタに並べる順
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file]
+    /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .script, .shortcut, .menuItem, .ai, .file]
+
+    /// 種類の一覧で選ばれている項目。URL のマスは「開く」
+    static func menuKind(of action: Action) -> ActionKind {
+        action.kind == .openURL ? .launchApp : action.kind
+    }
 
     static func name(_ kind: ActionKind) -> String {
         switch kind {
         case .keystroke: String(localized: "キー入力", bundle: .module)
-        case .launchApp: String(localized: "アプリ起動", bundle: .module)
+        case .launchApp: String(localized: "開く", bundle: .module)
         case .openURL: String(localized: "URL", bundle: .module)
         case .script: String(localized: "スクリプト", bundle: .module)
         case .shortcut: String(localized: "ショートカット", bundle: .module)
@@ -24,7 +29,7 @@ enum SettingsActionKinds {
     static func symbol(_ kind: ActionKind) -> String {
         switch kind {
         case .keystroke: "keyboard"
-        case .launchApp: "macwindow"
+        case .launchApp: "arrow.up.forward.app"
         case .openURL: "link"
         case .script: "terminal"
         case .shortcut: "square.2.layers.3d"
