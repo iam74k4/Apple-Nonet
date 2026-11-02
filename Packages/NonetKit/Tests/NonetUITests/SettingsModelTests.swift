@@ -735,12 +735,10 @@ import Testing
         let h = try SettingsHarness()
         h.model.setSetting(\.hudPosition, .nearCursor)
         h.model.setSetting(\.haptics, .strong)
-        h.model.setSetting(\.cursorLock, .dropEvents)
         #expect(h.model.settings.hudPosition == .nearCursor)
         let saved = try #require(try h.saved())
         #expect(saved.settings.hudPosition == .nearCursor)
         #expect(saved.settings.haptics == .strong)
-        #expect(saved.settings.cursorLock == .dropEvents)
     }
 
     @Test func disablingShowsABannerThatReenables() throws {

@@ -240,7 +240,6 @@ extension NonetConfiguration {
     }
 
     /// このアプリでは Nonet を使わない（そのアプリのプロファイルが ProfileMode.off）。bundleID が nil や空なら false。
-    /// 「前面のアプリで切り替える」（autoSwitchProfiles）がオフでも使わない（どのページを使うかではなく、そのアプリで Nonet を使うかどうか）
     public func isTurnedOff(forBundleID bundleID: String?) -> Bool {
         guard let bundleID, !Self.bundleIDKey(bundleID).isEmpty else { return false }
         return appMode(forBundleID: bundleID) == .off
@@ -311,19 +310,16 @@ extension NonetConfiguration {
     }
 
     /// 前面アプリで使うページの並び。
-    /// autoSwitchProfiles が true でアプリのプロファイルがあればそのページ、appendGlobalPages ならその後ろにグローバルのページ。
-    /// それ以外はグローバルのページだけ。使い方が global・off のプロファイルは使わない
+    /// アプリのプロファイルがあればそのページ、その後ろにグローバルのページ。無ければグローバルのページだけ。使い方が global・off のプロファイルは使わない
     /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
     /// どのページも、共通マス（sharedCells）のある位置はそのマスに置き換える（ResolvedPage.sharedIndices）
     public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
         let globalPages = Self.resolve(globalProfile, shared: sharedCells)
-        guard settings.autoSwitchProfiles,
-              let bundleID = frontmostBundleID,
+        guard let bundleID = frontmostBundleID,
               let appProfile = appProfile(forBundleID: bundleID) else {
             return globalPages
         }
-        let appPages = Self.resolve(appProfile, shared: sharedCells)
-        return settings.appendGlobalPages ? appPages + globalPages : appPages
+        return Self.resolve(appProfile, shared: sharedCells) + globalPages
     }
 
     /// 壊れた設定を直したもの（グローバルが先頭に1つ、ページ数、マス数、重複 id など）

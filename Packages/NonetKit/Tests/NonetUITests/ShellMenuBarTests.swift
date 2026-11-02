@@ -321,9 +321,6 @@ struct ShellMenuBarTests {
         #expect(MenuBarEditTarget.resolve(frontApp: AppReference(bundleID: "", name: "?"), configuration: configuration) == .global)
         configuration.updateProfile(id: xcodeID) { $0.isEnabled = false }
         #expect(MenuBarEditTarget.resolve(frontApp: xcode, configuration: configuration) == .app(xcode, name: "Xcode"))
-        // アプリのプロファイルに切り替えない設定なら、使われるのはグローバル
-        configuration.settings.autoSwitchProfiles = false
-        #expect(MenuBarEditTarget.resolve(frontApp: xcode, configuration: configuration) == .global)
         #expect(MenuBarEditTarget.global.app == nil)
         #expect(MenuBarEditTarget.newApp(pages).app == pages)
     }

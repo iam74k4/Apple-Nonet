@@ -1,6 +1,7 @@
 // 担当: ui-settings
-// ライセンスのタブ。試用中と試用期間の終了後は、状態の下に購入の行、その下に「購入済みの方」のライセンスキーの欄。
-// 登録済みなら登録者と、キーのコピー・別のキーの登録・この Mac からの登録の削除
+// 「Nonet」のタブ。上がライセンス: 試用中と試用期間の終了後は、状態の下に購入の行、その下に「購入済みの方」のライセンスキーの欄。
+// 登録済みなら登録者と、キーのコピー・別のキーの登録・この Mac からの登録の削除。
+// その下に、プロファイルの書き出しと読み込み、バージョン・アップデート・利用ガイド・アンインストール（SettingsAboutView）
 import NonetCore
 import SwiftUI
 
@@ -75,6 +76,36 @@ struct SettingsLicenseView: View {
                         Text("Mac を手放すときなどに使います。同じキーは、ほかの Mac でもそのまま使えます。", bundle: .module)
                     }
                 }
+            }
+            Section {
+                LabeledContent {
+                    HStack(spacing: 8) {
+                        Button {
+                            Task { await model.exportAllProfiles(suggestedName: String(localized: "Nonet のプロファイル", bundle: .module)) }
+                        } label: {
+                            Text("書き出す…", bundle: .module)
+                        }
+                        Button {
+                            Task { await model.importProfiles() }
+                        } label: {
+                            Text("読み込む…", bundle: .module)
+                        }
+                        SettingsRestoreBackupButton(model: model)
+                    }
+                } label: {
+                    Text("プロファイルの書き出し / 読み込み", bundle: .module)
+                    Text("すべてのプロファイルを .\(ConfigurationStore.profileDocumentExtension) のファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックします。", bundle: .module)
+                }
+                SettingsNote(
+                    text: String(localized: "ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください（スクリプトはあなたの権限で動きます）", bundle: .module),
+                    symbol: "exclamationmark.shield"
+                )
+            } header: {
+                Text("書き出しと読み込み", bundle: .module)
+            }
+
+            Section {
+                SettingsAboutView(model: model)
             }
         }
         .formStyle(.grouped)

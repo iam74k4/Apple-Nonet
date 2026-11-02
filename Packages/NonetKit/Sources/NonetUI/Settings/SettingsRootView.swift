@@ -8,8 +8,7 @@ extension SettingsTab {
         switch self {
         case .profiles: String(localized: "プロファイル", bundle: .module)
         case .general: String(localized: "一般", bundle: .module)
-        case .license: String(localized: "ライセンス", bundle: .module)
-        case .about: String(localized: "情報", bundle: .module)
+        case .license: "Nonet"
         }
     }
 
@@ -17,8 +16,7 @@ extension SettingsTab {
         switch self {
         case .profiles: "square.grid.3x3"
         case .general: "gearshape"
-        case .license: "key"
-        case .about: "info.circle"
+        case .license: "info.circle"
         }
     }
 }
@@ -34,7 +32,6 @@ struct SettingsRootView: View {
                 case .profiles: SettingsProfilesView(model: model)
                 case .general: SettingsGeneralView(model: model)
                 case .license: SettingsLicenseView(model: model)
-                case .about: SettingsAboutView(model: model)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -42,7 +39,7 @@ struct SettingsRootView: View {
         .frame(minWidth: 860, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
         .environment(\.settingsPendingEdits, model.pendingEdits)
-        // どのタブからでも開ける（一般の「書き出しと読み込み」の「以前の設定に戻す…」）
+        // どのタブからでも開ける（Nonet のタブの「書き出しと読み込み」の「以前の設定に戻す…」）
         .sheet(isPresented: $model.isShowingBackups) {
             SettingsBackupsSheet(model: model)
         }

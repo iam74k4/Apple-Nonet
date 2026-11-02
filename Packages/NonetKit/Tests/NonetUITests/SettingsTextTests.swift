@@ -9,12 +9,9 @@ import Testing
     @Test func choiceNamesMatchTheUserGuide() {
         #expect(SettingsText.name(HUDPosition.screenCenter) == L10n.ui("画面の中央"))
         #expect(SettingsText.name(HUDPosition.nearCursor) == L10n.ui("ポインタの近く"))
-        #expect(HapticStrength.allCases.map(SettingsText.name) == [L10n.ui("オフ"), L10n.ui("弱"), L10n.ui("中"), L10n.ui("強")])
-        #expect(CursorLockMethod.allCases.map(SettingsText.name) == [L10n.ui("自動"), L10n.ui("移動を捨てる"), L10n.ui("ポインタを切り離す"), L10n.ui("固定しない")])
         #expect(SettingsText.name(ScriptRunMode.background) == L10n.ui("裏で実行"))
         #expect(SettingsText.name(ScriptRunMode.terminal) == L10n.ui("ターミナルで実行"))
         #expect(AIOutput.allCases.map(SettingsText.name) == [L10n.ui("選択範囲を置き換える"), L10n.ui("クリップボードにコピー"), L10n.ui("画面に表示")])
-        #expect(Set(CursorLockMethod.allCases.map(SettingsText.detail)).count == CursorLockMethod.allCases.count)
     }
 
     /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
@@ -24,7 +21,7 @@ import Testing
     }
 
     @Test func tabTitles() {
-        #expect(SettingsTab.allCases.map(\.title) == [L10n.ui("プロファイル"), L10n.ui("一般"), L10n.ui("ライセンス"), L10n.ui("情報")])
+        #expect(SettingsTab.allCases.map(\.title) == [L10n.ui("プロファイル"), L10n.ui("一般"), "Nonet"])
     }
 
     /// 日付や数は文言と同じ言語で書く（地域は利用者のまま）。Locale.current だと英語の画面で日付だけ日本語になることがある

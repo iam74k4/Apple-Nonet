@@ -12,9 +12,9 @@ struct ConfigurationSharedCellsTests {
     static let screenshot = F.cell("スクショ", action: .keystroke(.key("4", [.command, .shift])))
 
     /// グローバル3ページ・Safari（無効）・Xcode（2ページ）に、共通マスを 0 と 8 に置いた設定
-    static func configuration(autoSwitch: Bool = true, append: Bool = true) -> NonetConfiguration {
+    static func configuration() -> NonetConfiguration {
         var configuration = NonetConfiguration(
-            settings: GlobalSettings(autoSwitchProfiles: autoSwitch, appendGlobalPages: append),
+            settings: GlobalSettings(),
             profiles: [
                 F.globalProfile(pageCount: 3),
                 F.profile(F.safari, isEnabled: false),
@@ -45,10 +45,10 @@ struct ConfigurationSharedCellsTests {
         #expect(pages[2].cells[1] == nil)
     }
 
-    @Test("プロファイルの無いアプリ・前面のアプリで切り替えない・前面のアプリが分からないときのグローバルのページにも出る",
-          arguments: [(true, "com.apple.Notes"), (false, "com.apple.dt.Xcode"), (true, nil)] as [(Bool, String?)])
-    func theGlobalPagesShowTheSharedCells(autoSwitch: Bool, bundleID: String?) {
-        let configuration = Self.configuration(autoSwitch: autoSwitch, append: false)
+    @Test("プロファイルの無いアプリ・前面のアプリが分からないときのグローバルのページにも出る",
+          arguments: ["com.apple.Notes", nil] as [String?])
+    func theGlobalPagesShowTheSharedCells(bundleID: String?) {
+        let configuration = Self.configuration()
         let pages = configuration.resolvedPages(frontmostBundleID: bundleID)
         #expect(pages.map(\.profileID) == Array(repeating: configuration.globalProfile.id, count: 3))
         #expect(pages.allSatisfy { $0.cells[0]?.title == "ミュート" && $0.cells[8]?.title == "スクショ" && $0.sharedIndices == [0, 8] })

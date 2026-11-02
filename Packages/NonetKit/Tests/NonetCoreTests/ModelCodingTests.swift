@@ -103,12 +103,6 @@ struct ModelCodingRoundTripTests {
         #expect(try ModelFixtures.roundTrip(settings) == settings)
     }
 
-    @Test("カーソルの固定方法のすべての値が往復する", arguments: CursorLockMethod.allCases)
-    func cursorLockRoundTrip(_ method: CursorLockMethod) throws {
-        let settings = GlobalSettings(cursorLock: method)
-        #expect(try ModelFixtures.roundTrip(settings) == settings)
-    }
-
     @Test("スクリプトの実行方法のすべての値が往復する", arguments: ScriptRunMode.allCases)
     func scriptRunModeRoundTrip(_ mode: ScriptRunMode) throws {
         let action = Action.script(ScriptAction(source: "true", runMode: mode))
@@ -123,18 +117,11 @@ struct ModelCodingRoundTripTests {
 
     @Test("全体の設定は既定値以外も往復する")
     func settingsRoundTrip() throws {
-        let settings = GlobalSettings(
-            isEnabled: false, hudPosition: .nearCursor,
-            autoSwitchProfiles: false, appendGlobalPages: false, haptics: .strong,
-            showExecutionToast: false, cursorLock: .decouple
-        )
+        let settings = GlobalSettings(isEnabled: false, hudPosition: .nearCursor, haptics: .strong)
         #expect(try ModelFixtures.roundTrip(settings) == settings)
         let keys = try ModelFixtures.jsonObject(settings).allKeys.compactMap { $0 as? String }.sorted()
         // トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）は、もう書かない
-        #expect(keys == [
-            "appendGlobalPages", "autoSwitchProfiles", "cursorLock", "haptics",
-            "hudPosition", "isEnabled", "showExecutionToast",
-        ])
+        #expect(keys == ["haptics", "hudPosition", "isEnabled"])
     }
 
     @Test("設定全体が往復し、書くたびに同じバイト列になる")
@@ -240,9 +227,7 @@ struct ModelCodingFixtureTests {
         let configuration = try ModelFixtures.decode(NonetConfiguration.self, Self.fullConfiguration)
         #expect(configuration.version == 1)
         // トリガーキーの項目（trigger・fireMode・hudDelay・passTriggerToApps）は読み飛ばす
-        #expect(configuration.settings == GlobalSettings(
-            hudPosition: .nearCursor, appendGlobalPages: false, haptics: .light, cursorLock: .dropEvents
-        ))
+        #expect(configuration.settings == GlobalSettings(hudPosition: .nearCursor, haptics: .light))
         try #require(configuration.profiles.count == 2)
 
         let global = configuration.profiles[0]
@@ -270,7 +255,7 @@ struct ModelCodingFixtureTests {
         let expected = try ModelFixtures.jsonObject(Self.fullConfiguration)
         let settings = try #require(expected["settings"] as? NSDictionary)
         let trimmed = NSMutableDictionary(dictionary: settings)
-        trimmed.removeObjects(forKeys: ["trigger", "fireMode", "hudDelay", "passTriggerToApps"])
+        trimmed.removeObjects(forKeys: ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock"])
         let rewritten = NSMutableDictionary(dictionary: expected)
         rewritten["settings"] = trimmed
         #expect(try ModelFixtures.jsonObject(configuration) == rewritten)
@@ -291,7 +276,7 @@ struct ModelCodingFixtureTests {
          "futureSetting": {"nested": true}}
         """#
         let settings = try ModelFixtures.decode(GlobalSettings.self, json)
-        #expect(settings == GlobalSettings(showExecutionToast: false))
+        #expect(settings == GlobalSettings())
     }
 
     @Test("設定全体: settings が無い・読めないときは既定値")

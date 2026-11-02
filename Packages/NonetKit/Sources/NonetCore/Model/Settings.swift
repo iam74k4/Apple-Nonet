@@ -19,7 +19,7 @@ public enum OpenSensitivity: String, Codable, CaseIterable, Sendable {
     case high
 }
 
-/// 9マスを開いている間、ポインタが動かないようにする方法
+/// 9マスを開いている間、ポインタが動かないようにする方法（KeyboardMonitor の設定。利用者には見せず、自動だけを使う）
 public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     /// 移動イベントを捨て、それでもずれたら元の位置に戻す
     case automatic
@@ -50,14 +50,8 @@ public enum HUDScale: String, Codable, CaseIterable, Sendable {
 public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
     public var hudPosition: HUDPosition
-    /// 前面アプリのプロファイルに自動で切り替える。false なら常にグローバル
-    public var autoSwitchProfiles: Bool
-    /// アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにする
-    public var appendGlobalPages: Bool
+    /// 触覚。設定の画面ではオン（medium）とオフだけを選ぶ（前の版の light・strong はそのまま読む）
     public var haptics: HapticStrength
-    /// 時間の掛かるマスが終わったときに、実行したマスを一瞬表示する
-    public var showExecutionToast: Bool
-    public var cursorLock: CursorLockMethod
     /// HUD とトーストの大きさ。既定は標準
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
@@ -66,21 +60,13 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public init(
         isEnabled: Bool = true,
         hudPosition: HUDPosition = .screenCenter,
-        autoSwitchProfiles: Bool = true,
-        appendGlobalPages: Bool = true,
         haptics: HapticStrength = .medium,
-        showExecutionToast: Bool = true,
-        cursorLock: CursorLockMethod = .automatic,
         hudScale: HUDScale = .standard,
         openSensitivity: OpenSensitivity = .standard
     ) {
         self.isEnabled = isEnabled
         self.hudPosition = hudPosition
-        self.autoSwitchProfiles = autoSwitchProfiles
-        self.appendGlobalPages = appendGlobalPages
         self.haptics = haptics
-        self.showExecutionToast = showExecutionToast
-        self.cursorLock = cursorLock
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
     }
@@ -88,12 +74,16 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
 
 // MARK: - Codable
 // 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）。
-// トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）は、
-// 書いてあっても読み飛ばし、もう書かない（前の版はそれらが無ければ既定値で読む）
+// 前の版の項目（トリガーキーで開いていた版の trigger・fireMode・hudDelay・passTriggerToApps・touchActivation と、
+// 設定から外した autoSwitchProfiles・appendGlobalPages・showExecutionToast・cursorLock）は、書いてあっても読み飛ばし、
+// もう書かない（前の版はそれらが無ければ既定値で読む）
 
 extension GlobalSettings {
-    /// トリガーキーで開いていた版の項目。読み飛ばし、もう書かない
-    static let retiredKeys: Set<String> = ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation"]
+    /// 前の版の項目。読み飛ばし、もう書かない
+    static let retiredKeys: Set<String> = [
+        "trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation",
+        "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock",
+    ]
 
     /// 設定ファイル（JSONSerialization で読んだもの）から、settings の retiredKeys を除いたもの。
     /// 読み飛ばした項目を、保存すると失われる中身とみなさない（その原本を configuration.lossy-… に残さない）
@@ -104,7 +94,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, hudPosition, autoSwitchProfiles, appendGlobalPages, haptics, showExecutionToast, cursorLock, hudScale, openSensitivity
+        case isEnabled, hudPosition, haptics, hudScale, openSensitivity
     }
 
     public init(from decoder: any Decoder) throws {
@@ -113,11 +103,7 @@ extension GlobalSettings {
         self.init(
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
             hudPosition: container.decodeLossy(HUDPosition.self, forKey: .hudPosition, default: defaults.hudPosition),
-            autoSwitchProfiles: container.decodeLossy(Bool.self, forKey: .autoSwitchProfiles, default: defaults.autoSwitchProfiles),
-            appendGlobalPages: container.decodeLossy(Bool.self, forKey: .appendGlobalPages, default: defaults.appendGlobalPages),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
-            showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
-            cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
             openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
         )
@@ -127,11 +113,7 @@ extension GlobalSettings {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(hudPosition, forKey: .hudPosition)
-        try container.encode(autoSwitchProfiles, forKey: .autoSwitchProfiles)
-        try container.encode(appendGlobalPages, forKey: .appendGlobalPages)
         try container.encode(haptics, forKey: .haptics)
-        try container.encode(showExecutionToast, forKey: .showExecutionToast)
-        try container.encode(cursorLock, forKey: .cursorLock)
         // 標準（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ標準として読む）
         if hudScale != .standard {
             try container.encode(hudScale, forKey: .hudScale)

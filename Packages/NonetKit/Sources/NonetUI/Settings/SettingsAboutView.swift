@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 情報のタブ: バージョン・アップデートの確認・利用ガイド・プライバシー・お問い合わせ・アンインストール・サードパーティのライセンス
+// 「Nonet」のタブの下の部分: バージョン・アップデートの確認・利用ガイド・プライバシー・お問い合わせ・アンインストール・サードパーティのライセンス
 import AppKit
 import NonetCore
 import SwiftUI
@@ -16,15 +16,14 @@ struct SettingsAboutView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                VStack(spacing: 8) {
+        VStack(spacing: 16) {
+                VStack(spacing: 6) {
                     Image(nsImage: NSApp?.applicationIconImage ?? NSImage())
                         .resizable()
-                        .frame(width: 96, height: 96)
+                        .frame(width: 64, height: 64)
                         .accessibilityHidden(true)
                     Text(verbatim: "Nonet")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 20, weight: .bold))
                     if let version = SettingsText.version(
                         short: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
                         build: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String
@@ -117,11 +116,9 @@ struct SettingsAboutView: View {
                         .font(.system(size: 12, weight: .medium))
                 }
                 .frame(maxWidth: 560)
-            }
-            .padding(.horizontal, 40)
-            .padding(.vertical, 36)
-            .frame(maxWidth: .infinity)
         }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
         .alert(
             String(localized: "Nonet をアンインストールしますか？", bundle: .module),
             isPresented: Binding(get: { model.uninstallStep == .confirm }, set: { if !$0, model.uninstallStep == .confirm { model.uninstallStep = nil } })

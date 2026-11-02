@@ -187,10 +187,6 @@ struct SettingsRenderShots {
             model.licenseKeyInput = ""
             model.licenseMessage = nil
 
-            // 情報
-            model.selectTab(.about)
-            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "about-\(suffix)")
-
             // 状態の帯（権限なし）と書き出しの結果
             h.permissions.isAccessibilityGranted = false
             h.controller.refreshPermissions()
@@ -280,8 +276,6 @@ struct SettingsRenderShots {
             model.supportEmail = "support@example.com"
             model.selectTab(.license)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "license-expired-\(suffix)")
-            model.selectTab(.about)
-            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 640), appearance, "about-update-\(suffix)")
             // ほかのタブの上の「試用期間が終了しました」の帯
             model.selectTab(.general)
             try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 420), appearance, "banners-expired-\(suffix)")

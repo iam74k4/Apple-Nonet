@@ -193,11 +193,9 @@ public final class NonetController {
             self?.receiveTouches(frame)
         }
         services.frontmostApp.onChange = { [weak self] _ in
-            self?.applyKeyboardSettings()
             self?.updateActiveProfile()
         }
         services.frontmostApp.start()
-        applyKeyboardSettings()
         refreshServices()
         updateActiveProfile()
         controllerLogger.info("開始しました（状態: \(String(describing: self.status), privacy: .public)）")
@@ -607,9 +605,8 @@ public final class NonetController {
             return
         }
         let context = ActionContext(frontmostApp: session.frontmostApp)
-        let showsSuccessAfterRunning = session.settings.showExecutionToast
         executions.enqueue { [weak self] turn in
-            _ = await self?.perform(target, context: context, turn: turn, showsSuccessAfterRunning: showsSuccessAfterRunning)
+            _ = await self?.perform(target, context: context, turn: turn, showsSuccessAfterRunning: true)
         }
     }
 
@@ -845,18 +842,9 @@ public final class NonetController {
         serviceFailures[name] = nil
     }
 
-    private func applyKeyboardSettings() {
-        let keyboard = services.keyboard
-        let cursorLock = configuration.settings.cursorLock
-        if keyboard.cursorLock != cursorLock {
-            keyboard.cursorLock = cursorLock
-        }
-    }
-
     private func configurationDidChange(from previous: NonetConfiguration) {
         let old = previous.settings
         let new = configuration.settings
-        applyKeyboardSettings()
         if old.isEnabled != new.isEnabled {
             controllerLogger.info("\(new.isEnabled ? "有効" : "無効", privacy: .public)にしました")
             // 無効にしたら、始まっているセッションは何も実行せずに終える（refreshServices が状態を変えるときに終える）

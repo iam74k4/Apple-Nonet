@@ -25,9 +25,9 @@ struct ConfigurationResolvedPagesTests {
         }
     }
 
-    static func configuration(autoSwitch: Bool, append: Bool) -> NonetConfiguration {
+    static func configuration() -> NonetConfiguration {
         NonetConfiguration(
-            settings: GlobalSettings(autoSwitchProfiles: autoSwitch, appendGlobalPages: append),
+            settings: GlobalSettings(),
             profiles: [
                 ModelFixtures.globalProfile(pageCount: 3),
                 ModelFixtures.profile(ModelFixtures.safari, isEnabled: false),
@@ -36,17 +36,17 @@ struct ConfigurationResolvedPagesTests {
         )
     }
 
-    @Test("設定と前面アプリのすべての組み合わせ", arguments: [true, false], [true, false])
-    func allCombinations(autoSwitch: Bool, append: Bool) {
-        let configuration = Self.configuration(autoSwitch: autoSwitch, append: append)
+    @Test("前面アプリのすべての場合: アプリのプロファイルがあればそのページの後ろにグローバル、無ければグローバルだけ")
+    func allFrontmostCases() {
+        let configuration = Self.configuration()
         let global = configuration.profiles[0]
         let xcode = configuration.profiles[2]
 
         for frontmost in Frontmost.allCases {
             let pages = configuration.resolvedPages(frontmostBundleID: frontmost.bundleID)
-            let usesApp = autoSwitch && frontmost == .enabledProfile
+            let usesApp = frontmost == .enabledProfile
             let expectedProfiles: [(UUID, Int)] = if usesApp {
-                [(xcode.id, 0), (xcode.id, 1)] + (append ? [(global.id, 0), (global.id, 1), (global.id, 2)] : [])
+                [(xcode.id, 0), (xcode.id, 1), (global.id, 0), (global.id, 1), (global.id, 2)]
             } else {
                 [(global.id, 0), (global.id, 1), (global.id, 2)]
             }
@@ -57,7 +57,7 @@ struct ConfigurationResolvedPagesTests {
 
     @Test("ページの中身・プロファイル名・マス数")
     func pageContents() {
-        let configuration = Self.configuration(autoSwitch: true, append: true)
+        let configuration = Self.configuration()
         let pages = configuration.resolvedPages(frontmostBundleID: "com.apple.dt.Xcode")
         #expect(pages.map(\.profileName) == ["Xcode", "Xcode", ModelFixtures.globalName, ModelFixtures.globalName, ModelFixtures.globalName])
         #expect(pages[0].cells == configuration.profiles[2].pages[0].cells)
@@ -67,14 +67,14 @@ struct ConfigurationResolvedPagesTests {
 
     @Test("bundleID の大文字と小文字は区別しない")
     func caseInsensitiveBundleID() {
-        let configuration = Self.configuration(autoSwitch: true, append: false)
+        let configuration = Self.configuration()
         let pages = configuration.resolvedPages(frontmostBundleID: "COM.APPLE.DT.XCODE")
-        #expect(pages.map(\.profileName) == ["Xcode", "Xcode"])
+        #expect(pages.map(\.profileName).prefix(2) == ["Xcode", "Xcode"])
     }
 
     @Test("マス数が狂ったページも9マスで返す")
     func normalizesBrokenPages() {
-        var configuration = Self.configuration(autoSwitch: true, append: true)
+        var configuration = Self.configuration()
         configuration.profiles[0].pages[0].cells = [nil]
         configuration.profiles[2].pages[1].cells += [nil, nil]
         let pages = configuration.resolvedPages(frontmostBundleID: "com.apple.dt.Xcode")

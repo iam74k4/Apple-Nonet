@@ -159,7 +159,7 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
         #expect(model.tab == .license)
         #expect(model.wantsLicenseKeyFocus)
         #expect(!model.showsExpiredBanner)
-        model.selectTab(.about)
+        model.selectTab(.general)
         #expect(model.showsExpiredBanner)
     }
 

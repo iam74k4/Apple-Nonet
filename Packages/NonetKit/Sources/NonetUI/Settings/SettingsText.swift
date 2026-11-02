@@ -13,41 +13,6 @@ enum SettingsText {
         }
     }
 
-    static func name(_ scale: HUDScale) -> String {
-        switch scale {
-        case .standard: String(localized: "標準", bundle: .module)
-        case .large: String(localized: "大きい", bundle: .module)
-        case .extraLarge: String(localized: "特大", bundle: .module)
-        }
-    }
-
-    static func name(_ strength: HapticStrength) -> String {
-        switch strength {
-        case .off: String(localized: "オフ", bundle: .module)
-        case .light: String(localized: "弱", bundle: .module)
-        case .medium: String(localized: "中", bundle: .module)
-        case .strong: String(localized: "強", bundle: .module)
-        }
-    }
-
-    static func name(_ method: CursorLockMethod) -> String {
-        switch method {
-        case .automatic: String(localized: "自動", bundle: .module)
-        case .dropEvents: String(localized: "移動を捨てる", bundle: .module)
-        case .decouple: String(localized: "ポインタを切り離す", bundle: .module)
-        case .none: String(localized: "固定しない", bundle: .module)
-        }
-    }
-
-    static func detail(_ method: CursorLockMethod) -> String {
-        switch method {
-        case .automatic: String(localized: "移動を捨て、ずれたら元の位置に戻します", bundle: .module)
-        case .dropEvents: String(localized: "ポインタの移動イベントを捨てるだけです", bundle: .module)
-        case .decouple: String(localized: "ポインタとトラックパッドの動きを切り離します", bundle: .module)
-        case .none: String(localized: "ポインタは指に合わせて動きます", bundle: .module)
-        }
-    }
-
     static func name(_ mode: ScriptRunMode) -> String {
         switch mode {
         case .background: String(localized: "裏で実行", bundle: .module)
@@ -98,20 +63,16 @@ enum SettingsText {
         }
     }
 
-    static var hudScaleTitle: String {
-        String(localized: "HUD の大きさ", bundle: .module)
+    static var hudLargeTitle: String {
+        String(localized: "大きく表示", bundle: .module)
     }
 
-    static var hudScaleDetail: String {
-        String(localized: "画面の下に出る通知も同じ大きさになります", bundle: .module)
+    static var hudLargeDetail: String {
+        String(localized: "HUD と画面の下の通知を 1.25 倍にします", bundle: .module)
     }
 
     static var hapticsDetail: String {
-        String(localized: "開いたとき・マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行せずに閉じたときは軽く2回振動します。", bundle: .module)
-    }
-
-    static var executionToastDetail: String {
-        String(localized: "時間の掛かるマスが終わったときに、画面の下に通知を出します", bundle: .module)
+        String(localized: "開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）", bundle: .module)
     }
 
     // MARK: 日付と数の書き方

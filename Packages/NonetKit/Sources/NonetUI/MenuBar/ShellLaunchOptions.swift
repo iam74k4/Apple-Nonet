@@ -7,7 +7,7 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var selfCheck = false
     /// --config-dir <dir>: 設定の置き場所（試用の記録もメモリだけに置く）
     public var configDirectory: URL?
-    /// --show-settings [profiles|general|license|about]
+    /// --show-settings [profiles|general|license]
     public var settingsTab: SettingsTab?
     /// --show-onboarding
     public var showOnboarding = false

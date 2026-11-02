@@ -5,7 +5,7 @@ import NonetUI
 
 /// 見た目の確認用（DEBUG ビルドだけ）。起動引数:
 /// --config-dir <dir>  設定の置き場所（空のフォルダなら初回起動になる）。試用の記録もメモリだけに置く
-/// --show-settings [profiles|general|license|about]  --show-onboarding
+/// --show-settings [profiles|general|license]  --show-onboarding
 /// --preview-hud [--preview-app <bundle ID>] [--preview-backdrop <画像>]  --preview-toast  --preview-result
 /// --simulate-expired-trial  --snapshot <dir>
 @MainActor

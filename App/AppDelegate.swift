@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌘? の「Nonet ヘルプ」は利用ガイドを開く
         let guide = links.support
         NSApplication.shared.mainMenu = ShellMainMenu.make(
-            onAbout: { [weak self] in self?.showSettings(tab: .about) },
+            onAbout: { [weak self] in self?.showSettings(tab: .license) },
             onOpenSettings: { [weak self] in self?.showSettings(tab: .general) },
             onHelp: guide.map { url in { _ = NSWorkspace.shared.open(url) } }
         )

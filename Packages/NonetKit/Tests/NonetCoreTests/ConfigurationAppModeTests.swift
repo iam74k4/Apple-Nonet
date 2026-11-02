@@ -64,9 +64,6 @@ struct ConfigurationAppModeTests {
         #expect(configuration.isTurnedOff(forBundleID: "COM.apple.safari"))
         #expect(configuration.appMode(forBundleID: ModelFixtures.safari.bundleID) == .off)
         #expect(configuration.appProfile(forBundleID: ModelFixtures.safari.bundleID) == nil)
-        // 前面のアプリで切り替えない設定でも使わない
-        configuration.settings.autoSwitchProfiles = false
-        #expect(configuration.isTurnedOff(forBundleID: ModelFixtures.safari.bundleID))
         configuration.setAppMode(.global, for: ModelFixtures.safari)
         #expect(!configuration.isTurnedOff(forBundleID: ModelFixtures.safari.bundleID))
     }

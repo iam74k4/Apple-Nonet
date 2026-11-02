@@ -40,8 +40,8 @@ struct ShellCheatSheetTests {
         #expect(sheet.cell(at: -1) == nil)
     }
 
-    @Test("プロファイルが無い・グローバルを使う・自動で切り替えない・アプリが分からないときはグローバル", arguments: [
-        "noProfile", "usesGlobal", "noAutoSwitch", "unknownApp",
+    @Test("プロファイルが無い・グローバルを使う・アプリが分からないときはグローバル", arguments: [
+        "noProfile", "usesGlobal", "unknownApp",
     ])
     func globalFallback(_ situation: String) {
         var configuration = SettingsFixtures.configuration()
@@ -50,7 +50,6 @@ struct ShellCheatSheetTests {
         case "noProfile": front = SettingsFixtures.figma
         // Safari のプロファイルは無効（グローバルを使う）
         case "usesGlobal": front = SettingsFixtures.safari
-        case "noAutoSwitch": configuration.settings.autoSwitchProfiles = false
         default: front = nil
         }
         let sheet = MenuBarCheatSheet(frontApp: front, configuration: configuration)
@@ -65,19 +64,16 @@ struct ShellCheatSheetTests {
         #expect(sheet.turnedOffText == nil)
     }
 
-    @Test("「このアプリでは使わない」アプリでは、マスの代わりに短い1行（自動で切り替えない設定でも）")
+    @Test("「このアプリでは使わない」アプリでは、マスの代わりに短い1行")
     func turnedOffApp() throws {
         var configuration = SettingsFixtures.configuration()
         let name = try Self.xcodeProfile(configuration).name
         configuration.setAppMode(.off, for: Self.xcode)
-        for autoSwitch in [true, false] {
-            configuration.settings.autoSwitchProfiles = autoSwitch
-            let sheet = MenuBarCheatSheet(frontApp: Self.xcode, configuration: configuration)
-            #expect(sheet.turnedOffText == L10n.ui("\(name) では Nonet を使いません"))
-            #expect(sheet.pages.isEmpty)
-            #expect(sheet.location(ofCell: 0) == nil)
-            #expect(MenuBarEntry.cheatSheet(sheet).title == sheet.turnedOffText)
-        }
+        let sheet = MenuBarCheatSheet(frontApp: Self.xcode, configuration: configuration)
+        #expect(sheet.turnedOffText == L10n.ui("\(name) では Nonet を使いません"))
+        #expect(sheet.pages.isEmpty)
+        #expect(sheet.location(ofCell: 0) == nil)
+        #expect(MenuBarEntry.cheatSheet(sheet).title == sheet.turnedOffText)
     }
 
     @Test("ページ: ‹ › で移り、端で止まる。つなげたグローバルのページでは見出しと開く場所がグローバルになる")
@@ -88,7 +84,6 @@ struct ShellCheatSheetTests {
             _ = configuration.addPage(profileID: xcodeID)
         }
         configuration.renamePage(at: 1, profileID: xcodeID, to: "デバッグ")
-        configuration.settings.appendGlobalPages = true
         let appPages = try Self.xcodeProfile(configuration).pages.count
         let globalPages = configuration.globalProfile.pages.count
         var sheet = MenuBarCheatSheet(frontApp: Self.xcode, configuration: configuration)
@@ -119,12 +114,6 @@ struct ShellCheatSheetTests {
         #expect(sheet.pageIndex == sheet.pageCount - 1)
         sheet.showPage(-3)
         #expect(sheet.pageIndex == 0)
-
-        // グローバルのページをつなげなければ、アプリのページだけ
-        configuration.settings.appendGlobalPages = false
-        let appOnly = MenuBarCheatSheet(frontApp: Self.xcode, configuration: configuration)
-        #expect(appOnly.pageCount == appPages)
-        #expect(appOnly.globalPagesStart == nil)
     }
 
     @Test("ページが1枚なら何ページ目かは言わない")

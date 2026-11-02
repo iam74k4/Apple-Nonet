@@ -307,7 +307,6 @@ struct ShellOnboardingTests {
             configuration.settings.hudScale = .large
             configuration.settings.hudPosition = .nearCursor
             configuration.settings.haptics = .strong
-            configuration.settings.cursorLock = .dropEvents
         }
         let settingsBefore = harness.controller.configuration.settings
         model.next()

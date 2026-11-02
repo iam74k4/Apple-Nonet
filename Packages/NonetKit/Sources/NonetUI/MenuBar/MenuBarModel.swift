@@ -30,10 +30,9 @@ enum MenuBarEditTarget: Equatable {
         }
     }
 
-    /// frontApp は Nonet を数えない前面のアプリ（メニューを開いても Nonet は前面にならない）。
-    /// プロファイルを自動で切り替えないなら、アプリのプロファイルは使われないのでグローバル
+    /// frontApp は Nonet を数えない前面のアプリ（メニューを開いても Nonet は前面にならない）
     static func resolve(frontApp: AppReference?, configuration: NonetConfiguration) -> MenuBarEditTarget {
-        guard let frontApp, configuration.settings.autoSwitchProfiles,
+        guard let frontApp,
               !frontApp.bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .global }
         if let profile = OnboardingModel.profile(forBundleID: frontApp.bundleID, in: configuration.profiles) {
             return .app(frontApp, name: profile.name)

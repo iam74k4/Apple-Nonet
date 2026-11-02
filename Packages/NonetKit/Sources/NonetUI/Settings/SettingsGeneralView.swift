@@ -38,63 +38,18 @@ struct SettingsGeneralView: View {
                     Text("ポインタのあるディスプレイに出ます", bundle: .module)
                 }
                 .pickerStyle(.segmented)
-                Picker(selection: binding(\.hudScale)) {
-                    ForEach(HUDScale.allCases, id: \.self) { scale in
-                        Text(SettingsText.name(scale)).tag(scale)
-                    }
-                } label: {
-                    Text(SettingsText.hudScaleTitle)
-                    Text(SettingsText.hudScaleDetail)
+                // 前の版の「特大」は、大きく表示のオンとして見せる（オフにすると標準に戻る）
+                Toggle(isOn: Binding(get: { model.settings.hudScale != .standard }, set: { model.setSetting(\.hudScale, $0 ? .large : .standard) })) {
+                    Text(SettingsText.hudLargeTitle)
+                    Text(SettingsText.hudLargeDetail)
                 }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("開き方と HUD", bundle: .module)
-            }
-
-            Section {
-                Toggle(isOn: binding(\.autoSwitchProfiles)) {
-                    Text("前面のアプリで切り替える", bundle: .module)
-                    Text("オフにすると、いつもグローバルのプロファイルを使います", bundle: .module)
-                }
-                Toggle(isOn: binding(\.appendGlobalPages)) {
-                    Text("グローバルのページをつなげる", bundle: .module)
-                    Text("アプリのページの後ろにグローバルのページをつなげ、ページを切り替えて行けるようにします", bundle: .module)
-                }
-                .disabled(!model.settings.autoSwitchProfiles)
-            } header: {
-                Text("プロファイル", bundle: .module)
-            }
-
-            Section {
-                Picker(selection: binding(\.haptics)) {
-                    ForEach(HapticStrength.allCases, id: \.self) { strength in
-                        Text(SettingsText.name(strength)).tag(strength)
-                    }
-                } label: {
+                // 前の版の「弱」「強」は、オンとして見せる（オフにするとオフ、オンにすると中）
+                Toggle(isOn: Binding(get: { model.settings.haptics != .off }, set: { model.setSetting(\.haptics, $0 ? .medium : .off) })) {
                     Text("触覚", bundle: .module)
                     Text(SettingsText.hapticsDetail)
                 }
-                .pickerStyle(.segmented)
-                Toggle(isOn: binding(\.showExecutionToast)) {
-                    Text("実行したことを表示", bundle: .module)
-                    Text(SettingsText.executionToastDetail)
-                }
             } header: {
-                Text("フィードバック", bundle: .module)
-            }
-
-            Section {
-                Picker(selection: binding(\.cursorLock)) {
-                    ForEach(CursorLockMethod.allCases, id: \.self) { method in
-                        Text(SettingsText.name(method)).tag(method)
-                    }
-                } label: {
-                    // 「詳細」の見出しの中なので、名前に「（詳細）」は付けない
-                    Text("ポインタの固定方法", bundle: .module)
-                    Text(SettingsText.detail(model.settings.cursorLock))
-                }
-            } header: {
-                Text("詳細", bundle: .module)
+                Text("開き方と HUD", bundle: .module)
             }
 
             Section {
@@ -108,39 +63,8 @@ struct SettingsGeneralView: View {
             } header: {
                 Text("起動", bundle: .module)
             }
-
-            Section {
-                LabeledContent {
-                    HStack(spacing: 8) {
-                        Button {
-                            Task { await model.exportAllProfiles(suggestedName: defaultExportName) }
-                        } label: {
-                            Text("書き出す…", bundle: .module)
-                        }
-                        Button {
-                            Task { await model.importProfiles() }
-                        } label: {
-                            Text("読み込む…", bundle: .module)
-                        }
-                        SettingsRestoreBackupButton(model: model)
-                    }
-                } label: {
-                    Text("プロファイルの書き出し / 読み込み", bundle: .module)
-                    Text("すべてのプロファイルを .\(ConfigurationStore.profileDocumentExtension) のファイルに書き出します。1つだけ書き出すときは、プロファイルの一覧で右クリックします。", bundle: .module)
-                }
-                SettingsNote(
-                    text: String(localized: "ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください（スクリプトはあなたの権限で動きます）", bundle: .module),
-                    symbol: "exclamationmark.shield"
-                )
-            } header: {
-                Text("書き出しと読み込み", bundle: .module)
-            }
         }
         .formStyle(.grouped)
-    }
-
-    private var defaultExportName: String {
-        String(localized: "Nonet のプロファイル", bundle: .module)
     }
 
     private func binding<Value: Equatable>(_ keyPath: WritableKeyPath<GlobalSettings, Value>) -> Binding<Value> {

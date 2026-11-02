@@ -30,7 +30,7 @@ import Testing
         #expect(window.contentMinSize.height >= 560)
         #expect(!window.isVisible)
         let toolbar = try #require(window.toolbar)
-        #expect(toolbar.items.map(\.label) == [L10n.ui("プロファイル"), L10n.ui("一般"), L10n.ui("ライセンス"), L10n.ui("情報")])
+        #expect(toolbar.items.map(\.label) == [L10n.ui("プロファイル"), L10n.ui("一般"), "Nonet"])
         #expect(window.delegate != nil)
         #expect(controller.model.files != nil)
     }
@@ -119,7 +119,7 @@ import Testing
         let window = controller.loadWindow()
         controller.select(.license)
         #expect(controller.model.tab == .license)
-        #expect(window.title == L10n.ui("ライセンス"))
+        #expect(window.title == "Nonet")
         #expect(window.toolbar?.selectedItemIdentifier == SettingsWindowCoordinator.identifier(for: .license))
         controller.select(.general)
         #expect(window.title == L10n.ui("一般"))

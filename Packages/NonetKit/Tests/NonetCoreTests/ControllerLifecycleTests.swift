@@ -26,7 +26,6 @@ import Testing
         #expect(h.keyboard.isRunning)
         #expect(h.touchSource.isRunning)
         #expect(h.frontmost.isRunning)
-        #expect(h.keyboard.cursorLock == .automatic)
         #expect(h.controller.activeProfileName == "Safari")
         #expect(hasPoll(h))
     }
@@ -342,14 +341,6 @@ import Testing
 
     // MARK: 設定の反映
 
-    @Test func settingsAreAppliedToTheKeyboardMonitor() throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.controller.update { $0.settings.cursorLock = .decouple }
-        #expect(h.keyboard.cursorLock == .decouple)
-        #expect(h.keyboard.isRunning)
-    }
-
     @Test func otherChangesKeepTheSession() async throws {
         let h = try ControllerHarness()
         h.start()
@@ -418,9 +409,6 @@ import Testing
         h.frontmost.activate(F.safariApp)
         #expect(h.controller.activeProfileName == "Safari")
 
-        h.controller.update { $0.settings.autoSwitchProfiles = false }
-        #expect(h.controller.activeProfileName == ModelFixtures.globalName)
-        h.controller.update { $0.settings.autoSwitchProfiles = true }
         let safariID = try h.profileID(F.safari)
         h.controller.update { $0.updateProfile(id: safariID) { $0.isEnabled = false } }
         #expect(h.controller.activeProfileName == ModelFixtures.globalName)

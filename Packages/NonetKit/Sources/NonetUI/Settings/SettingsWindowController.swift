@@ -9,8 +9,8 @@ public enum SettingsTab: String, CaseIterable, Sendable {
     case profiles
     /// 開き方の説明や HUD など全体の設定
     case general
+    /// ライセンス・書き出しと読み込み・バージョンとアップデート・利用ガイド・アンインストール（タブの名前は「Nonet」）
     case license
-    case about
 }
 
 /// 販売サイトのページ。Info.plist の値（未設定なら nil で、そのリンクは出さない）

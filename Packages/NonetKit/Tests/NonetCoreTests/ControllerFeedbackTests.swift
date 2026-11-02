@@ -81,20 +81,6 @@ import Testing
         #expect(h.hud.toastHides == 0)
     }
 
-    @Test func theRunningToastIsHiddenWhenThereIsNothingElseToShow() async throws {
-        let h = try ControllerHarness(configuration: buildConfiguration { $0.showExecutionToast = false })
-        h.performer.holdsAction = { $0 == Self.build.action }
-        h.start()
-        h.run(0)
-        await h.waitUntil { h.performer.calls.count == 1 }
-        h.advance(1)
-        #expect(h.hud.toasts.map(\.style) == [.running])
-        h.performer.release(Self.build.action)
-        await h.settle()
-        #expect(h.hud.toasts.map(\.style) == [.running])
-        #expect(h.hud.toastHides == 1)
-    }
-
     @Test func aFailureReplacesTheRunningToast() async throws {
         let h = try ControllerHarness(configuration: buildConfiguration())
         h.performer.holdsAction = { $0 == Self.build.action }
@@ -136,7 +122,7 @@ import Testing
     }
 
     @Test func keystrokesNeverShowARunningToast() async throws {
-        let h = try ControllerHarness(configuration: buildConfiguration { $0.showExecutionToast = false })
+        let h = try ControllerHarness(configuration: buildConfiguration())
         h.performer.holdsAction = { $0 == F.newTab.action }
         h.start()
         h.run(1)

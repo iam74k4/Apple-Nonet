@@ -518,7 +518,7 @@ import Testing
     }
 
     @Test func failuresAlwaysShowAFailureToast() async throws {
-        let h = try ControllerHarness(configuration: F.configuration(settings: F.settings { $0.showExecutionToast = false }))
+        let h = try ControllerHarness(configuration: F.configuration())
         h.performer.failure = { $0 == F.closeTab.action ? NonetError.actionFailed("だめでした") : nil }
         h.start()
         h.run(2)

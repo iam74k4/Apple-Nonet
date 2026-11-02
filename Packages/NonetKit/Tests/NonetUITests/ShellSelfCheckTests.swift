@@ -274,7 +274,7 @@ struct ShellSelfCheckTests {
         let unknown = ShellLaunchOptions.parse(["Nonet", "--show-settings", "--preview-hud"])
         #expect(unknown.settingsTab == .profiles)
         #expect(unknown.previewHUD)
-        #expect(ShellLaunchOptions.parse(["Nonet", "--show-settings", "about"]).settingsTab == .about)
+        #expect(ShellLaunchOptions.parse(["Nonet", "--show-settings", "about"]).settingsTab == .profiles)
         #expect(ShellLaunchOptions.parse(["Nonet", "--show-settings", "general"]).settingsTab == .general)
     }
 
