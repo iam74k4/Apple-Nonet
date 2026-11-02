@@ -37,7 +37,7 @@ extension PresetData {
     /// 出典: https://support.apple.com/en-us/102650 （Finder とシステムのショートカット）
     /// 中央: 選択中のテキストが無いので AI ではなく、ファイルを開かずに中身を確かめるクイックルックを置く。
     /// 隠しファイルの表示 ⇧⌘. はこのページに載っていないので入れない。
-    /// 2ページ目は、Finder で選んだファイルへの操作。開く・複製・名前の変更・ゴミ箱に入れるは Nonet のファイルのアクション
+    /// 2ページ目は、Finder で選んだファイルへの操作。複製・名前の変更・ゴミ箱に入れるは Nonet のファイルのアクション
     /// （Finder が前面のときだけ動く）。ゴミ箱に入れるは押し間違えると困るので、少し長く止めてから実行する。
     /// 名前の変更と移動は Finder のキーに無い（移動は先のフォルダを決める必要があるので入れない）。右下は、デスクトップの絵を撮る「範囲を撮影」
     static var finder: AppPreset {
@@ -57,7 +57,7 @@ extension PresetData {
                     PresetBuilder.key("AirDrop", "dot.radiowaves.up.forward", .key("r", [.shift, .command])),
                 ]),
                 Page(cells: [
-                    PresetBuilder.file("開く", "arrow.up.right.square", FileAction(operation: .open)),
+                    PresetBuilder.key("開く", "arrow.up.right.square", .special(.downArrow, .command)),
                     PresetBuilder.file("複製", "plus.square.on.square", FileAction(operation: .duplicate)),
                     PresetBuilder.file("名前を変更", "pencil", FileAction(operation: .rename)),
                     PresetBuilder.key("新規フォルダへ", "folder.fill.badge.plus", .key("n", [.control, .command])),
@@ -65,7 +65,7 @@ extension PresetData {
                     PresetBuilder.key("エイリアスを作る", "arrowshape.turn.up.right", .key("a", [.control, .command])),
                     PresetBuilder.key("元のファイル", "arrow.uturn.backward", .key("r", .command)),
                     PresetBuilder.key("サイドバーに追加", "sidebar.left", .key("t", [.control, .command])),
-                    PresetBuilder.capture("範囲を撮影", "rectangle.dashed", ScreenCaptureAction(mode: .area)),
+                    PresetBuilder.captureArea(),
                 ], name: PresetBuilder.text("選んだファイル")),
             ],
             summary: { "選んだファイルの操作、クイックルック、AirDrop など\($0)個" }

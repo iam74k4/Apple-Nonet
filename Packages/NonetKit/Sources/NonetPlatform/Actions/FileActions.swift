@@ -1,5 +1,5 @@
 // 担当: platform-actions
-// Finder で選んでいるファイルを、開く・ゴミ箱に入れる・名前を変える・複製する・移す。
+// Finder で選んでいるファイルを、ゴミ箱に入れる・名前を変える・複製する。
 // Finder の選択を読むのも、動かすのも Finder に頼む（AppleScript）。そうすると、デスクトップ・書類・外付けのディスクなど
 // アクセスに許可が要る場所のファイルも、Nonet が「Finder を操作する許可」だけで扱える（Nonet 自身はファイルの場所を調べない）。
 // ゴミ箱に入れるのも Finder の「ゴミ箱に入れる」と同じなので、ゴミ箱から元の場所へ戻せる。完全な削除はしない。
@@ -7,7 +7,15 @@
 import AppKit
 import NonetCore
 
-// MARK: - osascript
+// MARK: - キーを送る・osascript
+
+/// キーを送る（テストでは偽物にする）
+@MainActor
+protocol KeySending {
+    func send(_ sequence: KeySequence) async throws
+}
+
+extension KeySender: KeySending {}
 
 /// osascript を動かす（テストでは偽物にする）
 protocol OsascriptRunning: Sendable {
@@ -43,8 +51,6 @@ enum FinderSelection {
     static let bundleID = "com.apple.finder"
     /// 一度に扱うファイルの数の上限。デスクトップを全部選んだまま、ゴミ箱に入れてしまわないように
     static let limit = 500
-    /// 開くファイルの数の上限（アプリやウインドウが何百も開かないように）
-    static let openLimit = 20
     /// 初めて使うときは、macOS の「Finder を操作しようとしています」の確認が出ている間も待つ（確認に答えるまでは、Finder に届かない）
     static let readTimeout: TimeInterval = 30
 
@@ -79,10 +85,6 @@ enum FilePlan {
             throw NonetError.actionFailed(String(localized: "選んでいるファイルが多すぎます（\(FinderSelection.limit)個まで）", bundle: .nonetActions))
         }
         switch operation {
-        case .open:
-            guard paths.count <= FinderSelection.openLimit else {
-                throw NonetError.actionFailed(String(localized: "一度に開けるのは\(FinderSelection.openLimit)個までです", bundle: .nonetActions))
-            }
         case .rename:
             guard paths.count == 1 else {
                 throw NonetError.actionFailed(String(localized: "名前を変えるときは、ファイルを1つだけ選んでください", bundle: .nonetActions))
@@ -92,10 +94,10 @@ enum FilePlan {
             if paths.contains(where: isInTrash) {
                 throw NonetError.actionFailed(String(localized: "ゴミ箱の中のファイルは、ここでは削除しません", bundle: .nonetActions))
             }
-        case .duplicate, .move:
+        case .duplicate:
             break
         }
-        if operation.changesFiles, paths.contains(where: { isProtected($0, home: home) }) {
+        if paths.contains(where: { isProtected($0, home: home) }) {
             throw NonetError.actionFailed(String(localized: "このフォルダは、ここでは動かせません", bundle: .nonetActions))
         }
     }
@@ -124,25 +126,15 @@ enum FilePlan {
         return false
     }
 
-    /// 移す先。"~" を直し、前後の空白と末尾の "/" を除いた絶対パス。絶対パスにならない・ゴミ箱の中なら nil
-    /// （フォルダかどうかは Finder に頼む AppleScript が確かめる。Nonet は場所を調べない）
-    static func destination(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        var path = (trimmed as NSString).expandingTildeInPath
-        guard path.hasPrefix("/") else { return nil }
-        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
-        return isInTrash(path) ? nil : path
-    }
 }
 
 // MARK: - 実行
 
 @MainActor
 final class FileActionRunner {
-    /// 開く・ゴミ箱に入れる・名前の変更の制限時間
+    /// ゴミ箱に入れる制限時間
     static let actionTimeout: TimeInterval = 60
-    /// 複製と移動は、大きなファイルやほかのディスクとの間で長く掛かる
+    /// 複製は、大きなファイルで長く掛かる
     static let copyTimeout: TimeInterval = 600
 
     private let osascript: any OsascriptRunning
@@ -166,26 +158,15 @@ final class FileActionRunner {
         // 9マスを開いたときの前面アプリではなく、今の前面アプリで確かめる（待っている間に変わることがある）。
         // 別のアプリが前面のとき、Finder の裏のウインドウで選んだままのファイルを動かさない
         try requireFinderInFront()
-        var destination: String?
-        if action.operation == .move {
-            guard let path = FilePlan.destination(action.destination) else {
-                throw NonetError.actionFailed(String(localized: "移動先のフォルダが見つかりません", bundle: .nonetActions))
-            }
-            destination = path
-        }
         let paths = try await selection()
         try FilePlan.check(action.operation, paths: paths, home: home)
         // 選択を読んでいる間に、前面が変わっていないことも確かめる
         try requireFinderInFront()
         switch action.operation {
-        case .open:
-            try await perform(FileScripts.open, paths, timeout: Self.actionTimeout)
         case .trash:
             try await perform(FileScripts.trash, paths, timeout: Self.actionTimeout)
         case .duplicate:
             try await perform(FileScripts.duplicate, paths, timeout: Self.copyTimeout)
-        case .move:
-            try await perform(FileScripts.move, [destination ?? ""] + paths, timeout: Self.copyTimeout)
         case .rename:
             // Finder で選んだ1つのファイルの名前を、その場で書き換えられる状態にする（Return と同じ）
             try await keys.send(KeySequence([KeyChord(.special(.returnKey))]))
@@ -232,12 +213,10 @@ final class FileActionRunner {
 
 /// Finder に頼む AppleScript。ファイルのパスは、文に埋め込まず argv で渡す（引用符などで壊れない）。
 /// パスを alias にすると、シンボリックリンクはリンク先に置き換わり、Finder がリンク先を動かしてしまう。
-/// だから、動かす操作では alias のパスが元のパスと同じか確かめ、違えば動かさない（error 1002）
+/// だから、alias のパスが元のパスと同じか確かめ、違えば動かさない（error 1002）
 enum FileScripts {
     /// Finder に頼むときの独自のエラー番号
     enum ErrorNumber {
-        /// 移す先のフォルダが無い・フォルダではない
-        static let destination = 1001
         /// シンボリックリンクなど、パスの指す先が違うもの
         static let link = 1002
         /// ゴミ箱の無いディスク（ネットワーク上の場所など）
@@ -245,12 +224,12 @@ enum FileScripts {
     }
 
     private static let handlers = """
-    on aliasList(paths, strict)
+    on aliasList(paths)
         set items_ to {}
         repeat with p in paths
             set thePath to contents of p
             set a to (POSIX file thePath) as alias
-            if strict and not my samePath(POSIX path of a, thePath) then error "link" number \(ErrorNumber.link)
+            if not my samePath(POSIX path of a, thePath) then error "link" number \(ErrorNumber.link)
             set end of items_ to a
         end repeat
         return items_
@@ -271,17 +250,9 @@ enum FileScripts {
 
     """
 
-    /// 開くのは、シンボリックリンクならリンク先を開く（ダブルクリックと同じ）
-    static let open = handlers + """
-    on run argv
-        set targets to aliasList(argv, false)
-        tell application "Finder" to open targets
-    end run
-    """
-
     static let trash = handlers + """
     on run argv
-        set targets to aliasList(argv, true)
+        set targets to aliasList(argv)
         repeat with a in targets
             tell application "Finder" to set isLocal to local volume of (disk of (item a))
             if not isLocal then error "no trash" number \(ErrorNumber.noTrash)
@@ -292,25 +263,11 @@ enum FileScripts {
 
     static let duplicate = handlers + """
     on run argv
-        set targets to aliasList(argv, true)
+        set targets to aliasList(argv)
         tell application "Finder" to duplicate targets
     end run
     """
 
-    /// argv の最初が移す先のフォルダ、残りが移すファイル。同じ名前があれば上書きせずに失敗する
-    static let move = handlers + """
-    on run argv
-        try
-            set destination to (POSIX file (item 1 of argv)) as alias
-            tell application "Finder" to set destinationClass to (class of (item destination)) as text
-        on error
-            error "destination" number \(ErrorNumber.destination)
-        end try
-        if destinationClass is not in {"folder", "disk"} then error "destination" number \(ErrorNumber.destination)
-        set targets to aliasList(rest of argv, true)
-        tell application "Finder" to move targets to destination
-    end run
-    """
 }
 
 enum FinderScriptFailure {
@@ -328,8 +285,6 @@ enum FinderScriptFailure {
             return .actionFailed(String(localized: "Finder が起動していません", bundle: .nonetActions))
         case -48, -15267:
             return .actionFailed(String(localized: "同じ名前のファイルがあります", bundle: .nonetActions))
-        case FileScripts.ErrorNumber.destination:
-            return .actionFailed(String(localized: "移動先のフォルダが見つかりません", bundle: .nonetActions))
         case FileScripts.ErrorNumber.link:
             return .actionFailed(String(localized: "シンボリックリンクは、ここでは動かせません（リンク先を動かしてしまうため）", bundle: .nonetActions))
         case FileScripts.ErrorNumber.noTrash:

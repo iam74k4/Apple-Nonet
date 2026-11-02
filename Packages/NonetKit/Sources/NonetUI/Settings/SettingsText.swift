@@ -556,44 +556,17 @@ extension SettingsText {
     /// ファイルの操作の説明
     static func detail(_ operation: FileOperation) -> String {
         switch operation {
-        case .open:
-            String(localized: "既定のアプリで開きます（ダブルクリックと同じ）。", bundle: .module)
         case .trash:
             String(localized: "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。ネットワーク上のファイルなど、ゴミ箱の無い場所のものは入れません。", bundle: .module)
         case .rename:
             String(localized: "Finder の名前の変更（Return を押したときと同じ）を始めます。名前を入力して Return で決めます。1つだけ選んでいるときに使えます。", bundle: .module)
         case .duplicate:
             String(localized: "同じ場所にコピーを作ります。", bundle: .module)
-        case .move:
-            String(localized: "決めたフォルダに移します。同じ名前のファイルがあるときは、上書きせずに知らせます。", bundle: .module)
         }
     }
 
     /// ファイルの操作の対象と許可の説明
     static var fileTarget: String {
         String(localized: "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。シンボリックリンクは、リンク先を動かしてしまうので動かしません。初めて使うときに、macOS が Nonet に Finder の操作を許可するか尋ねます。", bundle: .module)
-    }
-}
-
-extension SettingsText {
-    /// 撮影の操作の説明
-    static func detail(_ mode: ScreenCaptureMode) -> String {
-        switch mode {
-        case .area:
-            String(localized: "撮る範囲を選ぶ画面を出します。選んだ範囲を撮ります。", bundle: .module)
-        case .window:
-            String(localized: "撮るウインドウを選ぶ画面を出します。クリックしたウインドウを撮ります。", bundle: .module)
-        case .fullScreen:
-            String(localized: "画面全体をすぐに撮ります。", bundle: .module)
-        case .toolbar:
-            String(localized: "撮影と収録のメニューを出します。画面収録は、ここで範囲を選んで始めます。", bundle: .module)
-        case .stopRecording:
-            String(localized: "画面収録を止めます。収録していないときは何も起きません。", bundle: .module)
-        }
-    }
-
-    /// 撮影のキーと許可の説明
-    static var screenCaptureKeys: String {
-        String(localized: "macOS のスクリーンショットのキーボードショートカットを送ります。システム設定で変えていれば、そのキーを使います。保存先は macOS のスクリーンショットの設定に従い、Nonet が画面を読むことはありません（画面収録の許可は要りません）。", bundle: .module)
     }
 }

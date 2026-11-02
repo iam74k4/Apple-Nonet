@@ -51,8 +51,6 @@ protocol SettingsFileChoosing: AnyObject {
     func chooseImportSource() async -> URL?
     /// 一覧に無いアプリを選ぶ
     func chooseApplication() async -> URL?
-    /// ファイルを移す先のフォルダを選ぶ
-    func chooseFolder() async -> URL?
 }
 
 @MainActor
@@ -947,8 +945,8 @@ final class SettingsModel {
     // MARK: - テスト実行
 
     func startTestRun(cellID: UUID) {
-        // ファイルを変える操作は、今 Finder で選んでいるファイルに実際に働くので、確かめてから行う
-        if case .file(let file)? = cell(id: cellID)?.action, file.operation.changesFiles {
+        // ファイルの操作は、今 Finder で選んでいるファイルに実際に働くので、確かめてから行う
+        if case .file(let file)? = cell(id: cellID)?.action {
             confirmation = .testRunFile(cellID: cellID, operation: file.operation.title)
             return
         }

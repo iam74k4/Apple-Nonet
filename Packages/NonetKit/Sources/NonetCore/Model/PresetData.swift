@@ -36,9 +36,9 @@ enum PresetBuilder {
         Cell(title: text(title), icon: .symbol(symbol), action: .file(action))
     }
 
-    /// スクリーンショットと画面収録（macOS のショートカットを送る）
-    static func capture(_ title: String.LocalizationValue, _ symbol: String, _ action: ScreenCaptureAction) -> Cell {
-        Cell(title: text(title), icon: .symbol(symbol), action: .screenCapture(action))
+    /// 範囲を選んで撮るスクリーンショット（macOS の ⇧⌘4）。出典: https://support.apple.com/en-us/102646
+    static func captureArea() -> Cell {
+        key("範囲を撮影", "rectangle.dashed", .key("4", [.shift, .command]))
     }
 
     static func launch(_ title: String.LocalizationValue, _ symbol: String, _ app: AppReference) -> Cell {

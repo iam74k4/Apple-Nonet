@@ -252,12 +252,7 @@ import Testing
                 #expect(!url.url.isEmpty)
             case .ai(let ai):
                 #expect(!ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            case .file(let file):
-                // 移動は先のフォルダを決める必要があるので、プリセットには入れない
-                #expect(file.operation != .move)
-            case .screenCapture:
-                break
-            case .keystroke, .shortcut:
+            case .keystroke, .shortcut, .file:
                 break
             }
         }

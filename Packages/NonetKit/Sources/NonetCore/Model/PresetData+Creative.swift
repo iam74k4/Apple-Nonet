@@ -20,7 +20,7 @@ extension PresetData {
                 PresetBuilder.key("トーンカーブ", "point.topleft.down.to.point.bottomright.curvepath", .key("m", .command)),
                 PresetBuilder.key("レイヤーを結合", "square.stack.3d.down.right", .key("e", .command)),
                 PresetBuilder.key("表示レイヤー結合", "square.stack.3d.down.forward", .key("e", [.shift, .command])),
-                PresetBuilder.capture("範囲を撮影", "rectangle.dashed", ScreenCaptureAction(mode: .area)),
+                PresetBuilder.captureArea(),
             ],
             summary: { "新規レイヤー、自由変形、結合など\($0)個" }
         )
@@ -43,7 +43,7 @@ extension PresetData {
                 PresetBuilder.key("すべてブレード", "scissors.badge.ellipsis", .key("b", [.shift, .command])),
                 PresetBuilder.key("トランジション", "arrow.left.arrow.right", .key("t", .command)),
                 PresetBuilder.holdBeforeRunning(PresetBuilder.key("共有", "square.and.arrow.up", .key("e", .command))),
-                PresetBuilder.capture("範囲を撮影", "rectangle.dashed", ScreenCaptureAction(mode: .area)),
+                PresetBuilder.captureArea(),
             ],
             summary: { "ブレード、トランジション、共有など\($0)個" }
         )

@@ -95,14 +95,14 @@ enum ControllerExecutionPolicy {
     /// どの実行も、後の実行をこれより長くは待たせない（応答しないアプリなどで、後のマスがすべて止まらないように）
     static let holdLimit: TimeInterval = 5
 
-    /// 終わるまで数十秒以上掛かることがあるアクション（裏で動くスクリプト・ショートカット・AI・ファイルの複製と移動）
+    /// 終わるまで数十秒以上掛かることがあるアクション（裏で動くスクリプト・ショートカット・AI・ファイルの複製）
     static func isLongRunning(_ action: Action) -> Bool {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        // 大きなファイルの複製や、ほかのディスクへの移動は、長く掛かる
-        case .file(let file): file.operation == .duplicate || file.operation == .move
-        case .keystroke, .launchApp, .openURL, .menuItem, .screenCapture: false
+        // 大きなファイルの複製は、長く掛かる
+        case .file(let file): file.operation == .duplicate
+        case .keystroke, .launchApp, .openURL, .menuItem: false
         }
     }
 
@@ -119,7 +119,7 @@ enum ControllerExecutionPolicy {
         // 裏のスクリプトとショートカットも、出力で選択範囲を置き換えるなら ⌘V を送る
         case .script(let script): script.runMode == .background && script.output == .replaceSelection
         case .shortcut(let shortcut): shortcut.output == .replaceSelection
-        case .launchApp, .openURL, .menuItem, .file, .screenCapture: false
+        case .launchApp, .openURL, .menuItem, .file: false
         }
     }
 
@@ -127,8 +127,7 @@ enum ControllerExecutionPolicy {
     /// （戻すと「前面なら隠す」の起動が、そのアプリを隠してしまう）
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
-        // macOS のスクリーンショットのキーは、どのアプリが前面でも同じように効く
-        case .launchApp, .openURL, .screenCapture: false
+        case .launchApp, .openURL: false
         case .keystroke, .script, .shortcut, .menuItem, .ai, .file: true
         }
     }

@@ -118,7 +118,7 @@ extension PresetData {
                 PresetBuilder.key("発表者ノート", "note.text", .key("p", [.shift, .command])),
                 PresetBuilder.key("最前面へ", "square.3.layers.3d.top.filled", .key("f", [.shift, .command])),
                 PresetBuilder.key("最背面へ", "square.3.layers.3d.bottom.filled", .key("b", [.shift, .command])),
-                PresetBuilder.capture("範囲を撮影", "rectangle.dashed", ScreenCaptureAction(mode: .area)),
+                PresetBuilder.captureArea(),
             ],
             summary: { "再生、新規スライド、発表者ノートなど\($0)個" }
         )

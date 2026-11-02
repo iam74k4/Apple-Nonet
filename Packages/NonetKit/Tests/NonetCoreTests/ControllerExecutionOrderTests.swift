@@ -16,7 +16,6 @@ import Testing
         .ai(AIAction(prompt: "要約して", output: .showResult)),
         .ai(AIAction(prompt: "直して", output: .replaceSelection)),
         .file(FileAction(operation: .duplicate)),
-        .file(FileAction(operation: .move, destination: "/tmp")),
     ]
     nonisolated static let serial: [Action] = [
         .keystroke(.key("s", [.command])),
@@ -26,8 +25,6 @@ import Testing
         .script(ScriptAction(source: "claude", runMode: .terminal)),
         .file(FileAction(operation: .rename)),
         .file(FileAction(operation: .trash)),
-        .file(FileAction(operation: .open)),
-        .screenCapture(ScreenCaptureAction(mode: .window)),
     ]
 
     /// Safari の1ページ目: [first, 新しいタブ, タブを閉じる, 空…]

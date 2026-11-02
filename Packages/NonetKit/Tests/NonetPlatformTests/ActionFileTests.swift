@@ -151,22 +151,18 @@ struct ActionFileTests {
         }
     }
 
-    @Test("多すぎる選択は動かさない。開くのは20個まで")
+    @Test("多すぎる選択は動かさない")
     func tooManyFiles() async throws {
         let many = (0...FinderSelection.limit).map { "/Users/tester/f\($0).txt" }
         let osascript = FakeOsascript(selection: urls(many))
         await #expect(throws: NonetError.self) {
             try await runner(osascript).run(FileAction(operation: .trash))
         }
-        let some = FakeOsascript(selection: urls((0...FinderSelection.openLimit).map { "/Users/tester/f\($0).txt" }))
-        await #expect(throws: NonetError.self) {
-            try await runner(some).run(FileAction(operation: .open))
-        }
-        #expect(some.calls.map(\.language) == ["js"])
-        // 20個ちょうどなら開く
-        let exact = FakeOsascript(selection: urls((1...FinderSelection.openLimit).map { "/Users/tester/f\($0).txt" }))
-        try await runner(exact).run(FileAction(operation: .open))
-        #expect(exact.calls.last?.arguments.count == FinderSelection.openLimit)
+        #expect(osascript.calls.map(\.language) == ["js"])
+        // 上限ちょうどなら動かす
+        let exact = FakeOsascript(selection: urls((1...FinderSelection.limit).map { "/Users/tester/f\($0).txt" }))
+        try await runner(exact).run(FileAction(operation: .duplicate))
+        #expect(exact.calls.last?.arguments.count == FinderSelection.limit)
     }
 
     @Test("ゴミ箱の中のファイルは、ゴミ箱に入れない")
@@ -180,23 +176,19 @@ struct ActionFileTests {
         }
     }
 
-    @Test("ホーム・ホームの標準のフォルダ・ディスクの一番上・システムのフォルダ・ほかの利用者のホーム・クラウドの置き場は、開く以外の操作をしない",
+    @Test("ホーム・ホームの標準のフォルダ・ディスクの一番上・システムのフォルダ・ほかの利用者のホーム・クラウドの置き場は動かさない",
           arguments: [
               "/Users/tester", "/Users/tester/Desktop", "/Users/tester/Documents", "/Users/tester/Downloads", "/Users/tester/Library",
               "/Users/tester/Library/CloudStorage/Dropbox", "/Users/other", "/Applications", "/Volumes/Backup", "/System", "/",
           ])
-    func refusesProtectedPlacesForEveryChangingOperation(path: String) async throws {
-        for operation in FileOperation.allCases where operation.changesFiles {
+    func refusesProtectedPlacesForEveryOperation(path: String) async {
+        for operation in FileOperation.allCases {
             let osascript = FakeOsascript(selection: urls([path]))
             await #expect(throws: NonetError.self) {
-                try await runner(osascript).run(FileAction(operation: operation, destination: "/Users/tester/Documents/x"))
+                try await runner(osascript).run(FileAction(operation: operation))
             }
             #expect(osascript.calls.map(\.language) == ["js"], Comment(rawValue: "\(operation) \(path)"))
         }
-        // 開くだけなら、ダブルクリックと同じ
-        let open = FakeOsascript(selection: urls([path]))
-        try await runner(open).run(FileAction(operation: .open))
-        #expect(open.calls.map(\.language) == ["js", "as"], Comment(rawValue: path))
     }
 
     @Test("標準のフォルダの中のファイルや、ほかのディスクの中のフォルダは動かせる")
@@ -220,45 +212,14 @@ struct ActionFileTests {
         #expect(call.timeout == FileActionRunner.actionTimeout)
     }
 
-    @Test("開く・複製: それぞれの依頼を選んだファイルに出す。複製は長く待つ")
-    func opensAndDuplicates() async throws {
+    @Test("複製: 選んだファイルに依頼を出し、長く待つ")
+    func duplicates() async throws {
         let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        try await runner(osascript).run(FileAction(operation: .open))
         try await runner(osascript).run(FileAction(operation: .duplicate))
-        let scripts = osascript.calls.filter { $0.language == "as" }
-        #expect(scripts.map(\.source) == [FileScripts.open, FileScripts.duplicate])
-        #expect(scripts.allSatisfy { $0.arguments == ["/Users/tester/a.txt"] })
-        #expect(scripts.map(\.timeout) == [FileActionRunner.actionTimeout, FileActionRunner.copyTimeout])
-    }
-
-    @Test("移動: 先頭の引数が移動先（前後の空白と末尾の / は除く）。移動先が使えないときは選択も読まない")
-    func movesToTheDestination() async throws {
-        let osascript = FakeOsascript(selection: urls(["/Users/tester/a.txt", "/Users/tester/b.txt"]))
-        try await runner(osascript).run(FileAction(operation: .move, destination: "  /Users/tester/Documents/  "))
         let call = try #require(osascript.calls.last)
-        #expect(call.source == FileScripts.move)
-        #expect(call.arguments == ["/Users/tester/Documents", "/Users/tester/a.txt", "/Users/tester/b.txt"])
+        #expect(call.source == FileScripts.duplicate)
+        #expect(call.arguments == ["/Users/tester/a.txt"])
         #expect(call.timeout == FileActionRunner.copyTimeout)
-
-        let missing = FakeOsascript(selection: urls(["/Users/tester/a.txt"]))
-        for destination in ["", "   ", "relative/path", "/Users/tester/.Trash", "/Users/tester/.Trash/old"] {
-            await #expect(throws: NonetError.self) {
-                try await runner(missing).run(FileAction(operation: .move, destination: destination))
-            }
-        }
-        #expect(missing.calls.isEmpty)
-    }
-
-    @Test("移動先は、Nonet が場所を調べず、文字だけで決める（~ はホームに直す）")
-    func destinations() {
-        #expect(FilePlan.destination("/Users/tester/Documents") == "/Users/tester/Documents")
-        #expect(FilePlan.destination("  /Users/tester/Documents///  ") == "/Users/tester/Documents")
-        #expect(FilePlan.destination("/") == "/")
-        #expect(FilePlan.destination("~") == NSHomeDirectory())
-        #expect(FilePlan.destination("~/Documents") == NSHomeDirectory() + "/Documents")
-        #expect(FilePlan.destination("") == nil)
-        #expect(FilePlan.destination("dest") == nil)
-        #expect(FilePlan.destination("/Volumes/Backup/.Trashes/501") == nil)
     }
 
     @Test("名前を変える: 選んだものが1つだけのとき、Finder の名前の変更（Return）を始める。osascript では何も頼まない")
@@ -316,7 +277,6 @@ struct ActionFileTests {
         for number in [-1728, -1700, -43] {
             #expect(message("execution error: 失敗 (\(number))") == text("ファイルが見つかりません。選び直してください"), Comment(rawValue: "\(number)"))
         }
-        #expect(message("execution error: destination (\(FileScripts.ErrorNumber.destination))") == text("移動先のフォルダが見つかりません"))
         #expect(message("execution error: link (\(FileScripts.ErrorNumber.link))") == text("シンボリックリンクは、ここでは動かせません（リンク先を動かしてしまうため）"))
         #expect(message("execution error: no trash (\(FileScripts.ErrorNumber.noTrash))") == text("ゴミ箱の無い場所（ネットワーク上のファイルなど）は、ここでは削除しません"))
         // 知らない番号でも、標準エラーの末尾を添えて知らせる
@@ -341,32 +301,24 @@ struct ActionFileTests {
 
     // MARK: 依頼の書き方
 
-    @Test("依頼の文には、ファイルのパスも名前も埋め込まない（引数で渡す）。完全な削除や上書きの語は使わない")
-    func scriptsTakeEverythingFromArguments() {
-        for script in [FileScripts.open, FileScripts.trash, FileScripts.duplicate, FileScripts.move] {
+    @Test("依頼の文には、ファイルのパスを埋め込まない（引数で渡す）。完全な削除や上書きの語は使わず、シンボリックリンクは動かさない")
+    func scriptsTakeEverythingFromArgumentsAndRefuseLinks() {
+        for script in [FileScripts.trash, FileScripts.duplicate] {
             #expect(script.contains("on run argv"))
+            #expect(script.contains("aliasList(argv)"))
             #expect(!script.contains("/Users"))
             #expect(!script.contains("empty"))
             #expect(!script.contains("rm "))
             #expect(!script.contains("replacing"))
         }
         #expect(FileScripts.trash.contains("delete targets"))
-    }
-
-    @Test("動かす操作は、パスの指す先が違う（シンボリックリンク）ものを動かさない。開くだけは、リンク先を開く")
-    func scriptsRefuseSymbolicLinksExceptWhenOpening() {
-        for script in [FileScripts.trash, FileScripts.duplicate] {
-            #expect(script.contains("aliasList(argv, true)"))
-        }
-        #expect(FileScripts.move.contains("aliasList(rest of argv, true)"))
-        #expect(FileScripts.open.contains("aliasList(argv, false)"))
         #expect(FileScripts.trash.contains("local volume"))
     }
 
     @Test("どの依頼の文も、AppleScript として組み立てられる（osacompile）")
     func scriptsCompile() async throws {
         let directory = try ActionTemporaryDirectory()
-        for (name, script) in [("open", FileScripts.open), ("trash", FileScripts.trash), ("duplicate", FileScripts.duplicate), ("move", FileScripts.move)] {
+        for (name, script) in [("trash", FileScripts.trash), ("duplicate", FileScripts.duplicate)] {
             let output = try await ProcessRunner.run(ProcessRequest(
                 executable: URL(fileURLWithPath: "/usr/bin/osacompile"),
                 arguments: ["-e", script, "-o", directory.url.appendingPathComponent("\(name).scpt").path],

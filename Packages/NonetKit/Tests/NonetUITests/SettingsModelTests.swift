@@ -1520,34 +1520,26 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         return SettingsText.reviewLines(for: reviewed).map(\.text)
     }
 
-    @Test func onlyOpeningSkipsTheImportReview() {
+    @Test func everyOperationIsInTheImportReview() {
         for operation in FileOperation.allCases {
-            #expect(SettingsImportPlan.needsReview(.file(FileAction(operation: operation))) == (operation != .open), "\(operation)")
+            #expect(SettingsImportPlan.needsReview(.file(FileAction(operation: operation))), "\(operation)")
+            #expect(review(.file(FileAction(operation: operation))) == [L10n.ui("Finder で選んだファイルを: \(operation.title)")])
         }
         #expect(!SettingsImportPlan.pressesSubmitKey(.file(FileAction(operation: .trash)), keys: nil))
     }
 
-    @Test func theReviewShowsTheOperationAndTheDestination() {
-        #expect(review(.file(FileAction(operation: .trash))) == [L10n.ui("Finder で選んだファイルを: \(FileOperation.trash.title)")])
-        let move = review(.file(FileAction(operation: .move, destination: "~/Downloads\u{202E}")))
-        #expect(move.count == 2)
-        #expect(move[1] == L10n.ui("移動先: \("~/Downloads⟨U+202E⟩")"))
-        #expect(review(.file(FileAction(operation: .move)))[1] == L10n.ui("移動先: \(L10n.ui("未設定"))"))
-    }
-
-    @Test func aNewFileCellOpensAndAMoveWithoutAFolderIsIncomplete() {
-        #expect(SettingsCellEditing.defaultAction(for: .file) == .file(FileAction(operation: .open)))
-        #expect(!SettingsCellEditing.isIncomplete(.file(FileAction(operation: .trash))))
-        #expect(SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move))))
-        #expect(SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move, destination: "  "))))
-        #expect(!SettingsCellEditing.isIncomplete(.file(FileAction(operation: .move, destination: "~/Documents"))))
+    @Test func aNewFileCellDuplicatesAndIsNeverIncomplete() {
+        #expect(SettingsCellEditing.defaultAction(for: .file) == .file(FileAction(operation: .duplicate)))
+        for operation in FileOperation.allCases {
+            #expect(!SettingsCellEditing.isIncomplete(.file(FileAction(operation: operation))))
+        }
         #expect(SettingsActionKinds.symbol(.file) == "doc")
     }
 
     @Test func theIconFollowsTheOperationUnlessTheUserPickedOne() {
         var cell = SettingsCellEditing.newCell(kind: .file)
         for operation in FileOperation.allCases {
-            cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: operation, destination: "/a")), in: cell)
+            cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: operation)), in: cell)
             #expect(cell.icon == .symbol(SettingsActionKinds.symbol(operation)), "\(operation)")
         }
         // 利用者が選んだアイコンは変えない
@@ -1565,10 +1557,8 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         var cell = SettingsCellEditing.newCell(kind: .file)
         cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .trash)), in: cell)
         #expect(cell.title == FileOperation.trash.title)
-        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .move, destination: "/a/整理")), in: cell)
-        #expect(cell.title == L10n.core("\("整理") へ移動"))
         cell.title = "片付け"
-        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .duplicate)), in: cell)
+        cell = SettingsCellEditing.replacingAction(.file(FileAction(operation: .rename)), in: cell)
         #expect(cell.title == "片付け")
     }
 
@@ -1592,59 +1582,15 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .duplicate)))
     }
 
-    @Test func theDestinationSurvivesChangingTheOperation() throws {
-        let h = try SettingsHarness()
-        h.model.createCell(kind: .file, at: 1)
-        let id = try #require(h.model.selectedCell?.id)
-        h.model.chooseFileOperation(.move, forCell: id)
-        h.model.updateAction(ofCell: id, as: FileAction.self) { $0.destination = "~/Documents" }
-        h.model.chooseFileOperation(.rename, forCell: id)
-        h.model.chooseFileOperation(.move, forCell: id)
-        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .move, destination: "~/Documents")))
-    }
-
     @Test func aFileCellDoesNotChangeWhenAnotherKindIsEdited() throws {
         let h = try SettingsHarness()
         h.model.createCell(kind: .file, at: 1)
         let id = try #require(h.model.selectedCell?.id)
         h.model.updateAction(ofCell: id, as: URLAction.self) { $0.url = "https://example.com" }
-        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .open)))
-    }
-}
-
-/// 画面の撮影（スクリーンショットと画面収録）の設定と、ファイルのテスト実行の確認
-@Suite @MainActor struct SettingsScreenCaptureAndTestRunTests {
-    @Test func aNewCaptureCellStartsWithAnAreaShotAndTheModeIconFollows() {
-        #expect(SettingsCellEditing.defaultAction(for: .screenCapture) == .screenCapture(ScreenCaptureAction(mode: .area)))
-        #expect(!SettingsCellEditing.isIncomplete(.screenCapture(ScreenCaptureAction(mode: .stopRecording))))
-        #expect(SettingsActionKinds.symbol(.screenCapture) == "camera.viewfinder")
-        var cell = SettingsCellEditing.newCell(kind: .screenCapture)
-        for mode in ScreenCaptureMode.allCases {
-            cell = SettingsCellEditing.replacingAction(.screenCapture(ScreenCaptureAction(mode: mode)), in: cell)
-            #expect(cell.icon == .symbol(SettingsActionKinds.symbol(mode)), "\(mode)")
-            #expect(cell.title == mode.title, "\(mode)")
-        }
+        #expect(h.model.cell(id: id)?.action == .file(FileAction(operation: .duplicate)))
     }
 
-    @Test func capturesAreNotInTheImportReview() {
-        for mode in ScreenCaptureMode.allCases {
-            #expect(!SettingsImportPlan.needsReview(.screenCapture(ScreenCaptureAction(mode: mode, toClipboard: true))))
-        }
-    }
-
-    @Test func theClipboardChoiceIsKeptWhenSwitchingMode() throws {
-        let h = try SettingsHarness()
-        h.model.createCell(kind: .screenCapture, at: 1)
-        let id = try #require(h.model.selectedCell?.id)
-        h.model.updateAction(ofCell: id, as: ScreenCaptureAction.self) { $0.toClipboard = true }
-        h.model.updateAction(ofCell: id, as: ScreenCaptureAction.self) { $0.mode = .fullScreen }
-        #expect(h.model.cell(id: id)?.action == .screenCapture(ScreenCaptureAction(mode: .fullScreen, toClipboard: true)))
-        // 別の種類の編集は、撮影のマスを変えない
-        h.model.updateAction(ofCell: id, as: FileAction.self) { $0.operation = .trash }
-        #expect(h.model.cell(id: id)?.action == .screenCapture(ScreenCaptureAction(mode: .fullScreen, toClipboard: true)))
-    }
-
-    @Test func testRunningAFileOperationThatChangesFilesAsksFirst() async throws {
+    @Test func testRunningAFileOperationAsksFirst() async throws {
         let h = try SettingsHarness()
         h.model.createCell(kind: .file, at: 1)
         let id = try #require(h.model.selectedCell?.id)
@@ -1657,15 +1603,11 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         #expect(h.model.testRun(for: id) == nil)
     }
 
-    @Test func testRunningOpenOrAnotherKindDoesNotAsk() throws {
+    @Test func testRunningAnotherKindDoesNotAsk() throws {
         let h = try SettingsHarness()
-        h.model.createCell(kind: .file, at: 1)
+        h.model.createCell(kind: .openURL, at: 2)
         let id = try #require(h.model.selectedCell?.id)
         h.model.startTestRun(cellID: id)
-        #expect(h.model.confirmation == nil)
-        h.model.createCell(kind: .screenCapture, at: 2)
-        let capture = try #require(h.model.selectedCell?.id)
-        h.model.startTestRun(cellID: capture)
         #expect(h.model.confirmation == nil)
     }
 }

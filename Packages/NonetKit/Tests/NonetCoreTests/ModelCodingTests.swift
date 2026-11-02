@@ -41,10 +41,6 @@ struct ModelCodingRoundTripTests {
              #"{"type":"ai","prompt":"要約","output":"showResult"}"#),
             (.file(FileAction(operation: .trash)),
              #"{"type":"file","operation":"trash"}"#),
-            (.file(FileAction(operation: .move, destination: "~/Downloads")),
-             #"{"type":"file","operation":"move","destination":"~/Downloads"}"#),
-            (.screenCapture(ScreenCaptureAction(mode: .area, toClipboard: true)),
-             #"{"type":"screenCapture","mode":"area","toClipboard":true}"#),
         ]
         for (action, json) in cases {
             #expect(try ModelFixtures.jsonObject(action) == ModelFixtures.jsonObject(json), "\(action.kind)")

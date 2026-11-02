@@ -26,14 +26,12 @@ public enum Action: Codable, Equatable, Sendable {
     case menuItem(MenuItemAction)
     /// 端末内の言語モデルで、選択中のテキストを処理する（macOS 26 以降）
     case ai(AIAction)
-    /// Finder で選んでいるファイルを、開く・ゴミ箱に入れる・名前を変える・複製する・移す
+    /// Finder で選んでいるファイルを、ゴミ箱に入れる・名前を変える・複製する
     case file(FileAction)
-    /// スクリーンショットと画面収録（macOS のスクリーンショットのキーボードショートカットを送る）
-    case screenCapture(ScreenCaptureAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, screenCapture
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -133,65 +131,21 @@ public struct AIAction: Codable, Equatable, Sendable {
     }
 }
 
-/// Finder で選んでいるファイルへの操作。ゴミ箱に入れるだけで、完全な削除はしない
+/// Finder で選んでいるファイルへの操作。どれも選んだファイルを変える（ゴミ箱に入れるだけで、完全な削除はしない）
 public enum FileOperation: String, Codable, CaseIterable, Sendable {
-    /// 既定のアプリで開く（ダブルクリックと同じ）
-    case open
     /// ゴミ箱に入れる（Finder の「ゴミ箱に入れる」と同じ。「元に戻す」で戻せる）
     case trash
-    /// 名前を変える（入力のダイアログを出す。1つだけ選んでいるとき）
+    /// 名前を変える（Finder の名前の変更を始める。1つだけ選んでいるとき）
     case rename
     /// 同じ場所に複製する（「○○のコピー」）
     case duplicate
-    /// 決めたフォルダに移す
-    case move
-
-    /// 取り消しにくい・選んだものを動かす操作。開く以外
-    public var changesFiles: Bool { self != .open }
 }
 
 public struct FileAction: Codable, Equatable, Sendable {
     public var operation: FileOperation
-    /// 移す先のフォルダ（move のとき。"~" で始めてもよい）。ほかの操作では使わない
-    public var destination: String
 
-    public init(operation: FileOperation, destination: String = "") {
+    public init(operation: FileOperation) {
         self.operation = operation
-        self.destination = destination
-    }
-}
-
-/// スクリーンショットと画面収録の操作。macOS 自身のキーボードショートカット（システム設定 › キーボード › キーボードショートカット › スクリーンショット）を送るので、
-/// 画面収録の許可は要らない
-public enum ScreenCaptureMode: String, Codable, CaseIterable, Sendable {
-    /// 範囲を選んで撮る（⇧⌘4）
-    case area
-    /// ウインドウを選んで撮る（⇧⌘4 のあと Space）
-    case window
-    /// 画面全体を撮る（⇧⌘3）
-    case fullScreen
-    /// 撮影と収録のメニューを出す（⇧⌘5）。画面収録はここから始める
-    case toolbar
-    /// 画面収録を止める（⌃⌘Esc）
-    case stopRecording
-
-    /// 撮った絵をファイルではなくクリップボードに入れられる
-    public var supportsClipboard: Bool {
-        switch self {
-        case .area, .window, .fullScreen: true
-        case .toolbar, .stopRecording: false
-        }
-    }
-}
-
-public struct ScreenCaptureAction: Codable, Equatable, Sendable {
-    public var mode: ScreenCaptureMode
-    /// 撮った絵をファイルに保存せず、クリップボードに入れる（supportsClipboard のモードだけ）
-    public var toClipboard: Bool
-
-    public init(mode: ScreenCaptureMode, toClipboard: Bool = false) {
-        self.mode = mode
-        self.toClipboard = toClipboard
     }
 }
 
@@ -206,7 +160,6 @@ extension Action {
         case .menuItem: .menuItem
         case .ai: .ai
         case .file: .file
-        case .screenCapture: .screenCapture
         }
     }
 
@@ -231,54 +184,20 @@ extension Action {
         case .ai:
             String(localized: "AI", bundle: .module)
         case .file(let action):
-            action.summary
-        case .screenCapture(let action):
-            action.mode.title
+            action.operation.title
         }
     }
 }
 
-extension ScreenCaptureMode {
-    /// 操作の名前（HUD や設定画面に出す）
-    public var title: String {
-        switch self {
-        case .area: String(localized: "範囲を撮影", bundle: .module)
-        case .window: String(localized: "ウインドウを撮影", bundle: .module)
-        case .fullScreen: String(localized: "全画面を撮影", bundle: .module)
-        case .toolbar: String(localized: "撮影・収録", bundle: .module)
-        case .stopRecording: String(localized: "収録を止める", bundle: .module)
-        }
-    }
-}
 
 extension FileOperation {
     /// 操作の名前（HUD や設定画面に出す）
     public var title: String {
         switch self {
-        case .open: String(localized: "開く", bundle: .module)
         case .trash: String(localized: "ゴミ箱に入れる", bundle: .module)
         case .rename: String(localized: "名前を変更", bundle: .module)
         case .duplicate: String(localized: "複製", bundle: .module)
-        case .move: String(localized: "移動", bundle: .module)
         }
-    }
-}
-
-extension FileAction {
-    /// 移す先のフォルダの名前（空なら nil）
-    public var destinationName: String? {
-        guard let path = destination.trimmedNonEmpty else { return nil }
-        var trimmed = path
-        while trimmed.count > 1, trimmed.hasSuffix("/") { trimmed.removeLast() }
-        let name = trimmed.split(separator: "/").last.map(String.init)
-        return name ?? trimmed
-    }
-
-    var summary: String {
-        if operation == .move, let name = destinationName {
-            return String(localized: "\(name) へ移動", bundle: .module)
-        }
-        return operation.title
     }
 }
 
@@ -355,8 +274,6 @@ extension Action {
             self = .ai(try AIAction(from: decoder))
         case .file:
             self = .file(try FileAction(from: decoder))
-        case .screenCapture:
-            self = .screenCapture(try ScreenCaptureAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -382,8 +299,6 @@ extension Action {
         case .ai(let action):
             try action.encode(to: encoder)
         case .file(let action):
-            try action.encode(to: encoder)
-        case .screenCapture(let action):
             try action.encode(to: encoder)
         }
     }
@@ -535,48 +450,17 @@ extension AIAction {
 
 extension FileAction {
     private enum CodingKeys: String, CodingKey {
-        case operation, destination
+        case operation
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // 知らない操作を別の操作（ゴミ箱に入れる・移すなど）として読まないよう、読めなければマスごと読めないことにする
-        self.init(
-            operation: try container.decode(FileOperation.self, forKey: .operation),
-            destination: container.decodeLossy(String.self, forKey: .destination, default: "")
-        )
+        // 知らない操作を別の操作（ゴミ箱に入れるなど）として読まないよう、読めなければマスごと読めないことにする
+        self.init(operation: try container.decode(FileOperation.self, forKey: .operation))
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(operation, forKey: .operation)
-        // 移す先は、移すときだけ書く（使わない設定の書式を増やさない）
-        if operation == .move {
-            try container.encode(destination, forKey: .destination)
-        }
-    }
-}
-
-extension ScreenCaptureAction {
-    private enum CodingKeys: String, CodingKey {
-        case mode, toClipboard
-    }
-
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        // 知らないモードを別のモードとして読まない（読めなければ、そのマスは空きになる）
-        self.init(
-            mode: try container.decode(ScreenCaptureMode.self, forKey: .mode),
-            toClipboard: container.decodeLossy(Bool.self, forKey: .toClipboard, default: false)
-        )
-    }
-
-    public func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(mode, forKey: .mode)
-        // クリップボードに入れるときだけ書く（使わない設定の書式を増やさない）
-        if toClipboard, mode.supportsClipboard {
-            try container.encode(true, forKey: .toClipboard)
-        }
     }
 }

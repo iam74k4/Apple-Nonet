@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file, .screenCapture]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .openURL, .script, .shortcut, .menuItem, .ai, .file]
 
     static func name(_ kind: ActionKind) -> String {
         switch kind {
@@ -17,7 +17,6 @@ enum SettingsActionKinds {
         case .menuItem: String(localized: "メニュー項目", bundle: .module)
         case .ai: String(localized: "AI", bundle: .module)
         case .file: String(localized: "ファイル", bundle: .module)
-        case .screenCapture: String(localized: "画面の撮影", bundle: .module)
         }
     }
 
@@ -32,7 +31,6 @@ enum SettingsActionKinds {
         case .menuItem: "filemenu.and.selection"
         case .ai: "sparkles"
         case .file: "doc"
-        case .screenCapture: "camera.viewfinder"
         }
     }
 }
@@ -41,24 +39,9 @@ extension SettingsActionKinds {
     /// ファイルの操作のアイコン（Finder のプリセットの2ページ目と同じ）
     static func symbol(_ operation: FileOperation) -> String {
         switch operation {
-        case .open: "arrow.up.right.square"
         case .trash: "trash"
         case .rename: "pencil"
         case .duplicate: "plus.square.on.square"
-        case .move: "folder"
-        }
-    }
-}
-
-extension SettingsActionKinds {
-    /// 撮影の操作のアイコン
-    static func symbol(_ mode: ScreenCaptureMode) -> String {
-        switch mode {
-        case .area: "rectangle.dashed"
-        case .window: "macwindow"
-        case .fullScreen: "display"
-        case .toolbar: "record.circle"
-        case .stopRecording: "stop.circle"
         }
     }
 }
@@ -74,9 +57,8 @@ enum SettingsCellEditing {
         case .shortcut: .shortcut(ShortcutAction(name: ""))
         case .menuItem: .menuItem(MenuItemAction(path: []))
         case .ai: .ai(AIAction(prompt: "", output: .showResult))
-        // 取り消しにくい操作ではなく、見るだけに近い「開く」から始める
-        case .file: .file(FileAction(operation: .open))
-        case .screenCapture: .screenCapture(ScreenCaptureAction(mode: .area))
+        // 取り消しやすい複製から始める（ゴミ箱に入れるは、選んだときに「少し長く止めてから実行」が入る）
+        case .file: .file(FileAction(operation: .duplicate))
         }
     }
 
@@ -93,9 +75,6 @@ enum SettingsCellEditing {
         }
         if case .file(let file) = action {
             return .symbol(SettingsActionKinds.symbol(file.operation))
-        }
-        if case .screenCapture(let capture) = action {
-            return .symbol(SettingsActionKinds.symbol(capture.mode))
         }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
@@ -115,8 +94,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .file(let file): file.operation == .move && file.destination.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .screenCapture: false
+        case .file: false
         }
     }
 
@@ -329,10 +307,3 @@ extension FileAction: SettingsActionContent {
     var asAction: Action { .file(self) }
 }
 
-extension ScreenCaptureAction: SettingsActionContent {
-    static func content(of action: Action) -> ScreenCaptureAction? {
-        if case .screenCapture(let capture) = action { capture } else { nil }
-    }
-
-    var asAction: Action { .screenCapture(self) }
-}
