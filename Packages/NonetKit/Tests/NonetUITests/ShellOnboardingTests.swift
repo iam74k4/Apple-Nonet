@@ -4,14 +4,6 @@ import NonetCore
 @testable import NonetUI
 import Testing
 
-/// 初回の案内をどう終えたか
-enum ShellFirstGuideEnding: String, CaseIterable, Sendable {
-    /// ようこそのまま閉じた
-    case closedAtWelcome
-    /// 選んだアプリを反映してから閉じた
-    case applied
-}
-
 @Suite("初回起動")
 @MainActor
 struct ShellOnboardingTests {
@@ -42,7 +34,6 @@ struct ShellOnboardingTests {
     static func make(
         installed: Set<String> = installed,
         granted: Bool = true,
-        isFirstLaunchGuide: Bool = true,
         clock: Clock = Clock(),
         license: LicenseManager? = nil,
         frontmost: RunningAppInfo? = nil,
@@ -55,11 +46,8 @@ struct ShellOnboardingTests {
             controller: harness.controller,
             license: harness.license,
             permissions: harness.permissions,
-            installedApps: harness.installedApps,
             frontmostApp: harness.frontmost,
             touchSource: harness.touchSource,
-            loginItem: harness.loginItem,
-            isFirstLaunchGuide: isFirstLaunchGuide,
             now: { clock.now }
         )
         model.announce = { recorder.announcements.append($0) }
@@ -70,7 +58,6 @@ struct ShellOnboardingTests {
     /// 練習の画面まで進める
     static func enterPractice(_ model: OnboardingModel) {
         model.next()
-        model.applySelection()
     }
 
     /// 開いて目標のマスで離した記録（1つ目の課題）
@@ -81,7 +68,7 @@ struct ShellOnboardingTests {
 
     // MARK: - アクセシビリティ
 
-    @Test("許可されたら自動で「アプリを選ぶ」へ進み、コントローラーに知らせる")
+    @Test("許可されたら自動で「試してみる」へ進み、コントローラーに知らせる")
     func autoAdvanceOnPermission() {
         let (model, harness) = Self.make(granted: false)
         #expect(model.step == .welcome)
@@ -94,7 +81,7 @@ struct ShellOnboardingTests {
         harness.permissions.isAccessibilityGranted = true
         model.pollPermission()
         #expect(model.isAccessibilityGranted)
-        #expect(model.step == .apps)
+        #expect(model.step == .practice)
         #expect(harness.controller.status == .running)
     }
 
@@ -102,7 +89,6 @@ struct ShellOnboardingTests {
     func permissionLaterDoesNotJump() {
         let (model, harness) = Self.make(granted: false)
         model.next()
-        model.applySelection()
         #expect(model.step == .practice)
         #expect(model.practiceBlocker == .needsAccessibility)
         #expect(model.practiceBlocker?.message == L10n.ui("アクセシビリティが許可されていないため、まだ試せません"))
@@ -119,7 +105,7 @@ struct ShellOnboardingTests {
         model.pollPermission()
         #expect(model.step == .welcome)
         model.next()
-        #expect(model.step == .apps)
+        #expect(model.step == .practice)
     }
 
     @Test("許可を取り消されたら表示を戻す")
@@ -146,7 +132,7 @@ struct ShellOnboardingTests {
     func raisesWindowWhenGranted() {
         let harness = ShellControllerHarness(installed: Self.installed, accessibilityGranted: false)
         harness.controller.start()
-        let window = OnboardingWindowController(controller: harness.controller, services: harness.services, history: OnboardingGuideHistory()) {}
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
         var raised = 0
         window.raiseWindow = { raised += 1 }
         window.checkPermission()
@@ -154,14 +140,13 @@ struct ShellOnboardingTests {
         harness.permissions.isAccessibilityGranted = true
         window.checkPermission()
         #expect(raised == 1)
-        #expect(window.model.step == .apps)
+        #expect(window.model.step == .practice)
         window.checkPermission()
         #expect(raised == 1)
 
         // 練習の画面で「システム設定を開く」から許可したときも
         harness.permissions.isAccessibilityGranted = false
         window.checkPermission()
-        window.model.applySelection()
         harness.permissions.isAccessibilityGranted = true
         window.checkPermission()
         #expect(raised == 2)
@@ -219,7 +204,7 @@ struct ShellOnboardingTests {
         model.pollPermission()
         harness.permissions.isAccessibilityGranted = true
         model.pollPermission()
-        #expect(model.step == .apps)
+        #expect(model.step == .practice)
         #expect(recorder.announcements.last == L10n.ui("アクセシビリティが許可されました"))
     }
 
@@ -231,9 +216,7 @@ struct ShellOnboardingTests {
         let model = OnboardingModel(
             controller: harness.controller,
             permissions: harness.permissions,
-            installedApps: harness.installedApps,
-            touchSource: harness.touchSource,
-            isFirstLaunchGuide: true
+            touchSource: harness.touchSource
         )
         #expect(model.isTrackpadMissing)
         #expect(OnboardingModel.noTrackpadMessage
@@ -251,12 +234,7 @@ struct ShellOnboardingTests {
         #expect(!model.isTrackpadMissing)
 
         // touchSource を渡さなければ確かめない
-        let unchecked = OnboardingModel(
-            controller: harness.controller,
-            permissions: harness.permissions,
-            installedApps: harness.installedApps,
-            isFirstLaunchGuide: false
-        )
+        let unchecked = OnboardingModel(controller: harness.controller, permissions: harness.permissions)
         #expect(!unchecked.isTrackpadMissing)
     }
 
@@ -269,157 +247,43 @@ struct ShellOnboardingTests {
     func continueWithoutPermission() {
         let (model, _) = Self.make(granted: false)
         model.next()
-        #expect(model.step == .apps)
-    }
-
-    // MARK: - アプリを選ぶ
-
-    @Test("インストール済みでプリセットのあるアプリだけを、プリセットの順に並べて全部選ぶ")
-    func choices() {
-        let (model, _) = Self.make()
-        let expected = PresetLibrary.apps.map(\.app.bundleID).filter { Self.installed.contains($0) }
-        #expect(model.choices.map(\.id) == expected)
-        #expect(model.choices.contains { $0.id == ShellFixtures.xcode })
-        #expect(model.choices.allSatisfy { $0.isSelected && !$0.isConfigured })
-        #expect(model.selectedCount == expected.count)
-        #expect(model.choices.allSatisfy { !$0.summary.isEmpty && !$0.category.isEmpty })
-    }
-
-    @Test("選択を切り替える。すべて外す・すべて選ぶ")
-    func toggleSelection() {
-        let (model, _) = Self.make()
-        model.toggle(ShellFixtures.safari)
-        #expect(model.choices.first { $0.id == ShellFixtures.safari }?.isSelected == false)
-        #expect(model.selectedCount == model.choices.count - 1)
-        model.toggle("not.installed")
-        #expect(model.selectedCount == model.choices.count - 1)
-        model.setAllSelected(false)
-        #expect(model.selectedCount == 0)
-        model.setAllSelected(true)
-        #expect(model.selectedCount == model.choices.count)
-    }
-
-    @Test("「次へ」は選んだアプリだけのプロファイルとランチャーで作り直し、全体の設定はそのまま残す")
-    func applyKeepsSettings() {
-        let (model, harness) = Self.make()
-        // 案内を開いた後に全体の設定だけを変えても（メニューで無効にしたなど）、作り直してよい
-        harness.controller.update { configuration in
-            configuration.settings.hudScale = .large
-            configuration.settings.hudPosition = .nearCursor
-            configuration.settings.haptics = .strong
-        }
-        let settingsBefore = harness.controller.configuration.settings
-        model.next()
-        #expect(model.replacesProfiles)
-        model.setAllSelected(false)
-        model.toggle(ShellFixtures.xcode)
-        model.toggle(ShellFixtures.safari)
-        model.applySelection()
-
-        let configuration = harness.controller.configuration
-        #expect(configuration.settings == settingsBefore)
-        #expect(configuration.profiles.compactMap(\.app?.bundleID).sorted() == [ShellFixtures.safari, ShellFixtures.xcode].sorted())
-        #expect(configuration.profiles.first?.isGlobal == true)
-        // グローバルはインストール済みのランチャー候補（Finder・Safari・Xcode など）
-        let launcherApps = configuration.globalProfile.pages.flatMap(\.cells).compactMap { cell -> String? in
-            guard case .launchApp(let launch)? = cell?.action else { return nil }
-            return launch.app.bundleID
-        }
-        #expect(!launcherApps.isEmpty)
-        #expect(launcherApps.allSatisfy { Self.installed.contains($0) })
         #expect(model.step == .practice)
     }
 
-    @Test("何も選ばずに「次へ」ならアプリのプロファイルは無し（グローバルだけ）")
-    func applyNothingSelected() {
-        let (model, harness) = Self.make()
-        model.next()
-        model.setAllSelected(false)
-        model.applySelection()
-        #expect(harness.controller.configuration.profiles.count == 1)
-        #expect(harness.controller.configuration.profiles[0].isGlobal)
-    }
+    // MARK: - プロファイル
 
-    @Test("選び直さずに「次へ」を押すと、おすすめ（並んだアプリすべて）のまま使う（飛ばすボタンは無い）")
-    func nextKeepsSuggestions() {
-        let (model, harness) = Self.make()
-        let suggested = Set(harness.controller.configuration.profiles.compactMap(\.app?.bundleID))
-        model.next()
-        #expect(model.choices.allSatisfy { $0.isSelected })
-        model.applySelection()
-        #expect(model.step == .practice)
-        #expect(Set(harness.controller.configuration.profiles.compactMap(\.app?.bundleID)) == suggested)
-        #expect(Set(model.choices.map(\.id)) == suggested)
-    }
-
-    @Test("「アプリを選ぶ」以外の画面では反映しない")
-    func applyOnlyOnAppsStep() {
-        let (model, harness) = Self.make()
+    @Test("案内はプロファイルを作り直さない（起動時に入れたプリセットのまま）。ウィンドウを閉じても残る")
+    func guideKeepsProfiles() throws {
+        let harness = ShellControllerHarness(installed: Self.installed)
+        harness.controller.start()
+        #expect(harness.controller.isFirstLaunch)
         let before = harness.controller.configuration
-        model.applySelection()
-        #expect(model.step == .welcome)
+        #expect(before.appProfile(forBundleID: ShellFixtures.xcode) != nil)
+        #expect(before.appProfile(forBundleID: ShellFixtures.safari) != nil)
+        var finished = 0
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {
+            finished += 1
+        }
+        window.handBackActivation = {}
+        window.model.next()
         #expect(harness.controller.configuration == before)
-    }
+        window.windowDidClose()
+        #expect(finished == 1)
+        #expect(!harness.controller.isPracticeMode)
+        #expect(harness.controller.configuration == before)
 
-    @Test("案内をもう一度見るときは、設定済みのアプリを残して足りないものだけ足す")
-    func rerunAddsOnly() {
-        let (model, harness) = Self.make(isFirstLaunchGuide: false)
-        // 初回の設定（インストール済みのプリセットすべて）から Safari を消し、Xcode を編集しておく
-        let safariID = harness.controller.configuration.appProfile(forBundleID: ShellFixtures.safari)?.id
-        let xcodeID = harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)?.id
-        harness.controller.update { configuration in
-            if let safariID { configuration.removeProfile(id: safariID) }
-            if let xcodeID { configuration.setCell(nil, at: CellAddress(page: 0, index: 0), profileID: xcodeID) }
-            configuration.settings.haptics = .off
-        }
-        let rerun = OnboardingModel(
-            controller: harness.controller,
-            permissions: harness.permissions,
-            installedApps: harness.installedApps,
-            isFirstLaunchGuide: false
-        )
-        _ = model
-        let xcode = rerun.choices.first { $0.id == ShellFixtures.xcode }
-        let safari = rerun.choices.first { $0.id == ShellFixtures.safari }
-        #expect(xcode?.isConfigured == true)
-        #expect(safari?.isConfigured == false)
-        // 設定済みのものは外せない
-        rerun.toggle(ShellFixtures.xcode)
-        #expect(rerun.choices.first { $0.id == ShellFixtures.xcode }?.isSelected == true)
-
-        let editedXcode = harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)
-        rerun.next()
-        rerun.applySelection()
-        let configuration = harness.controller.configuration
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.safari) != nil)
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.xcode) == editedXcode)
-        #expect(configuration.settings.haptics == .off)
-    }
-
-    @Test("もう一度見るとき、無効にしたプロファイルのアプリも設定済み。足す数に数えず、有効にも戻さない")
-    func rerunKeepsDisabledProfile() throws {
-        let (model, harness) = Self.make(isFirstLaunchGuide: false)
-        let xcodeID = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)?.id)
-        let safariID = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.safari)?.id)
-        harness.controller.update { configuration in
-            configuration.updateProfile(id: xcodeID) { $0.isEnabled = false }
-            configuration.removeProfile(id: safariID)
-        }
-        model.next()
-        let xcode = try #require(model.choices.first { $0.id == ShellFixtures.xcode })
-        #expect(xcode.isConfigured)
-        #expect(xcode.isProfileDisabled)
-        #expect(model.choices.filter(\.isProfileDisabled).map(\.id) == [ShellFixtures.xcode])
-        // 足すのは消した Safari だけ
-        #expect(model.additionCount == 1)
-        model.toggle(ShellFixtures.xcode)
-        #expect(model.choices.first { $0.id == ShellFixtures.xcode }?.isSelected == true)
-
-        model.applySelection()
-        let configuration = harness.controller.configuration
-        #expect(configuration.profile(id: xcodeID)?.isEnabled == false)
-        #expect(configuration.profiles.filter { $0.app?.bundleID == ShellFixtures.xcode }.count == 1)
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.safari) != nil)
+        // 設定で編集してから開き直しても、編集はそのまま
+        let customID = try Self.editProfilesInSettings(harness)
+        let edited = harness.controller.configuration
+        let second = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
+        second.handBackActivation = {}
+        second.model.next()
+        second.windowDidClose()
+        try Self.expectEditsSurvived(harness.controller.configuration, edited: edited, customID: customID)
+        #expect(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.safari) == nil)
+        harness.flushSaves()
+        let saved = try #require(try ConfigurationStore(directory: harness.directory).load())
+        try Self.expectEditsSurvived(saved, edited: edited, customID: customID)
     }
 
     @Test("あるプロファイルの探し方は addAppProfile と同じ（大文字小文字・前後の空白を区別しない、無効も含む）")
@@ -433,141 +297,6 @@ struct ShellOnboardingTests {
         #expect(OnboardingModel.profile(forBundleID: "com.example.none", in: profiles) == nil)
         var configuration = harness.controller.configuration
         #expect(configuration.addAppProfile(for: AppReference(bundleID: " COM.apple.dt.xcode\n", name: "Xcode"), preset: nil) == xcodeID)
-    }
-
-    // MARK: - 作り直すのは初回の案内だけ
-
-    @Test("案内の記録: 作り直してよいのは、初回起動で最初に開いた案内だけ")
-    func guideHistory() {
-        let firstLaunch = OnboardingGuideHistory()
-        #expect(!firstLaunch.hasBegunGuide)
-        #expect(firstLaunch.beginGuide(isFirstLaunch: true))
-        #expect(firstLaunch.hasBegunGuide)
-        #expect(!firstLaunch.beginGuide(isFirstLaunch: true))
-        #expect(!firstLaunch.beginGuide(isFirstLaunch: true))
-
-        let relaunched = OnboardingGuideHistory()
-        #expect(!relaunched.beginGuide(isFirstLaunch: false))
-        #expect(relaunched.hasBegunGuide)
-    }
-
-    @Test("初回の案内を閉じた後に同じプロセスで開き直した案内は、作り直さない（その間に作ったプロファイルと編集が残る）",
-          arguments: ShellFirstGuideEnding.allCases)
-    func reopenedGuideKeepsEdits(ending: ShellFirstGuideEnding) throws {
-        let harness = ShellControllerHarness(installed: Self.installed)
-        harness.controller.start()
-        #expect(harness.controller.isFirstLaunch)
-        let history = OnboardingGuideHistory()
-        var finished = 0
-        let first = OnboardingWindowController(controller: harness.controller, services: harness.services, history: history) {
-            finished += 1
-        }
-        #expect(first.model.replacesProfiles)
-        switch ending {
-        case .closedAtWelcome:
-            break
-        case .applied:
-            first.model.next()
-            first.model.applySelection()
-        }
-        first.windowDidClose()
-        #expect(finished == 1)
-        #expect(!harness.controller.isPracticeMode)
-
-        // 設定で、自分のアプリのプロファイルを作り、Xcode とグローバルを編集し、Safari を消す
-        let customID = try Self.editProfilesInSettings(harness)
-        let edited = harness.controller.configuration
-        // isFirstLaunch はこのプロセスの間 true のまま
-        #expect(harness.controller.isFirstLaunch)
-
-        let second = OnboardingWindowController(controller: harness.controller, services: harness.services, history: history) {}
-        #expect(!second.model.isFirstLaunchGuide)
-        #expect(!second.model.replacesProfiles)
-        second.model.next()
-        #expect(second.model.choices.first { $0.id == ShellFixtures.xcode }?.isConfigured == true)
-        #expect(second.model.additionCount == 1)
-        second.model.applySelection()
-        second.windowDidClose()
-
-        let configuration = harness.controller.configuration
-        try Self.expectEditsSurvived(configuration, edited: edited, customID: customID)
-        // 消した Safari だけが足される
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.safari) != nil)
-        #expect(configuration.profiles.count == edited.profiles.count + 1)
-        // 保存された設定にも残っている
-        harness.flushSaves()
-        let saved = try #require(try ConfigurationStore(directory: harness.directory).load())
-        try Self.expectEditsSurvived(saved, edited: edited, customID: customID)
-    }
-
-    @Test("初回の案内で作り直した後に設定で編集したら、戻って「次へ」を押し直しても作り直さない")
-    func reapplyAfterEditKeepsEdits() throws {
-        let (model, harness) = Self.make()
-        model.next()
-        model.applySelection()
-        #expect(model.step == .practice)
-
-        let customID = try Self.editProfilesInSettings(harness)
-        let edited = harness.controller.configuration
-        model.back()
-        #expect(model.step == .apps)
-        #expect(!model.replacesProfiles)
-        #expect(model.choices.first { $0.id == ShellFixtures.xcode }?.isConfigured == true)
-        model.next()
-        #expect(model.step == .practice)
-        try Self.expectEditsSurvived(harness.controller.configuration, edited: edited, customID: customID)
-    }
-
-    @Test("初回の案内で作り直した後、何も編集していなければ戻って選び直せる")
-    func reselectWithoutEdits() {
-        let (model, harness) = Self.make()
-        model.next()
-        model.applySelection()
-        model.back()
-        #expect(model.replacesProfiles)
-        #expect(model.choices.allSatisfy { !$0.isConfigured })
-        model.toggle(ShellFixtures.safari)
-        model.applySelection()
-        let configuration = harness.controller.configuration
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.safari) == nil)
-        #expect(configuration.appProfile(forBundleID: ShellFixtures.xcode) != nil)
-    }
-
-    @Test("初回の案内を開いたまま設定でプロファイルを編集したら、「次へ」は足すだけ")
-    func editWhileFirstGuideOpen() throws {
-        let (model, harness) = Self.make()
-        model.next()
-        #expect(model.replacesProfiles)
-        #expect(model.choices.allSatisfy { !$0.isConfigured })
-        model.setAllSelected(false)
-
-        let customID = try Self.editProfilesInSettings(harness)
-        let edited = harness.controller.configuration
-        #expect(!model.replacesProfiles)
-        // 選び直せるのは、プロファイルの無い（消した）Safari だけ。外したままなので足さない
-        #expect(model.choices.filter { !$0.isConfigured }.map(\.id) == [ShellFixtures.safari])
-        #expect(model.additionCount == 0)
-        model.applySelection()
-        #expect(harness.controller.configuration == edited)
-        try Self.expectEditsSurvived(harness.controller.configuration, edited: edited, customID: customID)
-    }
-
-    @Test("保存した設定があって起動したときは、最初に開いた案内でも作り直さない")
-    func notFirstLaunchNeverReplaces() {
-        let harness = ShellControllerHarness(installed: Self.installed)
-        harness.controller.start()
-        let relaunched = NonetController(
-            services: harness.services,
-            store: ConfigurationStore(directory: harness.directory),
-            hud: ShellFakeHUD(),
-            license: harness.license,
-            guidance: MemoryHUDGuidanceStore()
-        )
-        relaunched.start()
-        #expect(!relaunched.isFirstLaunch)
-        let window = OnboardingWindowController(controller: relaunched, services: harness.services, history: OnboardingGuideHistory()) {}
-        #expect(!window.model.replacesProfiles)
-        window.windowDidClose()
     }
 
     /// 設定画面での編集の代わり。自分のアプリのプロファイルを作り、Xcode とグローバルのマスを変え、Safari を消す
@@ -602,16 +331,6 @@ struct ShellOnboardingTests {
         #expect(configuration.globalProfile.pages[0].cells[8]?.title == "ランチャーのマス")
     }
 
-    @Test("プリセットのあるアプリが無ければ、選ぶものは空")
-    func noPresetApps() {
-        let (model, harness) = Self.make(installed: ["com.example.unknown"])
-        #expect(model.choices.isEmpty)
-        model.next()
-        model.applySelection()
-        #expect(harness.controller.configuration.profiles.count == 1)
-        #expect(model.step == .practice)
-    }
-
     // MARK: - 練習
 
     @Test("練習の画面の間だけ練習モード。どの離れ方でも必ず戻す")
@@ -623,16 +342,13 @@ struct ShellOnboardingTests {
         #expect(harness.controller.isPracticeMode)
 
         model.back()
-        #expect(model.step == .apps)
+        #expect(model.step == .welcome)
         #expect(!harness.controller.isPracticeMode)
 
-        model.applySelection()
-        #expect(harness.controller.isPracticeMode)
         model.next()
-        #expect(model.step == .done)
-        #expect(!harness.controller.isPracticeMode)
-
-        model.back()
+        #expect(harness.controller.isPracticeMode)
+        // 練習が最後の画面（「次へ」では動かない）
+        model.next()
         #expect(model.step == .practice)
         #expect(harness.controller.isPracticeMode)
         model.close()
@@ -672,7 +388,7 @@ struct ShellOnboardingTests {
         #expect(!harness.controller.isPracticeMode)
         model.setWindowVisible(true)
         #expect(harness.controller.isPracticeMode)
-        model.next()
+        model.back()
         model.setWindowVisible(false)
         model.setWindowVisible(true)
         #expect(!harness.controller.isPracticeMode)
@@ -721,7 +437,7 @@ struct ShellOnboardingTests {
         #expect(harness.controller.isPracticeMode)
 
         // ほかの画面では、キーかどうかで練習モードを変えない
-        model.next()
+        model.back()
         model.setWindowKey(false)
         model.setWindowKey(true)
         #expect(!harness.controller.isPracticeMode)
@@ -819,7 +535,7 @@ struct ShellOnboardingTests {
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
             == L10n.ui("「\("X")」で離しました。やめるときは、指を外枠まで滑らせてから離してください。"))
         // トラックパッドには「押す」「長押し」と言わない
-        for text in [ShellText.practiceRunInstruction(page.runTarget), ShellText.practiceCancelInstruction, ShellText.doneOpenTip, ShellText.doneCancelTip] {
+        for text in [ShellText.practiceRunInstruction(page.runTarget), ShellText.practiceCancelInstruction] {
             #expect(!text.contains("長押し"))
         }
     }
@@ -959,13 +675,11 @@ struct ShellOnboardingTests {
     @Test("上の段の印: 許可しないまま進んだら「アクセシビリティ」に済みの印を付けない")
     func stepMarks() {
         func marks(_ current: OnboardingStep, granted: Bool) -> [OnboardingStepMark] {
-            [OnboardingStep.welcome, .apps, .practice].map { OnboardingStepMark.mark(for: $0, current: current, isAccessibilityGranted: granted) }
+            OnboardingStep.allCases.map { OnboardingStepMark.mark(for: $0, current: current, isAccessibilityGranted: granted) }
         }
-        #expect(marks(.welcome, granted: false) == [.current, .upcoming, .upcoming])
-        #expect(marks(.apps, granted: true) == [.done, .current, .upcoming])
-        #expect(marks(.apps, granted: false) == [.skipped, .current, .upcoming])
-        #expect(marks(.practice, granted: false) == [.skipped, .done, .current])
-        #expect(marks(.done, granted: true) == [.done, .done, .done])
+        #expect(marks(.welcome, granted: false) == [.current, .upcoming])
+        #expect(marks(.practice, granted: true) == [.done, .current])
+        #expect(marks(.practice, granted: false) == [.skipped, .current])
     }
 
     @Test("練習の画面を開いたときにすでにあった記録は、時刻が後でも数えない")
@@ -983,7 +697,7 @@ struct ShellOnboardingTests {
         // テスト実行を lastExecution に残さないコントローラーなら、この確かめ方はできない
         guard let existing = harness.controller.lastExecution else { return }
 
-        model.applySelection()
+        model.next()
         model.handleExecution(existing)
         #expect(model.practice == .run)
     }
@@ -1009,7 +723,7 @@ struct ShellOnboardingTests {
         #expect(model.practice == .succeeded)
         model.back()
         clock.now = clock.now.addingTimeInterval(10)
-        model.applySelection()
+        model.next()
         #expect(model.practice == .run)
         #expect(model.practiceFeedback == nil)
         // 入り直す前の記録は数えない
@@ -1096,20 +810,16 @@ struct ShellOnboardingTests {
     @Test("ステップの順と戻る")
     func stepOrder() {
         let (model, _) = Self.make()
-        #expect(OnboardingStep.allCases == [.welcome, .apps, .practice, .done])
+        #expect(OnboardingStep.allCases == [.welcome, .practice])
         model.back()
         #expect(model.step == .welcome)
         model.next()
-        #expect(model.step == .apps)
+        #expect(model.step == .practice)
         model.back()
         #expect(model.step == .welcome)
         model.next()
         model.next()
         #expect(model.step == .practice)
-        model.next()
-        #expect(model.step == .done)
-        model.next()
-        #expect(model.step == .done)
     }
 }
 

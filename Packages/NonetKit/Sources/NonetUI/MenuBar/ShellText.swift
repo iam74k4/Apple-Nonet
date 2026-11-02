@@ -81,33 +81,4 @@ enum ShellText {
     static var practiceFigureCancelLabel: String {
         String(localized: "トラックパッドの図。目標は9マスの外側の外枠です。", bundle: .module)
     }
-
-    // MARK: - 完了
-
-    /// こつ「上の縁から開く」
-    static var doneOpenTip: String {
-        String(localized: "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
-    }
-
-    /// こつ「外枠で離すとやめる」
-    static var doneCancelTip: String {
-        String(localized: "9マスの外側の外枠まで指を滑らせて離すと、何も実行せずに閉じます。キーを押しても閉じます。", bundle: .module)
-    }
-
-    /// こつ「マスを変える」。案内のウインドウの裏にあるアプリの名前は出さない（そのアプリとは限らない）
-    static var doneEditTip: String {
-        String(localized: "メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます", bundle: .module)
-    }
-
-    /// 試用期間の残り。数で文が変わる（1 day / 2 days）
-    static func trialNote(daysLeft: Int) -> String {
-        String(localized: "試用期間はあと\(daysLeft)日です。購入はメニューバーからいつでもできます。", bundle: .module, locale: .nonetUI)
-    }
-
-    // MARK: - そのほか
-
-    /// 案内をもう一度見るときに足すアプリの数。数で文が変わる（1 app profile / 2 app profiles）
-    static func additionNote(_ count: Int) -> String {
-        String(localized: "\(count)個のアプリのプロファイルを追加します", bundle: .module, locale: .nonetUI)
-    }
 }

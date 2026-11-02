@@ -3,18 +3,13 @@ import AppKit
 import NonetCore
 import SwiftUI
 
-/// 初回起動のウィンドウ（権限 → アプリを選ぶ → 試してみる → 完了）
+/// 初回起動のウィンドウ（権限 → 試してみる）
 @MainActor
 public final class OnboardingWindowController {
-    /// 完了の画面の「設定を開く」と、練習の画面の「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
+    /// 練習の画面の「設定を開く」と「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
-    /// 完了の画面の「完了」で閉じたとき（途中で閉じたときは呼ばない）。メニューバーのアイコンの場所を見せる
+    /// 練習の画面の「完了」「スキップ」で閉じたとき（ウィンドウの閉じるボタンで閉じたときは呼ばない）。メニューバーのアイコンの場所を見せる
     public var onComplete: (() -> Void)?
-    /// メニューバーのアイコンが見えているか（完了の画面で、見えなければ見つけ方を文で伝える）
-    public var isStatusItemVisible: () -> Bool {
-        get { model.statusItemVisibility }
-        set { model.statusItemVisibility = newValue }
-    }
     /// 案内をどうして開いたか。show() の前に入れる
     public var purpose: OnboardingPurpose {
         get { model.purpose }
@@ -42,29 +37,15 @@ public final class OnboardingWindowController {
 
     /// license: 試用期間が終わっていて練習できないことを知らせ、ライセンスキーを登録したら知らせを消すために見る。
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
-    public convenience init(controller: NonetController, services: NonetServices, license: LicenseManager? = nil, onFinish: @escaping () -> Void) {
-        self.init(controller: controller, services: services, license: license, history: .shared, onFinish: onFinish)
-    }
-
-    init(
-        controller: NonetController,
-        services: NonetServices,
-        license: LicenseManager? = nil,
-        history: OnboardingGuideHistory,
-        onFinish: @escaping () -> Void
-    ) {
+    public init(controller: NonetController, services: NonetServices, license: LicenseManager? = nil, onFinish: @escaping () -> Void) {
         self.controller = controller
         self.onFinish = onFinish
         model = OnboardingModel(
             controller: controller,
             license: license,
             permissions: services.permissions,
-            installedApps: services.installedApps,
-            presetEnvironment: services.presetEnvironment,
             frontmostApp: services.frontmostApp,
-            touchSource: services.touchSource,
-            loginItem: services.loginItem,
-            isFirstLaunchGuide: history.beginGuide(isFirstLaunch: controller.isFirstLaunch)
+            touchSource: services.touchSource
         )
         raiseWindow = { [weak self] in self?.bringToFront() }
         // ライセンスの登録は設定で行い、案内は開いたまま戻ってこられるようにする
@@ -145,26 +126,24 @@ public final class OnboardingWindowController {
         model.setWindowKey(window.isKeyWindow)
     }
 
-    /// 「設定を開く」。「ログイン時に起動」を反映できなければ、知らせを出して開いたままにする
+    /// 「設定を開く」。閉じて設定の「プロファイル」を開く
     func openSettings() {
-        guard model.finish() else { return }
         let open = onOpenSettings
         window?.close()
         open?(.profiles)
     }
 
-    /// 「完了」。「ログイン時に起動」を反映して閉じ、メニューバーのアイコンの場所を見せる
+    /// 「完了」「スキップ」。閉じて、メニューバーのアイコンの場所を見せる
     func complete() {
-        guard model.finish() else { return }
         let done = onComplete
         window?.close()
         done?()
     }
 
     #if DEBUG
-    /// 見た目の確認用（App の --onboarding-step）。welcome・apps・practice・done のどれか
+    /// 見た目の確認用（App の --onboarding-step）。welcome・practice のどちらか
     public func previewStep(_ name: String) {
-        let steps: [String: OnboardingStep] = ["welcome": .welcome, "apps": .apps, "practice": .practice, "done": .done]
+        let steps: [String: OnboardingStep] = ["welcome": .welcome, "practice": .practice]
         guard let step = steps[name] else { return }
         model.preview(step)
     }
@@ -184,22 +163,6 @@ public final class OnboardingWindowController {
         guard !didFinish else { return }
         didFinish = true
         onFinish()
-    }
-}
-
-/// このプロセスで案内を開いたか。
-/// 初回起動の isFirstLaunch はプロセスが終わるまで true のままなので、それだけで決めると、
-/// 閉じた・飛ばした後に開き直した案内が、その間に作ったプロファイルを作り直して消してしまう
-@MainActor
-final class OnboardingGuideHistory {
-    static let shared = OnboardingGuideHistory()
-
-    private(set) var hasBegunGuide = false
-
-    /// 案内を開くときに呼ぶ。プロファイルを作り直してよい（初回起動の案内）のは、最初に開いた案内だけ
-    func beginGuide(isFirstLaunch: Bool) -> Bool {
-        defer { hasBegunGuide = true }
-        return isFirstLaunch && !hasBegunGuide
     }
 }
 

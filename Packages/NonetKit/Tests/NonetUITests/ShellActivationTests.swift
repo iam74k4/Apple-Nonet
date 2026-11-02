@@ -59,7 +59,7 @@ struct ShellActivationTests {
     func closingTheGuideHandsBackActivation() {
         let harness = ShellControllerHarness(installed: [], accessibilityGranted: true)
         harness.controller.start()
-        let window = OnboardingWindowController(controller: harness.controller, services: harness.services, history: OnboardingGuideHistory()) {}
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
         var handBacks = 0
         window.handBackActivation = { handBacks += 1 }
         window.windowDidClose()

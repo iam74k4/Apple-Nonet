@@ -23,9 +23,7 @@ struct OnboardingView: View {
             Group {
                 switch model.step {
                 case .welcome: OnboardingWelcomeStep(model: model)
-                case .apps: OnboardingAppsStep(model: model)
                 case .practice: OnboardingPracticeStep(model: model)
-                case .done: OnboardingDoneStep(model: model)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -35,8 +33,6 @@ struct OnboardingView: View {
                 .frame(height: 64)
         }
         .frame(width: OnboardingLayout.windowSize.width, height: OnboardingLayout.windowSize.height)
-        // 数で変わる文（1 app profile / 2 app profiles）を、文言の言語の規則で選ぶ
-        .environment(\.locale, .nonetUI)
     }
 
     @ViewBuilder
@@ -68,20 +64,8 @@ struct OnboardingView: View {
             } else {
                 Text("許可すると、自動で次へ進みます", bundle: .module)
             }
-        case .apps:
-            if model.choices.isEmpty {
-                EmptyView()
-            } else if model.replacesProfiles {
-                Text("\(model.choices.count)個中\(model.selectedCount)個を選択中", bundle: .module)
-            } else if model.additionCount > 0 {
-                Text(ShellText.additionNote(model.additionCount))
-            } else {
-                Text("追加するアプリはありません", bundle: .module)
-            }
         case .practice:
             Text("練習中は、何も実行されません", bundle: .module)
-        case .done:
-            Text("この案内は、メニューバーの 3×3 のアイコン ›「初回の案内をもう一度」でまた見られます", bundle: .module)
         }
     }
 
@@ -100,32 +84,22 @@ struct OnboardingView: View {
                     .buttonStyle(OnboardingPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }
-        case .apps:
-            // 「あとで設定する」は置かない。どのカードも最初は選ばれているので、「次へ」がそのまま「おすすめのまま使う」になる
-            Button { model.back() } label: { Text("戻る", bundle: .module) }
-                .buttonStyle(OnboardingSecondaryButtonStyle())
-            Button { model.applySelection() } label: { Text("次へ：試してみる", bundle: .module) }
-                .buttonStyle(OnboardingPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
         case .practice:
+            // 練習が最後の画面。できたら「完了」、まだなら「スキップ」で閉じる（どちらもメニューバーのアイコンの場所を見せる）
             Button { model.back() } label: { Text("戻る", bundle: .module) }
                 .buttonStyle(OnboardingSecondaryButtonStyle())
-            if model.practice == .succeeded {
-                Button { model.next() } label: { Text("次へ", bundle: .module) }
-                    .buttonStyle(OnboardingPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-            } else {
-                Button { model.next() } label: { Text("スキップ", bundle: .module) }
-                    .buttonStyle(OnboardingSecondaryButtonStyle())
-            }
-        case .done:
             if let onOpenSettings {
                 Button(action: onOpenSettings) { Text("設定を開く", bundle: .module) }
                     .buttonStyle(OnboardingSecondaryButtonStyle())
             }
-            Button(action: onFinish) { Text("完了", bundle: .module) }
-                .buttonStyle(OnboardingPrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
+            if model.practice == .succeeded {
+                Button(action: onFinish) { Text("完了", bundle: .module) }
+                    .buttonStyle(OnboardingPrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button(action: onFinish) { Text("スキップ", bundle: .module) }
+                    .buttonStyle(OnboardingSecondaryButtonStyle())
+            }
         }
     }
 }
@@ -153,7 +127,6 @@ struct OnboardingStepIndicator: View {
 
     private static let steps: [(OnboardingStep, LocalizedStringKey)] = [
         (.welcome, "アクセシビリティ"),
-        (.apps, "アプリを選ぶ"),
         (.practice, "試してみる"),
     ]
 
@@ -340,204 +313,6 @@ struct OnboardingBullet: View {
             text
                 .font(.system(size: 13))
                 .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-// MARK: - 2. アプリを選ぶ
-
-struct OnboardingAppsStep: View {
-    let model: OnboardingModel
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Group {
-                    if model.choices.isEmpty {
-                        // 用意できるアプリが無いのに「用意しました」とは言わない
-                        Text("グローバルのプロファイルから始めましょう", bundle: .module)
-                    } else {
-                        Text("Mac にあるアプリから、9マスを用意しました", bundle: .module)
-                    }
-                }
-                .font(.system(size: 22, weight: .bold))
-                .onboardingHeading()
-                if !model.choices.isEmpty {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            if model.replacesProfiles {
-                                Text("使うものを選ぶだけ。中身はあとから自由に変えられます。", bundle: .module)
-                                Text("グローバルには、よく使うアプリを並べたランチャーを用意します。", bundle: .module)
-                            } else {
-                                Text("選んだアプリのプロファイルを追加します。設定済みのアプリはそのまま残ります。", bundle: .module)
-                            }
-                        }
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                        if model.choices.contains(where: { !$0.isConfigured }) {
-                            selectAllButton
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, OnboardingLayout.horizontalPadding)
-            if model.choices.isEmpty {
-                OnboardingEmptyApps()
-                    .padding(.horizontal, OnboardingLayout.horizontalPadding)
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(model.choices) { choice in
-                            OnboardingAppCard(choice: choice) { model.toggle(choice.id) }
-                        }
-                    }
-                    .padding(.horizontal, OnboardingLayout.horizontalPadding)
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-        .padding(.top, 2)
-    }
-
-    /// 選べるものが全部選ばれていれば「すべて外す」、そうでなければ「すべて選ぶ」
-    private var selectAllButton: some View {
-        let allSelected = model.choices.filter { !$0.isConfigured }.allSatisfy(\.isSelected)
-        return Button {
-            model.setAllSelected(!allSelected)
-        } label: {
-            allSelected ? Text("すべて外す", bundle: .module) : Text("すべて選ぶ", bundle: .module)
-        }
-        // 文字だけだと見出しの一部に見えるので、押せると分かるリンクの見た目にする
-        .buttonStyle(.link)
-        .font(.system(size: 12, weight: .medium))
-        .fixedSize()
-    }
-}
-
-struct OnboardingEmptyApps: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "square.grid.3x3")
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
-            Text("プリセットのあるアプリは見つかりませんでした", bundle: .module)
-                .font(.system(size: 15, weight: .semibold))
-            Text("グローバルには、Mac にあるよく使うアプリを並べたランチャーを用意します。アプリのプロファイルは、あとから設定で追加できます。", bundle: .module)
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
-    }
-}
-
-struct OnboardingAppCard: View {
-    let choice: OnboardingAppChoice
-    let onToggle: () -> Void
-
-    var body: some View {
-        Button(action: onToggle) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 10) {
-                    CellIconView(.app(bundleID: choice.app.bundleID), size: 24)
-                    VStack(alignment: .leading, spacing: 1) {
-                        // 長い名前（Microsoft PowerPoint など）は縮めずに2行まで折り返す。ほかのカードと文字の大きさをそろえる
-                        Text(choice.app.name)
-                            .font(.system(size: 13, weight: .bold))
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(choice.category)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        // 設定済みの印は名前の行に置かない（名前が切れる）
-                        if choice.isConfigured {
-                            configuredBadge
-                                .padding(.top, 4)
-                        }
-                    }
-                    Spacer(minLength: 4)
-                    if !choice.isConfigured {
-                        selectionMark
-                    }
-                }
-                // 名前が2行のカードがあっても、同じ行のカードの説明の高さをそろえる（説明をカードの下に寄せる）
-                Spacer(minLength: 0)
-                Text(choice.summary)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2, reservesSpace: true)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            // 同じ行のカードの高さをそろえる（名前が2行のカードがあっても）
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        choice.isSelected && !choice.isConfigured ? Color.primary : Color.secondary.opacity(0.3),
-                        lineWidth: choice.isSelected && !choice.isConfigured ? 2 : 1
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(choice.isConfigured)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("\(choice.app.name)、\(choice.category)、\(choice.summary)", bundle: .module))
-        .accessibilityValue(accessibilityValue)
-        .accessibilityAddTraits(choice.isSelected ? [.isButton, .isSelected] : .isButton)
-    }
-
-    private var accessibilityValue: Text {
-        if choice.isProfileDisabled {
-            Text("設定済み（無効）", bundle: .module)
-        } else if choice.isConfigured {
-            Text("設定済み", bundle: .module)
-        } else if choice.isSelected {
-            Text("選択中", bundle: .module)
-        } else {
-            Text("未選択", bundle: .module)
-        }
-    }
-
-    /// 無効のプロファイルも残す（案内では有効に戻さない）ので、そうと分かるように出す。読み上げと同じ文言
-    private var configuredBadge: some View {
-        (choice.isProfileDisabled ? Text("設定済み（無効）", bundle: .module) : Text("設定済み", bundle: .module))
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().strokeBorder(Color.secondary.opacity(0.5)))
-    }
-
-    @ViewBuilder
-    private var selectionMark: some View {
-        if choice.isSelected {
-            ZStack {
-                Circle().fill(Color.primary)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color(nsColor: .windowBackgroundColor))
-            }
-            .frame(width: 20, height: 20)
-        } else {
-            Circle()
-                .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
-                .frame(width: 20, height: 20)
         }
     }
 }

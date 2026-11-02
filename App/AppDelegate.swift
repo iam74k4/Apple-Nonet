@@ -260,8 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.purpose = purpose
         window.reminderPreference = reminderPreference
         window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }
-        window.isStatusItemVisible = { [weak self] in self?.menuBar?.isStatusItemVisible ?? true }
-        // 「完了」で閉じたら、メニューバーのどこに Nonet がいるかを見せる
+        // 「完了」「スキップ」で閉じたら、メニューバーのどこに Nonet がいるかを見せる
         window.onComplete = { [weak self] in self?.menuBar?.pointAtStatusItem() }
         onboardingWindow = window
         window.show()
@@ -278,7 +277,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if options.showOnboarding {
             showOnboarding()
             if let step = options.onboardingStep {
-                // メニューバーのアイコンが並び終えてから進める（完了の画面は、アイコンが見えているかを確かめる）
+                // ウィンドウが出てから進める
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                     MainActor.assumeIsolated { self?.onboardingWindow?.previewStep(step) }
                 }
