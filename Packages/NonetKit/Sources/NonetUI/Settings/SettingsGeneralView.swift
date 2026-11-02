@@ -20,6 +20,15 @@ struct SettingsGeneralView: View {
                     Text(SettingsText.openGestureTitle)
                     Text(SettingsText.openGestureDetail)
                 }
+                Picker(selection: binding(\.openSensitivity)) {
+                    ForEach(OpenSensitivity.allCases, id: \.self) { sensitivity in
+                        Text(SettingsText.name(sensitivity)).tag(sensitivity)
+                    }
+                } label: {
+                    Text(SettingsText.openSensitivityTitle)
+                    Text(SettingsText.openSensitivityDetail(model.settings.openSensitivity))
+                }
+                .pickerStyle(.segmented)
                 Picker(selection: binding(\.hudPosition)) {
                     ForEach(HUDPosition.allCases, id: \.self) { position in
                         Text(SettingsText.name(position)).tag(position)

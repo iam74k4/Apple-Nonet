@@ -10,6 +10,15 @@ public enum HapticStrength: String, Codable, CaseIterable, Sendable {
     case off, light, medium, strong
 }
 
+/// 開きやすさ。上の縁からの滑り込みをどれだけ受け付けるか（帯の高さ・時間・動きの量。EdgeSlideRecognizer.Thresholds）
+public enum OpenSensitivity: String, Codable, CaseIterable, Sendable {
+    /// 奥の端のすぐ近くで、すばやく滑らせたときだけ（ふだんのポインタ操作で開いてしまう人向け）
+    case low
+    case standard
+    /// 縁から少し離れて置いても、ゆっくりでも開く（縁から滑らせても開かないことがある人向け）
+    case high
+}
+
 /// 9マスを開いている間、ポインタが動かないようにする方法
 public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     /// 移動イベントを捨て、それでもずれたら元の位置に戻す
@@ -51,6 +60,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var cursorLock: CursorLockMethod
     /// HUD とトーストの大きさ。既定は標準
     public var hudScale: HUDScale
+    /// 開きやすさ。既定は標準
+    public var openSensitivity: OpenSensitivity
 
     public init(
         isEnabled: Bool = true,
@@ -60,7 +71,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         haptics: HapticStrength = .medium,
         showExecutionToast: Bool = true,
         cursorLock: CursorLockMethod = .automatic,
-        hudScale: HUDScale = .standard
+        hudScale: HUDScale = .standard,
+        openSensitivity: OpenSensitivity = .standard
     ) {
         self.isEnabled = isEnabled
         self.hudPosition = hudPosition
@@ -70,6 +82,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         self.showExecutionToast = showExecutionToast
         self.cursorLock = cursorLock
         self.hudScale = hudScale
+        self.openSensitivity = openSensitivity
     }
 }
 
@@ -91,7 +104,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, hudPosition, autoSwitchProfiles, appendGlobalPages, haptics, showExecutionToast, cursorLock, hudScale
+        case isEnabled, hudPosition, autoSwitchProfiles, appendGlobalPages, haptics, showExecutionToast, cursorLock, hudScale, openSensitivity
     }
 
     public init(from decoder: any Decoder) throws {
@@ -105,7 +118,8 @@ extension GlobalSettings {
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             showExecutionToast: container.decodeLossy(Bool.self, forKey: .showExecutionToast, default: defaults.showExecutionToast),
             cursorLock: container.decodeLossy(CursorLockMethod.self, forKey: .cursorLock, default: defaults.cursorLock),
-            hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale)
+            hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
         )
     }
 
@@ -121,6 +135,9 @@ extension GlobalSettings {
         // 標準（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ標準として読む）
         if hudScale != .standard {
             try container.encode(hudScale, forKey: .hudScale)
+        }
+        if openSensitivity != .standard {
+            try container.encode(openSensitivity, forKey: .openSensitivity)
         }
     }
 }

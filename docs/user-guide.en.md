@@ -72,7 +72,7 @@ The nine buttons open, the HUD (the overview of all nine buttons) appears on the
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
-- Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge
+- Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
 - The HUD appears on the display with the pointer (the **HUD position** setting)
@@ -386,6 +386,7 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 |---|---|---|
 | Enable Nonet | On | When off, sliding in from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list |
 | How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
+| Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
 | HUD position | Center of Screen | Center of Screen or Near Pointer. The HUD appears on the display with the pointer |
 | HUD size | Standard | Standard, Large or Extra Large. Notices at the bottom of the screen use the same size. If it doesn't fit on the screen, Nonet makes it as large as fits |
 
@@ -488,7 +489,7 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. Moving the pointer straight down from near the far edge does open them, however slowly you start (see [Opening the buttons](#opening-the-buttons) under Basics)
+- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down from near the far edge does open them, however slowly you start (see [Opening the buttons](#opening-the-buttons) under Basics)
 - While a Nonet window such as Settings is in front, sliding in from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing

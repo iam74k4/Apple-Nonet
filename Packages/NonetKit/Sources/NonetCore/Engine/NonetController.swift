@@ -365,6 +365,11 @@ public final class NonetController {
         if frame.touching.count != 1 {
             cancelPendingOpen()
         }
+        // 開きやすさは設定からそのつど入れる（触れ始めた後に変えても、そのタッチは触れたときの決まりで見る）
+        let thresholds = EdgeSlideRecognizer.Thresholds(configuration.settings.openSensitivity)
+        if opener.thresholds != thresholds {
+            opener.thresholds = thresholds
+        }
         switch opener.apply(frame, isSessionActive: engine.isInSession) {
         case .none:
             break

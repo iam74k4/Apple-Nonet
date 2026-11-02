@@ -74,6 +74,30 @@ enum SettingsText {
         String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
     }
 
+    static func name(_ sensitivity: OpenSensitivity) -> String {
+        switch sensitivity {
+        case .low: String(localized: "控えめ", bundle: .module)
+        case .standard: String(localized: "標準", bundle: .module)
+        case .high: String(localized: "開きやすい", bundle: .module)
+        }
+    }
+
+    static var openSensitivityTitle: String {
+        String(localized: "開きやすさ", bundle: .module)
+    }
+
+    /// 今の段の決まり（帯の高さと、滑らせる量と時間）
+    static func openSensitivityDetail(_ sensitivity: OpenSensitivity) -> String {
+        switch sensitivity {
+        case .low:
+            String(localized: "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに", bundle: .module)
+        case .standard:
+            String(localized: "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ", bundle: .module)
+        case .high:
+            String(localized: "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに", bundle: .module)
+        }
+    }
+
     static var hudScaleTitle: String {
         String(localized: "HUD の大きさ", bundle: .module)
     }

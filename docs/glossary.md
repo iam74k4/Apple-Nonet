@@ -107,6 +107,7 @@
 | 右クリック | Control-click | Apple docs style: "Control-click (or right-click)". |
 | Nonet を有効にする | Enable Nonet | Settings checkbox, and a menu bar menu item with a checkmark. Caption in Settings: "When off, sliding in from the top edge of the trackpad doesn't open the buttons". |
 | 開き方とやめ方 | How to open and cancel | Row under Opening and HUD in Settings › General, with a small figure of the trackpad and an arrow from the top edge. Caption: "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key." |
+| 開きやすさ / 控えめ / 標準 / 開きやすい | Open sensitivity / Low / Standard / High | Settings label and its segmented options (`GlobalSettings.openSensitivity`). The caption describes the band, the distance and the time of the chosen level. |
 | HUD の大きさ / 標準 / 大きい / 特大 | HUD size / Standard / Large / Extra Large | Settings label and its segmented options. The caption is "Notices at the bottom of the screen use the same size.". |
 | HUD の位置 | HUD position | Options: "Center of Screen" / "Near Pointer". Caption: "Appears on the display with the pointer." |
 | 前面のアプリで切り替える | Switch profiles with the front app | Settings checkbox. |

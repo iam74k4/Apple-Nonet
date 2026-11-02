@@ -57,3 +57,23 @@ import Testing
         #expect(!walk(hosting).contains { $0 is NSSlider })
     }
 }
+
+@Suite(.serialized) @MainActor struct SettingsGeneralOpenSensitivityTests {
+    @Test func theSensitivityIsSavedImmediately() throws {
+        let h = try SettingsHarness()
+        #expect(h.model.settings.openSensitivity == .standard)
+        h.model.setSetting(\.openSensitivity, .low)
+        #expect(h.controller.configuration.settings.openSensitivity == .low)
+        #expect(try h.saved()?.settings.openSensitivity == .low)
+    }
+
+    @Test func namesAndDetailsMatchTheUserGuide() {
+        #expect(SettingsText.openSensitivityTitle == L10n.ui("開きやすさ"))
+        #expect(OpenSensitivity.allCases.map(SettingsText.name) == [L10n.ui("控えめ"), L10n.ui("標準"), L10n.ui("開きやすい")])
+        // 説明は、選んだ段の帯の高さ・動き・時間を言う
+        #expect(SettingsText.openSensitivityDetail(.low) == L10n.ui("奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに"))
+        #expect(SettingsText.openSensitivityDetail(.standard) == L10n.ui("奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ"))
+        #expect(SettingsText.openSensitivityDetail(.high) == L10n.ui("奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに"))
+        #expect(Set(OpenSensitivity.allCases.map(SettingsText.openSensitivityDetail)).count == 3)
+    }
+}

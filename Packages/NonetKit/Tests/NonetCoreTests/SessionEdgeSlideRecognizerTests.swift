@@ -193,3 +193,60 @@ private struct Slide {
         #expect(swapped.touch(2, y: 0.9, at: 0.1) == .slid)
     }
 }
+
+/// 開きやすさ（GlobalSettings.openSensitivity → EdgeSlideRecognizer.Thresholds）
+@Suite struct SessionEdgeSlideSensitivityTests {
+    typealias T = EdgeSlideRecognizer.Thresholds
+
+    /// 控えめ: 帯は 0.06、動きは 0.07、時間は 0.4 秒。標準なら開く動きでも開かない
+    @Test func lowNeedsAQuickerSlideFromCloserToTheEdge() {
+        var s = Slide()
+        s.recognizer = EdgeSlideRecognizer(thresholds: T(.low))
+        // 標準の帯には入るが、控えめの帯には入らない
+        #expect(s.touch(y: 0.92, at: 10) == .none)
+        s.lift(at: 10.1)
+        // 帯の中。標準の 0.05 では足りず、0.07 で開く
+        #expect(s.touch(y: 0.97, at: 11) == .touchBeganInBand)
+        #expect(s.touch(y: 0.92, at: 11.1) == .none)
+        #expect(s.touch(y: 0.89, at: 11.2) == .slid)
+        s.lift(at: 11.3)
+        // 0.4 秒を過ぎると開かない（標準の 0.6 秒のうちでも）
+        #expect(s.touch(y: 0.97, at: 12) == .touchBeganInBand)
+        #expect(s.touch(y: 0.88, at: 12.5) == .none)
+        #expect(s.slidCount == 1)
+    }
+
+    /// 開きやすい: 帯は 0.13、動きは 0.04、時間は 1 秒
+    @Test func highOpensFromFurtherDownSlowerAndSooner() {
+        var s = Slide()
+        s.recognizer = EdgeSlideRecognizer(thresholds: T(.high))
+        // 標準の帯の外（0.91 より下）でも、開きやすいの帯の中
+        #expect(s.touch(y: 0.89, at: 10) == .touchBeganInBand)
+        #expect(s.touch(y: 0.86, at: 10.9) == .none)
+        #expect(s.touch(y: 0.85, at: 10.95) == .slid)
+        s.lift(at: 11)
+        // 帯の外は、開きやすいでも外
+        #expect(s.touch(y: 0.86, at: 12) == .none)
+        #expect(s.slidCount == 1)
+    }
+
+    /// 触れ始めた後に開きやすさを変えても、そのタッチは触れたときの決まりで見る。次のタッチから新しい決まり
+    @Test func aTouchKeepsTheThresholdsItBeganWith() {
+        var s = Slide()
+        #expect(s.touch(y: 0.97, at: 10) == .touchBeganInBand)
+        s.recognizer.thresholds = T(.low)
+        // 標準の 0.05 で開く（控えめなら 0.07 要る）
+        #expect(s.touch(y: 0.91, at: 10.1) == .slid)
+        s.lift(at: 10.2)
+        #expect(s.touch(y: 0.97, at: 11) == .touchBeganInBand)
+        #expect(s.touch(y: 0.91, at: 11.1) == .none)
+    }
+
+    @Test func theStaticHelpersTakeThresholds() {
+        #expect(EdgeSlideRecognizer.isInEntryBand(x: 0.5, y: 0.9, thresholds: T(.high)))
+        #expect(!EdgeSlideRecognizer.isInEntryBand(x: 0.5, y: 0.9))
+        #expect(EdgeSlideRecognizer.isEntrySlide(dx: 0, dy: 0.04, thresholds: T(.high)))
+        #expect(!EdgeSlideRecognizer.isEntrySlide(dx: 0, dy: 0.04))
+        #expect(!EdgeSlideRecognizer.isEntrySlide(dx: 0, dy: 0.06, thresholds: T(.low)))
+    }
+}
