@@ -54,9 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShellQuitMarker.removeAll()
         let services = makeServices()
         let hud = HUDWindowController()
-        // 9マスを開いている間、ポインタは指の位置を画面に写して動く（閉じると元の位置に戻る）
-        let keyboard = services.keyboard
-        hud.onMovePointer = { [weak keyboard] point in keyboard?.movePointer(to: point) }
         let license = makeLicenseManager()
         let controller = NonetController(
             services: services,

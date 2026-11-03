@@ -10,7 +10,8 @@ import NonetCore
 /// ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない（メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
 @MainActor
 public final class EventTapKeyboardMonitor: KeyboardMonitor {
-    public var cursorLock: CursorLockMethod = .automatic
+    /// 9マスを開いている間、ポインタの移動は前面のアプリに渡さないが、ポインタそのものはふだんどおり動く（HUD の地図の上でポインタが乗っているマスを選ぶ）
+    public var cursorLock: CursorLockMethod = .dropEvents
     public var isSuppressingPointer = false {
         didSet {
             guard isSuppressingPointer != oldValue else { return }
@@ -52,8 +53,6 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// 抑止を始めたときの方式と、カーソルの位置
     private var activePlan: CursorLockPlan?
     private var anchor: CGPoint?
-    /// movePointer で動かす前の位置。抑止を終えるときに戻す
-    private var movedFrom: CGPoint?
     /// rememberPointerLocation で覚えた位置。次の抑止の始まりでそこへ戻し、使ったら忘れる
     private(set) var rememberedLocation: CGPoint?
     /// 抑止中だけ有効
@@ -341,23 +340,13 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         updatePointerTap()
     }
 
-    /// 止めたポインタを指の位置へ動かし、そこで止める。ずれたら戻す方式（automatic）のときだけ（ほかの方式ではポインタを動かさない）
-    public func movePointer(to point: CGPoint) {
-        guard isSuppressingPointer, activePlan?.warpsBack == true, let current = anchor else { return }
-        if movedFrom == nil { movedFrom = current }
-        anchor = point
-        cursor.warp(to: point)
-    }
+    /// いまのポインタの位置（主画面の左上が原点）
+    public var pointerLocation: CGPoint? { cursor.location }
 
     private func endSuppression() {
         if activePlan?.warpsBack == true {
-            if let movedFrom {
-                cursor.warp(to: movedFrom)
-            } else {
-                holdCursorAtAnchor()
-            }
+            holdCursorAtAnchor()
         }
-        movedFrom = nil
         association.restore()
         activePlan = nil
         anchor = nil

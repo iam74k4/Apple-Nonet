@@ -173,6 +173,7 @@ final class SettingsFakeScheduler: Scheduler {
 
 @MainActor
 final class SettingsFakeHUD: HUDPresenting {
+    func prepare(_ model: HUDModel) -> CGRect? { nil }
     func show(_ model: HUDModel) {}
     func update(_ model: HUDModel) {}
     func hide() {}

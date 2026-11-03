@@ -32,20 +32,19 @@ enum HUDPlacement {
         screenIndex(containing: point, in: screens).map { screens[$0] }
     }
 
-    /// HUD の見た目の枠（影の余白を含まない）。ポインタを中心に置き、画面の使える範囲（端の余白を除く）に収める。
-    /// 開いている間、ポインタは地図の上を指の位置について動き、閉じると元の位置に戻る（pointerLocation）
-    static func hudFrame(size: CGSize, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
-        frame(size: size, centeredAt: cursor, in: screen)
+    /// HUD の見た目の枠（影の余白を含まない）。開いたときのポインタが地図の奥の外枠の帯の中央に来るように置く
+    /// （指は上の縁から入ってくるので、ポインタをそのまま下へ動かすとマスに入る）。画面の使える範囲（端の余白を除く）に収める
+    static func hudFrame(size: CGSize, metrics: HUDMetrics, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
+        // AppKit の座標（y は上向き）: 地図の上辺は枠の上端から余白と行の分だけ下、奥の帯の中央はそこから bandTop / 2 下
+        let bottom = cursor.y - (metrics.padding + metrics.mapHeight - metrics.bandTop / 2)
+        return frame(size: size, centeredAt: CGPoint(x: cursor.x, y: bottom + size.height / 2), in: screen)
     }
 
-    /// トラックパッドの上の指の位置を、HUD の地図の上の点にする（ポインタを動かす座標: 主画面の左上が原点、y が下向き）。
-    /// 地図は枠の中の、題名の行の下（AppKit の座標では枠の下側）。model は fitted した後のもの（倍率が地図の大きさを決める）
-    static func pointerLocation(for finger: HUDFinger, model: HUDModel, hudFrame: CGRect, primaryScreen: CGRect) -> CGPoint {
-        let metrics = HUDMetrics(scale: model.scale)
-        let x = min(max(finger.x, 0), 1)
-        let y = min(max(finger.y, 0), 1)
-        let point = CGPoint(x: hudFrame.minX + metrics.padding + x * metrics.mapWidth, y: hudFrame.minY + metrics.padding + y * metrics.mapHeight)
-        return CGPoint(x: point.x, y: primaryScreen.maxY - point.y)
+    /// HUD の枠（AppKit の座標）の中の地図の枠を、ポインタの座標（主画面の左上が原点、y が下向き）にする。
+    /// 地図は枠の余白の内側の下側（題名の行の下）
+    static func mapFrame(hudFrame: CGRect, metrics: HUDMetrics, primaryScreen: CGRect) -> CGRect {
+        let top = hudFrame.minY + metrics.padding + metrics.mapHeight
+        return CGRect(x: hudFrame.minX + metrics.padding, y: primaryScreen.maxY - top, width: metrics.mapWidth, height: metrics.mapHeight)
     }
 
     /// 設定の「HUD の大きさ」で画面の使える範囲（端の余白と影の余白を除く）からはみ出すなら、収まるところまで倍率を下げる

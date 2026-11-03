@@ -184,6 +184,8 @@ final class ControllerFakeTouchSource: TouchSource {
 @MainActor
 final class ControllerFakeKeyboard: KeyboardMonitor {
     var cursorLock: CursorLockMethod = .none
+    /// いまのポインタの位置（主画面の左上が原点）。nil なら、マスはトラックパッドの上の指の位置で選ぶ
+    var pointerLocation: CGPoint?
     var isSuppressingPointer = false {
         didSet {
             guard isSuppressingPointer != oldValue else { return }
@@ -411,11 +413,13 @@ final class ControllerFakeHUD: HUDPresenting {
         self.recorder = recorder
     }
 
-    /// 指の点（最後の位置）
-    private(set) var finger: HUDFinger?
+    /// prepare が返す地図の枠（主画面の左上が原点）。nil なら、マスはトラックパッドの上の指の位置で選ぶ
+    var mapFrame: CGRect?
+    private(set) var prepared: [HUDModel] = []
 
-    func updateFinger(_ finger: HUDFinger?) {
-        self.finger = finger
+    func prepare(_ model: HUDModel) -> CGRect? {
+        prepared.append(model)
+        return mapFrame
     }
 
     func showPlacementPreview(_ frame: CGRect) {

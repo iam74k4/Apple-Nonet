@@ -129,23 +129,25 @@ struct ShellHUDTests {
         }
     }
 
-    @Test("開いている間、ポインタは地図の上の指の位置へ動く（主画面の左上が原点）。出していないとき・2本以上の指では動かさない")
-    func pointerFollowsTheFinger() {
+    @Test("出す場所: 開いたときのポインタが地図の奥の帯の中央に来る。prepare は地図の枠（主画面の左上が原点）を返し、show はその場所に出す")
+    func preparedNextToThePointer() throws {
         let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
-        var moved: [CGPoint] = []
-        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 10, y: 10) })
-        hud.onMovePointer = { moved.append($0) }
-        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
-        #expect(moved.isEmpty)
+        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 450) })
+        let map = try #require(hud.prepare(Self.model()))
+        #expect(!hud.isShowingHUD)
+        #expect(map.size == CGSize(width: HUDLayout.mapWidth, height: HUDLayout.mapHeight))
+        #expect(abs(map.midX - 700) <= 0.5)
+        // 奥の帯の中央（地図の上辺から bandTop / 2）がポインタ（y は下向きなので 900 − 450）
+        #expect(abs(map.minY + HUDLayout.bandTop / 2 - (900 - 450)) <= 0.5)
         hud.show(Self.model())
-        // 枠は使える範囲の左下（余白 8）に収まる: 地図の左下は (18, 88)
-        hud.updateFinger(HUDFinger(x: 0, y: 0))
-        #expect(moved == [CGPoint(x: 18, y: 900 - 88)])
-        hud.updateFinger(HUDFinger(x: 1, y: 1))
-        #expect(moved.last == CGPoint(x: 18 + HUDLayout.mapWidth, y: 900 - 88 - HUDLayout.mapHeight))
-        hud.updateFinger(nil)
-        #expect(moved.count == 2)
+        #expect(hud.isShowingHUD)
+        // 表示中の prepare は同じ枠
+        #expect(hud.prepare(Self.model()) == map)
         hud.hide()
+        // 出さずに閉じても、次は決め直す
+        _ = hud.prepare(Self.model())
+        hud.hide()
+        #expect(!hud.isShowingHUD)
     }
 
     @Test("帯と「何に対する操作か」があるぶんだけ高くなり、幅は変わらない")

@@ -29,8 +29,6 @@ public final class HUDWindowController: HUDPresenting {
     /// 表示中の HUD の見た目の枠（影の余白を含まない）と、その画面
     private var hudFrame: CGRect?
     private var hudScreen: HUDScreenGeometry?
-    /// 9マスを開いている間、ポインタを地図の上の指の位置へ動かす（座標は主画面の左上が原点）。App が KeyboardMonitor.movePointer につなぐ
-    public var onMovePointer: ((CGPoint) -> Void)?
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
@@ -63,26 +61,44 @@ public final class HUDWindowController: HUDPresenting {
     /// HUD を表示中か（フェードアウト中は含まない）
     var isShowingHUD: Bool { hudFader.isShowing }
 
+    /// 出す場所を決める（ポインタのすぐ下。まだ出さない）。地図の枠（主画面の左上が原点）を返す。表示中なら、今の場所のまま
+    @discardableResult
+    public func prepare(_ model: HUDModel) -> CGRect? {
+        if hudFader.isShowing, let frame = hudFrame, let model = hudStore.model, let primary = screens().first?.frame {
+            return HUDPlacement.mapFrame(hudFrame: frame, metrics: HUDMetrics(scale: model.scale), primaryScreen: primary)
+        }
+        let cursor = mouseLocation()
+        guard let screen = HUDPlacement.screen(containing: cursor, in: screens()), let primary = screens().first?.frame else {
+            logger.error("HUD を出す画面が見つからない")
+            return nil
+        }
+        let model = HUDPlacement.fitted(model, in: screen)
+        let metrics = HUDMetrics(scale: model.scale)
+        hudStore.model = model
+        hudStore.increasedContrast = prefersIncreasedContrast()
+        hudStore.reduceMotion = prefersReducedMotion()
+        hudStore.reduceTransparency = prefersReducedTransparency()
+        let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), metrics: metrics, cursor: cursor, screen: screen)
+        place(frame, screen: screen)
+        return HUDPlacement.mapFrame(hudFrame: frame, metrics: metrics, primaryScreen: primary)
+    }
+
     public func show(_ model: HUDModel) {
         // 表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
         if hudFader.isShowing, hudFrame != nil {
             update(model)
             return
         }
-        let cursor = mouseLocation()
-        guard let screen = HUDPlacement.screen(containing: cursor, in: screens()) else {
-            logger.error("HUD を出す画面が見つからない")
-            return
+        // prepare していなければ、ここで場所を決める
+        if hudFrame == nil {
+            guard prepare(model) != nil else { return }
         }
-        let model = HUDPlacement.fitted(model, in: screen)
-        hudStore.model = model
-        hudStore.increasedContrast = prefersIncreasedContrast()
-        hudStore.reduceMotion = prefersReducedMotion()
-        hudStore.reduceTransparency = prefersReducedTransparency()
-        place(HUDPlacement.hudFrame(size: HUDLayout.size(for: model), cursor: cursor, screen: screen), screen: screen)
+        if let screen = hudScreen {
+            hudStore.model = HUDPlacement.fitted(model, in: screen)
+        }
         hudFader.show()
         // フェードアウト中の前の HUD があっても、新しい HUD として最初から読む
-        HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: model) ?? "")
+        HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: hudStore.model ?? model) ?? "")
     }
 
     public func update(_ model: HUDModel) {
@@ -102,13 +118,6 @@ public final class HUDWindowController: HUDPresenting {
         }
     }
 
-    /// 指の位置を地図の上に写し、実際のポインタをそこへ動かす（地図に点は描かない。2本以上の指では動かさない）
-    public func updateFinger(_ finger: HUDFinger?) {
-        guard hudFader.isShowing, let frame = hudFrame, let model = hudStore.model, let finger, let onMovePointer,
-              let primary = screens().first?.frame else { return }
-        onMovePointer(HUDPlacement.pointerLocation(for: finger, model: model, hudFrame: frame, primaryScreen: primary))
-    }
-
     public func showPlacementPreview(_ frame: CGRect) {
         placementPreview.show(frame, animated: !prefersReducedMotion())
     }
@@ -119,7 +128,13 @@ public final class HUDWindowController: HUDPresenting {
 
     public func hide() {
         placementPreview.hide()
-        guard hudFader.isShowing else { return }
+        guard hudFader.isShowing else {
+            // prepare だけして出さなかった（ためらったときだけ出す）
+            hudFrame = nil
+            hudScreen = nil
+            hudStore.model = nil
+            return
+        }
         hudFrame = nil
         hudScreen = nil
         hudFader.hide { [weak self] in

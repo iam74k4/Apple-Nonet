@@ -101,29 +101,16 @@ final class DemoTouchSource: TouchSource {
 }
 
 /// ポインタを抑止せず、キーも見ない（デモの間、Mac のポインタとキーボードはそのまま使える）。
-/// 本物と同じく、開いている間はポインタを指の位置へ動かし、閉じたら元の位置に戻す（動画で、ポインタが光る札の上にあるように）
+/// ポインタの位置は知らせない（台本の指の位置でマスを選ぶ）
 @MainActor
 final class DemoKeyboardMonitor: KeyboardMonitor {
     var cursorLock: CursorLockMethod = .none
-    var isSuppressingPointer = false {
-        didSet {
-            guard !isSuppressingPointer, let movedFrom else { return }
-            CGWarpMouseCursorPosition(movedFrom)
-            self.movedFrom = nil
-        }
-    }
+    var isSuppressingPointer = false
     var onEvent: ((KeyboardEvent) -> Void)?
     var isRunning = false
-    private var movedFrom: CGPoint?
 
     func start() throws { isRunning = true }
     func stop() { isRunning = false }
-
-    func movePointer(to point: CGPoint) {
-        guard isSuppressingPointer else { return }
-        if movedFrom == nil { movedFrom = CGEvent(source: nil)?.location }
-        CGWarpMouseCursorPosition(point)
-    }
 }
 
 /// 何も実行しない。何を実行するところだったかだけを標準出力に書く

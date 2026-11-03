@@ -147,6 +147,7 @@ final class ShellFakeScheduler: Scheduler {
 final class ShellFakeHUD: HUDPresenting {
     private(set) var shown: [HUDModel] = []
     private(set) var toasts: [ToastModel] = []
+    func prepare(_ model: HUDModel) -> CGRect? { nil }
     func show(_ model: HUDModel) { shown.append(model) }
     func update(_ model: HUDModel) {}
     func hide() {}

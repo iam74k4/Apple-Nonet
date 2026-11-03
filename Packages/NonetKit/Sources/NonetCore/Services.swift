@@ -87,10 +87,9 @@ public protocol KeyboardMonitor: AnyObject {
     /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
     /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
     func endPointerSuppression(dropsLateClicks: Bool)
-    /// 抑止中に、止めたポインタを point（主画面の左上が原点のグローバル座標）へ動かし、そこで止める
-    /// （9マスを開いている間、トラックパッドの上の指の位置を画面に写す。実際のポインタと HUD の光る札がずれて見えないように）。
-    /// 抑止を終えるときは、動かす前の位置に戻す。抑止中でなければ何もしない
-    func movePointer(to point: CGPoint)
+    /// いまのポインタの位置（主画面の左上が原点、y が下向き）。分からなければ nil。
+    /// 9マスを開いている間、ポインタはふだんどおり動き（前面のアプリには渡さない）、HUD の地図の上でポインタが乗っているマスを選ぶ
+    var pointerLocation: CGPoint? { get }
 }
 
 extension KeyboardMonitor {
@@ -102,8 +101,8 @@ extension KeyboardMonitor {
     /// ポインタを戻さない実装の既定
     public func rememberPointerLocation() {}
 
-    /// ポインタを動かさない実装の既定
-    public func movePointer(to point: CGPoint) {}
+    /// ポインタの位置を知らない実装の既定（マスはトラックパッドの上の指の位置で選ぶ）
+    public var pointerLocation: CGPoint? { nil }
 
     /// マウスのイベントを見分けない実装の既定（抑止中はどのデバイスのイベントも捨てる）
     public var isTrackpadTouched: Bool {
@@ -274,7 +273,10 @@ public protocol Scheduler: AnyObject {
 
 @MainActor
 public protocol HUDPresenting: AnyObject {
-    /// HUD を出す。ポインタのあるディスプレイいっぱいに、トラックパッドの地図（外枠の帯・9マスの札）を敷く
+    /// HUD を出す場所を決め、地図の枠（主画面の左上が原点、y が下向き）を返す。まだ画面には出さない
+    /// （開いたときのポインタのすぐ下に地図を置き、ポインタが乗っているマスを選ぶ。「ためらったときだけ出す」で、出す前から選べるように）
+    func prepare(_ model: HUDModel) -> CGRect?
+    /// HUD を出す（prepare で決めた場所。決めていなければ決めて出す）
     func show(_ model: HUDModel)
     /// 表示中の HUD を更新する（ハイライトやページ）
     func update(_ model: HUDModel)
@@ -287,9 +289,6 @@ public protocol HUDPresenting: AnyObject {
     /// 「画面に置く」のマスを光らせている間、置く枠（AppKit のグローバル座標）を画面に見せる。閉じるときは hide() で消す
     func showPlacementPreview(_ frame: CGRect)
     func hidePlacementPreview()
-    /// トラックパッドの上の指の位置が変わった（nil は2本以上の指）。update より頻繁に呼ばれる。
-    /// 画面いっぱいの地図では、点を描く代わりに実際のポインタを指の位置へ動かす
-    func updateFinger(_ finger: HUDFinger?)
 }
 
 extension HUDPresenting {
@@ -300,8 +299,6 @@ extension HUDPresenting {
     public func showPlacementPreview(_ frame: CGRect) {}
     public func hidePlacementPreview() {}
 
-    /// 指の点を出さない実装の既定
-    public func updateFinger(_ finger: HUDFinger?) {}
 }
 
 // MARK: - ウインドウを置く

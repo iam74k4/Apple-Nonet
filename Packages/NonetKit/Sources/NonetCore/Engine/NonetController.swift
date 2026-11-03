@@ -125,6 +125,8 @@ public final class NonetController {
     @ObservationIgnored private var isStarted = false
     @ObservationIgnored private var isTouchSourceRunning = false
     @ObservationIgnored private var isHUDVisible = false
+    /// 開いている間の、HUD の地図の枠（主画面の左上が原点、y が下向き。HUDPresenting.prepare）。ポインタの位置をこの枠に写してマスを選ぶ
+    @ObservationIgnored private var hudMapFrame: CGRect?
     /// 「ためらったときだけ出す」で、HUD を出すのを待っている間（開いてから hesitationDelay）の、最後の HUD の中身と待ちの予定
     @ObservationIgnored private var pendingHUDState: SessionHUDState?
     @ObservationIgnored private var pendingHUD: (any ScheduledTask)?
@@ -371,7 +373,7 @@ public final class NonetController {
         if frame.isSynthesizedLift {
             send(.interrupted(at: frame.timestamp))
         }
-        send(.touches(frame))
+        send(.touches(ControllerPointerSelection.frame(frame, pointer: engine.isInSession ? services.keyboard.pointerLocation : nil, map: hudMapFrame)))
         // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
         if frame.touching.count != 1 {
             cancelPendingOpen()
@@ -500,6 +502,8 @@ public final class NonetController {
         case .showHUD(let state):
             prepareFirstHUD()
             guard let session else { return }
+            // 出す場所（ポインタのすぐ下）は今決める。出すのを待つ間も、ポインタで選べる
+            hudMapFrame = hud.prepare(hudModel(session, state: state))
             if session.settings.hudOnHesitation {
                 // 開いてから hesitationDelay は触覚だけ。それまでに閉じなければ（迷っていれば）出す。置く枠は待たずに出す
                 pendingHUDState = state
@@ -526,9 +530,9 @@ public final class NonetController {
                 return
             }
             updatePlacementPreview(session, state: state)
-        case .fingerMoved(let finger):
-            guard isHUDVisible else { return }
-            hud.updateFinger(finger)
+        case .fingerMoved:
+            // マスはポインタで選ぶので、トラックパッドの上の指の位置は HUD に出さない
+            break
         case .hideHUD:
             hideHUD()
         case .haptic(let event):
@@ -604,6 +608,7 @@ public final class NonetController {
         pendingHUD?.cancel()
         pendingHUD = nil
         pendingHUDState = nil
+        hudMapFrame = nil
         // 置く枠は HUD を待っている間も出すので、HUD を出していなくても消す
         hud.hidePlacementPreview()
         guard isHUDVisible else { return }

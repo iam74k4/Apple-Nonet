@@ -71,7 +71,7 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 1. Place one finger on the top edge (the far edge) of the trackpad
 2. Slide it straight down in one smooth move
 
-The nine buttons open, the HUD (a small panel that maps the trackpad: the nine buttons and the frame around them, drawn in the trackpad's proportions) appears next to the pointer, and the trackpad gives a light tick. While the buttons are open, the pointer moves over the map to follow your finger (it sits on the highlighted button). When they close, it goes back to where your finger first touched. Buttons are chosen by your finger, so you never have to aim the pointer. Right after they open, your finger always counts as being in the frame (outside the nine buttons), wherever it is, so "✕ Lift to cancel" in the bottom band of the HUD stands out. Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
+The nine buttons open, the HUD (a small trackpad-shaped panel: the nine buttons and the frame around them) appears just below the pointer, and the trackpad gives a light tick. The pointer sits in the far band of the frame and keeps moving as usual while the buttons are open. The button under the pointer lights up, so keep sliding your finger down onto a button and lift to run it. Right after they open, the pointer is in the frame (outside the nine buttons), so "✕ Lift to cancel" in the bottom band of the HUD stands out. Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
@@ -96,7 +96,7 @@ The highlighted button runs, and the HUD closes.
 
 Any of these closes the buttons without running anything. You feel two light taps when you lift in the frame, on an empty button or on a border, or lift with two fingers. Closing with a key, or when the 20 seconds run out, gives no tap:
 
-- **Lift in the frame**: slide out to the frame around the nine buttons and lift your finger. The frame is the band along the edges of the trackpad: 11% of the width at the left and right, 15% of the depth at the near edge and 17% at the far edge (1.5 to 1.7 cm on a trackpad about 15 cm wide). When your finger enters the frame, the buttons dim, the frame band lights up and "✕ Lift to cancel" in the bottom band stands out
+- **Lift in the frame**: move the pointer out to the frame around the nine buttons (the band along the edges of the map: 11% of the width at the left and right, 15% at the near edge and 17% at the far edge) and lift your finger. Anywhere outside the map counts too. When the pointer enters the frame, the buttons dim, the frame band lights up and "✕ Lift to cancel" in the bottom band stands out
 - **Press a key**: pressing any key (except media keys such as volume and brightness) while the buttons are open closes them right away. The key reaches the app as usual
 - **Lift on an empty button**: nothing happens on a button with no action
 - **Lift on the line between two buttons**: nothing runs on a border
@@ -112,7 +112,7 @@ For buttons that do something you can't undo, such as sending or recording, turn
 
 ### The trackpad while the buttons are open
 
-While the nine buttons are open, the pointer follows your finger, and clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either. If the trackpad stops reporting your finger while the buttons are open (for example, a Magic Trackpad disconnects or its battery runs out, your Mac goes to sleep, or Nonet switches to another trackpad), the buttons close without running the highlighted one.
+While the nine buttons are open, the pointer moves as usual, but its movement, clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either. If the trackpad stops reporting your finger while the buttons are open (for example, a Magic Trackpad disconnects or its battery runs out, your Mac goes to sleep, or Nonet switches to another trackpad), the buttons close without running the highlighted one.
 
 ### Pages
 
@@ -469,7 +469,7 @@ If you move the pointer by sliding a finger quickly down from the far edge of th
 
 ### The pointer doesn't move or clicks don't work
 
-While the nine buttons are open, Nonet moves the pointer with your finger and blocks clicks. If Nonet thinks they're still open, any of these gets things back to normal:
+While the nine buttons are open, Nonet keeps pointer movement and clicks from reaching the front app. If Nonet thinks they're still open, any of these gets things back to normal:
 
 - Take all your fingers off the trackpad
 - Press any key (this closes them right away)
