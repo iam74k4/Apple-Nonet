@@ -10,8 +10,9 @@ import NonetCore
 /// ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない（メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
 @MainActor
 public final class EventTapKeyboardMonitor: KeyboardMonitor {
-    /// 9マスを開いている間、ポインタの移動は前面のアプリに渡さないが、ポインタそのものはふだんどおり動く（HUD の地図の上でポインタが乗っているマスを選ぶ）
-    public var cursorLock: CursorLockMethod = .dropEvents
+    /// 9マスを開いている間もポインタはふだんどおり動く（HUD の地図の上でポインタが乗っているマスを選ぶ）。
+    /// イベントタップで移動のイベントを捨てるとポインタそのものが止まるので、移動は捨てずに前面のアプリへ渡し、クリック・スクロール・ジェスチャーだけ捨てる
+    public var cursorLock: CursorLockMethod = .none
     public var isSuppressingPointer = false {
         didSet {
             guard isSuppressingPointer != oldValue else { return }

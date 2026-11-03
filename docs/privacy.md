@@ -35,7 +35,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 本アプリは macOS の「アクセシビリティ」の許可を、次のことだけに使います。
 
-- 9マスを開いている間、ポインタの移動・クリック・スクロール・ジェスチャーを前面のアプリに渡さない（ポインタそのものはふだんどおり動く）。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときはポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
+- 9マスを開いている間、クリック・スクロール・ジェスチャーを前面のアプリに渡さない（ポインタの移動はふだんどおりで、前面のアプリにも届く）。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときはポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
 - 9マスを開いている間だけ、キーが押されたことを知り、押されたら何も実行せずに9マスを閉じる。キーボードのイベントタップは9マスを開いている間だけ有効にし、それ以外のときはキーボードのイベントが本アプリを通りません。押されたキーは手を加えずに前面のアプリに渡します。入力した文字の内容は、記録も保存も送信もしません。
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。メニュー項目のショートカットを送る前には、アプリのメニューにあるその項目のショートカットを読み、同じかを確かめる。
 - 「画面に置く」のアクションで、前面のアプリのウインドウの位置と大きさを読んで変える。9マスでそのマスを光らせている間は、置く枠を画面に出すために位置と大きさを読む。読んだ値はその場で使うだけで、保存も送信もしません。
@@ -125,7 +125,7 @@ When you use “Contact Support…” in the app, the email it creates contains 
 
 The app uses the macOS Accessibility permission only to:
 
-- Keep pointer movement, clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer itself keeps moving as usual). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
+- Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
 - Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.
 - Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.
 - Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.

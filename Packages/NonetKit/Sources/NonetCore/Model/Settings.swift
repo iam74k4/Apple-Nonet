@@ -14,7 +14,7 @@ public enum OpenSensitivity: String, Codable, CaseIterable, Sendable {
     case high
 }
 
-/// 9マスを開いている間、ポインタが動かないようにする方法（KeyboardMonitor の設定。利用者には見せず、自動だけを使う）
+/// 9マスを開いている間のポインタの扱い（KeyboardMonitor の設定。利用者には見せず、none だけを使う: ポインタはふだんどおり動き、地図の上でマスを選ぶ）
 public enum CursorLockMethod: String, Codable, CaseIterable, Sendable {
     /// 移動イベントを捨て、それでもずれたら元の位置に戻す
     case automatic

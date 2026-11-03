@@ -112,7 +112,7 @@ For buttons that do something you can't undo, such as sending or recording, turn
 
 ### The trackpad while the buttons are open
 
-While the nine buttons are open, the pointer moves as usual, but its movement, clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either. If the trackpad stops reporting your finger while the buttons are open (for example, a Magic Trackpad disconnects or its battery runs out, your Mac goes to sleep, or Nonet switches to another trackpad), the buttons close without running the highlighted one.
+While the nine buttons are open, the pointer moves as usual (the front app sees it move), but clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either. If the trackpad stops reporting your finger while the buttons are open (for example, a Magic Trackpad disconnects or its battery runs out, your Mac goes to sleep, or Nonet switches to another trackpad), the buttons close without running the highlighted one.
 
 ### Pages
 
@@ -468,7 +468,7 @@ If you move the pointer by sliding a finger quickly down from the far edge of th
 
 ### The pointer doesn't move or clicks don't work
 
-While the nine buttons are open, Nonet keeps pointer movement and clicks from reaching the front app. If Nonet thinks they're still open, any of these gets things back to normal:
+While the nine buttons are open, Nonet keeps clicks and scrolling from reaching the front app. If Nonet thinks they're still open, any of these gets things back to normal:
 
 - Take all your fingers off the trackpad
 - Press any key (this closes them right away)

@@ -351,14 +351,15 @@ final class FakeCursor: CursorControlling {
         #expect(recorder.events == [.interrupted])
     }
 
-    /// 指が触れている間は、トラックパッドのクリックや移動として捨てる（これまでどおり）
+    /// 指が触れている間は、トラックパッドのクリックは捨て、移動は通す（移動を捨てるとポインタが止まり、地図の上で選べない）。どちらも .interrupted にしない
     @Test func pointerEventsWhileTheTrackpadIsTouchedAreStillDropped() throws {
         monitor.isTrackpadTouched = true
         open()
         #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
-        #expect(!send(.mouseMoved, try mouse(.mouseMoved)))
+        #expect(send(.mouseMoved, try mouse(.mouseMoved)))
         #expect(recorder.events.isEmpty)
         #expect(monitor.isSuppressingPointer)
+        #expect(cursor.warps.isEmpty)
     }
 
     /// 指を離した直後に届く「タップでクリック」や慣性のスクロールは、トラックパッドのものとして捨てる
