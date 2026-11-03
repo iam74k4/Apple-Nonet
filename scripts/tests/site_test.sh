@@ -877,21 +877,26 @@ test_guides_limit_automation_to_the_browser_url() {
   done
 }
 
-# グローバルのランチャーは Page.cellCount × Profile.maxPages 個まで（PresetLibrary.makeGlobalProfile）
+# 1つのプロファイルは Page.cellCount × Profile.maxPages マスまで。初回のグローバルは1ページ目が「画面に置く」なので、
+# ランチャーはその残り（maxPages − 1 ページ）まで（NonetConfiguration.initial）
 test_guides_state_the_launcher_size() {
-  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total file counts
+  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total launcher_pages launcher file counts
   cells="$(sed -nE 's/.*static let cellCount = ([0-9]+).*/\1/p' "$profile")"
   pages="$(sed -nE 's/.*static let maxPages = ([0-9]+).*/\1/p' "$profile")"
   [[ -n "$cells" && -n "$pages" ]] || fail "Profile.swift から cellCount と maxPages を読めません"
   total=$((cells * pages))
+  launcher_pages=$((pages - 1))
+  launcher=$((cells * launcher_pages))
   for file in docs/user-guide.md site/guide.html; do
-    grep -qF "最大${total}個（${pages}ページ）並べたランチャー" "$ROOT/$file" || fail "$file: ランチャーが最大${total}個（${pages}ページ）になっていません"
+    grep -qF "最大${launcher}個（${launcher_pages}ページ）並べたランチャー" "$ROOT/$file" || fail "$file: ランチャーが最大${launcher}個（${launcher_pages}ページ）になっていません"
     grep -qF "最大${pages}ページ（${total}マス）" "$ROOT/$file" || fail "$file: 1つのプロファイルが最大${pages}ページ（${total}マス）になっていません"
     counts="$(grep -oE '最大[0-9]+個' "$ROOT/$file" | sort -u)"
-    assert_eq "最大${total}個" "$counts" "$file のランチャーの数"
+    assert_eq "最大${launcher}個" "$counts" "$file のランチャーの数"
   done
   for file in docs/user-guide.en.md site/en/guide.html; do
-    grep -qF "launcher with up to ${total} apps" "$ROOT/$file" || fail "$file: the launcher is not up to ${total} apps"
+    grep -qF "launcher with up to ${launcher} apps on ${launcher_pages} pages" "$ROOT/$file" \
+      || grep -qF "launcher with up to ${launcher} apps on two pages" "$ROOT/$file" \
+      || fail "$file: the launcher is not up to ${launcher} apps on ${launcher_pages} pages"
     grep -qF "(${total} buttons)" "$ROOT/$file" || fail "$file: a profile is not up to ${total} buttons"
   done
 }

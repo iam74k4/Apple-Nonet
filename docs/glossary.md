@@ -37,7 +37,7 @@
 | アプリ | app | Apple's user-facing word. Use "Applications" only for the folder name. |
 | 起動する / 開く（アプリを） | open | Apple prefers "open" to "launch" in user-facing text. The action is "Open" (with App chosen under What to open) and the setting is "Open at login". |
 | 前面のときは隠す | Hide if already in front | Checkbox of the Open action when it opens an app. |
-| アクション | action | "seven kinds of actions" (site). |
+| アクション | action | "eight kinds of actions" (site). |
 | アクションの種類 | Action type | Inspector label. |
 | キー入力 | Keystrokes | Action type (site). In prose: "send keystrokes". The plural is deliberate because one action can send a key sequence. |
 | 続けて押すキー | sequence | Site: "a sequence like ⌘L then ⌘C". Display it as "⌘L → ⌘C". |
@@ -45,6 +45,10 @@
 | キー配列 / JIS 配列 | keyboard layout / JIS keyboard | Site: "JIS keyboards", "any keyboard layout". |
 | 開く（アクションの種類） | Open | Action type that opens an app or a URL (the former Open App and URL kinds). The site's chip reads "Open an app or URL". |
 | 開くもの / アプリ / URL | What to open / App / URL | Segmented control of the Open action. The アプリ key is shared with the icon picker segment and the Menu Item editor's row label. |
+| 画面に置く | Place on Screen | Action type that moves the front app's window to a fixed part of the screen. Title Case as an action type and as the name of the Global profile's first page; in prose "place the window". Not "snap", "tile" or "window management". |
+| 場所（画面に置く） | Position | Inspector label of the Place on Screen action. The nine values are Top Left / Top Half / Top Right / Left Half / Maximize / Right Half / Bottom Left / Bottom Half / Bottom Right (Title Case; "half", not "side"). |
+| 置く枠 / 離すと、ここに置きます | target area (outline) / Lift to place it here | The light-blue outline shown on screen while a Place on Screen button is highlighted, and its note. |
+| %@ のウインドウ / 前面のウインドウ（HUD の帯） | %@ window / The front window | The context band under the HUD title that says what a Place on Screen page acts on: "Safari window". |
 | スクリプト | Script | Action type; "zsh script" in prose. |
 | 実行の仕方: 裏で実行 / ターミナルで実行 | Run: In Background / In Terminal | Script options. In prose: "run in the background", "run in Terminal". |
 | 制限時間 | Timeout | "Timeout: 60 s". |
@@ -102,7 +106,7 @@
 | 開き方とやめ方 | How to open and cancel | Row under Opening and HUD in Settings › General, with a small figure of the trackpad and an arrow from the top edge. Caption: "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key." |
 | 開きやすさ / 控えめ / 標準 / 開きやすい | Open sensitivity / Low / Standard / High | Settings label and its segmented options (`GlobalSettings.openSensitivity`). The caption describes the band, the distance and the time of the chosen level. |
 | 大きく表示 | Show larger | Settings toggle that replaces the old HUD size options (`HUDScale.standard` / `.large`, 1 / 1.25×). Caption: "Shows the HUD and the notices at the bottom of the screen at 1.25×". |
-| HUD の位置 | HUD position | Options: "Center of Screen" / "Near Pointer". Caption: "Appears on the display with the pointer." |
+| HUD の位置 | HUD position | Options: "Bottom of Screen" (default) / "Center of Screen" / "Near Pointer". Caption: "Appears on the display with the pointer." |
 | 触覚 | Haptic feedback | Apple term. Settings toggle (on is the medium strength). Caption: "The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only)". Not "Firm", which Apple uses for trackpad click pressure. Prose can describe the feeling as "a light tick"; closing without running anything gives "two light taps". Here "tap" means the haptic, never a finger action. Avoid "vibration" in the UI. |
 | ポインタ | pointer | Apple calls the mouse arrow the "pointer" (Japanese ポインタ), and the site does too ("the pointer stays put"). Japanese UI text says ポインタ, never カーソル, for it. Use "cursor" (カーソル) only for a text insertion point. |
 | ログイン時に起動 | Open at login | Apple's wording (Dock menu and Login Items). Sentence case because it is a checkbox. |
@@ -156,7 +160,8 @@
 | そのまま止めて待つ / 離すと実行（VoiceOver） | Keep your finger still / Lift to run | VoiceOver text for a Hold before running button while its outline is still going around, and once it's complete (VoiceOver says "Lift to run" then). Not shown in the HUD: the outline and the haptic show the progress. The only text in the HUD's top bar is "Practice". |
 | Nonet のウィンドウが前面のときは、9マスは開きません / ほかのアプリの上で試してください | The nine buttons don't open while a Nonet window is in front / Try it over another app | Notice at the bottom of the screen, shown once per launch when the user slides in from the top edge while Settings or the welcome guide is in front. Info style, not an error. |
 | うまく開かないときは… / 外枠で離すと、何も実行せずに閉じます。… / マスの境目の線の上で離すと、実行しません。… / 通りかかっただけのマスは実行しません。… / 空きマスでは何も起きません。… / 指を1本にして… / まだ外枠で離していません。… | If it doesn't open… / Lifting in the frame closes the buttons without running anything. … / Lifting right on the line between two buttons runs nothing. … / A button you only slid across doesn't run. … / Nothing happens on an empty button. … / Use one finger… / You haven't lifted in the frame yet. … | Practice hints in the welcome guide: the standing hint under task 1, and one hint per reason a lift ran nothing (`SessionCancellation`). Each ends with what to do next. |
-| 離すとやめる（HUD） | Lift to cancel | Shown with ✕ in the HUD while the finger is in the frame (the buttons dim and the frame brightens). It also shows right after opening, because the finger always counts as being in the frame until it slides a little further. |
+| 離すとやめる（HUD） | Lift to cancel | Always shown with ✕ in the bottom band of the HUD's trackpad map; it stands out while the finger is in the frame (the buttons dim and the frame band brightens), including right after opening, because the finger always counts as being in the frame until it slides a little further. |
+| トラックパッドの地図（HUD） | trackpad map | The HUD panel draws the trackpad: the nine buttons, the frame band in the trackpad's own proportions, a dot where the finger is, ‹ › in the side bands when there is a page on that side, and the bottom band with "Lift to cancel". |
 | 練習中（HUD） | Practice | Next to the profile name in the HUD while the welcome guide's practice runs. |
 | 「%@」を実行中… | Running “%@”… | Notice while a slow button runs. |
 | %@ › %@ / %@ › %@（%lldページ目） | %1$@ › %2$@ / %1$@ › %2$@ (page %3$lld) | Title of a failure notice: profile › button, plus the page when the profile has more than one. |

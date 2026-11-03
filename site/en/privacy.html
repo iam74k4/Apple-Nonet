@@ -53,7 +53,7 @@
 <main id="main" class="doc">
   <div class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: October 31, 2026</p>
+    <p class="updated">Last updated: November 3, 2026</p>
 
     <p>Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.</p>
 
@@ -81,6 +81,7 @@
       <li>Keep pointer movement, clicks, scrolling and gestures from reaching the front app, and hold the pointer still, while the nine buttons are open. The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.</li>
       <li>Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.</li>
       <li>Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.</li>
+      <li>Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.</li>
       <li>Read the menus of running apps in the settings window.</li>
       <li>Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable <code>NONET_SELECTED_TEXT</code>. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.</li>
     </ul>

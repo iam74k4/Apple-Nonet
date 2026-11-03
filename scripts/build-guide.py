@@ -19,7 +19,7 @@ IDS = [
     (2, "menu-bar"),
     (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "undo-and-restore"), (3, "power-editing"),
     (3, "inspector"), (3, "pick-from-menus"),
-    (2, "actions"), (3, "keystrokes"), (3, "open-app"), (3, "script"), (4, "script-variables"),
+    (2, "actions"), (3, "keystrokes"), (3, "open-app"), (3, "place-window"), (3, "script"), (4, "script-variables"),
     (3, "shortcut"), (3, "menu-item"), (3, "ai"), (3, "file"),
     (2, "general"), (3, "opening-and-hud"),
     (3, "startup"), (3, "export-import"),

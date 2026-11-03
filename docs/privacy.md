@@ -8,7 +8,7 @@
 
 ## 日本語
 
-最終更新: 2026年10月31日
+最終更新: 2026年11月3日
 
 Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち」）が提供する macOS 用のアプリです。本アプリは、あなたの情報を集めないように作っています。
 
@@ -38,6 +38,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 - 9マスを開いている間、ポインタの移動・クリック・スクロール・ジェスチャーを前面のアプリに渡さず、ポインタを止めておく。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときはポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
 - 9マスを開いている間だけ、キーが押されたことを知り、押されたら何も実行せずに9マスを閉じる。キーボードのイベントタップは9マスを開いている間だけ有効にし、それ以外のときはキーボードのイベントが本アプリを通りません。押されたキーは手を加えずに前面のアプリに渡します。入力した文字の内容は、記録も保存も送信もしません。
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。メニュー項目のショートカットを送る前には、アプリのメニューにあるその項目のショートカットを読み、同じかを確かめる。
+- 「画面に置く」のアクションで、前面のアプリのウインドウの位置と大きさを読んで変える。9マスでそのマスを光らせている間は、置く枠を画面に出すために位置と大きさを読む。読んだ値はその場で使うだけで、保存も送信もしません。
 - 設定画面で、起動中のアプリのメニューの一覧を読む。
 - あなたが設定したアクションを実行する直前に、そのアクションに渡すものを読む。スクリプトでは、前面のウィンドウで開いている書類の場所をいつも読み、選択中のテキストは、スクリプトに変数 `NONET_SELECTED_TEXT` が書かれているときだけ読む。ショートカットでは「選択中のテキストを渡す」がオンのときだけ、AI では毎回、選択中のテキストを読む。選択中のテキストを直接読めないアプリでは、⌘C でクリップボードを使って読み、クリップボードを元に戻す。読んだ内容はそのアクションに渡すだけで、保存も送信もしません。
 
@@ -97,7 +98,7 @@ Takanari Okazaki（問い合わせ先: TODO: サポートのメールアドレ�
 
 ## English
 
-Last updated: October 31, 2026
+Last updated: November 3, 2026
 
 Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.
 
@@ -127,6 +128,7 @@ The app uses the macOS Accessibility permission only to:
 - Keep pointer movement, clicks, scrolling and gestures from reaching the front app, and hold the pointer still, while the nine buttons are open. The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
 - Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.
 - Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.
+- Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.
 - Read the menus of running apps in the settings window.
 - Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable `NONET_SELECTED_TEXT`. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.
 
