@@ -129,25 +129,40 @@ struct ShellHUDTests {
         }
     }
 
-    @Test("出す場所: 開いたときのポインタが地図の奥の帯の中央に来る。prepare は地図の枠（主画面の左上が原点）を返し、show はその場所に出す")
-    func preparedNextToThePointer() throws {
+    @Test("出す場所: 開いたときのポインタが地図の奥の帯の中央に来る。show は地図の枠（主画面の左上が原点）を返す")
+    func shownNextToThePointer() throws {
         let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
         let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 450) })
-        let map = try #require(hud.prepare(Self.model()))
-        #expect(!hud.isShowingHUD)
+        let map = try #require(hud.show(Self.model()))
+        #expect(hud.isShowingHUD)
+        #expect(hud.mapFrame == map)
         #expect(map.size == CGSize(width: HUDLayout.mapWidth, height: HUDLayout.mapHeight))
         #expect(abs(map.midX - 700) <= 0.5)
         // 奥の帯の中央（地図の上辺から bandTop / 2）がポインタ（y は下向きなので 900 − 450）
         #expect(abs(map.minY + HUDLayout.bandTop / 2 - (900 - 450)) <= 0.5)
-        hud.show(Self.model())
-        #expect(hud.isShowingHUD)
-        // 表示中の prepare は同じ枠
-        #expect(hud.prepare(Self.model()) == map)
+        // 表示中にもう一度 show しても同じ枠
+        #expect(hud.show(Self.model(highlighted: 1)) == map)
         hud.hide()
-        // 出さずに閉じても、次は決め直す
-        _ = hud.prepare(Self.model())
+        #expect(hud.mapFrame == nil)
+    }
+
+    @Test("帯が増えて高くなっても、地図は動かさない（上へ伸ばす）。update は新しい地図の枠を返す")
+    func growingKeepsTheMapInPlace() throws {
+        let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
+        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 450) })
+        let map = try #require(hud.show(Self.model()))
+        // 中身だけの変化は枠を返さない
+        #expect(hud.update(Self.model(highlighted: 1)) == nil)
+        let grown = try #require(hud.update(Self.model(highlighted: 1, banner: "帯")))
+        #expect(grown == map)
+        #expect(hud.mapFrame == map)
+        // 画面の上の端では、収めるために地図が下がる
+        let top = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 890) })
+        let topMap = try #require(top.show(Self.model()))
+        let topGrown = try #require(top.update(Self.model(banner: "帯")))
+        #expect(topGrown.minY >= topMap.minY)
+        top.hide()
         hud.hide()
-        #expect(!hud.isShowingHUD)
     }
 
     @Test("帯と「何に対する操作か」があるぶんだけ高くなり、幅は変わらない")

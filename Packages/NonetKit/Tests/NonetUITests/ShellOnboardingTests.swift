@@ -530,9 +530,9 @@ struct ShellOnboardingTests {
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「\(title)」まで滑らせて、そこで離してください。"))
+            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。"))
         #expect(ShellText.practiceCancelInstruction
-            == L10n.ui("もう一度上の縁から HUD を開き、今度は指を外枠（9マスの外側）まで滑らせてから離してください。何も実行せずに閉じます。"))
+            == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
             == L10n.ui("「\("X")」で離しました。やめるときは、指を外枠まで滑らせてから離してください。"))
         // トラックパッドには「押す」「長押し」と言わない

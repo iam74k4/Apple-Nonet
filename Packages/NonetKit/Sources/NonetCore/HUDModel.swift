@@ -17,17 +17,6 @@ public struct HUDCell: Equatable, Sendable {
     }
 }
 
-/// トラックパッドの上の指の位置（0〜1。x は左が 0、y は手前が 0）。HUD はトラックパッドの地図の上に点で出す
-public struct HUDFinger: Equatable, Sendable {
-    public var x: Double
-    public var y: Double
-
-    public init(x: Double, y: Double) {
-        self.x = x
-        self.y = y
-    }
-}
-
 /// HUD の上部の帯の見た目
 public enum HUDBannerStyle: Equatable, Sendable {
     /// 注意（試用期間の終了など）

@@ -186,6 +186,13 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
     var cursorLock: CursorLockMethod = .none
     /// いまのポインタの位置（主画面の左上が原点）。nil なら、マスはトラックパッドの上の指の位置で選ぶ
     var pointerLocation: CGPoint?
+    /// movePointer で動かした先（順に）
+    private(set) var movedPointers: [CGPoint] = []
+
+    func movePointer(to point: CGPoint) {
+        movedPointers.append(point)
+        pointerLocation = point
+    }
     var isSuppressingPointer = false {
         didSet {
             guard isSuppressingPointer != oldValue else { return }
@@ -413,14 +420,8 @@ final class ControllerFakeHUD: HUDPresenting {
         self.recorder = recorder
     }
 
-    /// prepare が返す地図の枠（主画面の左上が原点）。nil なら、マスはトラックパッドの上の指の位置で選ぶ
+    /// show が返す地図の枠（主画面の左上が原点）。nil なら、マスはトラックパッドの上の指の位置で選ぶ
     var mapFrame: CGRect?
-    private(set) var prepared: [HUDModel] = []
-
-    func prepare(_ model: HUDModel) -> CGRect? {
-        prepared.append(model)
-        return mapFrame
-    }
 
     func showPlacementPreview(_ frame: CGRect) {
         guard placementPreview != frame else { return }
@@ -436,17 +437,19 @@ final class ControllerFakeHUD: HUDPresenting {
         recorder.log("hud:preview-off")
     }
 
-    func show(_ model: HUDModel) {
+    func show(_ model: HUDModel) -> CGRect? {
         shown.append(model)
         current = model
         isVisible = true
         recorder.log("hud:show")
+        return mapFrame
     }
 
-    func update(_ model: HUDModel) {
+    func update(_ model: HUDModel) -> CGRect? {
         updates.append(model)
         current = model
         recorder.log("hud:update")
+        return nil
     }
 
     func hide() {

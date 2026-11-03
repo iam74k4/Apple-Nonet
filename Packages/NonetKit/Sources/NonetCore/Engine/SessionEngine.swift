@@ -234,8 +234,6 @@ public enum SessionEffect: Equatable, Sendable {
     case endPointerSuppression(dropsLateClicks: Bool)
     /// HUD を出す
     case showHUD(SessionHUDState)
-    /// 指の位置が変わった（HUD はトラックパッドの地図の上の点を動かす）。nil は点を消す（2本以上の指・滑らせ直すまで）
-    case fingerMoved(HUDFinger?)
     /// 表示中の HUD のページ・ハイライト・外枠・進み具合が変わった
     case updateHUD(SessionHUDState)
     case hideHUD

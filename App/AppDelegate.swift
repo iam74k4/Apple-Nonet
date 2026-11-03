@@ -54,6 +54,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShellQuitMarker.removeAll()
         let services = makeServices()
         let hud = HUDWindowController()
+        #if DEBUG
+        demo?.mapFrame = { [weak hud] in hud?.mapFrame }
+        #endif
         let license = makeLicenseManager()
         let controller = NonetController(
             services: services,

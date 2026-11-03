@@ -29,10 +29,6 @@ struct SettingsGeneralView: View {
                     Text(SettingsText.openSensitivityDetail(model.settings.openSensitivity))
                 }
                 .pickerStyle(.segmented)
-                Toggle(isOn: binding(\.hudOnHesitation)) {
-                    Text(SettingsText.hudOnHesitationTitle)
-                    Text(SettingsText.hudOnHesitationDetail)
-                }
                 // 前の版の「特大」は、大きく表示のオンとして見せる（オフにすると標準に戻る）
                 Toggle(isOn: Binding(get: { model.settings.hudScale != .standard }, set: { model.setSetting(\.hudScale, $0 ? .large : .standard) })) {
                     Text(SettingsText.hudLargeTitle)

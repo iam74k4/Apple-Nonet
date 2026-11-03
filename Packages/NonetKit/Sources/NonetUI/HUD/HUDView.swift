@@ -64,9 +64,9 @@ struct HUDMetrics: Equatable {
     }
 }
 
-/// HUD の標準の寸法（倍率 1）。ポインタの近くに出す小さなパネル。題名（と帯）の下に、トラックパッドの形の地図を置く。
+/// HUD の標準の寸法（倍率 1）。開いたときのポインタのすぐ下に出す小さなパネル。題名（と帯）の下に、トラックパッドの形の地図を置く。
 /// 地図は MacBook のトラックパッドと同じ比率（1.55:1）で、外枠の帯を実物と同じ割合（GridInsets.cancelFrame: 左右 11%・奥 17%・手前 15%）で描き、
-/// その内側が9マス。指の位置は点を描かず、実際のポインタを地図の上のその場所へ動かして示す（HUDPlacement.pointerLocation）
+/// その内側が9マス。指の点は描かない: ポインタがふだんどおり動き、地図の上で乗っているマスが光る（ControllerPointerSelection）
 enum HUDLayout {
     static let width: CGFloat = 360
     static let padding: CGFloat = 10

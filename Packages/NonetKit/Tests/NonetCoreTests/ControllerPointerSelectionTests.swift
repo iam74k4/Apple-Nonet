@@ -29,13 +29,42 @@ import Testing
         #expect(ControllerPointerSelection.frame(two, pointer: CGPoint(x: 250, y: 200), map: Self.map) == two)
     }
 
+    @Test("開いたとき、ポインタが地図の奥の帯の中央に無ければ（画面の端で枠を寄せた）、一度だけそこへ動かす")
+    func pointerIsPlacedInTheFarBandWhenTheFrameWasClamped() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.hud.mapFrame = Self.map
+        // 寄せていない: ポインタはすでに帯の中央
+        let start = ControllerPointerSelection.startPoint(in: Self.map)
+        #expect(start == CGPoint(x: 250, y: 100 + 200 * GridInsets.cancelFrame.top / 2))
+        h.keyboard.pointerLocation = start
+        h.open()
+        #expect(h.keyboard.movedPointers.isEmpty)
+        h.keyboard.pressKey()
+        h.lift()
+        h.advance(1)
+        // 寄せた: ポインタはマスの上 → 帯の中央へ
+        h.keyboard.pointerLocation = CGPoint(x: 250, y: 200)
+        h.open()
+        #expect(h.keyboard.movedPointers == [start])
+        h.keyboard.pressKey()
+        h.lift()
+        h.advance(1)
+        // ポインタが分からなければ動かさない
+        h.keyboard.pointerLocation = nil
+        h.open()
+        #expect(h.keyboard.movedPointers.count == 1)
+        h.keyboard.pressKey()
+        h.lift()
+    }
+
     @Test("開いている間はポインタで選ぶ: ポインタが地図の中央ならそのマス、奥の帯か地図の外なら外枠。ポインタが分からなければ指の位置")
     func pointerSelectsTheCell() throws {
         let h = try ControllerHarness()
         h.start()
         h.hud.mapFrame = Self.map
         h.open()
-        #expect(h.hud.prepared.count == 1)
+        #expect(h.hud.shown.count == 1)
         h.advance(0.05)
         h.keyboard.pointerLocation = CGPoint(x: 250, y: 200)
         h.touch(x: 0.1, y: 0.9)

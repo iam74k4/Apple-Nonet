@@ -35,6 +35,8 @@ final class DemoTouchSource: TouchSource {
     private var wasTouching = false
     var onFinished: (() -> Void)?
     var onFrame: ((TouchFrame) -> Void)?
+    /// 表示中の HUD の地図の枠（主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす（本物はポインタでマスを選ぶため）
+    var mapFrame: (() -> CGRect?)?
 
     var isAvailable: Bool { scripted || base.isAvailable }
 
@@ -87,6 +89,9 @@ final class DemoTouchSource: TouchSource {
         }
         if let point = DemoScript.sample(at: time) {
             wasTouching = true
+            if let map = mapFrame?() {
+                CGWarpMouseCursorPosition(CGPoint(x: map.minX + point.x * map.width, y: map.minY + (1 - point.y) * map.height))
+            }
             deliver(TouchFrame(timestamp: now, points: [TouchPoint(id: 1, x: point.x, y: point.y, isTouching: true, majorAxis: 12)]))
         } else if wasTouching {
             wasTouching = false
@@ -101,16 +106,35 @@ final class DemoTouchSource: TouchSource {
 }
 
 /// ポインタを抑止せず、キーも見ない（デモの間、Mac のポインタとキーボードはそのまま使える）。
-/// ポインタの位置は知らせない（台本の指の位置でマスを選ぶ）
+/// ポインタの位置は本物を知らせる（DemoTouchSource が台本の指の位置へポインタを動かすので、本物と同じくポインタでマスを選ぶ）。
+/// 開いている間に動かしたポインタは、閉じたら元の位置に戻す
 @MainActor
 final class DemoKeyboardMonitor: KeyboardMonitor {
     var cursorLock: CursorLockMethod = .none
-    var isSuppressingPointer = false
+    var isSuppressingPointer = false {
+        didSet {
+            guard isSuppressingPointer != oldValue else { return }
+            if isSuppressingPointer {
+                movedFrom = pointerLocation
+            } else if let movedFrom {
+                CGWarpMouseCursorPosition(movedFrom)
+                self.movedFrom = nil
+            }
+        }
+    }
     var onEvent: ((KeyboardEvent) -> Void)?
     var isRunning = false
+    private var movedFrom: CGPoint?
+
+    var pointerLocation: CGPoint? { CGEvent(source: nil)?.location }
 
     func start() throws { isRunning = true }
     func stop() { isRunning = false }
+
+    func movePointer(to point: CGPoint) {
+        guard isSuppressingPointer else { return }
+        CGWarpMouseCursorPosition(point)
+    }
 }
 
 /// 何も実行しない。何を実行するところだったかだけを標準出力に書く
@@ -239,6 +263,8 @@ final class DemoSession {
     static let padSize = CGSize(width: 380, height: 253)
 
     let model = DemoTrackpadModel()
+    /// 表示中の HUD の地図の枠（AppDelegate が HUDWindowController.mapFrame につなぐ）
+    var mapFrame: (() -> CGRect?)?
     private let options: ShellLaunchOptions
     private var backdrop: NSWindow?
     private var overlay: NSWindow?
@@ -257,6 +283,7 @@ final class DemoSession {
             startFile: options.demoStartFile
         )
         source.onFinished = { [weak self] in self?.finish() }
+        source.mapFrame = { [weak self] in self?.mapFrame?() }
         services.touchSource = source
         services.keyboard = DemoKeyboardMonitor()
         services.performer = DemoPerformer()

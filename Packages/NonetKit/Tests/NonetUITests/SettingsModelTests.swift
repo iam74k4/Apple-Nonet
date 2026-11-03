@@ -733,11 +733,11 @@ import Testing
 @Suite @MainActor struct SettingsModelGeneralTests {
     @Test func settingsAreSavedImmediately() throws {
         let h = try SettingsHarness()
-        h.model.setSetting(\.hudOnHesitation, true)
+        h.model.setSetting(\.hudScale, .large)
         h.model.setSetting(\.haptics, .strong)
-        #expect(h.model.settings.hudOnHesitation)
+        #expect(h.model.settings.hudScale == .large)
         let saved = try #require(try h.saved())
-        #expect(saved.settings.hudOnHesitation)
+        #expect(saved.settings.hudScale == .large)
         #expect(saved.settings.haptics == .strong)
     }
 

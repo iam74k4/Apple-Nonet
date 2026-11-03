@@ -117,20 +117,11 @@ struct SessionScenario {
 }
 
 extension Array where Element == SessionEffect {
-    /// requestTick と fingerMoved を除いたもの（タイマーの依頼と指の点を気にしないテスト用）
+    /// requestTick を除いたもの（タイマーの依頼を気にしないテスト用）
     var visible: [SessionEffect] {
         filter {
             if case .requestTick = $0 { return false }
-            if case .fingerMoved = $0 { return false }
             return true
-        }
-    }
-
-    /// 指の点の動き（並び順）
-    var fingers: [HUDFinger?] {
-        compactMap {
-            if case .fingerMoved(let finger) = $0 { return .some(finger) }
-            return nil
         }
     }
 

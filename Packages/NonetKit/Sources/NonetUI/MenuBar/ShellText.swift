@@ -16,7 +16,7 @@ enum ShellText {
     /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）。
     /// 少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も添える
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
-        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「\(target.title)」まで滑らせて、そこで離してください。", bundle: .module)
+        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。", bundle: .module)
         guard target.requiresHold else { return base }
         return base + String(localized: "このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
     }
@@ -49,7 +49,7 @@ enum ShellText {
 
     /// 2つ目の課題: 外枠で離してやめる
     static var practiceCancelInstruction: String {
-        String(localized: "もう一度上の縁から HUD を開き、今度は指を外枠（9マスの外側）まで滑らせてから離してください。何も実行せずに閉じます。", bundle: .module)
+        String(localized: "もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。", bundle: .module)
     }
 
     /// 1つ目の課題ができた
@@ -74,11 +74,11 @@ enum ShellText {
 
     /// トラックパッドの図の読み上げ（目標のマス）
     static func practiceFigureLabel(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "トラックパッドの図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
+        String(localized: "HUD の地図の図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
     }
 
     /// トラックパッドの図の読み上げ（やめる課題。外枠が目標）
     static var practiceFigureCancelLabel: String {
-        String(localized: "トラックパッドの図。目標は9マスの外側の外枠です。", bundle: .module)
+        String(localized: "HUD の地図の図。目標は9マスの外側の外枠です。", bundle: .module)
     }
 }

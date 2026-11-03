@@ -915,6 +915,42 @@
         }
       }
     },
+    "HUD の地図の図" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map of the HUD"
+          }
+        }
+      }
+    },
+    "HUD の地図の図。目標は%@の「%@」です。" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD の地図の図。目標は%1$@の「%2$@」です。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map of the HUD. The target is “%2$@” at the %1$@."
+          }
+        }
+      }
+    },
+    "HUD の地図の図。目標は9マスの外側の外枠です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map of the HUD. The target is the frame around the nine buttons."
+          }
+        }
+      }
+    },
     "HUD の大きさ" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2713,6 +2749,7 @@
       }
     },
     "ためらったときだけ HUD を出す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2902,7 +2939,18 @@
         }
       }
     },
+    "もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the HUD from the top edge again. This time move the pointer out to the frame (the band around the nine buttons) or outside the map, then lift your finger. The buttons close without running anything."
+          }
+        }
+      }
+    },
     "もう一度上の縁から HUD を開き、今度は指を外枠（9マスの外側）まで滑らせてから離してください。何も実行せずに閉じます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4435,6 +4483,7 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「%@」まで滑らせて、そこで離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4476,7 +4525,18 @@
         }
       }
     },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (a map of the nine buttons) opens just below the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
+          }
+        }
+      }
+    },
     "トラックパッドの図" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4515,6 +4575,7 @@
       }
     },
     "トラックパッドの図。目標は%@の「%@」です。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4531,6 +4592,7 @@
       }
     },
     "トラックパッドの図。目標は9マスの外側の外枠です。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8342,6 +8404,7 @@
       }
     },
     "空きマス" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9554,6 +9617,7 @@
       }
     },
     "開いてから 0.4 秒は触覚だけで案内し、それより長く迷ったときに地図を出します。慣れれば、画面を変えずに使えます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

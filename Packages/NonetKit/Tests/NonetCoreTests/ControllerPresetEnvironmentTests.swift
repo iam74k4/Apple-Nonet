@@ -27,14 +27,14 @@ import Testing
         let environment = LatePresetEnvironment()
         let h = try ControllerHarness(configuration: nil, installed: [Self.xcode.bundleID], presetEnvironment: environment)
         h.start()
-        h.controller.update { $0.settings.hudOnHesitation = true }
+        h.controller.update { $0.settings.hudScale = .large }
         #expect(!Self.hasClaudeCode(h, in: Self.xcode))
         await h.waitUntil { environment.isWaiting }
         environment.finish(.all)
         await h.waitUntil { Self.hasClaudeCode(h, in: Self.xcode) }
         #expect(Self.hasClaudeCode(h, in: Self.xcode))
         // 全体の設定はそのまま
-        #expect(h.controller.configuration.settings.hudOnHesitation)
+        #expect(h.controller.configuration.settings.hudScale == .large)
     }
 
     /// 調べ終える前にプロファイルを変えていたら、作り直さない（変えたものを消さない）

@@ -87,14 +87,6 @@ struct ModelCodingRoundTripTests {
         }
     }
 
-    @Test("「ためらったときだけ出す」は、オンのときだけ書く")
-    func hudOnHesitationRoundTrip() throws {
-        let on = GlobalSettings(hudOnHesitation: true)
-        #expect(try ModelFixtures.roundTrip(on) == on)
-        #expect(try ModelFixtures.jsonObject(on)["hudOnHesitation"] as? Bool == true)
-        #expect(try ModelFixtures.jsonObject(GlobalSettings())["hudOnHesitation"] == nil)
-    }
-
     /// 前の版の「HUD の位置」は読み飛ばす（HUD は画面いっぱいの地図になり、置く場所が無い）
     @Test func hudPositionIsRetired() throws {
         let settings = try ModelFixtures.decode(GlobalSettings.self, #"{"hudPosition": "nearCursor", "haptics": "light"}"#)
@@ -122,16 +114,16 @@ struct ModelCodingRoundTripTests {
 
     @Test("全体の設定は既定値以外も往復する")
     func settingsRoundTrip() throws {
-        let settings = GlobalSettings(isEnabled: false, haptics: .strong, hudOnHesitation: true)
+        let settings = GlobalSettings(isEnabled: false, haptics: .strong, hudScale: .large)
         #expect(try ModelFixtures.roundTrip(settings) == settings)
         let keys = try ModelFixtures.jsonObject(settings).allKeys.compactMap { $0 as? String }.sorted()
         // トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）と hudPosition は、もう書かない
-        #expect(keys == ["haptics", "hudOnHesitation", "isEnabled"])
+        #expect(keys == ["haptics", "hudScale", "isEnabled"])
     }
 
     @Test("設定全体が往復し、書くたびに同じバイト列になる")
     func configurationRoundTripIsStable() throws {
-        var configuration = ModelFixtures.configuration(settings: GlobalSettings(haptics: .light, hudOnHesitation: true))
+        var configuration = ModelFixtures.configuration(settings: GlobalSettings(haptics: .light, hudScale: .large))
         let xcodeID = configuration.profiles[2].id
         for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
             configuration.setCell(ModelFixtures.cell("c\(index)", action: action), at: CellAddress(page: 1, index: index), profileID: xcodeID)

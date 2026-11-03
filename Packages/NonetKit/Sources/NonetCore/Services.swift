@@ -90,6 +90,9 @@ public protocol KeyboardMonitor: AnyObject {
     /// いまのポインタの位置（主画面の左上が原点、y が下向き）。分からなければ nil。
     /// 9マスを開いている間、ポインタはふだんどおり動き（前面のアプリには渡さない）、HUD の地図の上でポインタが乗っているマスを選ぶ
     var pointerLocation: CGPoint? { get }
+    /// 抑止中に、ポインタを point（主画面の左上が原点、y が下向き）へ動かす。開いたときに一度だけ、地図の奥の外枠の帯の中央へ置く
+    /// （画面の端で HUD の枠を寄せたとき）。抑止中でなければ何もしない
+    func movePointer(to point: CGPoint)
 }
 
 extension KeyboardMonitor {
@@ -103,6 +106,9 @@ extension KeyboardMonitor {
 
     /// ポインタの位置を知らない実装の既定（マスはトラックパッドの上の指の位置で選ぶ）
     public var pointerLocation: CGPoint? { nil }
+
+    /// ポインタを動かさない実装の既定
+    public func movePointer(to point: CGPoint) {}
 
     /// マウスのイベントを見分けない実装の既定（抑止中はどのデバイスのイベントも捨てる）
     public var isTrackpadTouched: Bool {
@@ -273,13 +279,13 @@ public protocol Scheduler: AnyObject {
 
 @MainActor
 public protocol HUDPresenting: AnyObject {
-    /// HUD を出す場所を決め、地図の枠（主画面の左上が原点、y が下向き）を返す。まだ画面には出さない
-    /// （開いたときのポインタのすぐ下に地図を置き、ポインタが乗っているマスを選ぶ。「ためらったときだけ出す」で、出す前から選べるように）
-    func prepare(_ model: HUDModel) -> CGRect?
-    /// HUD を出す（prepare で決めた場所。決めていなければ決めて出す）
-    func show(_ model: HUDModel)
-    /// 表示中の HUD を更新する（ハイライトやページ）
-    func update(_ model: HUDModel)
+    /// HUD を出す。開いたときのポインタのすぐ下に地図を置き、地図の枠（主画面の左上が原点、y が下向き）を返す。
+    /// 開いている間は、この枠の上でポインタが乗っているマスを選ぶ（ControllerPointerSelection）
+    @discardableResult
+    func show(_ model: HUDModel) -> CGRect?
+    /// 表示中の HUD を更新する（ハイライトやページ）。帯や行が増減して枠が変わったら、新しい地図の枠を返す（変わらなければ nil でもよい）
+    @discardableResult
+    func update(_ model: HUDModel) -> CGRect?
     func hide()
     func showToast(_ toast: ToastModel)
     /// AI の結果など、読んでコピーできる文を出す（閉じるまで残る）

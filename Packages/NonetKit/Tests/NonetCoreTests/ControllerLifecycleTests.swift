@@ -358,12 +358,10 @@ import Testing
     @Test func newSessionsUseTheNewSettings() throws {
         let h = try ControllerHarness()
         h.start()
-        // 「ためらったときだけ出す」は、次に開いたときから効く（開いてすぐは出さず、hesitationDelay の後に出す）
-        h.controller.update { $0.settings.hudOnHesitation = true }
+        // 「大きく表示」は、次に開いたときから効く
+        h.controller.update { $0.settings.hudScale = .large }
         h.open()
-        #expect(h.hud.shown.isEmpty)
-        h.advance(NonetController.hesitationDelay)
-        #expect(h.hud.shown.count == 1)
+        #expect(h.hud.shown.last?.scale == HUDScale.large.factor)
     }
 
     // MARK: キーの記録

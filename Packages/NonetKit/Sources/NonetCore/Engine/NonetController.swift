@@ -125,11 +125,8 @@ public final class NonetController {
     @ObservationIgnored private var isStarted = false
     @ObservationIgnored private var isTouchSourceRunning = false
     @ObservationIgnored private var isHUDVisible = false
-    /// 開いている間の、HUD の地図の枠（主画面の左上が原点、y が下向き。HUDPresenting.prepare）。ポインタの位置をこの枠に写してマスを選ぶ
+    /// 開いている間の、HUD の地図の枠（主画面の左上が原点、y が下向き。HUDPresenting.show が返す）。ポインタの位置をこの枠に写してマスを選ぶ
     @ObservationIgnored private var hudMapFrame: CGRect?
-    /// 「ためらったときだけ出す」で、HUD を出すのを待っている間（開いてから hesitationDelay）の、最後の HUD の中身と待ちの予定
-    @ObservationIgnored private var pendingHUDState: SessionHUDState?
-    @ObservationIgnored private var pendingHUD: (any ScheduledTask)?
     @ObservationIgnored private var tickTask: (any ScheduledTask)?
     @ObservationIgnored private var pollTask: (any ScheduledTask)?
     /// エンジンの出力を処理している間に来た入力（出力の処理からエンジンを呼び直さないように、順に処理する）
@@ -373,7 +370,9 @@ public final class NonetController {
         if frame.isSynthesizedLift {
             send(.interrupted(at: frame.timestamp))
         }
-        send(.touches(ControllerPointerSelection.frame(frame, pointer: engine.isInSession ? services.keyboard.pointerLocation : nil, map: hudMapFrame)))
+        // 開いている間は、ポインタが地図の上で乗っている場所を指の位置にする（地図が無ければポインタは読まない）
+        let pointer = hudMapFrame != nil && engine.isInSession ? services.keyboard.pointerLocation : nil
+        send(.touches(ControllerPointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
         // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
         if frame.touching.count != 1 {
             cancelPendingOpen()
@@ -502,37 +501,22 @@ public final class NonetController {
         case .showHUD(let state):
             prepareFirstHUD()
             guard let session else { return }
-            // 出す場所（ポインタのすぐ下）は今決める。出すのを待つ間も、ポインタで選べる
-            hudMapFrame = hud.prepare(hudModel(session, state: state))
-            if session.settings.hudOnHesitation {
-                // 開いてから hesitationDelay は触覚だけ。それまでに閉じなければ（迷っていれば）出す。置く枠は待たずに出す
-                pendingHUDState = state
-                pendingHUD?.cancel()
-                pendingHUD = services.scheduler.schedule(after: Self.hesitationDelay) { [weak self] in
-                    guard let self, let session = self.session, let state = self.pendingHUDState else { return }
-                    self.pendingHUD = nil
-                    self.pendingHUDState = nil
-                    self.hud.show(self.hudModel(session, state: state))
-                    self.isHUDVisible = true
+            hudMapFrame = hud.show(hudModel(session, state: state))
+            isHUDVisible = true
+            // 開いたときのポインタは地図の奥の外枠の帯の中央。画面の端で枠を寄せてそこに来ていなければ、一度だけそこへ動かす
+            if let map = hudMapFrame, let pointer = services.keyboard.pointerLocation {
+                let start = ControllerPointerSelection.startPoint(in: map)
+                if hypot(pointer.x - start.x, pointer.y - start.y) > 0.5 {
+                    services.keyboard.movePointer(to: start)
                 }
-            } else {
-                hud.show(hudModel(session, state: state))
-                isHUDVisible = true
             }
             updatePlacementPreview(session, state: state)
         case .updateHUD(let state):
-            guard let session else { return }
-            if pendingHUDState != nil {
-                pendingHUDState = state
-            } else if isHUDVisible {
-                hud.update(hudModel(session, state: state))
-            } else {
-                return
+            guard let session, isHUDVisible else { return }
+            if let map = hud.update(hudModel(session, state: state)) {
+                hudMapFrame = map
             }
             updatePlacementPreview(session, state: state)
-        case .fingerMoved:
-            // マスはポインタで選ぶので、トラックパッドの上の指の位置は HUD に出さない
-            break
         case .hideHUD:
             hideHUD()
         case .haptic(let event):
@@ -558,9 +542,6 @@ public final class NonetController {
     }
 
     /// タイマーは常に1つ。新しい依頼は前の依頼を置き換える
-    /// 「ためらったときだけ出す」のとき、開いてから HUD を出すまでの時間。それより早く離せば画面は変わらない
-    public static let hesitationDelay: TimeInterval = 0.4
-
     private func scheduleTick(at time: TimeInterval) {
         tickTask?.cancel()
         let delay = max(0, time - services.scheduler.now)
@@ -605,14 +586,10 @@ public final class NonetController {
     }
 
     private func hideHUD() {
-        pendingHUD?.cancel()
-        pendingHUD = nil
-        pendingHUDState = nil
         hudMapFrame = nil
-        // 置く枠は HUD を待っている間も出すので、HUD を出していなくても消す
-        hud.hidePlacementPreview()
         guard isHUDVisible else { return }
         isHUDVisible = false
+        hud.hidePlacementPreview()
         hud.hide()
     }
 

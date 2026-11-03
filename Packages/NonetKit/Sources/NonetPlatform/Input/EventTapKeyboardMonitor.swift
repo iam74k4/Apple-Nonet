@@ -343,6 +343,13 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// いまのポインタの位置（主画面の左上が原点）
     public var pointerLocation: CGPoint? { cursor.location }
 
+    /// 抑止中に、ポインタを point へ動かす（開いたときに一度だけ、地図の奥の帯の中央へ）。ずれたら戻す方式なら、戻す先もそこにする
+    public func movePointer(to point: CGPoint) {
+        guard isSuppressingPointer else { return }
+        anchor = point
+        cursor.warp(to: point)
+    }
+
     private func endSuppression() {
         if activePlan?.warpsBack == true {
             holdCursorAtAnchor()

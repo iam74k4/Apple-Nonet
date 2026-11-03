@@ -40,6 +40,12 @@ enum HUDPlacement {
         return frame(size: size, centeredAt: CGPoint(x: cursor.x, y: bottom + size.height / 2), in: screen)
     }
 
+    /// 帯や行が増減して高さが変わるとき: 地図（枠の下側）を動かさないよう下端をそろえて上へ伸び縮みさせ、画面の使える範囲に収める
+    static func resized(_ frame: CGRect, to size: CGSize, in screen: HUDScreenGeometry) -> CGRect {
+        let rect = CGRect(x: frame.minX, y: frame.minY, width: size.width, height: size.height)
+        return integral(clamp(rect, into: screen.visibleFrame.insetBy(dx: edgeMargin, dy: edgeMargin)))
+    }
+
     /// HUD の枠（AppKit の座標）の中の地図の枠を、ポインタの座標（主画面の左上が原点、y が下向き）にする。
     /// 地図は枠の余白の内側の下側（題名の行の下）
     static func mapFrame(hudFrame: CGRect, metrics: HUDMetrics, primaryScreen: CGRect) -> CGRect {

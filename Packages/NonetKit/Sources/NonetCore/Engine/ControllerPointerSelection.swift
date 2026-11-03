@@ -6,6 +6,11 @@ import Foundation
 /// 地図の枠（HUDPresenting.prepare）は主画面の左上が原点で y が下向きなので、枠の上辺が奥（y = 1）。
 /// 枠の外は縁に収める（外枠の帯に入るので、離すとやめる・左右に止めるとページ、が地図の外でも効く）
 enum ControllerPointerSelection {
+    /// 開いたときにポインタを置く場所: 地図の奥の外枠の帯の中央（指は上の縁から入ってくるので、そのまま下へ動かすとマスに入る）
+    static func startPoint(in map: CGRect) -> CGPoint {
+        CGPoint(x: map.midX, y: map.minY + map.height * GridInsets.cancelFrame.top / 2)
+    }
+
     static func position(of pointer: CGPoint, in map: CGRect) -> (x: Double, y: Double)? {
         guard map.width > 0, map.height > 0, pointer.x.isFinite, pointer.y.isFinite else { return nil }
         let x = min(max((pointer.x - map.minX) / map.width, 0), 1)

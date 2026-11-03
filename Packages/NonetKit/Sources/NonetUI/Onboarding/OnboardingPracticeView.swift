@@ -201,8 +201,9 @@ struct OnboardingTaskRow: View {
     }
 }
 
-/// トラックパッドを上から見た図。外枠（やめる場所）と、その内側の9マスにいま HUD に出るページのボタンの名前を並べる。
-/// 上の縁の矢印は開き方（上の縁から下へ滑らせる）。いまの課題の場所（マスか外枠）に印を付ける
+/// HUD の地図（トラックパッドの形）の図。外枠（やめる場所）と、その内側の9マスにいま HUD に出るページのボタンの名前を並べる。
+/// 上の縁の矢印は開き方（トラックパッドの上の縁から下へ滑らせる）。いまの課題の場所（マスか外枠）に印を付ける。
+/// マスはポインタで選ぶ（開くとポインタが地図の奥の帯に来るので、指を滑らせた分だけポインタが地図の上を動く）
 struct OnboardingTrackpadFigure: View {
     let page: OnboardingPracticePage?
     let state: OnboardingPracticeState
@@ -282,7 +283,7 @@ struct OnboardingTrackpadFigure: View {
         } else if isFrameTarget {
             Text(ShellText.practiceFigureCancelLabel)
         } else {
-            Text("トラックパッドの図", bundle: .module)
+            Text("HUD の地図の図", bundle: .module)
         }
     }
 

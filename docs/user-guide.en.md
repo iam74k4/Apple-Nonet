@@ -78,7 +78,7 @@ The nine buttons open, the HUD (a small trackpad-shaped panel: the nine buttons 
 - Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
-- The HUD appears on the display with the pointer. Once you know the layout and no longer need to look, turn on **Show the HUD only when you hesitate** in Settings to show it only when you take your time (see [Opening and HUD](#opening-and-hud))
+- The HUD appears on the display with the pointer. When there is no room for the map below the pointer at the edge of the screen, the map is moved to where it fits and the pointer is moved into the map's far band instead
 
 ### Choosing and running a button
 
@@ -373,7 +373,6 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Enable Nonet | On | When off, sliding in from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list |
 | How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
-| Show the HUD only when you hesitate | Off | When on, the first 0.4 seconds after opening are guided by haptics only, and the map appears if you take longer. Lift on a button within 0.4 seconds and nothing on the screen changes. The blue outline of Place on Screen appears right away |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
 

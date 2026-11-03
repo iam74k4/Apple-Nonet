@@ -29,6 +29,8 @@ public final class HUDWindowController: HUDPresenting {
     /// 表示中の HUD の見た目の枠（影の余白を含まない）と、その画面
     private var hudFrame: CGRect?
     private var hudScreen: HUDScreenGeometry?
+    /// 表示中の HUD の地図の枠（主画面の左上が原点、y が下向き）。デモがポインタを台本の指の位置へ動かすのに読む
+    public private(set) var mapFrame: CGRect?
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
@@ -61,61 +63,48 @@ public final class HUDWindowController: HUDPresenting {
     /// HUD を表示中か（フェードアウト中は含まない）
     var isShowingHUD: Bool { hudFader.isShowing }
 
-    /// 出す場所を決める（ポインタのすぐ下。まだ出さない）。地図の枠（主画面の左上が原点）を返す。表示中なら、今の場所のまま
+    /// 出す（ポインタのすぐ下）。地図の枠（主画面の左上が原点）を返す。表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
     @discardableResult
-    public func prepare(_ model: HUDModel) -> CGRect? {
-        if hudFader.isShowing, let frame = hudFrame, let model = hudStore.model, let primary = screens().first?.frame {
-            return HUDPlacement.mapFrame(hudFrame: frame, metrics: HUDMetrics(scale: model.scale), primaryScreen: primary)
+    public func show(_ model: HUDModel) -> CGRect? {
+        if hudFader.isShowing, hudFrame != nil {
+            return update(model) ?? mapFrame
         }
         let cursor = mouseLocation()
-        guard let screen = HUDPlacement.screen(containing: cursor, in: screens()), let primary = screens().first?.frame else {
+        guard let screen = HUDPlacement.screen(containing: cursor, in: screens()) else {
             logger.error("HUD を出す画面が見つからない")
             return nil
         }
         let model = HUDPlacement.fitted(model, in: screen)
-        let metrics = HUDMetrics(scale: model.scale)
         hudStore.model = model
         hudStore.increasedContrast = prefersIncreasedContrast()
         hudStore.reduceMotion = prefersReducedMotion()
         hudStore.reduceTransparency = prefersReducedTransparency()
-        let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), metrics: metrics, cursor: cursor, screen: screen)
+        let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), metrics: HUDMetrics(scale: model.scale), cursor: cursor, screen: screen)
         place(frame, screen: screen)
-        return HUDPlacement.mapFrame(hudFrame: frame, metrics: metrics, primaryScreen: primary)
-    }
-
-    public func show(_ model: HUDModel) {
-        // 表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
-        if hudFader.isShowing, hudFrame != nil {
-            update(model)
-            return
-        }
-        // prepare していなければ、ここで場所を決める
-        if hudFrame == nil {
-            guard prepare(model) != nil else { return }
-        }
-        if let screen = hudScreen {
-            hudStore.model = HUDPlacement.fitted(model, in: screen)
-        }
         hudFader.show()
         // フェードアウト中の前の HUD があっても、新しい HUD として最初から読む
-        HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: hudStore.model ?? model) ?? "")
+        HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: model) ?? "")
+        return mapFrame
     }
 
-    public func update(_ model: HUDModel) {
-        guard hudFader.isShowing, let frame = hudFrame, let screen = hudScreen else { return }
+    /// 中身を変える。帯や行が増減して高さが変わるときは、地図（ポインタが選ぶ場所）を動かさずに上へ伸び縮みさせ、新しい地図の枠を返す
+    @discardableResult
+    public func update(_ model: HUDModel) -> CGRect? {
+        guard hudFader.isShowing, let frame = hudFrame, let screen = hudScreen else { return nil }
         let model = HUDPlacement.fitted(model, in: screen)
         let previous = hudStore.model
-        guard previous != model else { return }
+        guard previous != model else { return nil }
         hudStore.model = model
         let size = HUDLayout.size(for: model)
+        var resized: CGRect?
         if size != frame.size {
-            // 帯やページの点が増減したら、中心をそろえて大きさを変える
-            let resized = HUDPlacement.frame(size: size, centeredAt: CGPoint(x: frame.midX, y: frame.midY), in: screen)
-            place(resized, screen: screen)
+            resized = HUDPlacement.resized(frame, to: size, in: screen)
+            place(resized!, screen: screen)
         }
         if let announcement = HUDAnnouncement.announcement(from: previous, to: model) {
             HUDAccessibility.announce(announcement)
         }
+        return resized == nil ? nil : mapFrame
     }
 
     public func showPlacementPreview(_ frame: CGRect) {
@@ -128,15 +117,10 @@ public final class HUDWindowController: HUDPresenting {
 
     public func hide() {
         placementPreview.hide()
-        guard hudFader.isShowing else {
-            // prepare だけして出さなかった（ためらったときだけ出す）
-            hudFrame = nil
-            hudScreen = nil
-            hudStore.model = nil
-            return
-        }
+        guard hudFader.isShowing else { return }
         hudFrame = nil
         hudScreen = nil
+        mapFrame = nil
         hudFader.hide { [weak self] in
             self?.hudStore.model = nil
         }
@@ -168,6 +152,9 @@ public final class HUDWindowController: HUDPresenting {
     private func place(_ frame: CGRect, screen: HUDScreenGeometry) {
         hudFrame = frame
         hudScreen = screen
+        if let model = hudStore.model, let primary = screens().first?.frame {
+            mapFrame = HUDPlacement.mapFrame(hudFrame: frame, metrics: HUDMetrics(scale: model.scale), primaryScreen: primary)
+        }
         let margin = HUDLayout.shadowMargin
         hudPanel.setFrame(frame.insetBy(dx: -margin, dy: -margin), display: true)
     }

@@ -50,22 +50,17 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
-    /// ためらったときだけ HUD を出す。開いてから NonetController.hesitationDelay（0.4秒）は触覚だけで、
-    /// それより長く開いたままなら地図を出す（慣れた人は画面を変えずに使える）。既定はオフ（開くとすぐ出す）
-    public var hudOnHesitation: Bool
 
     public init(
         isEnabled: Bool = true,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
-        openSensitivity: OpenSensitivity = .standard,
-        hudOnHesitation: Bool = false
+        openSensitivity: OpenSensitivity = .standard
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
-        self.hudOnHesitation = hudOnHesitation
     }
 }
 
@@ -80,7 +75,7 @@ extension GlobalSettings {
     static let retiredKeys: Set<String> = [
         "trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation",
         "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock",
-        // HUD は画面いっぱいの地図になり、置く場所の設定が無くなった
+        // HUD はポインタのすぐ下に出すだけになり、置く場所の設定が無くなった
         "hudPosition",
     ]
 
@@ -93,7 +88,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, haptics, hudScale, openSensitivity, hudOnHesitation
+        case isEnabled, haptics, hudScale, openSensitivity
     }
 
     public init(from decoder: any Decoder) throws {
@@ -103,8 +98,7 @@ extension GlobalSettings {
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
-            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
-            hudOnHesitation: container.decodeLossy(Bool.self, forKey: .hudOnHesitation, default: defaults.hudOnHesitation)
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
         )
     }
 
@@ -118,9 +112,6 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
-        }
-        if hudOnHesitation {
-            try container.encode(hudOnHesitation, forKey: .hudOnHesitation)
         }
     }
 }
