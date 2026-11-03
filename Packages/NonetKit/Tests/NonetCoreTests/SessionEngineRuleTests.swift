@@ -94,7 +94,8 @@ import Testing
         s.slideIn(at: 0)
         s.touch(on: 3, at: 0.1)
         let line = GridInsets.cancelFrame.left + (1 - GridInsets.cancelFrame.left - GridInsets.cancelFrame.right) / 3
-        #expect(s.touch(x: line + 0.01, y: 0.5, at: 0.2).visible.isEmpty)
+        // 境界の上で震えても、光るマスは 3 のまま（境目の線の上なので、離しても実行しないことだけを知らせる）
+        #expect(s.touch(x: line + 0.01, y: 0.5, at: 0.2).hudStates == [SessionHUDState(page: 0, highlightedCell: 3, isOnBoundary: true)])
         #expect(s.touch(x: line - 0.005, y: 0.5, at: 0.25).visible.isEmpty)
         #expect(s.touch(x: line + 0.05, y: 0.5, at: 0.3).hudStates == [SessionHUDState(page: 0, highlightedCell: 4)])
     }
@@ -169,8 +170,13 @@ import Testing
         s.slideIn(at: 0)
         s.touch(on: 3, at: 0.1)
         let line = GridInsets.cancelFrame.left + (1 - GridInsets.cancelFrame.left - GridInsets.cancelFrame.right) / 3
-        // ヒステリシスで、まだマス 3 が光っている
-        #expect(s.touch(x: line - 0.01, y: 0.5, at: 0.2).visible.isEmpty)
+        // ヒステリシスで、まだマス 3 が光っているが、離しても実行しないことを HUD に知らせる（塗らずに枠だけ）
+        #expect(s.touch(x: line - 0.01, y: 0.5, at: 0.2).visible == [
+            .updateHUD(SessionHUDState(page: 0, highlightedCell: 3, isOnBoundary: true)),
+        ])
+        // 線から離れれば、また離すと実行する
+        #expect(s.touch(x: line - 0.03, y: 0.5, at: 0.3).visible == [.updateHUD(SessionHUDState(page: 0, highlightedCell: 3))])
+        s.touch(x: line - 0.01, y: 0.5, at: 0.4)
         let effects = s.lift(at: 1)
         #expect(effects.executions.isEmpty)
         #expect(effects.hapticEvents == [.rejected])

@@ -185,7 +185,7 @@ final class MenuBarCheatSheetView: NSView {
             button.setAccessibilityLabel(sheet.accessibilityLabel(ofCell: index))
             button.setAccessibilityHelp(MenuBarCheatSheet.cellHint)
             // 名前が長くて切れても読めるように
-            button.toolTip = sheet.cellTitle(at: index)
+            button.toolTip = sheet.cellTooltip(at: index)
         }
         previousButton.setAccessibilityLabel(MenuBarCheatSheet.previousPageTitle)
         previousButton.isEnabled = sheet.canShowPreviousPage
@@ -312,7 +312,7 @@ enum MenuBarCheatSheetPalette {
         increasedContrast ? increased : standard
     }
 
-    /// 押せるマスに乗ったときの色（メニューの項目のハイライトと同じ）
+    /// 押せるマスに乗ったときの枠の色（押すと設定で開く）
     static let highlight = Color(nsColor: .controlAccentColor)
 
     private static func color(_ shades: SettingsPalette.Shades, increasedContrast: Bool) -> Color {
@@ -434,16 +434,27 @@ struct MenuBarCheatSheetCell: View {
         let colors = MenuBarCheatSheetPalette.colors(increasedContrast: increasedContrast)
         let lineWidth: CGFloat = increasedContrast ? 1.5 : 1
         ZStack {
-            if isActive {
-                shape.fill(MenuBarCheatSheetPalette.highlight.opacity(isPressed ? 0.75 : 1))
-            } else if cell != nil {
+            // ポインタが乗ったマスは、塗らずにアクセント色の枠と鉛筆で示す（押すと実行ではなく、設定で開いて編集する）
+            if cell != nil {
                 shape.fill(colors.cellBackground)
-                shape.strokeBorder(colors.cellBorder, lineWidth: lineWidth)
+                shape.strokeBorder(isActive ? MenuBarCheatSheetPalette.highlight : colors.cellBorder, lineWidth: isActive ? 2 : lineWidth)
             } else {
-                shape.strokeBorder(colors.emptyBorder, style: StrokeStyle(lineWidth: lineWidth, dash: [4, 3]))
+                shape.strokeBorder(
+                    isActive ? MenuBarCheatSheetPalette.highlight : colors.emptyBorder,
+                    style: StrokeStyle(lineWidth: isActive ? 2 : lineWidth, dash: [4, 3])
+                )
             }
             content
+            if isActive, cell != nil {
+                Image(systemName: "pencil")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(MenuBarCheatSheetPalette.highlight)
+                    .padding(4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .accessibilityHidden(true)
+            }
         }
+        .opacity(isPressed ? 0.75 : 1)
     }
 
     /// ポインタが乗っている（押せることを見せる）
@@ -467,12 +478,12 @@ struct MenuBarCheatSheetCell: View {
                 }
             }
             .padding(.horizontal, 5)
-            .foregroundStyle(isActive ? Color.white : Color.primary)
+            .foregroundStyle(Color.primary)
         } else if isActive {
             // 空きマスも押せる（設定で開いて、何かを入れる）
             Image(systemName: "plus")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(MenuBarCheatSheetPalette.highlight)
         }
     }
 

@@ -74,6 +74,14 @@ struct MenuBarCheatSheet: Equatable {
         cell(at: index).map(SettingsGrid.displayTitle(for:))
     }
 
+    /// マスにポインタを重ねたときのヘルプ。押すと実行ではなく、設定で開くことを伝える
+    func cellTooltip(at index: Int) -> String {
+        guard let title = cellTitle(at: index) else {
+            return String(localized: "クリックすると、設定でこの空きマスを開きます", bundle: .module)
+        }
+        return String(localized: "クリックすると、設定で「\(title)」を開いて編集します", bundle: .module)
+    }
+
     /// マスの VoiceOver の名前。位置とマスの名前（設定のグリッドと同じ読み方）
     func accessibilityLabel(ofCell index: Int) -> String {
         SettingsGrid.accessibilityLabel(index: index, cell: cell(at: index))

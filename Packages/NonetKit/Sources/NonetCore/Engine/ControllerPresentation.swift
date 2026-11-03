@@ -29,6 +29,7 @@ public enum ControllerPresentation {
             isFingerInFrame: state.isInFrame,
             hold: hold,
             edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
+            isHighlightOnBoundary: highlight != nil && state.isOnBoundary,
             isPractice: isPractice,
             banner: banner,
             bannerStyle: bannerStyle,

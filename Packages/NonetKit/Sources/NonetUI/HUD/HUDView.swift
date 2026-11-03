@@ -469,6 +469,7 @@ struct HUDView: View {
                         HUDCellView(
                             cell: cell(at: index),
                             isHighlighted: model.highlightedIndex == index,
+                            isOnBoundary: model.highlightedIndex == index && model.isHighlightOnBoundary,
                             index: index,
                             metrics: metrics,
                             theme: theme,
@@ -490,6 +491,8 @@ struct HUDView: View {
 struct HUDCellView: View {
     let cell: HUDCell?
     let isHighlighted: Bool
+    /// 指が境目の線の上にあり、いま離しても実行しない。塗らずに、空きマスと同じ枠だけで示す
+    var isOnBoundary = false
     let index: Int
     var metrics = HUDMetrics(scale: 1)
     var theme = HUDTheme(surface: .solid)
@@ -498,9 +501,9 @@ struct HUDCellView: View {
     var reduceMotion = false
     var fixedHoldProgress: Double?
 
-    /// 白く塗る（いま指を離すと実行する）。少し長く止めるマスは止め終えてから
+    /// 白く塗る（いま指を離すと実行する）。少し長く止めるマスは止め終えてから。境目の線の上では塗らない
     private var isFilled: Bool {
-        isHighlighted && (hold?.isReady ?? true)
+        isHighlighted && !isOnBoundary && (hold?.isReady ?? true)
     }
 
     /// 少し長く止めるマスを止めている途中
@@ -524,6 +527,10 @@ struct HUDCellView: View {
                 }
                 .padding(.horizontal, 6 * metrics.scale)
                 .foregroundStyle(isFilled ? AnyShapeStyle(theme.highlightedForeground) : isHolding ? AnyShapeStyle(theme.holdingForeground) : theme.cellForeground)
+                if isHighlighted, isOnBoundary, !isHolding {
+                    // 離しても実行しない。空きマスを指したときと同じ枠で示す（白い塗り＝離すと実行、と食い違わない）
+                    shape.strokeBorder(theme.emptyCellHighlight, lineWidth: 1.5)
+                }
                 if isHolding, let hold {
                     HUDHoldRing(
                         hold: hold,

@@ -73,12 +73,18 @@ struct SettingsRootView: View {
         return nil
     }
 
+    static func pageTitle(model: SettingsModel, profileID: UUID, index: Int) -> String {
+        let pages = model.configuration.profile(id: profileID)?.pages ?? []
+        return SettingsText.pageTitle(index: index, name: pages.indices.contains(index) ? pages[index].name : nil)
+    }
+
     private var confirmationTitle: String {
         switch model.confirmation {
         case .deleteProfile(_, let name)?:
             String(localized: "「\(name)」のプロファイルを削除しますか？", bundle: .module)
-        case .removePage(_, let index)?:
-            String(localized: "ページ \(index + 1) を削除しますか？", bundle: .module)
+        case .removePage(let profileID, let index)?:
+            // 名前を付けたページは、タブと同じ名前で聞く（どのページか取り違えない）
+            String(localized: "「\(Self.pageTitle(model: model, profileID: profileID, index: index))」を削除しますか？", bundle: .module)
         case .deactivateLicense?:
             String(localized: "この Mac から登録を消しますか？", bundle: .module)
         case .importProfiles(let plan)?:

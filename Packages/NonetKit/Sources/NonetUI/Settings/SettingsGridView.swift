@@ -21,6 +21,7 @@ struct SettingsGridView: View {
                             index: index,
                             cell: page.cells.indices.contains(index) ? page.cells[index] : nil,
                             isSelected: model.selectedIndex == index,
+                            isGridFocused: isFocused,
                             dragItem: SettingsDragItem(payload: .cell(
                                 profileID: profile.id,
                                 address: CellAddress(page: model.pageIndex, index: index)
@@ -38,10 +39,6 @@ struct SettingsGridView: View {
         .aspectRatio(1.6, contentMode: .fit)
         .frame(maxWidth: 640)
         .background(RoundedRectangle(cornerRadius: 16).fill(SettingsPalette.gridBackground))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.accentColor.opacity(isFocused ? 0.45 : 0), lineWidth: 3)
-        )
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -114,6 +111,8 @@ struct SettingsGridCell: View {
     let index: Int
     let cell: Cell?
     let isSelected: Bool
+    /// キー（Delete・矢印キーなど）がグリッドに届く。選んでいるマスを、リストの選択と同じく、届くならアクセント色・届かなければ灰色で塗る
+    var isGridFocused = false
     let dragItem: SettingsDragItem
     let onSelect: () -> Void
 
@@ -123,12 +122,19 @@ struct SettingsGridCell: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground))
+            .background {
+                // マスの面の上に、選んでいるマスの塗りを重ねる（面の下に置くと隠れる）
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground)
+                    RoundedRectangle(cornerRadius: 12).fill(selectionFill).opacity(isSelected ? 1 : 0)
+                }
+            }
             .overlay(border)
             .overlay(alignment: .topTrailing) { holdBadge }
             .overlay(
+                // ドロップ先: 選んでいるマスより強い、アクセント色の太い枠
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.accentColor, lineWidth: 3)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [6, 4]))
                     .opacity(isDropTarget ? 1 : 0)
             )
             .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -218,19 +224,30 @@ struct SettingsGridCell: View {
         }
     }
 
+    /// 選んでいるマスの色。キーが届くならアクセント色、届かなければ（サイドバーなどにキーがある）灰色。macOS のリストの選択と同じ決まり
+    private var selectionColor: Color {
+        isGridFocused ? Color.accentColor : Color.secondary
+    }
+
+    /// 選んでいるマスの塗り。枠の太さだけで見分けさせない（「コントラストを上げる」でも分かるように）
+    private var selectionFill: Color {
+        selectionColor.opacity(contrast == .increased ? 0.28 : 0.16)
+    }
+
     /// 「コントラストを上げる」のときは枠を太くする（色は SettingsPalette が濃くする）
     @ViewBuilder
     private var border: some View {
         let increased = contrast == .increased
+        let selectedWidth: CGFloat = increased ? 3 : 2.5
         if cell == nil {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(
-                    isSelected ? Color.primary : SettingsPalette.emptyBorder,
-                    style: StrokeStyle(lineWidth: isSelected ? 2 : (increased ? 1.8 : 1.2), dash: [5, 4])
+                    isSelected ? selectionColor : SettingsPalette.emptyBorder,
+                    style: StrokeStyle(lineWidth: isSelected ? selectedWidth : (increased ? 1.8 : 1.2), dash: [5, 4])
                 )
         } else {
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(isSelected ? Color.primary : SettingsPalette.cellBorder, lineWidth: isSelected ? 2 : (increased ? 1.5 : 1))
+                .strokeBorder(isSelected ? selectionColor : SettingsPalette.cellBorder, lineWidth: isSelected ? selectedWidth : (increased ? 1.5 : 1))
         }
     }
 
@@ -239,12 +256,15 @@ struct SettingsGridCell: View {
     @ViewBuilder
     private var contextMenu: some View {
         if let cell {
+            // 右クリックしたマスを選んでから行う（選択と右側のインスペクタが、操作したマスを指すように）
             Button {
+                model.selectCell(index)
                 model.duplicateCell(at: index)
             } label: {
                 Text("複製", bundle: .module)
             }
             Button(role: .destructive) {
+                model.selectCell(index)
                 model.clearCell(at: index)
             } label: {
                 Text("削除", bundle: .module)

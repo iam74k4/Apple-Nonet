@@ -29,6 +29,8 @@ public final class HUDWindowController: HUDPresenting {
     private var hudScreen: HUDScreenGeometry?
     /// 最後に HUD を出した位置の設定。結果のパネルもそれに合わせる
     private var lastPosition: HUDPosition = .screenCenter
+    /// 止めたポインタが HUD に重なるとき、HUD の外へ寄せる（座標は主画面の左上が原点）。App が KeyboardMonitor.parkPointer につなぐ
+    public var onParkPointer: ((CGPoint) -> Void)?
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
@@ -60,8 +62,9 @@ public final class HUDWindowController: HUDPresenting {
     public func show(_ model: HUDModel, position: HUDPosition) {
         lastPosition = position
         // 表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
-        if hudFader.isShowing, hudFrame != nil {
+        if hudFader.isShowing, let frame = hudFrame, let screen = hudScreen {
             update(model)
+            parkPointerIfCovered(by: frame, on: screen)
             return
         }
         let cursor = mouseLocation()
@@ -75,6 +78,7 @@ public final class HUDWindowController: HUDPresenting {
         hudStore.reduceMotion = prefersReducedMotion()
         let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), position: position, cursor: cursor, screen: screen)
         place(frame, screen: screen)
+        parkPointerIfCovered(by: frame, on: screen)
         hudFader.show()
         // フェードアウト中の前の HUD があっても、新しい HUD として最初から読む
         HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: model) ?? "")
@@ -89,11 +93,21 @@ public final class HUDWindowController: HUDPresenting {
         let size = HUDLayout.size(for: model)
         if size != frame.size {
             // 帯やページの点が増減したら、中心をそろえて大きさを変える
-            place(HUDPlacement.frame(size: size, centeredAt: CGPoint(x: frame.midX, y: frame.midY), in: screen), screen: screen)
+            let resized = HUDPlacement.frame(size: size, centeredAt: CGPoint(x: frame.midX, y: frame.midY), in: screen)
+            place(resized, screen: screen)
+            parkPointerIfCovered(by: resized, on: screen)
         }
         if let announcement = HUDAnnouncement.announcement(from: previous, to: model) {
             HUDAccessibility.announce(announcement)
         }
+    }
+
+    /// 止めたポインタが HUD に重なっていたら、HUD のすぐ外へ寄せてもらう（閉じると元の位置に戻る）
+    private func parkPointerIfCovered(by frame: CGRect, on screen: HUDScreenGeometry) {
+        guard let onParkPointer,
+              let spot = HUDPlacement.pointerParkingSpot(cursor: mouseLocation(), hudFrame: frame, screen: screen),
+              let primary = screens().first?.frame else { return }
+        onParkPointer(HUDPlacement.quartzPoint(spot, primaryScreen: primary))
     }
 
     public func hide() {

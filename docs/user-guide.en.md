@@ -71,14 +71,14 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 1. Place one finger on the top edge (the far edge) of the trackpad
 2. Slide it straight down in one smooth move
 
-The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger always counts as being in the frame (outside the nine buttons), wherever it is, so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
+The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Buttons are chosen by your finger, not the pointer, so if the pointer would sit on the HUD, Nonet moves it just outside the HUD (below or above it) and puts it back when the buttons close, so it never seems to point at a different button than the highlighted one. Right after they open, your finger always counts as being in the frame (outside the nine buttons), wherever it is, so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
 - Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
-- The HUD appears on the display with the pointer (the **HUD position** setting)
+- The HUD appears on the display with the pointer (the **HUD position** setting). With **Near Pointer**, it appears just below the pointer (or just above it if there isn't room), without covering it
 
 ### Choosing and running a button
 
@@ -88,7 +88,7 @@ The nine buttons open, the HUD (the overview of all nine buttons) appears on the
 The highlighted button runs, and the HUD closes.
 
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
-- Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant
+- Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant. While your finger is there, the highlighted button isn't filled and shows only an outline, like an empty button (a filled button is the one that runs if you lift now)
 - Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
 - The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page (in practice mode, "Practice" appears there instead). Each button shows just its icon and name, not the keys it presses (like ⌘B)
 
@@ -147,7 +147,7 @@ Click the 3×3 icon in the menu bar to open the Nonet menu.
 | Status (the top line) | While Nonet is running, it shows the profile used for the front app, like "Xcode profile" or "Global profile". If something is wrong, it shows the problem, such as "Accessibility permission required", "Can't find a trackpad", "Unavailable while entering a password" or "Nonet is disabled". When the trial has ended it reads "Your trial has ended", and with 3 days or fewer left it reads, for example, "3 days left in your trial" |
 | Allow Accessibility Access… | Appears only when Nonet doesn't have permission. Opens the permission step of the welcome guide |
 | Dismiss Notice | Appears with a notice, for example when Nonet couldn't read its settings file |
-| Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings. If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
+| Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
 | Enable Nonet | Uncheck it, and sliding in from the top edge no longer opens the buttons |
 | Settings… | Opens the Settings window on the General tab |
 | Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
@@ -184,9 +184,9 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 
 - Click **Page 1**, **Page 2** and so on (⌘1–⌘3) to switch pages. Click **+** (Add page) to add one (up to three pages). To delete the selected page, click **…** (Page Actions) next to the pages and choose **Delete This Page…**, or Control-click the page and choose **Delete This Page…**. Nonet asks first if the page has buttons. The **…** menu also has **Add Page** and **Rename…**
 - Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name also appears in the HUD title, like "Xcode · Debug". Leave it empty to go back to "Page 1" and so on
-- Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page
+- Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page. The selected button is filled: in your accent color when keys (Delete, the arrow keys and so on) go to the grid, and gray when they go somewhere else, such as the profile list or a text field
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
-- Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
+- Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. The item acts on the button you Control-clicked and selects it first (after clearing, the notice names the button, as in “Cleared “Build”.”). On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
 
 ### Undo and earlier versions
 
@@ -364,7 +364,7 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Enable Nonet | On | When off, sliding in from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list |
 | How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
-| HUD position | Center of Screen | Center of Screen or Near Pointer. The HUD appears on the display with the pointer |
+| HUD position | Center of Screen | Center of Screen or Near Pointer (just below or above the pointer, without covering it). The HUD appears on the display with the pointer |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
 

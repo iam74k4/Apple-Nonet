@@ -616,7 +616,7 @@ final class SettingsModel {
         }
         changeCells(
             String(localized: "マスを空にする", bundle: .module),
-            notice: String(localized: "マスを空にしました", bundle: .module),
+            notice: String(localized: "「\(SettingsGrid.displayTitle(for: cell))」を空にしました", bundle: .module),
             profileID: profileID,
             at: [address]
         ) {

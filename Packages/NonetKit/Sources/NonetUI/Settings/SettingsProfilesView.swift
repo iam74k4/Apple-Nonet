@@ -572,8 +572,8 @@ struct SettingsPageBar: View {
                 .padding(.vertical, 4)
                 .frame(minWidth: 26)
                 .foregroundStyle(isSelected ? Color(nsColor: .windowBackgroundColor) : Color.primary)
-                .background(Capsule(style: .circular).fill(isSelected ? Color.primary : Color.clear))
-                .overlay(Capsule(style: .circular).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+                // 選んでいるページだけを塗る。ほかのページに枠を付けると、グリッドの選んでいるマスと見分けにくい
+                .background(Capsule(style: .circular).fill(isSelected ? Color.primary : SettingsPalette.cellBackground))
                 .contentShape(Capsule(style: .circular))
         }
         .buttonStyle(.plain)

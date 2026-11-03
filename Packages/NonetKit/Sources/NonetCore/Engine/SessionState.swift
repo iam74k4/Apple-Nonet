@@ -80,8 +80,15 @@ struct SessionState: Sendable {
             highlightedCell: cell,
             isInFrame: shown == .frame,
             hold: cell.flatMap { isHoldCell($0) ? SessionHold(cell: $0, since: zoneSince, duration: configuration.holdDwell, isReady: isHoldReady) : nil },
-            edgePaging: isMultiFinger ? nil : pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) }
+            edgePaging: isMultiFinger ? nil : pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) },
+            isOnBoundary: cell.map(isOnBoundary) ?? false
         )
+    }
+
+    /// 境目の線の上で、離しても実行しない（liftOutcome と同じ決まり。HUD に「離しても実行しない」と見せる）
+    private func isOnBoundary(_ cell: Int) -> Bool {
+        guard !(isHoldCell(cell) && isHoldReady), let position = lastPosition else { return false }
+        return grid.isInBoundaryBand(x: position.x, y: position.y)
     }
 
     private var timeoutAt: TimeInterval { start + configuration.maxDuration }

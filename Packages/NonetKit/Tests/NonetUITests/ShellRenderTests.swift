@@ -65,6 +65,7 @@ struct ShellRenderTests {
         }
         let states: [(String, HUDModel, HUDColors, Bool, Double?)] = [
             ("hud-state-cell", variant { $0.highlightedIndex = 4 }, .standard, false, nil),
+            ("hud-state-boundary", variant { $0.highlightedIndex = 4; $0.isHighlightOnBoundary = true }, .standard, false, nil),
             ("hud-state-frame", variant { $0.isFingerInFrame = true }, .standard, false, nil),
             ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .increased, false, nil),
             ("hud-state-hold", variant {

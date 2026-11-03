@@ -87,6 +87,9 @@ public protocol KeyboardMonitor: AnyObject {
     /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
     /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
     func endPointerSuppression(dropsLateClicks: Bool)
+    /// 抑止中に、止めたポインタを point（主画面の左上が原点のグローバル座標）へ寄せ、そこで止める（HUD に重ならないように）。
+    /// 抑止を終えるときは、寄せる前の位置に戻す。抑止中でなければ何もしない
+    func parkPointer(at point: CGPoint)
 }
 
 extension KeyboardMonitor {
@@ -97,6 +100,9 @@ extension KeyboardMonitor {
 
     /// ポインタを戻さない実装の既定
     public func rememberPointerLocation() {}
+
+    /// ポインタを動かさない実装の既定
+    public func parkPointer(at point: CGPoint) {}
 
     /// マウスのイベントを見分けない実装の既定（抑止中はどのデバイスのイベントも捨てる）
     public var isTrackpadTouched: Bool {

@@ -401,7 +401,9 @@ import Testing
         let h = try harness()
         let safari = try #require(cell(h, 0))
         h.model.clearCell(at: 0)
-        #expect(h.model.undoNotice == SettingsUndoNotice(text: L10n.ui("マスを空にしました"), actionName: L10n.ui("マスを空にする")))
+        // どのマスを空にしたかを言う（右クリックでは、選んでいないマスにも効くので）
+        let title = SettingsGrid.displayTitle(for: safari)
+        #expect(h.model.undoNotice == SettingsUndoNotice(text: L10n.ui("「\(title)」を空にしました"), actionName: L10n.ui("マスを空にする")))
         h.model.undoFromNotice()
         #expect(cell(h, 0) == safari)
         #expect(h.model.undoNotice == nil)

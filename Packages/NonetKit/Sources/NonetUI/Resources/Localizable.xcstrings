@@ -1855,6 +1855,26 @@
         }
       }
     },
+    "「%@」を削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete “%@”?"
+          }
+        }
+      }
+    },
+    "「%@」を空にしました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cleared “%@”."
+          }
+        }
+      }
+    },
     "「%@」を複製して使うアプリ" : {
       "localizations" : {
         "en" : {
@@ -3699,6 +3719,26 @@
         }
       }
     },
+    "クリックすると、設定で「%@」を開いて編集します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to edit “%@” in Settings"
+          }
+        }
+      }
+    },
+    "クリックすると、設定でこの空きマスを開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to open this empty button in Settings"
+          }
+        }
+      }
+    },
     "クリップボードにコピー" : {
       "localizations" : {
         "en" : {
@@ -5005,6 +5045,7 @@
       }
     },
     "ページ %lld を削除しますか？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5401,6 +5442,7 @@
       }
     },
     "マスを空にしました" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

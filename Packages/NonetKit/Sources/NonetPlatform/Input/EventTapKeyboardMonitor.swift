@@ -52,6 +52,8 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// 抑止を始めたときの方式と、カーソルの位置
     private var activePlan: CursorLockPlan?
     private var anchor: CGPoint?
+    /// parkPointer で寄せる前の位置。抑止を終えるときに戻す
+    private var parkedFrom: CGPoint?
     /// rememberPointerLocation で覚えた位置。次の抑止の始まりでそこへ戻し、使ったら忘れる
     private(set) var rememberedLocation: CGPoint?
     /// 抑止中だけ有効
@@ -339,8 +341,23 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         updatePointerTap()
     }
 
+    /// 止めたポインタを HUD の外へ寄せる。ずれたら戻す方式（automatic）のときだけ（ほかの方式ではポインタを動かさない）
+    public func parkPointer(at point: CGPoint) {
+        guard isSuppressingPointer, activePlan?.warpsBack == true, let current = anchor else { return }
+        if parkedFrom == nil { parkedFrom = current }
+        anchor = point
+        cursor.warp(to: point)
+    }
+
     private func endSuppression() {
-        if activePlan?.warpsBack == true { holdCursorAtAnchor() }
+        if activePlan?.warpsBack == true {
+            if let parkedFrom {
+                cursor.warp(to: parkedFrom)
+            } else {
+                holdCursorAtAnchor()
+            }
+        }
+        parkedFrom = nil
         association.restore()
         activePlan = nil
         anchor = nil

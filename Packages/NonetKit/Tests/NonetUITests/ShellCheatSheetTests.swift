@@ -34,6 +34,12 @@ struct ShellCheatSheetTests {
         for index in 0..<Page.cellCount {
             #expect(sheet.cell(at: index) == profile.pages[0].cells[index])
             #expect(sheet.cellTitle(at: index) == profile.pages[0].cells[index].map(SettingsGrid.displayTitle(for:)))
+            // ヘルプは、押すと実行ではなく設定で開くことを言う
+            if let title = sheet.cellTitle(at: index) {
+                #expect(sheet.cellTooltip(at: index) == L10n.ui("クリックすると、設定で「\(title)」を開いて編集します"))
+            } else {
+                #expect(sheet.cellTooltip(at: index) == L10n.ui("クリックすると、設定でこの空きマスを開きます"))
+            }
         }
         #expect(sheet.location(ofCell: 4) == MenuBarCellLocation(profileID: profile.id, address: CellAddress(page: 0, index: 4)))
         #expect(sheet.location(ofCell: Page.cellCount) == nil)

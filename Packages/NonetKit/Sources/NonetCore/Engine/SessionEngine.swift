@@ -204,13 +204,23 @@ public struct SessionHUDState: Equatable, Sendable {
     public var hold: SessionHold?
     /// 指が左右の外枠にあり、そちらにページがあれば、切り替えるまでの進み具合
     public var edgePaging: SessionEdgePaging?
+    /// 指が、光っているマスと隣との境目の線の上にあり、いま離しても実行しない（止め終えた少し長く止めるマスは別。離せば実行する）
+    public var isOnBoundary: Bool
 
-    public init(page: Int, highlightedCell: Int?, isInFrame: Bool = false, hold: SessionHold? = nil, edgePaging: SessionEdgePaging? = nil) {
+    public init(
+        page: Int,
+        highlightedCell: Int?,
+        isInFrame: Bool = false,
+        hold: SessionHold? = nil,
+        edgePaging: SessionEdgePaging? = nil,
+        isOnBoundary: Bool = false
+    ) {
         self.page = page
         self.highlightedCell = highlightedCell
         self.isInFrame = isInFrame
         self.hold = hold
         self.edgePaging = edgePaging
+        self.isOnBoundary = isOnBoundary
     }
 }
 
