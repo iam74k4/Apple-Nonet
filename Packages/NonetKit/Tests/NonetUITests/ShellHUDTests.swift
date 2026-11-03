@@ -22,11 +22,11 @@ struct ShellHUDTests {
 
     @Test("HUD の大きさ: 題名とページの点は上の外枠に入るので、ページが増えても高さは変わらない。帯の分だけ高くなる")
     func hudSize() {
-        // 上の外枠 28・9マス 3×54 + 2×6・下の外枠 12
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 368, height: 214))
+        // 余白 12・題名 26・間 8・地図 268（トラックパッドの形）・余白 12
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 440, height: 326))
         #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == HUDLayout.size(for: Self.model()))
         let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
-        #expect(both == CGSize(width: 368, height: 244))
+        #expect(both == CGSize(width: 440, height: 358))
         // 外枠に指があるか・進み具合では大きさは変わらない
         var inFrame = Self.model()
         inFrame.isFingerInFrame = true
@@ -112,25 +112,35 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
     }
 
-    @Test("ページを切り替える線: 9マスの高さに合わせる。外枠の幅は上と下で違うが、線の中心は9マスの中心と同じ")
-    func pagingBarLineUpWithTheGrid() {
-        for scale in [1.0, 1.5] {
+    @Test("地図は MacBook のトラックパッドと同じ比率で、外枠の帯は実物と同じ割合（左右 11%・奥 17%・手前 15%）")
+    func mapMatchesTheTrackpad() {
+        for scale in [1.0, 1.25] {
             let metrics = HUDMetrics(scale: scale)
-            for banner in [nil, "試用期間が終了しました"] as [String?] {
-                let model = Self.model(pageCount: 3, banner: banner)
-                let insets = metrics.gridInsets(for: model)
-                let bar = metrics.pagingBarInsets(for: model)
-                let height = metrics.size(for: model).height
-                // 線は、上は9マスの上の縁、下は9マスの下の縁から、同じだけ内側に入る
-                #expect(bar.top - insets.top == bar.bottom - insets.bottom)
-                #expect(bar.top - insets.top == metrics.cellCornerRadius)
-                // 線の中心（上の余白と下の余白の差の半分だけ、パネルの中心からずれる）が、9マスの中心と同じ
-                let barCenter = bar.top + (height - bar.top - bar.bottom) / 2
-                let gridCenter = insets.top + (height - insets.top - insets.bottom) / 2
-                #expect(abs(barCenter - gridCenter) < 0.001, "\(scale) \(String(describing: banner))")
-                #expect(height - bar.top - bar.bottom > 0)
-            }
+            #expect(abs(metrics.mapWidth / metrics.mapHeight - 1.55) < 0.01)
+            let frame = GridInsets.cancelFrame
+            #expect(abs(metrics.bandSide / metrics.mapWidth - frame.left) < 0.005)
+            #expect(abs(metrics.bandTop / metrics.mapHeight - frame.top) < 0.005)
+            #expect(abs(metrics.bandBottom / metrics.mapHeight - frame.bottom) < 0.005)
+            let grid = metrics.gridRect
+            #expect(grid.minX == metrics.bandSide && grid.minY == metrics.bandTop)
+            #expect(abs(grid.maxX - (metrics.mapWidth - metrics.bandSide)) < 1e-9)
+            #expect(abs(grid.maxY - (metrics.mapHeight - metrics.bandBottom)) < 1e-9)
+            #expect(metrics.cellWidth > 90 * scale && metrics.cellHeight > 50 * scale)
         }
+    }
+
+    @Test("帯と「何に対する操作か」があるぶんだけ高くなり、幅は変わらない")
+    func rowsAddHeight() {
+        let metrics = HUDMetrics(scale: 1)
+        let plain = metrics.size(for: Self.model(pageCount: 1))
+        let banner = metrics.size(for: Self.model(pageCount: 1, banner: "帯"))
+        var context = Self.model(pageCount: 1)
+        context.context = "Safari のウインドウ"
+        let withContext = metrics.size(for: context)
+        #expect(plain.width == HUDLayout.width && banner.width == plain.width && withContext.width == plain.width)
+        #expect(banner.height - plain.height == HUDLayout.bannerHeight + HUDLayout.rowSpacing)
+        #expect(withContext.height - plain.height == HUDLayout.contextHeight + HUDLayout.rowSpacing)
+        #expect(plain.height == HUDLayout.padding * 2 + HUDLayout.headerHeight + HUDLayout.rowSpacing + HUDLayout.mapHeight)
     }
 
     @Test("ページを切り替える線の進み具合: 止め始めてからの時間に比例し、0〜1に収まる")

@@ -416,6 +416,13 @@ final class ControllerFakeHUD: HUDPresenting {
         self.recorder = recorder
     }
 
+    /// 指の点（最後の位置）
+    private(set) var finger: HUDFinger?
+
+    func updateFinger(_ finger: HUDFinger?) {
+        self.finger = finger
+    }
+
     func showPlacementPreview(_ frame: CGRect) {
         guard placementPreview != frame else { return }
         placementPreview = frame

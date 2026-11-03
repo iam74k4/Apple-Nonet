@@ -53,6 +53,7 @@ struct ControllerSession: Equatable, Sendable {
         return ControllerPresentation.hudModel(
             pages: pages,
             state: state,
+            frontmostApp: frontmostApp?.app,
             isPractice: isPracticeMode,
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,

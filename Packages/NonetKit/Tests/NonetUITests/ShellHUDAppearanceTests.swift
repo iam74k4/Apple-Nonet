@@ -23,13 +23,14 @@ struct ShellHUDAppearanceTests {
 
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 368, height: 214))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 460, height: 267.5))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 552, height: 321))
+        // 余白 12・題名 26・間 8・地図 268・余白 12
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 440, height: 326))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 550, height: 407.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 660, height: 489))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 368, height: 214))
-        #expect(HUDMetrics(scale: 1.5).headerFontSize == 18)
-        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 18)
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 440, height: 326))
+        #expect(HUDMetrics(scale: 1.5).headerFontSize == 19.5)
+        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 17.25)
     }
 
     @Test("画面に収まらない大きさは、収まるところまで小さくする")

@@ -53,6 +53,16 @@
         }
       }
     },
+    "%@ のウインドウ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ window"
+          }
+        }
+      }
+    },
     "%@ へ移動" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2211,6 +2221,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Unread"
+          }
+        }
+      }
+    },
+    "前面のウインドウ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The front window"
           }
         }
       }

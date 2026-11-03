@@ -8,6 +8,7 @@ public enum ControllerPresentation {
     static func hudModel(
         pages: [ResolvedPage],
         state: SessionHUDState,
+        frontmostApp: AppReference? = nil,
         isPractice: Bool = false,
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
@@ -30,12 +31,33 @@ public enum ControllerPresentation {
             hold: hold,
             edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
             isHighlightOnBoundary: highlight != nil && state.isOnBoundary,
+            context: context(of: resolved, frontmostApp: frontmostApp),
+            edgePeek: state.isInFrame ? edgePeek(pages: pages, page: index, edge: state.edgePaging?.edge) : nil,
             isPractice: isPractice,
             banner: banner,
             bannerStyle: bannerStyle,
             globalPagesStart: globalPagesStart(pages),
             scale: scale
         )
+    }
+
+    /// 何に対する操作かの帯。「画面に置く」のページなら、前面のアプリのウインドウ
+    static func context(of page: ResolvedPage?, frontmostApp: AppReference?) -> String? {
+        guard let page, page.cells.contains(where: { if case .placeWindow? = $0?.action { true } else { false } }) else { return nil }
+        guard let name = frontmostApp?.name.trimmedNonEmpty else {
+            return String(localized: "前面のウインドウ", bundle: .module)
+        }
+        return String(localized: "\(name) のウインドウ", bundle: .module)
+    }
+
+    /// 左右の外枠に指を止めている側の、隣のページの端の列（右なら次のページの左の列、左なら前のページの右の列。上の段から）
+    static func edgePeek(pages: [ResolvedPage], page: Int, edge: PageEdge?) -> [HUDCell?]? {
+        guard let edge else { return nil }
+        let neighbor = edge == .right ? page + 1 : page - 1
+        guard pages.indices.contains(neighbor) else { return nil }
+        let cells = Page(cells: pages[neighbor].cells).cells
+        let column = edge == .right ? 0 : 2
+        return [0, 1, 2].map { row in cells[row * 3 + column].map(hudCell) }
     }
 
     /// アプリのページの後ろにつなげたグローバルのページの、最初の位置（resolvedPages の先頭と別のプロファイルの最初のページ）

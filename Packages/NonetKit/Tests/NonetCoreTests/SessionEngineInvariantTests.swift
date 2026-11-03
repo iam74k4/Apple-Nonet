@@ -144,6 +144,8 @@ private struct InvariantChecker {
                 if case .endPointerSuppression? = previous {} else { fail("sessionEnded の前が end でない") }
                 if hud != nil { fail("HUD を出したまま終えた") }
                 inSession = false
+            case .fingerMoved:
+                if !inSession || hud == nil { fail("HUD を出していないのに指の点を動かした") }
             case .showHUD(let state):
                 if !inSession || hud != nil { fail("show できない状態") }
                 Self.check(state, pageCount: pageCount, fail: fail)
@@ -256,7 +258,7 @@ private struct InvariantChecker {
             }
         }
         #expect(seen == [
-            "begin", "end", "show", "update", "hide", "activation", "boundary", "pageChange", "holdReady", "rejected",
+            "begin", "end", "show", "update", "hide", "finger", "activation", "boundary", "pageChange", "holdReady", "rejected",
             "execute", "tick", "released", "cancelled", "interrupted", "timeout",
         ])
     }
@@ -268,6 +270,7 @@ private struct InvariantChecker {
         case .showHUD: "show"
         case .updateHUD: "update"
         case .hideHUD: "hide"
+        case .fingerMoved: "finger"
         case .haptic(let event): "\(event)"
         case .execute: "execute"
         case .requestTick: "tick"

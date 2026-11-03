@@ -17,6 +17,17 @@ public struct HUDCell: Equatable, Sendable {
     }
 }
 
+/// トラックパッドの上の指の位置（0〜1。x は左が 0、y は手前が 0）。HUD はトラックパッドの地図の上に点で出す
+public struct HUDFinger: Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
 /// HUD の上部の帯の見た目
 public enum HUDBannerStyle: Equatable, Sendable {
     /// 注意（試用期間の終了など）
@@ -79,6 +90,10 @@ public struct HUDModel: Equatable, Sendable {
     public var edgePaging: HUDEdgePaging?
     /// 指が境目の線の上にあり、いま離しても実行しない。HUD は光っているマスを塗らず、空きマスと同じく枠だけで示す
     public var isHighlightOnBoundary: Bool
+    /// 何に対する操作かの帯（「Safari のウインドウ」など）。題名の下に出す。無ければ出さない
+    public var context: String?
+    /// 左右の外枠に指を止めている間、そちらのページの端の列（上の段から3つ）。帯の中にのぞかせる
+    public var edgePeek: [HUDCell?]?
     /// 練習中（初回の案内の練習。実行しない）。HUD は題名の横に「練習中」を出す
     public var isPractice: Bool
     /// 上部の注意書き（例: 試用期間の終了）
@@ -100,6 +115,8 @@ public struct HUDModel: Equatable, Sendable {
         hold: HUDHold? = nil,
         edgePaging: HUDEdgePaging? = nil,
         isHighlightOnBoundary: Bool = false,
+        context: String? = nil,
+        edgePeek: [HUDCell?]? = nil,
         isPractice: Bool = false,
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
@@ -115,6 +132,8 @@ public struct HUDModel: Equatable, Sendable {
         self.hold = hold
         self.edgePaging = edgePaging
         self.isHighlightOnBoundary = isHighlightOnBoundary
+        self.context = context
+        self.edgePeek = edgePeek
         self.isPractice = isPractice
         self.banner = banner
         self.bannerStyle = bannerStyle

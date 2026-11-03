@@ -24,6 +24,8 @@ enum HUDPlacement {
     static let pointerSize = CGSize(width: 24, height: 32)
     /// HUD とポインタの間
     static let pointerGap: CGFloat = 8
+    /// 「画面の下」のとき、HUD の下端と画面の使える範囲の下端との間
+    static let bottomInset: CGFloat = 40
 
     /// カーソルのある画面。境界上や画面の外（画面の構成が変わった直後など）なら一番近い画面
     static func screenIndex(containing point: CGPoint, in screens: [HUDScreenGeometry]) -> Int? {
@@ -42,6 +44,9 @@ enum HUDPlacement {
     /// どちらにも入らなければカーソルを中心に置く（重なるポインタは pointerParkingSpot で寄せる）。どれも使える範囲に収める
     static func hudFrame(size: CGSize, position: HUDPosition, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
         switch position {
+        case .screenBottom:
+            let visible = screen.visibleFrame
+            return frame(size: size, centeredAt: CGPoint(x: visible.midX, y: visible.minY + bottomInset + size.height / 2), in: screen)
         case .screenCenter:
             return frame(size: size, centeredAt: CGPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.midY), in: screen)
         case .nearCursor:

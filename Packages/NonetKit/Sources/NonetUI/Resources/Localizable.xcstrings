@@ -7993,6 +7993,16 @@
         }
       }
     },
+    "画面の下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom of Screen"
+          }
+        }
+      }
+    },
     "画面の下に出る知らせも同じ大きさになります" : {
       "extractionState" : "stale",
       "localizations" : {

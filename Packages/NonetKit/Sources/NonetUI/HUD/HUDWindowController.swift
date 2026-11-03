@@ -75,6 +75,7 @@ public final class HUDWindowController: HUDPresenting {
         }
         let model = HUDPlacement.fitted(model, in: screen)
         hudStore.model = model
+        hudStore.finger = nil
         hudStore.increasedContrast = prefersIncreasedContrast()
         hudStore.reduceMotion = prefersReducedMotion()
         let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), position: position, cursor: cursor, screen: screen)
@@ -111,6 +112,11 @@ public final class HUDWindowController: HUDPresenting {
         onParkPointer(HUDPlacement.quartzPoint(spot, primaryScreen: primary))
     }
 
+    public func updateFinger(_ finger: HUDFinger?) {
+        guard hudFader.isShowing else { return }
+        hudStore.finger = finger
+    }
+
     public func showPlacementPreview(_ frame: CGRect) {
         placementPreview.show(frame, animated: !prefersReducedMotion())
     }
@@ -126,6 +132,7 @@ public final class HUDWindowController: HUDPresenting {
         hudScreen = nil
         hudFader.hide { [weak self] in
             self?.hudStore.model = nil
+            self?.hudStore.finger = nil
         }
     }
 

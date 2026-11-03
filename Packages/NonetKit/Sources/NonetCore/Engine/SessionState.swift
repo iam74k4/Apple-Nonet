@@ -125,9 +125,16 @@ struct SessionState: Sendable {
         shownState = hudState
         effects.append(.showHUD(hudState))
         effects.append(.haptic(.activation))
+        effects.append(.fingerMoved(fingerMark))
     }
 
     /// HUD の中身が変わっていれば updateHUD を出す。変わったら true
+    /// 指の点（1本指で選んでいるときだけ）
+    private var fingerMark: HUDFinger? {
+        guard !isMultiFinger, reselectAnchor == nil, let position = lastPosition else { return nil }
+        return HUDFinger(x: position.x, y: position.y)
+    }
+
     @discardableResult
     private mutating func refreshHUD(effects: inout [SessionEffect]) -> Bool {
         let state = hudState
@@ -235,6 +242,7 @@ struct SessionState: Sendable {
             pagingEdge = nil
             edgeAnchor = nil
             refreshHUD(effects: &effects)
+            if isHUDVisible { effects.append(.fingerMoved(nil)) }
         }
         guard tracker.count == 2 else {
             swipeBaseline = nil
@@ -310,6 +318,7 @@ struct SessionState: Sendable {
             edgeTurns = 0
             edgeAnchor = finger
         }
+        if isHUDVisible { effects.append(.fingerMoved(fingerMark)) }
         guard refreshHUD(effects: &effects) else { return }
         // 仕様: マスとマス・マスと外枠の境目をまたぐたびに。指を置き直した・2本指から戻っただけでは鳴らさない
         if !isNewFinger, let previous, previous != next {

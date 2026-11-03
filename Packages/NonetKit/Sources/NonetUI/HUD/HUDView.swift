@@ -3,7 +3,7 @@ import NonetCore
 import Observation
 import SwiftUI
 
-/// HUD の寸法。標準の値（HUDLayout）に、設定の「HUD の大きさ」の倍率を掛ける
+/// HUD の寸法。標準の値（HUDLayout）に、設定の「大きく表示」の倍率を掛ける
 struct HUDMetrics: Equatable {
     /// 寸法と文字に掛ける倍率（HUDModel.scale）
     var scale: CGFloat
@@ -13,68 +13,80 @@ struct HUDMetrics: Equatable {
     }
 
     var width: CGFloat { HUDLayout.width * scale }
+    var padding: CGFloat { HUDLayout.padding * scale }
+    var headerHeight: CGFloat { HUDLayout.headerHeight * scale }
+    var contextHeight: CGFloat { HUDLayout.contextHeight * scale }
+    var rowSpacing: CGFloat { HUDLayout.rowSpacing * scale }
+    var mapWidth: CGFloat { HUDLayout.mapWidth * scale }
+    var mapHeight: CGFloat { HUDLayout.mapHeight * scale }
+    var bandSide: CGFloat { HUDLayout.bandSide * scale }
+    var bandTop: CGFloat { HUDLayout.bandTop * scale }
+    var bandBottom: CGFloat { HUDLayout.bandBottom * scale }
     var cellSpacing: CGFloat { HUDLayout.cellSpacing * scale }
-    var cellHeight: CGFloat { HUDLayout.cellHeight * scale }
     var cornerRadius: CGFloat { HUDLayout.cornerRadius * scale }
+    var mapCornerRadius: CGFloat { HUDLayout.mapCornerRadius * scale }
     var cellCornerRadius: CGFloat { HUDLayout.cellCornerRadius * scale }
     var bannerHeight: CGFloat { HUDLayout.bannerHeight * scale }
-    var bannerSpacing: CGFloat { HUDLayout.bannerSpacing * scale }
-    var frameSide: CGFloat { HUDLayout.frameSide * scale }
-    var frameTop: CGFloat { HUDLayout.frameTop * scale }
-    var frameBottom: CGFloat { HUDLayout.frameBottom * scale }
     /// 少し長く止めるマスの進み具合の線の太さ
     var holdLineWidth: CGFloat { 2.5 * scale }
-    var headerFontSize: CGFloat { 12 * scale }
-    var cellTitleFontSize: CGFloat { 12 * scale }
-    var detailFontSize: CGFloat { 11 * scale }
-    var iconSize: CGFloat { 18 * scale }
+    var headerFontSize: CGFloat { 13 * scale }
+    var contextFontSize: CGFloat { 11 * scale }
+    var bandFontSize: CGFloat { 11 * scale }
+    var cellTitleFontSize: CGFloat { 11.5 * scale }
+    var detailFontSize: CGFloat { 10.5 * scale }
+    var iconSize: CGFloat { 16 * scale }
     /// 少し長く止めてから実行するマスの印（HoldBadge）の大きさと、マスの角からの距離
     var badgeSize: CGFloat { 8 * scale }
-    var badgeInset: CGFloat { 6 * scale }
+    var badgeInset: CGFloat { 5 * scale }
     var dotSize: CGFloat { 5 * scale }
     var dotSpacing: CGFloat { 6 * scale }
     /// アプリのページとグローバルのページの点の間に、さらに空ける幅
     var pageGroupGap: CGFloat { HUDLayout.pageGroupGap * scale }
+    /// 指の点の大きさ
+    var fingerSize: CGFloat { 14 * scale }
 
-    /// 9マスの上と下の、外枠の幅（帯・案内の分を含む）。上は題名とページの点が並び、下は使い始めの案内が入る
-    func gridInsets(for model: HUDModel) -> (top: CGFloat, bottom: CGFloat) {
-        var top = HUDLayout.frameTop
-        if model.banner != nil {
-            top += HUDLayout.bannerHeight + HUDLayout.bannerSpacing
-        }
-        return (top * scale, HUDLayout.frameBottom * scale)
+    /// 地図の中の、9マスの範囲（外枠の帯の内側）
+    var gridRect: CGRect {
+        CGRect(x: bandSide, y: bandTop, width: mapWidth - 2 * bandSide, height: mapHeight - bandTop - bandBottom)
     }
 
-    /// 左右の外枠に出す進み具合の線の、上と下の余白。9マスの高さに合わせる（上と下で外枠の幅が違うので、同じ値にはしない）
-    func pagingBarInsets(for model: HUDModel) -> (top: CGFloat, bottom: CGFloat) {
-        let insets = gridInsets(for: model)
-        return (insets.top + cellCornerRadius, insets.bottom + cellCornerRadius)
+    var cellWidth: CGFloat { (gridRect.width - 2 * cellSpacing) / 3 }
+    var cellHeight: CGFloat { (gridRect.height - 2 * cellSpacing) / 3 }
+
+    /// 地図の上に積む行（題名・帯・何に対する操作か）の高さの合計
+    func rowsHeight(for model: HUDModel) -> CGFloat {
+        var height = headerHeight
+        if model.banner != nil { height += bannerHeight + rowSpacing }
+        if model.context != nil { height += contextHeight + rowSpacing }
+        return height
     }
 
     func size(for model: HUDModel) -> CGSize {
-        let insets = gridInsets(for: model)
-        let grid = 3 * cellHeight + 2 * cellSpacing
-        return CGSize(width: HUDLayout.width * scale, height: insets.top + grid + insets.bottom)
+        CGSize(width: width, height: padding + rowsHeight(for: model) + rowSpacing + mapHeight + padding)
     }
 }
 
-/// HUD の標準の寸法（倍率 1）。パネルそのものがトラックパッドを表し、9マスの周りの余白が外枠（指を出して離すと何もせずに閉じる場所）になる。
-/// 外枠は、ふだんは描かず、指がそこにあるときだけ濃くして見せる
+/// HUD の標準の寸法（倍率 1）。題名（と帯）の下に、トラックパッドの形の地図を置く。地図は MacBook のトラックパッドと同じ比率（1.55:1）で、
+/// 外枠の帯を実物と同じ割合（GridInsets.cancelFrame: 左右 11%・奥 17%・手前 15%）で描き、その内側が9マス。指の位置は点で出す
 enum HUDLayout {
-    static let width: CGFloat = 368
-    static let cellHeight: CGFloat = 54
+    static let width: CGFloat = 440
+    static let padding: CGFloat = 12
+    static let headerHeight: CGFloat = 26
+    static let contextHeight: CGFloat = 26
+    /// 題名・帯・地図の間
+    static let rowSpacing: CGFloat = 8
+    static let mapWidth: CGFloat = width - 2 * padding
+    static let mapHeight: CGFloat = 268
+    static let bandSide: CGFloat = 46
+    static let bandTop: CGFloat = 46
+    static let bandBottom: CGFloat = 40
     static let cellSpacing: CGFloat = 6
     /// パネルの角の丸み。Dock のような丸い面にする
     static let cornerRadius: CGFloat = 22
+    static let mapCornerRadius: CGFloat = 16
     static let cellCornerRadius: CGFloat = 10
     static let bannerHeight: CGFloat = 24
-    static let bannerSpacing: CGFloat = 6
     static let pageGroupGap: CGFloat = 6
-    /// 外枠の幅。トラックパッドの割合（左右 11%・奥 17%・手前 15%）の順を保つ（奥が最も広く、題名とページの点が入る）。
-    /// 割合どおりにするとマスが細くなりすぎるので、帯は控えめにする
-    static let frameSide: CGFloat = 12
-    static let frameTop: CGFloat = 28
-    static let frameBottom: CGFloat = 12
     /// 外枠を濃くするとき、9マスの下の塗らない部分を、マスより外へ広げる幅（外枠の帯とマスの間に少しすき間を空ける）
     static let gridWell: CGFloat = 3
     /// パネルの影を SwiftUI で描くための余白。ウィンドウの影は中身が変わると遅れて付くので使わない
@@ -252,6 +264,14 @@ struct HUDTheme {
         return ink.opacity(isActive ? colors.frameActiveStrokeOpacity : isIncreased ? 0.45 : 0.16)
     }
 
+    /// トラックパッドの地図の面（パネルより少しだけ明るい）
+    var mapFill: AnyShapeStyle { isGlass ? AnyShapeStyle(FillShapeStyle().quinary) : AnyShapeStyle(Color(white: 0x19 / 255)) }
+    /// 隣のページがのぞくマスの面
+    var peekFill: AnyShapeStyle { isGlass ? AnyShapeStyle(FillShapeStyle().tertiary) : AnyShapeStyle(Color(white: 0x2A / 255)) }
+    /// 指の点（白い丸に、面の色の縁）
+    var fingerFill: Color { isGlass ? ink : .white }
+    var fingerStroke: Color { isGlass ? paper : HUDPalette.background }
+
     /// 「離すとやめる」の下地と文字（下の暗くしたマスの文字が透けないよう、塗りつぶす）
     var labelFill: Color { isGlass ? paper : HUDPalette.background }
     var labelForeground: Color { isGlass ? ink : .white }
@@ -320,6 +340,8 @@ struct HUDFrameBand: Shape {
 @Observable
 final class HUDStore {
     var model: HUDModel?
+    /// トラックパッドの上の指の位置（地図の上の点）。update より頻繁に変わるので、model とは別に持つ
+    var finger: HUDFinger?
     /// システム設定の「コントラストを上げる」（出すたびに読み直す）
     var increasedContrast = false
     /// システム設定の「視差効果を減らす」（出すたびに読み直す）。外枠の切り替えをアニメーションにせず、進み具合も満たしていかない
@@ -333,7 +355,7 @@ struct HUDRootView: View {
     var body: some View {
         ZStack {
             if let model = store.model {
-                HUDView(model: model, colors: HUDPalette.colors(increasedContrast: store.increasedContrast), reduceMotion: store.reduceMotion)
+                HUDView(model: model, finger: store.finger, colors: HUDPalette.colors(increasedContrast: store.increasedContrast), reduceMotion: store.reduceMotion)
             }
         }
         .padding(HUDLayout.shadowMargin)
@@ -342,6 +364,8 @@ struct HUDRootView: View {
 
 struct HUDView: View {
     let model: HUDModel
+    /// トラックパッドの上の指の位置（地図の上の点）。nil なら出さない
+    var finger: HUDFinger?
     var colors: HUDColors = .standard
     var reduceMotion = false
     /// 少し長く止めるマスの進み具合を、この値（0〜1）で止めて描く（見た目の確認用）。nil なら止め始めてから duration で満たす
@@ -357,48 +381,31 @@ struct HUDView: View {
         let metrics = metrics
         let theme = theme
         let size = metrics.size(for: model)
-        let insets = metrics.gridInsets(for: model)
-        let inFrame = model.isFingerInFrame
         let shape = RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous)
-        ZStack(alignment: .top) {
-            if inFrame {
-                // 指が外枠にあるときだけ、外枠（パネルの縁と9マスの間）を濃くして縁をはっきりさせる
-                frameBand(size: size, insets: insets)
+        VStack(spacing: 0) {
+            header(metrics: metrics, theme: theme)
+                .frame(height: metrics.headerHeight)
+            if let banner = model.banner {
+                HUDBannerView(text: banner, style: model.bannerStyle, metrics: metrics, theme: theme)
+                    .padding(.top, metrics.rowSpacing)
             }
-            VStack(spacing: 0) {
-                topBar
-                    .frame(height: HUDLayout.frameTop * metrics.scale)
-                if let banner = model.banner {
-                    HUDBannerView(text: banner, style: model.bannerStyle, metrics: metrics, theme: theme)
-                        .padding(.horizontal, metrics.frameSide)
-                        .padding(.bottom, metrics.bannerSpacing)
-                }
-                grid
-                    .padding(.horizontal, metrics.frameSide)
-                    .opacity(inFrame ? colors.dimmedCellOpacity : 1)
-                Spacer(minLength: 0)
+            if let context = model.context {
+                HUDContextBand(text: context, metrics: metrics, theme: theme)
+                    .padding(.top, metrics.rowSpacing)
             }
-            if inFrame, let paging = model.edgePaging, !reduceMotion {
-                // 指を止めている側の外枠に、ページを切り替えるまでの進み具合。
-                // 「視差効果を減らす」では出さない（伸びない線は、最初から「済んだ」ように見える。文は「離すとやめる」の下に出る）
-                let bar = metrics.pagingBarInsets(for: model)
-                HUDEdgePagingBar(paging: paging, color: theme.ring, animates: !reduceMotion)
-                    // 止め始めるたび（反対側に移った・ページを切り替えた）に作り直して、最初から伸ばす
-                    .id(HUDEdgePagingBar.restartID(for: paging))
-                    .frame(width: max(metrics.frameSide - 6 * metrics.scale, 3 * metrics.scale))
-                    .padding(.top, bar.top)
-                    .padding(.bottom, bar.bottom)
-                    .padding(.horizontal, 3 * metrics.scale)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: paging.edge == .left ? .leading : .trailing)
-            }
-            if inFrame {
-                HUDCancelLabel(metrics: metrics, theme: theme, edge: model.edgePaging?.edge)
-                    .position(x: size.width / 2, y: insets.top + (3 * metrics.cellHeight + 2 * metrics.cellSpacing) / 2)
-                    .transition(.opacity)
-            }
+            HUDMapView(
+                model: model,
+                finger: finger,
+                metrics: metrics,
+                theme: theme,
+                colors: colors,
+                reduceMotion: reduceMotion,
+                fixedHoldProgress: fixedHoldProgress
+            )
+            .padding(.top, metrics.rowSpacing)
         }
+        .padding(metrics.padding)
         .frame(width: size.width, height: size.height)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
         .modifier(HUDSurfaceBackground(
             surface: surface,
             shape: shape,
@@ -411,12 +418,12 @@ struct HUDView: View {
         .accessibilityLabel(Text(model.title))
     }
 
-    /// 上の外枠。左に題名、右にページの点（少し長く止めるマスを止めている間は、その案内。練習中は「練習中」）
-    private var topBar: some View {
+    /// 題名の行。左に題名、右にページの点（少し長く止めるマスを止めている間は、その案内。練習中は「練習中」）
+    private func header(metrics: HUDMetrics, theme: HUDTheme) -> some View {
         HStack(spacing: 10 * metrics.scale) {
             Text(model.title)
                 .foregroundStyle(theme.title)
-                .fontWeight(.medium)
+                .fontWeight(.semibold)
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 0)
@@ -436,31 +443,169 @@ struct HUDView: View {
             }
         }
         .font(.system(size: metrics.headerFontSize))
-        .padding(.horizontal, metrics.frameSide + 2 * metrics.scale)
+        .padding(.horizontal, 2 * metrics.scale)
+    }
+}
+
+/// 何に対する操作かの帯（「Safari のウインドウ」など）
+private struct HUDContextBand: View {
+    let text: String
+    let metrics: HUDMetrics
+    let theme: HUDTheme
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: metrics.contextFontSize))
+            .foregroundStyle(theme.secondaryText)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 10 * metrics.scale)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: metrics.contextHeight)
+            .background(RoundedRectangle(cornerRadius: 8 * metrics.scale, style: .continuous).fill(theme.cellFill))
+            .accessibilityLabel(Text(text))
+    }
+}
+
+/// トラックパッドの地図。外枠の帯（実物と同じ割合）・9マス・指の点・「離すとやめる」・ページを切り替える進み具合と、隣のページの端
+struct HUDMapView: View {
+    let model: HUDModel
+    var finger: HUDFinger?
+    let metrics: HUDMetrics
+    let theme: HUDTheme
+    var colors: HUDColors = .standard
+    var reduceMotion = false
+    var fixedHoldProgress: Double?
+
+    var body: some View {
+        let inFrame = model.isFingerInFrame
+        // 2本以上の指・滑らせ直すまで: 光っているマスが無く、離しても何も起きない
+        let idle = model.highlightedIndex == nil && !inFrame
+        let grid = metrics.gridRect
+        let mapShape = RoundedRectangle(cornerRadius: metrics.mapCornerRadius, style: .continuous)
+        ZStack(alignment: .topLeading) {
+            mapShape.fill(theme.mapFill)
+            frameBand(isActive: inFrame)
+            mapShape.strokeBorder(theme.frameStroke(isActive: inFrame), lineWidth: (inFrame ? 1.5 : 1) * metrics.scale)
+            // 上の帯: 指が入ってきた向き
+            Image(systemName: "arrow.down")
+                .font(.system(size: 11 * metrics.scale, weight: .semibold))
+                .foregroundStyle(theme.secondaryText)
+                .opacity(0.6)
+                .frame(width: metrics.mapWidth, height: grid.minY)
+                .accessibilityHidden(true)
+            sideBand(.left)
+            sideBand(.right)
+            bottomBand(isActive: inFrame)
+                .frame(width: metrics.mapWidth, height: metrics.bandBottom)
+                .offset(y: grid.maxY)
+            gridView
+                .frame(width: grid.width, height: grid.height)
+                .offset(x: grid.minX, y: grid.minY)
+                .opacity(inFrame || idle ? colors.dimmedCellOpacity : 1)
+            if let finger {
+                Circle()
+                    .fill(theme.fingerFill)
+                    .overlay(Circle().strokeBorder(theme.fingerStroke, lineWidth: 2 * metrics.scale))
+                    .frame(width: metrics.fingerSize, height: metrics.fingerSize)
+                    .position(
+                        x: min(max(finger.x, 0), 1) * metrics.mapWidth,
+                        y: (1 - min(max(finger.y, 0), 1)) * metrics.mapHeight
+                    )
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(width: metrics.mapWidth, height: metrics.mapHeight)
+        .clipShape(mapShape)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
     }
 
-    /// 外枠（パネルの縁と9マスの間）を濃くした帯と、その縁
-    private func frameBand(size: CGSize, insets: (top: CGFloat, bottom: CGFloat)) -> some View {
+    /// 外枠の帯（地図の縁と9マスの間）。ふだんは薄く、指が外枠にあるときは濃く
+    private func frameBand(isActive: Bool) -> some View {
         let well = HUDLayout.gridWell * metrics.scale
-        let band = HUDFrameBand(
-            cornerRadius: metrics.cornerRadius,
+        let grid = metrics.gridRect
+        return HUDFrameBand(
+            cornerRadius: metrics.mapCornerRadius,
             insets: EdgeInsets(
-                top: insets.top - well,
-                leading: metrics.frameSide - well,
-                bottom: insets.bottom - well,
-                trailing: metrics.frameSide - well
+                top: grid.minY - well,
+                leading: grid.minX - well,
+                bottom: metrics.mapHeight - grid.maxY - well,
+                trailing: metrics.mapWidth - grid.maxX - well
             ),
             innerCornerRadius: metrics.cellCornerRadius + well
         )
-        return ZStack {
-            band.fill(theme.frameFill(isActive: true), style: FillStyle(eoFill: true))
-            RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous)
-                .strokeBorder(theme.frameStroke(isActive: true), lineWidth: 1.5 * metrics.scale)
-        }
-        .frame(width: size.width, height: size.height)
+        .fill(theme.frameFill(isActive: isActive), style: FillStyle(eoFill: true))
+        .frame(width: metrics.mapWidth, height: metrics.mapHeight)
     }
 
-    private var grid: some View {
+    /// 左右の帯。そちらにページがあれば印（‹ ›）。指を止めている間は進み具合の線と、隣のページの端の列
+    @ViewBuilder
+    private func sideBand(_ edge: PageEdge) -> some View {
+        let grid = metrics.gridRect
+        let x = edge == .left ? 0 : metrics.mapWidth - metrics.bandSide
+        let hasPage = edge == .left ? model.pageIndex > 0 : model.pageIndex < model.pageCount - 1
+        let paging = model.edgePaging?.edge == edge ? model.edgePaging : nil
+        ZStack {
+            if let paging, !reduceMotion {
+                // 「視差効果を減らす」では出さない（伸びない線は、最初から「済んだ」ように見える。文は「離すとやめる」の横に出る）
+                HUDEdgePagingBar(paging: paging, color: theme.ring, animates: !reduceMotion)
+                    .id(HUDEdgePagingBar.restartID(for: paging))
+                    .frame(width: 3 * metrics.scale, height: grid.height - 2 * metrics.cellCornerRadius)
+                    .frame(maxWidth: .infinity, alignment: edge == .left ? .leading : .trailing)
+                    .padding(.horizontal, 4 * metrics.scale)
+            }
+            if paging != nil, let peek = model.edgePeek {
+                VStack(spacing: metrics.cellSpacing) {
+                    ForEach(0..<3, id: \.self) { row in
+                        HUDPeekCell(cell: row < peek.count ? peek[row] : nil, metrics: metrics, theme: theme, edge: edge)
+                            .frame(height: metrics.cellHeight)
+                    }
+                }
+                .frame(width: metrics.bandSide - 10 * metrics.scale, height: grid.height)
+                .frame(maxWidth: .infinity, alignment: edge == .left ? .leading : .trailing)
+                .padding(edge == .left ? .leading : .trailing, 10 * metrics.scale)
+                .transition(.opacity)
+            } else if hasPage {
+                Image(systemName: edge == .left ? "chevron.left" : "chevron.right")
+                    .font(.system(size: 12 * metrics.scale, weight: .semibold))
+                    .foregroundStyle(theme.secondaryText)
+                    .opacity(0.6)
+            }
+        }
+        .frame(width: metrics.bandSide, height: grid.height)
+        .offset(x: x, y: grid.minY)
+        .accessibilityHidden(true)
+    }
+
+    /// 下の帯: 「✕ 離すとやめる」。指が外枠にあるときははっきり出し、ページを切り替えられるならその案内も添える
+    private func bottomBand(isActive: Bool) -> some View {
+        HStack(spacing: 5 * metrics.scale) {
+            Image(systemName: "xmark")
+                .font(.system(size: 9 * metrics.scale, weight: .bold))
+                .accessibilityHidden(true)
+            Text(HUDAnnouncement.cancelLabel)
+                .lineLimit(1)
+            if isActive, let edge = model.edgePaging?.edge {
+                Text(verbatim: "·")
+                    .opacity(0.6)
+                HStack(spacing: 2 * metrics.scale) {
+                    if edge == .left {
+                        Image(systemName: "chevron.left").accessibilityHidden(true)
+                    }
+                    Text(HUDAnnouncement.edgePagingLabel(edge))
+                        .lineLimit(1)
+                    if edge == .right {
+                        Image(systemName: "chevron.right").accessibilityHidden(true)
+                    }
+                }
+            }
+        }
+        .font(.system(size: metrics.bandFontSize, weight: isActive ? .semibold : .regular))
+        .foregroundStyle(isActive ? theme.title : theme.secondaryText)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var gridView: some View {
         Grid(horizontalSpacing: metrics.cellSpacing, verticalSpacing: metrics.cellSpacing) {
             ForEach(0..<3, id: \.self) { row in
                 GridRow {
@@ -477,6 +622,7 @@ struct HUDView: View {
                             reduceMotion: reduceMotion,
                             fixedHoldProgress: fixedHoldProgress
                         )
+                        .frame(width: metrics.cellWidth)
                     }
                 }
             }
@@ -485,6 +631,35 @@ struct HUDView: View {
 
     private func cell(at index: Int) -> HUDCell? {
         model.cells.indices.contains(index) ? model.cells[index] : nil
+    }
+}
+
+/// 隣のページの端のマス（外枠の帯の中にのぞかせる）。名前の頭だけが見える細い面
+private struct HUDPeekCell: View {
+    let cell: HUDCell?
+    let metrics: HUDMetrics
+    let theme: HUDTheme
+    let edge: PageEdge
+
+    var body: some View {
+        let radius = metrics.cellCornerRadius
+        let corners: UnevenRoundedRectangle = edge == .right
+            ? UnevenRoundedRectangle(topLeadingRadius: radius, bottomLeadingRadius: radius, bottomTrailingRadius: 0, topTrailingRadius: 0, style: .continuous)
+            : UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+        ZStack(alignment: edge == .right ? .leading : .trailing) {
+            if cell != nil {
+                corners.fill(theme.peekFill)
+            } else {
+                corners.fill(theme.emptyCellFill)
+            }
+            if let cell {
+                CellIconView(cell.icon, size: metrics.iconSize * 0.8)
+                    .foregroundStyle(theme.cellForeground)
+                    .padding(.horizontal, 6 * metrics.scale)
+            }
+        }
+        .opacity(0.7)
+        .clipShape(corners)
     }
 }
 
@@ -630,50 +805,6 @@ struct HUDHoldRingShape: Shape {
         path.addArc(center: CGPoint(x: box.minX + radius, y: box.minY + radius), radius: radius, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
         path.closeSubpath()
         return path
-    }
-}
-
-/// 指が外枠にあるときに、薄くしたマスの上に出す「離すとやめる」。
-/// 左右の外枠でそちらにページがあれば、その下に「止めると次のページ」（左なら前のページ）を添える
-struct HUDCancelLabel: View {
-    var metrics = HUDMetrics(scale: 1)
-    var theme = HUDTheme(surface: .solid)
-    /// 指を止めている左右の外枠（そちらにページがあるときだけ）
-    var edge: PageEdge?
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10 * metrics.scale, style: .continuous)
-        VStack(spacing: 4 * metrics.scale) {
-            HStack(spacing: 7 * metrics.scale) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11 * metrics.scale, weight: .bold))
-                    .accessibilityHidden(true)
-                Text(HUDAnnouncement.cancelLabel)
-                    .font(.system(size: 14 * metrics.scale, weight: .semibold))
-                    .lineLimit(1)
-            }
-            if let edge {
-                HStack(spacing: 4 * metrics.scale) {
-                    if edge == .left {
-                        Image(systemName: "chevron.left").accessibilityHidden(true)
-                    }
-                    Text(HUDAnnouncement.edgePagingLabel(edge))
-                        .lineLimit(1)
-                    if edge == .right {
-                        Image(systemName: "chevron.right").accessibilityHidden(true)
-                    }
-                }
-                .font(.system(size: 11 * metrics.scale, weight: .medium))
-                .opacity(0.75)
-            }
-        }
-        .foregroundStyle(theme.labelForeground)
-        .padding(.horizontal, 16 * metrics.scale)
-        .padding(.vertical, 9 * metrics.scale)
-        // 下の薄くしたマスの文字が透けないよう、塗りつぶす
-        .background(shape.fill(theme.labelFill))
-        .overlay(shape.strokeBorder(theme.frameStroke(isActive: true), lineWidth: 1))
-        .accessibilityElement(children: .combine)
     }
 }
 

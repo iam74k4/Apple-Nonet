@@ -285,6 +285,8 @@ public protocol HUDPresenting: AnyObject {
     /// 「画面に置く」のマスを光らせている間、置く枠（AppKit のグローバル座標）を画面に見せる。閉じるときは hide() で消す
     func showPlacementPreview(_ frame: CGRect)
     func hidePlacementPreview()
+    /// トラックパッドの地図の上の指の点を動かす（nil で消す）。update より頻繁に呼ばれる
+    func updateFinger(_ finger: HUDFinger?)
 }
 
 extension HUDPresenting {
@@ -294,6 +296,9 @@ extension HUDPresenting {
     /// 置く枠を見せない実装の既定
     public func showPlacementPreview(_ frame: CGRect) {}
     public func hidePlacementPreview() {}
+
+    /// 指の点を出さない実装の既定
+    public func updateFinger(_ finger: HUDFinger?) {}
 }
 
 // MARK: - ウインドウを置く

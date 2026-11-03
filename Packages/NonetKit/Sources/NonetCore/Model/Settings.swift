@@ -2,6 +2,8 @@
 import Foundation
 
 public enum HUDPosition: String, Codable, CaseIterable, Sendable {
+    /// 画面の下の中央（既定。指はトラックパッドの上にあるので、目の移動がいちばん少ない）
+    case screenBottom
     case screenCenter
     case nearCursor
 }
@@ -59,7 +61,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
 
     public init(
         isEnabled: Bool = true,
-        hudPosition: HUDPosition = .screenCenter,
+        hudPosition: HUDPosition = .screenBottom,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
         openSensitivity: OpenSensitivity = .standard

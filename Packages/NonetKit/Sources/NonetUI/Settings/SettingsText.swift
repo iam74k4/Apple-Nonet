@@ -8,6 +8,7 @@ enum SettingsText {
 
     static func name(_ position: HUDPosition) -> String {
         switch position {
+        case .screenBottom: String(localized: "画面の下", bundle: .module)
         case .screenCenter: String(localized: "画面の中央", bundle: .module)
         case .nearCursor: String(localized: "ポインタの近く", bundle: .module)
         }

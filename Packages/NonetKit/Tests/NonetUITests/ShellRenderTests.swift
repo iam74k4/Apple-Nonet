@@ -63,8 +63,20 @@ struct ShellRenderTests {
             transform(&model)
             return model
         }
+        let placement = PresetLibrary.makeWindowPlacementPage()
         let states: [(String, HUDModel, HUDColors, Bool, Double?)] = [
             ("hud-state-cell", variant { $0.highlightedIndex = 4 }, .standard, false, nil),
+            // 何に対する操作かの帯（画面に置く）と、指の点
+            ("hud-state-context", Self.hudModel(title: L10n.ui("画面に置く"), page: placement, highlighted: 3, pageIndex: 0, pageCount: 2, context: L10n.ui("\("Safari") のウインドウ")), .standard, false, nil),
+            // 右の外枠に止めて、次のページの端がのぞく
+            ("hud-state-peek", variant {
+                $0.isFingerInFrame = true
+                $0.pageCount = 2
+                $0.edgePaging = HUDEdgePaging(edge: .right, duration: 0.5)
+                $0.edgePeek = [0, 3, 6].map { placement.cells[$0].map { HUDCell(title: $0.title, icon: $0.icon) } }
+            }, .standard, false, nil),
+            // 2本の指（光るマスが無く、離しても何も起きない）
+            ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, .standard, false, nil),
             ("hud-state-boundary", variant { $0.highlightedIndex = 4; $0.isHighlightOnBoundary = true }, .standard, false, nil),
             ("hud-state-frame", variant { $0.isFingerInFrame = true }, .standard, false, nil),
             ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .increased, false, nil),
@@ -91,7 +103,7 @@ struct ShellRenderTests {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin
             try Self.render(
-                HUDView(model: model, colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress, surface: .solid)
+                HUDView(model: model, finger: Self.finger(for: model), colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress, surface: .solid)
                     .padding(margin)
                     .background(Color(white: 0.82)),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
@@ -248,7 +260,18 @@ struct ShellRenderTests {
 
     // MARK: - 部品
 
-    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int, isPractice: Bool = false) -> HUDModel {
+    /// 見た目の確認用の指の位置。光っているマスの中、外枠なら右の帯、どちらでもなければ中央の少し下
+    static func finger(for model: HUDModel) -> HUDFinger? {
+        if model.isFingerInFrame { return HUDFinger(x: model.edgePaging?.edge == .right ? 0.955 : 0.5, y: model.edgePaging == nil ? 0.06 : 0.5) }
+        guard let index = model.highlightedIndex else { return HUDFinger(x: 0.45, y: 0.42) }
+        let frame = GridInsets.cancelFrame
+        let column = Double(index % 3), row = Double(index / 3)
+        let x = frame.left + (1 - frame.left - frame.right) * (column + 0.62) / 3
+        let y = 1 - frame.top - (1 - frame.top - frame.bottom) * (row + 0.58) / 3
+        return HUDFinger(x: x, y: y)
+    }
+
+    static func hudModel(title: String, page: Page, highlighted: Int?, pageIndex: Int = 0, pageCount: Int, context: String? = nil, isPractice: Bool = false) -> HUDModel {
         HUDModel(
             title: title,
             pageIndex: pageIndex,
@@ -260,6 +283,7 @@ struct ShellRenderTests {
                 }
             },
             highlightedIndex: highlighted,
+            context: context,
             isPractice: isPractice
         )
     }

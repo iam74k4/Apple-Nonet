@@ -504,6 +504,9 @@ public final class NonetController {
             guard let session, isHUDVisible else { return }
             hud.update(hudModel(session, state: state))
             updatePlacementPreview(session, state: state)
+        case .fingerMoved(let finger):
+            guard isHUDVisible else { return }
+            hud.updateFinger(finger)
         case .hideHUD:
             hideHUD()
         case .haptic(let event):
