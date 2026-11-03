@@ -34,6 +34,7 @@ public final class HUDWindowController: HUDPresenting {
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
+    private let placementPreview = HUDPlacementPreviewController()
 
     public convenience init() {
         self.init(
@@ -110,7 +111,16 @@ public final class HUDWindowController: HUDPresenting {
         onParkPointer(HUDPlacement.quartzPoint(spot, primaryScreen: primary))
     }
 
+    public func showPlacementPreview(_ frame: CGRect) {
+        placementPreview.show(frame, animated: !prefersReducedMotion())
+    }
+
+    public func hidePlacementPreview() {
+        placementPreview.hide()
+    }
+
     public func hide() {
+        placementPreview.hide()
         guard hudFader.isShowing else { return }
         hudFrame = nil
         hudScreen = nil

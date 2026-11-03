@@ -6597,6 +6597,16 @@
         }
       }
     },
+    "前面のアプリのウインドウを、画面の使える範囲（メニューバーと Dock を除く）のこの場所に置きます。HUD でこのマスを光らせている間、置く枠が画面に出ます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts the front app's window in this part of the screen (not counting the menu bar and the Dock). While this button is highlighted in the HUD, the target area is outlined on screen."
+          }
+        }
+      }
+    },
     "前面のアプリの名前" : {
       "localizations" : {
         "en" : {
@@ -7963,6 +7973,16 @@
         }
       }
     },
+    "画面に置く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place on Screen"
+          }
+        }
+      }
+    },
     "画面に表示" : {
       "localizations" : {
         "en" : {
@@ -8475,6 +8495,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Replace"
+          }
+        }
+      }
+    },
+    "置く場所" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where to place"
           }
         }
       }
@@ -9605,6 +9635,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swap With"
+          }
+        }
+      }
+    },
+    "離すと、ここに置きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift to place it here"
           }
         }
       }

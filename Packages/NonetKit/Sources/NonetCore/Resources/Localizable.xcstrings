@@ -368,6 +368,16 @@
         }
       }
     },
+    "この Mac ではウインドウを置けません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Windows can't be placed on this Mac."
+          }
+        }
+      }
+    },
     "このライセンスキーは Nonet のものではありません" : {
       "localizations" : {
         "en" : {
@@ -1889,6 +1899,26 @@
         }
       }
     },
+    "上半分" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Half"
+          }
+        }
+      }
+    },
+    "下半分" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom Half"
+          }
+        }
+      }
+    },
     "不可視文字" : {
       "localizations" : {
         "en" : {
@@ -2259,6 +2289,36 @@
         }
       }
     },
+    "右上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Right"
+          }
+        }
+      }
+    },
+    "右下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom Right"
+          }
+        }
+      }
+    },
+    "右半分" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right Half"
+          }
+        }
+      }
+    },
     "名前を変更" : {
       "localizations" : {
         "en" : {
@@ -2337,6 +2397,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Run"
+          }
+        }
+      }
+    },
+    "左上" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Left"
+          }
+        }
+      }
+    },
+    "左下" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bottom Left"
+          }
+        }
+      }
+    },
+    "左半分" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left Half"
           }
         }
       }
@@ -2776,6 +2866,16 @@
         }
       }
     },
+    "最大化" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximize"
+          }
+        }
+      }
+    },
     "最背面へ" : {
       "localizations" : {
         "en" : {
@@ -2923,6 +3023,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Play from Here"
+          }
+        }
+      }
+    },
+    "画面に置く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place on Screen"
           }
         }
       }

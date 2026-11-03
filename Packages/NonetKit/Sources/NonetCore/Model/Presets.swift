@@ -150,6 +150,16 @@ public enum PresetLibrary {
         makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: [])
     }
 
+    /// 「画面に置く」のページ。3×3 のマスが、そのまま画面の場所（初回の設定では、グローバルの最初のページ）
+    public static func makeWindowPlacementPage() -> Page {
+        Page(
+            cells: WindowRegion.allCases.map { region in
+                Cell(title: region.title, icon: .symbol(region.symbol), action: .placeWindow(PlaceWindowAction(region: region)))
+            },
+            name: PresetBuilder.text("画面に置く")
+        )
+    }
+
     /// Dock のアプリを Dock の順に先に並べ、残りをインストール済みの候補の優先順で足したグローバルのプロファイル。
     /// dockApps はインストール済みのもの（PresetEnvironmentProviding.dockApps()）。空なら候補だけで並べる
     public static func makeGlobalProfile(installedBundleIDs: Set<String>, dockApps: [AppReference]) -> Profile {

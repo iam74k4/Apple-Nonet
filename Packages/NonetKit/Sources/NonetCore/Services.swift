@@ -282,11 +282,43 @@ public protocol HUDPresenting: AnyObject {
     func showResult(_ result: ResultModel)
     /// 表示中のトーストを消す（「実行中」のトーストを、実行が終わって知らせることが無いときに消す）
     func hideToast()
+    /// 「画面に置く」のマスを光らせている間、置く枠（AppKit のグローバル座標）を画面に見せる。閉じるときは hide() で消す
+    func showPlacementPreview(_ frame: CGRect)
+    func hidePlacementPreview()
 }
 
 extension HUDPresenting {
     /// トーストを消せない実装の既定（時間で消える）
     public func hideToast() {}
+
+    /// 置く枠を見せない実装の既定
+    public func showPlacementPreview(_ frame: CGRect) {}
+    public func hidePlacementPreview() {}
+}
+
+// MARK: - ウインドウを置く
+
+/// 「画面に置く」。前面のアプリのウインドウを、画面の場所に置く。座標は AppKit のグローバル座標（主画面の左下が原点、y は上向き）
+@MainActor
+public protocol WindowPlacing: AnyObject {
+    /// app の最前面のウインドウを region に置く。ウインドウが無い・動かせないときは NonetError
+    func place(_ region: WindowRegion, app: RunningAppInfo?) throws
+    /// 置いたときの枠（HUD で光らせている間のプレビュー用）。ウインドウが無ければ nil
+    func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect?
+}
+
+/// ウインドウを置けない実装（テストと見た目の確認）
+@MainActor
+public final class UnavailableWindowPlacer: WindowPlacing {
+    public nonisolated init() {}
+
+    public func place(_ region: WindowRegion, app: RunningAppInfo?) throws {
+        throw NonetError.actionFailed(String(localized: "この Mac ではウインドウを置けません", bundle: .module))
+    }
+
+    public func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect? {
+        nil
+    }
 }
 
 // MARK: - まとめ
@@ -308,6 +340,8 @@ public struct NonetServices {
     public var scheduler: any Scheduler
     /// プリセットを組み立てるときに見る、この Mac の状態（AI・Claude Code・Dock）
     public var presetEnvironment: any PresetEnvironmentProviding
+    /// 「画面に置く」（置く枠のプレビューに使う。実行は performer が行う）
+    public var windowPlacer: any WindowPlacing
 
     public init(
         touchSource: any TouchSource,
@@ -322,7 +356,8 @@ public struct NonetServices {
         ai: any AIAvailabilityProviding,
         loginItem: any LoginItemControlling,
         scheduler: any Scheduler,
-        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
+        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment(),
+        windowPlacer: any WindowPlacing = UnavailableWindowPlacer()
     ) {
         self.touchSource = touchSource
         self.keyboard = keyboard
@@ -337,5 +372,6 @@ public struct NonetServices {
         self.loginItem = loginItem
         self.scheduler = scheduler
         self.presetEnvironment = presetEnvironment
+        self.windowPlacer = windowPlacer
     }
 }

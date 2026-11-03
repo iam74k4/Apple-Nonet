@@ -102,7 +102,7 @@ enum ControllerExecutionPolicy {
         case .shortcut, .ai: true
         // 大きなファイルの複製は、長く掛かる
         case .file(let file): file.operation == .duplicate
-        case .keystroke, .launchApp, .openURL, .menuItem: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
         }
     }
 
@@ -116,7 +116,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .keystroke: true
         case .ai(let ai): ai.output == .replaceSelection
-        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file: false
+        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow: false
         }
     }
 
@@ -125,7 +125,7 @@ enum ControllerExecutionPolicy {
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
         case .launchApp, .openURL: false
-        case .keystroke, .script, .shortcut, .menuItem, .ai, .file: true
+        case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow: true
         }
     }
 }

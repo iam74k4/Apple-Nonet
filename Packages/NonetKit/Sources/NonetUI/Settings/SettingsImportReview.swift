@@ -126,7 +126,7 @@ extension SettingsText {
             lines.append((String(localized: "開くファイル: \(visibleLine(url.url.trimmingCharacters(in: .whitespacesAndNewlines)))", bundle: .module), .label))
         case .file(let file):
             lines.append((String(localized: "Finder で選んだファイルを: \(file.operation.title)", bundle: .module), .label))
-        case .launchApp, .shortcut:
+        case .launchApp, .shortcut, .placeWindow:
             break
         }
         if reviewed.pressesSubmitKey {

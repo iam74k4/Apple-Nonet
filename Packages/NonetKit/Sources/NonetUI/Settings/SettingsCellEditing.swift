@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .script, .shortcut, .menuItem, .ai, .file]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .script, .shortcut, .menuItem, .ai, .file]
 
     /// 種類の一覧で選ばれている項目。URL のマスは「開く」
     static func menuKind(of action: Action) -> ActionKind {
@@ -22,6 +22,7 @@ enum SettingsActionKinds {
         case .menuItem: String(localized: "メニュー項目", bundle: .module)
         case .ai: String(localized: "AI", bundle: .module)
         case .file: String(localized: "ファイル", bundle: .module)
+        case .placeWindow: String(localized: "画面に置く", bundle: .module)
         }
     }
 
@@ -36,6 +37,7 @@ enum SettingsActionKinds {
         case .menuItem: "filemenu.and.selection"
         case .ai: "sparkles"
         case .file: "doc"
+        case .placeWindow: "macwindow"
         }
     }
 }
@@ -64,6 +66,7 @@ enum SettingsCellEditing {
         case .ai: .ai(AIAction(prompt: "", output: .showResult))
         // 取り消しやすい複製から始める（ゴミ箱に入れるは、選んだときに「少し長く止めてから実行」が入る）
         case .file: .file(FileAction(operation: .duplicate))
+        case .placeWindow: .placeWindow(PlaceWindowAction(region: .maximize))
         }
     }
 
@@ -80,6 +83,9 @@ enum SettingsCellEditing {
         }
         if case .file(let file) = action {
             return .symbol(SettingsActionKinds.symbol(file.operation))
+        }
+        if case .placeWindow(let place) = action {
+            return .symbol(place.region.symbol)
         }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
@@ -99,7 +105,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .file: false
+        case .file, .placeWindow: false
         }
     }
 
@@ -310,5 +316,13 @@ extension FileAction: SettingsActionContent {
     }
 
     var asAction: Action { .file(self) }
+}
+
+extension PlaceWindowAction: SettingsActionContent {
+    static func content(of action: Action) -> PlaceWindowAction? {
+        if case .placeWindow(let place) = action { place } else { nil }
+    }
+
+    var asAction: Action { .placeWindow(self) }
 }
 

@@ -10,6 +10,7 @@ import Testing
     private var symbolsInUse: [String] {
         SettingsIconLibrary.allSymbols
             + ActionKind.allCases.map(SettingsActionKinds.symbol)
+            + WindowRegion.allCases.map(\.symbol)
             + SettingsTab.allCases.map(\.symbol)
             + [
                 "plus", "minus", "xmark", "questionmark.circle", "exclamationmark.triangle", "exclamationmark.shield",

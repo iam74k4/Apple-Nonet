@@ -916,6 +916,14 @@ final class SettingsModel {
         }
     }
 
+    /// 「画面に置く」の場所を選ぶ。名前とアイコンは場所に合わせて変わる（自分で付けたものは残る）
+    func choosePlaceWindowRegion(_ region: WindowRegion, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: PlaceWindowAction.self, { $0.region = region }) else { return }
+            cell = updated
+        }
+    }
+
     func cell(id: UUID) -> Cell? {
         for profile in configuration.profiles {
             if let address = SettingsGrid.address(ofCell: id, in: profile) {

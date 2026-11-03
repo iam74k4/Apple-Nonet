@@ -255,6 +255,16 @@
         }
       }
     },
+    "このウインドウは動かせませんでした（フルスクリーンや、大きさの決まったウインドウかもしれません）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This window couldn't be moved. It may be full screen or fixed in size."
+          }
+        }
+      }
+    },
     "このテキストの言語には対応していません" : {
       "localizations" : {
         "en" : {
@@ -291,6 +301,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accessibility"
+          }
+        }
+      }
+    },
+    "ウインドウの場所を読めませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read where the window is."
           }
         }
       }
@@ -667,6 +687,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Can't find the front app."
+          }
+        }
+      }
+    },
+    "前面のウインドウが見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No window is in front."
           }
         }
       }

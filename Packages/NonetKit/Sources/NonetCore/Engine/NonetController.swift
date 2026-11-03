@@ -499,9 +499,11 @@ public final class NonetController {
             guard let session else { return }
             hud.show(hudModel(session, state: state), position: session.settings.hudPosition)
             isHUDVisible = true
+            updatePlacementPreview(session, state: state)
         case .updateHUD(let state):
             guard let session, isHUDVisible else { return }
             hud.update(hudModel(session, state: state))
+            updatePlacementPreview(session, state: state)
         case .hideHUD:
             hideHUD()
         case .haptic(let event):
@@ -573,7 +575,23 @@ public final class NonetController {
     private func hideHUD() {
         guard isHUDVisible else { return }
         isHUDVisible = false
+        hud.hidePlacementPreview()
         hud.hide()
+    }
+
+    /// 「画面に置く」のマスを光らせている間（離せば置く状態のときだけ）、置く枠を画面に見せる
+    private func updatePlacementPreview(_ session: ControllerSession, state: SessionHUDState) {
+        guard let index = state.highlightedCell, !state.isOnBoundary, !session.pages.isEmpty else {
+            hud.hidePlacementPreview()
+            return
+        }
+        let page = session.pages[min(max(state.page, 0), session.pages.count - 1)]
+        guard page.cells.indices.contains(index), case .placeWindow(let place)? = page.cells[index]?.action,
+              let frame = services.windowPlacer.targetFrame(for: place.region, app: session.frontmostApp) else {
+            hud.hidePlacementPreview()
+            return
+        }
+        hud.showPlacementPreview(frame)
     }
 
     private func playHaptic(_ event: HapticEvent, strength: HapticStrength) {

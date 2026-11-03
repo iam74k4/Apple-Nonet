@@ -49,6 +49,7 @@ final class ControllerHarness {
     let frontmost = ControllerFakeFrontmostApp()
     let installedApps: ControllerFakeInstalledApps
     let hud: ControllerFakeHUD
+    let windowPlacer = ControllerFakeWindowPlacer()
     let directory: URL
     let store: ConfigurationStore
     let clock = ControllerFakeClock(Date(timeIntervalSinceReferenceDate: 815_000_000))
@@ -110,7 +111,8 @@ final class ControllerHarness {
             ai: ControllerFakeAI(),
             loginItem: ControllerFakeLoginItem(),
             scheduler: scheduler,
-            presetEnvironment: presetEnvironment
+            presetEnvironment: presetEnvironment,
+            windowPlacer: windowPlacer
         )
         controller = NonetController(services: services, store: store, hud: hud, license: license, guidance: guidance)
     }

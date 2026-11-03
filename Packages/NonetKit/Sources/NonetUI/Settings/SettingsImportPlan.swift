@@ -106,7 +106,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             true
         case .openURL(let url):
             opensLocalFile(url.url) || opensAnotherTool(url.url)
-        case .launchApp:
+        case .launchApp, .placeWindow:
             false
         }
     }
@@ -128,7 +128,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             pressesSubmitKey(keys, keys: translator)
         case .menuItem(let menu):
             menu.keyEquivalent.map { pressesSubmitKey($0, keys: translator) } ?? false
-        case .script, .ai, .openURL, .launchApp, .shortcut, .file:
+        case .script, .ai, .openURL, .launchApp, .shortcut, .file, .placeWindow:
             false
         }
     }

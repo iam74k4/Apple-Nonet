@@ -545,6 +545,11 @@ fileprivate extension String {
 
 extension SettingsText {
     /// ファイルの操作の説明
+    /// 「画面に置く」の説明
+    static var placeWindowDetail: String {
+        String(localized: "前面のアプリのウインドウを、画面の使える範囲（メニューバーと Dock を除く）のこの場所に置きます。HUD でこのマスを光らせている間、置く枠が画面に出ます。", bundle: .module)
+    }
+
     static func detail(_ operation: FileOperation) -> String {
         switch operation {
         case .trash:

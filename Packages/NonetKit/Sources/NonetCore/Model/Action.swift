@@ -1,4 +1,5 @@
 // 担当: core-model（公開 API は契約。Codable の書式と summary の実装を担当する）
+import CoreGraphics
 import Foundation
 
 /// アプリを指す。bundleID で特定し、name は表示用
@@ -28,10 +29,12 @@ public enum Action: Codable, Equatable, Sendable {
     case ai(AIAction)
     /// Finder で選んでいるファイルを、ゴミ箱に入れる・名前を変える・複製する
     case file(FileAction)
+    /// 前面のアプリのウインドウを、画面の決まった場所に置く（3×3 のマスが、そのまま画面の場所）
+    case placeWindow(PlaceWindowAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -143,6 +146,36 @@ public struct FileAction: Codable, Equatable, Sendable {
     }
 }
 
+/// 画面の場所（3×3）。並びは HUD のマスと同じ（左上から右へ、上の段から）
+public enum WindowRegion: String, Codable, CaseIterable, Sendable {
+    case topLeft, top, topRight, left, maximize, right, bottomLeft, bottom, bottomRight
+
+    /// visible（画面の使える範囲。メニューバーと Dock を除く。AppKit のグローバル座標で y は上向き）の中の、置く枠
+    public func frame(in visible: CGRect) -> CGRect {
+        let halfWidth = visible.width / 2
+        let halfHeight = visible.height / 2
+        switch self {
+        case .topLeft: return CGRect(x: visible.minX, y: visible.midY, width: halfWidth, height: halfHeight)
+        case .top: return CGRect(x: visible.minX, y: visible.midY, width: visible.width, height: halfHeight)
+        case .topRight: return CGRect(x: visible.midX, y: visible.midY, width: halfWidth, height: halfHeight)
+        case .left: return CGRect(x: visible.minX, y: visible.minY, width: halfWidth, height: visible.height)
+        case .maximize: return visible
+        case .right: return CGRect(x: visible.midX, y: visible.minY, width: halfWidth, height: visible.height)
+        case .bottomLeft: return CGRect(x: visible.minX, y: visible.minY, width: halfWidth, height: halfHeight)
+        case .bottom: return CGRect(x: visible.minX, y: visible.minY, width: visible.width, height: halfHeight)
+        case .bottomRight: return CGRect(x: visible.midX, y: visible.minY, width: halfWidth, height: halfHeight)
+        }
+    }
+}
+
+public struct PlaceWindowAction: Codable, Equatable, Sendable {
+    public var region: WindowRegion
+
+    public init(region: WindowRegion) {
+        self.region = region
+    }
+}
+
 extension Action {
     public var kind: ActionKind {
         switch self {
@@ -154,6 +187,7 @@ extension Action {
         case .menuItem: .menuItem
         case .ai: .ai
         case .file: .file
+        case .placeWindow: .placeWindow
         }
     }
 
@@ -179,6 +213,40 @@ extension Action {
             String(localized: "AI", bundle: .module)
         case .file(let action):
             action.operation.title
+        case .placeWindow(let action):
+            action.region.title
+        }
+    }
+}
+
+extension WindowRegion {
+    /// 場所の名前（HUD や設定画面に出す）
+    public var title: String {
+        switch self {
+        case .topLeft: String(localized: "左上", bundle: .module)
+        case .top: String(localized: "上半分", bundle: .module)
+        case .topRight: String(localized: "右上", bundle: .module)
+        case .left: String(localized: "左半分", bundle: .module)
+        case .maximize: String(localized: "最大化", bundle: .module)
+        case .right: String(localized: "右半分", bundle: .module)
+        case .bottomLeft: String(localized: "左下", bundle: .module)
+        case .bottom: String(localized: "下半分", bundle: .module)
+        case .bottomRight: String(localized: "右下", bundle: .module)
+        }
+    }
+
+    /// 場所の絵（SF Symbols。macOS 12 以降）
+    public var symbol: String {
+        switch self {
+        case .topLeft: "rectangle.inset.topleft.filled"
+        case .top: "rectangle.tophalf.inset.filled"
+        case .topRight: "rectangle.inset.topright.filled"
+        case .left: "rectangle.lefthalf.inset.filled"
+        case .maximize: "rectangle.inset.filled"
+        case .right: "rectangle.righthalf.inset.filled"
+        case .bottomLeft: "rectangle.inset.bottomleft.filled"
+        case .bottom: "rectangle.bottomhalf.inset.filled"
+        case .bottomRight: "rectangle.inset.bottomright.filled"
         }
     }
 }
@@ -268,6 +336,8 @@ extension Action {
             self = .ai(try AIAction(from: decoder))
         case .file:
             self = .file(try FileAction(from: decoder))
+        case .placeWindow:
+            self = .placeWindow(try PlaceWindowAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -294,7 +364,26 @@ extension Action {
             try action.encode(to: encoder)
         case .file(let action):
             try action.encode(to: encoder)
+        case .placeWindow(let action):
+            try action.encode(to: encoder)
         }
+    }
+}
+
+extension PlaceWindowAction {
+    private enum CodingKeys: String, CodingKey {
+        case region
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 知らない場所を別の場所として読まないよう、読めなければマスごと読めないことにする
+        self.init(region: try container.decode(WindowRegion.self, forKey: .region))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(region, forKey: .region)
     }
 }
 

@@ -407,10 +407,27 @@ final class ControllerFakeHUD: HUDPresenting {
     private(set) var isVisible = false
     /// いま出ている中身
     private(set) var current: HUDModel?
+    /// 「画面に置く」の置く枠。出していなければ nil。変わるたびに記録する
+    private(set) var placementPreview: CGRect?
+    private(set) var placementPreviews: [CGRect?] = []
     private let recorder: ControllerFakeRecorder
 
     init(recorder: ControllerFakeRecorder) {
         self.recorder = recorder
+    }
+
+    func showPlacementPreview(_ frame: CGRect) {
+        guard placementPreview != frame else { return }
+        placementPreview = frame
+        placementPreviews.append(frame)
+        recorder.log("hud:preview")
+    }
+
+    func hidePlacementPreview() {
+        guard placementPreview != nil else { return }
+        placementPreview = nil
+        placementPreviews.append(nil)
+        recorder.log("hud:preview-off")
     }
 
     func show(_ model: HUDModel, position: HUDPosition) {
@@ -492,5 +509,23 @@ final class ControllerFakeLoginItem: LoginItemControlling {
 
     func setEnabled(_ enabled: Bool) throws {
         isEnabled = enabled
+    }
+}
+
+/// 「画面に置く」の偽物。置く枠は決めた値を返し、置いた場所を記録する
+@MainActor
+final class ControllerFakeWindowPlacer: WindowPlacing {
+    /// 画面の使える範囲（置く枠はここから決める）。nil なら、ウインドウが無い
+    var visibleFrame: CGRect? = CGRect(x: 0, y: 0, width: 1440, height: 875)
+    private(set) var placed: [WindowRegion] = []
+    var failure: NonetError?
+
+    func place(_ region: WindowRegion, app: RunningAppInfo?) throws {
+        if let failure { throw failure }
+        placed.append(region)
+    }
+
+    func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect? {
+        visibleFrame.map(region.frame(in:))
     }
 }

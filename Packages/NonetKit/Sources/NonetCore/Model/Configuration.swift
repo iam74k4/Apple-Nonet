@@ -54,10 +54,14 @@ extension NonetConfiguration {
         installedBundleIDs: Set<String>,
         dockApps: [AppReference] = []
     ) -> NonetConfiguration {
-        initial(
-            appPresets: appPresets,
-            globalProfile: PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
-        )
+        // グローバルの最初のページは「画面に置く」。ランチャーはその後ろ（ページ数の上限に収める）
+        var global = PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
+        var pages = Array(global.pages.prefix(Profile.maxPages - 1))
+        if pages.count == 1, pages[0].cells.allSatisfy({ $0 == nil }) {
+            pages = []
+        }
+        global.pages = [PresetLibrary.makeWindowPlacementPage()] + pages
+        return initial(appPresets: appPresets, globalProfile: global)
     }
 
     static func initial(appPresets: [AppPreset], globalProfile: Profile) -> NonetConfiguration {

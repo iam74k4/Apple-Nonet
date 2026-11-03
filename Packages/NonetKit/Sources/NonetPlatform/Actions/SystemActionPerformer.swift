@@ -9,8 +9,11 @@ public final class SystemActionPerformer: ActionPerforming {
     private let keySender: KeySender
     private let contextReader: ContextReader
     private let fileRunner: FileActionRunner
+    private let windowPlacer: any WindowPlacing
 
-    public init() {
+    /// windowPlacer は NonetServices.windowPlacer と同じもの（置く枠のプレビューと実行で、同じウインドウを見る）
+    public init(windowPlacer: any WindowPlacing = AXWindowPlacer()) {
+        self.windowPlacer = windowPlacer
         keySender = KeySender()
         fileRunner = FileActionRunner(keys: keySender)
         contextReader = ContextReader(keySender: keySender)
@@ -60,6 +63,8 @@ public final class SystemActionPerformer: ActionPerforming {
             try await pressMenuItem(menuItem, frontmost: frontmost)
         case .ai(let ai):
             return try await runAI(ai, frontmost: frontmost)
+        case .placeWindow(let place):
+            try windowPlacer.place(place.region, app: frontmost)
         case .file(let file):
             try await fileRunner.run(file)
         }

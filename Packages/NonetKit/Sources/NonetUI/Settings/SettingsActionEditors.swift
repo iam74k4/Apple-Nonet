@@ -797,3 +797,53 @@ struct SettingsFileEditor: View {
         }
     }
 }
+
+/// 「画面に置く」: 置く場所を 3×3 で選ぶ（HUD のマスと同じ並び）
+struct SettingsPlaceWindowEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let place: PlaceWindowAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "置く場所", bundle: .module)) {
+                Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(0..<3, id: \.self) { row in
+                        GridRow {
+                            ForEach(0..<3, id: \.self) { column in
+                                regionButton(WindowRegion.allCases[row * 3 + column])
+                            }
+                        }
+                    }
+                }
+                Text(SettingsText.placeWindowDetail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func regionButton(_ region: WindowRegion) -> some View {
+        let isSelected = region == place.region
+        return Button {
+            model.choosePlaceWindowRegion(region, forCell: cellID)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: region.symbol)
+                    .font(.system(size: 17))
+                Text(region.title)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+            }
+            .frame(width: 74, height: 52)
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? Color.accentColor : SettingsPalette.cellBackground))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(region.title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}

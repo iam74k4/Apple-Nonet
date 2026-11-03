@@ -145,6 +145,8 @@ struct SettingsCellEditor: View {
             SettingsAIEditor(model: model, cellID: cell.id, ai: ai)
         case .file(let file):
             SettingsFileEditor(model: model, cellID: cell.id, file: file)
+        case .placeWindow(let place):
+            SettingsPlaceWindowEditor(model: model, cellID: cell.id, place: place)
         }
     }
 }

@@ -27,8 +27,9 @@ import Testing
         #expect(configuration.settings == GlobalSettings())
         #expect(configuration.appProfile(forBundleID: F.safari.bundleID) != nil)
         #expect(configuration.profiles.count == 2)
-        // ランチャーにはインストール済みのアプリだけ
-        let launcher = configuration.globalProfile.pages[0].cells.compactMap { $0?.action }
+        // グローバルの最初のページは「画面に置く」。ランチャー（2ページ目）にはインストール済みのアプリだけ
+        #expect(configuration.globalProfile.pages[0].cells.allSatisfy { $0?.action.kind == .placeWindow })
+        let launcher = configuration.globalProfile.pages[1].cells.compactMap { $0?.action }
         #expect(launcher == [.launchApp(LaunchAppAction(app: F.safari))])
         // 待たずに保存する
         #expect(try h.savedConfiguration() == configuration)
