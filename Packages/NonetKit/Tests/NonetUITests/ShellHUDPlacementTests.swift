@@ -48,101 +48,31 @@ struct ShellHUDPlacementTests {
         #expect(HUDPlacement.screen(containing: .zero, in: []) == nil)
     }
 
-    @Test("中央: カーソルの位置によらず、その画面の使える範囲の中央")
-    func centered() {
-        for cursor in [CGPoint(x: 10, y: 80), CGPoint(x: 1400, y: 880)] {
-            let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .screenCenter, cursor: cursor, screen: Self.main)
-            #expect(frame.size == Self.hudSize)
-            #expect(frame.midX == Self.main.visibleFrame.midX)
-            #expect(abs(frame.midY - Self.main.visibleFrame.midY) <= 0.5)
-        }
-        let external = HUDPlacement.hudFrame(size: Self.hudSize, position: .screenCenter, cursor: CGPoint(x: 2000, y: 0), screen: Self.right)
-        #expect(external.midX == Self.right.visibleFrame.midX)
-        #expect(abs(external.midY - Self.right.visibleFrame.midY) <= 0.5)
+    @Test("HUD はポインタのある画面いっぱい（メニューバーと Dock も含む）に敷く")
+    func hudFillsTheScreen() {
+        #expect(HUDPlacement.hudFrame(on: Self.main) == Self.main.frame)
+        #expect(HUDPlacement.hudFrame(on: Self.left) == Self.left.frame)
     }
 
-    @Test("カーソルの近く: カーソルのすぐ下に、ポインタに重ならないよう置く（横はカーソルを中心に）")
-    func nearCursor() {
-        let cursor = CGPoint(x: 700, y: 650)
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: cursor, screen: Self.main)
-        #expect(frame.midX == 700)
-        #expect(frame.maxY == cursor.y - HUDPlacement.pointerSize.height - HUDPlacement.pointerGap)
-        #expect(!frame.intersects(HUDPlacement.pointerRect(at: cursor)))
-        #expect(HUDPlacement.pointerParkingSpot(cursor: cursor, hudFrame: frame, screen: Self.main) == nil)
+    @Test("結果のパネルは、その画面の使える範囲の中央")
+    func resultAnchor() {
+        let anchor = HUDPlacement.resultAnchor(on: Self.right)
+        #expect(anchor == CGPoint(x: Self.right.visibleFrame.midX, y: Self.right.visibleFrame.midY))
     }
 
-    @Test("カーソルの近く: 下に入らなければすぐ上。どちらにも入らなければカーソルを中心に")
-    func nearCursorAbove() {
-        let cursor = CGPoint(x: 700, y: 200)
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: cursor, screen: Self.main)
-        #expect(frame.minY == cursor.y + HUDPlacement.pointerGap)
-        #expect(!frame.intersects(HUDPlacement.pointerRect(at: cursor)))
-
-        let short = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 500), visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 480))
-        let middle = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: CGPoint(x: 700, y: 240), screen: short)
-        #expect(middle.midX == 700)
-        #expect(abs(middle.midY - 240) <= 0.5)
-    }
-
-    @Test("止めたポインタが HUD に重なるときだけ、すぐ外（下か上の近いほう）へ寄せる。横の位置はそのまま")
-    func pointerParking() throws {
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .screenCenter, cursor: .zero, screen: Self.main)
-        // 重ならない
-        #expect(HUDPlacement.pointerParkingSpot(cursor: CGPoint(x: 100, y: 800), hudFrame: frame, screen: Self.main) == nil)
-        // HUD の下の方に重なる: 下へ
-        let low = try #require(HUDPlacement.pointerParkingSpot(cursor: CGPoint(x: 600, y: frame.minY + 20), hudFrame: frame, screen: Self.main))
-        #expect(low.x == 600)
-        #expect(!HUDPlacement.pointerRect(at: low).intersects(frame))
-        #expect(low.y < frame.minY)
-        // HUD の上の方に重なる: 上へ
-        let high = try #require(HUDPlacement.pointerParkingSpot(cursor: CGPoint(x: 600, y: frame.maxY - 20), hudFrame: frame, screen: Self.main))
-        #expect(!HUDPlacement.pointerRect(at: high).intersects(frame))
-        #expect(high.y > frame.maxY)
-        #expect(Self.main.frame.contains(high))
-    }
-
-    @Test("ポインタを動かす座標は、主画面の左上が原点で y が下向き")
-    func quartzCoordinates() {
-        #expect(HUDPlacement.quartzPoint(CGPoint(x: 10, y: 890), primaryScreen: Self.main.frame) == CGPoint(x: 10, y: 10))
-        #expect(HUDPlacement.quartzPoint(CGPoint(x: 2000, y: -100), primaryScreen: Self.main.frame) == CGPoint(x: 2000, y: 1000))
-    }
-
-    @Test("カーソルの近く: 画面の端では使える範囲（余白つき）に収める", arguments: [
-        CGPoint(x: 0, y: 899),
-        CGPoint(x: 1439, y: 0),
-        CGPoint(x: 5, y: 75),
-        CGPoint(x: 1435, y: 870),
-    ])
-    func nearCursorClamped(cursor: CGPoint) {
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: cursor, screen: Self.main)
-        let bounds = Self.main.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin)
-        #expect(bounds.contains(frame))
+    @Test("中央にそろえた枠は使える範囲（余白つき）に収め、画面より大きければ中央にそろえ、原点は整数")
+    func centeredFrames() {
+        let frame = HUDPlacement.frame(size: Self.hudSize, centeredAt: CGPoint(x: 700.3, y: 450.7), in: Self.main)
         #expect(frame.size == Self.hudSize)
-    }
-
-    @Test("負の座標の画面でも収める（メニューバーや Dock に重ならない）")
-    func negativeCoordinates() {
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: CGPoint(x: -1279, y: 899), screen: Self.left)
-        #expect(Self.left.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin).contains(frame))
-        // 画面の下の端では、ポインタのすぐ上に出す
-        let low = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: CGPoint(x: 2000, y: -299), screen: Self.right)
-        #expect(low.minY == -299 + HUDPlacement.pointerGap)
-        #expect(Self.right.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin).contains(low))
-    }
-
-    @Test("画面より大きいときは使える範囲の中央にそろえる")
-    func largerThanScreen() {
+        #expect(frame.minX == frame.minX.rounded() && frame.minY == frame.minY.rounded())
+        let edge = HUDPlacement.frame(size: Self.hudSize, centeredAt: CGPoint(x: 0, y: 899), in: Self.main)
+        #expect(Self.main.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin).contains(edge))
+        let negative = HUDPlacement.frame(size: Self.hudSize, centeredAt: CGPoint(x: -1279, y: 899), in: Self.left)
+        #expect(Self.left.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin).contains(negative))
         let tiny = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 400, height: 300), visibleFrame: CGRect(x: 0, y: 0, width: 400, height: 280))
-        let frame = HUDPlacement.hudFrame(size: Self.hudSize, position: .nearCursor, cursor: CGPoint(x: 10, y: 10), screen: tiny)
-        #expect(frame.midX == tiny.visibleFrame.midX)
-        #expect(abs(frame.midY - tiny.visibleFrame.midY) <= 0.5)
-    }
-
-    @Test("原点は整数の座標（文字がにじまない）")
-    func integralOrigin() {
-        let frame = HUDPlacement.hudFrame(size: CGSize(width: 504, height: 315), position: .nearCursor, cursor: CGPoint(x: 700.3, y: 450.7), screen: Self.main)
-        #expect(frame.minX == frame.minX.rounded())
-        #expect(frame.minY == frame.minY.rounded())
+        let large = HUDPlacement.frame(size: Self.hudSize, centeredAt: CGPoint(x: 10, y: 10), in: tiny)
+        #expect(large.midX == tiny.visibleFrame.midX)
+        #expect(abs(large.midY - tiny.visibleFrame.midY) <= 0.5)
     }
 
     @Test("トーストは使える範囲の下の中央（Dock の上）")

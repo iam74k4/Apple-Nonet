@@ -125,6 +125,9 @@ public final class NonetController {
     @ObservationIgnored private var isStarted = false
     @ObservationIgnored private var isTouchSourceRunning = false
     @ObservationIgnored private var isHUDVisible = false
+    /// 「ためらったときだけ出す」で、HUD を出すのを待っている間（開いてから hesitationDelay）の、最後の HUD の中身と待ちの予定
+    @ObservationIgnored private var pendingHUDState: SessionHUDState?
+    @ObservationIgnored private var pendingHUD: (any ScheduledTask)?
     @ObservationIgnored private var tickTask: (any ScheduledTask)?
     @ObservationIgnored private var pollTask: (any ScheduledTask)?
     /// エンジンの出力を処理している間に来た入力（出力の処理からエンジンを呼び直さないように、順に処理する）
@@ -497,12 +500,31 @@ public final class NonetController {
         case .showHUD(let state):
             prepareFirstHUD()
             guard let session else { return }
-            hud.show(hudModel(session, state: state), position: session.settings.hudPosition)
-            isHUDVisible = true
+            if session.settings.hudOnHesitation {
+                // 開いてから hesitationDelay は触覚だけ。それまでに閉じなければ（迷っていれば）出す。置く枠は待たずに出す
+                pendingHUDState = state
+                pendingHUD?.cancel()
+                pendingHUD = services.scheduler.schedule(after: Self.hesitationDelay) { [weak self] in
+                    guard let self, let session = self.session, let state = self.pendingHUDState else { return }
+                    self.pendingHUD = nil
+                    self.pendingHUDState = nil
+                    self.hud.show(self.hudModel(session, state: state))
+                    self.isHUDVisible = true
+                }
+            } else {
+                hud.show(hudModel(session, state: state))
+                isHUDVisible = true
+            }
             updatePlacementPreview(session, state: state)
         case .updateHUD(let state):
-            guard let session, isHUDVisible else { return }
-            hud.update(hudModel(session, state: state))
+            guard let session else { return }
+            if pendingHUDState != nil {
+                pendingHUDState = state
+            } else if isHUDVisible {
+                hud.update(hudModel(session, state: state))
+            } else {
+                return
+            }
             updatePlacementPreview(session, state: state)
         case .fingerMoved(let finger):
             guard isHUDVisible else { return }
@@ -532,6 +554,9 @@ public final class NonetController {
     }
 
     /// タイマーは常に1つ。新しい依頼は前の依頼を置き換える
+    /// 「ためらったときだけ出す」のとき、開いてから HUD を出すまでの時間。それより早く離せば画面は変わらない
+    public static let hesitationDelay: TimeInterval = 0.4
+
     private func scheduleTick(at time: TimeInterval) {
         tickTask?.cancel()
         let delay = max(0, time - services.scheduler.now)
@@ -576,9 +601,13 @@ public final class NonetController {
     }
 
     private func hideHUD() {
+        pendingHUD?.cancel()
+        pendingHUD = nil
+        pendingHUDState = nil
+        // 置く枠は HUD を待っている間も出すので、HUD を出していなくても消す
+        hud.hidePlacementPreview()
         guard isHUDVisible else { return }
         isHUDVisible = false
-        hud.hidePlacementPreview()
         hud.hide()
     }
 

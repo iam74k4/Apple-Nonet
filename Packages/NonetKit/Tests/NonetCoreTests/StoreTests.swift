@@ -28,7 +28,7 @@ struct StoreFileTests {
     func saveAndLoad() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory.appending(path: "nested/Nonet", directoryHint: .isDirectory))
-            var configuration = ModelFixtures.configuration(settings: GlobalSettings(hudPosition: .nearCursor, haptics: .light))
+            var configuration = ModelFixtures.configuration(settings: GlobalSettings(haptics: .light, hudOnHesitation: true))
             let safariID = configuration.profiles[1].id
             for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
                 configuration.setCell(ModelFixtures.cell("\(index)", action: action), at: CellAddress(page: 0, index: index), profileID: safariID)
@@ -76,7 +76,7 @@ struct StoreFileTests {
             var second = first
             second.settings.haptics = .off
             var third = second
-            third.settings.hudPosition = .nearCursor
+            third.settings.hudOnHesitation = true
 
             try store.save(first)
             #expect(!FileManager.default.fileExists(atPath: store.backupFileURL.path(percentEncoded: false)))
@@ -211,7 +211,7 @@ struct StoreFileTests {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
             let future = #"""
-            {"version": 2, "settings": {"hudPosition": "nearCursor", "newThing": 1}, "profiles": [
+            {"version": 2, "settings": {"hudOnHesitation": true, "newThing": 1}, "profiles": [
               {"kind": {"type": "global"}, "pages": [{"cells": [
                 {"title": "未来", "action": {"type": "hologram"}},
                 {"title": "今", "action": {"type": "openURL", "url": "https://a.example"}}
@@ -223,7 +223,7 @@ struct StoreFileTests {
 
             let configuration = try #require(try store.load())
             #expect(configuration.version == 1)
-            #expect(configuration.settings.hudPosition == .nearCursor)
+            #expect(configuration.settings.hudOnHesitation)
             #expect(configuration.profiles.count == 1)
             #expect(configuration.globalProfile.modelTitles[0][0...1] == [nil, "今"])
 
@@ -280,12 +280,12 @@ struct StoreFileTests {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
             // 今の版が 2 で、v1 → v2 の手順があったとして
-            let old = #"{"version": 1, "settings": {"hudPosition": "nearCursor"}, "profiles": [{"kind": {"type": "global"}}]}"#
+            let old = #"{"version": 1, "settings": {"hudOnHesitation": true}, "profiles": [{"kind": {"type": "global"}}]}"#
             try Data(old.utf8).write(to: store.fileURL)
             let steps: [Int: ConfigurationMigration.Step] = [1: { $0 }]
 
             let configuration = try #require(try store.load(currentVersion: 2, steps: steps))
-            #expect(configuration.settings.hudPosition == .nearCursor)
+            #expect(configuration.settings.hudOnHesitation)
             #expect(try String(contentsOf: directory.appending(path: "configuration.v1.json"), encoding: .utf8) == old)
 
             _ = try store.load(currentVersion: 2, steps: steps)
@@ -337,7 +337,7 @@ struct StoreLossyFileTests {
         ]}
         """#,
         // 知らない設定の値・知らない設定の項目
-        #"{"version": 1, "settings": {"hudPosition": "topLeft"}, "profiles": [{"kind": {"type": "global"}}]}"#,
+        #"{"version": 1, "settings": {"haptics": "ultra"}, "profiles": [{"kind": {"type": "global"}}]}"#,
         #"{"version": 1, "settings": {"hudOpacity": 0.5}, "profiles": [{"kind": {"type": "global"}}]}"#,
         // アクションの知らない項目
         #"""
@@ -448,7 +448,7 @@ struct StoreLossyFileTests {
     func savedFileIsNotCopied() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
-            var configuration = ModelFixtures.configuration(settings: GlobalSettings(hudPosition: .nearCursor, haptics: .strong))
+            var configuration = ModelFixtures.configuration(settings: GlobalSettings(haptics: .strong, hudOnHesitation: true))
             let xcodeID = configuration.profiles[2].id
             for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
                 configuration.setCell(ModelFixtures.cell("\(index)", action: action), at: CellAddress(page: 1, index: index), profileID: xcodeID)

@@ -358,9 +358,12 @@ import Testing
     @Test func newSessionsUseTheNewSettings() throws {
         let h = try ControllerHarness()
         h.start()
-        h.controller.update { $0.settings.hudPosition = .nearCursor }
+        // 「ためらったときだけ出す」は、次に開いたときから効く（開いてすぐは出さず、hesitationDelay の後に出す）
+        h.controller.update { $0.settings.hudOnHesitation = true }
         h.open()
-        #expect(h.hud.shown.last?.position == .nearCursor)
+        #expect(h.hud.shown.isEmpty)
+        h.advance(NonetController.hesitationDelay)
+        #expect(h.hud.shown.count == 1)
     }
 
     // MARK: キーの記録

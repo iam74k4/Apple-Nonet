@@ -16,6 +16,8 @@ public final class HUDWindowController: HUDPresenting {
     private let prefersIncreasedContrast: () -> Bool
     /// システム設定の「視差効果を減らす」。HUD を出すたびに読み直す
     private let prefersReducedMotion: () -> Bool
+    /// システム設定の「透明度を下げる」。HUD を出すたびに読み直す
+    private let prefersReducedTransparency: () -> Bool
 
     private let hudStore = HUDStore()
     private lazy var hudPanel: HUDOverlayPanel = {
@@ -24,13 +26,8 @@ public final class HUDWindowController: HUDPresenting {
         return panel
     }()
     private lazy var hudFader = HUDPanelFader(panel: hudPanel)
-    /// 表示中の HUD の見た目の枠（影の余白を含まない）と、その画面
-    private var hudFrame: CGRect?
+    /// 表示中の HUD の画面
     private var hudScreen: HUDScreenGeometry?
-    /// 最後に HUD を出した位置の設定。結果のパネルもそれに合わせる
-    private var lastPosition: HUDPosition = .screenCenter
-    /// 止めたポインタが HUD に重なるとき、HUD の外へ寄せる（座標は主画面の左上が原点）。App が KeyboardMonitor.parkPointer につなぐ
-    public var onParkPointer: ((CGPoint) -> Void)?
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
@@ -41,7 +38,8 @@ public final class HUDWindowController: HUDPresenting {
             screens: { HUDScreenGeometry.current() },
             mouseLocation: { NSEvent.mouseLocation },
             prefersIncreasedContrast: { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast },
-            prefersReducedMotion: { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+            prefersReducedMotion: { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion },
+            prefersReducedTransparency: { NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency }
         )
     }
 
@@ -49,23 +47,23 @@ public final class HUDWindowController: HUDPresenting {
         screens: @escaping () -> [HUDScreenGeometry],
         mouseLocation: @escaping () -> CGPoint,
         prefersIncreasedContrast: @escaping () -> Bool = { false },
-        prefersReducedMotion: @escaping () -> Bool = { false }
+        prefersReducedMotion: @escaping () -> Bool = { false },
+        prefersReducedTransparency: @escaping () -> Bool = { false }
     ) {
         self.screens = screens
         self.mouseLocation = mouseLocation
         self.prefersIncreasedContrast = prefersIncreasedContrast
         self.prefersReducedMotion = prefersReducedMotion
+        self.prefersReducedTransparency = prefersReducedTransparency
     }
 
     /// HUD を表示中か（フェードアウト中は含まない）
     var isShowingHUD: Bool { hudFader.isShowing }
 
-    public func show(_ model: HUDModel, position: HUDPosition) {
-        lastPosition = position
-        // 表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
-        if hudFader.isShowing, let frame = hudFrame, let screen = hudScreen {
+    public func show(_ model: HUDModel) {
+        // 表示中にもう一度呼ばれたら、中身だけ変える
+        if hudFader.isShowing, hudScreen != nil {
             update(model)
-            parkPointerIfCovered(by: frame, on: screen)
             return
         }
         let cursor = mouseLocation()
@@ -73,43 +71,26 @@ public final class HUDWindowController: HUDPresenting {
             logger.error("HUD を出す画面が見つからない")
             return
         }
-        let model = HUDPlacement.fitted(model, in: screen)
         hudStore.model = model
         hudStore.finger = nil
         hudStore.increasedContrast = prefersIncreasedContrast()
         hudStore.reduceMotion = prefersReducedMotion()
-        let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), position: position, cursor: cursor, screen: screen)
-        place(frame, screen: screen)
-        parkPointerIfCovered(by: frame, on: screen)
+        hudStore.reduceTransparency = prefersReducedTransparency()
+        hudScreen = screen
+        hudPanel.setFrame(HUDPlacement.hudFrame(on: screen), display: true)
         hudFader.show()
         // フェードアウト中の前の HUD があっても、新しい HUD として最初から読む
         HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: model) ?? "")
     }
 
     public func update(_ model: HUDModel) {
-        guard hudFader.isShowing, let frame = hudFrame, let screen = hudScreen else { return }
-        let model = HUDPlacement.fitted(model, in: screen)
+        guard hudFader.isShowing, hudScreen != nil else { return }
         let previous = hudStore.model
         guard previous != model else { return }
         hudStore.model = model
-        let size = HUDLayout.size(for: model)
-        if size != frame.size {
-            // 帯やページの点が増減したら、中心をそろえて大きさを変える
-            let resized = HUDPlacement.frame(size: size, centeredAt: CGPoint(x: frame.midX, y: frame.midY), in: screen)
-            place(resized, screen: screen)
-            parkPointerIfCovered(by: resized, on: screen)
-        }
         if let announcement = HUDAnnouncement.announcement(from: previous, to: model) {
             HUDAccessibility.announce(announcement)
         }
-    }
-
-    /// 止めたポインタが HUD に重なっていたら、HUD のすぐ外へ寄せてもらう（閉じると元の位置に戻る）
-    private func parkPointerIfCovered(by frame: CGRect, on screen: HUDScreenGeometry) {
-        guard let onParkPointer,
-              let spot = HUDPlacement.pointerParkingSpot(cursor: mouseLocation(), hudFrame: frame, screen: screen),
-              let primary = screens().first?.frame else { return }
-        onParkPointer(HUDPlacement.quartzPoint(spot, primaryScreen: primary))
     }
 
     public func updateFinger(_ finger: HUDFinger?) {
@@ -128,7 +109,6 @@ public final class HUDWindowController: HUDPresenting {
     public func hide() {
         placementPreview.hide()
         guard hudFader.isShowing else { return }
-        hudFrame = nil
         hudScreen = nil
         hudFader.hide { [weak self] in
             self?.hudStore.model = nil
@@ -154,15 +134,6 @@ public final class HUDWindowController: HUDPresenting {
             logger.error("結果のパネルを出す画面が見つからない")
             return
         }
-        // HUD を出していた場所（中央かカーソルの近く）に出す
-        let anchor = HUDPlacement.hudFrame(size: .zero, position: lastPosition, cursor: cursor, screen: screen)
-        self.result.show(result, centeredAt: CGPoint(x: anchor.midX, y: anchor.midY), on: screen)
-    }
-
-    private func place(_ frame: CGRect, screen: HUDScreenGeometry) {
-        hudFrame = frame
-        hudScreen = screen
-        let margin = HUDLayout.shadowMargin
-        hudPanel.setFrame(frame.insetBy(dx: -margin, dy: -margin), display: true)
+        self.result.show(result, centeredAt: HUDPlacement.resultAnchor(on: screen), on: screen)
     }
 }

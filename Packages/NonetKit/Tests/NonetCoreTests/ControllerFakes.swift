@@ -394,12 +394,7 @@ final class ControllerFakePerformer: ActionPerforming {
 
 @MainActor
 final class ControllerFakeHUD: HUDPresenting {
-    struct Shown: Equatable {
-        var model: HUDModel
-        var position: HUDPosition
-    }
-
-    private(set) var shown: [Shown] = []
+    private(set) var shown: [HUDModel] = []
     private(set) var updates: [HUDModel] = []
     private(set) var hideCount = 0
     private(set) var toasts: [ToastModel] = []
@@ -437,8 +432,8 @@ final class ControllerFakeHUD: HUDPresenting {
         recorder.log("hud:preview-off")
     }
 
-    func show(_ model: HUDModel, position: HUDPosition) {
-        shown.append(Shown(model: model, position: position))
+    func show(_ model: HUDModel) {
+        shown.append(model)
         current = model
         isVisible = true
         recorder.log("hud:show")

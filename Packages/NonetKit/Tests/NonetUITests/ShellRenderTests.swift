@@ -13,6 +13,18 @@ private let shotsDirectory = ProcessInfo.processInfo.environment["NONET_RENDER_S
 @MainActor
 struct ShellRenderTests {
     static let appearances: [(String, NSAppearance.Name)] = [("light", .aqua), ("dark", .darkAqua)]
+    /// HUD は画面いっぱいに敷くので、画面1つ分の大きさで描く
+    static let screenSize = CGSize(width: 1280, height: 800)
+    /// 画面の代わり: 灰色の地に白いウインドウ
+    static var screenBackdrop: some View {
+        ZStack {
+            Color(white: 0.82)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.white)
+                .padding(.horizontal, 160)
+                .padding(.vertical, 90)
+        }
+    }
 
     /// 既定の引数に使うので、メインアクターに縛らない
 
@@ -41,13 +53,11 @@ struct ShellRenderTests {
             )),
         ]
         for (name, model) in models {
-            let size = HUDLayout.size(for: model)
-            let margin = HUDLayout.shadowMargin
             let store = HUDStore()
             store.model = model
             try Self.render(
-                HUDRootView(store: store).background(Color(white: 0.82)),
-                size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
+                HUDRootView(store: store).background(Self.screenBackdrop),
+                size: Self.screenSize,
                 appearance: .aqua,
                 name: name
             )
@@ -100,13 +110,10 @@ struct ShellRenderTests {
             }, .standard, false, nil),
         ]
         for (name, model, colors, reduceMotion, progress) in states {
-            let size = HUDLayout.size(for: model)
-            let margin = HUDLayout.shadowMargin
             try Self.render(
                 HUDView(model: model, finger: Self.finger(for: model), colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress, surface: .solid)
-                    .padding(margin)
-                    .background(Color(white: 0.82)),
-                size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
+                    .background(Self.screenBackdrop),
+                size: Self.screenSize,
                 appearance: .aqua,
                 name: name
             )

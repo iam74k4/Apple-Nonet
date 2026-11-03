@@ -87,10 +87,19 @@ struct ModelCodingRoundTripTests {
         }
     }
 
-    @Test("HUD の位置のすべての値が往復する", arguments: HUDPosition.allCases)
-    func hudPositionRoundTrip(_ position: HUDPosition) throws {
-        let settings = GlobalSettings(hudPosition: position)
-        #expect(try ModelFixtures.roundTrip(settings) == settings)
+    @Test("「ためらったときだけ出す」は、オンのときだけ書く")
+    func hudOnHesitationRoundTrip() throws {
+        let on = GlobalSettings(hudOnHesitation: true)
+        #expect(try ModelFixtures.roundTrip(on) == on)
+        #expect(try ModelFixtures.jsonObject(on)["hudOnHesitation"] as? Bool == true)
+        #expect(try ModelFixtures.jsonObject(GlobalSettings())["hudOnHesitation"] == nil)
+    }
+
+    /// 前の版の「HUD の位置」は読み飛ばす（HUD は画面いっぱいの地図になり、置く場所が無い）
+    @Test func hudPositionIsRetired() throws {
+        let settings = try ModelFixtures.decode(GlobalSettings.self, #"{"hudPosition": "nearCursor", "haptics": "light"}"#)
+        #expect(settings == GlobalSettings(haptics: .light))
+        #expect(GlobalSettings.retiredKeys.contains("hudPosition"))
     }
 
     @Test("触覚の強さのすべての値が往復する", arguments: HapticStrength.allCases)
@@ -113,16 +122,16 @@ struct ModelCodingRoundTripTests {
 
     @Test("全体の設定は既定値以外も往復する")
     func settingsRoundTrip() throws {
-        let settings = GlobalSettings(isEnabled: false, hudPosition: .nearCursor, haptics: .strong)
+        let settings = GlobalSettings(isEnabled: false, haptics: .strong, hudOnHesitation: true)
         #expect(try ModelFixtures.roundTrip(settings) == settings)
         let keys = try ModelFixtures.jsonObject(settings).allKeys.compactMap { $0 as? String }.sorted()
-        // トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）は、もう書かない
-        #expect(keys == ["haptics", "hudPosition", "isEnabled"])
+        // トリガーキーで開いていた版の項目（trigger・fireMode・hudDelay・passTriggerToApps・touchActivation）と hudPosition は、もう書かない
+        #expect(keys == ["haptics", "hudOnHesitation", "isEnabled"])
     }
 
     @Test("設定全体が往復し、書くたびに同じバイト列になる")
     func configurationRoundTripIsStable() throws {
-        var configuration = ModelFixtures.configuration(settings: GlobalSettings(hudPosition: .nearCursor, haptics: .light))
+        var configuration = ModelFixtures.configuration(settings: GlobalSettings(haptics: .light, hudOnHesitation: true))
         let xcodeID = configuration.profiles[2].id
         for (index, action) in ModelFixtures.allActions.prefix(9).enumerated() {
             configuration.setCell(ModelFixtures.cell("c\(index)", action: action), at: CellAddress(page: 1, index: index), profileID: xcodeID)
@@ -222,8 +231,8 @@ struct ModelCodingFixtureTests {
     func decodesFullConfiguration() throws {
         let configuration = try ModelFixtures.decode(NonetConfiguration.self, Self.fullConfiguration)
         #expect(configuration.version == 1)
-        // トリガーキーの項目（trigger・fireMode・hudDelay・passTriggerToApps）は読み飛ばす
-        #expect(configuration.settings == GlobalSettings(hudPosition: .nearCursor, haptics: .light))
+        // トリガーキーの項目（trigger・fireMode・hudDelay・passTriggerToApps）と hudPosition は読み飛ばす
+        #expect(configuration.settings == GlobalSettings(haptics: .light))
         try #require(configuration.profiles.count == 2)
 
         let global = configuration.profiles[0]
@@ -251,7 +260,7 @@ struct ModelCodingFixtureTests {
         let expected = try ModelFixtures.jsonObject(Self.fullConfiguration)
         let settings = try #require(expected["settings"] as? NSDictionary)
         let trimmed = NSMutableDictionary(dictionary: settings)
-        trimmed.removeObjects(forKeys: ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock"])
+        trimmed.removeObjects(forKeys: ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock", "hudPosition"])
         let rewritten = NSMutableDictionary(dictionary: expected)
         rewritten["settings"] = trimmed
         #expect(try ModelFixtures.jsonObject(configuration) == rewritten)

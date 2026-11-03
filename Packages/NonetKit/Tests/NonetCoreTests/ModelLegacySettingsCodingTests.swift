@@ -16,14 +16,14 @@ struct ModelLegacySettingsCodingTests {
     /// 前の版の項目は読み飛ばし、ほかの項目はそのまま読む
     @Test func oldKeysAreIgnoredAndTheRestLoads() throws {
         let settings = try ModelFixtures.decode(GlobalSettings.self, Self.legacySettings)
-        #expect(settings == GlobalSettings(isEnabled: false, hudPosition: .nearCursor, haptics: .strong, hudScale: .large))
+        #expect(settings == GlobalSettings(isEnabled: false, haptics: .strong, hudScale: .large))
     }
 
     /// 読み直して書くと、前の版の項目は残らない（前の版の Nonet は、無い項目を既定値で読む）
     @Test func oldKeysAreNotWrittenBack() throws {
         let settings = try ModelFixtures.decode(GlobalSettings.self, Self.legacySettings)
         let keys = Set(try ModelFixtures.jsonObject(settings).allKeys.compactMap { $0 as? String })
-        for old in ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation", "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock"] {
+        for old in ["trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation", "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock", "hudPosition"] {
             #expect(!keys.contains(old), "\(old)")
         }
     }

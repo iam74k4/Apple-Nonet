@@ -6,14 +6,6 @@ import NonetCore
 enum SettingsText {
     // MARK: 選択肢の名前
 
-    static func name(_ position: HUDPosition) -> String {
-        switch position {
-        case .screenBottom: String(localized: "画面の下", bundle: .module)
-        case .screenCenter: String(localized: "画面の中央", bundle: .module)
-        case .nearCursor: String(localized: "ポインタの近く", bundle: .module)
-        }
-    }
-
     static func name(_ mode: ScriptRunMode) -> String {
         switch mode {
         case .background: String(localized: "裏で実行", bundle: .module)
@@ -30,6 +22,15 @@ enum SettingsText {
     }
 
     // MARK: 一般
+
+    /// 「ためらったときだけ出す」（GlobalSettings.hudOnHesitation）
+    static var hudOnHesitationTitle: String {
+        String(localized: "ためらったときだけ HUD を出す", bundle: .module)
+    }
+
+    static var hudOnHesitationDetail: String {
+        String(localized: "開いてから 0.4 秒は触覚だけで案内し、それより長く迷ったときに地図を出します。慣れれば、画面を変えずに使えます", bundle: .module)
+    }
 
     /// 「開き方」の説明（GlobalSettings に開き方の設定は無い。トラックパッドの上の縁から滑らせるだけ）
     static var openGestureTitle: String {

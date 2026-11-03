@@ -905,6 +905,7 @@
       }
     },
     "HUD の位置" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2707,6 +2708,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep your finger still"
+          }
+        }
+      }
+    },
+    "ためらったときだけ HUD を出す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the HUD only when you hesitate"
           }
         }
       }
@@ -5217,6 +5228,7 @@
       }
     },
     "ポインタのあるディスプレイに出ます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5249,6 +5261,7 @@
       }
     },
     "ポインタの近く" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7994,6 +8007,7 @@
       }
     },
     "画面の下" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8026,6 +8040,7 @@
       }
     },
     "画面の中央" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8322,6 +8337,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add to Empty Button"
+          }
+        }
+      }
+    },
+    "空きマス" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty button"
           }
         }
       }
@@ -9524,6 +9549,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open and lift on a button"
+          }
+        }
+      }
+    },
+    "開いてから 0.4 秒は触覚だけで案内し、それより長く迷ったときに地図を出します。慣れれば、画面を変えずに使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the first 0.4 seconds after opening, only haptics guide you; the map appears if you take longer. Once you know the layout, nothing on the screen changes"
           }
         }
       }

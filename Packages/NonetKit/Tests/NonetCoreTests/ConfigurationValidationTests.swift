@@ -95,7 +95,7 @@ struct ConfigurationValidationTests {
 
     @Test("全体の設定は変えない")
     func keepsSettings() {
-        let settings = GlobalSettings(isEnabled: false, hudPosition: .nearCursor, haptics: .off, hudScale: .large)
+        let settings = GlobalSettings(isEnabled: false, haptics: .off, hudScale: .large, hudOnHesitation: true)
         #expect(NonetConfiguration(settings: settings, profiles: []).validated().settings == settings)
     }
 

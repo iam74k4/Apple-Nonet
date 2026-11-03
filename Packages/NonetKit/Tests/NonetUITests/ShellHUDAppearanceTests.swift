@@ -21,34 +21,27 @@ struct ShellHUDAppearanceTests {
         )
     }
 
-    @Test("大きさの倍率は、寸法をそのまま大きくする")
+    @Test("大きさの倍率は、札と文字の寸法をそのまま大きくする")
     func scaledSize() {
-        // 余白 12・題名 26・間 8・地図 268・余白 12
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 440, height: 326))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 550, height: 407.5))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 660, height: 489))
+        #expect(HUDMetrics(scale: 1.25).pillHeight == HUDLayout.pillHeight * 1.25)
+        #expect(HUDMetrics(scale: 1.5).highlightedPillHeight == HUDLayout.highlightedPillHeight * 1.5)
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 440, height: 326))
+        #expect(HUDMetrics(scale: .nan).scale == 1)
         #expect(HUDMetrics(scale: 1.5).headerFontSize == 19.5)
-        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 17.25)
+        #expect(HUDMetrics(scale: 1.5).pillFontSize == 22.5)
     }
 
-    @Test("画面に収まらない大きさは、収まるところまで小さくする")
+    @Test("マスに収まらない大きさは、収まるところまで小さくする")
     func fittingOnScreen() {
-        let main = ShellHUDPlacementTests.main
-        #expect(HUDPlacement.fittedScale(for: Self.model(scale: 1.5), in: main) == 1.5)
-        let small = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 800, height: 400), visibleFrame: CGRect(x: 0, y: 0, width: 800, height: 370))
-        let fitted = HUDPlacement.fittedScale(for: Self.model(pageCount: 3, banner: "帯", scale: 1.5), in: small)
+        #expect(HUDLayout.fittedScale(requested: 1.5, screenSize: CGSize(width: 1440, height: 900)) == 1.5)
+        let small = CGSize(width: 800, height: 300)
+        let fitted = HUDLayout.fittedScale(requested: 1.5, screenSize: small)
         #expect(fitted < 1.5)
-        var model = Self.model(pageCount: 3, banner: "帯", scale: 1.5)
-        model = HUDPlacement.fitted(model, in: small)
-        let size = HUDLayout.size(for: model)
-        let margin = HUDPlacement.edgeMargin + HUDLayout.shadowMargin
-        #expect(size.height <= small.visibleFrame.height - 2 * margin + 1e-9)
-        #expect(size.width <= small.visibleFrame.width - 2 * margin + 1e-9)
+        let layout = HUDScreenLayout(size: small)
+        #expect(HUDMetrics(scale: fitted).highlightedPillHeight <= layout.cellHeight - 2 * HUDLayout.pillMargin + 1e-9)
         // 大きな画面では、選んだ大きさのまま
-        #expect(HUDPlacement.fittedScale(for: Self.model(scale: 1), in: main) == 1)
-        #expect(HUDPlacement.fittedScale(for: Self.model(pageCount: 3, scale: 1.25), in: main) == 1.25)
+        #expect(HUDLayout.fittedScale(requested: 1, screenSize: CGSize(width: 1440, height: 900)) == 1)
+        #expect(HUDLayout.fittedScale(requested: 1.25, screenSize: CGSize(width: 1440, height: 900)) == 1.25)
     }
 
     @Test("トーストを出していなくても、消すのは何もしない")

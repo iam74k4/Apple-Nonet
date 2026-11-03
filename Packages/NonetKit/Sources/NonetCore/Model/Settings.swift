@@ -1,13 +1,6 @@
 // 担当: core-model（公開 API は契約）
 import Foundation
 
-public enum HUDPosition: String, Codable, CaseIterable, Sendable {
-    /// 画面の下の中央（既定。指はトラックパッドの上にあるので、目の移動がいちばん少ない）
-    case screenBottom
-    case screenCenter
-    case nearCursor
-}
-
 public enum HapticStrength: String, Codable, CaseIterable, Sendable {
     case off, light, medium, strong
 }
@@ -51,33 +44,35 @@ public enum HUDScale: String, Codable, CaseIterable, Sendable {
 
 public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
-    public var hudPosition: HUDPosition
     /// 触覚。設定の画面ではオン（medium）とオフだけを選ぶ（前の版の light・strong はそのまま読む）
     public var haptics: HapticStrength
     /// HUD とトーストの大きさ。既定は標準
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
+    /// ためらったときだけ HUD を出す。開いてから NonetController.hesitationDelay（0.4秒）は触覚だけで、
+    /// それより長く開いたままなら地図を出す（慣れた人は画面を変えずに使える）。既定はオフ（開くとすぐ出す）
+    public var hudOnHesitation: Bool
 
     public init(
         isEnabled: Bool = true,
-        hudPosition: HUDPosition = .screenBottom,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
-        openSensitivity: OpenSensitivity = .standard
+        openSensitivity: OpenSensitivity = .standard,
+        hudOnHesitation: Bool = false
     ) {
         self.isEnabled = isEnabled
-        self.hudPosition = hudPosition
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
+        self.hudOnHesitation = hudOnHesitation
     }
 }
 
 // MARK: - Codable
 // 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）。
 // 前の版の項目（トリガーキーで開いていた版の trigger・fireMode・hudDelay・passTriggerToApps・touchActivation と、
-// 設定から外した autoSwitchProfiles・appendGlobalPages・showExecutionToast・cursorLock）は、書いてあっても読み飛ばし、
+// 設定から外した autoSwitchProfiles・appendGlobalPages・showExecutionToast・cursorLock・hudPosition）は、書いてあっても読み飛ばし、
 // もう書かない（前の版はそれらが無ければ既定値で読む）
 
 extension GlobalSettings {
@@ -85,6 +80,8 @@ extension GlobalSettings {
     static let retiredKeys: Set<String> = [
         "trigger", "fireMode", "hudDelay", "passTriggerToApps", "touchActivation",
         "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock",
+        // HUD は画面いっぱいの地図になり、置く場所の設定が無くなった
+        "hudPosition",
     ]
 
     /// 設定ファイル（JSONSerialization で読んだもの）から、settings の retiredKeys を除いたもの。
@@ -96,7 +93,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, hudPosition, haptics, hudScale, openSensitivity
+        case isEnabled, haptics, hudScale, openSensitivity, hudOnHesitation
     }
 
     public init(from decoder: any Decoder) throws {
@@ -104,17 +101,16 @@ extension GlobalSettings {
         let defaults = GlobalSettings()
         self.init(
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
-            hudPosition: container.decodeLossy(HUDPosition.self, forKey: .hudPosition, default: defaults.hudPosition),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
-            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
+            hudOnHesitation: container.decodeLossy(Bool.self, forKey: .hudOnHesitation, default: defaults.hudOnHesitation)
         )
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(isEnabled, forKey: .isEnabled)
-        try container.encode(hudPosition, forKey: .hudPosition)
         try container.encode(haptics, forKey: .haptics)
         // 標準（既定）なら書かない。この設定より前の版と同じ書式のままにする（無ければ標準として読む）
         if hudScale != .standard {
@@ -122,6 +118,9 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
+        }
+        if hudOnHesitation {
+            try container.encode(hudOnHesitation, forKey: .hudOnHesitation)
         }
     }
 }

@@ -46,8 +46,8 @@ import Testing
             (0..<control.segmentCount).map { control.label(forSegment: $0) ?? "" }
         }
         #expect(segments.contains(OpenSensitivity.allCases.map(SettingsText.name)))
-        #expect(segments.contains(HUDPosition.allCases.map(SettingsText.name)))
-        #expect(segments.count == 2)
+        // HUD の位置の選択肢は無い（HUD は画面いっぱいの地図）。「ためらったときだけ出す」はスイッチ
+        #expect(segments.count == 1)
         #expect(!walk(hosting).contains { $0 is NSPopUpButton })
         #expect(!walk(hosting).contains { $0 is NSSlider })
     }

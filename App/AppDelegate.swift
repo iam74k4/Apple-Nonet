@@ -54,9 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ShellQuitMarker.removeAll()
         let services = makeServices()
         let hud = HUDWindowController()
-        // 止めたポインタが HUD に重なるときは、閉じるまで HUD の外へ寄せる
-        let keyboard = services.keyboard
-        hud.onParkPointer = { [weak keyboard] point in keyboard?.parkPointer(at: point) }
         let license = makeLicenseManager()
         let controller = NonetController(
             services: services,

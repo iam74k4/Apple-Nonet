@@ -117,7 +117,7 @@ final class DebugPreview {
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
             scale: configuration.settings.hudScale.factor
         )
-        hud.show(model, position: configuration.settings.hudPosition)
+        hud.show(model)
     }
 
     /// 成功・案内・失敗のトーストを3秒ごとに順に出す

@@ -7,8 +7,7 @@ import Testing
 @Suite struct SettingsTextTests {
     /// docs/user-guide.md の「設定（一般）」と同じ選択肢の名前
     @Test func choiceNamesMatchTheUserGuide() {
-        #expect(SettingsText.name(HUDPosition.screenCenter) == L10n.ui("画面の中央"))
-        #expect(SettingsText.name(HUDPosition.nearCursor) == L10n.ui("ポインタの近く"))
+        #expect(SettingsText.hudOnHesitationTitle == L10n.ui("ためらったときだけ HUD を出す"))
         #expect(SettingsText.name(ScriptRunMode.background) == L10n.ui("裏で実行"))
         #expect(SettingsText.name(ScriptRunMode.terminal) == L10n.ui("ターミナルで実行"))
         #expect(AIOutput.allCases.map(SettingsText.name) == [L10n.ui("選択範囲を置き換える"), L10n.ui("クリップボードにコピー"), L10n.ui("画面に表示")])

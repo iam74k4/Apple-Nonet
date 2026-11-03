@@ -100,31 +100,16 @@ final class DemoTouchSource: TouchSource {
     }
 }
 
-/// ポインタを抑止せず、キーも見ない（デモの間、Mac のポインタとキーボードはそのまま使える）。
-/// HUD に重なるポインタは、本物と同じく開いている間だけ HUD の外へ寄せ、閉じたら戻す（動画で、ポインタが別のマスを指して見えないように）
+/// ポインタを抑止せず、キーも見ない（デモの間、Mac のポインタとキーボードはそのまま使える）
 @MainActor
 final class DemoKeyboardMonitor: KeyboardMonitor {
     var cursorLock: CursorLockMethod = .none
-    var isSuppressingPointer = false {
-        didSet {
-            guard !isSuppressingPointer, let parkedFrom else { return }
-            CGWarpMouseCursorPosition(parkedFrom)
-            self.parkedFrom = nil
-        }
-    }
+    var isSuppressingPointer = false
     var onEvent: ((KeyboardEvent) -> Void)?
     var isRunning = false
-    private var parkedFrom: CGPoint?
 
     func start() throws { isRunning = true }
     func stop() { isRunning = false }
-
-    func parkPointer(at point: CGPoint) {
-        guard isSuppressingPointer else { return }
-        if parkedFrom == nil { parkedFrom = CGEvent(source: nil)?.location }
-        DemoLog.write("demo: park pointer at \(point)")
-        CGWarpMouseCursorPosition(point)
-    }
 }
 
 /// 何も実行しない。何を実行するところだったかだけを標準出力に書く

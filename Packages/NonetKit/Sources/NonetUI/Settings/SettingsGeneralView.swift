@@ -29,15 +29,10 @@ struct SettingsGeneralView: View {
                     Text(SettingsText.openSensitivityDetail(model.settings.openSensitivity))
                 }
                 .pickerStyle(.segmented)
-                Picker(selection: binding(\.hudPosition)) {
-                    ForEach(HUDPosition.allCases, id: \.self) { position in
-                        Text(SettingsText.name(position)).tag(position)
-                    }
-                } label: {
-                    Text("HUD の位置", bundle: .module)
-                    Text("ポインタのあるディスプレイに出ます", bundle: .module)
+                Toggle(isOn: binding(\.hudOnHesitation)) {
+                    Text(SettingsText.hudOnHesitationTitle)
+                    Text(SettingsText.hudOnHesitationDetail)
                 }
-                .pickerStyle(.segmented)
                 // 前の版の「特大」は、大きく表示のオンとして見せる（オフにすると標準に戻る）
                 Toggle(isOn: Binding(get: { model.settings.hudScale != .standard }, set: { model.setSetting(\.hudScale, $0 ? .large : .standard) })) {
                     Text(SettingsText.hudLargeTitle)
