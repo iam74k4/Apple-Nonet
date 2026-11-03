@@ -45,8 +45,6 @@ struct HUDMetrics: Equatable {
     var dotSpacing: CGFloat { 6 * scale }
     /// アプリのページとグローバルのページの点の間に、さらに空ける幅
     var pageGroupGap: CGFloat { HUDLayout.pageGroupGap * scale }
-    /// 指の点の大きさ
-    var fingerSize: CGFloat { 14 * scale }
     /// 空きマスの点の大きさ
     var emptyDotSize: CGFloat { 10 * scale }
 
@@ -127,7 +125,7 @@ struct HUDScreenLayout: Equatable {
     var topBand: CGRect { CGRect(x: 0, y: 0, width: size.width, height: bandTop) }
     var bottomBand: CGRect { CGRect(x: 0, y: size.height - bandBottom, width: size.width, height: bandBottom) }
 
-    /// トラックパッドの上の指の位置を、画面の位置にする
+    /// トラックパッドの上の指の位置を、画面の位置にする（ポインタをそこへ動かす）
     func point(for finger: HUDFinger) -> CGPoint {
         let x = min(max(finger.x, 0), 1)
         let y = min(max(finger.y, 0), 1)
@@ -325,10 +323,6 @@ struct HUDTheme {
     var mapFill: AnyShapeStyle { isGlass ? AnyShapeStyle(FillShapeStyle().quinary) : AnyShapeStyle(Color(white: 0x19 / 255)) }
     /// 隣のページがのぞくマスの面
     var peekFill: AnyShapeStyle { isGlass ? AnyShapeStyle(FillShapeStyle().tertiary) : AnyShapeStyle(Color(white: 0x2A / 255)) }
-    /// 指の点（白い丸に、面の色の縁）
-    var fingerFill: Color { isGlass ? ink : .white }
-    var fingerStroke: Color { isGlass ? paper : HUDPalette.background }
-
     /// 「離すとやめる」の下地と文字（下の暗くしたマスの文字が透けないよう、塗りつぶす）
     var labelFill: Color { isGlass ? paper : HUDPalette.background }
     var labelForeground: Color { isGlass ? ink : .white }
@@ -397,8 +391,6 @@ struct HUDFrameBand: Shape {
 @Observable
 final class HUDStore {
     var model: HUDModel?
-    /// トラックパッドの上の指の位置（地図の上の点）。update より頻繁に変わるので、model とは別に持つ
-    var finger: HUDFinger?
     /// システム設定の「コントラストを上げる」（出すたびに読み直す）
     var increasedContrast = false
     /// システム設定の「視差効果を減らす」（出すたびに読み直す）。外枠の切り替えをアニメーションにせず、進み具合も満たしていかない
@@ -416,7 +408,6 @@ struct HUDRootView: View {
             if let model = store.model {
                 HUDView(
                     model: model,
-                    finger: store.finger,
                     colors: HUDPalette.colors(increasedContrast: store.increasedContrast),
                     reduceMotion: store.reduceMotion,
                     reduceTransparency: store.reduceTransparency
@@ -426,11 +417,10 @@ struct HUDRootView: View {
     }
 }
 
-/// 画面いっぱいの地図。膜の上に、外枠の帯・9マスの枠と境目・それぞれのマスの札・題名（奥の帯）・「離すとやめる」（手前の帯）・指の点
+/// 画面いっぱいの地図。膜の上に、外枠の帯・9マスの枠と境目・それぞれのマスの札・題名（奥の帯）・「離すとやめる」（手前の帯）。
+/// 指の位置は点を描かず、実際のポインタを動かして示す（HUDWindowController.updateFinger）
 struct HUDView: View {
     let model: HUDModel
-    /// トラックパッドの上の指の位置（画面のその場所の点）。nil なら出さない
-    var finger: HUDFinger?
     var colors: HUDColors = .standard
     var reduceMotion = false
     var reduceTransparency = false
@@ -480,15 +470,6 @@ struct HUDView: View {
                 topRows(layout: layout, metrics: metrics, theme: theme)
                 HUDCancelPill(model: model, isActive: inFrame, metrics: metrics, theme: theme)
                     .position(x: size.width / 2, y: layout.gridRect.maxY + metrics.cancelOffset)
-                // 指の点は、光っている札が無いとき（外枠・2本以上の指・滑らせ直すまで）だけ。札が光っていれば、それが指の位置
-                if let finger, model.highlightedIndex == nil {
-                    Circle()
-                        .fill(theme.fingerFill)
-                        .overlay(Circle().strokeBorder(theme.fingerStroke, lineWidth: 2 * metrics.scale))
-                        .frame(width: metrics.fingerSize, height: metrics.fingerSize)
-                        .position(layout.point(for: finger))
-                        .accessibilityHidden(true)
-                }
             }
             .frame(width: size.width, height: size.height)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)

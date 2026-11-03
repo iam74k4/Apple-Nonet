@@ -192,6 +192,40 @@ final class FakeCursor: CursorControlling {
         #expect(cursor.warps.last == CGPoint(x: 300, y: 200))
     }
 
+    /// 開いている間、ポインタは指の位置へ動いてそこで止まり、閉じたら動かす前の位置に戻る
+    @Test func aMovedPointerStaysThereAndReturnsWhenClosed() throws {
+        monitor.cursorLock = .automatic
+        cursor.location = CGPoint(x: 300, y: 200)
+        monitor.movePointer(to: CGPoint(x: 1, y: 1))
+        // 開いていないときは動かさない
+        #expect(cursor.warps.isEmpty)
+        open()
+        monitor.movePointer(to: CGPoint(x: 300, y: 600))
+        #expect(cursor.warps == [CGPoint(x: 300, y: 600)])
+        // 動かした先で止める（ずれたら動かした先へ戻す）
+        cursor.location = CGPoint(x: 310, y: 600)
+        #expect(!send(.mouseMoved, try mouse(.mouseMoved)))
+        #expect(cursor.warps.last == CGPoint(x: 300, y: 600))
+        // もう一度動かしても、閉じたら最初の位置に戻す
+        monitor.movePointer(to: CGPoint(x: 300, y: 650))
+        close()
+        #expect(cursor.warps.last == CGPoint(x: 300, y: 200))
+        // 次に開いたときは、前の動かす前の位置を引きずらない
+        cursor.location = CGPoint(x: 50, y: 50)
+        open()
+        close()
+        #expect(cursor.warps.last == CGPoint(x: 300, y: 200))
+    }
+
+    /// ずれたら戻す方式でなければ、ポインタを動かさない
+    @Test func otherLockMethodsNeverMoveThePointer() {
+        monitor.cursorLock = .dropEvents
+        open()
+        monitor.movePointer(to: CGPoint(x: 300, y: 600))
+        close()
+        #expect(cursor.warps.isEmpty)
+    }
+
     /// 覚えた位置は1回だけ使う。覚えていなければ戻さない
     @Test func theRememberedLocationIsUsedOnce() {
         monitor.cursorLock = .dropEvents

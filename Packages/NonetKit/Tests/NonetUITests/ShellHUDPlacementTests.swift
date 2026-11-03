@@ -54,6 +54,17 @@ struct ShellHUDPlacementTests {
         #expect(HUDPlacement.hudFrame(on: Self.left) == Self.left.frame)
     }
 
+    @Test("指の位置を画面に写す座標は、主画面の左上が原点で y が下向き（ほかの画面でも）")
+    func pointerLocation() {
+        let primary = Self.main.frame
+        // 主画面: 奥の左が (0, 0)、手前の右が画面の右下
+        #expect(HUDPlacement.pointerLocation(for: HUDFinger(x: 0, y: 1), on: Self.main, primaryScreen: primary) == .zero)
+        #expect(HUDPlacement.pointerLocation(for: HUDFinger(x: 1, y: 0), on: Self.main, primaryScreen: primary) == CGPoint(x: 1440, y: 900))
+        // 右の画面（下にずれている）: その画面の左上は、主画面の上端からのずれの分だけ下
+        let topLeft = HUDPlacement.pointerLocation(for: HUDFinger(x: 0, y: 1), on: Self.right, primaryScreen: primary)
+        #expect(topLeft == CGPoint(x: Self.right.frame.minX, y: primary.maxY - Self.right.frame.maxY))
+    }
+
     @Test("結果のパネルは、その画面の使える範囲の中央")
     func resultAnchor() {
         let anchor = HUDPlacement.resultAnchor(on: Self.right)

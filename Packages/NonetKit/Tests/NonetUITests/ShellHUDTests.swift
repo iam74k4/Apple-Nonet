@@ -45,6 +45,24 @@ struct ShellHUDTests {
         #expect(layout.point(for: HUDFinger(x: -1, y: 2)) == .zero)
     }
 
+    @Test("開いている間、ポインタは指の位置を画面に写す（主画面の左上が原点）。出していないとき・2本以上の指では動かさない")
+    func pointerFollowsTheFinger() {
+        let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
+        var moved: [CGPoint] = []
+        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 10, y: 10) })
+        hud.onMovePointer = { moved.append($0) }
+        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
+        #expect(moved.isEmpty)
+        hud.show(Self.model())
+        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
+        #expect(moved == [CGPoint(x: 720, y: 450)])
+        hud.updateFinger(HUDFinger(x: 0, y: 1))
+        #expect(moved.last == .zero)
+        hud.updateFinger(nil)
+        #expect(moved.count == 2)
+        hud.hide()
+    }
+
     @Test("「大きく表示」の倍率は、光らせた札がマスに収まるところまで")
     func fittedScale() {
         #expect(HUDLayout.fittedScale(requested: 1.25, screenSize: CGSize(width: 1440, height: 900)) == 1.25)

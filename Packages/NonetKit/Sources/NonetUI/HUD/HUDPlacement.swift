@@ -38,6 +38,13 @@ enum HUDPlacement {
         screen.frame
     }
 
+    /// トラックパッドの上の指の位置を、その画面の上の点にする（ポインタを動かす座標: 主画面の左上が原点、y が下向き）。
+    /// 地図は画面いっぱいなので、指の位置がそのまま画面の位置（HUDScreenLayout）
+    static func pointerLocation(for finger: HUDFinger, on screen: HUDScreenGeometry, primaryScreen: CGRect) -> CGPoint {
+        let local = HUDScreenLayout(size: screen.frame.size).point(for: finger)
+        return CGPoint(x: screen.frame.minX + local.x, y: (primaryScreen.maxY - screen.frame.maxY) + local.y)
+    }
+
     /// 結果のパネルを出す位置（画面の使える範囲の中央）
     static func resultAnchor(on screen: HUDScreenGeometry) -> CGPoint {
         CGPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.midY)

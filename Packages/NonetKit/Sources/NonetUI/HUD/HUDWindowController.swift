@@ -28,6 +28,8 @@ public final class HUDWindowController: HUDPresenting {
     private lazy var hudFader = HUDPanelFader(panel: hudPanel)
     /// 表示中の HUD の画面
     private var hudScreen: HUDScreenGeometry?
+    /// 9マスを開いている間、ポインタを指の位置へ動かす（座標は主画面の左上が原点）。App が KeyboardMonitor.movePointer につなぐ
+    public var onMovePointer: ((CGPoint) -> Void)?
 
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
@@ -72,7 +74,6 @@ public final class HUDWindowController: HUDPresenting {
             return
         }
         hudStore.model = model
-        hudStore.finger = nil
         hudStore.increasedContrast = prefersIncreasedContrast()
         hudStore.reduceMotion = prefersReducedMotion()
         hudStore.reduceTransparency = prefersReducedTransparency()
@@ -93,9 +94,10 @@ public final class HUDWindowController: HUDPresenting {
         }
     }
 
+    /// 指の位置を画面に写し、実際のポインタをそこへ動かす（地図に点は描かない。2本以上の指では動かさない）
     public func updateFinger(_ finger: HUDFinger?) {
-        guard hudFader.isShowing else { return }
-        hudStore.finger = finger
+        guard hudFader.isShowing, let screen = hudScreen, let finger, let onMovePointer, let primary = screens().first?.frame else { return }
+        onMovePointer(HUDPlacement.pointerLocation(for: finger, on: screen, primaryScreen: primary))
     }
 
     public func showPlacementPreview(_ frame: CGRect) {
@@ -112,7 +114,6 @@ public final class HUDWindowController: HUDPresenting {
         hudScreen = nil
         hudFader.hide { [weak self] in
             self?.hudStore.model = nil
-            self?.hudStore.finger = nil
         }
     }
 
