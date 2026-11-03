@@ -32,22 +32,37 @@ enum HUDPlacement {
         screenIndex(containing: point, in: screens).map { screens[$0] }
     }
 
-    /// HUD はポインタのあるディスプレイいっぱい（メニューバーと Dock も含む画面全体）に敷く。
-    /// 画面の縁の帯が外枠で、トラックパッドと同じ割合（HUDScreenLayout）
-    static func hudFrame(on screen: HUDScreenGeometry) -> CGRect {
-        screen.frame
+    /// HUD の見た目の枠（影の余白を含まない）。ポインタを中心に置き、画面の使える範囲（端の余白を除く）に収める。
+    /// 開いている間、ポインタは地図の上を指の位置について動き、閉じると元の位置に戻る（pointerLocation）
+    static func hudFrame(size: CGSize, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
+        frame(size: size, centeredAt: cursor, in: screen)
     }
 
-    /// トラックパッドの上の指の位置を、その画面の上の点にする（ポインタを動かす座標: 主画面の左上が原点、y が下向き）。
-    /// 地図は画面いっぱいなので、指の位置がそのまま画面の位置（HUDScreenLayout）
-    static func pointerLocation(for finger: HUDFinger, on screen: HUDScreenGeometry, primaryScreen: CGRect) -> CGPoint {
-        let local = HUDScreenLayout(size: screen.frame.size).point(for: finger)
-        return CGPoint(x: screen.frame.minX + local.x, y: (primaryScreen.maxY - screen.frame.maxY) + local.y)
+    /// トラックパッドの上の指の位置を、HUD の地図の上の点にする（ポインタを動かす座標: 主画面の左上が原点、y が下向き）。
+    /// 地図は枠の中の、題名の行の下（AppKit の座標では枠の下側）。model は fitted した後のもの（倍率が地図の大きさを決める）
+    static func pointerLocation(for finger: HUDFinger, model: HUDModel, hudFrame: CGRect, primaryScreen: CGRect) -> CGPoint {
+        let metrics = HUDMetrics(scale: model.scale)
+        let x = min(max(finger.x, 0), 1)
+        let y = min(max(finger.y, 0), 1)
+        let point = CGPoint(x: hudFrame.minX + metrics.padding + x * metrics.mapWidth, y: hudFrame.minY + metrics.padding + y * metrics.mapHeight)
+        return CGPoint(x: point.x, y: primaryScreen.maxY - point.y)
     }
 
-    /// 結果のパネルを出す位置（画面の使える範囲の中央）
-    static func resultAnchor(on screen: HUDScreenGeometry) -> CGPoint {
-        CGPoint(x: screen.visibleFrame.midX, y: screen.visibleFrame.midY)
+    /// 設定の「HUD の大きさ」で画面の使える範囲（端の余白と影の余白を除く）からはみ出すなら、収まるところまで倍率を下げる
+    static func fitted(_ model: HUDModel, in screen: HUDScreenGeometry) -> HUDModel {
+        var result = model
+        result.scale = fittedScale(for: model, in: screen)
+        return result
+    }
+
+    static func fittedScale(for model: HUDModel, in screen: HUDScreenGeometry) -> Double {
+        let requested = HUDMetrics(scale: model.scale).scale
+        var unscaled = model
+        unscaled.scale = 1
+        let size = HUDLayout.size(for: unscaled)
+        let available = screen.visibleFrame.insetBy(dx: edgeMargin + HUDLayout.shadowMargin, dy: edgeMargin + HUDLayout.shadowMargin)
+        guard size.width > 0, size.height > 0, available.width > 0, available.height > 0 else { return requested }
+        return min(requested, available.width / size.width, available.height / size.height)
     }
 
     /// center を中心にした枠を、画面の使える範囲（端の余白を除く）に収める

@@ -20,63 +20,18 @@ struct ShellHUDTests {
         return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, banner: banner)
     }
 
-    @Test("地図は画面いっぱい: 外枠の帯は実物と同じ割合（左右 11%・奥 17%・手前 15%）で、その内側を 3×3 に等分する")
-    func screenLayout() {
-        let layout = HUDScreenLayout(size: CGSize(width: 1440, height: 900))
-        let frame = GridInsets.cancelFrame
-        #expect(layout.bandLeft == 1440 * frame.left && layout.bandRight == 1440 * frame.right)
-        #expect(layout.bandTop == 900 * frame.top && layout.bandBottom == 900 * frame.bottom)
-        #expect(layout.gridRect == CGRect(x: layout.bandLeft, y: layout.bandTop, width: 1440 - layout.bandLeft - layout.bandRight, height: 900 - layout.bandTop - layout.bandBottom))
-        #expect(layout.cellRect(0).origin == layout.gridRect.origin)
-        #expect(abs(layout.cellRect(8).maxX - layout.gridRect.maxX) < 1e-9 && abs(layout.cellRect(8).maxY - layout.gridRect.maxY) < 1e-9)
-        #expect(abs(layout.cellCenter(4).x - 720) < 1e-9 && abs(layout.cellCenter(4).y - layout.gridRect.midY) < 1e-9)
-        // 左右の帯は9マスの段の横（角は含まない）
-        #expect(layout.leftBand == CGRect(x: 0, y: layout.gridRect.minY, width: layout.bandLeft, height: layout.gridRect.height))
-        #expect(layout.rightBand.maxX == 1440 && layout.rightBand.minY == layout.gridRect.minY)
-        #expect(layout.topBand.height == layout.bandTop && layout.bottomBand.maxY == 900)
-    }
-
-    @Test("指の位置: トラックパッドの奥（y = 1）が画面の上、左が左。範囲の外は縁に収める")
-    func fingerMapsToTheScreen() {
-        let layout = HUDScreenLayout(size: CGSize(width: 1000, height: 500))
-        #expect(layout.point(for: HUDFinger(x: 0, y: 1)) == .zero)
-        #expect(layout.point(for: HUDFinger(x: 1, y: 0)) == CGPoint(x: 1000, y: 500))
-        #expect(layout.point(for: HUDFinger(x: 0.5, y: 0.5)) == CGPoint(x: 500, y: 250))
-        #expect(layout.point(for: HUDFinger(x: -1, y: 2)) == .zero)
-    }
-
-    @Test("開いている間、ポインタは指の位置を画面に写す（主画面の左上が原点）。出していないとき・2本以上の指では動かさない")
-    func pointerFollowsTheFinger() {
-        let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
-        var moved: [CGPoint] = []
-        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 10, y: 10) })
-        hud.onMovePointer = { moved.append($0) }
-        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
-        #expect(moved.isEmpty)
-        hud.show(Self.model())
-        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
-        #expect(moved == [CGPoint(x: 720, y: 450)])
-        hud.updateFinger(HUDFinger(x: 0, y: 1))
-        #expect(moved.last == .zero)
-        hud.updateFinger(nil)
-        #expect(moved.count == 2)
-        hud.hide()
-    }
-
-    @Test("「大きく表示」の倍率は、光らせた札がマスに収まるところまで")
-    func fittedScale() {
-        #expect(HUDLayout.fittedScale(requested: 1.25, screenSize: CGSize(width: 1440, height: 900)) == 1.25)
-        let small = CGSize(width: 800, height: 300)
-        let room = HUDScreenLayout(size: small).cellHeight - 2 * HUDLayout.pillMargin
-        let fitted = HUDLayout.fittedScale(requested: 1.5, screenSize: small)
-        #expect(abs(fitted - min(1.5, room / HUDLayout.highlightedPillHeight)) < 1e-9, "fitted=\(fitted) room=\(room)")
-        #expect(HUDLayout.fittedScale(requested: 1.5, screenSize: small) < 1.5)
-        #expect(HUDLayout.fittedScale(requested: 0, screenSize: small) == 1)
-        // 題名・帯・何に対する操作かの行は、あるぶんだけ高くなる
-        let metrics = HUDMetrics(scale: 1)
-        var both = Self.model(banner: "帯")
-        both.context = "Safari のウインドウ"
-        #expect(metrics.rowsHeight(for: both) == HUDLayout.titleHeight + HUDLayout.bannerHeight + HUDLayout.contextHeight + 2 * HUDLayout.rowSpacing)
+    @Test("HUD の大きさ: 題名とページの点は上の外枠に入るので、ページが増えても高さは変わらない。帯の分だけ高くなる")
+    func hudSize() {
+        // 余白 10・題名 24・間 6・地図 219（トラックパッドの形）・余白 10
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 360, height: 269))
+        #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == HUDLayout.size(for: Self.model()))
+        let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
+        #expect(both == CGSize(width: 360, height: 297))
+        // 外枠に指があるか・進み具合では大きさは変わらない
+        var inFrame = Self.model()
+        inFrame.isFingerInFrame = true
+        inFrame.hold = HUDHold(cellIndex: 0, duration: 0.6, isReady: false)
+        #expect(HUDLayout.size(for: inFrame) == HUDLayout.size(for: Self.model()))
     }
 
     @Test("マスの位置の呼び方")
@@ -155,6 +110,56 @@ struct ShellHUDTests {
         var turned = later
         turned.pageIndex = 1
         #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
+    }
+
+    @Test("地図は MacBook のトラックパッドと同じ比率で、外枠の帯は実物と同じ割合（左右 11%・奥 17%・手前 15%）")
+    func mapMatchesTheTrackpad() {
+        for scale in [1.0, 1.25] {
+            let metrics = HUDMetrics(scale: scale)
+            #expect(abs(metrics.mapWidth / metrics.mapHeight - 1.55) < 0.01)
+            let frame = GridInsets.cancelFrame
+            #expect(abs(metrics.bandSide / metrics.mapWidth - frame.left) < 0.005)
+            #expect(abs(metrics.bandTop / metrics.mapHeight - frame.top) < 0.005)
+            #expect(abs(metrics.bandBottom / metrics.mapHeight - frame.bottom) < 0.005)
+            let grid = metrics.gridRect
+            #expect(grid.minX == metrics.bandSide && grid.minY == metrics.bandTop)
+            #expect(abs(grid.maxX - (metrics.mapWidth - metrics.bandSide)) < 1e-9)
+            #expect(abs(grid.maxY - (metrics.mapHeight - metrics.bandBottom)) < 1e-9)
+            #expect(metrics.cellWidth > 80 * scale && metrics.cellHeight > 44 * scale)
+        }
+    }
+
+    @Test("開いている間、ポインタは地図の上の指の位置へ動く（主画面の左上が原点）。出していないとき・2本以上の指では動かさない")
+    func pointerFollowsTheFinger() {
+        let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
+        var moved: [CGPoint] = []
+        let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 10, y: 10) })
+        hud.onMovePointer = { moved.append($0) }
+        hud.updateFinger(HUDFinger(x: 0.5, y: 0.5))
+        #expect(moved.isEmpty)
+        hud.show(Self.model())
+        // 枠は使える範囲の左下（余白 8）に収まる: 地図の左下は (18, 88)
+        hud.updateFinger(HUDFinger(x: 0, y: 0))
+        #expect(moved == [CGPoint(x: 18, y: 900 - 88)])
+        hud.updateFinger(HUDFinger(x: 1, y: 1))
+        #expect(moved.last == CGPoint(x: 18 + HUDLayout.mapWidth, y: 900 - 88 - HUDLayout.mapHeight))
+        hud.updateFinger(nil)
+        #expect(moved.count == 2)
+        hud.hide()
+    }
+
+    @Test("帯と「何に対する操作か」があるぶんだけ高くなり、幅は変わらない")
+    func rowsAddHeight() {
+        let metrics = HUDMetrics(scale: 1)
+        let plain = metrics.size(for: Self.model(pageCount: 1))
+        let banner = metrics.size(for: Self.model(pageCount: 1, banner: "帯"))
+        var context = Self.model(pageCount: 1)
+        context.context = "Safari のウインドウ"
+        let withContext = metrics.size(for: context)
+        #expect(plain.width == HUDLayout.width && banner.width == plain.width && withContext.width == plain.width)
+        #expect(banner.height - plain.height == HUDLayout.bannerHeight + HUDLayout.rowSpacing)
+        #expect(withContext.height - plain.height == HUDLayout.contextHeight + HUDLayout.rowSpacing)
+        #expect(plain.height == HUDLayout.padding * 2 + HUDLayout.headerHeight + HUDLayout.rowSpacing + HUDLayout.mapHeight)
     }
 
     @Test("ページを切り替える線の進み具合: 止め始めてからの時間に比例し、0〜1に収まる")

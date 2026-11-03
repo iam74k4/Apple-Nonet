@@ -30,8 +30,9 @@ struct ShellHoldMarkTests {
         #expect(moved?.hasSuffix(L10n.ui("少し長く止めてから実行")) == true)
     }
 
-    /// 印は HUD の大きさの設定に合わせる
-    @Test func theBadgeFollowsTheScale() {
+    /// 印を付けても HUD の大きさは変わらない。印は HUD の大きさの設定に合わせる
+    @Test func theBadgeDoesNotChangeTheLayout() {
+        #expect(HUDLayout.size(for: Self.model(highlighted: 8)) == CGSize(width: 360, height: 269))
         #expect(HUDMetrics(scale: 1.5).badgeSize == HUDMetrics(scale: 1).badgeSize * 1.5)
     }
 }
