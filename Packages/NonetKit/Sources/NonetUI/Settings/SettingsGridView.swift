@@ -132,10 +132,12 @@ struct SettingsGridCell: View {
             .overlay(border)
             .overlay(alignment: .topTrailing) { holdBadge }
             .overlay(
-                // ドロップ先: 選んでいるマスより強い、アクセント色の太い枠
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [6, 4]))
-                    .opacity(isDropTarget ? 1 : 0)
+                // ドロップ先: 選んでいるマスより強い塗りと、太いアクセント色の実線（キーが届く選んでいる空きマスの破線と見分ける）
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.24))
+                    RoundedRectangle(cornerRadius: 12).strokeBorder(Color.accentColor, lineWidth: 3.5)
+                }
+                .opacity(isDropTarget ? 1 : 0)
             )
             .contentShape(RoundedRectangle(cornerRadius: 12))
             .onTapGesture(perform: onSelect)

@@ -216,6 +216,38 @@ struct SettingsRenderShots {
         }
     }
 
+    /// グリッドのマスの見え方: 選んでいない・選んでいる（キーがほかにある／グリッドにある）・空きマス
+    @Test func renderGridSelection() async throws {
+        let h = try harness()
+        let model = h.model
+        let profile = model.selectedProfile
+        let filled = try #require(profile.pages[0].cells.compactMap { $0 }.first)
+        func cell(_ cell: Cell?, selected: Bool, focused: Bool) -> some View {
+            SettingsGridCell(
+                model: model,
+                index: 0,
+                cell: cell,
+                isSelected: selected,
+                isGridFocused: focused,
+                dragItem: SettingsDragItem(payload: .cell(profileID: profile.id, address: CellAddress(page: 0, index: 0))),
+                onSelect: {}
+            )
+            .frame(width: 150, height: 90)
+        }
+        let row = HStack(spacing: 12) {
+            cell(filled, selected: false, focused: false)
+            cell(filled, selected: true, focused: false)
+            cell(filled, selected: true, focused: true)
+            cell(nil, selected: true, focused: false)
+            cell(nil, selected: true, focused: true)
+        }
+        .padding(16)
+        .background(SettingsPalette.gridBackground)
+        for (suffix, appearance) in appearances {
+            try await render(row, size: CGSize(width: 830, height: 122), appearance, "grid-selection-\(suffix)")
+        }
+    }
+
     @Test func renderLicensedAndExpired() async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let pair = LicenseSigner.generateKeyPair()
