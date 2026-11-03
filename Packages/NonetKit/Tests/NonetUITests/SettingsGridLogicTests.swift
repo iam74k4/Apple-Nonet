@@ -53,6 +53,16 @@ import UniformTypeIdentifiers
         #expect(SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: profile) == CellAddress(page: 0, index: 1))
     }
 
+    /// インスペクタの「メニューから選ぶ…」から来たとき・割り当て直すとき: 選んでいるメニュー項目のマスに入れる（項目を選ぶ前のものも）
+    @Test func assignmentTargetUsesTheSelectedMenuItemCell() {
+        let unset = Cell(title: "", icon: .symbol("filemenu.and.selection"), action: .menuItem(MenuItemAction(path: [])))
+        var profile = profile(pages: [[true, false, false]])
+        profile.pages[0].cells[0] = unset
+        #expect(SettingsGrid.assignmentTarget(selected: CellAddress(page: 0, index: 0), currentPage: 0, in: profile) == CellAddress(page: 0, index: 0))
+        #expect(SettingsGrid.isMenuItem(CellAddress(page: 0, index: 0), in: profile))
+        #expect(!SettingsGrid.isMenuItem(CellAddress(page: 0, index: 1), in: profile))
+    }
+
     @Test func assignmentTargetFallsBackToOtherPagesAndNil() {
         let full = Array(repeating: true, count: 9)
         #expect(SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: profile(pages: [full, [true, true, true, false]])) == CellAddress(page: 1, index: 3))

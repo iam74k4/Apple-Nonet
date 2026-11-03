@@ -46,6 +46,7 @@ public final class SystemActionPerformer: ActionPerforming {
     private func run(_ action: Action, frontmost: RunningAppInfo?) async throws -> String? {
         switch action {
         case .keystroke(let keys):
+            try KeyTarget.check(expected: frontmost, frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
             try await keySender.send(keys)
         case .launchApp(let launch):
             try await AppLauncher.launch(launch)
@@ -95,7 +96,7 @@ public final class SystemActionPerformer: ActionPerforming {
                 shellPath: shellPath
             )
             // 出力があれば結果のパネルに出す（空なら何も出さない）
-            return try CommandOutput.text(from: output)
+            return CommandOutput.text(from: output)
         case .terminal:
             // 出力はターミナルのウインドウに出る
             try await TerminalCommandFile.open(source: script.source, variables: variables, workingDirectory: workingDirectory.path)
@@ -110,9 +111,9 @@ public final class SystemActionPerformer: ActionPerforming {
         if shortcut.passSelectedText {
             reading = await contextReader.read(.forShortcut(shortcut), app: frontmost)
         }
-        let output = try await ShortcutRunner.run(name: shortcut.name, input: reading?.info.selectedText, wantsTextOutput: true)
-        // 出力があれば結果のパネルに出す（空なら何も出さない）
-        return try CommandOutput.text(from: output)
+        let output = try await ShortcutRunner.run(name: shortcut.name, input: reading?.info.selectedText)
+        // テキストを返したら結果のパネルに出す（何も返さない・テキストでなければ何も出さない）
+        return CommandOutput.text(from: output)
     }
 
     // MARK: - AI の結果の出し方
@@ -165,7 +166,10 @@ public final class SystemActionPerformer: ActionPerforming {
                 MenuItemPresser.shortcut(path: path, pid: pid)
             }.value
         }
-        if MenuActionPlan.decide(isTargetFrontmost: isFrontmost, keyEquivalent: action.keyEquivalent, shortcutInMenu: shortcutInMenu) == .sendKeys,
+        // メニューを読む間（最長 5 秒）に前面が変わっていたら、キーは送らずにメニューを押す（メニューはそのアプリに押せる）
+        let isStillFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier
+        if isStillFrontmost,
+           MenuActionPlan.decide(isTargetFrontmost: isFrontmost, keyEquivalent: action.keyEquivalent, shortcutInMenu: shortcutInMenu) == .sendKeys,
            let keys = action.keyEquivalent {
             do {
                 try await keySender.send(keys)
@@ -249,21 +253,32 @@ enum SelectionMessage {
     }
 }
 
-/// スクリプトとショートカットの出力を、結果として使う形にする
+/// スクリプトとショートカットの出力を、結果のパネルに出す形にする（出すだけで、貼り付けもコピーもしない）
 enum CommandOutput {
-    /// 末尾の改行を1つだけ除いた標準出力（"echo" の改行を貼り付けない）。空なら nil（貼り付けもコピーもしない）。
-    /// 上限を超えて先頭が切れていたら、途中から始まる文字を貼り付けたりコピーしたりしないよう NonetError
-    static func text(from output: ProcessOutput) throws -> String? {
-        if output.stdoutTruncated {
-            let limit = ScriptRunner.outputLimit / 1024
-            throw NonetError.actionFailed(String(localized: "出力が大きすぎるため、使えませんでした（\(limit) KB まで）", bundle: .nonetActions))
-        }
+    /// 末尾の改行を1つだけ除いた標準出力。空白と改行だけ・テキストでない（画像などのバイト列）なら nil（パネルを出さない）。
+    /// リッチテキスト（ショートカットのテキストが RTF で届く）は文字だけにする。
+    /// 上限を超えて先頭が切れていたら、終わりの部分に、そうと分かる一行を添える（スクリプトは成功しているので、失敗にはしない）
+    static func text(from output: ProcessOutput) -> String? {
         var text = output.stdout
         // "\r\n" は Swift では1文字なので、最後の1文字が改行かで見る
         if let last = text.last, last.isNewline {
             text.removeLast()
         }
-        return text.isEmpty ? nil : text
+        if text.contains("\u{0}") || text.contains("\u{FFFD}") { return nil }
+        if text.hasPrefix("{\\rtf"), let plain = plainText(fromRTF: text) {
+            text = plain
+        }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        guard output.stdoutTruncated else { return text }
+        let limit = ScriptRunner.outputLimit / 1024
+        return String(localized: "（出力が長いため、終わりの \(limit) KB だけを表示しています）", bundle: .nonetActions) + "\n" + text
+    }
+
+    private static func plainText(fromRTF rtf: String) -> String? {
+        guard let data = rtf.data(using: .utf8),
+              let attributed = try? NSAttributedString(data: data, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil)
+        else { return nil }
+        return attributed.string
     }
 }
 

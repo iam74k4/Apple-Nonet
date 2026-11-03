@@ -1057,7 +1057,6 @@
       }
     },
     "Mac にログインしたら Nonet を自動で起動する" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1769,6 +1768,7 @@
       }
     },
     "「%@」に空いているマスがありません。マスを空けるか、ページを追加してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1779,6 +1779,7 @@
       }
     },
     "「%@」の%@にコピーしました" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2830,6 +2831,7 @@
       }
     },
     "ほかのプロファイルにコピー" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3101,7 +3103,18 @@
         }
       }
     },
+    "アプリのアイコンは、アプリを開くマス・メニュー項目のマスか、アプリのプロファイルで使えます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App icons are available for Open buttons that open an app, Menu Item buttons and in app profiles."
+          }
+        }
+      }
+    },
     "アプリのアイコンは、アプリ起動のマスか、アプリのプロファイルで使えます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5262,6 +5275,16 @@
         }
       }
     },
+    "マスに入れる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Put in Button"
+          }
+        }
+      }
+    },
     "マスの中身をメニュー項目で置き換えました" : {
       "localizations" : {
         "en" : {
@@ -5571,7 +5594,6 @@
       }
     },
     "メニューバーにアイコンが見えないときは、アプリケーションフォルダから Nonet を開くと設定が開きます" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8222,6 +8244,7 @@
       }
     },
     "空いているマスに入れる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8252,11 +8275,22 @@
       }
     },
     "終わるまで待ち、失敗したらエラーの最後を表示します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Waits for the script to finish and shows the last lines of standard error if it fails."
+          }
+        }
+      }
+    },
+    "終わるまで待ちます。出力があれば結果のパネルに出し（出したくないときは > /dev/null）、失敗したらエラーの最後を表示します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waits for the script to finish. Output appears in the result panel (add > /dev/null to hide it), and the last lines of standard error appear if it fails."
           }
         }
       }
@@ -9553,7 +9587,18 @@
         }
       }
     },
+    "項目をマスへドラッグするか、ダブルクリックで選んでいるメニュー項目のマス（無ければ空いているマス）に入れます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag an item onto a button, or double-click to put it in the selected Menu Item button (or an empty button)."
+          }
+        }
+      }
+    },
     "項目を空いているマスへドラッグするか、ダブルクリックで入れます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

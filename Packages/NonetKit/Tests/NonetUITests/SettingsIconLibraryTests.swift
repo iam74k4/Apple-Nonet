@@ -63,11 +63,6 @@ import Testing
         #expect(!SettingsIconLibrary.filter("HAMMER").isEmpty)
     }
 
-    @Test(arguments: [("A", "A"), (" 開発 ", "開発"), ("abc", "ab"), ("👍🏽x", "👍🏽x"), ("   ", nil), ("", nil)] as [(String, String?)])
-    func textIconsAreOneOrTwoCharacters(input: String, expected: String?) {
-        #expect(SettingsIconLibrary.normalizedText(input) == expected)
-    }
-
     @Test func suggestedAppForTheIcon() {
         let global = Profile(kind: .global)
         let xcode = Profile(kind: .app(SettingsFixtures.xcode))

@@ -16,7 +16,8 @@ public struct EdgeSlideRecognizer: Sendable {
     /// 標準は下の定数。控えめは帯を 6mm ほどに狭め、7mm ほど動かすのを 0.4 秒のうちに求める（ふだんのポインタ操作で開いてしまう人向け。
     /// 6mm は実機で「縁から滑らせても開かないことがある」となった値なので、狙って縁に当てる人向け）。
     /// 開きやすいは帯を 13mm ほどに広げ、4mm 動かせば 1 秒のうちならよい（縁から滑らせても開かないことがある人向け）。
-    /// どの段でも、開いた瞬間の指（帯の下の縁から travel 動いたところ）は上の外枠（GridInsets.cancelFrame の奥 0.17）の中に収まる
+    /// どの段でも、開いた瞬間の指は上の外枠にいることにし、そこから滑らせてからマスを選ぶ（SessionConfiguration.openTravel）。
+    /// 開きやすいでは、帯の下の縁から travel 動いたところが外枠の境目（奥 0.17）に届くので、外枠の中だけには頼らない
     public struct Thresholds: Equatable, Sendable {
         public var bandHeight: Double
         public var travel: Double

@@ -59,7 +59,7 @@ struct SettingsMenuPanel: View {
             .disabled(browser.sections.isEmpty)
             content
                 .frame(maxHeight: .infinity)
-            Text("項目を空いているマスへドラッグするか、ダブルクリックで入れます", bundle: .module)
+            Text("項目をマスへドラッグするか、ダブルクリックで選んでいるメニュー項目のマス（無ければ空いているマス）に入れます", bundle: .module)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -161,7 +161,7 @@ struct SettingsMenuPanel: View {
                 Button {
                     model.assignMenuItem(entry.node)
                 } label: {
-                    Text("空いているマスに入れる", bundle: .module)
+                    Text("マスに入れる", bundle: .module)
                 }
             }
         } primaryAction: { ids in

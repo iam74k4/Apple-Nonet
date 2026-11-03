@@ -8,8 +8,13 @@ import SwiftUI
 public final class OnboardingWindowController {
     /// 練習の画面の「設定を開く」と「ライセンスキーを入力…」。nil なら「設定を開く」は出さない
     public var onOpenSettings: ((SettingsTab) -> Void)?
-    /// 練習の画面の「完了」「スキップ」で閉じたとき（ウィンドウの閉じるボタンで閉じたときは呼ばない）。メニューバーのアイコンの場所を見せる
+    /// 案内を閉じたとき（「設定を開く」で閉じたときは呼ばない。設定のウィンドウが開くので）。メニューバーのアイコンの場所を見せる
     public var onComplete: (() -> Void)?
+    /// メニューバーのアイコンが見えているか（練習の画面で、見えなければ見つけ方を文で伝える）
+    public var isStatusItemVisible: () -> Bool {
+        get { model.statusItemVisibility }
+        set { model.statusItemVisibility = newValue }
+    }
     /// 案内をどうして開いたか。show() の前に入れる
     public var purpose: OnboardingPurpose {
         get { model.purpose }
@@ -34,6 +39,8 @@ public final class OnboardingWindowController {
     private var executionObserver: ShellObserver<ExecutionRecord?>?
     private var cancellationObserver: ShellObserver<CancellationRecord?>?
     private var didFinish = false
+    /// 「設定を開く」で閉じる（アイコンの場所は見せない）
+    private var isClosingForSettings = false
 
     /// license: 試用期間が終わっていて練習できないことを知らせ、ライセンスキーを登録したら知らせを消すために見る。
     /// onFinish: ウィンドウを閉じたとき（完了・途中で閉じたとき）
@@ -45,7 +52,8 @@ public final class OnboardingWindowController {
             license: license,
             permissions: services.permissions,
             frontmostApp: services.frontmostApp,
-            touchSource: services.touchSource
+            touchSource: services.touchSource,
+            loginItem: services.loginItem
         )
         raiseWindow = { [weak self] in self?.bringToFront() }
         // ライセンスの登録は設定で行い、案内は開いたまま戻ってこられるようにする
@@ -126,18 +134,19 @@ public final class OnboardingWindowController {
         model.setWindowKey(window.isKeyWindow)
     }
 
-    /// 「設定を開く」。閉じて設定の「プロファイル」を開く
+    /// 「設定を開く」。「ログイン時に起動」を反映し、閉じて設定の「プロファイル」を開く。反映できなければ、知らせを出して開いたままにする
     func openSettings() {
+        guard model.finish() else { return }
+        isClosingForSettings = true
         let open = onOpenSettings
         window?.close()
         open?(.profiles)
     }
 
-    /// 「完了」「スキップ」。閉じて、メニューバーのアイコンの場所を見せる
+    /// 「完了」「スキップ」。「ログイン時に起動」を反映して閉じる（アイコンの場所は windowDidClose で見せる）
     func complete() {
-        let done = onComplete
+        guard model.finish() else { return }
         window?.close()
-        done?()
     }
 
     #if DEBUG
@@ -156,12 +165,18 @@ public final class OnboardingWindowController {
         executionObserver?.cancel()
         cancellationObserver?.cancel()
         executionObserver = nil
+        // 閉じるボタンで閉じたときも、練習の画面で見せていた「ログイン時に起動」の選択は反映する（知らせはもう出せない）
+        _ = model.finish()
         model.close()
         window?.delegate = nil
         window = nil
         handBackActivation()
         guard !didFinish else { return }
         didFinish = true
+        // どう閉じても（閉じるボタンでも）、アイコンの場所を見せる。Nonet は Dock に出ないので、ここで覚えてもらう
+        if !isClosingForSettings {
+            onComplete?()
+        }
         onFinish()
     }
 }

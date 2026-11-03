@@ -25,7 +25,7 @@
 | 左右の外枠で止める | hold your finger in the left or right frame | The main way to change pages: hold the finger in the side frame, beside the rows, for 0.5 s. HUD: "Hold for the next page" / "Hold for the previous page" under "Lift to cancel". Short form: "Hold in the side frame to change pages". |
 | 2本指で左右にスワイプ | swipe left or right with two fingers | The other way to change pages. The noun is "two-finger swipe". |
 | ページ | page | "up to three pages (27 buttons)", "the next page of nine". |
-| HUD の下の点 | page dots | The dots under the HUD that show the current page. |
+| HUD のページの点 | page dots | The dots in the HUD's top bar, to the right of the title, that show the current page ("Practice" replaces them during the welcome guide's practice). |
 | プロファイル | profile | Site: "A profile for each app". |
 | アプリのプロファイル | app profile | "the Xcode profile". |
 | グローバル | Global | Proper name of the profile that applies to every app, so it is capitalized: "the Global profile", "Global pages". Apple's "All Applications" (Keyboard › App Shortcuts) was considered, but it doesn't work in compound labels. Do not use "Default" or "Universal". |
@@ -95,7 +95,7 @@
 | ページの操作 / ページを追加 / このページを削除… | Page Actions / Add Page / Delete This Page… | The … menu next to the page chips (its help tag and VoiceOver label are "Page Actions"). It acts on the selected page and also has Rename…. The menu item Add Page has its own key (`settings.pageMenu.addPage`), because the + button's help tag ページを追加 is "Add page". |
 | 以前の設定に戻す… / 戻す… / この設定に戻す / 控え | Restore an Earlier Version… / Restore… / Restore / saved version | Button under Export & Import, its sheet and its confirmation. In prose, 控え (a saved copy of the settings) is "saved version". Don't call it a "backup" in the UI, so it isn't confused with an exported file. |
 | このマスをテスト実行 | Test This Button | Context menu command. In prose: "test run". Nonet doesn't open from the top edge while its own window is the key window (Settings uses the trackpad for dragging buttons), so this is how to try a button from Settings. |
-| 少し長く止めてから実行 | Hold before running | Inspector checkbox (`Cell.requiresHold`; the configuration file still calls it `requiresHUD`) and the VoiceOver value of the timer mark at the top right of such a button in the HUD and the Settings grid. Sentence case. The button runs only if the finger stays on it about 0.6 seconds; meanwhile its outline in the HUD fills around. Caption: "Runs only if you hold your finger on this button a little longer before lifting. When the outline in the HUD goes all the way around, lift to run." Do not use "long press", "press and hold" or "confirm". |
+| 少し長く止めてから実行 | Hold before running | Inspector checkbox (`Cell.requiresHold`; the configuration file still calls it `requiresHUD`) and the VoiceOver value of the timer mark at the top right of such a button in the HUD and the Settings grid. Sentence case. The button runs only if the finger stays on it about 0.45 seconds; meanwhile its outline in the HUD fills around. Caption: "Runs only if you hold your finger on this button a little longer before lifting. When the outline in the HUD goes all the way around, lift to run." Do not use "long press", "press and hold" or "confirm". |
 | 並べ替え / 入れ替え | reorder / swap | "Drag to reorder", "drag to swap buttons". |
 | 右クリック | Control-click | Apple docs style: "Control-click (or right-click)". |
 | Nonet を有効にする | Enable Nonet | Settings checkbox, and a menu bar menu item with a checkmark. Caption in Settings: "When off, sliding in from the top edge of the trackpad doesn't open the buttons". |
@@ -137,12 +137,13 @@
 | このアプリでは使わない | Turn Off in This App | Nonet menu item with a checkmark. Sets the front app to Turn Off Nonet in This App: in that app, sliding in from the top edge does nothing and the trackpad works as usual ("Nonet is off in %@. The trackpad works as usual."). |
 | 最近の実行 | Recent Runs | Nonet menu submenu. Each item reads "✓ Xcode › Build"; a failure reads "✗ …", then " — " and the first line of the reason. |
 | ヘルプ / Nonet ヘルプ | Help / Nonet Help | Help menu of the hidden main menu (⌘?). |
-| Nonet はここにいます | Nonet lives here | Bubble under the menu bar icon at the end of the welcome guide. |
+| Nonet はここにいます | Nonet lives here | Bubble under the menu bar icon when the welcome guide closes (with Done, Skip or the close button; not with Open Settings). |
 | 「Xcode のプロファイル」（メニューの状態） | Xcode profile | Status line in the menu bar menu. |
 | 初回の案内 / 初回の案内をもう一度 | welcome guide / Show Welcome Guide | Menu item without an ellipsis, because it only opens a window. |
 | 試してみる | Try It Out | Onboarding step and button (the second and last step, after Accessibility). Apple uses "choose" for user decisions and "select" for text or list items. |
 | 試してみましょう / 開いて、マスで離す / 外枠で離して、やめる / いまの課題 / この後の課題 / 済み | Try it out / Open and lift on a button / Cancel in the frame / Current task / Next task / Done | The practice step's heading, its two tasks and their states. The first task: "Place a finger on the top edge of the trackpad and slide it down to open the HUD, which shows all nine buttons. Slide to “%@” and lift your finger there." |
 | Nonet を使うには、あと1つ許可が必要です / 今後表示しない | One more step to start using Nonet / Don't show again | The permission step when the welcome guide reopens at launch without Accessibility permission. |
+| Mac にログインしたら Nonet を自動で起動する | Open Nonet automatically when you log in | Checkbox at the bottom of the welcome guide's Try It Out step. Checked on first launch; when the guide is shown again, it starts from the current Open at login setting. Applied when the guide closes from that step. Sentence case because it is a checkbox. If the menu bar icon is hidden, the step also says "If you can't see the icon in the menu bar, open Nonet from the Applications folder to open Settings." |
 | 練習モード | practice mode | "Nothing runs in practice mode." |
 | アップデート / アップデートを確認 | update / Check for Updates… | Sparkle's standard menu item. |
 | アップデートがあります… | Update Available… | Replaces Check for Updates… in the Nonet menu when a scheduled check has found an update. Title Case and an ellipsis, because it opens Sparkle's update window. |
@@ -150,12 +151,12 @@
 | Nonet について | About Nonet | App menu item of the hidden main menu. It opens the Nonet tab of Settings. |
 | 取り消す / やり直す / カット / コピー / ペースト / ペーストしてスタイルを合わせる / 削除 / すべてを選択 | Undo / Redo / Cut / Copy / Paste / Paste and Match Style / Delete / Select All | Edit menu of the hidden main menu. These are Apple's standard item names. The menu itself is "Edit" (its own key, `menu.edit`, because 編集 is also the symbol group "Editing"). |
 | ウインドウ / 閉じる / しまう | Window / Close / Minimize | Window menu of the hidden main menu (⌘W, ⌘M). |
-| マスで指を離すと実行（HUD の案内） | Lift on a button to run | Default VoiceOver hint of the HUD (`HUDModel.hint`); not shown on screen. |
+| マスで指を離すと実行 | Lift on a button to run | Former HUD hint, no longer shown or read (the HUD shows no how-to text). The welcome guide's practice says "Done. Lift your finger on a button to run it." |
 | 止めると次のページ / 止めると前のページ（HUD） | Hold for the next page / Hold for the previous page | Second line under "✕ Lift to cancel" while the finger is in the left or right frame and there is a page on that side. |
-| そのまま止めて待つ（HUD の案内） | Keep your finger still | HUD hint at the top right while the finger is on a Hold before running button and the outline is still going around. It changes to "Lift to run" when ready. |
+| そのまま止めて待つ / 離すと実行（VoiceOver） | Keep your finger still / Lift to run | VoiceOver text for a Hold before running button while its outline is still going around, and once it's complete (VoiceOver says "Lift to run" then). Not shown in the HUD: the outline and the haptic show the progress. The only text in the HUD's top bar is "Practice". |
 | Nonet のウィンドウが前面のときは、9マスは開きません / ほかのアプリの上で試してください | The nine buttons don't open while a Nonet window is in front / Try it over another app | Notice at the bottom of the screen, shown once per launch when the user slides in from the top edge while Settings or the welcome guide is in front. Info style, not an error. |
 | うまく開かないときは… / 外枠で離すと、何も実行せずに閉じます。… / マスの境目の線の上で離すと、実行しません。… / 通りかかっただけのマスは実行しません。… / 空きマスでは何も起きません。… / 指を1本にして… / まだ外枠で離していません。… | If it doesn't open… / Lifting in the frame closes the buttons without running anything. … / Lifting right on the line between two buttons runs nothing. … / A button you only slid across doesn't run. … / Nothing happens on an empty button. … / Use one finger… / You haven't lifted in the frame yet. … | Practice hints in the welcome guide: the standing hint under task 1, and one hint per reason a lift ran nothing (`SessionCancellation`). Each ends with what to do next. |
-| 離すとやめる（HUD） | Lift to cancel | Shown with ✕ in the HUD while the finger is in the frame (the buttons dim and the frame brightens). It also shows right after opening, because the finger is still in the top part of the frame. |
+| 離すとやめる（HUD） | Lift to cancel | Shown with ✕ in the HUD while the finger is in the frame (the buttons dim and the frame brightens). It also shows right after opening, because the finger always counts as being in the frame until it slides a little further. |
 | 練習中（HUD） | Practice | Next to the profile name in the HUD while the welcome guide's practice runs. |
 | 「%@」を実行中… | Running “%@”… | Notice while a slow button runs. |
 | %@ › %@ / %@ › %@（%lldページ目） | %1$@ › %2$@ / %1$@ › %2$@ (page %3$lld) | Title of a failure notice: profile › button, plus the page when the profile has more than one. |
@@ -206,7 +207,7 @@
 | 開発 / デザイン / チャット / メール / ブラウザ / 会議 / ドキュメント / ファイル（プリセットの分類） | Development / Design / Chat / Mail / Web Browsing / Video Conferencing / Writing / File Management | Preset categories shown with each app in Add Profile. Title Case. |
 | よく使う / 編集 / 画面と操作 / メディアと連絡 / AI と文章 / 開発（記号の分類） | Common / Editing / Windows & Navigation / Media & Communication / AI & Writing / Development | Symbol groups in the icon picker. 編集 here is "Editing", not the Edit menu. |
 | マス %lld（%@） | Button %lld (%@) | Inspector heading and VoiceOver label, e.g. "Button 3 (top right)". An empty one is "%@: empty" in Settings and "Empty button, %@" in the HUD. |
-| アクションを追加 / 空いているマスに入れる / このマスを空にする / 既定のアイコンに戻す | Add Action / Add to Empty Button / Clear This Button / Restore Default Icon | Commands, Title Case. |
+| アクションを追加 / マスに入れる / このマスを空にする / 既定のアイコンに戻す | Add Action / Put in Button / Clear This Button / Restore Default Icon | Commands, Title Case. マスに入れる is the Pick from Menus panel's context menu item (it puts the item in the selected Menu Item button, or an empty button). |
 | アプリを選ぶ…（1つ選ぶ） / 一覧にないアプリを選ぶ… | Choose App… / Choose Another App… | Singular wherever one app is picked (the Open action's App to open, Add Profile). The bare key アプリを選ぶ is also used for the Pick from Menus app pop-up's placeholder and for the app open panel's title, translated "Choose App". |
 | 一覧を読み直す / 読み直す / 読み込む / メニューを読み込む / もう一度読む | Reload List / Reload / Load / Load Menus / Try Again | Shortcut list, Pick from Menus panel and their retry buttons. |
 | 「ボタン名」を押す（文中で操作を指す） | click <label> | In UI text, name controls by their label without quotes: "Click Add Profile to…", "click Register", "Click Next to continue". |

@@ -631,11 +631,22 @@
       }
     },
     "出力が大きすぎるため、使えませんでした（%lld KB まで）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't use the output because it's larger than %lld KB."
+          }
+        }
+      }
+    },
+    "前面のアプリが変わったため、キーを送りませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The front app changed, so the keys weren't sent."
           }
         }
       }
@@ -707,6 +718,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The selected text is too long."
+          }
+        }
+      }
+    },
+    "（出力が長いため、終わりの %lld KB だけを表示しています）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(The output is long, so only the last %lld KB is shown.)"
           }
         }
       }

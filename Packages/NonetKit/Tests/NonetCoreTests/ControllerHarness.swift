@@ -72,7 +72,7 @@ final class ControllerHarness {
         licensed: Bool = false,
         installed: Set<String> = [],
         frontmost app: RunningAppInfo? = ControllerFixtures.safariApp,
-        presetEnvironment: FixedPresetEnvironment = FixedPresetEnvironment()
+        presetEnvironment: any PresetEnvironmentProviding = FixedPresetEnvironment()
     ) throws {
         keyboard = ControllerFakeKeyboard(recorder: recorder, permissions: permissions)
         haptics = ControllerFakeHaptics(recorder: recorder)
@@ -194,6 +194,12 @@ final class ControllerHarness {
     func lift(_ id: Int = 1) {
         fingers[id] = nil
         sendFrame()
+    }
+
+    /// トラックパッドの続きが来なくなり、トラックパッドの側が指を離れたことにしたフレームを送る（切断・スリープ明け）
+    func synthesizedLift() {
+        fingers.removeAll()
+        touchSource.send(TouchFrame(timestamp: scheduler.now, points: [], isSynthesizedLift: true))
     }
 
     func sendFrame() {

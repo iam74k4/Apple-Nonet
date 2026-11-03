@@ -1,5 +1,6 @@
 // 担当: platform-actions
 import Foundation
+import NonetCore
 import os
 
 extension Bundle {
@@ -51,6 +52,17 @@ enum BlockingCall {
             lock.unlock()
             continuation?.resume(returning: value)
         }
+    }
+}
+
+/// キー入力のマスを送る直前に、前面のアプリが、9マスを開いたとき（テスト実行では前面に出したとき）のアプリのままか確かめる。
+/// 前のマスのアプリの起動を待つ間などに前面が変わっていたら、別のアプリに ⌘W などを送らない
+enum KeyTarget {
+    /// expected が無い・いまの前面が分からないときは確かめない
+    static func check(expected: RunningAppInfo?, frontmostPID: pid_t?) throws {
+        guard let expected, let frontmostPID, frontmostPID != expected.processID else { return }
+        ActionLog.logger.notice("前面のアプリが変わったので、キーを送らない")
+        throw NonetError.actionFailed(String(localized: "前面のアプリが変わったため、キーを送りませんでした", bundle: .nonetActions))
     }
 }
 

@@ -211,12 +211,20 @@ final class OnboardingModel {
     var purpose: OnboardingPurpose = .guide
     /// トラックパッドが見つからない（最初の画面で知らせる。許可より前に分かる）
     private(set) var isTrackpadMissing = false
+    /// 練習の画面の「Mac にログインしたら Nonet を自動で起動する」。初回起動では最初から選んでおき、案内を閉じるときに反映する
+    var opensAtLogin: Bool
+    /// ログイン時に起動を変えられなかった（システム設定での許可待ちを含む）ときの知らせ
+    private(set) var loginItemMessage: String?
+    /// メニューバーのアイコンが見えている（練習の画面に入ったときに確かめる）。見えなければ、見つけ方を文で伝える
+    private(set) var isStatusItemVisible = true
     /// 「今後表示しない」
     private(set) var hidesReminder = false
     /// 設定を開く（ライセンスの登録など）。ウィンドウの側が入れる
     @ObservationIgnored var onOpenSettings: ((SettingsTab) -> Void)?
     /// VoiceOver に読ませる（テストでは数える）
     @ObservationIgnored var announce: (String) -> Void = { HUDAccessibility.announce($0) }
+    /// メニューバーのアイコンが見えているか。ウィンドウの側が入れる
+    @ObservationIgnored var statusItemVisibility: () -> Bool = { true }
     /// 少し後に行う（テストでは手で進める）
     @ObservationIgnored var scheduleAfter: (TimeInterval, @escaping @MainActor () -> Void) -> Void = { delay, action in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -234,6 +242,7 @@ final class OnboardingModel {
     @ObservationIgnored private let permissions: any PermissionsProviding
     @ObservationIgnored private let frontmostApp: (any FrontmostAppObserving)?
     @ObservationIgnored private let touchSource: (any TouchSource)?
+    @ObservationIgnored private let loginItem: (any LoginItemControlling)?
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var practiceStartedAt: Date?
     /// 練習を始めたときにすでにあった記録（これは数えない）
@@ -241,15 +250,19 @@ final class OnboardingModel {
     @ObservationIgnored private var cancellationBaseline: CancellationRecord?
     /// このウィンドウで macOS の許可の確認を出した。2回目からはシステム設定の欄だけを開く
     @ObservationIgnored private var hasPromptedAccessibility = false
+    /// 知らせを出したときに選んでいた「ログイン時に起動」。同じ選択のまま押し直したら閉じる
+    @ObservationIgnored private var loginAttempt: Bool?
 
     /// license が nil なら、試用期間の終了では練習を止めない。
-    /// frontmostApp が nil なら、練習はグローバルのページで案内する。touchSource が nil ならトラックパッドを確かめない
+    /// frontmostApp が nil なら、練習はグローバルのページで案内する。touchSource が nil ならトラックパッドを確かめない。
+    /// loginItem が nil なら「ログイン時に起動」を反映しない
     init(
         controller: NonetController,
         license: LicenseManager? = nil,
         permissions: any PermissionsProviding,
         frontmostApp: (any FrontmostAppObserving)? = nil,
         touchSource: (any TouchSource)? = nil,
+        loginItem: (any LoginItemControlling)? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.controller = controller
@@ -257,8 +270,11 @@ final class OnboardingModel {
         self.permissions = permissions
         self.frontmostApp = frontmostApp
         self.touchSource = touchSource
+        self.loginItem = loginItem
         self.now = now
         isAccessibilityGranted = permissions.isAccessibilityGranted
+        // 初回起動では勧める（選んだままにしておく）。もう一度見るときは、いまの状態から（設定の「一般」で外したものを戻さない）
+        opensAtLogin = controller.isFirstLaunch || (loginItem?.isEnabled ?? true)
         refreshTrackpad()
     }
 
@@ -402,6 +418,40 @@ final class OnboardingModel {
         practiceStartedAt = nil
     }
 
+    /// 練習の画面を閉じるとき（「完了」「スキップ」「設定を開く」・閉じるボタン）。「ログイン時に起動」の選択を反映し、閉じてよければ true。
+    /// システム設定での許可が要る・変えられなかったときは知らせを出して false（同じ選択のまま押し直せば閉じる）。
+    /// 最初の画面では、まだ選択を見せていないので何もしない
+    func finish() -> Bool {
+        guard step == .practice, let loginItem else { return true }
+        if let loginAttempt, loginAttempt == opensAtLogin { return true }
+        loginAttempt = nil
+        guard loginItem.isEnabled != opensAtLogin else {
+            loginItemMessage = nil
+            return true
+        }
+        let enabled = opensAtLogin
+        do {
+            try loginItem.setEnabled(enabled)
+            loginItemMessage = nil
+            logger.info("案内でログイン時に起動を\(enabled ? "オン" : "オフ", privacy: .public)にした")
+            return true
+        } catch NonetError.permissionDenied where enabled {
+            // 登録はできたが、システム設定の「ログイン項目」で許可されるまで動かない（システム設定はサービスが開く）。設定の一般と同じ文言
+            loginItemMessage = String(localized: "システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります", bundle: .module)
+        } catch {
+            logger.error("ログイン時に起動を変えられませんでした: \(error.localizedDescription, privacy: .public)")
+            let reason = error.localizedDescription
+            loginItemMessage = enabled
+                ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）", bundle: .module)
+                : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）", bundle: .module)
+        }
+        loginAttempt = enabled
+        if let loginItemMessage {
+            announce(loginItemMessage)
+        }
+        return false
+    }
+
     // MARK: - 練習
 
     /// controller.lastExecution が変わったら呼ぶ。練習を始めてからの記録だけを数える。
@@ -477,6 +527,7 @@ final class OnboardingModel {
         step = newStep
         switch newStep {
         case .practice:
+            isStatusItemVisible = statusItemVisibility()
             practice = .run
             practiceFeedback = nil
             practiceBaseline = controller.lastExecution

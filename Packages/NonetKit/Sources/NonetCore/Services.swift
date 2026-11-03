@@ -28,10 +28,14 @@ public struct TouchFrame: Equatable, Sendable {
     /// Scheduler.now と同じ時計の秒
     public var timestamp: TimeInterval
     public var points: [TouchPoint]
+    /// 指が離れたフレームではなく、トラックパッドから続きが来なくなったので（切断・スリープ明け・別のトラックパッドに替わった）、
+    /// 離れたことにしたフレーム。開いていれば何も実行せずに閉じる（光っていたマスで離したことにしない）
+    public var isSynthesizedLift: Bool
 
-    public init(timestamp: TimeInterval, points: [TouchPoint]) {
+    public init(timestamp: TimeInterval, points: [TouchPoint], isSynthesizedLift: Bool = false) {
         self.timestamp = timestamp
         self.points = points
+        self.isSynthesizedLift = isSynthesizedLift
     }
 
     public var touching: [TouchPoint] { points.filter(\.isTouching) }

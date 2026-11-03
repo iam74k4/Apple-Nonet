@@ -21,6 +21,42 @@ import Testing
         #expect(global.dropFirst().first?.icon == .app(bundleID: "com.apple.mail"))
     }
 
+    /// 初回の設定は claude を調べ終える前に作る。調べ終えて見つかったら、何も変えていなければ Claude Code のマスを入れて作り直す
+    @Test func firstLaunchAddsClaudeCodeOnceTheShellCheckFinishes() async throws {
+        let environment = LatePresetEnvironment()
+        let h = try ControllerHarness(configuration: nil, installed: [Self.xcode.bundleID], presetEnvironment: environment)
+        h.start()
+        h.controller.update { $0.settings.hudPosition = HUDPosition.nearCursor }
+        #expect(!Self.hasClaudeCode(h, in: Self.xcode))
+        await h.waitUntil { environment.isWaiting }
+        environment.finish(.all)
+        await h.waitUntil { Self.hasClaudeCode(h, in: Self.xcode) }
+        #expect(Self.hasClaudeCode(h, in: Self.xcode))
+        // 全体の設定はそのまま
+        #expect(h.controller.configuration.settings.hudPosition == HUDPosition.nearCursor)
+    }
+
+    /// 調べ終える前にプロファイルを変えていたら、作り直さない（変えたものを消さない）
+    @Test func firstLaunchKeepsEditsMadeBeforeTheShellCheckFinishes() async throws {
+        let environment = LatePresetEnvironment()
+        let h = try ControllerHarness(configuration: nil, installed: [Self.xcode.bundleID], presetEnvironment: environment)
+        h.start()
+        let xcodeID = try h.profileID(Self.xcode)
+        h.controller.update { $0.setCell(nil, at: CellAddress(page: 0, index: 0), profileID: xcodeID) }
+        let edited = h.controller.configuration
+        await h.waitUntil { environment.isWaiting }
+        environment.finish(.all)
+        for _ in 0..<20 { await Task.yield() }
+        #expect(h.controller.configuration == edited)
+    }
+
+    static func hasClaudeCode(_ h: ControllerHarness, in app: AppReference) -> Bool {
+        guard let profile = h.controller.configuration.appProfile(forBundleID: app.bundleID) else { return false }
+        return profile.pages.flatMap(\.cells).contains { cell in
+            if case .script(let script)? = cell?.action { script.runMode == .terminal } else { false }
+        }
+    }
+
     @Test func aTestRunKeepsTheResultForTheInspector() async throws {
         let h = try ControllerHarness(frontmost: ControllerFixtures.notesApp)
         h.performer.output = { _ in "out" }
@@ -34,4 +70,28 @@ import Testing
         #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.script(ScriptAction(source: "x"))))
         #expect(!ControllerExecutionPolicy.sendsInputToFrontmostApp(.shortcut(ShortcutAction(name: "s", passSelectedText: true))))
     }
+}
+
+/// すぐに返す capabilities は claude を調べ終える前（見つからない扱い）で、resolvedCapabilities は finish まで待つ
+@MainActor
+final class LatePresetEnvironment: PresetEnvironmentProviding {
+    private(set) var capabilities = PresetCapabilities(appleIntelligence: true, claudeCode: false)
+    private var waiters: [CheckedContinuation<PresetCapabilities, Never>] = []
+
+    var isWaiting: Bool { !waiters.isEmpty }
+
+    func resolvedCapabilities() async -> PresetCapabilities {
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func finish(_ resolved: PresetCapabilities) {
+        capabilities = resolved
+        let pending = waiters
+        waiters = []
+        for waiter in pending {
+            waiter.resume(returning: resolved)
+        }
+    }
+
+    func dockApps() -> [AppReference] { [] }
 }

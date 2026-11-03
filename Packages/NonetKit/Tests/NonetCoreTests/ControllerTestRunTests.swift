@@ -109,6 +109,33 @@ import Testing
         #expect(h.performer.calls.last?.frontmostApp == safariAfterLaunch)
     }
 
+    /// 前に使っていたアプリ（frontmostApp.current は Nonet を数えないので、最初からそのアプリ）でも、
+    /// 設定ウィンドウがキーのままなら前面になっていない。送ると ⌘W・⌘Z・⌘Q が設定ウィンドウに届くので、送らない
+    @Test func keysAreNotSentWhileTheSettingsWindowKeepsTheKeyboard() async throws {
+        let close = Cell(title: "閉じる", icon: .symbol("xmark"), action: .keystroke(.key("w", [.command])))
+        let h = try ControllerHarness(frontmost: F.notesApp)
+        h.start()
+        h.frontmost.isOwnWindowKey = true
+        let globalID = h.controller.configuration.globalProfile.id
+        let run = Task { await h.controller.testRun(close, profileID: globalID) }
+        await waitOutTheActivation(h)
+        let record = await run.value
+
+        #expect(h.performer.actions == [.launchApp(LaunchAppAction(app: F.notes, hideIfFrontmost: false))])
+        #expect(!record.succeeded)
+        #expect(record.message == ModelFixtures.text("\("メモ") が前面になりませんでした"))
+
+        // 前面に来て、設定ウィンドウがキーでなくなれば送る
+        let later = Task { await h.controller.testRun(close, profileID: globalID) }
+        await h.waitUntil { h.scheduler.hasPending(delay: NonetController.activationDelay) }
+        h.advance(NonetController.activationDelay)
+        await h.waitUntil { h.scheduler.hasPending(delay: NonetController.activationRetryInterval) }
+        h.frontmost.isOwnWindowKey = false
+        h.advance(NonetController.activationRetryInterval)
+        #expect(await later.value.succeeded)
+        #expect(h.performer.actions.last == close.action)
+    }
+
     @Test func aGlobalKeystrokeCellGoesToTheAppUsedBeforeTheSettingsWindow() async throws {
         let paste = Cell(title: "ペースト", icon: .symbol("doc.on.clipboard"), action: .keystroke(.key("v", [.command])))
         // frontmostApp は Nonet を数えないので、設定ウィンドウが前面でもメモを指す

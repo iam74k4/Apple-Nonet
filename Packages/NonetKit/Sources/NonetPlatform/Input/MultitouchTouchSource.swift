@@ -138,7 +138,7 @@ public final class MultitouchTouchSource: TouchSource {
         connection.pipeline.reset()
         // 触れていた指のフレームはもう来ないので、離れたことにする（エンジンが指を置いたままだと思い込まないように）
         if liftFirst {
-            deliver(TouchFrame(timestamp: ProcessInfo.processInfo.systemUptime, points: []), from: nil)
+            deliver(TouchFrame(timestamp: ProcessInfo.processInfo.systemUptime, points: [], isSynthesizedLift: true), from: nil)
             guard isRunning else { return }
         }
         let usable = MultitouchDeviceInfo.usable(devices)

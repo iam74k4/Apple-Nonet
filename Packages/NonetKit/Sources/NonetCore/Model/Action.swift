@@ -54,7 +54,7 @@ public struct URLAction: Codable, Equatable, Sendable {
 }
 
 public enum ScriptRunMode: String, Codable, CaseIterable, Sendable {
-    /// 裏で実行し、失敗したときだけ知らせる
+    /// 裏で実行して終わるまで待つ。標準出力があれば結果のパネルに出し、失敗したら知らせる
     case background
     /// ターミナルの新しいウィンドウで実行する（claude のような対話型のコマンド向け）
     case terminal

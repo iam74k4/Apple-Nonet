@@ -15,7 +15,7 @@ struct ActionScriptRunnerTests {
         outputLimit: Int = ScriptRunner.outputLimit,
         killGracePeriod: TimeInterval = 2
     ) async throws -> ProcessOutput {
-        try await ProcessRunner.run(ProcessRequest(
+        ScriptRunner.strippingStartupOutput(try await ProcessRunner.run(ProcessRequest(
             executable: ScriptRunner.shell,
             arguments: ScriptRunner.arguments(source: source),
             environment: directory.isolatedEnvironment.merging(extra) { _, new in new },
@@ -23,7 +23,7 @@ struct ActionScriptRunnerTests {
             timeout: timeout,
             outputLimit: outputLimit,
             killGracePeriod: killGracePeriod
-        ))
+        )))
     }
 
     @Test("環境変数を受け取り、日本語・改行・引用符もそのまま届く")
@@ -221,9 +221,9 @@ struct ActionScriptRunnerTests {
 
 @Suite("スクリプトの準備")
 struct ActionScriptSetupTests {
-    @Test("引数は -l -c -- ソース")
+    @Test("引数は -l -c -- ソース（同じ行の先頭で、出力の始まりの印を出す）")
     func arguments() {
-        #expect(ScriptRunner.arguments(source: "echo hi") == ["-l", "-c", "--", "echo hi"])
+        #expect(ScriptRunner.arguments(source: "echo hi") == ["-l", "-c", "--", "print -rn -- '\(ScriptRunner.outputMarker)'; echo hi"])
     }
 
     @Test("環境変数: 文脈を重ね、古い NONET_* を消し、LC_CTYPE を補う")

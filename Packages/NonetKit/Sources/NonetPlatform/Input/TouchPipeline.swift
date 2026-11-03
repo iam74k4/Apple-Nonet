@@ -120,7 +120,8 @@ struct TouchFrameCoalescer: Sendable {
     mutating func push(_ frame: TouchFrame) {
         let ids = frame.touchingIDs
         let n = pending.count
-        if n >= 2, pending[n - 1].ids == ids, pending[n - 2].ids == ids {
+        // 離れたことにしたフレームは、後のフレームで置き換えない（開いていたら、何も実行せずに閉じる印なので）
+        if n >= 2, pending[n - 1].ids == ids, pending[n - 2].ids == ids, !pending[n - 1].frame.isSynthesizedLift {
             pending[n - 1] = (frame, ids)
         } else {
             pending.append((frame, ids))
@@ -167,7 +168,7 @@ final class TouchPipeline: @unchecked Sendable {
             let decision = state.selector.accept(device: deviceID, touchingCount: touchingCount, at: timestamp)
             guard decision.deliver else { return false }
             if decision.liftPrevious {
-                state.coalescer.push(TouchFrame(timestamp: timestamp, points: []))
+                state.coalescer.push(TouchFrame(timestamp: timestamp, points: [], isSynthesizedLift: true))
             }
             state.coalescer.push(TouchFrame(timestamp: timestamp, points: points))
             state.lastDevice = deviceID

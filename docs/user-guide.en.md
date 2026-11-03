@@ -54,7 +54,9 @@ The Welcome to Nonet window has two steps, shown at the top.
 1. **Accessibility**: the permission described above
 2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
-At the bottom of the practice step are **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). When you click **Done** or **Skip**, the window closes, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. Click **Open Settings** to go straight to the Settings window.
+At the bottom of the practice step are the **Open Nonet automatically when you log in** checkbox, **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). The checkbox is checked the first time you open Nonet. When you see the guide again, it starts from your current setting (**Open at login** in Settings). Nonet applies your choice when the guide closes from the practice step (with **Done**, **Skip**, **Open Settings** or the window's close button). If macOS needs your approval, System Settings opens at Login Items, the practice step says "To open Nonet at login, allow it in System Settings under Login Items.", and the guide stays open (click the button again to close it). If you can't see the Nonet icon in the menu bar, the practice step says "If you can't see the icon in the menu bar, open Nonet from the Applications folder to open Settings."
+
+When you close the guide with **Done**, **Skip** or the window's close button, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. Click **Open Settings** to go straight to the Settings window.
 
 Your settings start with a profile for every app on your Mac that has a preset, a ready-made set of nine buttons (Finder, Safari, Chrome, Arc, Mail, Outlook, Zoom, Teams, Slack, Excel, Word, PowerPoint, Keynote, Pages, Numbers, Notion, Notes, Obsidian, Figma, Photoshop, Final Cut Pro, Xcode, Visual Studio Code, Cursor and Terminal). Delete the profiles you don't want on the Profiles tab of Settings. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead, and a different button fills the slot it leaves, so the page still has nine (no preset puts Claude Code in the center).
 
@@ -69,7 +71,7 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 1. Place one finger on the top edge (the far edge) of the trackpad
 2. Slide it straight down in one smooth move
 
-The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger is still in the frame (outside the nine buttons), so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything.
+The nine buttons open, the HUD (the overview of all nine buttons) appears on the screen, and the trackpad gives a light tick. The pointer goes back to where your finger first touched and stays put until the buttons close. Right after they open, your finger always counts as being in the frame (outside the nine buttons), wherever it is, so the HUD shows "✕ Lift to cancel". Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
@@ -88,7 +90,7 @@ The highlighted button runs, and the HUD closes.
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant
 - Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
-- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page. Each button shows just its icon and name, not the keys it presses (like ⌘B). While you hold on a button that needs a longer hold, the top edge says "Keep your finger still" and then "Lift to run". In practice it says "Practice"
+- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page (in practice mode, "Practice" appears there instead). Each button shows just its icon and name, not the keys it presses (like ⌘B)
 
 ### Canceling
 
@@ -106,11 +108,11 @@ If the buttons stay open for 20 seconds, they close on their own.
 For buttons that do something you can't undo, such as sending or recording, turn on **Hold before running** in the inspector.
 
 - These buttons have a mark in the corner of the HUD
-- Keep your finger on the button for a moment (0.45 seconds), and its outline goes all the way around. While you wait, the top right of the HUD says "Keep your finger still". When the outline is complete, the trackpad ticks once and the hint changes to "Lift to run". Lift after that to run it. Lifting before the outline is complete runs nothing
+- Keep your finger on the button for a moment (0.45 seconds), and a line goes all the way around its outline. When the outline is complete, the button is highlighted and the trackpad ticks once (VoiceOver says "Lift to run"). Lift after that to run it. Lifting before the outline is complete runs nothing
 
 ### The trackpad while the buttons are open
 
-While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either.
+While the nine buttons are open, the pointer stays put, and clicks and scrolling don't reach the front app. If you keep a finger on the trackpad and use an external mouse, its clicks and movement are dropped too (the buttons close when you lift, and everything is back to normal). A mouse click, move or scroll that arrives while you aren't touching the trackpad closes the buttons without running anything, and the mouse action reaches the app as usual (this is a safety net for when Nonet misses a finger lifting). Lifting while two fingers are down runs nothing either. If the trackpad stops reporting your finger while the buttons are open (for example, a Magic Trackpad disconnects or its battery runs out, your Mac goes to sleep, or Nonet switches to another trackpad), the buttons close without running the highlighted one.
 
 ### Pages
 
@@ -120,7 +122,7 @@ While the nine buttons are open, **hold your finger in the left or right frame**
 2. After about 0.5 seconds, the page changes and the trackpad gives two taps. If you keep holding it there, it moves one more page every 0.9 seconds
 3. Slide back onto the buttons to choose one, then lift to run it
 
-While you hold it there, a bar grows in that side of the frame, and "Hold for the next page" (or "Hold for the previous page" on the left) appears under "✕ Lift to cancel". Lifting in the frame still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page. The page dots under the HUD show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+While you hold it there, a bar grows in that side of the frame, and "Hold for the next page" (or "Hold for the previous page" on the left) appears under "✕ Lift to cancel". Lifting in the frame still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page. The page dots in the top bar of the HUD, to the right of the name, show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
 
 You can also **swipe left or right with two fingers**. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
@@ -206,10 +208,10 @@ The right column is where you set up the selected button. Changes are saved righ
 
 - **Empty button**: click an action type to create one
 - **Name**: the name shown under the icon. If you leave it empty, Nonet names the button from its action
-- **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names) or **App** (**Use This App's Icon**, available for buttons that open an app and in app profiles). **Restore Default Icon** goes back to the default
+- **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names) or **App** (**Use This App's Icon**, available for buttons that open an app, Menu Item buttons and in app profiles). **Restore Default Icon** goes back to the default
 - **Action type**: Keystrokes, Open, Script, Shortcut, Menu Item, AI or File (see Action types)
 - **Hold before running**: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics)
-- **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings
+- **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings. A button that sends input to the front app, such as Keystrokes, waits until that app is in front and the Settings window no longer has the keyboard. If the app doesn't come to the front in time, Nonet shows a message such as "Couldn't bring Xcode to the front." instead of sending the keys to the Settings window
 - **Clear This Button**: removes the action and leaves an empty button
 
 ### Pick from Menus
@@ -218,9 +220,9 @@ You can assign an app's menu items without looking up keyboard shortcuts.
 
 1. Make sure the app is running
 2. Click **Pick from Menus** at the top right of the grid, then choose the app from the pop-up menu
-3. Find the item with **Search menus**, then drag it onto an empty button. You can also double-click it, or Control-click it and choose **Add to Empty Button**
+3. Find the item with **Search menus**, then drag it onto a button. You can also double-click it, or Control-click it and choose **Put in Button**. Then it goes into the selected button if that button is empty or a Menu Item button (even one with no item chosen yet), and otherwise into an empty button
 
-To go back to the inspector, click the × at the top right of the panel (Back to the inspector).
+Putting an item in a filled button replaces what was there (press ⌘Z, or click **Undo** under the grid, to get it back). When you open the panel with **Pick from Menus** in the inspector's Menu Item editor, the button you're editing stays selected, so a double-clicked item goes into that button. To go back to the inspector, click the × at the top right of the panel (Back to the inspector).
 
 ## Action types
 
@@ -242,6 +244,8 @@ Some keys never reach the field because macOS uses them first, such as ⌘Tab, �
 
 Shortcuts like `⌘[` work correctly on JIS keyboards too.
 
+Right before sending, Nonet checks that the front app is still the one that was in front when you opened the buttons. If it changed (for example, an app opened by the previous button came to the front), Nonet doesn't send the keys, so they can't reach the wrong app, and shows "The front app changed, so the keys weren't sent."
+
 Screenshots are Keystrokes buttons too: the presets' **Capture Area** button simply sends ⇧⌘4.
 
 ### Open (app or URL)
@@ -256,9 +260,9 @@ Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 Runs the zsh script in the **Script to run (zsh)** field with `/bin/zsh -l -c`. Click **?** above the field to see the environment variables described below.
 
 - **Run**
-  - In Background: waits for the script to finish and stops it after the **Timeout** (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error. If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
+  - In Background: waits for the script to finish and stops it after the **Timeout** (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error (or of standard output, if nothing was written to standard error). If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
   - In Terminal: runs the script in a new Terminal window. Use it for interactive commands like `claude`
-- **Output** (In Background only): if the script writes anything to standard output, Nonet shows it, without the final newline, in the result panel (the same panel as an AI action's **Show Result**, where you can select and copy text). Empty output shows nothing. Output larger than 64 KB isn't used, and Nonet shows an error instead
+- **Output** (In Background only): if the script writes anything to standard output, Nonet shows it, without the final newline, in the result panel (the same panel as an AI action's **Show Result**, where you can select and copy text). To keep it out of the panel, add `> /dev/null`. What the login shell's startup files (`~/.zprofile`, `~/.zlogin` and so on) print, such as ssh-agent's "Agent pid …", isn't included. Output that's empty, only spaces and line breaks, or not text shows nothing. If the output is longer than 64 KB, Nonet shows only the last 64 KB, under the line "(The output is long, so only the last 64 KB is shown.)", and the script still counts as successful
 - **Working directory**: the project folder (see below), or your home folder if there isn't one
 - **Environment**: background scripts run in a login shell (`zsh -l`) with the same `PATH` as Terminal, which Nonet reads (including `~/.zshrc`) when it opens. Aliases and functions from `~/.zshrc` work only with **In Terminal** (a script run in Terminal reads `~/.zshrc`). If you change `~/.zshrc`, quit Nonet and open it again
 
@@ -311,13 +315,13 @@ Always put variables in double quotes, like `"$NONET_SELECTED_TEXT"`, because th
 
 Runs a shortcut from the Shortcuts app. Type its name in **Shortcut to run**, or pick it from the list next to the field (Choose a shortcut). Turn on **Pass selected text as input** to pass the selected text to the shortcut.
 
-If the shortcut returns text, Nonet shows it, without the final newline, in the result panel. If it returns nothing, nothing is shown.
+If the shortcut returns text, Nonet shows it, without the final newline, in the result panel (rich text is shown as plain text, and long text is cut to the last 64 KB, as for scripts). If it returns something that isn't text, such as an image or a file, or returns nothing, nothing is shown, and neither counts as a failure.
 
 ### Menu Item
 
-Chooses a menu item in an app. The easiest way to set it up is **Pick from Menus** (the button in the inspector's Menu Item editor opens the same panel). **Menu item to choose** shows where the item is, its app and its keys.
+Chooses a menu item in an app. The easiest way to set it up is **Pick from Menus** (the button in the inspector's Menu Item editor opens the same panel, and a double-clicked item goes into the button you're editing). **Menu item to choose** shows where the item is, its app and its keys.
 
-- If the app is in front and the item's keyboard shortcut matches that item's shortcut in the app's menus, Nonet sends the keys, which is fast. Otherwise (for example, if an app update changed the shortcut, or Nonet can't read the menus), Nonet opens the menus one by one and chooses the item
+- If the app is in front and the item's keyboard shortcut matches that item's shortcut in the app's menus, Nonet sends the keys, which is fast. Otherwise (for example, if an app update changed the shortcut, or Nonet can't read the menus), Nonet opens the menus one by one and chooses the item. If the app is no longer in front right before Nonet sends the keys, Nonet also chooses the item from the menus instead
 - If it has none (**None (Nonet opens the menus to choose it)**), Nonet opens the menus one by one with Accessibility and chooses the item
 - Items whose name changes when you choose them, such as Play and Pause or Show Toolbar and Hide Toolbar, keep working after the first press. If Nonet can't find the name, it looks for the paired name, then for the only item in the same menu with the same keyboard shortcut
 - The app must be running
@@ -343,7 +347,7 @@ Trashes, renames or duplicates the files selected in Finder. Click a file in Fin
 - **Operation**:
   - Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash, and files on places without a Trash (such as network volumes), are left alone. When you choose it for a button, **Hold before running** turns on automatically (you can turn it off)
   - Rename: starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected
-  - Duplicate: makes a copy in the same place. Large files take a while (Nonet waits up to 10 minutes for Finder)
+  - Duplicate: makes a copy in the same place. Large files take a while (Nonet waits up to 10 minutes for Finder). If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
 - **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). Nonet checks which app is in front right before it runs, so if another app is in front it shows an error and does nothing, and never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. It doesn't touch symbolic links, because that would change what they point to. It does nothing if more than 500 files are selected or the selection includes your home folder, one of its standard folders (Desktop, Documents and so on), the top of a disk, a system folder or another user's home folder
 - **Permission**: the first time you use it, macOS asks whether Nonet may control Finder (see [macOS asks for Automation permission](#macos-asks-for-automation-permission)). Nonet reads only the locations of the files selected in Finder, never what is inside them
 - **Test Run** in Settings asks first, because the Settings window can't show what is selected in Finder
@@ -364,13 +368,13 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
 
-Slow buttons (background scripts, shortcuts and AI) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
+Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
 
 ### Startup
 
 | Setting | Default | What it does |
 |---|---|---|
-| Open at login | Off | Opens Nonet when you log in to your Mac |
+| Open at login | Off | Opens Nonet when you log in to your Mac. The first time you open Nonet, the practice step of the welcome guide offers it with the box already checked (see [Welcome guide](#welcome-guide) under Getting started) |
 
 ### Export & Import
 
@@ -452,7 +456,7 @@ When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again fro
 
 ### The buttons open when you didn't mean to
 
-If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open your finger is in the frame. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open your finger always counts as being in the frame. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
 
 ### The pointer doesn't move or clicks don't work
 
@@ -468,9 +472,11 @@ While the nine buttons are open, Nonet holds the pointer still and blocks clicks
 
 Buttons are chosen by the **absolute position** of your finger on the trackpad. Check which button is highlighted in the HUD before you lift. If the wrong one is highlighted, slide to the right one, or slide out to the frame and lift so nothing runs. Nothing runs on the line between two buttons, so lift in the middle of a button. For buttons that do something you can't undo, turn on **Hold before running** (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics). **Recent Runs** in the Nonet menu shows what ran.
 
+If a Keystrokes button says "The front app changed, so the keys weren't sent.", another app came to the front between opening the buttons and sending the keys (for example, an app opened by the previous button). Nonet sent nothing, so the keys didn't reach the wrong app. Bring the app you want to the front and run the button again. A Menu Item button chooses the item from the menus in this case instead of sending the keys.
+
 ### A script fails
 
-- Read the error on screen. If the exit code is 127 (`command not found`), run `command -v <name>` in Terminal to check that the command is installed. Background scripts use the same `PATH` as Terminal. Nonet reads it when it opens, so if you change `~/.zshrc`, open Nonet again
+- Read the error on screen (if the script wrote nothing to standard error, it shows the end of standard output). If the exit code is 127 (`command not found`), run `command -v <name>` in Terminal to check that the command is installed. Background scripts use the same `PATH` as Terminal. Nonet reads it when it opens, so if you change `~/.zshrc`, open Nonet again
 - To test under similar conditions, run `zsh -lic '<script>'` in Terminal
 - **Test This Button** in the inspector shows the result right away
 - For long tasks, raise the **Timeout** or choose **In Terminal**
@@ -511,7 +517,7 @@ Make sure **Haptic feedback** isn't turned off. You can feel it only on a Force 
 
 ### Nonet doesn't open at login
 
-When you turn on **Open at login**, macOS may ask you to approve it. Allow Nonet in **System Settings › General › Login Items** (Login Items & Extensions on macOS 15 and later).
+When you turn on **Open at login** (or **Open Nonet automatically when you log in** in the welcome guide), macOS may ask you to approve it. Allow Nonet in **System Settings › General › Login Items** (Login Items & Extensions on macOS 15 and later).
 
 ### “Couldn't load the settings file because it was damaged”
 

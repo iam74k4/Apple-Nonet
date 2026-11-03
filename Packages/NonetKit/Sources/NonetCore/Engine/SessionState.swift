@@ -35,6 +35,8 @@ struct SessionState: Sendable {
     private var swipeBaseline: SwipeBaseline?
     /// 2本以上から1本指に戻った後、残った指を滑らせるのを待っている（滑らせるまでは離しても実行しない）。測り始めた位置
     private var reselectAnchor: FingerTracker.Finger?
+    /// 開いたときの指の位置。ここから openTravel 滑らせるまでは上の外枠にいることにする（開いた瞬間に離せば、必ず何もせずに閉じる）
+    private var openAnchor: FingerTracker.Finger?
     /// 指が止まっている左右の外枠（そちらにページがあるときだけ）。止め続けるとページを切り替える
     private var pagingEdge: PageEdge?
     /// pagingEdge に入った時刻か、前に切り替えた時刻。外枠の中で edgeRestTravel より動かしたときも数え直す
@@ -59,7 +61,9 @@ struct SessionState: Sendable {
         if !isMultiFinger, let finger = tracker.lastPlaced {
             fingerID = finger.id
             lastPosition = finger
-            zone = grid.zone(x: finger.x, y: finger.y)
+            // 開いた瞬間は外枠にいる（開く動きの直後の指が、もう上の段のマスに入っていても選ばない）
+            zone = .frame
+            openAnchor = finger
             pagingEdge = availableEdge(at: finger)
             edgeAnchor = pagingEdge == nil ? nil : finger
         }
@@ -267,7 +271,14 @@ struct SessionState: Sendable {
             fingerID = finger.id
         }
         lastPosition = finger
-        let next = grid.zone(x: finger.x, y: finger.y, current: isNewFinger ? nil : zone)
+        var next = grid.zone(x: finger.x, y: finger.y, current: isNewFinger ? nil : zone)
+        if let anchor = openAnchor {
+            if !isNewFinger, hypot(finger.x - anchor.x, finger.y - anchor.y) <= SessionConfiguration.openTravel {
+                next = .frame
+            } else {
+                openAnchor = nil
+            }
+        }
         if next != zone || isNewFinger {
             zone = next
             zoneSince = now

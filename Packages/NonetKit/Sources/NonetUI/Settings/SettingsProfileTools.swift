@@ -162,34 +162,6 @@ extension SettingsModel {
         gridMessage = nil
     }
 
-    // MARK: - ほかのプロファイルにコピー
-
-    /// コピー先に選べるプロファイル（今のプロファイル以外。グローバルが先頭）
-    var copyTargets: [Profile] {
-        configuration.profiles.filter { $0.id != selectedProfile.id }
-    }
-
-    /// index のマスを、ほかのプロファイルの最初の空きマスへ写す。空きが無ければ知らせる。グリッドの下から元に戻せる
-    func copyCell(at index: Int, toProfile targetID: UUID) {
-        guard var cell = SettingsGrid.cell(at: CellAddress(page: pageIndex, index: index), in: selectedProfile),
-              let target = configuration.profile(id: targetID), targetID != selectedProfile.id else { return }
-        guard let address = SettingsGrid.assignmentTarget(selected: nil, currentPage: 0, in: target) else {
-            gridMessage = String(localized: "「\(target.name)」に空いているマスがありません。マスを空けるか、ページを追加してください。", bundle: .module)
-            return
-        }
-        cell.id = UUID()
-        let pageTitle = SettingsText.pageTitle(index: address.page, name: target.pages[address.page].name)
-        changeCells(
-            String(localized: "ほかのプロファイルにコピー", bundle: .module),
-            notice: String(localized: "「\(target.name)」の\(pageTitle)にコピーしました", bundle: .module),
-            profileID: targetID,
-            at: [address]
-        ) {
-            $0.setCell(cell, at: address, profileID: targetID)
-        }
-        gridMessage = nil
-    }
-
     // MARK: - 隣のマスと入れ替え
 
     /// その向きに隣のマスがある（端では入れ替えられない）

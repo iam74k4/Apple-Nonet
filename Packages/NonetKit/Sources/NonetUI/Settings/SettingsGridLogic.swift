@@ -47,9 +47,10 @@ enum SettingsGrid {
     }
 
     /// メニュー項目をダブルクリックしたときの置き場所。
-    /// 選んでいるマスが空きならそこ、無ければ今のページの最初の空き、それも無ければほかのページの空き
+    /// 選んでいるマスが空きかメニュー項目のマス（インスペクタの「メニューから選ぶ…」から来た・割り当て直す）ならそこ、
+    /// 無ければ今のページの最初の空き、それも無ければほかのページの空き
     static func assignmentTarget(selected: CellAddress?, currentPage: Int, in profile: Profile) -> CellAddress? {
-        if let selected, isEmpty(selected, in: profile) {
+        if let selected, isEmpty(selected, in: profile) || isMenuItem(selected, in: profile) {
             return selected
         }
         if profile.pages.indices.contains(currentPage), let index = firstEmptyIndex(in: profile.pages[currentPage]) {
@@ -83,6 +84,12 @@ enum SettingsGrid {
             }
         }
         return nil
+    }
+
+    /// メニュー項目のマス（項目を選ぶ前のものも）
+    static func isMenuItem(_ address: CellAddress, in profile: Profile) -> Bool {
+        if case .menuItem? = cell(at: address, in: profile)?.action { return true }
+        return false
     }
 
     static func cell(at address: CellAddress, in profile: Profile) -> Cell? {

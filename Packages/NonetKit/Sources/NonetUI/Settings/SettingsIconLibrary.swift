@@ -73,13 +73,6 @@ enum SettingsIconLibrary {
         NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil
     }
 
-    /// 文字のアイコンは1〜2文字。前後の空白を除き、3文字目からは切る。空なら nil
-    static func normalizedText(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return String(trimmed.prefix(2))
-    }
-
     /// アイコンの種類（ピッカーのタブ）。前の版の「文字」のアイコンは HUD に出るが、新しくは作れない
     enum Kind: String, CaseIterable, Identifiable {
         case symbol, app

@@ -140,6 +140,8 @@ public final class NonetController {
     @ObservationIgnored private var opener = EdgeSlideRecognizer()
     /// 開く動きを見分けてから、開くまで待っている（EdgeSlideRecognizer.entryConfirmDelay）
     @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
+    /// 初回起動で、claude を調べ終えてからプリセットを作り直す（rebuildFirstPresetsWhenResolved）
+    @ObservationIgnored private var firstPresetsRebuild: Task<Void, Never>?
     /// Nonet のウィンドウが前面で開かなかったことを、この起動で知らせた（知らせるのは1回だけ）
     @ObservationIgnored private var hasNotifiedOwnWindow = false
     /// 使い始めの案内と試用期間の知らせを、何回・いつ出したか
@@ -210,6 +212,8 @@ public final class NonetController {
             tickTask = nil
             pollTask?.cancel()
             pollTask = nil
+            firstPresetsRebuild?.cancel()
+            firstPresetsRebuild = nil
             cancelPendingOpen()
             services.keyboard.onEvent = nil
             services.touchSource.onFrame = nil
@@ -320,8 +324,10 @@ public final class NonetController {
         }
     }
 
+    /// app が前面で、送ったキーがそのアプリに届くか。frontmostApp.current は Nonet を数えないので、
+    /// 設定ウィンドウがキーのままなら、current がそのアプリでも前面ではない（キーは設定ウィンドウに届く）
     private func isFrontmost(_ app: AppReference) -> Bool {
-        guard let current = services.frontmostApp.current else { return false }
+        guard !services.frontmostApp.isOwnWindowKey, let current = services.frontmostApp.current else { return false }
         return NonetConfiguration.bundleIDKey(current.app.bundleID) == NonetConfiguration.bundleIDKey(app.bundleID)
     }
 
@@ -357,6 +363,10 @@ public final class NonetController {
         if touching != isTrackpadTouched {
             isTrackpadTouched = touching
             services.keyboard.isTrackpadTouched = touching
+        }
+        // トラックパッドの続きが来なくなって離れたことにしたフレーム。光っているマスで離したことにせず、何も実行せずに閉じる
+        if frame.isSynthesizedLift {
+            send(.interrupted(at: frame.timestamp))
         }
         send(.touches(frame))
         // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
@@ -874,8 +884,29 @@ public final class NonetController {
         }
         controllerLogger.info("保存された設定が無いので、初回の設定を作ります")
         isFirstLaunch = true
-        configuration = Self.initialConfiguration(services: services)
+        let capabilities = services.presetEnvironment.capabilities
+        configuration = Self.initialConfiguration(services: services, capabilities: capabilities)
         saver.saveNow(configuration)
+        rebuildFirstPresetsWhenResolved(builtWith: capabilities)
+    }
+
+    /// 初回の設定は claude を調べ終える前に作る（調べ終えていなければ Claude Code のマスは入らない）。
+    /// 調べ終えてできることが変わっていて、その間にプロファイルを何も変えていなければ、作り直す（全体の設定はそのまま）
+    private func rebuildFirstPresetsWhenResolved(builtWith capabilities: PresetCapabilities) {
+        let initialProfiles = configuration.profiles
+        let environment = services.presetEnvironment
+        firstPresetsRebuild = Task { [weak self] in
+            let resolved = await environment.resolvedCapabilities()
+            guard let self, !Task.isCancelled, resolved != capabilities else { return }
+            guard self.configuration.profiles == initialProfiles else {
+                controllerLogger.info("プロファイルが変わっていたので、初回のプリセットは作り直さない")
+                return
+            }
+            var rebuilt = Self.initialConfiguration(services: self.services, capabilities: resolved)
+            rebuilt.settings = self.configuration.settings
+            self.replaceConfiguration(rebuilt)
+            controllerLogger.info("この Mac でできることを調べ終えたので、初回のプリセットを作り直した")
+        }
     }
 
     private func startFromInitialConfiguration(after error: any Error) {
@@ -918,14 +949,14 @@ public final class NonetController {
         return CellAddress(page: 0, index: 0)
     }
 
-    /// インストール済みのアプリから作る最初の設定。プリセットはこの Mac でできることに合わせる
-    /// （claude を調べ終える前なら Claude Code のマスは空き。初回の案内の「アプリを選ぶ」で調べ終えてから作り直す）
-    static func initialConfiguration(services: NonetServices) -> NonetConfiguration {
+    /// インストール済みのアプリから作る最初の設定。プリセットはこの Mac でできること（capabilities。nil なら今わかっていること）に合わせる
+    /// （claude を調べ終える前なら Claude Code のマスは入らない。調べ終えたら rebuildFirstPresetsWhenResolved が作り直す）
+    static func initialConfiguration(services: NonetServices, capabilities: PresetCapabilities? = nil) -> NonetConfiguration {
         let installedLaunchers = PresetLibrary.launcherCandidates
             .map(\.bundleID)
             .filter { services.installedApps.isInstalled(bundleID: $0) }
         let environment = services.presetEnvironment
-        let presets = PresetLibrary.apps(for: environment.capabilities)
+        let presets = PresetLibrary.apps(for: capabilities ?? environment.capabilities)
             .filter { services.installedApps.isInstalled(bundleID: $0.app.bundleID) }
         return .initial(
             appPresets: presets,

@@ -260,7 +260,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.purpose = purpose
         window.reminderPreference = reminderPreference
         window.onOpenSettings = { [weak self] tab in self?.showSettings(tab: tab) }
-        // 「完了」「スキップ」で閉じたら、メニューバーのどこに Nonet がいるかを見せる
+        window.isStatusItemVisible = { [weak self] in self?.menuBar?.isStatusItemVisible ?? true }
+        // 案内を閉じたら（「設定を開く」以外）、メニューバーのどこに Nonet がいるかを見せる
         window.onComplete = { [weak self] in self?.menuBar?.pointAtStatusItem() }
         onboardingWindow = window
         window.show()

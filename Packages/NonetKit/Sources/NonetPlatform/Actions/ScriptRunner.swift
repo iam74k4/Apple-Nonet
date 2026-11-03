@@ -9,13 +9,28 @@ enum ScriptRunner {
     static let maximumTimeout: TimeInterval = 24 * 60 * 60
     static let outputLimit = 64 * 1024
 
+    /// スクリプトの出力の始まりの印。ログインシェルの設定ファイル（~/.zprofile の ssh-agent など）が出す文字を、
+    /// スクリプトの出力（結果のパネルに出す）に混ぜないよう、スクリプトの前に出し、これより後ろだけを出力とする
+    static let outputMarker = "\u{1E}NONET-OUTPUT\u{1E}"
+
     /// ソースは引数の1つとして渡す。"--" で、"-" で始まるソースもオプションと間違えさせない。
-    /// shellPath（~/.zshrc まで読んだ対話シェルの PATH）があれば、ログインシェルの設定ファイルを読んだ後に PATH をそれにする。
+    /// 先頭で outputMarker を出す。shellPath（~/.zshrc まで読んだ対話シェルの PATH）があれば、ログインシェルの設定ファイルを読んだ後に PATH をそれにする。
     /// 環境変数で渡すだけでは、/etc/zprofile の path_helper が順番を入れ替えて、ターミナルと別のコマンドが見つかることがある。
-    /// ソースと同じ行の先頭に置くので、エラーの行番号は変わらない
+    /// どちらもソースと同じ行の先頭に置くので、エラーの行番号は変わらない
     static func arguments(source: String, shellPath: String? = nil) -> [String] {
-        guard let shellPath, !shellPath.isEmpty else { return ["-l", "-c", "--", source] }
-        return ["-l", "-c", "--", "export PATH=\(TerminalCommandFile.shellQuoted(shellPath)); \(source)"]
+        let start = "print -rn -- \(TerminalCommandFile.shellQuoted(outputMarker)); "
+        guard let shellPath, !shellPath.isEmpty else { return ["-l", "-c", "--", start + source] }
+        return ["-l", "-c", "--", "\(start)export PATH=\(TerminalCommandFile.shellQuoted(shellPath)); \(source)"]
+    }
+
+    /// 標準出力から、outputMarker より前（ログインシェルの設定ファイルが出したもの）を除く。
+    /// 印が残っていれば、その後ろ（スクリプトの出力）は切れていない。印が無ければ（スクリプトの出力が長すぎて先頭が切れた）そのまま
+    static func strippingStartupOutput(_ output: ProcessOutput) -> ProcessOutput {
+        guard let marker = output.stdout.range(of: outputMarker) else { return output }
+        var output = output
+        output.stdout = String(output.stdout[marker.upperBound...])
+        output.stdoutTruncated = false
+        return output
     }
 
     static func effectiveTimeout(_ timeout: Double) -> TimeInterval {
@@ -67,7 +82,7 @@ enum ScriptRunner {
         shellPath: String? = nil
     ) async throws -> ProcessOutput {
         try validate(source: source)
-        let output: ProcessOutput
+        var output: ProcessOutput
         do {
             output = try await ProcessRunner.run(ProcessRequest(
                 executable: shell,
@@ -83,6 +98,7 @@ enum ScriptRunner {
             ActionLog.logger.error("スクリプトを起動できませんでした: \(error.localizedDescription)")
             throw NonetError.actionFailed(String(localized: "スクリプトを実行できませんでした", bundle: .nonetActions))
         }
+        output = strippingStartupOutput(output)
         if let failure = failure(for: output) { throw failure }
         return output
     }
@@ -104,7 +120,8 @@ enum ScriptRunner {
         }
         if output.status != 0 {
             let headline = String(localized: "スクリプトが失敗しました（終了コード \(output.status)）", bundle: .nonetActions)
-            return .actionFailed(ActionText.message(headline, detail: output.stderr))
+            // エラーを標準出力に出すスクリプト（echo "…"; exit 1）もあるので、標準エラーが空なら標準出力を添える
+            return .actionFailed(ActionText.message(headline, detail: output.stderr.isEmpty ? output.stdout : output.stderr))
         }
         return nil
     }

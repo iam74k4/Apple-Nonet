@@ -4,20 +4,19 @@ import NonetCore
 
 /// /usr/bin/shortcuts（ショートカット.app のコマンド）。
 /// 出力は、--output-path を付けずに実行すると標準出力（パイプ）に書かれる。
-/// Apple の「コマンドラインからショートカットを実行する」に「the | character」でほかのコマンドに渡せるとあり、
-/// --output-type で出力の種類（UTI）を決められる: https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac
+/// Apple の「コマンドラインからショートカットを実行する」に「the | character」でほかのコマンドに渡せるとある:
+/// https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac
+/// --output-type（出力の種類）は付けない。画像やファイルを返すショートカットで、テキストにできずに失敗しうるので。
+/// テキストでない出力は CommandOutput.text が除く（リッチテキストは文字にする）
 enum ShortcutRunner {
     static let executable = URL(fileURLWithPath: "/usr/bin/shortcuts")
     /// 対話のあるショートカットもあるので長め
     static let timeout: TimeInterval = 300
-    /// 出力を使うときに頼む種類。リッチテキストや画像のままでは文字として読めないので、UTF-8 のテキストにしてもらう
-    static let textOutputType = "public.utf8-plain-text"
 
     /// 名前は "--" の後に置き、"-" で始まる名前もオプションと間違えさせない
-    static func arguments(name: String, inputPath: String?, wantsTextOutput: Bool = false) -> [String] {
+    static func arguments(name: String, inputPath: String?) -> [String] {
         var arguments = ["run"]
         if let inputPath { arguments += ["--input-path", inputPath] }
-        if wantsTextOutput { arguments += ["--output-type", textOutputType] }
         return arguments + ["--", name]
     }
 
@@ -29,7 +28,7 @@ enum ShortcutRunner {
 
     /// input があれば一時ファイルに書いて入力として渡す（終わったら消す）。成功したら出力を返す
     @discardableResult
-    static func run(name: String, input: String?, wantsTextOutput: Bool = false) async throws -> ProcessOutput {
+    static func run(name: String, input: String?) async throws -> ProcessOutput {
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw NonetError.actionFailed(String(localized: "ショートカットの名前が空です", bundle: .nonetActions))
         }
@@ -47,7 +46,7 @@ enum ShortcutRunner {
         do {
             output = try await ProcessRunner.run(ProcessRequest(
                 executable: executable,
-                arguments: arguments(name: name, inputPath: inputFile?.path, wantsTextOutput: wantsTextOutput),
+                arguments: arguments(name: name, inputPath: inputFile?.path),
                 environment: nil,
                 currentDirectory: nil,
                 timeout: timeout,

@@ -268,7 +268,7 @@ struct SettingsLaunchAppEditor: View {
     }
 }
 
-/// インストール済みアプリから1つ選ぶ（アプリ起動のマス）
+/// インストール済みアプリから1つ選ぶ（アプリを開くマス）
 struct SettingsAppPickerPopover: View {
     let model: SettingsModel
     let current: String
@@ -434,7 +434,7 @@ struct SettingsScriptEditor: View {
                 .labelsHidden()
                 .pickerStyle(.segmented)
                 Text(script.runMode == .background
-                    ? String(localized: "終わるまで待ち、失敗したらエラーの最後を表示します", bundle: .module)
+                    ? String(localized: "終わるまで待ちます。出力があれば結果のパネルに出し（出したくないときは > /dev/null）、失敗したらエラーの最後を表示します", bundle: .module)
                     : String(localized: "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです。", bundle: .module))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)

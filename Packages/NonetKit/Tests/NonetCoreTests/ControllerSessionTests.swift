@@ -214,6 +214,28 @@ import Testing
 
     // MARK: 選んで離す
 
+    /// トラックパッドの続きが来なくなって離れたことにしたフレーム（切断・スリープ明け）では、光っているマスを実行せずに閉じる
+    @Test func aSynthesizedLiftClosesWithoutRunning() async throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.open()
+        h.advance(0.05)
+        h.touch(on: 2)
+        h.advance(0.3)
+        #expect(h.hud.current?.highlightedIndex == 2)
+        h.synthesizedLift()
+        await h.settle()
+        #expect(h.performer.calls.isEmpty)
+        #expect(!h.hud.isVisible)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(!h.haptics.events.contains(.execute))
+
+        // 次に触れたときは、いつもどおり開いて実行できる
+        h.run(2)
+        await h.settle()
+        #expect(h.performer.actions == [F.closeTab.action])
+    }
+
     /// マスで止めてから離すと、開いたときの前面アプリのページのマスを、そのアプリに向けて実行する
     @Test func liftingOnACellRunsItForTheAppThatWasInFront() async throws {
         let h = try ControllerHarness()

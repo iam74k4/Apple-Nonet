@@ -53,7 +53,7 @@ enum SettingsProfileSearch {
                     let subtitle = SettingsGrid.subtitleContent(for: cell)
                     let detail = SettingsGrid.detailContent(for: cell)
                     let sentKeys = sentKeys(of: cell)
-                    // アプリ起動のマスは、グリッドに出さないアプリの名前でも見つける
+                    // アプリを開くマスは、グリッドに出さないアプリの名前でも見つける
                     let found = matches(title, query)
                         || matches(subtitle.text, query)
                         || matches(detail.text, query)

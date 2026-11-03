@@ -10,66 +10,143 @@ import Testing
 struct ShellOnboardingFinishTests {
     typealias Base = ShellOnboardingTests
 
-    /// 練習の2つの課題を済ませた案内
-    static func practiced(
-        frontmost: RunningAppInfo? = nil,
-        recorder: Base.Recorder = Base.Recorder(),
-        clock: Base.Clock = Base.Clock()
-    ) throws -> (OnboardingModel, ShellControllerHarness) {
-        let (model, harness) = Base.make(clock: clock, frontmost: frontmost, recorder: recorder)
-        Base.enterPractice(model)
-        model.handleExecution(try Base.runRecord(model, date: clock.now.addingTimeInterval(1)))
-        model.handleCancellation(ShellFixtures.cancellation(date: clock.now.addingTimeInterval(2)))
-        #expect(model.practice == .succeeded)
-        return (model, harness)
-    }
-
     // MARK: - 閉じ方
 
-    @Test("ウィンドウの「完了」「スキップ」は閉じてメニューバーのアイコンの場所を見せる。閉じるボタンで閉じたときは見せない")
+    @Test("どう閉じても（閉じるボタンでも）アイコンの場所を見せる。「設定を開く」は設定の「プロファイル」を開き、見せない")
     func windowCompletion() throws {
         let harness = ShellControllerHarness(installed: Base.installed)
         harness.controller.start()
         var finished = 0
-        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {
-            finished += 1
-        }
-        window.handBackActivation = {}
         var completed = 0
         var opened: [SettingsTab] = []
-        window.onComplete = { completed += 1 }
-        window.onOpenSettings = { opened.append($0) }
-        Base.enterPractice(window.model)
-        window.complete()
+        func makeWindow() -> OnboardingWindowController {
+            let window = OnboardingWindowController(controller: harness.controller, services: harness.services) { finished += 1 }
+            window.handBackActivation = {}
+            window.onComplete = { completed += 1 }
+            window.onOpenSettings = { opened.append($0) }
+            return window
+        }
+
+        // 「完了」「スキップ」（テストではウィンドウが無いので、閉じたことは windowDidClose で知らせる）
+        let done = makeWindow()
+        Base.enterPractice(done.model)
+        done.complete()
+        done.windowDidClose()
         #expect(completed == 1)
-        window.windowDidClose()
         #expect(finished == 1)
         #expect(!harness.controller.isPracticeMode)
         // 案内はプロファイルを作り直さない（起動時のプリセットのまま）
         #expect(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode) != nil)
 
-        // 「設定を開く」は閉じて設定の「プロファイル」を開く
-        let other = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
-        other.handBackActivation = {}
-        other.onOpenSettings = { opened.append($0) }
-        Base.enterPractice(other.model)
-        other.openSettings()
+        // 閉じるボタン（最初の画面のままでも）
+        let closed = makeWindow()
+        closed.windowDidClose()
+        #expect(completed == 2)
+        #expect(finished == 2)
+
+        // 「設定を開く」
+        let settings = makeWindow()
+        Base.enterPractice(settings.model)
+        settings.openSettings()
+        settings.windowDidClose()
         #expect(opened == [.profiles])
-        other.windowDidClose()
-        #expect(completed == 1)
-        // 案内は「ログイン時に起動」に触れない（設定の「一般」で変える）
+        #expect(completed == 2)
+        #expect(finished == 3)
+    }
+
+    @Test("練習の画面に入ったときに、メニューバーのアイコンが見えているかを確かめる")
+    func statusItemVisibility() {
+        let (model, _) = Base.make()
+        var visible = false
+        model.statusItemVisibility = { visible }
+        #expect(model.isStatusItemVisible)
+        Base.enterPractice(model)
+        #expect(!model.isStatusItemVisible)
+        model.back()
+        visible = true
+        model.next()
+        #expect(model.isStatusItemVisible)
+    }
+
+    @Test("初回起動では「ログイン時に起動」を選んでおき、練習の画面を閉じるときに反映する。最初の画面では何もしない")
+    func finishEnablesLoginItem() {
+        let (model, harness) = Base.make()
+        #expect(harness.controller.isFirstLaunch)
+        #expect(model.opensAtLogin)
+        #expect(model.finish())
         #expect(!harness.loginItem.isEnabled)
+        Base.enterPractice(model)
+        #expect(model.finish())
+        #expect(harness.loginItem.isEnabled)
+        #expect(model.loginItemMessage == nil)
+        // 同じなら変えない
+        #expect(model.finish())
+        #expect(harness.loginItem.setCount == 1)
+
+        // 外したら止める
+        model.opensAtLogin = false
+        #expect(model.finish())
+        #expect(!harness.loginItem.isEnabled)
+    }
+
+    @Test("閉じるボタンで閉じても、練習の画面で選んでいた「ログイン時に起動」を反映する")
+    func closingTheWindowAppliesTheLoginItem() {
+        let harness = ShellControllerHarness(installed: Base.installed)
+        harness.controller.start()
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
+        window.handBackActivation = {}
+        Base.enterPractice(window.model)
+        window.windowDidClose()
+        #expect(harness.loginItem.isEnabled)
+    }
+
+    @Test("もう一度見るときは、いまの「ログイン時に起動」から始める（設定の「一般」で外したものを戻さない）")
+    func rerunStartsFromTheCurrentLoginItem() throws {
+        let harness = ShellControllerHarness(installed: Base.installed)
+        harness.controller.start()
+        let relaunched = NonetController(
+            services: harness.services,
+            store: ConfigurationStore(directory: harness.directory),
+            hud: ShellFakeHUD(),
+            license: harness.license,
+            guidance: MemoryHUDGuidanceStore()
+        )
+        relaunched.start()
+        #expect(!relaunched.isFirstLaunch)
+        let model = OnboardingModel(controller: relaunched, permissions: harness.permissions, loginItem: harness.loginItem)
+        #expect(!model.opensAtLogin)
+        model.next()
+        #expect(model.finish())
         #expect(harness.loginItem.setCount == 0)
     }
 
-    @Test("練習の2つの課題を済ませてから閉じられる")
-    func practicedThenClosed() throws {
-        let (model, harness) = try Self.practiced()
-        #expect(model.step == .practice)
-        model.next()
-        #expect(model.step == .practice)
-        model.close()
-        #expect(!harness.controller.isPracticeMode)
+    @Test("システム設定での許可が要るときは設定の一般と同じ知らせを出して開いたまま。同じ選択で押し直せば閉じる")
+    func finishNeedsApproval() {
+        let recorder = Base.Recorder()
+        let (model, harness) = Base.make(recorder: recorder)
+        Base.enterPractice(model)
+        harness.loginItem.failure = NonetError.permissionDenied("ログイン項目")
+        #expect(!model.finish())
+        let approval = L10n.ui("システム設定の「ログイン項目」で Nonet を許可すると、ログイン時に起動するようになります")
+        #expect(model.loginItemMessage == approval)
+        #expect(recorder.announcements.last == approval)
+        #expect(model.finish())
+        #expect(harness.loginItem.setCount == 1)
+
+        // ほかの理由で変えられなかったとき
+        let (failing, failingHarness) = Base.make()
+        Base.enterPractice(failing)
+        failingHarness.loginItem.failure = NonetError.actionFailed("だめ")
+        #expect(!failing.finish())
+        let reason = NonetError.actionFailed("だめ").localizedDescription
+        #expect(failing.loginItemMessage == L10n.ui("ログイン時に起動するように設定できませんでした（\(reason)）"))
+        // 選び直したら、もう一度試す
+        failingHarness.loginItem.failure = nil
+        failing.opensAtLogin = false
+        #expect(failing.finish())
+        failing.opensAtLogin = true
+        #expect(failing.finish())
+        #expect(failingHarness.loginItem.isEnabled)
     }
 
     // MARK: - 起動したときの許可の案内

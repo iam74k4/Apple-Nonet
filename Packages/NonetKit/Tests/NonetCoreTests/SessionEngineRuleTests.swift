@@ -19,6 +19,30 @@ import Testing
         #expect(s.engine.hud == SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true))
     }
 
+    /// 開く動きの直後の指が、もう上の段のマスに入っていても（開きやすい・速く滑らせた）、開いた瞬間は外枠。
+    /// 止めて離せば何もせずに閉じ、そこから openTravel より滑らせてから初めてマスを選ぶ
+    @Test func theGridOpensInTheFrameEvenIfTheFingerIsAlreadyOnAButton() {
+        var s = SessionScenario()
+        let top = Pad.center(1)
+        s.touch(x: Pad.edge.x, y: Pad.edge.y, at: 0)
+        s.touch(x: top.x, y: top.y, at: 0.05)
+        let opened = s.open(at: 0.09)
+        #expect(opened.visible.contains(.showHUD(SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true))))
+        // 同じ場所で止めたまま（揺れても openTravel の内）
+        s.touch(x: top.x, y: top.y - SessionConfiguration.openTravel / 2, at: 0.2)
+        #expect(s.engine.hud?.isInFrame == true)
+        #expect(s.lift(at: 0.4).visible.contains(.sessionEnded(.cancelled(.liftedInFrame))))
+
+        // 滑らせ続ければ、いつもどおり選んで実行する
+        var moving = SessionScenario()
+        moving.touch(x: Pad.edge.x, y: Pad.edge.y, at: 0)
+        moving.touch(x: top.x, y: top.y, at: 0.05)
+        moving.open(at: 0.09)
+        moving.touch(on: 4, at: 0.15)
+        #expect(moving.engine.hud?.highlightedCell == 4)
+        #expect(moving.lift(at: 0.4).executions == [.execute(page: 0, cell: 4)])
+    }
+
     /// 開く前のフレームでは何も出さない（エンジンは指を覚えておくだけ）
     @Test func framesOutsideASessionDoNothing() {
         var s = SessionScenario()

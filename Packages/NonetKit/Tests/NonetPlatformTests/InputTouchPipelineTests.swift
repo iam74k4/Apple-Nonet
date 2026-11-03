@@ -187,6 +187,16 @@ import Testing
         #expect(coalescer.drain().map(\.timestamp) == [96, 97, 98, 99])
     }
 
+    /// 離れたことにしたフレーム（デバイスの開始し直し）は、続く空のフレームで置き換えない（開いていたら何も実行せずに閉じる印）
+    @Test func keepsASynthesizedLift() {
+        var coalescer = TouchFrameCoalescer(capacity: 16)
+        coalescer.push(frame(0, []))
+        coalescer.push(TouchFrame(timestamp: 0.01, points: [], isSynthesizedLift: true))
+        coalescer.push(frame(0.02, []))
+        let frames = coalescer.drain()
+        #expect(frames.map(\.isSynthesizedLift) == [false, true, false])
+    }
+
     @Test func capacityIsAtLeastTwo() {
         #expect(TouchFrameCoalescer(capacity: 0).capacity == 2)
     }

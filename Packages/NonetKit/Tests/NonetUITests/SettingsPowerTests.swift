@@ -332,29 +332,6 @@ private func pasteboard() -> NSPasteboard {
         h.model.pasteCell(at: 0, from: board)
         #expect(cell(h, 0)?.title == safari.title)
     }
-
-    @Test func copyingAButtonToAnotherProfile() throws {
-        let h = try harness()
-        let safari = try #require(cell(h, 0))
-        let target = try #require(h.safariProfile)
-        #expect(h.model.copyTargets.map(\.id) == h.controller.configuration.profiles.dropFirst().map(\.id))
-        h.model.copyCell(at: 0, toProfile: target.id)
-        let copied = try #require(h.safariProfile?.pages[0].cells[0])
-        #expect(copied.title == safari.title)
-        #expect(copied.id != safari.id)
-        #expect(h.model.undoNotice?.text == L10n.ui("「\(target.name)」の\(SettingsText.pageTitle(index: 0, name: nil))にコピーしました"))
-        h.model.undoFromNotice()
-        #expect(h.safariProfile?.pages[0].cells[0] == nil)
-        // 元に戻すと、戻した先（Safari）を見せる
-        #expect(h.model.selectedProfile.id == target.id)
-        h.model.selectProfile(nil)
-
-        // 空きが無ければ知らせる
-        let xcode = try #require(h.xcodeProfile)
-        #expect(xcode.pages.allSatisfy { $0.cells.allSatisfy { $0 != nil } })
-        h.model.copyCell(at: 0, toProfile: xcode.id)
-        #expect(h.model.gridMessage == L10n.ui("「\(xcode.name)」に空いているマスがありません。マスを空けるか、ページを追加してください。"))
-    }
 }
 
 @Suite @MainActor struct SettingsKeyboardTests {

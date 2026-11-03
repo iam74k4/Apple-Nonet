@@ -7,14 +7,14 @@ import Testing
 @Suite("スクリプトの PATH と出力")
 struct ActionCommandOutputTests {
     private func run(_ source: String, in directory: ActionTemporaryDirectory, shellPath: String?, outputLimit: Int = ScriptRunner.outputLimit) async throws -> ProcessOutput {
-        try await ProcessRunner.run(ProcessRequest(
+        ScriptRunner.strippingStartupOutput(try await ProcessRunner.run(ProcessRequest(
             executable: ScriptRunner.shell,
             arguments: ScriptRunner.arguments(source: source, shellPath: shellPath),
             environment: ScriptRunner.environment(base: directory.isolatedEnvironment, context: [:], shellPath: shellPath),
             currentDirectory: directory.url,
             timeout: 20,
             outputLimit: outputLimit
-        ))
+        )))
     }
 
     // MARK: - PATH
@@ -38,13 +38,14 @@ struct ActionCommandOutputTests {
         #expect(!output.stdout.hasPrefix("/nonet/"))
     }
 
-    @Test("PATH を前に置いても、行番号と引数の形は変わらない")
+    @Test("出力の始まりの印と PATH を前に置いても、行番号と引数の形は変わらない")
     func argumentsWithShellPath() async throws {
-        #expect(ScriptRunner.arguments(source: "echo hi", shellPath: nil) == ["-l", "-c", "--", "echo hi"])
-        #expect(ScriptRunner.arguments(source: "echo hi", shellPath: "") == ["-l", "-c", "--", "echo hi"])
+        let start = "print -rn -- '\(ScriptRunner.outputMarker)'; "
+        #expect(ScriptRunner.arguments(source: "echo hi", shellPath: nil) == ["-l", "-c", "--", start + "echo hi"])
+        #expect(ScriptRunner.arguments(source: "echo hi", shellPath: "") == ["-l", "-c", "--", start + "echo hi"])
         let arguments = ScriptRunner.arguments(source: "echo hi", shellPath: "/a b/it's:/usr/bin")
         #expect(arguments.prefix(3) == ["-l", "-c", "--"])
-        #expect(arguments.last == #"export PATH='/a b/it'\''s:/usr/bin'; echo hi"#)
+        #expect(arguments.last == start + #"export PATH='/a b/it'\''s:/usr/bin'; echo hi"#)
 
         let directory = try ActionTemporaryDirectory()
         let output = try await run("true\nnonet-no-such-command-xyz", in: directory, shellPath: "/usr/bin:/bin")
@@ -132,28 +133,67 @@ struct ActionCommandOutputTests {
         ("  spaced  \n", "  spaced  "),
         ("\n", nil),
         ("", nil),
+        // 空白と改行だけなら、空のパネルを出さない
+        ("  \n\n", nil),
+        // 画像などのバイト列は出さない
+        ("PNG\u{0}\u{1}", nil),
+        ("bad\u{FFFD}bytes", nil),
     ] as [(String, String?)])
-    func trimsOneTrailingNewline(stdout: String, expected: String?) throws {
-        #expect(try CommandOutput.text(from: Self.output(stdout)) == expected)
+    func trimsOneTrailingNewline(stdout: String, expected: String?) {
+        #expect(CommandOutput.text(from: Self.output(stdout)) == expected)
     }
 
-    @Test("上限を超えて先頭が切れた出力は使わない")
-    func truncatedOutputIsRefused() throws {
-        let error = #expect(throws: NonetError.self) {
-            try CommandOutput.text(from: Self.output("tail", truncated: true))
+    @Test("リッチテキスト（ショートカットのテキスト）は文字だけにする")
+    func richTextBecomesPlainText() {
+        let rtf = #"{\rtf1\ansi\deff0 {\fonttbl {\f0 Helvetica;}}\f0 Hello \b world\b0}"#
+        #expect(CommandOutput.text(from: Self.output(rtf)) == "Hello world")
+    }
+
+    @Test("上限を超えて先頭が切れた出力は、終わりの部分をそうと分かるように出す（成功のまま）")
+    func truncatedOutputShowsTheEnd() {
+        let note = String(localized: "（出力が長いため、終わりの \(ScriptRunner.outputLimit / 1024) KB だけを表示しています）", bundle: .nonetActions)
+        #expect(CommandOutput.text(from: Self.output("tail\n", truncated: true)) == note + "\ntail")
+    }
+
+    @Test("ログインシェルの設定ファイル（~/.zprofile・~/.zlogin）が出す文字は、出力に混ぜない")
+    func loginShellOutputIsDropped() async throws {
+        let directory = try ActionTemporaryDirectory()
+        try "print -r -- 'Agent pid 4242'\n".write(to: directory.url.appendingPathComponent(".zprofile"), atomically: true, encoding: .utf8)
+        try "print -r -- 'from-zlogin'\n".write(to: directory.url.appendingPathComponent(".zlogin"), atomically: true, encoding: .utf8)
+        let output = try await ScriptRunner.runInBackground(
+            source: "print -r -- result",
+            environment: directory.isolatedEnvironment,
+            workingDirectory: directory.url,
+            timeout: 20,
+            shellPath: "/usr/bin:/bin"
+        )
+        #expect(CommandOutput.text(from: output) == "result")
+        // 何も出さないスクリプトなら、パネルは出ない
+        let silent = try await ScriptRunner.runInBackground(source: "true", environment: directory.isolatedEnvironment, workingDirectory: directory.url, timeout: 20)
+        #expect(CommandOutput.text(from: silent) == nil)
+    }
+
+    @Test("失敗したスクリプトの知らせには、標準エラーが空なら標準出力を添える")
+    func failureFallsBackToStandardOutput() async throws {
+        let directory = try ActionTemporaryDirectory()
+        let error = await #expect(throws: NonetError.self) {
+            try await ScriptRunner.runInBackground(source: "print -r -- 'disk is full'; exit 3", environment: directory.isolatedEnvironment, workingDirectory: directory.url, timeout: 20)
         }
-        let expected = String(localized: "出力が大きすぎるため、使えませんでした（\(ScriptRunner.outputLimit / 1024) KB まで）", bundle: .nonetActions)
-        #expect(error == .actionFailed(expected))
+        guard case .actionFailed(let message)? = error else { Issue.record("\(String(describing: error))"); return }
+        #expect(message.contains("disk is full"))
+        #expect(!message.contains(ScriptRunner.outputMarker))
     }
 
     @Test("標準出力が上限を超えたかを返す")
     func reportsTruncation() async throws {
         let directory = try ActionTemporaryDirectory()
-        let small = try await run("printf 'abc'", in: directory, shellPath: nil, outputLimit: 16)
+        // 上限には、先頭の印（ScriptRunner.outputMarker）も数える
+        let small = try await run("printf 'abc'", in: directory, shellPath: nil, outputLimit: 32)
         #expect(!small.stdoutTruncated)
         #expect(small.stdout == "abc")
-        let large = try await run("printf '%.0s0123456789' {1..10}", in: directory, shellPath: nil, outputLimit: 16)
+        let large = try await run("printf '%.0s0123456789' {1..10}", in: directory, shellPath: nil, outputLimit: 32)
         #expect(large.stdoutTruncated)
+        #expect(large.stdout.hasSuffix("0123456789"))
     }
 
     @Test("runInBackground は成功したら出力を返す")
@@ -166,18 +206,16 @@ struct ActionCommandOutputTests {
             timeout: 20,
             shellPath: "/usr/bin:/bin"
         )
-        #expect(try CommandOutput.text(from: output) == "Finder")
+        #expect(CommandOutput.text(from: output) == "Finder")
     }
 
     // MARK: - ショートカット
 
-    @Test("出力を使うときだけ、テキストで出力するよう頼む")
+    @Test("出力の種類は頼まない（画像やファイルを返すショートカットを失敗させない）。名前は -- の後")
     func shortcutArguments() {
         #expect(ShortcutRunner.arguments(name: "n", inputPath: nil) == ["run", "--", "n"])
-        #expect(ShortcutRunner.arguments(name: "n", inputPath: "/tmp/in.txt", wantsTextOutput: true)
-            == ["run", "--input-path", "/tmp/in.txt", "--output-type", "public.utf8-plain-text", "--", "n"])
-        #expect(ShortcutRunner.arguments(name: "-x", inputPath: nil, wantsTextOutput: true)
-            == ["run", "--output-type", "public.utf8-plain-text", "--", "-x"])
+        #expect(ShortcutRunner.arguments(name: "n", inputPath: "/tmp/in.txt") == ["run", "--input-path", "/tmp/in.txt", "--", "n"])
+        #expect(ShortcutRunner.arguments(name: "-x", inputPath: nil) == ["run", "--", "-x"])
     }
 }
 

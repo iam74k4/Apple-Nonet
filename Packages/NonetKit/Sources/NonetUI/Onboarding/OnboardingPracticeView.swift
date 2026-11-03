@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 3. 試してみる: 上の縁から開いてマスで離す → 外枠で離してやめる の2つの課題
+// 2. 試してみる: 上の縁から開いてマスで離す → 外枠で離してやめる の2つの課題。閉じる前に、ログイン時に起動を選ぶ
 import NonetCore
 import SwiftUI
 
@@ -30,9 +30,55 @@ struct OnboardingPracticeStep: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            Spacer(minLength: 0)
+            OnboardingClosingOptions(model: model)
         }
         .padding(.horizontal, OnboardingLayout.horizontalPadding)
         .padding(.top, 6)
+        .padding(.bottom, 18)
+    }
+}
+
+/// 案内を閉じる前に決めておくこと: ログイン時に起動（初回起動では選んでおく）と、メニューバーのアイコンが見えないときの見つけ方
+struct OnboardingClosingOptions: View {
+    let model: OnboardingModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !model.isStatusItemVisible {
+                // ノッチの陰などで見えないときは、「3×3 のアイコン」と言っても見つけられない
+                OnboardingNote(
+                    symbol: "menubar.rectangle",
+                    text: String(localized: "メニューバーにアイコンが見えないときは、アプリケーションフォルダから Nonet を開くと設定が開きます", bundle: .module)
+                )
+            }
+            Toggle(isOn: Binding(get: { model.opensAtLogin }, set: { model.opensAtLogin = $0 })) {
+                Text("Mac にログインしたら Nonet を自動で起動する", bundle: .module)
+                    .font(.system(size: 13))
+            }
+            .toggleStyle(.checkbox)
+            if let message = model.loginItemMessage {
+                OnboardingNote(symbol: "exclamationmark.triangle", text: message)
+            }
+        }
+    }
+}
+
+/// 練習の画面の下の短い一行
+struct OnboardingNote: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: symbol)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(.secondary)
     }
 }
 

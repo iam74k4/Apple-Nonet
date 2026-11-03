@@ -48,6 +48,7 @@ struct ShellOnboardingTests {
             permissions: harness.permissions,
             frontmostApp: harness.frontmost,
             touchSource: harness.touchSource,
+            loginItem: harness.loginItem,
             now: { clock.now }
         )
         model.announce = { recorder.announcements.append($0) }

@@ -362,7 +362,7 @@ struct SettingsIconPicker: View {
                 .disabled(icon == .app(bundleID: bundleID))
             }
         } else {
-            Text("アプリのアイコンは、アプリ起動のマスか、アプリのプロファイルで使えます", bundle: .module)
+            Text("アプリのアイコンは、アプリを開くマス・メニュー項目のマスか、アプリのプロファイルで使えます", bundle: .module)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
