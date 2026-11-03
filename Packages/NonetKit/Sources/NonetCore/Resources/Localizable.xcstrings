@@ -54,6 +54,7 @@
       }
     },
     "%@ へ移動" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -439,6 +440,7 @@
       }
     },
     "ウインドウを撮影" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1621,6 +1623,7 @@
       }
     },
     "マスで指を離すと実行" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1631,6 +1634,7 @@
       }
     },
     "マスで離すと実行" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2047,6 +2051,7 @@
       }
     },
     "全画面を撮影" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2201,6 +2206,7 @@
       }
     },
     "収録を止める" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2305,6 +2311,7 @@
       }
     },
     "外枠で離すとやめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2346,6 +2353,7 @@
       }
     },
     "左右の外枠で止めるとページ切り替え" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2386,6 +2394,7 @@
       }
     },
     "指を滑らせて選ぶ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2417,6 +2426,7 @@
       }
     },
     "撮影・収録" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2948,6 +2958,7 @@
       }
     },
     "移動" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2978,6 +2989,7 @@
       }
     },
     "練習中 · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

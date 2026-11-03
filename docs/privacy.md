@@ -27,7 +27,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 本アプリは、最初の設定を作るときに Dock に置いてあるアプリの一覧を読み、ランチャーの並びに使います。また、起動したときに、スクリプトをターミナルと同じ条件で動かすため、あなたのログインシェル（`~/.zshrc` を含む）を1回動かして、`PATH` と `claude` コマンドの有無を調べます。どちらもメモリの中で使うか、設定に入れるだけです。
 
-どれも Mac の外には送りません。本アプリを削除するときにまとめて消せます（手順は[利用ガイド](user-guide.md#アンインストール)。キーチェーンの2つの項目（`com.iam74k4.Nonet.license.trial` と、名前が64桁の16進数のもの）は、キーチェーンアクセスで消せます）。設定の「情報」の「Nonet をアンインストール…」は、本アプリと設定のフォルダとキャッシュをゴミ箱に入れますが、ライセンスキーと試用の記録（環境設定とキーチェーン）は残します。入れ直したときに、登録し直さずに使えるようにするためです。
+どれも Mac の外には送りません。本アプリを削除するときにまとめて消せます（手順は[利用ガイド](user-guide.md#アンインストール)。キーチェーンの2つの項目（`com.iam74k4.Nonet.license.trial` と、名前が64桁の16進数のもの）は、キーチェーンアクセスで消せます）。設定の「Nonet」のタブの「Nonet をアンインストール…」は、本アプリと設定のフォルダとキャッシュをゴミ箱に入れますが、ライセンスキーと試用の記録（環境設定とキーチェーン）は残します。入れ直したときに、登録し直さずに使えるようにするためです。
 
 アプリの「お問い合わせ…」で作るメールには、アプリと macOS の版・Mac の機種・キーボードの種類だけが入り、送るかどうかはあなたが決めます。ライセンスキーや設定の中身は入りません。
 
@@ -58,9 +58,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 スクリプト・ショートカット・URL など、あなたが設定したアクションは、あなたの権限で Mac の中で実行されます。そのアクションがどんな情報を扱い、どこへ送るかは、アクションの中身によります。
 
-プロファイルを読み込むとき、スクリプト・キー入力・メニュー項目・AI のマスや、Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製する・移すマス、Mac の中のファイルを開くマスがあれば、本アプリは読み込む前に、そのマスと中身のすべて（スクリプトのすべての行・押すキー・メニュー項目とショートカット・AI への指示と結果の出し方・ファイルの操作と移動先・開くファイルの場所）を並べて確かめます。Return と同じ働きのキーや ⌃ の付いたキーを押すマスと、注意が要る命令（curl・`| sh`・rm -rf など）を含む行は目立たせ、中身を最後までスクロールするまで読み込めません。ほかの人から受け取ったプロファイルは、中身を確かめ、信頼できるものだけを読み込んでください。
-
-スクリーンショットと画面収録のアクションは、macOS のスクリーンショットのキーボードショートカットを送るだけです。本アプリが画面の内容を読むことも、「画面収録」の許可を求めることもありません。
+プロファイルを読み込むとき、スクリプト・キー入力・メニュー項目・AI のマスや、Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製するマス、Mac の中のファイルを開くマスがあれば、本アプリは読み込む前に、そのマスと中身のすべて（スクリプトのすべての行・押すキー・メニュー項目とショートカット・AI への指示と結果の出し方・ファイルの操作・開くファイルの場所）を並べて確かめます。Return と同じ働きのキーや ⌃ の付いたキーを押すマスと、注意が要る命令（curl・`| sh`・rm -rf など）を含む行は目立たせ、中身を最後までスクロールするまで読み込めません。ほかの人から受け取ったプロファイルは、中身を確かめ、信頼できるものだけを読み込んでください。
 
 AI のアクションは、Apple の Foundation Models フレームワークを使い、Mac の中の言語モデルで処理します。本アプリが選択中のテキストを外部に送ることはありません。結果で選択範囲を置き換えるときは、結果をクリップボードに一時的に置いて ⌘V で貼り付け、元のクリップボードに戻します（クリップボードの履歴を残すアプリに残らないよう、`org.nspasteboard.TransientType` の印を付けます）。
 
@@ -118,7 +116,7 @@ Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is
 
 When it creates your first settings, the app reads the list of apps in your Dock and uses it to order the launcher. Each time it opens, the app runs your login shell once (including `~/.zshrc`) to find your `PATH` and whether the `claude` command exists, so that scripts run as they do in Terminal. Both are used only in memory or in your settings.
 
-None of this leaves your Mac. You can remove all of it when you uninstall the app (see the [user guide](user-guide.en.md#uninstalling); remove the two keychain items, `com.iam74k4.Nonet.license.trial` and the one named with 64 hexadecimal digits, with Keychain Access). “Uninstall Nonet…” on the About tab of Settings moves the app, its settings folder and its caches to the Trash, but keeps your license key and trial records (in the preferences and the keychain), so the app works again without registering if you reinstall it.
+None of this leaves your Mac. You can remove all of it when you uninstall the app (see the [user guide](user-guide.en.md#uninstalling); remove the two keychain items, `com.iam74k4.Nonet.license.trial` and the one named with 64 hexadecimal digits, with Keychain Access). “Uninstall Nonet…” on the Nonet tab of Settings moves the app, its settings folder and its caches to the Trash, but keeps your license key and trial records (in the preferences and the keychain), so the app works again without registering if you reinstall it.
 
 When you use “Contact Support…” in the app, the email it creates contains only the versions of the app and macOS, your Mac model and your keyboard type. You decide whether to send it. It never includes your license key or your settings.
 
@@ -149,9 +147,7 @@ Running a script in Terminal does not use Apple Events; the app only opens a tem
 
 Actions you configure, such as scripts, shortcuts and URLs, run on your Mac with your privileges. What information they handle and where they send it depends on what they do.
 
-When you import profiles, the app first lists any Script, Keystrokes, Menu Item and AI buttons, any File buttons that move to the Trash, rename, duplicate or move the files selected in Finder, and any buttons that open a file on your Mac, together with everything they do (every line of the script, the keys, the menu item and its keyboard shortcut, the AI prompt and output, the file operation and destination, or the location of the file), and asks you to confirm. Buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (such as curl, `| sh` and rm -rf) are highlighted, and you can't import until you scroll to the end. Check profiles you receive from someone else, and import them only if you trust them.
-
-The Screenshot and screen recording action only sends the macOS screenshot keyboard shortcut. The app never reads what is on your screen and never asks for Screen Recording permission.
+When you import profiles, the app first lists any Script, Keystrokes, Menu Item and AI buttons, any File buttons that move to the Trash, rename or duplicate the files selected in Finder, and any buttons that open a file on your Mac, together with everything they do (every line of the script, the keys, the menu item and its keyboard shortcut, the AI prompt and output, the file operation, or the location of the file), and asks you to confirm. Buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (such as curl, `| sh` and rm -rf) are highlighted, and you can't import until you scroll to the end. Check profiles you receive from someone else, and import them only if you trust them.
 
 AI actions use Apple's Foundation Models framework and are processed by the on-device language model. The app never sends your selected text anywhere. To replace the selected text with the result, the app puts the result on the clipboard for a moment, pastes it with ⌘V and then restores the clipboard. It marks the result `org.nspasteboard.TransientType` so that clipboard history apps do not keep it.
 

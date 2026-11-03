@@ -439,6 +439,7 @@
       }
     },
     "%lld個のアプリのプロファイルを追加します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -555,6 +556,7 @@
       }
     },
     "%lld個中%lld個を選択中" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -587,6 +589,7 @@
       }
     },
     "1〜2文字" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -597,6 +600,7 @@
       }
     },
     "1〜2文字（3文字目からは切ります）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -618,6 +622,7 @@
       }
     },
     "9マスの外側の外枠まで指を滑らせて離すと、何も実行せずに閉じます。キーを押しても閉じます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -639,6 +644,7 @@
       }
     },
     "9マスを開いたまま、左右の外枠に指を止めると、そちら側のページに切り替わります。1つのアプリに最大3ページ置けます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -888,6 +894,16 @@
         }
       }
     },
+    "HUD と画面の下の通知を 1.25 倍にします" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the HUD and the notices at the bottom of the screen at 1.25×"
+          }
+        }
+      }
+    },
     "HUD の位置" : {
       "localizations" : {
         "en" : {
@@ -899,6 +915,7 @@
       }
     },
     "HUD の大きさ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1019,6 +1036,7 @@
       }
     },
     "Mac にあるアプリから、9マスを用意しました" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1039,6 +1057,7 @@
       }
     },
     "Mac にログインしたら Nonet を自動で起動する" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1491,6 +1510,7 @@
       }
     },
     "macOS のスクリーンショットのキーボードショートカットを送ります。システム設定で変えていれば、そのキーを使います。保存先は macOS のスクリーンショットの設定に従い、Nonet が画面を読むことはありません（画面収録の許可は要りません）。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1535,7 +1555,7 @@
       }
     },
     "settings.grid.sharedBadge" : {
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1637,7 +1657,7 @@
       }
     },
     "sharedButton.accessibilityValue" : {
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2033,6 +2053,7 @@
       }
     },
     "ここに置いたマスは、すべてのアプリのすべてのページの同じ位置に出ます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2312,6 +2333,7 @@
       }
     },
     "このマスは共通マスです。共通マスで変えると、すべてのアプリで変わります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2414,6 +2436,7 @@
       }
     },
     "この位置にはもう共通マスがあります。このマスで置き換えると、すべてのアプリで変わります。⌘Z で元に戻せます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2444,6 +2467,7 @@
       }
     },
     "この案内は、メニューバーの 3×3 のアイコン ›「初回の案内をもう一度」でまた見られます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2635,6 +2659,7 @@
       }
     },
     "すべて外す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2645,6 +2670,7 @@
       }
     },
     "すべて選ぶ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2914,6 +2940,7 @@
       }
     },
     "アイコンの文字" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3128,6 +3155,7 @@
       }
     },
     "アプリのページの後ろにグローバルのページをつなげ、ページを切り替えて行けるようにします" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3257,6 +3285,7 @@
       }
     },
     "アプリ起動" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3307,6 +3336,7 @@
       }
     },
     "オフにすると、いつもグローバルのプロファイルを使います" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3667,6 +3697,7 @@
       }
     },
     "クリップボードにコピー（ファイルは作らない）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3677,6 +3708,7 @@
       }
     },
     "グローバルには、Mac にあるよく使うアプリを並べたランチャーを用意します。アプリのプロファイルは、あとから設定で追加できます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3687,6 +3719,7 @@
       }
     },
     "グローバルには、よく使うアプリを並べたランチャーを用意します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3707,6 +3740,7 @@
       }
     },
     "グローバルのプロファイルから始めましょう" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3727,6 +3761,7 @@
       }
     },
     "グローバルのページをつなげる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3908,6 +3943,16 @@
         }
       }
     },
+    "ショートカットがテキストを返したときは、結果のパネルに出します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the shortcut returns text, it is shown in the result panel"
+          }
+        }
+      }
+    },
     "ショートカットが見つかりません。ショートカット.app で作ってから、一覧を読み直してください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3970,6 +4015,7 @@
       }
     },
     "ショートカットの出力をテキストとして、最後の改行を除いて使います" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4050,6 +4096,7 @@
       }
     },
     "スクリプトの標準出力を、最後の改行を除いて使います" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4293,6 +4340,7 @@
       }
     },
     "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4688,6 +4736,7 @@
       }
     },
     "フィードバック" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4698,6 +4747,7 @@
       }
     },
     "フォルダを選ぶ…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4779,6 +4829,7 @@
       }
     },
     "プリセットのあるアプリは見つかりませんでした" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5101,6 +5152,7 @@
       }
     },
     "ポインタとトラックパッドの動きを切り離します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5121,6 +5173,7 @@
       }
     },
     "ポインタの固定方法" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5131,6 +5184,7 @@
       }
     },
     "ポインタの移動イベントを捨てるだけです" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5151,6 +5205,7 @@
       }
     },
     "ポインタは指に合わせて動きます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5161,6 +5216,7 @@
       }
     },
     "ポインタを切り離す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5311,6 +5367,7 @@
       }
     },
     "マスを変える" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5514,6 +5571,7 @@
       }
     },
     "メニューバーにアイコンが見えないときは、アプリケーションフォルダから Nonet を開くと設定が開きます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5535,6 +5593,7 @@
       }
     },
     "メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5603,6 +5662,7 @@
       }
     },
     "ライセンス" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5912,6 +5972,7 @@
       }
     },
     "上の縁から開く" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5952,6 +6013,7 @@
       }
     },
     "中" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6084,6 +6146,7 @@
       }
     },
     "使いながら覚えられる、4つのこつ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6116,6 +6179,7 @@
       }
     },
     "使う" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6126,6 +6190,7 @@
       }
     },
     "使うものを選ぶだけ。中身はあとから自由に変えられます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6218,6 +6283,7 @@
       }
     },
     "共通マス" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6228,6 +6294,7 @@
       }
     },
     "共通マスにしました。すべてのアプリの同じ位置に出ます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6238,6 +6305,7 @@
       }
     },
     "共通マスにする" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6248,6 +6316,7 @@
       }
     },
     "共通マスをやめました。各アプリのマスに戻ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6258,6 +6327,7 @@
       }
     },
     "共通マスをやめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6268,6 +6338,7 @@
       }
     },
     "共通マスを編集" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6278,6 +6349,7 @@
       }
     },
     "共通マスを置き換えました。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6288,6 +6360,7 @@
       }
     },
     "共通マスを置き換えますか？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6298,6 +6371,7 @@
       }
     },
     "出力を使わない" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6439,6 +6513,7 @@
       }
     },
     "前面のアプリで切り替える" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6742,6 +6817,7 @@
       }
     },
     "固定しない" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6813,6 +6889,7 @@
       }
     },
     "外枠で離すとやめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6823,11 +6900,22 @@
       }
     },
     "大きい" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Large"
+          }
+        }
+      }
+    },
+    "大きく表示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show larger"
           }
         }
       }
@@ -6873,6 +6961,7 @@
       }
     },
     "実行したことを表示" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7110,6 +7199,7 @@
       }
     },
     "左右の外枠で止めてページを切り替える" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7120,6 +7210,7 @@
       }
     },
     "弱" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7130,6 +7221,7 @@
       }
     },
     "強" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7140,6 +7232,7 @@
       }
     },
     "情報" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7264,6 +7357,7 @@
       }
     },
     "撮るウインドウを選ぶ画面を出します。クリックしたウインドウを撮ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7274,6 +7368,7 @@
       }
     },
     "撮る範囲を選ぶ画面を出します。選んだ範囲を撮ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7284,6 +7379,7 @@
       }
     },
     "撮影と収録のメニューを出します。画面収録は、ここで範囲を選んで始めます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7294,6 +7390,7 @@
       }
     },
     "操作" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7304,6 +7401,7 @@
       }
     },
     "文字" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7376,6 +7474,7 @@
       }
     },
     "既定のアプリで開きます（ダブルクリックと同じ）。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7386,6 +7485,7 @@
       }
     },
     "時間の掛かるマスが終わったときに、画面の下に通知を出します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7517,6 +7617,7 @@
       }
     },
     "未選択" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7619,6 +7720,7 @@
       }
     },
     "次へ：試してみる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7649,6 +7751,7 @@
       }
     },
     "決めたフォルダに移します。同じ名前のファイルがあるときは、上書きせずに知らせます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7689,6 +7792,7 @@
       }
     },
     "準備ができました" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7765,6 +7869,7 @@
       }
     },
     "特大" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7816,6 +7921,7 @@
       }
     },
     "画面の下に出る通知も同じ大きさになります" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7836,6 +7942,7 @@
       }
     },
     "画面の撮影" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7846,6 +7953,7 @@
       }
     },
     "画面全体をすぐに撮ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7856,6 +7964,7 @@
       }
     },
     "画面収録を止めます。収録していないときは何も起きません。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8016,6 +8125,7 @@
       }
     },
     "移動を捨て、ずれたら元の位置に戻します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8026,6 +8136,7 @@
       }
     },
     "移動を捨てる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8036,6 +8147,7 @@
       }
     },
     "移動先: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8046,6 +8158,7 @@
       }
     },
     "移動先のフォルダ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8056,6 +8169,7 @@
       }
     },
     "移動先のフォルダを決めてください" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8066,6 +8180,7 @@
       }
     },
     "移動先のフォルダを選ぶ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8299,6 +8414,7 @@
       }
     },
     "自動" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8535,6 +8651,7 @@
       }
     },
     "設定済み" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8545,6 +8662,7 @@
       }
     },
     "設定済み（無効）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8725,6 +8843,7 @@
       }
     },
     "試用期間はあと%lld日です。購入はメニューバーからいつでもできます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -8914,6 +9033,7 @@
       }
     },
     "詳細" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9097,6 +9217,7 @@
       }
     },
     "追加するアプリはありません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9168,6 +9289,7 @@
       }
     },
     "選んだアプリのプロファイルを追加します。設定済みのアプリはそのまま残ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9188,6 +9310,7 @@
       }
     },
     "選択中" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9259,11 +9382,22 @@
       }
     },
     "開いたとき・マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行せずに閉じたときは軽く2回振動します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taps when the buttons open, when you cross an edge, when the page changes and when a button runs. Two light taps mean they closed without running anything."
+          }
+        }
+      }
+    },
+    "開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The trackpad taps lightly when the grid opens, when your finger crosses into another button and when a button runs (Force Touch trackpads only)"
           }
         }
       }
@@ -9318,6 +9452,16 @@
         }
       }
     },
+    "開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open"
+          }
+        }
+      }
+    },
     "開く URL" : {
       "localizations" : {
         "en" : {
@@ -9334,6 +9478,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens with %@:// added."
+          }
+        }
+      }
+    },
+    "開くもの" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What to open"
           }
         }
       }
@@ -9369,6 +9523,7 @@
       }
     },
     "隣と入れ替え" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

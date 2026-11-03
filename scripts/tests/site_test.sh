@@ -813,17 +813,17 @@ test_guide_build_finds_stale_pages_and_broken_links() {
   assert_status 0
 
   # 見出しは同じで、本文の既定値だけが変わった
-  sed -i '' 's/| Haptic feedback | Medium |/| Haptic feedback | Strong |/' "$repo/docs/user-guide.en.md"
+  sed -i '' 's/| Open sensitivity | Standard |/| Open sensitivity | Low |/' "$repo/docs/user-guide.en.md"
   build_guide --check --root "$repo"
   assert_status 1
   assert_contains "$OUT" "site/en/guide.html が Markdown と違います"
-  assert_contains "$OUT" "<td>Strong</td>"
+  assert_contains "$OUT" "<td>Low</td>"
   assert_not_contains "$OUT" "--- site/guide.html"
   build_guide --root "$repo"
   assert_status 0
   build_guide --check --root "$repo"
   assert_status 0
-  assert_contains "$(cat "$repo/site/en/guide.html")" "<td>Strong</td>"
+  assert_contains "$(cat "$repo/site/en/guide.html")" "<td>Low</td>"
 
   # 見出しの名前を変えると、それを指す #… のリンクが切れる
   sed -i '' 's/^### Opening the buttons$/### Opening Nonet/' "$repo/docs/user-guide.en.md"

@@ -49,17 +49,18 @@ The first time you use a File action, or a script uses the URL of the page shown
 
 ### Welcome guide
 
-The Welcome to Nonet window has three steps, shown at the top.
+The Welcome to Nonet window has two steps, shown at the top.
 
 1. **Accessibility**: the permission described above
-2. **Choose Apps**: lists the apps on your Mac that have a preset, a ready-made set of nine buttons (Finder, Safari, Mail, Outlook, Zoom, Slack, Excel, Word, PowerPoint, Keynote, Pages, Numbers, Notion, Notes, Obsidian, Figma, Photoshop, Final Cut Pro, Xcode, Visual Studio Code and others). All of them are selected at first. Keep the ones you use, then click **Next: Try It Out**. **Select All** and **Deselect All** change them all at once. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead, and a different button fills the slot it leaves, so the page still has nine (no preset puts Claude Code in the center)
-3. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
+2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
-At the end, "You're all set" shows four quick tips (open from the top edge, lift in the frame to cancel, hold in the side frame to change pages, change a button) and the days left in your trial. **Open Nonet automatically when you log in** is checked from the start, and takes effect when you click **Done** or **Open Settings** (if macOS needs you to approve it in System Settings, the window says so). When you click **Done**, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. If the icon can't be seen, the window tells you how to find Nonet instead. Click **Open Settings** to go straight to the Settings window.
+At the bottom of the practice step are **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). When you click **Done** or **Skip**, the window closes, the Nonet icon in the menu bar flashes, and "Nonet lives here" appears under it. Click **Open Settings** to go straight to the Settings window.
+
+Your settings start with a profile for every app on your Mac that has a preset, a ready-made set of nine buttons (Finder, Safari, Chrome, Arc, Mail, Outlook, Zoom, Teams, Slack, Excel, Word, PowerPoint, Keynote, Pages, Numbers, Notion, Notes, Obsidian, Figma, Photoshop, Final Cut Pro, Xcode, Visual Studio Code, Cursor and Terminal). Delete the profiles you don't want on the Profiles tab of Settings. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. Another button takes the center instead, and a different button fills the slot it leaves, so the page still has nine (no preset puts Claude Code in the center).
 
 The Global profile starts with a launcher of popular apps from your Mac (see [Global profile and launcher](#global-profile-and-launcher) under Basics).
 
-To see the welcome guide again, choose **Show Welcome Guide** from the Nonet menu. When you run it again, Choose Apps only adds profiles for the apps you choose. Apps marked Added keep their profiles, so nothing you edited is lost.
+To see the welcome guide again, choose **Show Welcome Guide** from the Nonet menu.
 
 ## Basics
 
@@ -87,7 +88,7 @@ The highlighted button runs, and the HUD closes.
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant
 - Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
-- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page. Each button shows just its icon and name, not the keys it presses (like ⌘B). For your first 20 times, a line under the grid also says "Slide to choose · Lift on a button to run · Lift in the frame to cancel" (and "Hold in the side frame to change pages" if there are several pages). While you hold on a button that needs a longer hold, the top edge says "Keep your finger still" and then "Lift to run". In practice it says "Practice"
+- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page. Each button shows just its icon and name, not the keys it presses (like ⌘B). While you hold on a button that needs a longer hold, the top edge says "Keep your finger still" and then "Lift to run". In practice it says "Practice"
 
 ### Canceling
 
@@ -123,7 +124,7 @@ While you hold it there, a bar grows in that side of the frame, and "Hold for th
 
 You can also **swipe left or right with two fingers**. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
-Each profile can have up to three pages. Global pages follow an app profile's pages (the **Add Global pages after app pages** setting).
+Each profile can have up to three pages. Global pages always follow an app profile's pages.
 
 ### Global profile and launcher
 
@@ -133,7 +134,7 @@ The Global profile starts as a launcher with up to 27 apps on three pages. Apps 
 
 ### Haptic feedback
 
-When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can choose the strength with the **Haptic feedback** setting.
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
 
 ## Menu bar
 
@@ -147,13 +148,13 @@ Click the 3×3 icon in the menu bar to open the Nonet menu.
 | Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings. If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
 | Enable Nonet | Uncheck it, and sliding in from the top edge no longer opens the buttons |
 | Settings… | Opens the Settings window on the General tab |
-| Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, or **Switch profiles with the front app** is off, it opens the Global buttons |
+| Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
 | Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding in from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
 | Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason. Choose one to open that button on the Profiles tab of Settings |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | User Guide | Opens this guide |
-| 14 days left in your trial / Registered / Your trial has ended | Your license status. Choose **Registered** to open the Settings window on the License tab. Nonet doesn't repeat what the status line already says |
-| Buy Nonet… / Enter License Key… | Appear during the trial and after it ends. **Buy Nonet…** opens the purchase page, and **Enter License Key…** opens the License tab of Settings |
+| 14 days left in your trial / Registered / Your trial has ended | Your license status. Choose **Registered** to open the Settings window on the Nonet tab. Nonet doesn't repeat what the status line already says |
+| Buy Nonet… / Enter License Key… | Appear during the trial and after it ends. **Buy Nonet…** opens the purchase page, and **Enter License Key…** opens the Nonet tab of Settings |
 | Check for Updates… | Checks for a new version. When an automatic check has already found one, this item changes to **Update Available…**; choose it to see the update |
 | Quit Nonet | Quits Nonet |
 
@@ -167,8 +168,7 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 
 ### Profile list
 
-- **Shared Buttons** at the top holds buttons that appear in the same spot in every app (see [Shared buttons](#shared-buttons) below)
-- **Global** below it (marked Default) holds the nine buttons used in apps without a profile. You can't delete it
+- **Global** at the top (marked Default) holds the nine buttons used in apps without a profile. You can't delete it
 - App profiles are listed below it, under **Apps**. Drag to reorder them. The profile the front app is using now is marked In Use
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to see the three **When in Front** choices and **Duplicate for Another App…**, **Reset to Preset…** (only for apps with a preset), **Export This Profile…** and **Delete…**. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)
@@ -184,28 +184,19 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 - Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name also appears in the HUD title, like "Xcode · Debug". Leave it empty to go back to "Page 1" and so on
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
-- Control-click a button to choose **Duplicate**, **Copy**, **Paste**, **Swap With**, **Copy to Profile**, **Delete** or **Test This Button**. On an empty button, choose an action type from **Add Action**, or use **Paste** and **Swap With**
-
-### Shared buttons
-
-Buttons you want in the same spot in every app, such as opening Settings or locking the screen, can be shared buttons.
-
-- Control-click a button and choose **Make Shared Button**. It then appears in the same spot on every page of every profile (app profiles, Global and the launcher)
-- Spots covered by a shared button are marked Shared. The profile's own button is kept, and **Stop Sharing** brings it back
-- Edit shared buttons under **Shared Buttons** at the top of the profile list. Control-click a shared button in a profile's grid to choose **Edit Shared Button**, **Copy** or **Stop Sharing**
-- If that spot already has a shared button, Nonet asks before replacing it (you can undo it with ⌘Z)
+- Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
 
 ### Undo and earlier versions
 
-- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting, copying to another profile), changes in the inspector (one step per button), adding or renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
-- After you clear a button, replace a filled button, copy a button to another profile, or delete a profile or a page, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so
+- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting), changes in the inspector (one step per button), adding or renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
+- After you clear a button, replace a filled button, or delete a profile or a page, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so
 - Replacing profiles by importing can't be undone with ⌘Z. Use a saved version instead (below)
-- Nonet saves a copy of your settings while you change them (at most once an hour), and before deleting a profile or a page, importing, resetting to a preset or restoring an earlier version. It keeps the newest 10 in `~/Library/Application Support/Nonet/Backups/`. Under Export & Import on the General tab, click **Restore an Earlier Version…**, choose a version, then click **Restore…** and **Restore** to go back to those profiles and settings. Your settings from before are saved too, so you can go back again
+- Nonet saves a copy of your settings while you change them (at most once an hour), and before deleting a profile or a page, importing, resetting to a preset or restoring an earlier version. It keeps the newest 10 in `~/Library/Application Support/Nonet/Backups/`. Under Export & Import on the Nonet tab of Settings, click **Restore an Earlier Version…**, choose a version, then click **Restore…** and **Restore** to go back to those profiles and settings. Your settings from before are saved too, so you can go back again
 
 ### Power editing
 
 - **Profiles**: **Duplicate for Another App…** (Control-click the profile) creates a profile for another app with all the pages and buttons. Menu Item buttons that chose the original app's menus choose the new app's menus, which helps when you copy VS Code buttons to Cursor, for example. **Reset to Preset…** asks first, then replaces the buttons with the preset
-- **Buttons**: ⌘C and ⌘V copy and paste a button (also into another profile). Control-click a button and choose **Copy to Profile** to copy it to the first empty button of the profile you choose
+- **Buttons**: ⌘C and ⌘V copy and paste a button. You can paste into another profile too, which is how you copy buttons between profiles
 - **Keys on the grid**: ⌘D duplicates, ⌘⌫ clears, ⌥⌘ and an arrow key swap with the next button, and Return moves to the **Name** field
 - **Keys on the Profiles tab**: ⌘1–⌘3 switch pages, and ⌘F filters profiles
 
@@ -215,8 +206,8 @@ The right column is where you set up the selected button. Changes are saved righ
 
 - **Empty button**: click an action type to create one
 - **Name**: the name shown under the icon. If you leave it empty, Nonet names the button from its action
-- **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names), **App** (**Use This App's Icon**, available for Open App buttons and in app profiles) or **Text** (type 1–2 characters and click **Use**). **Restore Default Icon** goes back to the default
-- **Action type**: Keystrokes, Open App, URL, Script, Shortcut, Menu Item, AI, File or Screen Capture (see Action types)
+- **Icon**: click the icon to the left of the name (Change icon). Choose **Symbol** (SF Symbols, searched by their English names) or **App** (**Use This App's Icon**, available for buttons that open an app and in app profiles). **Restore Default Icon** goes back to the default
+- **Action type**: Keystrokes, Open, Script, Shortcut, Menu Item, AI or File (see Action types)
 - **Hold before running**: when on, the button runs only if you hold your finger on it in the HUD a little longer before lifting (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics)
 - **Test This Button**: runs the button now and shows "Ran successfully." or the error. Output from a script or a shortcut appears below it, where you can select and copy it. In an app profile, Nonet brings the app to the front, then runs the button. A Global button runs in the app you were using before you opened Settings
 - **Clear This Button**: removes the action and leaves an empty button
@@ -251,15 +242,14 @@ Some keys never reach the field because macOS uses them first, such as ⌘Tab, �
 
 Shortcuts like `⌘[` work correctly on JIS keyboards too.
 
-### Open App
+Screenshots are Keystrokes buttons too: the presets' **Capture Area** button simply sends ⇧⌘4.
 
-Opens the app, or brings it to the front if it's already running. Under **App to open**, click **Choose App…** and choose an installed app. For an app that isn't listed, click **Choose Another App…**. In the grid, the button's second line reads **Open App**. The app's name appears in the inspector and in the help tag when you hold the pointer over the button.
+### Open (app or URL)
 
-Turn on **Hide if already in front** to hide the app when you run the button again, so you can switch to it and back.
+Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 
-### URL
-
-Opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder.
+- **App**: opens the app, or brings it to the front if it's already running. Under **App to open**, click **Choose App…** and choose an installed app. For an app that isn't listed, click **Choose Another App…**. The app's name appears in the inspector and in the help tag when you hold the pointer over the button. Turn on **Hide if already in front** to hide the app when you run the button again, so you can switch to it and back
+- **URL**: opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder
 
 ### Script
 
@@ -268,7 +258,7 @@ Runs the zsh script in the **Script to run (zsh)** field with `/bin/zsh -l -c`. 
 - **Run**
   - In Background: waits for the script to finish and stops it after the **Timeout** (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error. If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
   - In Terminal: runs the script in a new Terminal window. Use it for interactive commands like `claude`
-- **Output** (In Background only): **Ignore** (the default), **Replace Selection**, **Copy to Clipboard** or **Show Result**. Nonet uses the script's standard output, without the final newline, the same way as an AI action's **Output**. Empty output does nothing. Output larger than 64 KB isn't used, and Nonet shows an error instead
+- **Output** (In Background only): if the script writes anything to standard output, Nonet shows it, without the final newline, in the result panel (the same panel as an AI action's **Show Result**, where you can select and copy text). Empty output shows nothing. Output larger than 64 KB isn't used, and Nonet shows an error instead
 - **Working directory**: the project folder (see below), or your home folder if there isn't one
 - **Environment**: background scripts run in a login shell (`zsh -l`) with the same `PATH` as Terminal, which Nonet reads (including `~/.zshrc`) when it opens. Aliases and functions from `~/.zshrc` work only with **In Terminal** (a script run in Terminal reads `~/.zshrc`). If you change `~/.zshrc`, quit Nonet and open it again
 
@@ -321,7 +311,7 @@ Always put variables in double quotes, like `"$NONET_SELECTED_TEXT"`, because th
 
 Runs a shortcut from the Shortcuts app. Type its name in **Shortcut to run**, or pick it from the list next to the field (Choose a shortcut). Turn on **Pass selected text as input** to pass the selected text to the shortcut.
 
-**Output** works as it does for scripts (**Ignore** is the default). Nonet takes the shortcut's output as text and uses it without the final newline.
+If the shortcut returns text, Nonet shows it, without the final newline, in the result panel. If it returns nothing, nothing is shown.
 
 ### Menu Item
 
@@ -348,37 +338,20 @@ Sends the selected text and the **Prompt** to the on-device language model (Appl
 
 ### File
 
-Opens, trashes, renames, duplicates or moves the files selected in Finder. Click a file in Finder to select it, open the nine buttons, and choose this button to use it on that file right away.
+Trashes, renames or duplicates the files selected in Finder. Click a file in Finder to select it, open the nine buttons, and choose this button to use it on that file right away.
 
 - **Operation**:
-  - Open: opens them with the default app, like a double-click. You can open up to 20 files at once
   - Move to Trash: works like Finder's Move to Trash. It never deletes files for good, so you can put them back from the Trash. Files that are already in the Trash, and files on places without a Trash (such as network volumes), are left alone. When you choose it for a button, **Hold before running** turns on automatically (you can turn it off)
   - Rename: starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected
   - Duplicate: makes a copy in the same place. Large files take a while (Nonet waits up to 10 minutes for Finder)
-  - Move: moves them to the **Destination folder**. Choose it with **Choose Folder…** or type a path like `~/Documents`. If a file with the same name is already there, Nonet shows an error instead of overwriting it. A button without a destination does nothing
-- **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). Nonet checks which app is in front right before it runs, so if another app is in front it shows an error and does nothing, and never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. It doesn't move symbolic links, because that would move what they point to (Open opens what the link points to, like a double-click). Apart from Open, it does nothing if more than 500 files are selected or the selection includes your home folder, one of its standard folders (Desktop, Documents and so on), the top of a disk, a system folder or another user's home folder
+- **Target**: the files selected in Finder, while Finder is in front (desktop icons count too). Nonet checks which app is in front right before it runs, so if another app is in front it shows an error and does nothing, and never touches files that stay selected in a Finder window in the background. It does the same when nothing is selected. It doesn't touch symbolic links, because that would change what they point to. It does nothing if more than 500 files are selected or the selection includes your home folder, one of its standard folders (Desktop, Documents and so on), the top of a disk, a system folder or another user's home folder
 - **Permission**: the first time you use it, macOS asks whether Nonet may control Finder (see [macOS asks for Automation permission](#macos-asks-for-automation-permission)). Nonet reads only the locations of the files selected in Finder, never what is inside them
-- **Test Run** in Settings asks first for operations that change files (anything but Open), because the Settings window can't show what is selected in Finder
-- The second page of the Finder preset (“Selected Files”) has Open, Duplicate, Rename and Move to Trash (Hold before running)
+- **Test Run** in Settings asks first, because the Settings window can't show what is selected in Finder
+- The second page of the Finder preset (“Selected Files”) has Duplicate, Rename and Move to Trash (Hold before running)
 
-### Screen Capture
+## Settings
 
-Starts a screenshot or a screen recording from the nine buttons. Nonet only sends the macOS screenshot keyboard shortcut, so it never reads your screen and doesn't need Screen Recording permission.
-
-- **Operation**:
-  - Capture Area: shows the area picker (⇧⌘4)
-  - Capture Window: shows the window picker (Nonet sends ⇧⌘4, waits a moment, then sends Space)
-  - Capture Screen: captures the whole screen right away (⇧⌘3)
-  - Capture Options: shows the capture and recording toolbar (⇧⌘5). Start a screen recording from there by choosing an area
-  - Stop Recording: stops the screen recording (⌃⌘Esc). Does nothing when nothing is recording
-- **Copy to clipboard (don't save a file)**: for area, window and screen captures, puts the picture on the clipboard instead of saving a file (the ⌃⇧⌘3 and ⌃⇧⌘4 shortcuts)
-- If you changed the keys in **System Settings › Keyboard › Keyboard Shortcuts › Screenshots**, Nonet sends those keys. If you turned the shortcut off, Nonet shows an error and does nothing
-- Where files are saved, the thumbnail after a capture and so on follow the macOS screenshot settings (the options in ⇧⌘5)
-- Works the same whichever app is in front
-
-## General settings
-
-Choose **Settings…** from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General, License and About. The General tab is grouped into these sections.
+Choose **Settings…** from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General and Nonet. The Profiles tab is described under [Editing profiles](#editing-profiles), and the license and About parts of the Nonet tab under [Trial and license](#trial-and-license) and [Updates and About](#updates-and-about). The General tab is grouped into these sections.
 
 ### Opening and HUD
 
@@ -388,44 +361,25 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
 | HUD position | Center of Screen | Center of Screen or Near Pointer. The HUD appears on the display with the pointer |
-| HUD size | Standard | Standard, Large or Extra Large. Notices at the bottom of the screen use the same size. If it doesn't fit on the screen, Nonet makes it as large as fits |
+| Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
+| Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
 
-### Profiles
-
-| Setting | Default | What it does |
-|---|---|---|
-| Switch profiles with the front app | On | When off, Nonet always uses the Global profile |
-| Add Global pages after app pages | On | Global pages follow the app's pages, so you can reach them by changing pages. You can't change it while Switch profiles with the front app is off |
-
-### Feedback
-
-| Setting | Default | What it does |
-|---|---|---|
-| Haptic feedback | Medium | Off, Light, Medium or Strong. Taps when the buttons open, when you cross an edge, when the page changes and when a button runs. Two light taps mean they closed without running anything |
-| Show a notice when a button runs | On | Shows a notice at the bottom of the screen when a slow button finishes |
-
-Slow buttons (background scripts, shortcuts and AI) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, whatever this setting is. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
-
-### Advanced
-
-| Setting | Default | What it does |
-|---|---|---|
-| Pointer lock method | Automatic | Automatic (discards movement and moves the pointer back if it drifts), Discard Movement, Detach Pointer or Off (the pointer moves with your finger). Try another method if the pointer moves while the nine buttons are open |
+Slow buttons (background scripts, shortcuts and AI) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
 
 ### Startup
 
 | Setting | Default | What it does |
 |---|---|---|
-| Open at login | Off (turned on at the end of the welcome guide) | Opens Nonet when you log in to your Mac |
+| Open at login | Off | Opens Nonet when you log in to your Mac |
 
 ### Export & Import
 
-You can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Profiles (the buttons and their actions) and shared buttons are exported (shared buttons only with **Export…**; exporting one profile doesn't include them). General settings and your license aren't included.
+Under Export & Import on the Nonet tab, you can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Only profiles (the buttons and their actions) are exported. General settings and your license aren't included.
 
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
 - **Import…**: adds the profiles in a file (files over 20 MB can't be imported). In either of these cases, Nonet first asks "Import “file name”?":
-  - Importing would replace something you have (the file contains a Global profile, a profile for an app you already have a profile for, or shared buttons). Nonet lists what would be replaced. Importing shared buttons replaces all of your current shared buttons, including those in positions the file doesn't define
-  - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, File buttons that trash, rename, duplicate or move the files selected in Finder, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, the file operation and destination, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
+  - Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced
+  - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, File buttons that trash, rename or duplicate the files selected in Finder, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, the file operation, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
 - **Restore an Earlier Version…**: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)
 
 In the list, buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (curl, wget, base64, eval, `| sh` (also bash, zsh and others), osascript and rm -rf) are marked in orange with an explanation. If the file has buttons that run something, you can't click **Import**, **Replace and Import** or **Add New Profiles Only** until you scroll to the end of the list (Nonet shows "Scroll to the end to check everything before you can import.").
@@ -443,13 +397,13 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 
 ## Trial and license
 
-- You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the License tab of Settings
+- You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the Nonet tab of Settings
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
 - When the trial ends, sliding in from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Register License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
 - After you buy Nonet, your license key arrives by email. One license covers every Mac you use. You can get a full refund within 30 days of purchase
-- Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the License tab says why, and Nonet goes back to the trial if any trial time is left
+- Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the Nonet tab says why, and Nonet goes back to the trial if any trial time is left
 
-The License tab:
+The license section of the Nonet tab of Settings:
 
 - **Status**: "14 days left in your trial (ends November 14)", "Registered" or "Your trial has ended". Once you register, it also shows who it's registered to, the issue date and the license ID
 - **One-time purchase**: **Buy Nonet** opens the purchase page (shown only before you register)
@@ -461,7 +415,7 @@ The License tab:
 
 Nonet checks for new versions automatically. When it finds one, the top-right square of the menu bar icon turns into a dot, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
 
-The About tab of Settings shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
+The Nonet tab of Settings, below the license section and Export & Import, shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
 
 **Contact Support…** opens an email to us in your email app. It contains only the versions of Nonet and macOS, your Mac model and your keyboard type (never your license key or your settings). You decide whether to send it.
 
@@ -510,8 +464,6 @@ While the nine buttons are open, Nonet holds the pointer still and blocks clicks
 - Wait 20 seconds (long sessions end on their own)
 - If none of these work, choose **Quit Nonet** from the Nonet menu
 
-If the pointer moves a little while the nine buttons are open, try another **Pointer lock method** under Advanced.
-
 ### The wrong button runs
 
 Buttons are chosen by the **absolute position** of your finger on the trackpad. Check which button is highlighted in the HUD before you lift. If the wrong one is highlighted, slide to the right one, or slide out to the frame and lift so nothing runs. Nothing runs on the line between two buttons, so lift in the middle of a button. For buttons that do something you can't undo, turn on **Hold before running** (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics). **Recent Runs** in the Nonet menu shows what ran.
@@ -527,7 +479,7 @@ Buttons are chosen by the **absolute position** of your finger on the trackpad. 
 
 When a script contains `NONET_BROWSER_URL` and a supported browser (Safari, Google Chrome, Arc, Microsoft Edge or Brave) is in front, Nonet asks that browser for the URL of the current page just before the script runs. The first time, macOS asks whether Nonet may control that browser. If you want to use the URL, allow it and run the button again. If you don't allow it, the script still runs, without `NONET_BROWSER_URL`.
 
-The first time you use a File action, macOS asks whether Nonet may control Finder. Nonet uses it to read the files selected in Finder and to open, trash, rename, duplicate or move them. If you don't allow it, File buttons show “Automation (Finder) permission required.” and do nothing.
+The first time you use a File action, macOS asks whether Nonet may control Finder. Nonet uses it to read the files selected in Finder and to trash, rename or duplicate them. If you don't allow it, File buttons show “Automation (Finder) permission required.” and do nothing.
 
 If you denied it and want it later, turn on the browser or Finder under Nonet in **System Settings › Privacy & Security › Automation**.
 
@@ -555,7 +507,7 @@ On macOS 15.4 and later, if your Mac is set to ask before apps read the clipboar
 
 ### No haptic feedback
 
-Make sure **Haptic feedback** isn't set to Off. You can feel it only on a Force Touch trackpad.
+Make sure **Haptic feedback** isn't turned off. You can feel it only on a Force Touch trackpad.
 
 ### Nonet doesn't open at login
 
@@ -571,15 +523,15 @@ Quit Nonet, move `~/Library/Application Support/Nonet/` to the Trash, and open N
 
 ## Uninstalling
 
-1. On the About tab of Settings, click **Uninstall Nonet…**, then **Uninstall**. Nonet stops opening at login, and moves the app, its settings folder (`~/Library/Application Support/Nonet/`) and its caches to the Trash. Your license key and trial record stay on this Mac, so Nonet works right away if you reinstall it, and the trial doesn't start over. You can undo this until you empty the Trash
+1. On the Nonet tab of Settings, click **Uninstall Nonet…**, then **Uninstall**. Nonet stops opening at login, and moves the app, its settings folder (`~/Library/Application Support/Nonet/`) and its caches to the Trash. Your license key and trial record stay on this Mac, so Nonet works right away if you reinstall it, and the trial doesn't start over. You can undo this until you empty the Trash
 2. Click **Open System Settings and Quit**. System Settings opens and Nonet quits. In **Privacy & Security › Accessibility**, select Nonet and click − to remove it. Running `tccutil reset Accessibility com.iam74k4.Nonet` in Terminal does the same
 
 If Nonet can't move itself to the Trash, it changes nothing and tells you. Quit Nonet, then move it from the Applications folder to the Trash in the Finder.
 
 To remove your license key and trial record too, quit Nonet and also delete:
 
-- `~/Library/Preferences/com.iam74k4.Nonet.plist` (preferences such as the trial record, your license key and how many times the HUD tips were shown)
+- `~/Library/Preferences/com.iam74k4.Nonet.plist` (preferences such as the trial record and your license key)
 - The item you find when you search for `com.iam74k4.Nonet.license.trial` in Keychain Access (the trial record)
 - In Keychain Access, the item whose name is 64 hexadecimal digits (0–9 and a–f). It holds a copy of the same trial record. Its name is made from this Mac and the app, and it doesn't say Nonet
 
-If you'll use your license on another Mac, keep a copy of your license key first (**Copy License Key** on the License tab).
+If you'll use your license on another Mac, keep a copy of your license key first (**Copy License Key** on the Nonet tab of Settings).

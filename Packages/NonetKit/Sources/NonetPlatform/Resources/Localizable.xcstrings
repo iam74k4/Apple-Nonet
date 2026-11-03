@@ -225,6 +225,7 @@
       }
     },
     "macOS のスクリーンショットのキーボードショートカットがオフです。システム設定 › キーボード › キーボードショートカット › スクリーンショット で確かめてください" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -619,6 +620,7 @@
       }
     },
     "一度に開けるのは%lld個までです" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -679,6 +681,7 @@
       }
     },
     "移動先のフォルダが見つかりません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
