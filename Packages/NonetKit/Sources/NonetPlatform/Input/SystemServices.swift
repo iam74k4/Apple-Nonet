@@ -31,6 +31,28 @@ public final class SystemPermissions: PermissionsProviding {
     }
 
     public var isSecureInputActive: Bool { IsSecureEventInputEnabled() }
+
+    /// 設定アプリの画面収録の欄
+    static let screenCaptureSettingsURLs = [
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+        "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture",
+    ]
+
+    /// 聞くだけで、ダイアログは出さない
+    public var isScreenCaptureGranted: Bool { CGPreflightScreenCaptureAccess() }
+
+    /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、設定画面は openScreenCaptureSettings も並べる
+    public func requestScreenCapture() {
+        _ = CGRequestScreenCaptureAccess()
+    }
+
+    public func openScreenCaptureSettings() {
+        for string in Self.screenCaptureSettingsURLs {
+            if let url = URL(string: string), NSWorkspace.shared.open(url) { return }
+        }
+        inputLogger.error("画面収録の設定を開けないので、システム設定を開く")
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+    }
 }
 
 /// 前面アプリを見張る。Nonet 自身が前面になったとき（設定画面を開いたときなど）は無視して、直前のアプリのままにする

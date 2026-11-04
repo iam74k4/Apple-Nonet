@@ -915,7 +915,44 @@
         }
       }
     },
+    "HUD の図" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD diagram"
+          }
+        }
+      }
+    },
+    "HUD の図。目標は%@の「%@」です。" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD の図。目標は%1$@の「%2$@」です。"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD diagram. The target is “%2$@” at the %1$@."
+          }
+        }
+      }
+    },
+    "HUD の図。目標はアイコンの輪の外です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HUD diagram. The target is outside the ring of icons."
+          }
+        }
+      }
+    },
     "HUD の地図の図" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -926,22 +963,24 @@
       }
     },
     "HUD の地図の図。目標は%@の「%@」です。" : {
+      "extractionState" : "stale",
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "HUD の地図の図。目標は%1$@の「%2$@」です。"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Map of the HUD. The target is “%2$@” at the %1$@."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD の地図の図。目標は%1$@の「%2$@」です。"
+          }
         }
       }
     },
     "HUD の地図の図。目標は9マスの外側の外枠です。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1763,7 +1802,18 @@
         }
       }
     },
+    "「%@」で離しました。やめるときは、ポインタをアイコンの輪の外まで動かしてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You lifted on “%@”. To cancel, move the pointer outside the ring of icons and lift there."
+          }
+        }
+      }
+    },
     "「%@」で離しました。やめるときは、指を外枠まで滑らせてから離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1980,6 +2030,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click Add Profile to give an app its own nine buttons."
+          }
+        }
+      }
+    },
+    "「画面収録」は許可されています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen Recording is allowed"
           }
         }
       }
@@ -2813,7 +2873,18 @@
         }
       }
     },
+    "できました。迷ったらアイコンの輪の外で離せば、何も実行しません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done. If you change your mind, lift outside the ring of icons and nothing runs."
+          }
+        }
+      }
+    },
     "できました。迷ったら外枠で離せば、何も実行しません。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2919,7 +2990,18 @@
         }
       }
     },
+    "まだ外枠で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't lifted outside the ring yet. Move the pointer outside the ring of icons and lift there."
+          }
+        }
+      }
+    },
     "まだ外枠で離していません。指を外枠（9マスの外側）まで滑らせてから離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2939,7 +3021,18 @@
         }
       }
     },
+    "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the HUD from the top edge again. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
+          }
+        }
+      }
+    },
     "もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3037,6 +3130,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Icon type"
+          }
+        }
+      }
+    },
+    "アイコンの輪の外で離すと、何も実行せずに閉じます。「%@」まで動かしてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lifting outside the ring of icons closes the buttons without running anything. Move to “%@” and lift there."
           }
         }
       }
@@ -4025,6 +4128,16 @@
         }
       }
     },
+    "システム設定を開く…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings…"
+          }
+        }
+      }
+    },
     "ショートカット" : {
       "localizations" : {
         "en" : {
@@ -4516,6 +4629,7 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4526,11 +4640,32 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (a map of the nine buttons) opens just below the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。右か左の外へ出して止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift, or press any key. Hold the pointer outside the ring to the right or left to change pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
           }
         }
       }
@@ -7008,6 +7143,7 @@
       }
     },
     "外枠で離して、やめる" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7018,6 +7154,7 @@
       }
     },
     "外枠で離す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7028,6 +7165,7 @@
       }
     },
     "外枠で離すと、何も実行せずに閉じます。「%@」まで滑らせてから離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7940,6 +8078,16 @@
         }
       }
     },
+    "測るには「画面収録」の許可が必要です。許可が無い間は、黒いアイコンに白い縁で表示します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Measuring needs the Screen Recording permission. Until it is allowed, icons are drawn black with a white outline."
+          }
+        }
+      }
+    },
     "準備ができました" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8617,6 +8765,16 @@
         }
       }
     },
+    "背景に合わせて色を変える" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match colors to the background"
+          }
+        }
+      }
+    },
     "自動" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8934,6 +9092,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request Permission"
+          }
+        }
+      }
+    },
+    "許可を求める…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Permission…"
           }
         }
       }
@@ -9399,6 +9567,26 @@
         }
       }
     },
+    "輪の外で離して、やめる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel outside the ring"
+          }
+        }
+      }
+    },
+    "輪の外で離す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lift outside the ring"
+          }
+        }
+      }
+    },
     "迷ったら、指を止める" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9683,6 +9871,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL to open"
+          }
+        }
+      }
+    },
+    "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。画像はその場で捨て、保存も送信もしません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. The image is discarded at once; nothing is saved or sent"
           }
         }
       }

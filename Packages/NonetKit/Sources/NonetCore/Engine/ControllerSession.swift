@@ -57,7 +57,8 @@ struct ControllerSession: Equatable, Sendable {
             isPractice: isPracticeMode,
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
-            scale: settings.hudScale.factor
+            scale: settings.hudScale.factor,
+            adaptsInk: settings.adaptiveHUDInk
         )
     }
 }

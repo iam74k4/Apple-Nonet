@@ -104,7 +104,7 @@ struct OnboardingPracticeTasks: View {
             )
             OnboardingTaskRow(
                 number: 2,
-                title: Text("外枠で離して、やめる", bundle: .module),
+                title: Text("輪の外で離して、やめる", bundle: .module),
                 status: state == .run ? .upcoming : state == .cancel ? .current : .done,
                 detail: cancelDetail
             )
@@ -201,16 +201,13 @@ struct OnboardingTaskRow: View {
     }
 }
 
-/// HUD の地図（トラックパッドの形）の図。外枠（やめる場所）と、その内側の9マスにいま HUD に出るページのボタンの名前を並べる。
-/// 上の縁の矢印は開き方（トラックパッドの上の縁から下へ滑らせる）。いまの課題の場所（マスか外枠）に印を付ける。
-/// マスはポインタで選ぶ（開くとポインタが地図の奥の帯に来るので、指を滑らせた分だけポインタが地図の上を動く）
+/// HUD の図。ポインタの周りの 8つの鍵（アイコンの代わりに、いま HUD に出るページのボタンの名前）と真ん中の鍵。
+/// 外の点線は、越えると何もせずに閉じる見えない線。いまの課題の場所（鍵か輪の外）に印を付ける。
+/// マスはポインタで選ぶ（開くとポインタが真ん中に来るので、指を滑らせた分だけポインタが鍵のほうへ動く）
 struct OnboardingTrackpadFigure: View {
     let page: OnboardingPracticePage?
     let state: OnboardingPracticeState
     let feedback: OnboardingPracticeFeedback?
-
-    /// 外枠の幅（図の幅・高さに対する割合）。トラックパッドの外枠（GridInsets.cancelFrame）と同じ割合で描く
-    private static let frame = GridInsets.cancelFrame
 
     private var currentTarget: OnboardingPracticeTarget? {
         state == .run ? page?.runTarget : nil
@@ -225,56 +222,51 @@ struct OnboardingTrackpadFigure: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = geometry.size.height
-            let inner = CGRect(
-                x: width * Self.frame.left,
-                y: height * Self.frame.top,
-                width: width * (1 - Self.frame.left - Self.frame.right),
-                height: height * (1 - Self.frame.top - Self.frame.bottom)
-            )
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isFrameTarget ? Color.primary.opacity(0.12) : Color.primary.opacity(0.04))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(isFrameTarget ? Color.primary.opacity(0.8) : Color.secondary.opacity(0.45), lineWidth: isFrameTarget ? 1.5 : 1)
-                // 9マス（外枠の内側）
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                    .frame(width: inner.width, height: inner.height)
-                    .offset(x: inner.minX, y: inner.minY)
-                Path { path in
-                    for line in 1...2 {
-                        let x = inner.minX + inner.width * CGFloat(line) / 3
-                        let y = inner.minY + inner.height * CGFloat(line) / 3
-                        path.move(to: CGPoint(x: x, y: inner.minY + 4))
-                        path.addLine(to: CGPoint(x: x, y: inner.maxY - 4))
-                        path.move(to: CGPoint(x: inner.minX + 4, y: y))
-                        path.addLine(to: CGPoint(x: inner.maxX - 4, y: y))
-                    }
-                }
-                .stroke(Color.secondary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let size = geometry.size
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            // 外の線を図に収め、鍵の円と真ん中の鍵は HUD と同じ割合
+            let outer = min(size.width, size.height) / 2 - 2
+            let keyRadius = outer * RadialLayout.keyRadius / RadialLayout.outerRadius
+            ZStack {
+                Circle()
+                    .fill(isFrameTarget ? Color.primary.opacity(0.08) : Color.primary.opacity(0.03))
+                    .frame(width: outer * 2, height: outer * 2)
+                Circle()
+                    .strokeBorder(
+                        isFrameTarget ? Color.primary.opacity(0.8) : Color.secondary.opacity(0.45),
+                        style: StrokeStyle(lineWidth: isFrameTarget ? 1.5 : 1, dash: [4, 4])
+                    )
+                    .frame(width: outer * 2, height: outer * 2)
                 ForEach(0..<Page.cellCount, id: \.self) { index in
-                    cell(index)
+                    key(index)
                         .opacity(isFrameTarget ? 0.45 : 1)
-                        .frame(width: inner.width / 3, height: inner.height / 3)
-                        .offset(x: inner.minX + CGFloat(index % 3) * inner.width / 3, y: inner.minY + CGFloat(index / 3) * inner.height / 3)
+                        .position(Self.position(ofCell: index, center: center, keyRadius: keyRadius))
                 }
-                // 開き方: 上の縁から下へ
+                // 開き方: 上の縁から下へ（ポインタは真ん中に出る）
                 Image(systemName: "arrow.down")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .frame(width: width, height: inner.minY)
+                    .position(x: center.x, y: 7)
                 if isFrameTarget {
-                    Text("外枠で離す", bundle: .module)
+                    Text("輪の外で離す", bundle: .module)
                         .font(.system(size: 10, weight: .bold))
-                        .frame(width: width, height: height * Self.frame.bottom)
-                        .offset(y: inner.maxY)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color(nsColor: .controlBackgroundColor)))
+                        .position(x: center.x, y: size.height - 8)
                 }
             }
+            .frame(width: size.width, height: size.height)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// 鍵の位置（HUD と同じ並び。中央のマスは真ん中）
+    static func position(ofCell index: Int, center: CGPoint, keyRadius: CGFloat) -> CGPoint {
+        guard let position = RadialLayout.position(ofCell: index) else { return center }
+        let unit = keyRadius / RadialLayout.keyRadius
+        return CGPoint(x: center.x + position.x * unit, y: center.y + position.y * unit)
     }
 
     private var accessibilityLabel: Text {
@@ -283,27 +275,36 @@ struct OnboardingTrackpadFigure: View {
         } else if isFrameTarget {
             Text(ShellText.practiceFigureCancelLabel)
         } else {
-            Text("HUD の地図の図", bundle: .module)
+            Text("HUD の図", bundle: .module)
         }
     }
 
-    private func cell(_ index: Int) -> some View {
+    /// 1つの鍵: 印と名前（名前は鍵の下。上の段の鍵は上に出して、真ん中と重ねない）
+    private func key(_ index: Int) -> some View {
         let title = page?.titles[index]
         let isTarget = currentTarget?.index == index
         let isDone = doneIndices.contains(index)
         let isWrong = feedback == .wrongCell(index: index, title: Self.title(of: feedback))
-        return VStack(spacing: 3) {
-            marker(isTarget: isTarget, isDone: isDone, isWrong: isWrong)
+        let above = index < 3
+        return VStack(spacing: 2) {
+            if above { label(title, isTarget: isTarget, isDone: isDone) }
+            marker(isTarget: isTarget, isDone: isDone, isWrong: isWrong, isEmpty: title == nil)
                 .frame(height: 20)
-            if let title {
-                Text(title)
-                    .font(.system(size: 10, weight: isTarget ? .bold : .regular))
-                    .foregroundStyle(isTarget || isDone ? Color.primary : Color.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 4)
-            }
+            if !above { label(title, isTarget: isTarget, isDone: isDone) }
+        }
+        .frame(width: 88)
+    }
+
+    @ViewBuilder
+    private func label(_ title: String?, isTarget: Bool, isDone: Bool) -> some View {
+        if let title {
+            Text(title)
+                .font(.system(size: 10, weight: isTarget ? .bold : .regular))
+                .foregroundStyle(isTarget || isDone ? Color.primary : Color.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
         }
     }
 
@@ -314,7 +315,7 @@ struct OnboardingTrackpadFigure: View {
     }
 
     @ViewBuilder
-    private func marker(isTarget: Bool, isDone: Bool, isWrong: Bool) -> some View {
+    private func marker(isTarget: Bool, isDone: Bool, isWrong: Bool, isEmpty: Bool) -> some View {
         if isTarget {
             ZStack {
                 Circle()
@@ -331,8 +332,15 @@ struct OnboardingTrackpadFigure: View {
             Circle()
                 .strokeBorder(Color.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
                 .frame(width: 16, height: 16)
+        } else if isEmpty {
+            // 空きマス: HUD と同じ小さな点
+            Circle()
+                .fill(Color.secondary.opacity(0.5))
+                .frame(width: 5, height: 5)
         } else {
-            Color.clear.frame(width: 20, height: 20)
+            Circle()
+                .fill(Color.secondary.opacity(0.25))
+                .frame(width: 12, height: 12)
         }
     }
 }

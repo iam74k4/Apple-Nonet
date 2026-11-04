@@ -93,6 +93,9 @@ public struct HUDModel: Equatable, Sendable {
     public var globalPagesStart: Int?
     /// 寸法と文字に掛ける倍率（設定の「HUD の大きさ」。HUDScale.factor）
     public var scale: Double
+    /// アイコンの色を下地に合わせる（設定の「背景に合わせて色を変える」。GlobalSettings.adaptiveHUDInk）。
+    /// HUD は出すときに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白で描く（画面収録の許可が無ければ測らない）
+    public var adaptsInk: Bool
 
     public init(
         title: String,
@@ -110,7 +113,8 @@ public struct HUDModel: Equatable, Sendable {
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
         globalPagesStart: Int? = nil,
-        scale: Double = 1
+        scale: Double = 1,
+        adaptsInk: Bool = false
     ) {
         self.title = title
         self.pageIndex = pageIndex
@@ -128,6 +132,7 @@ public struct HUDModel: Equatable, Sendable {
         self.bannerStyle = bannerStyle
         self.globalPagesStart = globalPagesStart
         self.scale = scale
+        self.adaptsInk = adaptsInk
     }
 }
 

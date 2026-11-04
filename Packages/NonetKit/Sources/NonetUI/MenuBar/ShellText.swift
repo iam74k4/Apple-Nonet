@@ -16,7 +16,7 @@ enum ShellText {
     /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）。
     /// 少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も添える
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
-        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。", bundle: .module)
+        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。", bundle: .module)
         guard target.requiresHold else { return base }
         return base + String(localized: "このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
     }
@@ -30,12 +30,12 @@ enum ShellText {
     /// whileCancelling は、やめる課題の途中（外枠で離す以外は、やめたことにならない）
     static func practiceNotRun(_ reason: SessionCancellation, target: OnboardingPracticeTarget?, whileCancelling: Bool) -> String {
         if whileCancelling {
-            return String(localized: "まだ外枠で離していません。指を外枠（9マスの外側）まで滑らせてから離してください。", bundle: .module)
+            return String(localized: "まだ外枠で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。", bundle: .module)
         }
         let title = target?.title ?? ""
         switch reason {
         case .liftedInFrame:
-            return String(localized: "外枠で離すと、何も実行せずに閉じます。「\(title)」まで滑らせてから離してください。", bundle: .module)
+            return String(localized: "アイコンの輪の外で離すと、何も実行せずに閉じます。「\(title)」まで動かしてから離してください。", bundle: .module)
         case .liftedOnBoundary:
             return String(localized: "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。", bundle: .module)
         case .liftedTooSoon:
@@ -47,9 +47,9 @@ enum ShellText {
         }
     }
 
-    /// 2つ目の課題: 外枠で離してやめる
+    /// 2つ目の課題: 外枠（アイコンの輪の外）で離してやめる
     static var practiceCancelInstruction: String {
-        String(localized: "もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。", bundle: .module)
+        String(localized: "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。", bundle: .module)
     }
 
     /// 1つ目の課題ができた
@@ -59,7 +59,7 @@ enum ShellText {
 
     /// 2つ目の課題ができた
     static var practiceCancelDone: String {
-        String(localized: "できました。迷ったら外枠で離せば、何も実行しません。", bundle: .module)
+        String(localized: "できました。迷ったらアイコンの輪の外で離せば、何も実行しません。", bundle: .module)
     }
 
     /// 違うマスを実行した（例: 「いまのは左下の「Finder」です。「Safari」は右上にあります」）
@@ -69,16 +69,16 @@ enum ShellText {
 
     /// やめる課題で、マスを実行した
     static func practiceRanInsteadOfCancelling(_ title: String) -> String {
-        String(localized: "「\(title)」で離しました。やめるときは、指を外枠まで滑らせてから離してください。", bundle: .module)
+        String(localized: "「\(title)」で離しました。やめるときは、ポインタをアイコンの輪の外まで動かしてから離してください。", bundle: .module)
     }
 
-    /// トラックパッドの図の読み上げ（目標のマス）
+    /// HUD の図の読み上げ（目標のマス）
     static func practiceFigureLabel(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "HUD の地図の図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
+        String(localized: "HUD の図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
     }
 
-    /// トラックパッドの図の読み上げ（やめる課題。外枠が目標）
+    /// HUD の図の読み上げ（やめる課題。輪の外が目標）
     static var practiceFigureCancelLabel: String {
-        String(localized: "HUD の地図の図。目標は9マスの外側の外枠です。", bundle: .module)
+        String(localized: "HUD の図。目標はアイコンの輪の外です。", bundle: .module)
     }
 }

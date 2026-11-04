@@ -55,8 +55,9 @@ struct OnboardingPracticeTarget: Equatable {
 
 /// 練習に使うページ。練習の HUD に出るもの（前面のアプリのプロファイルの最初のページ）なので、本物のボタンの名前で案内できる
 struct OnboardingPracticePage: Equatable {
-    /// 選んでもらうマス。指を置きやすい中央を最初に、上の縁から入ってきた指が上の段を通り過ぎて届く下の段を次に
-    static let runPreference = [4, 6, 8, 7, 3, 5, 0, 2, 1]
+    /// 選んでもらうマス。開くとポインタは真ん中にあり、上の縁から入ってきた指をそのまま下へ滑らせると届く下の鍵を最初に、
+    /// 斜め下・横・上の順。真ん中の鍵は、一度外へ出てから戻す必要があるので最後
+    static let runPreference = [7, 8, 6, 5, 3, 1, 2, 0, 4]
 
     var profileName: String
     /// 9マスの名前。空きマスは nil

@@ -134,8 +134,8 @@
       </div>
 
       <figure class="demo" data-demo
-        data-caption-run="Slide a finger down from the top edge and the HUD opens. Slide to a button and lift to run it."
-        data-caption-cancel="To cancel, slide out to the frame around the buttons and lift. Nothing runs."
+        data-caption-run="Slide a finger down from the top edge and nine icons open around the pointer. Point at one and lift to run it."
+        data-caption-cancel="To cancel, move outside the ring of icons and lift. Nothing runs."
         data-label-pause="Pause animation"
         data-label-play="Play animation">
         <div class="demo-stage" aria-hidden="true">
@@ -170,7 +170,7 @@
             <span class="finger"></span>
           </div>
         </div>
-        <figcaption data-demo-caption>Slide a finger down from the top edge of the trackpad and it becomes nine buttons. The HUD, an overlay that shows all nine, opens at once. Slide to a button and lift to run it.</figcaption>
+        <figcaption data-demo-caption>Slide a finger down from the top edge of the trackpad and nine icons open around the pointer: the HUD. Keep sliding to point at one and lift to run it.</figcaption>
         <button class="demo-toggle" type="button" data-demo-toggle hidden>Pause animation</button>
       </figure>
     </div>
@@ -188,7 +188,7 @@
         <li>
           <span class="num">02</span>
           <h3>Nothing to memorize</h3>
-          <p>All nine buttons appear the moment you open them, so you choose by looking. Not sure? Lift in the frame and nothing runs.</p>
+          <p>All nine icons appear around the pointer the moment you open them, so you choose by looking. Not sure? Lift outside the ring and nothing runs.</p>
         </li>
         <li>
           <span class="num">03</span>
@@ -203,24 +203,24 @@
     <div class="wrap">
       <div class="section-head">
         <h2 id="how-title">Slide in from the top edge, lift on a button</h2>
-        <p>No key and no click. Put a finger on the top edge of the trackpad and slide it down to open the HUD, keep sliding to choose, and lift on a button to run it. The trackpad is split into a 3×3 grid of buttons with a frame around it.</p>
+        <p>No key and no click. Put a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer, keep sliding to point at one, and lift to run it. The direction from the center picks the button, matching the 3×3 grid in Settings.</p>
       </div>
       <div class="flows">
         <div class="flow">
           <h3>To run a button</h3>
           <ol class="steps">
             <li class="step"><b>Touch the top edge</b><span>With one finger</span></li>
-            <li class="step is-hud"><b>Slide down</b><span>The HUD opens</span></li>
-            <li class="step"><b>Slide to choose</b><span>The button under your finger lights up</span></li>
-            <li class="step is-goal"><b>Lift on a button</b><span>It runs</span></li>
+            <li class="step is-hud"><b>Slide down</b><span>Nine icons open around the pointer</span></li>
+            <li class="step"><b>Slide to point at one</b><span>A white disc appears under that icon</span></li>
+            <li class="step is-goal"><b>Lift on the icon</b><span>It runs</span></li>
           </ol>
         </div>
         <div class="flow">
           <h3>To cancel: nothing runs</h3>
           <ol class="steps">
             <li class="step"><b>Open from the top edge</b><span>Same as before</span></li>
-            <li class="step is-hud"><b>Slide out to the frame</b><span>“✕ Lift to cancel” appears</span></li>
-            <li class="step is-goal"><b>Lift in the frame</b><span>It closes without running anything</span></li>
+            <li class="step is-hud"><b>Move outside the ring</b><span>All the icons dim</span></li>
+            <li class="step is-goal"><b>Lift outside the ring</b><span>It closes without running anything</span></li>
           </ol>
         </div>
       </div>
@@ -228,9 +228,9 @@
         <li>A move that starts more than 0.6 s after you touch, two fingers, a palm or a click-and-drag doesn't open it</li>
         <li>While the buttons are open the pointer moves as usual, but clicks never reach the app</li>
         <li>Pause on a button before you lift; lifting while you slide past doesn't run it</li>
-        <li>The frame is a band about 1.5–1.7 cm wide along the edges (on a 15 cm wide trackpad)</li>
+        <li>There is no visible line around the ring, but all the icons dim when you cross it</li>
         <li>Press any key to close without running anything (the key still reaches your app)</li>
-        <li>Hold your finger in the left or right frame for the page of nine on that side</li>
+        <li>Hold the pointer outside the ring to the right or left for the page of nine on that side</li>
         <li>Buttons you can't undo, like Send, can be set to Hold before running</li>
         <li>In apps set to Turn Off in This App, nothing opens and the trackpad works as usual</li>
       </ul>
@@ -289,7 +289,7 @@
             <circle class="ring" cx="142" cy="106" r="2.5"/>
           </svg>
           <h3>Three pages of nine, and a launcher</h3>
-          <p>Hold your finger in the left or right frame to change pages, for up to 27 buttons. The Global pages start with nine buttons that place the window on the screen, then a launcher filled with apps from your Mac, a handy stand-in for Launchpad.</p>
+          <p>Hold the pointer outside the ring to the right or left to change pages, for up to 27 buttons. The Global pages start with nine buttons that place the window on the screen, then a launcher filled with apps from your Mac, a handy stand-in for Launchpad.</p>
         </article>
         <article class="feature">
           <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
@@ -444,7 +444,7 @@
         <details id="faq-cancel">
           <summary>How do I close it without running anything?</summary>
           <div class="answer">
-            <p>Slide your finger out to the frame, the band around the nine buttons, and lift it. In the frame the buttons dim and “✕ Lift to cancel” appears. Pressing any key also closes them, and the key still reaches your app. A double tick tells you that you lifted in the frame and nothing ran.</p>
+            <p>Move the pointer outside the ring of icons and lift. Outside the ring, all the icons dim. Pressing any key also closes them, and the key still reaches your app. A double tick tells you that you lifted outside the ring and nothing ran.</p>
           </div>
         </details>
         <details id="faq-hold">

@@ -3,11 +3,12 @@ import CoreGraphics
 import Foundation
 
 /// デモ動画で見せる指の動き。時刻（秒）と指の位置（x は左が 0、y は手前が 0。TouchPoint と同じ）の並びで、間は滑らかにつなぐ。
-/// 位置が nil の時刻からは、次の時刻まで指を離している。見せる流れ（9マスの Xcode のプロファイルと、その後ろのグローバルのページ）:
-/// 1. 上の縁から開き、中央のマス（Claude Code）に滑らせて離し、実行する
-/// 2. 上の縁から開き、右の外枠へ出して止め、次のページへ。滑らせて中央のマスで離し、実行する
-/// 3. 上の縁から開き、手前の外枠へ出して離し、やめる
-/// 外枠に止める時間は、1回だけ切り替わる長さ（SessionConfiguration.edgePageDwell の後、edgePageRepeat の前に出る）にしてある
+/// 位置が nil の時刻からは、次の時刻まで指を離している。デモはこの位置を HUD の円に写してポインタを動かす
+/// （トラックパッドの真ん中が円の中心。DemoTouchSource.pointerTravel）。見せる流れ（9マスの Xcode のプロファイルと、その後ろのグローバルのページ）:
+/// 1. 上の縁から開き、上の鍵を通って真ん中の鍵（Claude Code）に戻して離し、実行する
+/// 2. 上の縁から開き、右の外へ出して止め、次のページへ。真ん中の鍵で離し、実行する
+/// 3. 上の縁から開き、下の外へ出して離し、やめる
+/// 外に止める時間は、1回だけ切り替わる長さ（SessionConfiguration.edgePageDwell の後、edgePageRepeat の前に出る）にしてある
 public enum DemoScript {
     public struct Key: Equatable, Sendable {
         public var time: TimeInterval

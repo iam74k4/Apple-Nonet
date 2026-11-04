@@ -53,7 +53,7 @@ struct ShellRenderTests {
             )
         }
 
-        // 外枠と、少し長く止めるマスの進み具合（Xcode のクリーン）。「コントラストを上げる」・「視差効果を減らす」も
+        // 外枠と、少し長く止めるマスの進み具合（Xcode のクリーン）。「コントラストを上げる」・「視差効果を減らす」・下地の色も
         var page = xcode.pages[0]
         let clean = try #require(page.cells.firstIndex { $0?.requiresHold == true })
         page.cells[clean]?.requiresHold = true
@@ -63,49 +63,51 @@ struct ShellRenderTests {
             transform(&model)
             return model
         }
-        let placement = PresetLibrary.makeWindowPlacementPage()
-        let states: [(String, HUDModel, HUDColors, Bool, Double?)] = [
-            ("hud-state-cell", variant { $0.highlightedIndex = 4 }, .standard, false, nil),
-            // 何に対する操作かの帯（画面に置く）と、指の点
-            ("hud-state-context", Self.hudModel(title: L10n.ui("画面に置く"), page: placement, highlighted: 3, pageIndex: 0, pageCount: 2, context: L10n.ui("\("Safari") のウインドウ")), .standard, false, nil),
-            // 右の外枠に止めて、次のページの端がのぞく
-            ("hud-state-peek", variant {
+        let mixed = HUDInks(keys: [.onDark, .onDark, .onLight, .onDark, .onLight, .onLight, .onDark, .onLight, .onLight])
+        let states: [(String, HUDModel, HUDInks, Bool, Bool, Double?, Color)] = [
+            ("hud-state-cell", variant { $0.highlightedIndex = 5 }, .fallback, false, false, nil, Color(white: 0.82)),
+            // 暗い下地: 白いアイコンに影
+            ("hud-state-dark", variant { $0.highlightedIndex = 5 }, HUDInks(all: .onDark), false, false, nil, Color(white: 0.12)),
+            // 左が暗く右が明るい下地: 鍵ごとに色が違う
+            ("hud-state-mixed", variant { $0.highlightedIndex = 7 }, mixed, false, false, nil, Color(white: 0.5)),
+            // 右の外へ出して止めて、次のページへ
+            ("hud-state-page", variant {
                 $0.isFingerInFrame = true
                 $0.pageCount = 2
                 $0.edgePaging = HUDEdgePaging(edge: .right, duration: 0.5)
-                $0.edgePeek = [0, 3, 6].map { placement.cells[$0].map { HUDCell(title: $0.title, icon: $0.icon) } }
-            }, .standard, false, nil),
+            }, .fallback, false, false, nil, Color(white: 0.82)),
             // 2本の指（光るマスが無く、離しても何も起きない）
-            ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, .standard, false, nil),
-            ("hud-state-boundary", variant { $0.highlightedIndex = 4; $0.isHighlightOnBoundary = true }, .standard, false, nil),
-            ("hud-state-frame", variant { $0.isFingerInFrame = true }, .standard, false, nil),
-            ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .increased, false, nil),
+            ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, .fallback, false, false, nil, Color(white: 0.82)),
+            ("hud-state-boundary", variant { $0.highlightedIndex = 4; $0.isHighlightOnBoundary = true }, .fallback, false, false, nil, Color(white: 0.82)),
+            ("hud-state-frame", variant { $0.isFingerInFrame = true }, .fallback, false, false, nil, Color(white: 0.82)),
+            ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .fallback, true, false, nil, Color(white: 0.82)),
             ("hud-state-hold", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
-            }, .standard, false, 0.55),
+            }, .fallback, false, false, 0.55, Color(white: 0.82)),
             ("hud-state-hold-reduce-motion", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
-            }, .standard, true, nil),
+            }, .fallback, false, true, nil, Color(white: 0.82)),
             ("hud-state-hold-ready", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: true)
-            }, .standard, false, nil),
-            ("hud-state-contrast-cell", variant { $0.highlightedIndex = 4 }, .increased, false, nil),
+            }, .fallback, false, false, nil, Color(white: 0.82)),
+            ("hud-state-contrast-cell", variant { $0.highlightedIndex = 4 }, .fallback, true, false, nil, Color(white: 0.82)),
             ("hud-state-large-frame", variant {
                 $0.isFingerInFrame = true
                 $0.scale = 1.5
                 $0.pageCount = 2
-            }, .standard, false, nil),
+                $0.edgePaging = HUDEdgePaging(edge: .left, duration: 0.5)
+            }, .fallback, false, false, nil, Color(white: 0.82)),
         ]
-        for (name, model, colors, reduceMotion, progress) in states {
+        for (name, model, inks, increasedContrast, reduceMotion, progress, backdrop) in states {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin
             try Self.render(
-                HUDView(model: model, colors: colors, reduceMotion: reduceMotion, fixedHoldProgress: progress, surface: .solid)
+                HUDView(model: model, inks: inks, increasedContrast: increasedContrast, reduceMotion: reduceMotion, fixedHoldProgress: progress)
                     .padding(margin)
-                    .background(Color(white: 0.82)),
+                    .background(backdrop),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
                 appearance: .aqua,
                 name: name

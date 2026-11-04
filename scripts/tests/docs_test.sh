@@ -43,14 +43,14 @@ test_user_guide_cancel_covers_every_way_to_cancel() {
   local section frame
   section="$(sed -n '/^### やめる/,/^##/p' "$ROOT/docs/user-guide.md")"
   [[ -n "$section" ]] || fail "docs/user-guide.md に「やめる」の節がありません"
-  assert_contains "$section" "外枠で離す" "やめる: 外枠で離せば何も実行しないこと"
+  assert_contains "$section" "輪の外で離す" "やめる: アイコンの輪の外で離せば何も実行しないこと"
   assert_contains "$section" "キーを押す" "やめる: キーで閉じられること"
   assert_contains "$section" "空きマス" "やめる: 空きマスで離せば何も起きないこと"
   assert_contains "$section" "境目" "やめる: マスの境目で離せば実行しないこと"
   assert_contains "$section" "20秒" "やめる: 長すぎる操作は自動で閉じること"
-  frame="$(grep -E 'static let cancelFrame' "$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/GridMapper.swift")"
-  assert_contains "$frame" "left: 0.11, right: 0.11, bottom: 0.15, top: 0.17" "外枠の幅が変わったら、利用ガイドの「やめる」の数字も直す"
-  assert_contains "$section" "左右の端から幅の 11%、手前の端から奥行きの 15%、奥の端から 17%" "やめる: 外枠の幅"
+  frame="$(grep -E 'static let outerRadius' "$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/RadialMapper.swift")"
+  assert_contains "$frame" "outerRadius: Double = 134" "輪の外の半径が変わったら、利用ガイドの「やめる」の数字も直す"
+  assert_contains "$section" "134pt" "やめる: 輪の外の半径"
 }
 
 # ドキュメントに書いた release.sh のオプションが、スクリプトにあること

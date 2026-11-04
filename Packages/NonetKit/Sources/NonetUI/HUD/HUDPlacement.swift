@@ -32,25 +32,24 @@ enum HUDPlacement {
         screenIndex(containing: point, in: screens).map { screens[$0] }
     }
 
-    /// HUD の見た目の枠（影の余白を含まない）。開いたときのポインタが地図の奥の外枠の帯の中央に来るように置く
-    /// （指は上の縁から入ってくるので、ポインタをそのまま下へ動かすとマスに入る）。画面の使える範囲（端の余白を除く）に収める
+    /// HUD の見た目の枠（影の余白を含まない）。円の中心が開いたときのポインタに来るように置く（枠の上側が円、下に帯の分）。
+    /// 画面の使える範囲（端の余白を除く）に収める（収まらなければ寄せ、NonetController がポインタを円の中心へ動かす）
     static func hudFrame(size: CGSize, metrics: HUDMetrics, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
-        // AppKit の座標（y は上向き）: 地図の上辺は枠の上端から余白と行の分だけ下、奥の帯の中央はそこから bandTop / 2 下
-        let bottom = cursor.y - (metrics.padding + metrics.mapHeight - metrics.bandTop / 2)
-        return frame(size: size, centeredAt: CGPoint(x: cursor.x, y: bottom + size.height / 2), in: screen)
+        // AppKit の座標（y は上向き）: 枠の上端は円の中心から outerRadius 上
+        let top = cursor.y + metrics.outerRadius
+        return frame(size: size, centeredAt: CGPoint(x: cursor.x, y: top - size.height / 2), in: screen)
     }
 
-    /// 帯や行が増減して高さが変わるとき: 地図（枠の下側）を動かさないよう下端をそろえて上へ伸び縮みさせ、画面の使える範囲に収める
+    /// 大きさが変わるとき: 円（枠の上側）を動かさないよう上端をそろえて下へ伸び縮みさせ、画面の使える範囲に収める
     static func resized(_ frame: CGRect, to size: CGSize, in screen: HUDScreenGeometry) -> CGRect {
-        let rect = CGRect(x: frame.minX, y: frame.minY, width: size.width, height: size.height)
+        let rect = CGRect(x: frame.minX, y: frame.maxY - size.height, width: size.width, height: size.height)
         return integral(clamp(rect, into: screen.visibleFrame.insetBy(dx: edgeMargin, dy: edgeMargin)))
     }
 
-    /// HUD の枠（AppKit の座標）の中の地図の枠を、ポインタの座標（主画面の左上が原点、y が下向き）にする。
-    /// 地図は枠の余白の内側の下側（題名の行の下）
+    /// HUD の枠（AppKit の座標）の中の、円を囲む正方形を、ポインタの座標（主画面の左上が原点、y が下向き）にする。
+    /// 円は枠の上側（帯はその下）。NonetController はこの正方形の中心からの向きと距離でマスを選ぶ
     static func mapFrame(hudFrame: CGRect, metrics: HUDMetrics, primaryScreen: CGRect) -> CGRect {
-        let top = hudFrame.minY + metrics.padding + metrics.mapHeight
-        return CGRect(x: hudFrame.minX + metrics.padding, y: primaryScreen.maxY - top, width: metrics.mapWidth, height: metrics.mapHeight)
+        CGRect(x: hudFrame.minX, y: primaryScreen.maxY - hudFrame.maxY, width: metrics.circleSide, height: metrics.circleSide)
     }
 
     /// 設定の「HUD の大きさ」で画面の使える範囲（端の余白と影の余白を除く）からはみ出すなら、収まるところまで倍率を下げる

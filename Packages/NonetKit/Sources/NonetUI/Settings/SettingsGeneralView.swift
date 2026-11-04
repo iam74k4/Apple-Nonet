@@ -39,6 +39,13 @@ struct SettingsGeneralView: View {
                     Text("触覚", bundle: .module)
                     Text(SettingsText.hapticsDetail)
                 }
+                Toggle(isOn: binding(\.adaptiveHUDInk)) {
+                    Text(SettingsText.adaptiveInkTitle)
+                    Text(SettingsText.adaptiveInkDetail)
+                }
+                if model.settings.adaptiveHUDInk {
+                    SettingsScreenCaptureRow(model: model)
+                }
             } header: {
                 Text("開き方と HUD", bundle: .module)
             }
@@ -63,51 +70,47 @@ struct SettingsGeneralView: View {
     }
 }
 
-/// 「開き方とやめ方」の小さな図。トラックパッドの外枠（GridInsets.cancelFrame と同じ割合）と9マス、上の縁から下への矢印。
+/// 「背景に合わせて色を変える」の下の、画面収録の許可の知らせとボタン。許可があればそう言うだけ
+private struct SettingsScreenCaptureRow: View {
+    let model: SettingsModel
+
+    var body: some View {
+        if model.isScreenCaptureGranted {
+            SettingsNote(text: SettingsText.screenCaptureGranted, symbol: "checkmark.circle")
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsNote(text: SettingsText.screenCaptureNeeded, symbol: "info.circle")
+                HStack(spacing: 8) {
+                    Button { model.requestScreenCapture() } label: { Text(SettingsText.screenCaptureRequestButton) }
+                    Button { model.openScreenCaptureSettings() } label: { Text(SettingsText.screenCaptureSettingsButton) }
+                }
+            }
+        }
+    }
+}
+
+/// 「開き方とやめ方」の小さな図。トラックパッドと、上の縁から下への矢印。
 /// 説明は横の文が言うので、VoiceOver には読ませない
 struct SettingsOpenGestureFigure: View {
-    private static let frame = GridInsets.cancelFrame
-
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
-            let inner = CGRect(
-                x: size.width * Self.frame.left,
-                y: size.height * Self.frame.top,
-                width: size.width * (1 - Self.frame.left - Self.frame.right),
-                height: size.height * (1 - Self.frame.top - Self.frame.bottom)
-            )
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(Color.primary.opacity(0.07))
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                    .frame(width: inner.width, height: inner.height)
-                    .offset(x: inner.minX, y: inner.minY)
-                Path { path in
-                    for line in 1...2 {
-                        let x = inner.minX + inner.width * CGFloat(line) / 3
-                        let y = inner.minY + inner.height * CGFloat(line) / 3
-                        path.move(to: CGPoint(x: x, y: inner.minY))
-                        path.addLine(to: CGPoint(x: x, y: inner.maxY))
-                        path.move(to: CGPoint(x: inner.minX, y: y))
-                        path.addLine(to: CGPoint(x: inner.maxX, y: y))
-                    }
-                }
-                .stroke(Color.secondary.opacity(0.45), lineWidth: 0.5)
                 // 上の縁から下へ滑らせる
                 Path { path in
                     let x = size.width / 2
                     path.move(to: CGPoint(x: x, y: 1))
-                    path.addLine(to: CGPoint(x: x, y: inner.minY + inner.height * 0.42))
+                    path.addLine(to: CGPoint(x: x, y: size.height * 0.55))
                 }
                 .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .heavy))
                     .foregroundStyle(Color.accentColor)
-                    .position(x: size.width / 2, y: inner.minY + inner.height * 0.42)
+                    .position(x: size.width / 2, y: size.height * 0.55)
             }
         }
         .accessibilityHidden(true)

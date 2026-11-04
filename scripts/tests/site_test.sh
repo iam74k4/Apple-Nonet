@@ -377,8 +377,8 @@ test_headlines_tell_the_same_story_without_a_trademark() {
   assert_not_contains "$en" "Nothing to set up"
   assert_contains "$ja" "カードもメールアドレスも不要"
   assert_contains "$en" "No card or email needed"
-  assert_contains "$ja" "9マスの一覧（HUD）"
-  assert_contains "$en" "The HUD, an overlay that shows all nine"
+  assert_contains "$ja" "9つのアイコン（HUD）"
+  assert_contains "$en" "nine icons open around the pointer: the HUD"
   assert_contains "$ja" "14日間"
   assert_contains "$ja" "macOS 14"
 }
@@ -392,13 +392,13 @@ test_pages_state_the_sales_terms() {
   en_terms="$(cat "$ROOT/site/en/terms.html")"
   legal="$(cat "$ROOT/site/tokushoho.html")"
   for text in "購入から30日以内なら、理由を問わず全額返金" "1つのライセンスで、あなたが使うすべての Mac に" "バージョン 1.x のアップデートはすべて無料" \
-    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "外枠（9マスの外側の帯）まで滑らせて離します" \
+    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "ポインタをアイコンの輪の外まで動かして離します" \
     "通り過ぎながら離しても実行しません" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
     assert_contains "$ja" "$text" "index.html"
   done
   for text in "Full refund within 30 days, no questions asked" "One license covers every Mac you use" "All 1.x updates are free" \
     "tested from the first beta" "you get a refund no matter when you bought it" "Each person needs their own license" \
-    "Slide your finger out to the frame" "Lifting while you slide past doesn't run it" "guide.html#uninstall" "On Force Touch trackpads" \
+    "Move the pointer outside the ring of icons and lift" "Lifting while you slide past doesn't run it" "guide.html#uninstall" "On Force Touch trackpads" \
     "Recorded shortcuts work the same on JIS, US and other layouts" "an independent Mac developer" "https://astlog.dev"; do
     assert_contains "$en" "$text" "en/index.html"
   done
@@ -418,7 +418,7 @@ test_pages_state_the_sales_terms() {
   assert_eq 1 "$(grep -c 'TODO: 販売サービス名' "$ROOT/site/tokushoho.html")" "tokushoho.html の販売サービス名の仮の値"
 }
 
-# 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、マスで離すと実行、外枠で離すとやめる）。
+# 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。
 # なくなった操作（トリガーキー・すぐにタップ・角に指を置く）を販売ページとダウンロードのページに書かない
 test_pages_describe_only_the_trackpad_controls() {
   local page text
@@ -444,8 +444,8 @@ test_pages_describe_only_the_trackpad_controls() {
   done
   assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドの上の縁から指を下へ滑らせると"
   assert_contains "$(cat "$ROOT/site/en/index.html")" "Slide a finger down from the top edge"
-  assert_contains "$(cat "$ROOT/site/thanks.html")" "外枠（9マスの外側）まで滑らせて離すと、何も実行せずに閉じます"
-  assert_contains "$(cat "$ROOT/site/en/thanks.html")" "slide out to the frame around the buttons and lift"
+  assert_contains "$(cat "$ROOT/site/thanks.html")" "アイコンの輪の外まで動かして離すと、何も実行せずに閉じます"
+  assert_contains "$(cat "$ROOT/site/en/thanks.html")" "move outside the ring of icons and lift"
 }
 
 # 「ダウンロード」「無料で試す」はダウンロードのページ（thanks.html）へ。そのページが /download（Worker が最新の DMG へ飛ばす）を開く。

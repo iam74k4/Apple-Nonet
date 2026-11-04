@@ -22,7 +22,7 @@ struct ShellHUDPlacementTests {
         visibleFrame: CGRect(x: -1280, y: 100, width: 1280, height: 775)
     )
     static let screens = [main, right, left]
-    static let hudSize = CGSize(width: 504, height: 315)
+    static let hudSize = HUDLayout.size(for: HUDModel(title: "", pageIndex: 0, pageCount: 1, cells: [], highlightedIndex: nil))
 
     @Test("カーソルのある画面を選ぶ", arguments: [
         (CGPoint(x: 700, y: 400), 0),
@@ -48,7 +48,7 @@ struct ShellHUDPlacementTests {
         #expect(HUDPlacement.screen(containing: .zero, in: []) == nil)
     }
 
-    @Test("HUD はポインタを中心に置き、画面の端では使える範囲（余白つき）に収める", arguments: [
+    @Test("HUD は円の中心をポインタに置き、画面の端では使える範囲（余白つき）に収める", arguments: [
         CGPoint(x: 700, y: 450),
         CGPoint(x: 0, y: 899),
         CGPoint(x: 1439, y: 0),
@@ -60,10 +60,10 @@ struct ShellHUDPlacementTests {
         let bounds = Self.main.visibleFrame.insetBy(dx: HUDPlacement.edgeMargin, dy: HUDPlacement.edgeMargin)
         #expect(bounds.contains(frame))
         #expect(frame.size == Self.hudSize)
-        // 収まるところでは、ポインタが横の中心で、地図の奥の帯の中央
+        // 収まるところでは、ポインタが円の中心（枠の上端から outerRadius 下）
         if cursor == CGPoint(x: 700, y: 450) {
             #expect(abs(frame.midX - 700) <= 0.5)
-            #expect(abs(frame.minY + HUDLayout.padding + HUDLayout.mapHeight - HUDLayout.bandTop / 2 - 450) <= 0.5)
+            #expect(abs(frame.maxY - RadialLayout.outerRadius - 450) <= 0.5)
         }
     }
 
@@ -77,7 +77,7 @@ struct ShellHUDPlacementTests {
 
     @Test("画面より大きいときは使える範囲の中央にそろえる")
     func largerThanScreen() {
-        let tiny = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 400, height: 300), visibleFrame: CGRect(x: 0, y: 0, width: 400, height: 280))
+        let tiny = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 200, height: 150), visibleFrame: CGRect(x: 0, y: 0, width: 200, height: 140))
         let frame = HUDPlacement.hudFrame(size: Self.hudSize, metrics: HUDMetrics(scale: 1), cursor: CGPoint(x: 10, y: 10), screen: tiny)
         #expect(frame.midX == tiny.visibleFrame.midX)
         #expect(abs(frame.midY - tiny.visibleFrame.midY) <= 0.5)
@@ -85,19 +85,27 @@ struct ShellHUDPlacementTests {
 
     @Test("原点は整数の座標（文字がにじまない）")
     func integralOrigin() {
-        let frame = HUDPlacement.hudFrame(size: CGSize(width: 504, height: 315), metrics: HUDMetrics(scale: 1), cursor: CGPoint(x: 700.3, y: 450.7), screen: Self.main)
+        let frame = HUDPlacement.hudFrame(size: Self.hudSize, metrics: HUDMetrics(scale: 1), cursor: CGPoint(x: 700.3, y: 450.7), screen: Self.main)
         #expect(frame.minX == frame.minX.rounded())
         #expect(frame.minY == frame.minY.rounded())
     }
 
-    @Test("地図の枠は、HUD の枠の余白の内側の下側（題名の下）。座標は主画面の左上が原点で y が下向き。倍率は地図の大きさに掛かる")
+    @Test("円を囲む正方形は、HUD の枠の上側。座標は主画面の左上が原点で y が下向き。倍率は円の大きさに掛かる")
     func mapFrame() {
         let primary = Self.main.frame
-        let hud = CGRect(x: 100, y: 100, width: HUDLayout.width, height: 269)
+        let hud = CGRect(x: 100, y: 100, width: Self.hudSize.width, height: Self.hudSize.height)
         let map = HUDPlacement.mapFrame(hudFrame: hud, metrics: HUDMetrics(scale: 1), primaryScreen: primary)
-        #expect(map == CGRect(x: 110, y: 900 - (110 + HUDLayout.mapHeight), width: HUDLayout.mapWidth, height: HUDLayout.mapHeight))
+        let side = RadialLayout.outerRadius * 2
+        #expect(map == CGRect(x: 100, y: 900 - hud.maxY, width: side, height: side))
         let large = HUDPlacement.mapFrame(hudFrame: hud, metrics: HUDMetrics(scale: 1.5), primaryScreen: primary)
-        #expect(large.width == HUDLayout.mapWidth * 1.5 && large.minX == 115)
+        #expect(large.width == side * 1.5 && large.minX == 100)
+    }
+
+    @Test("大きさが変わっても、円（枠の上端）は動かさず下へ伸び縮みさせる")
+    func resizedKeepsTheTop() {
+        let frame = CGRect(x: 100, y: 300, width: 268, height: 298)
+        let taller = HUDPlacement.resized(frame, to: CGSize(width: 268, height: 320), in: Self.main)
+        #expect(taller.maxY == frame.maxY && taller.height == 320)
     }
 
     @Test("トーストは使える範囲の下の中央（Dock の上）")

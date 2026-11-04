@@ -20,14 +20,12 @@ struct ShellHUDTests {
         return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, banner: banner)
     }
 
-    @Test("HUD の大きさ: 題名とページの点は上の外枠に入るので、ページが増えても高さは変わらない。帯の分だけ高くなる")
+    @Test("HUD の大きさ: 円を囲む正方形（直径 268）と、その下の帯の分。ページ・帯・外枠・進み具合では変わらない（枠が動かない）")
     func hudSize() {
-        // 余白 10・題名 24・間 6・地図 219（トラックパッドの形）・余白 10
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: 360, height: 269))
+        let side = RadialLayout.outerRadius * 2
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: side, height: side + HUDLayout.pillGap + HUDLayout.pillHeight))
         #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == HUDLayout.size(for: Self.model()))
-        let both = HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました"))
-        #expect(both == CGSize(width: 360, height: 297))
-        // 外枠に指があるか・進み具合では大きさは変わらない
+        #expect(HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました")) == HUDLayout.size(for: Self.model()))
         var inFrame = Self.model()
         inFrame.isFingerInFrame = true
         inFrame.hold = HUDHold(cellIndex: 0, duration: 0.6, isReady: false)
@@ -112,71 +110,75 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: later, to: turned)?.hasPrefix("Xcode") == true)
     }
 
-    @Test("地図は MacBook のトラックパッドと同じ比率で、外枠の帯は実物と同じ割合（左右 11%・奥 17%・手前 15%）")
-    func mapMatchesTheTrackpad() {
+    @Test("鍵の位置: 真ん中の鍵は円の中心、8つの鍵は半径 108 の円の上に HUD と同じ並び。倍率を掛けても同じ向き")
+    func keyPositions() {
         for scale in [1.0, 1.25] {
             let metrics = HUDMetrics(scale: scale)
-            #expect(abs(metrics.mapWidth / metrics.mapHeight - 1.55) < 0.01)
-            let frame = GridInsets.cancelFrame
-            #expect(abs(metrics.bandSide / metrics.mapWidth - frame.left) < 0.005)
-            #expect(abs(metrics.bandTop / metrics.mapHeight - frame.top) < 0.005)
-            #expect(abs(metrics.bandBottom / metrics.mapHeight - frame.bottom) < 0.005)
-            let grid = metrics.gridRect
-            #expect(grid.minX == metrics.bandSide && grid.minY == metrics.bandTop)
-            #expect(abs(grid.maxX - (metrics.mapWidth - metrics.bandSide)) < 1e-9)
-            #expect(abs(grid.maxY - (metrics.mapHeight - metrics.bandBottom)) < 1e-9)
-            #expect(metrics.cellWidth > 80 * scale && metrics.cellHeight > 44 * scale)
+            let center = metrics.center
+            #expect(center == CGPoint(x: 134 * scale, y: 134 * scale))
+            #expect(metrics.position(ofCell: 4) == center)
+            let up = metrics.position(ofCell: 1)
+            #expect(abs(up.x - center.x) < 1e-9 && abs(up.y - (center.y - 108 * scale)) < 1e-9)
+            let right = metrics.position(ofCell: 5)
+            #expect(abs(right.x - (center.x + 108 * scale)) < 1e-9 && abs(right.y - center.y) < 1e-9)
+            let bottomLeft = metrics.position(ofCell: 6)
+            #expect(bottomLeft.x < center.x && bottomLeft.y > center.y)
+            #expect(metrics.position(ofCell: 9) == center)
+            // 矢印は円の縁の内側、ページの点は真ん中の鍵の下
+            #expect(metrics.pageArrowPosition(.right).x + metrics.pageArrowRadius <= metrics.circleSide)
+            #expect(metrics.pageArrowPosition(.left).x - metrics.pageArrowRadius >= 0)
+            #expect(metrics.pageDotsPosition.y > center.y)
         }
     }
 
-    @Test("出す場所: 開いたときのポインタが地図の奥の帯の中央に来る。show は地図の枠（主画面の左上が原点）を返す")
+    @Test("出す場所: 開いたときのポインタが円の中心に来る。show は円を囲む正方形の枠（主画面の左上が原点）を返す")
     func shownNextToThePointer() throws {
         let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
         let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 450) })
         let map = try #require(hud.show(Self.model()))
         #expect(hud.isShowingHUD)
         #expect(hud.mapFrame == map)
-        #expect(map.size == CGSize(width: HUDLayout.mapWidth, height: HUDLayout.mapHeight))
+        let side = RadialLayout.outerRadius * 2
+        #expect(map.size == CGSize(width: side, height: side))
         #expect(abs(map.midX - 700) <= 0.5)
-        // 奥の帯の中央（地図の上辺から bandTop / 2）がポインタ（y は下向きなので 900 − 450）
-        #expect(abs(map.minY + HUDLayout.bandTop / 2 - (900 - 450)) <= 0.5)
+        // 円の中心がポインタ（y は下向きなので 900 − 450）
+        #expect(abs(map.midY - (900 - 450)) <= 0.5)
         // 表示中にもう一度 show しても同じ枠
         #expect(hud.show(Self.model(highlighted: 1)) == map)
         hud.hide()
         #expect(hud.mapFrame == nil)
     }
 
-    @Test("帯が増えて高くなっても、地図は動かさない（上へ伸ばす）。update は新しい地図の枠を返す")
-    func growingKeepsTheMapInPlace() throws {
+    @Test("帯が付いても大きさは変わらないので、update は枠を返さず、円は動かない")
+    func bannersKeepTheFrame() throws {
         let main = HUDScreenGeometry(frame: CGRect(x: 0, y: 0, width: 1440, height: 900), visibleFrame: CGRect(x: 0, y: 70, width: 1440, height: 805))
         let hud = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 450) })
         let map = try #require(hud.show(Self.model()))
-        // 中身だけの変化は枠を返さない
         #expect(hud.update(Self.model(highlighted: 1)) == nil)
-        let grown = try #require(hud.update(Self.model(highlighted: 1, banner: "帯")))
-        #expect(grown == map)
+        #expect(hud.update(Self.model(highlighted: 1, banner: "帯")) == nil)
         #expect(hud.mapFrame == map)
-        // 画面の上の端では、収めるために地図が下がる
-        let top = HUDWindowController(screens: { [main] }, mouseLocation: { CGPoint(x: 700, y: 890) })
-        let topMap = try #require(top.show(Self.model()))
-        let topGrown = try #require(top.update(Self.model(banner: "帯")))
-        #expect(topGrown.minY >= topMap.minY)
-        top.hide()
         hud.hide()
     }
 
-    @Test("帯と「何に対する操作か」があるぶんだけ高くなり、幅は変わらない")
-    func rowsAddHeight() {
-        let metrics = HUDMetrics(scale: 1)
-        let plain = metrics.size(for: Self.model(pageCount: 1))
-        let banner = metrics.size(for: Self.model(pageCount: 1, banner: "帯"))
-        var context = Self.model(pageCount: 1)
+    @Test("円の下の帯: 試用期間の注意書きがあればそれ、無ければ練習中だけ「練習中」。ふだんは文字を出さない")
+    func pillContent() {
+        #expect(HUDPillContent.content(for: Self.model()) == nil)
+        var practice = Self.model()
+        practice.isPractice = true
+        #expect(HUDPillContent.content(for: practice) == .practice(L10n.ui("練習中")))
+        var banner = practice
+        banner.banner = "帯"
+        banner.bannerStyle = .info
+        #expect(HUDPillContent.content(for: banner) == .banner("帯", .info))
+        #expect(HUDPillContent.banner("帯", .warning).symbol == "exclamationmark.triangle.fill")
+        #expect(HUDPillContent.banner("帯", .info).symbol == "clock")
+        #expect(HUDPillContent.practice("練習中").symbol == nil)
+        #expect(HUDPillContent.banner("帯", .info).text == "帯")
+        // 何に対する操作かは HUD 全体の呼び方に入れる（文では出さない）
+        var context = Self.model()
         context.context = "Safari のウインドウ"
-        let withContext = metrics.size(for: context)
-        #expect(plain.width == HUDLayout.width && banner.width == plain.width && withContext.width == plain.width)
-        #expect(banner.height - plain.height == HUDLayout.bannerHeight + HUDLayout.rowSpacing)
-        #expect(withContext.height - plain.height == HUDLayout.contextHeight + HUDLayout.rowSpacing)
-        #expect(plain.height == HUDLayout.padding * 2 + HUDLayout.headerHeight + HUDLayout.rowSpacing + HUDLayout.mapHeight)
+        #expect(HUDAnnouncement.frameTitle(for: context) == ["Xcode", "Safari のウインドウ"].joined(separator: L10n.ui("、")))
+        #expect(HUDAnnouncement.frameTitle(for: Self.model()) == "Xcode")
     }
 
     @Test("ページを切り替える線の進み具合: 止め始めてからの時間に比例し、0〜1に収まる")
@@ -204,7 +206,7 @@ struct ShellHUDTests {
         #expect(HUDEdgePagingBar.restartID(for: first) != HUDEdgePagingBar.restartID(for: HUDEdgePaging(edge: .left, since: 1, duration: 0.5)))
     }
 
-    @Test("題名の横の一言: 練習中だけ「練習中」。少し長く止めるマスを止めていても、文は出さない（マスの輪が見せる）")
+    @Test("円の下の一言: 練習中だけ「練習中」。少し長く止めるマスを止めていても、文は出さない（円の縁の線が見せる）")
     func topNotes() {
         var model = Self.model(highlighted: 4)
         #expect(HUDAnnouncement.topNote(for: model) == nil)

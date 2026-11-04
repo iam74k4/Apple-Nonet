@@ -23,14 +23,16 @@ struct ShellHUDAppearanceTests {
 
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
-        // 余白 10・題名 24・間 6・地図 219・余白 10
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: 360, height: 269))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: 450, height: 336.25))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: 540, height: 403.5))
+        let side = RadialLayout.outerRadius * 2
+        let strip = HUDLayout.pillGap + HUDLayout.pillHeight
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: side, height: side + strip))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: side * 1.25, height: (side + strip) * 1.25))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: side * 1.5, height: (side + strip) * 1.5))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: 360, height: 269))
-        #expect(HUDMetrics(scale: 1.5).headerFontSize == 18)
-        #expect(HUDMetrics(scale: 1.5).cellTitleFontSize == 15.75)
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: side, height: side + strip))
+        #expect(HUDMetrics(scale: 1.5).iconSize == 30)
+        #expect(HUDMetrics(scale: 1.5).selectionRadius == 33)
+        #expect(HUDMetrics(scale: 1.5).keyRadius == 162)
     }
 
     @Test("画面に収まらない大きさは、収まるところまで小さくする")
@@ -111,18 +113,10 @@ struct ShellHUDAppearanceTests {
         #expect(increased.frameStroke(isActive: false) != light.frameStroke(isActive: false))
     }
 
-    @Test("外枠の帯は、9マスの下をくり抜いた形")
-    func frameBand() {
-        let band = HUDFrameBand(cornerRadius: 18, insets: EdgeInsets(top: 14, leading: 9, bottom: 12, trailing: 9), innerCornerRadius: 16)
-        // 偶奇の規則で塗る（SwiftUI の Path.contains(_:eoFill:) は、くり抜いた形で結果が逆になるので CGPath で確かめる）
-        let path = band.path(in: CGRect(x: 0, y: 0, width: 400, height: 300)).cgPath
-        // 帯の中
-        #expect(path.contains(CGPoint(x: 4, y: 150), using: .evenOdd))
-        #expect(path.contains(CGPoint(x: 200, y: 6), using: .evenOdd))
-        #expect(path.contains(CGPoint(x: 200, y: 294), using: .evenOdd))
-        // 9マスの下は塗らない
-        #expect(!path.contains(CGPoint(x: 200, y: 150), using: .evenOdd))
-        #expect(!path.contains(CGPoint(x: 20, y: 30), using: .evenOdd))
+    @Test("外枠にいるときは鍵を薄くする。「コントラストを上げる」では薄くしすぎない")
+    func dimming() {
+        #expect(HUDInkPalette.dimmedOpacity < HUDInkPalette.dimmedOpacityIncreased)
+        #expect(HUDInkPalette.dimmedOpacityIncreased <= 0.6)
     }
 
     @Test("アプリのページとグローバルのページの点の間を空ける")

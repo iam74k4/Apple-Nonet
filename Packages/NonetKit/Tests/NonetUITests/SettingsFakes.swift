@@ -82,10 +82,15 @@ final class SettingsFakeMenus: MenuReading {
 final class SettingsFakePermissions: PermissionsProviding {
     var isAccessibilityGranted = true
     var isSecureInputActive = false
+    var isScreenCaptureGranted = false
     private(set) var requestCount = 0
     private(set) var openCount = 0
+    private(set) var screenCaptureRequestCount = 0
+    private(set) var screenCaptureOpenCount = 0
     func requestAccessibility() { requestCount += 1 }
     func openAccessibilitySettings() { openCount += 1 }
+    func requestScreenCapture() { screenCaptureRequestCount += 1 }
+    func openScreenCaptureSettings() { screenCaptureOpenCount += 1 }
 }
 
 @MainActor

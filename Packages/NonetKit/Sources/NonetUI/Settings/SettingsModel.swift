@@ -1068,6 +1068,7 @@ final class SettingsModel {
     /// システム設定から戻ったときなど。望んでいた状態になっていれば、前の知らせは消す
     /// （システム設定の「ログイン項目」で許可されたのに、できなかったと出し続けないように）
     func refreshLoginItem() {
+        permissionRefreshCount += 1
         loginItemEnabled = services.loginItem.isEnabled
         if let wanted = loginItemWanted, wanted == loginItemEnabled {
             loginItemError = nil
@@ -1100,6 +1101,28 @@ final class SettingsModel {
 
     var statusBanner: SettingsStatusBanner? {
         SettingsStatusBanner(status: controller.status)
+    }
+
+    // MARK: - 画面収録（HUD のアイコンの色を下地に合わせる）
+
+    /// 「画面収録」の許可があるか（設定を開くたびに・ボタンを押すたびに読み直す）
+    var isScreenCaptureGranted: Bool {
+        _ = permissionRefreshCount
+        return services.permissions.isScreenCaptureGranted
+    }
+
+    /// isScreenCaptureGranted を読み直させる目印
+    private(set) var permissionRefreshCount = 0
+
+    /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、システム設定を開くボタンも並べてある
+    func requestScreenCapture() {
+        services.permissions.requestScreenCapture()
+        permissionRefreshCount += 1
+    }
+
+    func openScreenCaptureSettings() {
+        services.permissions.openScreenCaptureSettings()
+        permissionRefreshCount += 1
     }
 
     func perform(_ action: SettingsStatusBanner.Action) {

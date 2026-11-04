@@ -35,8 +35,10 @@ final class DemoTouchSource: TouchSource {
     private var wasTouching = false
     var onFinished: (() -> Void)?
     var onFrame: ((TouchFrame) -> Void)?
-    /// 表示中の HUD の地図の枠（主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす（本物はポインタでマスを選ぶため）
+    /// 表示中の HUD の枠（円を囲む正方形。主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす（本物はポインタでマスを選ぶため）
     var mapFrame: (() -> CGRect?)?
+    /// 台本の指の位置（トラックパッドの 0〜1）を枠に写すときの倍率。指がトラックパッドの端まで行けば、ポインタが円の外（外枠）に出るように
+    static let pointerTravel: CGFloat = 1.3
 
     var isAvailable: Bool { scripted || base.isAvailable }
 
@@ -90,7 +92,11 @@ final class DemoTouchSource: TouchSource {
         if let point = DemoScript.sample(at: time) {
             wasTouching = true
             if let map = mapFrame?() {
-                CGWarpMouseCursorPosition(CGPoint(x: map.minX + point.x * map.width, y: map.minY + (1 - point.y) * map.height))
+                // トラックパッドの真ん中が円の中心。そこからの動きを倍率で広げる
+                CGWarpMouseCursorPosition(CGPoint(
+                    x: map.midX + (point.x - 0.5) * map.width * Self.pointerTravel,
+                    y: map.midY + (0.5 - point.y) * map.height * Self.pointerTravel
+                ))
             }
             deliver(TouchFrame(timestamp: now, points: [TouchPoint(id: 1, x: point.x, y: point.y, isTouching: true, majorAxis: 12)]))
         } else if wasTouching {
@@ -206,28 +212,13 @@ struct DemoTrackpadView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let frame = GridInsets.cancelFrame
-            let grid = CGRect(
-                x: frame.left * size.width,
-                y: frame.top * size.height,
-                width: (1 - frame.left - frame.right) * size.width,
-                height: (1 - frame.top - frame.bottom) * size.height
-            )
-            let gap: CGFloat = 5
-            let cellWidth = (grid.width - 2 * gap) / 3
-            let cellHeight = (grid.height - 2 * gap) / 3
+            // マスはポインタで選ぶので、トラックパッドには何も描かない（上の縁の帯だけ: 開く場所）
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.white.opacity(0.07))
                 RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Color.white.opacity(0.22), lineWidth: 1.5)
-                ForEach(0..<9, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: cellWidth, height: cellHeight)
-                        .offset(
-                            x: grid.minX + CGFloat(index % 3) * (cellWidth + gap),
-                            y: grid.minY + CGFloat(index / 3) * (cellHeight + gap)
-                        )
-                }
+                Rectangle()
+                    .fill(Color.white.opacity(0.06))
+                    .frame(width: size.width, height: size.height * 0.09)
                 ForEach(model.trail) { mark in
                     let age = (model.trail.last?.time ?? mark.time) - mark.time
                     let strength = max(0, 1 - age / DemoTrackpadModel.trailDuration)

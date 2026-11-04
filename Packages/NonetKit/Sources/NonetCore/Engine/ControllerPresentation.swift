@@ -12,7 +12,8 @@ public enum ControllerPresentation {
         isPractice: Bool = false,
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
-        scale: Double = 1
+        scale: Double = 1,
+        adaptsInk: Bool = false
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
@@ -37,7 +38,8 @@ public enum ControllerPresentation {
             banner: banner,
             bannerStyle: bannerStyle,
             globalPagesStart: globalPagesStart(pages),
-            scale: scale
+            scale: scale,
+            adaptsInk: adaptsInk
         )
     }
 

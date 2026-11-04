@@ -16,10 +16,14 @@ public final class HUDWindowController: HUDPresenting {
     private let prefersIncreasedContrast: () -> Bool
     /// システム設定の「視差効果を減らす」。HUD を出すたびに読み直す
     private let prefersReducedMotion: () -> Bool
-    /// システム設定の「透明度を下げる」。HUD を出すたびに読み直す
+    /// システム設定の「透明度を下げる」。トーストを出すたびに読み直す
     private let prefersReducedTransparency: () -> Bool
+    /// HUD の下の画面の明るさを測る（アイコンの色を下地に合わせる）。無ければ測らない
+    private let backdropSampler: (any HUDBackdropSampling)?
 
     private let hudStore = HUDStore()
+    /// 何回目の HUD か。下の画面を測り終えたとき、その間に閉じた・出し直した HUD の色を変えないため
+    private var inkGeneration = 0
     private lazy var hudPanel: HUDOverlayPanel = {
         let panel = HUDOverlayPanel()
         panel.contentView = HUDOverlayPanel.hostingView(HUDRootView(store: hudStore))
@@ -42,7 +46,8 @@ public final class HUDWindowController: HUDPresenting {
             mouseLocation: { NSEvent.mouseLocation },
             prefersIncreasedContrast: { NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast },
             prefersReducedMotion: { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion },
-            prefersReducedTransparency: { NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency }
+            prefersReducedTransparency: { NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency },
+            backdropSampler: ScreenCaptureBackdropSampler()
         )
     }
 
@@ -51,19 +56,25 @@ public final class HUDWindowController: HUDPresenting {
         mouseLocation: @escaping () -> CGPoint,
         prefersIncreasedContrast: @escaping () -> Bool = { false },
         prefersReducedMotion: @escaping () -> Bool = { false },
-        prefersReducedTransparency: @escaping () -> Bool = { false }
+        prefersReducedTransparency: @escaping () -> Bool = { false },
+        backdropSampler: (any HUDBackdropSampling)? = nil
     ) {
         self.screens = screens
         self.mouseLocation = mouseLocation
         self.prefersIncreasedContrast = prefersIncreasedContrast
         self.prefersReducedMotion = prefersReducedMotion
         self.prefersReducedTransparency = prefersReducedTransparency
+        self.backdropSampler = backdropSampler
     }
+
+    /// いまの鍵の色（テスト用）
+    var inks: HUDInks { hudStore.inks }
 
     /// HUD を表示中か（フェードアウト中は含まない）
     var isShowingHUD: Bool { hudFader.isShowing }
 
-    /// 出す（ポインタのすぐ下）。地図の枠（主画面の左上が原点）を返す。表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える
+    /// 出す（ポインタを中心にした円）。円を囲む正方形の枠（主画面の左上が原点）を返す。表示中にもう一度呼ばれたら、位置を動かさずに中身だけ変える。
+    /// アイコンの色は、まず黒に白い縁（どの下地でも読める）で出し、下の画面を測り終えたら鍵ごとに白か濃い色に替える
     @discardableResult
     public func show(_ model: HUDModel) -> CGRect? {
         if hudFader.isShowing, hudFrame != nil {
@@ -76,18 +87,33 @@ public final class HUDWindowController: HUDPresenting {
         }
         let model = HUDPlacement.fitted(model, in: screen)
         hudStore.model = model
+        hudStore.inks = .fallback
         hudStore.increasedContrast = prefersIncreasedContrast()
         hudStore.reduceMotion = prefersReducedMotion()
-        hudStore.reduceTransparency = prefersReducedTransparency()
         let frame = HUDPlacement.hudFrame(size: HUDLayout.size(for: model), metrics: HUDMetrics(scale: model.scale), cursor: cursor, screen: screen)
         place(frame, screen: screen)
         hudFader.show()
+        sampleBackdrop(for: model)
         // フェードアウト中の前の HUD があっても、新しい HUD として最初から読む
         HUDAccessibility.announce(HUDAnnouncement.announcement(from: nil, to: model) ?? "")
         return mapFrame
     }
 
-    /// 中身を変える。帯や行が増減して高さが変わるときは、地図（ポインタが選ぶ場所）を動かさずに上へ伸び縮みさせ、新しい地図の枠を返す
+    /// 設定で「背景に合わせて色を変える」がオンで、画面収録の許可があれば、HUD の下を 1 枚撮って鍵ごとの明るさを測る。
+    /// 測り終えるまでの数コマは黒に白い縁のまま（HUDInks.fallback）。その間に閉じた・出し直したら、結果は捨てる
+    private func sampleBackdrop(for model: HUDModel) {
+        inkGeneration += 1
+        guard model.adaptsInk, let sampler = backdropSampler, sampler.isAvailable, let map = mapFrame else { return }
+        let generation = inkGeneration
+        let metrics = HUDMetrics(scale: model.scale)
+        let keys = (0..<Page.cellCount).map(metrics.position(ofCell:))
+        sampler.sample(map, keys: keys, radius: metrics.selectionRadius) { [weak self] luminances in
+            guard let self, self.inkGeneration == generation, self.hudFader.isShowing else { return }
+            self.hudStore.inks = HUDInkDecision.inks(forLuminances: luminances)
+        }
+    }
+
+    /// 中身を変える。大きさが変わるときは、円（ポインタが選ぶ場所）を動かさずに下へ伸び縮みさせ、新しい枠を返す
     @discardableResult
     public func update(_ model: HUDModel) -> CGRect? {
         guard hudFader.isShowing, let frame = hudFrame, let screen = hudScreen else { return nil }
@@ -118,6 +144,7 @@ public final class HUDWindowController: HUDPresenting {
     public func hide() {
         placementPreview.hide()
         guard hudFader.isShowing else { return }
+        inkGeneration += 1
         hudFrame = nil
         hudScreen = nil
         mapFrame = nil

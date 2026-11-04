@@ -134,8 +134,8 @@
       </div>
 
       <figure class="demo" data-demo
-        data-caption-run="上の縁から指を下へ滑らせると、9マスの一覧（HUD）が開く。指を滑らせて選び、マスで離すと実行。"
-        data-caption-cancel="やめるときは、外枠（9マスの外側）まで滑らせて離す。何も実行せずに閉じる。"
+        data-caption-run="上の縁から指を下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開く。指を滑らせてポインタを向け、アイコンで離すと実行。"
+        data-caption-cancel="やめるときは、アイコンの輪の外まで動かして離す。何も実行せずに閉じる。"
         data-label-pause="動きを止める"
         data-label-play="動かす">
         <div class="demo-stage" aria-hidden="true">
@@ -170,7 +170,7 @@
             <span class="finger"></span>
           </div>
         </div>
-        <figcaption data-demo-caption>トラックパッドの上の縁から指を下へ滑らせると、9つのボタンが開く。9マスの一覧（HUD）を見ながら指を滑らせて選び、マスで離すと実行。</figcaption>
+        <figcaption data-demo-caption>トラックパッドの上の縁から指を下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開く。指を滑らせてポインタを向け、アイコンで離すと実行。</figcaption>
         <button class="demo-toggle" type="button" data-demo-toggle hidden>動きを止める</button>
       </figure>
     </div>
@@ -188,7 +188,7 @@
         <li>
           <span class="num">02</span>
           <h3>覚えなくていい</h3>
-          <p>開くとすぐに9マスの一覧が出るから、見ながら選べる。迷ったら外枠で指を離せば、何も実行しない。</p>
+          <p>開くとすぐにポインタの周りに9つのアイコンが出るから、見ながら選べる。迷ったら輪の外で指を離せば、何も実行しない。</p>
         </li>
         <li>
           <span class="num">03</span>
@@ -203,24 +203,24 @@
     <div class="wrap">
       <div class="section-head">
         <h2 id="how-title">上の縁から滑らせて、マスで離す</h2>
-        <p>キーもクリックも使いません。トラックパッドの上の縁に指を置いて下へ滑らせると9マスの一覧（HUD）が開き、そのまま指を滑らせて選んで、マスで離すと実行します。トラックパッドは、縦横3つずつのマスと、その周りの外枠に分かれています。</p>
+        <p>キーもクリックも使いません。トラックパッドの上の縁に指を置いて下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開き、そのまま指を滑らせてポインタを向け、アイコンで離すと実行します。真ん中から見た向きでマスが決まり、設定の3×3の9マスにあたります。</p>
       </div>
       <div class="flows">
         <div class="flow">
           <h3>実行する</h3>
           <ol class="steps">
             <li class="step"><b>上の縁に指を置く</b><span>指は1本</span></li>
-            <li class="step is-hud"><b>下へ滑らせる</b><span>9マスの一覧（HUD）が開く</span></li>
-            <li class="step"><b>指を滑らせて選ぶ</b><span>指の下のマスが反転して目立つ</span></li>
-            <li class="step is-goal"><b>マスで離す</b><span>選んだマスを実行する</span></li>
+            <li class="step is-hud"><b>下へ滑らせる</b><span>ポインタの周りに9つのアイコン（HUD）が開く</span></li>
+            <li class="step"><b>指を滑らせて向ける</b><span>向けたアイコンの下に白い円が出る</span></li>
+            <li class="step is-goal"><b>アイコンで離す</b><span>そのマスを実行する</span></li>
           </ol>
         </div>
         <div class="flow">
           <h3>やめる：何も実行しない</h3>
           <ol class="steps">
             <li class="step"><b>上の縁から開く</b><span>実行するときと同じ</span></li>
-            <li class="step is-hud"><b>外枠まで滑らせる</b><span>「✕ 離すとやめる」が出る</span></li>
-            <li class="step is-goal"><b>外枠で離す</b><span>何も実行せずに閉じる</span></li>
+            <li class="step is-hud"><b>輪の外へ出す</b><span>アイコンが全部薄くなる</span></li>
+            <li class="step is-goal"><b>輪の外で離す</b><span>何も実行せずに閉じる</span></li>
           </ol>
         </div>
       </div>
@@ -228,9 +228,9 @@
         <li>触れてから 0.6 秒たって動かしたとき、2本指・手のひら・クリックしたままのドラッグでは開かない</li>
         <li>開いている間もポインタはふだんどおり動くが、クリックは前面のアプリに届かない</li>
         <li>マスで少し止まってから離すと実行し、通り過ぎながら離しても実行しない</li>
-        <li>外枠は、トラックパッドの縁に沿った幅1.5〜1.7cmほどの帯（幅15cmほどのトラックパッドで）</li>
+        <li>輪の外に線は見えないが、越えるとアイコンが全部薄くなるので分かる</li>
         <li>キーを押しても、何も実行せずに閉じる（キーはふだんどおりアプリに届く）</li>
-        <li>左右の外枠に指を止めると、そちら側のページの9マスへ</li>
+        <li>右か左の外へ出して止めると、そちら側のページの9マスへ</li>
         <li>送信のように取り消せないマスは、「少し長く止めてから実行」にできる</li>
         <li>「このアプリでは使わない」にしたアプリでは開かず、トラックパッドはいつもどおり</li>
       </ul>
@@ -289,7 +289,7 @@
             <circle class="ring" cx="142" cy="106" r="2.5"/>
           </svg>
           <h3>9マス×3ページ、ランチャーにも</h3>
-          <p>左右の外枠に指を止めてページを切り替え。最大27個まで置ける。グローバルのページは、ウインドウを画面に置く9マスと、Mac にあるアプリを並べたランチャーから始まる。Launchpad の代わりにも。</p>
+          <p>右か左の外へ出して止めてページを切り替え。最大27個まで置ける。グローバルのページは、ウインドウを画面に置く9マスと、Mac にあるアプリを並べたランチャーから始まる。Launchpad の代わりにも。</p>
         </article>
         <article class="feature">
           <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
@@ -444,7 +444,7 @@
         <details id="faq-cancel">
           <summary>開いたあと、何も実行せずに閉じるには？</summary>
           <div class="answer">
-            <p>指を外枠（9マスの外側の帯）まで滑らせて離します。外枠に入るとマスが暗くなり、「✕ 離すとやめる」と出ます。キーを押しても閉じます（キーはふだんどおり前面のアプリに届きます）。外枠で離して閉じたときは、軽く2回振動します。</p>
+            <p>ポインタをアイコンの輪の外まで動かして離します。輪の外に出るとアイコンが全部薄くなります。キーを押しても閉じます（キーはふだんどおり前面のアプリに届きます）。輪の外で離して閉じたときは、軽く2回振動します。</p>
           </div>
         </details>
         <details id="faq-hold">

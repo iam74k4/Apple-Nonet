@@ -50,17 +50,22 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
+    /// HUD のアイコンの色を下地に合わせる（開くたびに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白）。
+    /// 測るには macOS の「画面収録」の許可が要る。許可が無ければ、黒いアイコンに白い縁で描く（HUDModel.adaptsInk）。既定はオン
+    public var adaptiveHUDInk: Bool
 
     public init(
         isEnabled: Bool = true,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
-        openSensitivity: OpenSensitivity = .standard
+        openSensitivity: OpenSensitivity = .standard,
+        adaptiveHUDInk: Bool = true
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
+        self.adaptiveHUDInk = adaptiveHUDInk
     }
 }
 
@@ -88,7 +93,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, haptics, hudScale, openSensitivity
+        case isEnabled, haptics, hudScale, openSensitivity, adaptiveHUDInk
     }
 
     public init(from decoder: any Decoder) throws {
@@ -98,7 +103,8 @@ extension GlobalSettings {
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
-            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
+            adaptiveHUDInk: container.decodeLossy(Bool.self, forKey: .adaptiveHUDInk, default: defaults.adaptiveHUDInk)
         )
     }
 
@@ -112,6 +118,9 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
+        }
+        if !adaptiveHUDInk {
+            try container.encode(adaptiveHUDInk, forKey: .adaptiveHUDInk)
         }
     }
 }

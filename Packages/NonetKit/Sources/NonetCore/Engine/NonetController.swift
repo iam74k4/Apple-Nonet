@@ -125,8 +125,10 @@ public final class NonetController {
     @ObservationIgnored private var isStarted = false
     @ObservationIgnored private var isTouchSourceRunning = false
     @ObservationIgnored private var isHUDVisible = false
-    /// 開いている間の、HUD の地図の枠（主画面の左上が原点、y が下向き。HUDPresenting.show が返す）。ポインタの位置をこの枠に写してマスを選ぶ
+    /// 開いている間の、HUD の枠（円を囲む正方形。主画面の左上が原点、y が下向き。HUDPresenting.show が返す）。ポインタの位置をこの枠の中心からの向きと距離でマスに写す
     @ObservationIgnored private var hudMapFrame: CGRect?
+    /// ポインタの位置をマスに写す（ヒステリシスのために直前の場所を持つ）。開くたびに作り直す
+    @ObservationIgnored private var pointerSelection = ControllerPointerSelection()
     @ObservationIgnored private var tickTask: (any ScheduledTask)?
     @ObservationIgnored private var pollTask: (any ScheduledTask)?
     /// エンジンの出力を処理している間に来た入力（出力の処理からエンジンを呼び直さないように、順に処理する）
@@ -370,9 +372,9 @@ public final class NonetController {
         if frame.isSynthesizedLift {
             send(.interrupted(at: frame.timestamp))
         }
-        // 開いている間は、ポインタが地図の上で乗っている場所を指の位置にする（地図が無ければポインタは読まない）
+        // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
         let pointer = hudMapFrame != nil && engine.isInSession ? services.keyboard.pointerLocation : nil
-        send(.touches(ControllerPointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
+        send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
         // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
         if frame.touching.count != 1 {
             cancelPendingOpen()
@@ -501,9 +503,10 @@ public final class NonetController {
         case .showHUD(let state):
             prepareFirstHUD()
             guard let session else { return }
+            pointerSelection = ControllerPointerSelection()
             hudMapFrame = hud.show(hudModel(session, state: state))
             isHUDVisible = true
-            // 開いたときのポインタは地図の奥の外枠の帯の中央。画面の端で枠を寄せてそこに来ていなければ、一度だけそこへ動かす
+            // 開いたときのポインタは HUD の円の中心。画面の端で枠を寄せてそこに来ていなければ、一度だけそこへ動かす
             if let map = hudMapFrame, let pointer = services.keyboard.pointerLocation {
                 let start = ControllerPointerSelection.startPoint(in: map)
                 if hypot(pointer.x - start.x, pointer.y - start.y) > 0.5 {
@@ -587,6 +590,7 @@ public final class NonetController {
 
     private func hideHUD() {
         hudMapFrame = nil
+        pointerSelection = ControllerPointerSelection()
         guard isHUDVisible else { return }
         isHUDVisible = false
         hud.hidePlacementPreview()

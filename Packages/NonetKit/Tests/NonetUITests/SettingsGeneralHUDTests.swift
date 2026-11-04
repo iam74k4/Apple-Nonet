@@ -23,6 +23,29 @@ import Testing
         #expect(try h.saved()?.settings.hudScale == .extraLarge)
     }
 
+    /// 「背景に合わせて色を変える」は既定でオン。オフにすると保存され、HUD は測らなくなる（HUDModel.adaptsInk）
+    @Test func adaptiveInkIsOnByDefaultAndSaved() throws {
+        let h = try SettingsHarness()
+        #expect(h.model.settings.adaptiveHUDInk)
+        #expect(SettingsText.adaptiveInkTitle == L10n.ui("背景に合わせて色を変える"))
+        h.model.setSetting(\.adaptiveHUDInk, false)
+        #expect(!h.controller.configuration.settings.adaptiveHUDInk)
+        #expect(try h.saved()?.settings.adaptiveHUDInk == false)
+    }
+
+    /// 画面収録の許可: 聞くだけ・求める・システム設定を開く。ボタンを押したら読み直す
+    @Test func screenCapturePermissionIsReadAndRequested() throws {
+        let h = try SettingsHarness()
+        #expect(!h.model.isScreenCaptureGranted)
+        h.model.requestScreenCapture()
+        #expect(h.permissions.screenCaptureRequestCount == 1)
+        h.model.openScreenCaptureSettings()
+        #expect(h.permissions.screenCaptureOpenCount == 1)
+        h.permissions.isScreenCaptureGranted = true
+        h.model.refreshLoginItem()
+        #expect(h.model.isScreenCaptureGranted)
+    }
+
     /// 一般のタブは、開きやすさと HUD の位置の2つの選択と、スイッチだけ。ポップアップやスライダーは無い
     @Test func theGeneralTabHasOnlyTwoSegmentedChoices() async throws {
         _ = NSApplication.shared

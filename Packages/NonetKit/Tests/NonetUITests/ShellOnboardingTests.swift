@@ -470,12 +470,14 @@ struct ShellOnboardingTests {
         #expect(global.practicePage?.profileName == globalHarness.controller.configuration.globalProfile.name)
     }
 
-    @Test("目標のマスの選び方: 中身のあるマスから。中央、下の段（左下・右下・下）、左右、上の段の順", arguments: [
+    @Test("目標のマスの選び方: 中身のあるマスから。下、斜め下（右下・左下）、左右、上の段の順。真ん中は最後（一度外へ出てから戻す）", arguments: [
         ([0, 2, 6], 6),
-        ([0, 4], 4),
+        ([0, 4], 0),
         ([8], 8),
         ([1, 3, 7], 7),
         ([2, 5], 5),
+        ([4, 1], 1),
+        ([4], 4),
     ])
     func practiceTargetChoice(occupied: [Int], run: Int) throws {
         let cells: [Cell?] = (0..<Page.cellCount).map { index in
@@ -530,11 +532,11 @@ struct ShellOnboardingTests {
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。"))
+            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。"))
         #expect(ShellText.practiceCancelInstruction
-            == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。"))
+            == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
-            == L10n.ui("「\("X")」で離しました。やめるときは、指を外枠まで滑らせてから離してください。"))
+            == L10n.ui("「\("X")」で離しました。やめるときは、ポインタをアイコンの輪の外まで動かしてから離してください。"))
         // トラックパッドには「押す」「長押し」と言わない
         for text in [ShellText.practiceRunInstruction(page.runTarget), ShellText.practiceCancelInstruction] {
             #expect(!text.contains("長押し"))
@@ -606,7 +608,7 @@ struct ShellOnboardingTests {
         model.handleCancellation(ShellFixtures.cancellation(date: started.addingTimeInterval(5)))
         #expect(model.practice == .succeeded)
         #expect(model.practiceFeedback == nil)
-        #expect(recorder.announcements.last == L10n.ui("できました。迷ったら外枠で離せば、何も実行しません。"))
+        #expect(recorder.announcements.last == L10n.ui("できました。迷ったらアイコンの輪の外で離せば、何も実行しません。"))
 
         // 成功の後に実行しても成功のまま
         model.handleExecution(ShellFixtures.record(index: 7, date: started.addingTimeInterval(6)))

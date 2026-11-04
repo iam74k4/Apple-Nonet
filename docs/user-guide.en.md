@@ -8,7 +8,7 @@ Slide a finger in from the top edge, and Nonet turns your MacBook trackpad into 
 
 - Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it
 - The trackpad is split into a 3×3 grid, and **where your finger is** picks the button. The pointer position doesn't matter. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
-- If you change your mind, slide out to the frame around the nine buttons and lift your finger. Nothing runs
+- If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
 - The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
 
 ### Requirements
@@ -52,7 +52,7 @@ The first time you use a File action, or a script uses the URL of the page shown
 The Welcome to Nonet window has two steps, shown at the top.
 
 1. **Accessibility**: the permission described above
-2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel in the frame**: open the HUD from the top edge again, then slide out to the frame (outside the nine buttons) and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
+2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel outside the ring**: open the HUD from the top edge again, then move the pointer outside the ring of icons and lift your finger. Nothing runs in practice mode. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
 At the bottom of the practice step are the **Open Nonet automatically when you log in** checkbox, **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). The checkbox is checked the first time you open Nonet. When you see the guide again, it starts from your current setting (**Open at login** in Settings). Nonet applies your choice when the guide closes from the practice step (with **Done**, **Skip**, **Open Settings** or the window's close button). If macOS needs your approval, System Settings opens at Login Items, the practice step says "To open Nonet at login, allow it in System Settings under Login Items.", and the guide stays open (click the button again to close it). If you can't see the Nonet icon in the menu bar, the practice step says "If you can't see the icon in the menu bar, open Nonet from the Applications folder to open Settings."
 
@@ -71,35 +71,35 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 1. Place one finger on the top edge (the far edge) of the trackpad
 2. Slide it straight down in one smooth move
 
-The nine buttons open, the HUD (a small trackpad-shaped panel: the nine buttons and the frame around them) appears just below the pointer, and the trackpad gives a light tick. The pointer sits in the far band of the frame and keeps moving as usual while the buttons are open. The button under the pointer lights up, so keep sliding your finger down onto a button and lift to run it. Right after they open, the pointer is in the frame (outside the nine buttons), so "✕ Lift to cancel" in the bottom band of the HUD stands out. Lift your finger there, and the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide a little further (2 to 3 mm) to start choosing a button.
+The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
 - Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - They don't open while a Nonet window, such as Settings or the welcome guide, is in front, because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
-- The HUD appears on the display with the pointer. When there is no room for the map below the pointer at the edge of the screen, the map is moved to where it fits and the pointer is moved into the map's far band instead
+- The HUD appears on the display with the pointer. When there is no room for the ring at the edge of the screen, the ring is moved to where it fits and the pointer is moved to its center instead
 
 ### Choosing and running a button
 
-1. Keep your finger down and slide it to choose a button. The button under your finger is highlighted (filled white in dark mode and black in light mode), and each time you cross into another button, the trackpad gives a light tick
-2. Stop on the button you want, then lift your finger
+1. Keep your finger down and slide it to point the pointer at an icon. That icon sits on a white disc, and each time you move to another icon, the trackpad gives a light tick
+2. Stop on the icon you want, then lift your finger
 
-The highlighted button runs, and the HUD closes.
+The icon on the white disc runs, and the HUD closes.
 
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
-- Lifting almost exactly on the line between two buttons (within about 2 mm of it) runs nothing, because it isn't clear which one you meant. While your finger is there, the highlighted button isn't filled and shows only an outline, like an empty button (a filled button is the one that runs if you lift now)
-- Buttons are chosen by **position** on the trackpad. The top-left button is in the top-left of the trackpad, inside the frame
-- The top edge of the HUD shows the profile name (and the page name if the page has one, like "Xcode · Debug"). If there are several pages, dots to its right show the current page (in practice mode, "Practice" appears there instead). Each button shows just its icon and name, not the keys it presses (like ⌘B)
+- Buttons are chosen by the **direction** of the pointer from the center. The eight directions (up, up-right, right, down-right, down, down-left, left, up-left) are the eight outer buttons of the 3×3 grid in Settings, and the center is the center button. Between two icons, the current one sticks a little, so a shaky finger on the border doesn't switch
+- The HUD shows no text: only the icons, without the profile name or the keys a button presses (like ⌘B). Empty buttons are small dots. Only in practice mode, "Practice" appears under the ring
+- Each icon is drawn black with a white outline or white with a shadow, depending on how bright the screen is under it (the [Match colors to the background](#opening-and-hud) setting; it needs the macOS Screen Recording permission, and without it the icons are black with a white outline)
 
 ### Canceling
 
-Any of these closes the buttons without running anything. You feel two light taps when you lift in the frame, on an empty button or on a border, or lift with two fingers. Closing with a key, or when the 20 seconds run out, gives no tap:
+Any of these closes the buttons without running anything. You feel two light taps when you lift outside the ring or on an empty button, or lift with two fingers. Closing with a key, or when the 20 seconds run out, gives no tap:
 
-- **Lift in the frame**: move the pointer out to the frame around the nine buttons (the band along the edges of the map: 11% of the width at the left and right, 15% at the near edge and 17% at the far edge) and lift your finger. Anywhere outside the map counts too. When the pointer enters the frame, the buttons dim, the frame band lights up and "✕ Lift to cancel" in the bottom band stands out
+- **Lift outside the ring**: move the pointer outside the ring of icons (more than 134 pt from the center, just past the icons) and lift your finger. There is no visible line, but all the icons dim when you cross it. Any direction works
 - **Press a key**: pressing any key (except media keys such as volume and brightness) while the buttons are open closes them right away. The key reaches the app as usual
-- **Lift on an empty button**: nothing happens on a button with no action
-- **Lift on the line between two buttons**: nothing runs on a border
+- **Lift on an empty button**: nothing happens on a button with no action (a small dot)
+- **Lift right after opening**: lifting before you move the pointer away from the center runs nothing (there are no border lines; between two icons, the current one stays)
 
 If the buttons stay open for 20 seconds, they close on their own.
 
@@ -107,8 +107,8 @@ If the buttons stay open for 20 seconds, they close on their own.
 
 For buttons that do something you can't undo, such as sending or recording, turn on **Hold before running** in the inspector.
 
-- These buttons have a mark in the corner of the HUD
-- Keep your finger on the button for a moment (0.45 seconds), and a line goes all the way around its outline. When the outline is complete, the button is highlighted and the trackpad ticks once (VoiceOver says "Lift to run"). Lift after that to run it. Lifting before the outline is complete runs nothing
+- These buttons have a small mark at the top right of their icon in the HUD
+- Keep your finger on the icon for a moment (0.45 seconds), and a line goes all the way around it. When the line is complete, the icon sits on a white disc and the trackpad ticks once (VoiceOver says "Lift to run"). Lift after that to run it. Lifting before the outline is complete runs nothing
 
 ### The trackpad while the buttons are open
 
@@ -116,13 +116,13 @@ While the nine buttons are open, the pointer moves as usual (the front app sees 
 
 ### Pages
 
-While the nine buttons are open, **hold your finger in the left or right frame** to switch to the page on that side. The right frame goes to the next page, and the left frame goes to the previous page.
+While the nine buttons are open, **hold the pointer outside the ring to the right or left** to switch to the page on that side. The right side goes to the next page, and the left side goes to the previous page.
 
-1. Slide your finger out to the left or right frame (beside the rows of buttons, not in a corner) and hold it there
+1. Move the pointer outside the icons to the right or left (within 45° of horizontal; a diagonal is fine) and hold it there
 2. After about 0.5 seconds, the page changes and the trackpad gives two taps. If you keep holding it there, it moves one more page every 0.9 seconds
-3. Slide back onto the buttons to choose one, then lift to run it
+3. Point back at an icon to choose it, then lift to run it
 
-When there is a page on that side, a ‹ or › mark shows in that side of the frame. While you hold your finger there, a bar grows in that band, the edge of the neighboring page's buttons comes into view (the left column of the next page on the right, the right column of the previous page on the left), and "Hold for the next page ›" (or "‹ Hold for the previous page" on the left) appears next to "✕ Lift to cancel" in the bottom band. Lifting in the frame still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page. The page dots in the top bar of the HUD, to the right of the name, show the current page. There's a small gap between the dots of the app's pages and the dots of the Global pages.
+While you hold the pointer there, a white arrow appears at that edge of the HUD with a line growing around it, and dots under the center icon show the current page (with a small gap between the dots of the app's pages and the dots of the Global pages). Lifting outside the ring still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page (when there is no page on that side, no arrow appears).
 
 You can also **swipe left or right with two fingers**. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
@@ -136,7 +136,7 @@ The Global profile's first page starts as the nine Place on Screen buttons (Top 
 
 ### Haptic feedback
 
-When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift in the frame, on an empty button or on a border, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
 
 ## Menu bar
 
@@ -259,10 +259,10 @@ Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 
 Puts the front app's window in a fixed part of the screen. Under **Position**, choose one of nine: Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half or Bottom Right. They divide the usable area of the screen (not counting the menu bar and the Dock) in a 3×3 grid: Top Half and Left Half are half of the usable area, and Maximize fills it.
 
-- While this button is highlighted in the HUD, the target area is outlined in light blue on the screen with the note "Lift to place it here". Lift on the button, and the window moves there. Slide back into the frame and the outline disappears
+- While this button is highlighted in the HUD, the target area is outlined in light blue on the screen with the note "Lift to place it here". Lift on the button, and the window moves there. Move outside the ring and the outline disappears
 - It moves the frontmost window of the app that was in front when you opened the buttons. Under the HUD's title, a line such as "Safari window" says what will move
 - The window stays on its own display. Full-screen windows and windows with a fixed size (such as System Settings) can't be moved, and Nonet shows "This window couldn't be moved". An app with no window (for example, Finder with all its windows closed) shows "No window is in front"
-- In a fresh setup, these nine buttons are the first page of the Global profile (see [Global profile and launcher](#global-profile-and-launcher)). In any app, hold your finger in the right frame to switch to that page and use them
+- In a fresh setup, these nine buttons are the first page of the Global profile (see [Global profile and launcher](#global-profile-and-launcher)). In any app, hold the pointer outside the ring on the right to switch to that page and use them
 
 ### Script
 
@@ -375,6 +375,7 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you cross into another button and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
+| Match colors to the background | On | Each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. It decides per icon, so the HUD stays readable across a dark sidebar and a light page. The image is discarded at once; nothing is saved or sent. Measuring needs the macOS Screen Recording permission; the row below shows whether it is allowed and offers Request Permission… and Open System Settings…. Without the permission (and when this is off), icons are black with a white outline. After you change the permission in System Settings, reopen Nonet as macOS asks |
 
 Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
 
@@ -464,7 +465,7 @@ When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again fro
 
 ### The buttons open when you didn't mean to
 
-If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open your finger always counts as being in the frame. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
 
 ### The pointer doesn't move or clicks don't work
 
@@ -478,7 +479,7 @@ While the nine buttons are open, Nonet keeps clicks and scrolling from reaching 
 
 ### The wrong button runs
 
-Buttons are chosen by the **absolute position** of your finger on the trackpad. Check which button is highlighted in the HUD before you lift. If the wrong one is highlighted, slide to the right one, or slide out to the frame and lift so nothing runs. Nothing runs on the line between two buttons, so lift in the middle of a button. For buttons that do something you can't undo, turn on **Hold before running** (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics). **Recent Runs** in the Nonet menu shows what ran.
+Buttons are chosen by the **direction** of the pointer from the center. Check which icon sits on the white disc in the HUD before you lift. If the wrong one does, slide to the right one, or move outside the ring of icons and lift so nothing runs. For buttons that do something you can't undo, turn on **Hold before running** (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold) under Basics). **Recent Runs** in the Nonet menu shows what ran.
 
 If a Keystrokes button says "The front app changed, so the keys weren't sent.", another app came to the front between opening the buttons and sending the keys (for example, an app opened by the previous button). Nonet sent nothing, so the keys didn't reach the wrong app. Bring the app you want to the front and run the button again. A Menu Item button chooses the item from the menus in this case instead of sending the keys.
 

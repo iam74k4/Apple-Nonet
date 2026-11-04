@@ -233,6 +233,19 @@ public protocol PermissionsProviding: AnyObject {
     func openAccessibilitySettings()
     /// パスワード入力中など、キーの監視ができない状態
     var isSecureInputActive: Bool { get }
+    /// 「画面収録」の許可（HUD のアイコンの色を下地に合わせるために、HUD の下の画面の明るさを測る。GlobalSettings.adaptiveHUDInk）。
+    /// 任意の許可で、無くても Nonet は動く
+    var isScreenCaptureGranted: Bool { get }
+    /// システムの許可ダイアログを出す（すでに断られていれば、システム設定で変える）
+    func requestScreenCapture()
+    func openScreenCaptureSettings()
+}
+
+extension PermissionsProviding {
+    /// 画面収録を扱わない実装の既定（許可は無く、求めない）
+    public var isScreenCaptureGranted: Bool { false }
+    public func requestScreenCapture() {}
+    public func openScreenCaptureSettings() {}
 }
 
 @MainActor
