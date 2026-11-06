@@ -14,9 +14,10 @@ enum ShellText {
     // MARK: - 練習
 
     /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）。
-    /// 少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も添える
+    /// アイコンだけの HUD なので、向けたまま止めると名前が出ることも添える。少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
         let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。", bundle: .module)
+            + String(localized: "アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。", bundle: .module)
         guard target.requiresHold else { return base }
         return base + String(localized: "このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
     }
@@ -54,7 +55,7 @@ enum ShellText {
 
     /// 1つ目の課題ができた
     static var practiceRunDone: String {
-        String(localized: "できました。マスで指を離すと実行します。", bundle: .module)
+        String(localized: "できました。アイコンで指を離すと実行します。", bundle: .module)
     }
 
     /// 2つ目の課題ができた

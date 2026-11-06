@@ -32,6 +32,32 @@ struct ShellHUDTests {
         #expect(HUDLayout.size(for: inFrame) == HUDLayout.size(for: Self.model()))
     }
 
+    @Test("向けたまま止めると名前: 中身のあるマスを向けているときだけ。外枠・開いた直後・空きマスでは出さない。待ちは離す判定より長く、少し長く止めるマスより後")
+    func dwellLabel() {
+        let center = Self.model(highlighted: 4)
+        #expect(HUDView.labelCandidate(center) == 4)
+        #expect(HUDView.labelText(center, index: 4) == "Claude Code")
+        #expect(HUDView.labelCandidate(Self.model(highlighted: 5)) == nil, "空きマス")
+        #expect(HUDView.labelCandidate(Self.model(highlighted: nil)) == nil)
+        var inFrame = Self.model(highlighted: nil)
+        inFrame.isFingerInFrame = true
+        #expect(HUDView.labelCandidate(inFrame) == nil)
+        var waiting = inFrame
+        waiting.isWaitingAtCenter = true
+        #expect(HUDView.labelCandidate(waiting) == nil)
+        // 別のアイコンへ移った・ページが替わったら数え直す。同じアイコンのままなら目印は変わらない
+        #expect(HUDView.labelTimerID(center) == HUDView.labelTimerID(center))
+        #expect(HUDView.labelTimerID(center) != HUDView.labelTimerID(Self.model(highlighted: 8)))
+        #expect(HUDView.labelTimerID(Self.model(highlighted: 4, pageIndex: 1, pageCount: 2)) != HUDView.labelTimerID(center))
+        #expect(HUDLayout.labelDelay > SessionConfiguration.defaultLiftDwell)
+        #expect(HUDLayout.labelDelay > SessionConfiguration.defaultHoldDwell)
+        // 名前は白い円のすぐ下。下の鍵でも枠の余白（shadowMargin）に収まる
+        let metrics = HUDMetrics(scale: 1)
+        let bottom = metrics.labelPosition(ofCell: 7)
+        #expect(bottom.y + metrics.labelHeight / 2 <= metrics.circleSide + HUDLayout.shadowMargin)
+        #expect(bottom.y > metrics.position(ofCell: 7).y + metrics.selectionRadius)
+    }
+
     @Test("マスの位置の呼び方")
     func positionNames() {
         #expect((0..<9).map(HUDAnnouncement.positionName) == [

@@ -101,7 +101,7 @@ enum SettingsText {
     }
 
     static var hapticsDetail: String {
-        String(localized: "開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）", bundle: .module)
+        String(localized: "開いたとき・隣のアイコンに移ったとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）", bundle: .module)
     }
 
     // MARK: 日付と数の書き方

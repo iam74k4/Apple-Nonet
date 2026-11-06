@@ -532,7 +532,7 @@ struct ShellOnboardingTests {
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。"))
+            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。") + L10n.ui("アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
         #expect(ShellText.practiceCancelInstruction
             == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
@@ -592,7 +592,7 @@ struct ShellOnboardingTests {
         model.handleExecution(ShellFixtures.record(index: page.runTarget.index, page: 1, date: started.addingTimeInterval(2)))
         #expect(model.practice == .cancel)
         #expect(model.practiceFeedback == nil)
-        #expect(recorder.announcements.last == L10n.ui("できました。マスで指を離すと実行します。"))
+        #expect(recorder.announcements.last == L10n.ui("できました。アイコンで指を離すと実行します。"))
 
         // 2つ目: マスで離して実行したら、外枠まで滑らせるよう知らせる
         model.handleExecution(ShellFixtures.record(index: wrong, date: started.addingTimeInterval(3), title: "違う"))

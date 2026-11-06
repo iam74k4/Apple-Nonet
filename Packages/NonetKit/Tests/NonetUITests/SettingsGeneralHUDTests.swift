@@ -10,7 +10,7 @@ import Testing
     @Test func namesMatchTheUserGuide() {
         #expect(SettingsText.hudLargeTitle == L10n.ui("大きく表示"))
         #expect(SettingsText.hudLargeDetail == L10n.ui("HUD と画面の下の通知を 1.25 倍にします"))
-        #expect(SettingsText.hapticsDetail == L10n.ui("開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）"))
+        #expect(SettingsText.hapticsDetail == L10n.ui("開いたとき・隣のアイコンに移ったとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）"))
     }
 }
 

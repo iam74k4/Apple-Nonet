@@ -691,6 +691,28 @@ kbd {
   transition: none;
 }
 
+/* 向けたまま止めたアイコンの名前（白い円のすぐ下。アプリは 0.6 秒止めると出す）。静止画では右のアイコンの名前が出ている */
+.hud-label {
+  --x: calc(50% + var(--ring));
+  --y: 50%;
+  position: absolute;
+  left: var(--x);
+  top: calc(var(--y) + 22px);
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 9px;
+  background: #fafafa;
+  color: #111111;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+  transform: translateX(-50%);
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
 .toast {
   position: absolute;
   left: 50%;
@@ -833,6 +855,15 @@ kbd {
 /* ポインタがアイコンの輪の外にある: 全部のアイコンが薄くなる（離しても何も実行しない。アプリと同じで文字は出さない） */
 .demo.is-live.in-frame .cell {
   opacity: 0.35;
+}
+
+/* 動いている間、名前は向けたまま止めたときだけ出る */
+.demo.is-live .hud-label {
+  opacity: 0;
+}
+
+.demo.is-live.label-show .hud-label {
+  opacity: 1;
 }
 
 .demo.is-live.toast-show .toast {

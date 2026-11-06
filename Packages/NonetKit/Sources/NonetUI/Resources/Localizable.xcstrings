@@ -2839,6 +2839,16 @@
         }
       }
     },
+    "できました。アイコンで指を離すと実行します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done. Lifting on an icon runs it."
+          }
+        }
+      }
+    },
     "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2862,6 +2872,7 @@
       }
     },
     "できました。マスで指を離すと実行します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3139,6 +3150,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Common"
+          }
+        }
+      }
+    },
+    "アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
           }
         }
       }
@@ -9816,11 +9837,22 @@
       }
     },
     "開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The trackpad taps lightly when the grid opens, when your finger crosses into another button and when a button runs (Force Touch trackpads only)"
+          }
+        }
+      }
+    },
+    "開いたとき・隣のアイコンに移ったとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The trackpad gives a light tick when the buttons open, when you move to another icon and when a button runs (Force Touch trackpads only)"
           }
         }
       }

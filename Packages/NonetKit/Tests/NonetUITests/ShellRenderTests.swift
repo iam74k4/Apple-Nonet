@@ -105,6 +105,15 @@ struct ShellRenderTests {
                 $0.edgePaging = HUDEdgePaging(edge: .left, duration: 0.5)
             }, .fallback, false, false, nil, Color(white: 0.82)),
         ]
+        // 向けたまま止めて、アイコンの名前が出たところ
+        try Self.render(
+            HUDView(model: variant { $0.highlightedIndex = 5 }, inks: .fallback, showsLabelImmediately: true)
+                .padding(HUDLayout.shadowMargin)
+                .background(Color(white: 0.82)),
+            size: CGSize(width: HUDLayout.size(for: base).width + HUDLayout.shadowMargin * 2, height: HUDLayout.size(for: base).height + HUDLayout.shadowMargin * 2),
+            appearance: .aqua,
+            name: "hud-state-label"
+        )
         for (name, model, inks, increasedContrast, reduceMotion, progress, backdrop) in states {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin

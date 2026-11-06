@@ -59,18 +59,22 @@
 
     const cells = Array.from(demo.querySelectorAll("[data-cell]"));
     const pointer = demo.querySelector(".pointer");
+    const label = demo.querySelector("[data-hud-label]");
     const finger = demo.querySelector(".finger");
     const trail = demo.querySelector(".trail");
     const ripple = demo.querySelector(".ripple");
     const toastText = demo.querySelector("[data-toast-text]");
     const caption = demo.querySelector("[data-demo-caption]");
     const toggle = demo.querySelector("[data-demo-toggle]");
-    if (cells.length !== 9 || !pointer || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
+    if (cells.length !== 9 || !pointer || !label || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
 
     const staticCaption = caption.textContent;
+    const staticLabel = label.textContent;
     const staticHighlight = cells.findIndex((cell) => cell.classList.contains("on"));
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const states = ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show"];
+    const states = ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show", "label-show"];
+    // 向けたまま止めてから名前が出るまで（アプリの HUDLayout.labelDelay と同じ）
+    const LABEL_DELAY = 600;
 
     // HUD の円（正方形の %）。8つのアイコンは中心から RING の円の上に 45° おき、真ん中に 9つ目。
     // アプリの RadialLayout（鍵の円 108 / 外枠 134）と同じ割合。style.css の --ring・--ring-diagonal と合わせる
@@ -142,6 +146,17 @@
 
     const highlight = (index) => {
       cells.forEach((cell, i) => cell.classList.toggle("on", i === index));
+      // 別のアイコンへ移ったら名前は消える
+      setState("label-show", false);
+    };
+
+    // 向けたまま止めたアイコンの名前を、そのアイコンの下に出す
+    const showLabel = (index) => {
+      const point = KEYS[index];
+      label.textContent = cells[index].dataset.label || "";
+      label.style.left = percent(point.x);
+      label.style.top = `calc(${percent(point.y)} + 22px)`;
+      setState("label-show", true);
     };
 
     // 振動（開いたとき・アイコンが替わったとき・実行したとき。何も実行せずに閉じたときは2回）
@@ -209,45 +224,48 @@
         highlight(8);
         buzz();
       });
-      later(3300, () => {
+      // 向けたまま止めると、そのアイコンの名前が出る
+      later(2460 + LABEL_DELAY, () => showLabel(8));
+      later(3700, () => {
         setState("finger-down", false);
         fire(8);
         buzz();
       });
-      later(3500, () => {
+      later(3900, () => {
         setState("hud-open", false);
+        setState("label-show", false);
         showToast(8);
       });
-      later(4400, () => setState("toast-show", false));
+      later(4800, () => setState("toast-show", false));
 
       // やめる: もう一度開く → 下のアイコンを通って輪の外まで動かす（全部が薄くなる）→ 離すと、何も実行せずに閉じる
-      later(5000, () => {
+      later(5400, () => {
         caption.textContent = demo.dataset.captionCancel || staticCaption;
         highlight(-1);
         clearFire();
       });
-      openFromTopEdge(5200);
-      later(6400, () => pointAt(KEYS[7]));
-      later(6560, () => {
+      openFromTopEdge(5600);
+      later(6800, () => pointAt(KEYS[7]));
+      later(6960, () => {
         setState("slide-in", false);
         highlight(7);
         buzz();
       });
-      later(7300, () => pointAt(OUTSIDE_BELOW));
-      later(7460, () => {
+      later(7700, () => pointAt(OUTSIDE_BELOW));
+      later(7860, () => {
         highlight(-1);
         setState("in-frame", true);
       });
-      later(8600, () => {
+      later(9000, () => {
         setState("finger-down", false);
         buzz();
       });
-      later(8780, buzz);
-      later(8900, () => {
+      later(9180, buzz);
+      later(9300, () => {
         setState("hud-open", false);
         setState("in-frame", false);
       });
-      later(10200, scene);
+      later(10600, scene);
     };
 
     const start = () => {
@@ -262,13 +280,14 @@
       clearTimers();
       setState("is-live", false);
       states.forEach((name) => setState(name, false));
-      [finger, trail, pointer].forEach((element) => {
+      [finger, trail, pointer, label].forEach((element) => {
         element.removeAttribute("style");
         element.classList.remove("jump");
       });
       ripple.classList.remove("buzz");
       clearFire();
       highlight(staticHighlight);
+      label.textContent = staticLabel;
       caption.textContent = staticCaption;
     };
 

@@ -42,11 +42,21 @@ struct HUDMetrics: Equatable {
     var pillFontSize: CGFloat { 11 * scale }
     /// アイコンの縁（白い縁・黒い影）のぼかし
     var haloRadius: CGFloat { 1.2 * scale }
+    /// 向けたまま止めたアイコンの下に出す名前の帯
+    var labelHeight: CGFloat { HUDLayout.labelHeight * scale }
+    var labelGap: CGFloat { HUDLayout.labelGap * scale }
+    var labelFontSize: CGFloat { 10.5 * scale }
 
     /// 正方形の中の、マスの中心（中央のマスは円の中心）
     func position(ofCell index: Int) -> CGPoint {
         guard let position = RadialLayout.position(ofCell: index) else { return center }
         return CGPoint(x: center.x + position.x * scale, y: center.y + position.y * scale)
+    }
+
+    /// 向けたまま止めたアイコンの名前の中心（白い円のすぐ下）
+    func labelPosition(ofCell index: Int) -> CGPoint {
+        let key = position(ofCell: index)
+        return CGPoint(x: key.x, y: key.y + selectionRadius + labelGap + labelHeight / 2)
     }
 
     /// 左右の外へ出して止めているときの矢印の中心（円の縁の内側）
@@ -86,6 +96,11 @@ enum HUDLayout {
     /// 円の外の帯（試用期間の注意書き・「練習中」）
     static let pillHeight: CGFloat = 22
     static let pillGap: CGFloat = 8
+    /// 向けたまま止めたアイコンの名前: 同じアイコンにこれだけとどまったら、その下に名前の帯を出す
+    /// （慣れた操作では離すまでに届かないので出ない。少し長く止めるマスの holdDwell 0.45 秒より後）
+    static let labelDelay: TimeInterval = 0.6
+    static let labelHeight: CGFloat = 18
+    static let labelGap: CGFloat = 5
     /// 枠の外に描くもの（帯とその影、白い円の光、アイコンの縁）のための余白。ウィンドウの影は使わない。
     /// 帯（pillGap + pillHeight = 30）とその影（下へ 3・ぼかし 6）が入る大きさ
     static let shadowMargin: CGFloat = 40
@@ -141,6 +156,28 @@ struct HUDView: View {
     var pillBelow = true
     /// 少し長く止めるマスの進み具合を、この値（0〜1）で止めて描く（見た目の確認用）。nil なら止め始めてから duration で満たす
     var fixedHoldProgress: Double?
+    /// 向けているアイコンの名前を待たずに出す（見た目の確認用。ふだんは HUDLayout.labelDelay 止まってから）
+    var showsLabelImmediately = false
+
+    /// 名前を出している鍵（向けたまま labelDelay とどまった）
+    @State private var labeledIndex: Int?
+
+    /// 向けたまま止めたときに名前を出す鍵: 中身のあるマスを向けているとき（外枠・開いた直後・空きマスでは無い）
+    static func labelCandidate(_ model: HUDModel) -> Int? {
+        guard !model.isFingerInFrame, let index = model.highlightedIndex, labelText(model, index: index) != nil else { return nil }
+        return index
+    }
+
+    /// 名前の帯に出す文（マスの名前だけ。押すキーは出さない）
+    static func labelText(_ model: HUDModel, index: Int) -> String? {
+        guard model.cells.indices.contains(index), let cell = model.cells[index], !cell.title.isEmpty else { return nil }
+        return cell.title
+    }
+
+    /// 名前を出すまでの待ちを数え直す目印（別のアイコンへ移った・ページが替わった）
+    static func labelTimerID(_ model: HUDModel) -> String? {
+        labelCandidate(model).map { "\(model.pageIndex)|\(model.title)|\($0)" }
+    }
 
     /// 鍵を薄くする（離しても何も起きないことを見せる）: 外枠にいる・2本以上の指・滑らせ直すまで。
     /// 開いた直後（ポインタがまだ真ん中から出ていない）は、エンジンには外枠でも薄くしない: 開くたびに薄くなっては、選べないように見える
@@ -190,9 +227,24 @@ struct HUDView: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(y: frame.minY)
             }
+            // 向けたまま止めたアイコンの名前（白い円のすぐ下）。動かせば消える
+            if let index = showsLabelImmediately ? Self.labelCandidate(model) : labeledIndex,
+               index == Self.labelCandidate(model), let text = Self.labelText(model, index: index) {
+                HUDKeyLabel(text: text, metrics: metrics)
+                    .position(metrics.labelPosition(ofCell: index))
+                    .transition(.opacity)
+            }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: labeledIndex)
+        .task(id: Self.labelTimerID(model)) {
+            labeledIndex = nil
+            guard let index = Self.labelCandidate(model) else { return }
+            try? await Task.sleep(for: .seconds(HUDLayout.labelDelay))
+            guard !Task.isCancelled else { return }
+            labeledIndex = index
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(HUDAnnouncement.frameTitle(for: model)))
     }
@@ -472,6 +524,24 @@ enum HUDPillContent: Equatable {
         case .banner(_, .info): "clock"
         case .practice: nil
         }
+    }
+}
+
+/// 向けたまま止めたアイコンの名前。帯と同じ白い不透明な面に濃い文字で、下地を選ばない。読み上げには同じ名前がすでにある
+private struct HUDKeyLabel: View {
+    let text: String
+    let metrics: HUDMetrics
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: metrics.labelFontSize, weight: .semibold))
+            .lineLimit(1)
+            .foregroundStyle(HUDInkPalette.onSelection)
+            .padding(.horizontal, 8 * metrics.scale)
+            .frame(height: metrics.labelHeight)
+            .background(Capsule().fill(Color(white: 0.98)).shadow(color: .black.opacity(0.22), radius: 5 * metrics.scale, y: 2 * metrics.scale))
+            .fixedSize()
+            .accessibilityHidden(true)
     }
 }
 
