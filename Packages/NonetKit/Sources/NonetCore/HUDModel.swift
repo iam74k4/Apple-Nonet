@@ -96,6 +96,10 @@ public struct HUDModel: Equatable, Sendable {
     /// アイコンの色を下地に合わせる（設定の「背景に合わせて色を変える」。GlobalSettings.adaptiveHUDInk）。
     /// HUD は出すときに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白で描く（画面収録の許可が無ければ測らない）
     public var adaptsInk: Bool
+    /// 開いた直後で、ポインタがまだ真ん中から出ていない（ControllerPointerSelection.isWaitingAtCenter）。
+    /// エンジンには外枠として伝えているので isFingerInFrame も true になるが（離しても何も起きない）、
+    /// HUD は「離すとやめる」の薄い見た目にせず、まだ何も選んでいない見た目で出す（開くたびに薄くなっては、選べないように見える）
+    public var isWaitingAtCenter: Bool
 
     public init(
         title: String,
@@ -114,7 +118,8 @@ public struct HUDModel: Equatable, Sendable {
         bannerStyle: HUDBannerStyle = .warning,
         globalPagesStart: Int? = nil,
         scale: Double = 1,
-        adaptsInk: Bool = false
+        adaptsInk: Bool = false,
+        isWaitingAtCenter: Bool = false
     ) {
         self.title = title
         self.pageIndex = pageIndex
@@ -133,6 +138,7 @@ public struct HUDModel: Equatable, Sendable {
         self.globalPagesStart = globalPagesStart
         self.scale = scale
         self.adaptsInk = adaptsInk
+        self.isWaitingAtCenter = isWaitingAtCenter
     }
 }
 

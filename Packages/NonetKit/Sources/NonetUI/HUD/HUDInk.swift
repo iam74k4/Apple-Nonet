@@ -67,6 +67,38 @@ enum HUDInkDecision {
     }
 }
 
+/// WCAG 2 の相対輝度とコントラスト比。HUD とトーストの色の確かめ（HUDPalette）と、下地の測定（HUDBackdropLuminance）で共用
+enum HUDLuminance {
+    /// sRGB の 0〜1 を線形の明るさにする（ガンマを戻す）
+    static func linear(_ value: Double) -> Double {
+        value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+    }
+
+    static func linear(_ channel: UInt8) -> Double {
+        linear(Double(channel) / 255)
+    }
+
+    /// 相対輝度（0 が黒、1 が白）
+    static func relative(red: UInt8, green: UInt8, blue: UInt8) -> Double {
+        0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
+
+    /// 灰色（白の量 0〜1）の相対輝度
+    static func relative(white: Double) -> Double {
+        linear(white)
+    }
+
+    /// コントラスト比（相対輝度で渡す）
+    static func contrastRatio(_ first: Double, _ second: Double) -> Double {
+        (max(first, second) + 0.05) / (min(first, second) + 0.05)
+    }
+
+    /// 灰色どうしのコントラスト比（白の量 0〜1 で渡す）
+    static func contrastRatio(white first: Double, white second: Double) -> Double {
+        contrastRatio(relative(white: first), relative(white: second))
+    }
+}
+
 /// 撮った画像から、各鍵の下の平均の明るさを出す
 enum HUDBackdropLuminance {
     /// 8ビットの RGBA（行ごとに bytesPerRow）の画像
@@ -79,22 +111,6 @@ enum HUDBackdropLuminance {
         var redOffset = 0
         var greenOffset = 1
         var blueOffset = 2
-    }
-
-    /// sRGB の 0〜255 を線形の明るさにする（WCAG 2）
-    static func linear(_ channel: UInt8) -> Double {
-        let value = Double(channel) / 255
-        return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
-    }
-
-    /// 相対輝度（0 が黒、1 が白）
-    static func luminance(red: UInt8, green: UInt8, blue: UInt8) -> Double {
-        0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
-    }
-
-    /// 灰色どうしのコントラスト比（WCAG 2。相対輝度で渡す）
-    static func contrastRatio(_ first: Double, _ second: Double) -> Double {
-        (max(first, second) + 0.05) / (min(first, second) + 0.05)
     }
 
     /// 各点（画像の座標。左上が原点）の周り radius の中の、平均の相対輝度。画像の外は数えない。
@@ -130,6 +146,6 @@ enum HUDBackdropLuminance {
         guard x >= 0, y >= 0, x < image.width, y < image.height else { return nil }
         let base = y * image.bytesPerRow + x * 4
         guard base + 3 < image.pixels.count else { return nil }
-        return luminance(red: image.pixels[base + image.redOffset], green: image.pixels[base + image.greenOffset], blue: image.pixels[base + image.blueOffset])
+        return HUDLuminance.relative(red: image.pixels[base + image.redOffset], green: image.pixels[base + image.greenOffset], blue: image.pixels[base + image.blueOffset])
     }
 }

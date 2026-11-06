@@ -70,12 +70,18 @@ struct SettingsGeneralView: View {
     }
 }
 
-/// 「背景に合わせて色を変える」の下の、画面収録の許可の知らせとボタン。許可があればそう言うだけ
+/// 「背景に合わせて色を変える」の下の、画面収録の許可の知らせとボタン。許可があればそう言うだけ。
+/// 起動した後に許可したときは、開き直すまで効かないので、そう言って開き直すボタンを出す
 private struct SettingsScreenCaptureRow: View {
     let model: SettingsModel
 
     var body: some View {
-        if model.isScreenCaptureGranted {
+        if model.screenCaptureNeedsRelaunch {
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsNote(text: SettingsText.screenCaptureNeedsRelaunch, symbol: "arrow.clockwise.circle")
+                Button { model.relaunch() } label: { Text(SettingsText.relaunchButton) }
+            }
+        } else if model.isScreenCaptureGranted {
             SettingsNote(text: SettingsText.screenCaptureGranted, symbol: "checkmark.circle")
         } else {
             VStack(alignment: .leading, spacing: 8) {

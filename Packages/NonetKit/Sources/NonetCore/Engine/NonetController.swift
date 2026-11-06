@@ -129,6 +129,9 @@ public final class NonetController {
     @ObservationIgnored private var hudMapFrame: CGRect?
     /// ポインタの位置をマスに写す（ヒステリシスのために直前の場所を持つ）。開くたびに作り直す
     @ObservationIgnored private var pointerSelection = ControllerPointerSelection()
+    /// 最後に HUD に渡したエンジンの状態。ポインタが中央から出た（HUDModel.isWaitingAtCenter が変わる）のに
+    /// エンジンの状態が変わらなかったときに、HUD だけを描き直すため
+    @ObservationIgnored private var lastHUDState: SessionHUDState?
     @ObservationIgnored private var tickTask: (any ScheduledTask)?
     @ObservationIgnored private var pollTask: (any ScheduledTask)?
     /// エンジンの出力を処理している間に来た入力（出力の処理からエンジンを呼び直さないように、順に処理する）
@@ -374,7 +377,14 @@ public final class NonetController {
         }
         // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
         let pointer = hudMapFrame != nil && engine.isInSession ? services.keyboard.pointerLocation : nil
+        let wasWaitingAtCenter = pointerSelection.isWaitingAtCenter
         send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
+        // 中央から出たのにエンジンの状態が変わらなかった（外枠のまま）ときも、HUD の「開いた直後」の見た目を解く
+        if wasWaitingAtCenter, !pointerSelection.isWaitingAtCenter, isHUDVisible, let session, let state = lastHUDState {
+            if let map = hud.update(hudModel(session, state: state)) {
+                hudMapFrame = map
+            }
+        }
         // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
         if frame.touching.count != 1 {
             cancelPendingOpen()
@@ -504,6 +514,7 @@ public final class NonetController {
             prepareFirstHUD()
             guard let session else { return }
             pointerSelection = ControllerPointerSelection()
+            lastHUDState = state
             hudMapFrame = hud.show(hudModel(session, state: state))
             isHUDVisible = true
             // 開いたときのポインタは HUD の円の中心。画面の端で枠を寄せてそこに来ていなければ、一度だけそこへ動かす
@@ -516,6 +527,7 @@ public final class NonetController {
             updatePlacementPreview(session, state: state)
         case .updateHUD(let state):
             guard let session, isHUDVisible else { return }
+            lastHUDState = state
             if let map = hud.update(hudModel(session, state: state)) {
                 hudMapFrame = map
             }
@@ -564,7 +576,12 @@ public final class NonetController {
     // MARK: - HUD と触覚
 
     private func hudModel(_ session: ControllerSession, state: SessionHUDState) -> HUDModel {
-        session.hudModel(state, isPracticeMode: isPracticeMode, isTrialEnded: !license.canExecuteActions)
+        session.hudModel(
+            state,
+            isPracticeMode: isPracticeMode,
+            isTrialEnded: !license.canExecuteActions,
+            isWaitingAtCenter: pointerSelection.isWaitingAtCenter
+        )
     }
 
     /// セッションで最初に HUD を出すとき、試用期間の残り日数の帯（残り HUDGuidance.trialReminderDays 日から、1日に1回）を出すかを決めて記録する
@@ -590,6 +607,7 @@ public final class NonetController {
 
     private func hideHUD() {
         hudMapFrame = nil
+        lastHUDState = nil
         pointerSelection = ControllerPointerSelection()
         guard isHUDVisible else { return }
         isHUDVisible = false

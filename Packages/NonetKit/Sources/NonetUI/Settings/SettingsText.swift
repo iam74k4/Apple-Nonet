@@ -39,7 +39,7 @@ enum SettingsText {
     }
 
     static var adaptiveInkDetail: String {
-        String(localized: "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。画像はその場で捨て、保存も送信もしません", bundle: .module)
+        String(localized: "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません", bundle: .module)
     }
 
     /// 画面収録の許可が無いときの知らせ（スイッチがオンのとき）
@@ -49,6 +49,15 @@ enum SettingsText {
 
     static var screenCaptureGranted: String {
         String(localized: "「画面収録」は許可されています", bundle: .module)
+    }
+
+    /// 許可はあるが、このプロセスでは効かない（起動した後に許可した）
+    static var screenCaptureNeedsRelaunch: String {
+        String(localized: "「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。", bundle: .module)
+    }
+
+    static var relaunchButton: String {
+        String(localized: "Nonet を開き直す", bundle: .module)
     }
 
     static var screenCaptureRequestButton: String {

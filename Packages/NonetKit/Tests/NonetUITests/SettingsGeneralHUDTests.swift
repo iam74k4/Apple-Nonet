@@ -23,17 +23,21 @@ import Testing
         #expect(try h.saved()?.settings.hudScale == .extraLarge)
     }
 
-    /// 「背景に合わせて色を変える」は既定でオン。オフにすると保存され、HUD は測らなくなる（HUDModel.adaptsInk）
-    @Test func adaptiveInkIsOnByDefaultAndSaved() throws {
+    /// 「背景に合わせて色を変える」は既定でオフ（画面収録の許可と、macOS 15 の確認ダイアログを伴うので、利用者が選ぶ）。
+    /// オンにすると保存され、HUD は測るようになる（HUDModel.adaptsInk）。説明は許可とダイアログのことを言う
+    @Test func adaptiveInkIsOffByDefaultAndSaved() throws {
         let h = try SettingsHarness()
-        #expect(h.model.settings.adaptiveHUDInk)
+        #expect(!h.model.settings.adaptiveHUDInk)
+        #expect(!GlobalSettings().adaptiveHUDInk)
         #expect(SettingsText.adaptiveInkTitle == L10n.ui("背景に合わせて色を変える"))
-        h.model.setSetting(\.adaptiveHUDInk, false)
-        #expect(!h.controller.configuration.settings.adaptiveHUDInk)
-        #expect(try h.saved()?.settings.adaptiveHUDInk == false)
+        #expect(SettingsText.adaptiveInkDetail == L10n.ui("開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません"))
+        #expect(SettingsText.adaptiveInkDetail.contains("macOS 15"))
+        h.model.setSetting(\.adaptiveHUDInk, true)
+        #expect(h.controller.configuration.settings.adaptiveHUDInk)
+        #expect(try h.saved()?.settings.adaptiveHUDInk == true)
     }
 
-    /// 画面収録の許可: 聞くだけ・求める・システム設定を開く。ボタンを押したら読み直す
+    /// 画面収録の許可: 聞くだけ・求める・システム設定を開く。ボタンを押したら・ウィンドウが前面に戻ったら読み直す
     @Test func screenCapturePermissionIsReadAndRequested() throws {
         let h = try SettingsHarness()
         #expect(!h.model.isScreenCaptureGranted)
@@ -42,8 +46,37 @@ import Testing
         h.model.openScreenCaptureSettings()
         #expect(h.permissions.screenCaptureOpenCount == 1)
         h.permissions.isScreenCaptureGranted = true
-        h.model.refreshLoginItem()
+        h.model.refreshPermissions()
         #expect(h.model.isScreenCaptureGranted)
+    }
+
+    /// 起動した後に許可したときは、開き直すまで効かないので、そう言って開き直すボタンを出す。
+    /// 起動時から許可があった・起動後でも撮れていたなら要らない。許可があるのに撮れなかったときも開き直しを勧める
+    @Test func relaunchIsOfferedWhenThePermissionCannotTakeEffectYet() throws {
+        let h = try SettingsHarness()
+        var outcome = ScreenCaptureBackdropSampler.Outcome.notTried
+        h.model.screenCaptureOutcome = { outcome }
+        #expect(!h.model.screenCaptureNeedsRelaunch)
+        h.permissions.isScreenCaptureGranted = true
+        h.permissions.screenCaptureGrantedAtLaunch = false
+        h.model.refreshPermissions()
+        #expect(h.model.screenCaptureNeedsRelaunch)
+        outcome = .succeeded
+        h.model.refreshPermissions()
+        #expect(!h.model.screenCaptureNeedsRelaunch)
+        h.permissions.screenCaptureGrantedAtLaunch = true
+        outcome = .failed
+        h.model.refreshPermissions()
+        #expect(h.model.screenCaptureNeedsRelaunch)
+        outcome = .notTried
+        h.model.refreshPermissions()
+        #expect(!h.model.screenCaptureNeedsRelaunch)
+        #expect(SettingsText.screenCaptureNeedsRelaunch == L10n.ui("「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。"))
+        #expect(SettingsText.relaunchButton == L10n.ui("Nonet を開き直す"))
+        var relaunched = 0
+        h.model.relaunch = { relaunched += 1 }
+        h.model.relaunch()
+        #expect(relaunched == 1)
     }
 
     /// 一般のタブは、開きやすさと HUD の位置の2つの選択と、スイッチだけ。ポップアップやスライダーは無い

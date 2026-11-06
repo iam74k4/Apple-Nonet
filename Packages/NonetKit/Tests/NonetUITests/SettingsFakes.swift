@@ -83,6 +83,7 @@ final class SettingsFakePermissions: PermissionsProviding {
     var isAccessibilityGranted = true
     var isSecureInputActive = false
     var isScreenCaptureGranted = false
+    var screenCaptureGrantedAtLaunch = false
     private(set) var requestCount = 0
     private(set) var openCount = 0
     private(set) var screenCaptureRequestCount = 0

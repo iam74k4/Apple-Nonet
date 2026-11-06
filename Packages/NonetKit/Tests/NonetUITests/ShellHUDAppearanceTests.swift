@@ -24,12 +24,15 @@ struct ShellHUDAppearanceTests {
     @Test("大きさの倍率は、寸法をそのまま大きくする")
     func scaledSize() {
         let side = RadialLayout.outerRadius * 2
-        let strip = HUDLayout.pillGap + HUDLayout.pillHeight
-        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: side, height: side + strip))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: side * 1.25, height: (side + strip) * 1.25))
-        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: side * 1.5, height: (side + strip) * 1.5))
+        #expect(HUDLayout.size(for: Self.model(scale: 1)) == CGSize(width: side, height: side))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.25)) == CGSize(width: side * 1.25, height: side * 1.25))
+        #expect(HUDLayout.size(for: Self.model(scale: 1.5)) == CGSize(width: side * 1.5, height: side * 1.5))
         // 壊れた倍率は 1
-        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: side, height: side + strip))
+        #expect(HUDLayout.size(for: Self.model(scale: .nan)) == CGSize(width: side, height: side))
+        // 帯は枠の外（下か上）。影の余白に収まる
+        #expect(HUDMetrics(scale: 1).pillFrame(below: true) == CGRect(x: 0, y: side + HUDLayout.pillGap, width: side, height: HUDLayout.pillHeight))
+        #expect(HUDMetrics(scale: 1).pillFrame(below: false) == CGRect(x: 0, y: -(HUDLayout.pillGap + HUDLayout.pillHeight), width: side, height: HUDLayout.pillHeight))
+        #expect(HUDLayout.pillGap + HUDLayout.pillHeight + 9 <= HUDLayout.shadowMargin)
         #expect(HUDMetrics(scale: 1.5).iconSize == 30)
         #expect(HUDMetrics(scale: 1.5).selectionRadius == 33)
         #expect(HUDMetrics(scale: 1.5).keyRadius == 162)
@@ -60,27 +63,21 @@ struct ShellHUDAppearanceTests {
         #expect(!hud.isShowingHUD)
     }
 
-    @Test("文字と点のコントラスト: 文字は 4.5:1、点は 3:1 以上。「コントラストを上げる」ではさらに上げる")
+    @Test("トーストの文字のコントラスト: 4.5:1 以上。「コントラストを上げる」ではさらに上げる")
     func contrast() {
         for colors in [HUDColors.standard, .increased] {
-            #expect(HUDPalette.contrastRatio(colors.detailWhite, HUDPalette.cellWhite) >= 4.5)
-            #expect(HUDPalette.contrastRatio(colors.cellForegroundWhite, HUDPalette.cellWhite) >= 4.5)
-            #expect(HUDPalette.contrastRatio(colors.secondaryTextWhite, HUDPalette.backgroundWhite) >= 4.5)
-            #expect(HUDPalette.contrastRatio(colors.inactiveDotWhite, HUDPalette.backgroundWhite) >= 3)
+            #expect(HUDLuminance.contrastRatio(white: colors.foregroundWhite, white: HUDPalette.backgroundWhite) >= 4.5)
+            #expect(HUDLuminance.contrastRatio(white: colors.secondaryTextWhite, white: HUDPalette.backgroundWhite) >= 4.5)
         }
         let standard = HUDColors.standard
         let increased = HUDColors.increased
-        #expect(increased.cellForegroundWhite > standard.cellForegroundWhite)
-        #expect(increased.detailWhite > standard.detailWhite)
-        #expect(increased.inactiveDotWhite > standard.inactiveDotWhite)
+        #expect(increased.foregroundWhite > standard.foregroundWhite)
+        #expect(increased.secondaryTextWhite > standard.secondaryTextWhite)
         #expect(increased.borderOpacity >= 0.4)
-        // 外枠にいるときも、コントラストを上げたほうが、マスの文字は標準より読みやすい（薄くならない）
-        #expect(increased.dimmedCellOpacity >= standard.dimmedCellOpacity)
-        #expect(increased.emptyCellStrokeOpacity >= 0.45)
         #expect(HUDPalette.colors(increasedContrast: true) == increased)
         #expect(HUDPalette.colors(increasedContrast: false) == standard)
-        // 白と黒は 21:1
-        #expect(abs(HUDPalette.contrastRatio(1, 0) - 21) < 1e-9)
+        // 白と黒は 21:1（下地の測定と同じ式）
+        #expect(abs(HUDLuminance.contrastRatio(white: 1, white: 0) - 21) < 1e-9)
     }
 
     @Test("macOS 26 以降は Dock と同じガラスの面、それより前は暗い不透明な面")
@@ -92,25 +89,12 @@ struct ShellHUDAppearanceTests {
         }
     }
 
-    @Test("不透明な面はモックの色のまま。ガラスでは光らせたマスをライトでは黒く、ダークでは白く塗って文字を抜く")
+    @Test("トーストの面: 不透明な面はモックの色、ガラスでは階層のスタイル")
     func themes() {
-        let solid = HUDTheme(surface: .solid, colors: .standard, colorScheme: .light)
-        #expect(solid.highlightedFill == .white)
-        #expect(solid.highlightedForeground == HUDPalette.highlightedForeground)
-        #expect(solid.frameStroke(isActive: true) == HUDColors.standard.frameStroke(isActive: true))
-        #expect(solid.labelFill == HUDPalette.background)
-
-        let dark = HUDTheme(surface: .glass, colors: .standard, colorScheme: .dark)
-        #expect(dark.highlightedFill == .white)
-        #expect(dark.labelForeground == .white)
-        let light = HUDTheme(surface: .glass, colors: .standard, colorScheme: .light)
-        #expect(light.highlightedFill != .white)
-        #expect(light.highlightedForeground == .white)
-        #expect(light.labelFill == .white)
-        // 外枠に指があるときの縁は、ふだんよりはっきりさせる。「コントラストを上げる」ではふだんの縁も濃くする
-        let increased = HUDTheme(surface: .glass, colors: .increased, colorScheme: .light)
-        #expect(light.frameStroke(isActive: true) != light.frameStroke(isActive: false))
-        #expect(increased.frameStroke(isActive: false) != light.frameStroke(isActive: false))
+        let solid = HUDTheme(surface: .solid, colors: .standard)
+        #expect(!solid.isGlass)
+        #expect(HUDTheme(surface: .glass).isGlass)
+        #expect(HUDColors.standard.secondaryText == Color(white: HUDColors.standard.secondaryTextWhite))
     }
 
     @Test("外枠にいるときは鍵を薄くする。「コントラストを上げる」では薄くしすぎない")

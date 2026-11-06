@@ -48,7 +48,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 #### 画面収録の許可（任意）
 
-設定の「背景に合わせて色を変える」（既定でオン）が働くには、macOS の「画面収録」の許可が必要です。本アプリはこの許可を、9マスを開くたびに、HUD の下の画面（ポインタの周りの 268×268 ポイント。縮めて 48×48 ピクセル）を 1 枚だけ撮り、9つのアイコンそれぞれの下の明るさを測ることだけに使います。測った結果はアイコンを白か黒のどちらで描くかを決めるためにその場で使い、撮った画像はすぐに捨てます。画像も明るさも、保存も送信もしません。本アプリ自身のウィンドウ以外を撮りますが、画面の内容を読み取ったり記録したりすることはありません。この許可が無いときと設定をオフにしたときは撮らず、アイコンは黒に白い縁で描きます。許可のダイアログは、設定画面の「許可を求める…」を押したときにだけ出します。
+設定の「背景に合わせて色を変える」（既定でオフ。オンにした人だけ）が働くには、macOS の「画面収録」の許可が必要です。本アプリはこの許可を、9マスを開くたびに、HUD の下の画面（ポインタの周りの 268×268 ポイント。縮めて 48×48 ピクセル）を 1 枚だけ撮り、9つのアイコンそれぞれの下の明るさを測ることだけに使います。測った結果はアイコンを白か黒のどちらで描くかを決めるためにその場で使い、撮った画像はすぐに捨てます。画像も明るさも、保存も送信もしません。本アプリ自身のウィンドウ以外を撮りますが、画面の内容を読み取ったり記録したりすることはありません。この許可が無いときと設定をオフにしたときは撮らず、アイコンは黒に白い縁で描きます。許可のダイアログは、設定画面の「許可を求める…」を押したときにだけ出します。
 
 ### 4. オートメーション（Apple Events）
 
@@ -142,7 +142,7 @@ Finger positions on the trackpad are read through macOS's multi-touch support (r
 
 #### Screen Recording permission (optional)
 
-The **Match colors to the background** setting (on by default) needs the macOS Screen Recording permission. The app uses this permission only to take one picture of the screen under the HUD (the 268×268 points around the pointer, scaled down to 48×48 pixels) each time the nine buttons open, and to measure the brightness under each of the nine icons. The result is used at that moment to decide whether each icon is drawn in white or black, and the picture is discarded immediately. Neither the picture nor the brightness values are stored or sent. The picture excludes the app's own windows; the app never reads or records what is on your screen. Without this permission, or with the setting off, nothing is captured and the icons are drawn black with a white outline. The permission dialog appears only when you click “Request Permission…” in Settings.
+The **Match colors to the background** setting (off by default; only if you turn it on) needs the macOS Screen Recording permission. The app uses this permission only to take one picture of the screen under the HUD (the 268×268 points around the pointer, scaled down to 48×48 pixels) each time the nine buttons open, and to measure the brightness under each of the nine icons. The result is used at that moment to decide whether each icon is drawn in white or black, and the picture is discarded immediately. Neither the picture nor the brightness values are stored or sent. The picture excludes the app's own windows; the app never reads or records what is on your screen. Without this permission, or with the setting off, nothing is captured and the icons are drawn black with a white outline. The permission dialog appears only when you click “Request Permission…” in Settings.
 
 ### 4. Automation (Apple Events)
 

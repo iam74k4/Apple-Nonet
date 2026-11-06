@@ -37,7 +37,7 @@ enum ShellText {
         case .liftedInFrame:
             return String(localized: "アイコンの輪の外で離すと、何も実行せずに閉じます。「\(title)」まで動かしてから離してください。", bundle: .module)
         case .liftedOnBoundary:
-            return String(localized: "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。", bundle: .module)
+            return String(localized: "どのアイコンを狙ったか分からない場所で離したので、実行しませんでした。ポインタをアイコンに重ねてから離してください。", bundle: .module)
         case .liftedTooSoon:
             return String(localized: "通りかかっただけのマスは実行しません。マスで少し止めてから離してください。", bundle: .module)
         case .liftedOnEmptyCell:

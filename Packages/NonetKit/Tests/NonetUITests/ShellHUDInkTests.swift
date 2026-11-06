@@ -36,15 +36,15 @@ struct ShellHUDInkTests {
     @Test("しきい値: 白と黒のコントラスト比が同じになる明るさ。明るければ濃い色、暗ければ白")
     func threshold() {
         let threshold = HUDInkDecision.threshold
-        #expect(abs(HUDBackdropLuminance.contrastRatio(1, threshold) - HUDBackdropLuminance.contrastRatio(threshold, 0)) < 0.01)
+        #expect(abs(HUDLuminance.contrastRatio(1, threshold) - HUDLuminance.contrastRatio(threshold, 0)) < 0.01)
         #expect(HUDInkDecision.ink(forLuminance: 1) == .onLight)
         #expect(HUDInkDecision.ink(forLuminance: 0) == .onDark)
         #expect(HUDInkDecision.ink(forLuminance: threshold) == .onLight)
         #expect(HUDInkDecision.ink(forLuminance: threshold - 0.01) == .onDark)
         #expect(HUDInkDecision.ink(forLuminance: .nan) == .onLight)
         // 中くらいの灰色（#808080。相対輝度 0.22）は黒のほうが読みやすい
-        #expect(HUDInkDecision.ink(forLuminance: HUDBackdropLuminance.luminance(red: 0x80, green: 0x80, blue: 0x80)) == .onLight)
-        #expect(HUDInkDecision.ink(forLuminance: HUDBackdropLuminance.luminance(red: 0x50, green: 0x50, blue: 0x50)) == .onDark)
+        #expect(HUDInkDecision.ink(forLuminance: HUDLuminance.relative(red: 0x80, green: 0x80, blue: 0x80)) == .onLight)
+        #expect(HUDInkDecision.ink(forLuminance: HUDLuminance.relative(red: 0x50, green: 0x50, blue: 0x50)) == .onDark)
     }
 
     @Test("鍵ごとの色。測れなければ、黒に白い縁で全部（どの下地でも読める）")
@@ -60,12 +60,12 @@ struct ShellHUDInkTests {
 
     @Test("相対輝度: 黒 0、白 1、sRGB のガンマを戻す")
     func luminance() {
-        #expect(HUDBackdropLuminance.luminance(red: 0, green: 0, blue: 0) == 0)
-        #expect(abs(HUDBackdropLuminance.luminance(red: 255, green: 255, blue: 255) - 1) < 1e-9)
-        #expect(abs(HUDBackdropLuminance.luminance(red: 0x80, green: 0x80, blue: 0x80) - 0.2158) < 0.001)
+        #expect(HUDLuminance.relative(red: 0, green: 0, blue: 0) == 0)
+        #expect(abs(HUDLuminance.relative(red: 255, green: 255, blue: 255) - 1) < 1e-9)
+        #expect(abs(HUDLuminance.relative(red: 0x80, green: 0x80, blue: 0x80) - 0.2158) < 0.001)
         // 緑がいちばん明るく見える
-        #expect(HUDBackdropLuminance.luminance(red: 0, green: 255, blue: 0) > HUDBackdropLuminance.luminance(red: 255, green: 0, blue: 0))
-        #expect(abs(HUDBackdropLuminance.contrastRatio(1, 0) - 21) < 1e-9)
+        #expect(HUDLuminance.relative(red: 0, green: 255, blue: 0) > HUDLuminance.relative(red: 255, green: 0, blue: 0))
+        #expect(abs(HUDLuminance.contrastRatio(1, 0) - 21) < 1e-9)
     }
 
     /// 左半分が黒、右半分が白の 8×8 の画像

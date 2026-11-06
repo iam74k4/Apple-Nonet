@@ -67,6 +67,20 @@ struct ShellHUDPlacementTests {
         }
     }
 
+    @Test("帯は円の下。画面の下端で帯の分が入らなければ上に出す（円とポインタは帯のために動かさない）")
+    func pillPlacement() {
+        let metrics = HUDMetrics(scale: 1)
+        let middle = HUDPlacement.hudFrame(size: Self.hudSize, metrics: metrics, cursor: CGPoint(x: 700, y: 450), screen: Self.main)
+        #expect(HUDPlacement.pillFitsBelow(hudFrame: middle, metrics: metrics, screen: Self.main))
+        // 下端: 円は使える範囲の下端（余白 8）まで来て、帯の 30pt は入らない
+        let bottom = HUDPlacement.hudFrame(size: Self.hudSize, metrics: metrics, cursor: CGPoint(x: 700, y: 10), screen: Self.main)
+        #expect(bottom.minY == Self.main.visibleFrame.minY + HUDPlacement.edgeMargin)
+        #expect(!HUDPlacement.pillFitsBelow(hudFrame: bottom, metrics: metrics, screen: Self.main))
+        // 帯の分だけ上なら入る
+        let justAbove = bottom.offsetBy(dx: 0, dy: metrics.pillGap + metrics.pillHeight)
+        #expect(HUDPlacement.pillFitsBelow(hudFrame: justAbove, metrics: metrics, screen: Self.main))
+    }
+
     @Test("負の座標の画面でも収める（メニューバーや Dock に重ならない）")
     func negativeCoordinates() {
         let frame = HUDPlacement.hudFrame(size: Self.hudSize, metrics: HUDMetrics(scale: 1), cursor: CGPoint(x: -1279, y: 899), screen: Self.left)

@@ -115,7 +115,9 @@ final class DebugPreview {
             edgePaging: edgePaging,
             isPractice: controller.isPracticeMode,
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
-            scale: configuration.settings.hudScale.factor
+            scale: configuration.settings.hudScale.factor,
+            // 本物と同じく、設定がオンなら下の画面を測って鍵ごとの色を決める（見た目の確認でも色合わせを見られるように）
+            adaptsInk: configuration.settings.adaptiveHUDInk
         )
         hud.show(model)
     }

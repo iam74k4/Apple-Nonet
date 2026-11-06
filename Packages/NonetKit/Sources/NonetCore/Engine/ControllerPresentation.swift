@@ -13,7 +13,8 @@ public enum ControllerPresentation {
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
         scale: Double = 1,
-        adaptsInk: Bool = false
+        adaptsInk: Bool = false,
+        isWaitingAtCenter: Bool = false
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
@@ -39,7 +40,8 @@ public enum ControllerPresentation {
             bannerStyle: bannerStyle,
             globalPagesStart: globalPagesStart(pages),
             scale: scale,
-            adaptsInk: adaptsInk
+            adaptsInk: adaptsInk,
+            isWaitingAtCenter: state.isInFrame && isWaitingAtCenter
         )
     }
 

@@ -51,7 +51,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
     /// HUD のアイコンの色を下地に合わせる（開くたびに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白）。
-    /// 測るには macOS の「画面収録」の許可が要る。許可が無ければ、黒いアイコンに白い縁で描く（HUDModel.adaptsInk）。既定はオン
+    /// 測るには macOS の「画面収録」の許可が要り、macOS 15 以降では画面を直接撮るアプリにシステムが月に一度ほど確認のダイアログを出す。
+    /// 使うかどうかは利用者に選んでもらうので既定はオフ（オプトイン）。オフと許可が無いときは、黒いアイコンに白い縁で描く（HUDModel.adaptsInk）
     public var adaptiveHUDInk: Bool
 
     public init(
@@ -59,7 +60,7 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
         openSensitivity: OpenSensitivity = .standard,
-        adaptiveHUDInk: Bool = true
+        adaptiveHUDInk: Bool = false
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
@@ -119,7 +120,7 @@ extension GlobalSettings {
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
         }
-        if !adaptiveHUDInk {
+        if adaptiveHUDInk {
             try container.encode(adaptiveHUDInk, forKey: .adaptiveHUDInk)
         }
     }

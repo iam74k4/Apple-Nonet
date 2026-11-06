@@ -20,10 +20,10 @@ struct ShellHUDTests {
         return HUDModel(title: title, pageIndex: pageIndex, pageCount: pageCount, cells: cells, highlightedIndex: highlighted, banner: banner)
     }
 
-    @Test("HUD の大きさ: 円を囲む正方形（直径 268）と、その下の帯の分。ページ・帯・外枠・進み具合では変わらない（枠が動かない）")
+    @Test("HUD の大きさ: 円を囲む正方形（直径 268）だけ。帯は枠の外に描くので、ページ・帯・外枠・進み具合では変わらない（枠が動かない）")
     func hudSize() {
         let side = RadialLayout.outerRadius * 2
-        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: side, height: side + HUDLayout.pillGap + HUDLayout.pillHeight))
+        #expect(HUDLayout.size(for: Self.model()) == CGSize(width: side, height: side))
         #expect(HUDLayout.size(for: Self.model(pageCount: 3)) == HUDLayout.size(for: Self.model()))
         #expect(HUDLayout.size(for: Self.model(pageCount: 2, banner: "試用期間が終了しました")) == HUDLayout.size(for: Self.model()))
         var inFrame = Self.model()
@@ -80,6 +80,16 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: inFrame, to: center) == L10n.ui("\("Claude Code")、\(L10n.ui("中央"))"))
         // 開いた直後（指は上の外枠）は、プロファイル名と「離すとやめる」
         #expect(HUDAnnouncement.announcement(from: nil, to: inFrame) == ["Xcode", L10n.ui("離すとやめる")].joined(separator: L10n.ui("、")))
+        // ポインタで選ぶ開き方（真ん中から出る前）は、外枠扱いでも「離すとやめる」を言わず、鍵も薄くしない。出てから外枠に入れば言う
+        var waiting = inFrame
+        waiting.isWaitingAtCenter = true
+        #expect(HUDAnnouncement.announcement(from: nil, to: waiting) == "Xcode")
+        #expect(HUDAnnouncement.announcement(from: waiting, to: inFrame) == L10n.ui("離すとやめる"))
+        #expect(HUDAnnouncement.announcement(from: waiting, to: center) == L10n.ui("\("Claude Code")、\(L10n.ui("中央"))"))
+        #expect(!HUDView.dimsKeys(waiting))
+        #expect(HUDView.dimsKeys(inFrame))
+        #expect(HUDView.dimsKeys(Self.model(highlighted: nil)))
+        #expect(!HUDView.dimsKeys(center))
 
         var holding = Self.model(highlighted: 4)
         holding.hold = HUDHold(cellIndex: 4, since: 1, duration: 0.6, isReady: false)

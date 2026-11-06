@@ -18,6 +18,9 @@ public struct ControllerPointerSelection: Equatable, Sendable {
     /// 外へ出てから中央へ戻せば、中央のマスを選ぶ
     public private(set) var hasLeftCenter = false
 
+    /// 開いた直後で、ポインタがまだ中央から出ていない。エンジンには外枠として伝えているが、HUD は薄くしない（HUDModel.isWaitingAtCenter）
+    public var isWaitingAtCenter: Bool { !hasLeftCenter }
+
     public init() {}
 
     /// 開いたときにポインタを置く場所: 円の中心

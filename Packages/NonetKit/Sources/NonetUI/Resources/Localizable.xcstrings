@@ -927,16 +927,16 @@
     },
     "HUD の図。目標は%@の「%@」です。" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "HUD の図。目標は%1$@の「%2$@」です。"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "HUD diagram. The target is “%2$@” at the %1$@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "HUD の図。目標は%1$@の「%2$@」です。"
           }
         }
       }
@@ -1389,6 +1389,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buy Nonet…"
+          }
+        }
+      }
+    },
+    "Nonet を開き直す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reopen Nonet"
           }
         }
       }
@@ -2030,6 +2040,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click Add Profile to give an app its own nine buttons."
+          }
+        }
+      }
+    },
+    "「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Screen Recording permission takes effect after Nonet reopens. Until then, icons are black with a white outline."
           }
         }
       }
@@ -2901,6 +2921,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Well done"
+          }
+        }
+      }
+    },
+    "どのアイコンを狙ったか分からない場所で離したので、実行しませんでした。ポインタをアイコンに重ねてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing ran, because you lifted where it wasn't clear which icon you meant. Move the pointer onto the icon before lifting."
           }
         }
       }
@@ -5601,6 +5631,7 @@
       }
     },
     "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9875,7 +9906,18 @@
         }
       }
     },
+    "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. It needs the macOS Screen Recording permission, and on macOS 15 and later a confirmation dialog appears about once a month. The image is discarded at once; nothing is saved or sent"
+          }
+        }
+      }
+    },
     "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。画像はその場で捨て、保存も送信もしません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

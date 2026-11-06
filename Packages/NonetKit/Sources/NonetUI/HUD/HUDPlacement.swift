@@ -32,12 +32,17 @@ enum HUDPlacement {
         screenIndex(containing: point, in: screens).map { screens[$0] }
     }
 
-    /// HUD の見た目の枠（影の余白を含まない）。円の中心が開いたときのポインタに来るように置く（枠の上側が円、下に帯の分）。
+    /// HUD の見た目の枠（影の余白を含まない。円を囲む正方形）。円の中心が開いたときのポインタに来るように置く。
     /// 画面の使える範囲（端の余白を除く）に収める（収まらなければ寄せ、NonetController がポインタを円の中心へ動かす）
     static func hudFrame(size: CGSize, metrics: HUDMetrics, cursor: CGPoint, screen: HUDScreenGeometry) -> CGRect {
         // AppKit の座標（y は上向き）: 枠の上端は円の中心から outerRadius 上
         let top = cursor.y + metrics.outerRadius
         return frame(size: size, centeredAt: CGPoint(x: cursor.x, y: top - size.height / 2), in: screen)
+    }
+
+    /// 帯（注意書き・「練習中」）を円の下に出せるか。枠の下に帯の分（隙間と高さ）が画面の使える範囲（端の余白を除く）に入らなければ、上に出す
+    static func pillFitsBelow(hudFrame: CGRect, metrics: HUDMetrics, screen: HUDScreenGeometry) -> Bool {
+        hudFrame.minY - metrics.pillGap - metrics.pillHeight >= screen.visibleFrame.minY + edgeMargin
     }
 
     /// 大きさが変わるとき: 円（枠の上側）を動かさないよう上端をそろえて下へ伸び縮みさせ、画面の使える範囲に収める

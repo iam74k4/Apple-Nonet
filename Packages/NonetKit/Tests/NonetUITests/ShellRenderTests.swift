@@ -40,11 +40,14 @@ struct ShellRenderTests {
                 banner: ControllerPresentation.trialEndedBanner
             )),
         ]
-        for (name, model) in models {
+        // 帯は円の下。画面の下端で入らなければ上（pillBelow = false）
+        let pillAbove = models.compactMap { name, model in name == "hud-practice" ? ("hud-practice-pill-above", model, false) : nil }
+        for (name, model, pillBelow) in models.map({ ($0.0, $0.1, true) }) + pillAbove {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin
             let store = HUDStore()
             store.model = model
+            store.pillBelow = pillBelow
             try Self.render(
                 HUDRootView(store: store).background(Color(white: 0.82)),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
@@ -78,7 +81,8 @@ struct ShellRenderTests {
             }, .fallback, false, false, nil, Color(white: 0.82)),
             // 2本の指（光るマスが無く、離しても何も起きない）
             ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, .fallback, false, false, nil, Color(white: 0.82)),
-            ("hud-state-boundary", variant { $0.highlightedIndex = 4; $0.isHighlightOnBoundary = true }, .fallback, false, false, nil, Color(white: 0.82)),
+            // 開いた直後（ポインタが真ん中から出る前）: 外枠扱いでも薄くしない
+            ("hud-state-opened", variant { $0.isFingerInFrame = true; $0.isWaitingAtCenter = true }, .fallback, false, false, nil, Color(white: 0.82)),
             ("hud-state-frame", variant { $0.isFingerInFrame = true }, .fallback, false, false, nil, Color(white: 0.82)),
             ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .fallback, true, false, nil, Color(white: 0.82)),
             ("hud-state-hold", variant {

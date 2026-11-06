@@ -41,6 +41,9 @@ public final class SystemPermissions: PermissionsProviding {
     /// 聞くだけで、ダイアログは出さない
     public var isScreenCaptureGranted: Bool { CGPreflightScreenCaptureAccess() }
 
+    /// 起動したとき（この部品を作ったとき）に許可があったか。与えた直後は開き直すまで撮れないので、設定画面が開き直しを案内する
+    public let screenCaptureGrantedAtLaunch = CGPreflightScreenCaptureAccess()
+
     /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、設定画面は openScreenCaptureSettings も並べる
     public func requestScreenCapture() {
         _ = CGRequestScreenCaptureAccess()

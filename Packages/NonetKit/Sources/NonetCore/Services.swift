@@ -236,6 +236,9 @@ public protocol PermissionsProviding: AnyObject {
     /// 「画面収録」の許可（HUD のアイコンの色を下地に合わせるために、HUD の下の画面の明るさを測る。GlobalSettings.adaptiveHUDInk）。
     /// 任意の許可で、無くても Nonet は動く
     var isScreenCaptureGranted: Bool { get }
+    /// 起動したときに「画面収録」の許可があったか。macOS はこの許可を、与えた後に開き直したプロセスから効かせるので、
+    /// 起動時に無くて今はある（isScreenCaptureGranted）なら、Nonet を開き直すまで撮れない
+    var screenCaptureGrantedAtLaunch: Bool { get }
     /// システムの許可ダイアログを出す（すでに断られていれば、システム設定で変える）
     func requestScreenCapture()
     func openScreenCaptureSettings()
@@ -244,6 +247,7 @@ public protocol PermissionsProviding: AnyObject {
 extension PermissionsProviding {
     /// 画面収録を扱わない実装の既定（許可は無く、求めない）
     public var isScreenCaptureGranted: Bool { false }
+    public var screenCaptureGrantedAtLaunch: Bool { isScreenCaptureGranted }
     public func requestScreenCapture() {}
     public func openScreenCaptureSettings() {}
 }

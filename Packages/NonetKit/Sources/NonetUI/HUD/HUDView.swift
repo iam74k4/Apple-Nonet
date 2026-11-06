@@ -60,9 +60,16 @@ struct HUDMetrics: Equatable {
         CGPoint(x: center.x, y: center.y + HUDLayout.pageDotsOffset * scale)
     }
 
-    /// 円を囲む正方形と、その下の帯（注意書き・「練習中」）の分。帯の有無で大きさを変えない（枠が動かない）
+    /// 円を囲む正方形。帯（注意書き・「練習中」）は枠の外（下か、下に入らなければ上）に描くので、枠の大きさと置き場所を変えない
+    /// （帯の分だけ画面の下端で円が押し上げられることも、帯の有無で枠が動くことも無い）
     func size(for model: HUDModel) -> CGSize {
-        CGSize(width: circleSide, height: circleSide + pillGap + pillHeight)
+        CGSize(width: circleSide, height: circleSide)
+    }
+
+    /// 帯の枠（円を囲む正方形の座標）。below なら円の下、そうでなければ円の上
+    func pillFrame(below: Bool) -> CGRect {
+        let y = below ? circleSide + pillGap : -(pillGap + pillHeight)
+        return CGRect(x: 0, y: y, width: circleSide, height: pillHeight)
     }
 }
 
@@ -76,11 +83,12 @@ enum HUDLayout {
     /// ページの点の、中心からの距離（真ん中の鍵の下）
     static let pageDotsOffset: CGFloat = 30
     static let pageGroupGap: CGFloat = 6
-    /// 円の下の帯（試用期間の注意書き・「練習中」）
+    /// 円の外の帯（試用期間の注意書き・「練習中」）
     static let pillHeight: CGFloat = 22
     static let pillGap: CGFloat = 8
-    /// 白い円の光と、アイコンの縁を SwiftUI で描くための余白。ウィンドウの影は使わない
-    static let shadowMargin: CGFloat = 28
+    /// 枠の外に描くもの（帯とその影、白い円の光、アイコンの縁）のための余白。ウィンドウの影は使わない。
+    /// 帯（pillGap + pillHeight = 30）とその影（下へ 3・ぼかし 6）が入る大きさ
+    static let shadowMargin: CGFloat = 40
 
     /// model.scale の倍率を掛けた大きさ
     static func size(for model: HUDModel) -> CGSize {
@@ -99,6 +107,8 @@ final class HUDStore {
     var increasedContrast = false
     /// システム設定の「視差効果を減らす」（出すたびに読み直す）。外枠の切り替えをアニメーションにせず、進み具合も満たしていかない
     var reduceMotion = false
+    /// 帯を円の下に出すか（画面の下端で入らなければ上に出す。HUDPlacement.pillFitsBelow）
+    var pillBelow = true
 }
 
 /// パネルに置く根のビュー。影の余白の中に HUD を描く
@@ -112,7 +122,8 @@ struct HUDRootView: View {
                     model: model,
                     inks: store.inks,
                     increasedContrast: store.increasedContrast,
-                    reduceMotion: store.reduceMotion
+                    reduceMotion: store.reduceMotion,
+                    pillBelow: store.pillBelow
                 )
             }
         }
@@ -120,21 +131,28 @@ struct HUDRootView: View {
     }
 }
 
-/// HUD。ポインタの周りの 8つの鍵と真ん中の鍵、左右の外へ出して止めているときの矢印とページの点、円の下の帯
+/// HUD。ポインタの周りの 8つの鍵と真ん中の鍵、左右の外へ出して止めているときの矢印とページの点、円の外の帯
 struct HUDView: View {
     let model: HUDModel
     var inks: HUDInks = .fallback
     var increasedContrast = false
     var reduceMotion = false
+    /// 帯を円の下に出すか（入らなければ上）
+    var pillBelow = true
     /// 少し長く止めるマスの進み具合を、この値（0〜1）で止めて描く（見た目の確認用）。nil なら止め始めてから duration で満たす
     var fixedHoldProgress: Double?
+
+    /// 鍵を薄くする（離しても何も起きないことを見せる）: 外枠にいる・2本以上の指・滑らせ直すまで。
+    /// 開いた直後（ポインタがまだ真ん中から出ていない）は、エンジンには外枠でも薄くしない: 開くたびに薄くなっては、選べないように見える
+    static func dimsKeys(_ model: HUDModel) -> Bool {
+        if model.isFingerInFrame { return !model.isWaitingAtCenter }
+        return model.highlightedIndex == nil
+    }
 
     var body: some View {
         let metrics = HUDMetrics(scale: model.scale)
         let size = metrics.size(for: model)
-        let inFrame = model.isFingerInFrame
-        // 2本以上の指・滑らせ直すまで: 光っているマスが無く、離しても何も起きない
-        let idle = model.highlightedIndex == nil && !inFrame
+        let inFrame = model.isFingerInFrame && !model.isWaitingAtCenter
         let dimmed = increasedContrast ? HUDInkPalette.dimmedOpacityIncreased : HUDInkPalette.dimmedOpacity
         ZStack(alignment: .topLeading) {
             ForEach(0..<Page.cellCount, id: \.self) { index in
@@ -142,7 +160,6 @@ struct HUDView: View {
                     cell: cell(at: index),
                     index: index,
                     isHighlighted: model.highlightedIndex == index,
-                    isOnBoundary: model.highlightedIndex == index && model.isHighlightOnBoundary,
                     hold: model.hold?.cellIndex == index && model.highlightedIndex == index ? model.hold : nil,
                     ink: inks.ink(at: index),
                     metrics: metrics,
@@ -152,7 +169,7 @@ struct HUDView: View {
                 )
                 .position(metrics.position(ofCell: index))
             }
-            .opacity(inFrame || idle ? dimmed : 1)
+            .opacity(Self.dimsKeys(model) ? dimmed : 1)
             if let paging = model.edgePaging {
                 HUDPagingArrow(paging: paging, metrics: metrics, animates: !reduceMotion)
                     .position(metrics.pageArrowPosition(paging.edge))
@@ -168,9 +185,10 @@ struct HUDView: View {
                 }
             }
             if let pill = HUDPillContent.content(for: model) {
+                let frame = metrics.pillFrame(below: pillBelow)
                 HUDPill(content: pill, metrics: metrics)
-                    .frame(width: size.width, height: metrics.pillHeight)
-                    .offset(y: metrics.circleSide + metrics.pillGap)
+                    .frame(width: frame.width, height: frame.height)
+                    .offset(y: frame.minY)
             }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
@@ -190,8 +208,6 @@ struct HUDKeyView: View {
     let cell: HUDCell?
     let index: Int
     let isHighlighted: Bool
-    /// 指が境目の線の上にあり、いま離しても実行しない。塗らずに、線だけで示す
-    var isOnBoundary = false
     /// 光っている、少し長く止めるマスの進み具合。止め終えるまでは白く塗らず、円に沿って線を伸ばす
     var hold: HUDHold?
     var ink: HUDInk = .onLight
@@ -202,7 +218,7 @@ struct HUDKeyView: View {
 
     /// 白く塗る（いま指を離すと実行する）。少し長く止めるマスは止め終えてから。境目の線の上では塗らない
     private var isFilled: Bool {
-        isHighlighted && !isOnBoundary && (hold?.isReady ?? true)
+        isHighlighted && (hold?.isReady ?? true)
     }
 
     /// 少し長く止めるマスを止めている途中
@@ -231,10 +247,6 @@ struct HUDKeyView: View {
                     haloRadius: metrics.haloRadius,
                     strong: increasedContrast
                 )
-                if isHighlighted, isOnBoundary, !isHolding {
-                    // 離しても実行しない。空きマスを指したときと同じ線で示す（白い塗り＝離すと実行、と食い違わない）
-                    Circle().strokeBorder(ink.color.opacity(0.85), lineWidth: 1.5 * metrics.scale)
-                }
                 if isHolding, let hold {
                     HUDHoldRing(
                         hold: hold,
@@ -624,10 +636,10 @@ enum HUDAnnouncement {
     }
 
     /// 前の表示から読み上げる内容が変わったときだけ文を返す（同じ文を何度も読ませない）。
-    /// 外枠に入ったら「離すとやめる」、少し長く止めるマスを止め終えたら「離すと実行」
+    /// 外枠に入ったら「離すとやめる」（開いた直後のポインタが真ん中から出る前は、外枠扱いでも言わない）、少し長く止めるマスを止め終えたら「離すと実行」
     static func announcement(from previous: HUDModel?, to model: HUDModel) -> String? {
         let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title
-        let current = model.isFingerInFrame ? frameLabel(in: model) : highlighted(in: model)
+        let current = model.isFingerInFrame && !model.isWaitingAtCenter ? frameLabel(in: model) : highlighted(in: model)
         if !isNewPage, let hold = model.hold, hold.isReady, previous?.hold?.isReady != true, previous?.highlightedIndex == model.highlightedIndex {
             return holdReady
         }
@@ -637,7 +649,7 @@ enum HUDAnnouncement {
                 : model.title
             return [page, current].compactMap { $0 }.joined(separator: String(localized: "、", bundle: .module))
         }
-        let before = previous.flatMap { $0.isFingerInFrame ? frameLabel(in: $0) : highlighted(in: $0) }
+        let before = previous.flatMap { $0.isFingerInFrame && !$0.isWaitingAtCenter ? frameLabel(in: $0) : highlighted(in: $0) }
         guard before != current else { return nil }
         return current
     }

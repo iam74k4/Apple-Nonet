@@ -101,10 +101,8 @@ struct HUDToastView: View {
     var maxWidth: CGFloat?
     var surface: HUDSurface = .current
 
-    @Environment(\.colorScheme) private var colorScheme
-
     private var scale: CGFloat { HUDMetrics(scale: toast.scale).scale }
-    private var theme: HUDTheme { HUDTheme(surface: surface, colors: colors, colorScheme: colorScheme) }
+    private var theme: HUDTheme { HUDTheme(surface: surface, colors: colors) }
 
     var body: some View {
         let scale = scale
@@ -137,7 +135,7 @@ struct HUDToastView: View {
                 }
             }
         }
-        .foregroundStyle(surface == .glass ? theme.cellForeground : AnyShapeStyle(Color(white: 0.85)))
+        .foregroundStyle(surface == .glass ? theme.foreground : AnyShapeStyle(Color(white: 0.85)))
         .padding(.horizontal, 18 * scale)
         .padding(.vertical, 11 * scale)
         .frame(minWidth: HUDToastLayout.minWidth * scale)

@@ -1068,7 +1068,6 @@ final class SettingsModel {
     /// システム設定から戻ったときなど。望んでいた状態になっていれば、前の知らせは消す
     /// （システム設定の「ログイン項目」で許可されたのに、できなかったと出し続けないように）
     func refreshLoginItem() {
-        permissionRefreshCount += 1
         loginItemEnabled = services.loginItem.isEnabled
         if let wanted = loginItemWanted, wanted == loginItemEnabled {
             loginItemError = nil
@@ -1105,13 +1104,36 @@ final class SettingsModel {
 
     // MARK: - 画面収録（HUD のアイコンの色を下地に合わせる）
 
-    /// 「画面収録」の許可があるか（設定を開くたびに・ボタンを押すたびに読み直す）
+    /// macOS の許可を読み直す（ウィンドウが前面に戻ったとき・許可のボタンを押したとき）。アクセシビリティはコントローラーが、
+    /// 画面収録はここで読み直す（permissionRefreshCount を進めて、それを読んでいる値を計算し直させる）
+    func refreshPermissions() {
+        controller.refreshPermissions()
+        permissionRefreshCount += 1
+    }
+
+    /// 「画面収録」の許可があるか
     var isScreenCaptureGranted: Bool {
         _ = permissionRefreshCount
         return services.permissions.isScreenCaptureGranted
     }
 
-    /// isScreenCaptureGranted を読み直させる目印
+    /// 許可はあるが、このプロセスでは効かない: 起動した後に許可した（macOS は開き直したプロセスから効かせる）か、許可があるのに撮れなかった。
+    /// 起動した後に許可しても撮れていれば（screenCaptureWorked）、開き直しは要らない
+    var screenCaptureNeedsRelaunch: Bool {
+        guard isScreenCaptureGranted else { return false }
+        switch screenCaptureOutcome() {
+        case .failed: return true
+        case .succeeded: return false
+        case .notTried: return !services.permissions.screenCaptureGrantedAtLaunch
+        }
+    }
+
+    /// 直近の撮影の結果（テストで差し替える）
+    @ObservationIgnored var screenCaptureOutcome: () -> ScreenCaptureBackdropSampler.Outcome = { ScreenCaptureBackdropSampler.lastOutcome }
+    /// Nonet を開き直す（テストで差し替える）
+    @ObservationIgnored var relaunch: () -> Void = { ShellRelaunch.relaunch() }
+
+    /// isScreenCaptureGranted・screenCaptureNeedsRelaunch を読み直させる目印
     private(set) var permissionRefreshCount = 0
 
     /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、システム設定を開くボタンも並べてある
@@ -1450,7 +1472,7 @@ final class SettingsModel {
     /// 開き直したときや、ほかのアプリから戻ったとき。閉じるときに止めた読み込みを続け、古くなった一覧を読み直す
     /// （使い回すウィンドウでは onAppear がもう一度呼ばれないため、ここで行う）
     func windowDidBecomeKey() {
-        controller.refreshPermissions()
+        refreshPermissions()
         refreshLoginItem()
         license.refresh()
         // ショートカット.app で作ってから戻ってきたときに、見つからないと言わないように

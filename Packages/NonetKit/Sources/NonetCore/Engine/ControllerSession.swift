@@ -42,7 +42,7 @@ struct ControllerSession: Equatable, Sendable {
         )
     }
 
-    func hudModel(_ state: SessionHUDState, isPracticeMode: Bool, isTrialEnded: Bool) -> HUDModel {
+    func hudModel(_ state: SessionHUDState, isPracticeMode: Bool, isTrialEnded: Bool, isWaitingAtCenter: Bool = false) -> HUDModel {
         let banner: (text: String, style: HUDBannerStyle)? = if isTrialEnded {
             (ControllerPresentation.trialEndedBanner, .warning)
         } else if let days = trialReminderDays {
@@ -58,7 +58,8 @@ struct ControllerSession: Equatable, Sendable {
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             scale: settings.hudScale.factor,
-            adaptsInk: settings.adaptiveHUDInk
+            adaptsInk: settings.adaptiveHUDInk,
+            isWaitingAtCenter: isWaitingAtCenter
         )
     }
 }

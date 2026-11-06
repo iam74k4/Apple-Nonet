@@ -69,6 +69,8 @@ public final class HUDWindowController: HUDPresenting {
 
     /// いまの鍵の色（テスト用）
     var inks: HUDInks { hudStore.inks }
+    /// 帯を円の下に出すか（テスト用）
+    var pillBelow: Bool { hudStore.pillBelow }
 
     /// HUD を表示中か（フェードアウト中は含まない）
     var isShowingHUD: Bool { hudFader.isShowing }
@@ -180,7 +182,9 @@ public final class HUDWindowController: HUDPresenting {
         hudFrame = frame
         hudScreen = screen
         if let model = hudStore.model, let primary = screens().first?.frame {
-            mapFrame = HUDPlacement.mapFrame(hudFrame: frame, metrics: HUDMetrics(scale: model.scale), primaryScreen: primary)
+            let metrics = HUDMetrics(scale: model.scale)
+            mapFrame = HUDPlacement.mapFrame(hudFrame: frame, metrics: metrics, primaryScreen: primary)
+            hudStore.pillBelow = HUDPlacement.pillFitsBelow(hudFrame: frame, metrics: metrics, screen: screen)
         }
         let margin = HUDLayout.shadowMargin
         hudPanel.setFrame(frame.insetBy(dx: -margin, dy: -margin), display: true)

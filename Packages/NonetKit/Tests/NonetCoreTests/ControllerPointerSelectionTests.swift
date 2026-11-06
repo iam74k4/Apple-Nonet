@@ -57,11 +57,11 @@ import Testing
         let frame = GridInsets.cancelFrame
         // 開いた直後（中心）: 外へ出るまでは外枠
         #expect(Self.near(selection.position(of: Self.center, in: Self.map), (0.5, 1 - frame.top / 2)))
-        #expect(selection.zone == .cell(4) && !selection.hasLeftCenter)
+        #expect(selection.zone == .cell(4) && !selection.hasLeftCenter && selection.isWaitingAtCenter)
         #expect(Self.near(selection.position(of: Self.pointer(30, 0), in: Self.map), (0.5, 1 - frame.top / 2)))
         // 右の鍵
         #expect(Self.near(selection.position(of: Self.pointer(108, 0), in: Self.map), ControllerPointerSelection.cellCenter(5)))
-        #expect(selection.hasLeftCenter)
+        #expect(selection.hasLeftCenter && !selection.isWaitingAtCenter)
         // 戻せば中央のマス
         #expect(Self.near(selection.position(of: Self.center, in: Self.map), ControllerPointerSelection.cellCenter(4)))
         // 上・左下
