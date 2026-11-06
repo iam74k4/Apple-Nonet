@@ -142,29 +142,21 @@
           <div class="screen">
             <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
             <div class="hud">
-              <div class="hud-head"><span class="hud-title">Xcode</span><span>マスで指を離すと実行</span></div>
-              <div class="hud-pad">
-                <div class="hud-grid">
-                  <div class="cell" data-cell data-label="ビルド"><svg class="icon"><use href="#i-hammer"/></svg>ビルド</div>
-                  <div class="cell" data-cell data-label="実行"><svg class="icon"><use href="#i-play"/></svg>実行</div>
-                  <div class="cell" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg>テスト</div>
-                  <div class="cell" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg>シミュレータ</div>
-                  <div class="cell on" data-cell data-label="クイックオープン"><svg class="icon"><use href="#i-search"/></svg>クイックオープン</div>
-                  <div class="cell" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg>Claude Code</div>
-                  <div class="cell" data-cell data-label="停止"><svg class="icon"><use href="#i-stop"/></svg>停止</div>
-                  <div class="cell" data-cell data-label="クリーン"><svg class="icon"><use href="#i-eraser"/></svg>クリーン</div>
-                  <div class="cell" data-cell data-label="コミット"><svg class="icon"><use href="#i-commit"/></svg>コミット</div>
-                </div>
-                <div class="hud-cancel"><svg class="icon"><use href="#i-cross"/></svg>離すとやめる</div>
-              </div>
+              <div class="cell slot-7" data-cell data-label="ビルド"><svg class="icon"><use href="#i-hammer"/></svg></div>
+              <div class="cell slot-0" data-cell data-label="実行"><svg class="icon"><use href="#i-play"/></svg></div>
+              <div class="cell slot-1" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg></div>
+              <div class="cell slot-6" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg></div>
+              <div class="cell slot-c" data-cell data-label="クイックオープン"><svg class="icon"><use href="#i-search"/></svg></div>
+              <div class="cell slot-2 on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg></div>
+              <div class="cell slot-5" data-cell data-label="停止"><svg class="icon"><use href="#i-stop"/></svg></div>
+              <div class="cell slot-4" data-cell data-label="クリーン"><svg class="icon"><use href="#i-eraser"/></svg></div>
+              <div class="cell slot-3" data-cell data-label="コミット"><svg class="icon"><use href="#i-commit"/></svg></div>
+              <svg class="pointer" viewBox="0 0 12 19"><path d="M1 1v13.6l3.4-3.1 2.2 5.7 2.2-.9-2.2-5.4h4.3z"/></svg>
             </div>
-            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>ビルド</span></div>
+            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>コミット</span></div>
           </div>
           <div class="trackpad">
-            <div class="trackpad-cells">
-              <svg class="trackpad-lines" viewBox="0 0 162 88" preserveAspectRatio="none"><path d="M54 0V88 M108 0V88 M0 29.3H162 M0 58.7H162" vector-effect="non-scaling-stroke"/></svg>
-            </div>
-            <span class="trackpad-label">外枠</span>
+            <span class="trackpad-edge"></span>
             <span class="trail"></span>
             <span class="ripple"></span>
             <span class="finger"></span>
@@ -252,10 +244,16 @@
             <text x="130" y="20" text-anchor="middle" class="label-muted">Safari</text>
             <rect class="faint" x="164" y="6.5" width="58" height="19" rx="9.5"/>
             <text x="193" y="20" text-anchor="middle" class="label-muted">Zoom</text>
-            <rect class="panel" x="70" y="34" width="120" height="82" rx="11"/>
-            <rect class="tile" x="78" y="42" width="32" height="20" rx="5"/><rect class="tile" x="114" y="42" width="32" height="20" rx="5"/><rect class="tile" x="150" y="42" width="32" height="20" rx="5"/>
-            <rect class="tile" x="78" y="65" width="32" height="20" rx="5"/><rect class="tile-on" x="114" y="65" width="32" height="20" rx="5"/><rect class="tile" x="150" y="65" width="32" height="20" rx="5"/>
-            <rect class="tile" x="78" y="88" width="32" height="20" rx="5"/><rect class="tile" x="114" y="88" width="32" height="20" rx="5"/><rect class="tile" x="150" y="88" width="32" height="20" rx="5"/>
+            <circle class="ink" cx="130.0" cy="46.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="54.8" r="5"/>
+            <circle class="ring" cx="160.0" cy="76.0" r="11.0"/>
+            <circle class="ink" cx="160.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="97.2" r="5"/>
+            <circle class="ink" cx="130.0" cy="106.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="97.2" r="5"/>
+            <circle class="ink" cx="100.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="54.8" r="5"/>
+            <circle class="ink" cx="130" cy="76" r="4.0"/>
           </svg>
           <h3>アプリごとのプロファイル</h3>
           <p>Xcode ではビルドとテスト、Zoom ではミュートと画面共有、Finder では選んだファイルの複製やゴミ箱。前面のアプリに合わせて9マスが自動で切り替わる。よく使うアプリには、最初から9マスを用意している。</p>
@@ -294,10 +292,19 @@
         <article class="feature">
           <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
             <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
-            <path class="dashed" d="M87 4 V116 M173 4 V116 M4 40 H256 M4 80 H256"/>
-            <circle class="faint" cx="173" cy="60" r="27"/>
-            <circle class="ring" cx="173" cy="60" r="18"/>
-            <circle class="ink" cx="173" cy="60" r="10"/>
+            <path class="dashed" d="M130 60 L178.0 40.1"/>
+            <circle class="ink" cx="130.0" cy="26.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="164.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="130.0" cy="94.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="96.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="130" cy="60" r="3.2"/>
+            <circle class="faint" cx="161.4" cy="47.0" r="20"/>
+            <circle class="ring" cx="161.4" cy="47.0" r="13"/>
+            <circle class="ink" cx="161.4" cy="47.0" r="6"/>
           </svg>
           <h3>境界で「コツッ」と振動</h3>
           <p>感圧タッチ（Force Touch）のトラックパッドなら、指がマスをまたぐたびに軽く振動する。マスの境目をまたいだことが、指でわかる。強さは設定で選べる。</p>

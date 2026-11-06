@@ -518,14 +518,23 @@ test_demo_markup_matches_the_script() {
       grep -q -- "$name" "$ROOT/site/$page" || fail "$page に $attr がありません（script.js が使う）"
     done
     assert_eq 9 "$(grep -c 'data-cell ' "$ROOT/site/$page")" "$page のマスの数"
-    assert_eq 1 "$(grep -c 'class="cell on"' "$ROOT/site/$page")" "$page の静止画で光らせるマス"
+    assert_eq 1 "$(grep -c 'class="cell slot-[0-7c] on"' "$ROOT/site/$page")" "$page の静止画で光らせるマス"
+    # 9つのアイコンは輪の上の位置（slot-0〜7。上から時計回り）と真ん中（slot-c）に 1 つずつ
+    for name in 0 1 2 3 4 5 6 7 c; do
+      assert_eq 1 "$(grep -c "class=\"cell slot-$name\( on\)\?\" " "$ROOT/site/$page")" "$page の slot-$name"
+    done
     # setUpDemo が探すクラス（.finger など）の要素もある
     for name in $(grep -oE 'querySelector\("\.[a-z-]+"\)' <<<"$demo" | sed -E 's/.*"\.([a-z-]+)".*/\1/' | sort -u); do
       grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません（script.js が使う）"
     done
-    # トラックパッドの外枠（9マスの外側の帯）と、HUD の外枠・「離すとやめる」を描く。キーの絵はもう無い
-    for name in trackpad-cells trackpad-label hud-pad hud-cancel; do
+    # ポインタの周りの輪（HUD）とポインタ、トラックパッドの上の縁の帯を描く。皿・外枠の帯・「離すとやめる」の文字・キーの絵はもう無い
+    for name in hud pointer trackpad-edge; do
       grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません"
+    done
+    for name in hud-pad hud-cancel hud-grid trackpad-cells trackpad-label; do
+      if grep -q -- "class=\"$name\"" "$ROOT/site/$page"; then
+        fail "$page に 3×3 の HUD のころの .$name が残っています"
+      fi
     done
     if grep -q 'class="key"' "$ROOT/site/$page"; then
       fail "$page にキーの絵が残っています"
@@ -536,22 +545,19 @@ test_demo_markup_matches_the_script() {
   fi
 }
 
-# デモのトラックパッドの外枠の幅（style.css の .trackpad-cells と script.js の FRAME）は、アプリの外枠（GridMapper.cancelFrame）と同じ割合
-test_demo_frame_matches_the_app() {
-  local mapper="$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/GridMapper.swift" frame side css js ratio percent
-  frame="$(grep -E 'static let cancelFrame = GridInsets\(' "$mapper")"
-  [[ -n "$frame" ]] || fail "GridMapper.swift から cancelFrame を読めません"
-  css="$(awk '/^\.trackpad-cells \{/, /^\}/' "$ROOT/site/style.css")"
-  [[ -n "$css" ]] || fail "style.css に .trackpad-cells がありません"
-  js="$(grep -E 'const FRAME = \{' "$ROOT/site/script.js")"
-  [[ -n "$js" ]] || fail "script.js に FRAME がありません"
-  for side in left right top bottom; do
-    ratio="$(sed -nE "s/.*[(, ]$side: ([0-9.]+).*/\1/p" <<<"$frame")"
-    [[ -n "$ratio" ]] || fail "cancelFrame の $side を読めません: $frame"
-    percent="$(awk -v ratio="$ratio" 'BEGIN { printf "%g", ratio * 100 }')"
-    assert_contains "$css" "  $side: $percent%;" "style.css の .trackpad-cells（$side）"
-    assert_contains "$js" "$side: $percent" "script.js の FRAME（$side）"
-  done
+# デモの HUD の輪の半径（style.css の --ring・--ring-diagonal と script.js の RING・DIAGONAL）は、
+# アプリの輪（RadialLayout: 鍵の円 keyRadius / 外枠 outerRadius）と同じ割合（HUD の正方形の %。斜めは × cos 45°）
+test_demo_ring_matches_the_app() {
+  local layout="$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/RadialMapper.swift" key outer ring diagonal
+  key="$(sed -nE 's/.*static let keyRadius: Double = ([0-9.]+).*/\1/p' "$layout")"
+  outer="$(sed -nE 's/.*static let outerRadius: Double = ([0-9.]+).*/\1/p' "$layout")"
+  [[ -n "$key" && -n "$outer" ]] || fail "RadialMapper.swift から keyRadius・outerRadius を読めません"
+  ring="$(awk -v k="$key" -v o="$outer" 'BEGIN { printf "%.1f", k / o * 50 }')"
+  diagonal="$(awk -v r="$ring" 'BEGIN { printf "%.1f", r / sqrt(2) }')"
+  assert_contains "$(grep -E '^ *--ring: ' "$ROOT/site/style.css")" "--ring: $ring%;" "style.css の --ring"
+  assert_contains "$(grep -E '^ *--ring-diagonal: ' "$ROOT/site/style.css")" "--ring-diagonal: $diagonal%;" "style.css の --ring-diagonal"
+  assert_contains "$(grep -E 'const RING = ' "$ROOT/site/script.js")" "const RING = $ring;" "script.js の RING"
+  assert_contains "$(grep -E 'const DIAGONAL = ' "$ROOT/site/script.js")" "const DIAGONAL = $diagonal;" "script.js の DIAGONAL"
 }
 
 # HUD のデモの動き（偽の DOM と時計で script.js を動かす）。node が無ければ飛ばす

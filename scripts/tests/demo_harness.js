@@ -22,7 +22,7 @@ for (const [, name, value] of figureTag[1].matchAll(/data-([a-z-]+)="([^"]*)"/g)
 for (const key of ["captionRun", "captionCancel", "labelPause", "labelPlay"]) {
   assert.ok(figureData[key], `figure に data-${key} がありません`);
 }
-const cellsInPage = [...html.matchAll(/<div class="cell( on)?" data-cell data-label="([^"]+)"/g)].map((m) => ({
+const cellsInPage = [...html.matchAll(/<div class="cell slot-[0-7c]( on)?" data-cell data-label="([^"]+)"/g)].map((m) => ({
   on: Boolean(m[1]),
   label: m[2],
 }));
@@ -122,6 +122,7 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   const clock = makeClock();
   const cells = cellsInPage.map((cell) => new FakeElement({ classes: ["cell"].concat(cell.on ? ["on"] : []), dataset: { label: cell.label } }));
   const demo = new FakeElement({ classes: ["demo"], dataset: { ...figureData } });
+  const pointer = new FakeElement({ classes: ["pointer"] });
   const finger = new FakeElement({ classes: ["finger"] });
   const trail = new FakeElement({ classes: ["trail"] });
   const ripple = new FakeElement({ classes: ["ripple"] });
@@ -131,6 +132,7 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   toggle.hidden = true;
   demo.selectors = {
     "[data-cell]": cells,
+    ".pointer": pointer,
     ".finger": finger,
     ".trail": trail,
     ".ripple": ripple,
@@ -166,16 +168,21 @@ function load({ reduceMotion = false, withDemo = true } = {}) {
   const is = (name) => demo.classList.contains(name);
   const setVisible = (visible) => observers.forEach((callback) => callback([{ isIntersecting: visible }]));
   const fired = () => cells.flatMap((cell, i) => (cell.classList.contains("fire") ? [i] : []));
-  return { clock, demo, cells, finger, trail, ripple, toastText, caption, toggle, motion, document, highlighted, fired, is, setVisible };
+  return { clock, demo, cells, pointer, finger, trail, ripple, toastText, caption, toggle, motion, document, highlighted, fired, is, setVisible };
 }
 
 // MARK: - テスト
 
-// 指の位置（トラックパッドの %）。外枠は左右 11%・奥 17%・手前 15%（GridMapper.cancelFrame）
-const TOP_ROW = `${Math.round((17 + 68 / 6) * 100) / 100}%`; // 上の段のマスの中心
-const MIDDLE_ROW = "51%";
+// 指の位置（トラックパッドの %）とポインタの位置（HUD の正方形の %）。script.js の OPENED・TRAVEL・RING・DIAGONAL と同じ値で計算する
+const RING = 40.3;
+const DIAGONAL = 28.5;
+const fingerFor = ({ x, y }) => ({ x: 50 + (x - 50) / 1.3, y: 12 + (y - 50) / 2 });
+const pct = (value) => `${Math.round(value * 100) / 100}%`;
+const BOTTOM = { x: 50, y: 50 + RING }; // 下のアイコン（マス 7）
+const BOTTOM_RIGHT = { x: 50 + DIAGONAL, y: 50 + DIAGONAL }; // 右下のアイコン（マス 8）
+const OUTSIDE = { x: 50, y: 106 }; // 輪の外（下）
 
-function testOpensFromTheTopEdgeRunsThenCancelsInTheFrame() {
+function testOpensFromTheTopEdgeRunsThenCancelsOutsideTheRing() {
   const d = load();
   assert.ok(d.is("is-live"), "読み込んだら動き出す");
   assert.strictEqual(d.toggle.hidden, false, "一時停止のボタンを出す");
@@ -191,33 +198,42 @@ function testOpensFromTheTopEdgeRunsThenCancelsInTheFrame() {
   assert.ok(!d.is("hud-open"), "置いただけでは開かない");
   assert.strictEqual(d.finger.style.left, "50%");
   assert.strictEqual(d.finger.style.top, "4%", "指は上の縁");
-  assert.strictEqual(d.trail.style.height, "4%", "滑らせた跡は上の縁から指まで");
+  assert.strictEqual(d.trail.style.height, "0px", "滑らせた跡は、まだ無い");
 
   d.clock.advanceTo(950);
   assert.ok(d.is("hud-open"), "下へ滑らせると開く");
-  assert.ok(d.is("in-frame"), "開いた直後の指は上の外枠にいるので「離すとやめる」");
-  assert.deepStrictEqual(d.highlighted(), [], "外枠ではマスは光らない");
+  assert.ok(!d.is("in-frame"), "開いた直後はアイコンを薄くしない（まだ何も向けていない）");
+  assert.deepStrictEqual(d.highlighted(), [], "まだ何も光らない");
   assert.strictEqual(d.finger.style.top, "12%");
+  assert.strictEqual(d.pointer.style.left, "50%");
+  assert.strictEqual(d.pointer.style.top, "50%", "ポインタは円の中心");
+  assert.ok(d.pointer.classList.contains("jump"), "ポインタは滑らせずに中心へ置く");
+  assert.strictEqual(d.trail.style.height, "12px", "跡は上の縁から指まで（8% × 150px）");
   assert.ok(d.ripple.classList.contains("buzz"), "開くと振動する");
 
   d.clock.advanceTo(1700);
-  assert.ok(!d.is("in-frame") && !d.is("slide-in"), "マスに入ると外枠を出る");
-  assert.deepStrictEqual(d.highlighted(), [1], "指の下（上の段の中央）が光る");
-  assert.strictEqual(d.finger.style.top, TOP_ROW);
-  assert.strictEqual(d.trail.style.height, TOP_ROW, "跡は指について行く");
+  assert.ok(!d.is("slide-in"), "アイコンに向けたら、入ってきた跡を消す");
+  assert.deepStrictEqual(d.highlighted(), [7], "指を下へ滑らせると、下のアイコンに白い円");
+  assert.strictEqual(d.pointer.style.top, pct(BOTTOM.y), "ポインタは下のアイコンの上");
+  assert.ok(!d.pointer.classList.contains("jump"), "ポインタは滑らせて動く");
+  assert.strictEqual(d.finger.style.top, pct(fingerFor(BOTTOM).y), "指は開いたところから、ポインタの動きの分だけ下");
+  assert.strictEqual(d.finger.style.left, "50%");
 
   d.clock.advanceTo(2500);
-  assert.deepStrictEqual(d.highlighted(), [0], "指を左へ滑らせると左上のマスが光る");
-  assert.strictEqual(d.finger.style.left, "24%");
+  assert.deepStrictEqual(d.highlighted(), [8], "右へ滑らせると右下のアイコンへ");
+  assert.strictEqual(d.pointer.style.left, pct(BOTTOM_RIGHT.x));
+  assert.strictEqual(d.finger.style.left, pct(fingerFor(BOTTOM_RIGHT).x));
+  assert.strictEqual(d.finger.style.top, pct(fingerFor(BOTTOM_RIGHT).y));
+  assert.ok(/rotate\(-\d+deg\)/.test(d.trail.style.transform), "跡は右下へ向く");
 
   d.clock.advanceTo(3350);
-  assert.ok(!d.is("finger-down"), "マスで指を離す");
-  assert.deepStrictEqual(d.fired(), [0], "離したマスを実行する");
+  assert.ok(!d.is("finger-down"), "アイコンで指を離す");
+  assert.deepStrictEqual(d.fired(), [8], "離したアイコンを実行する");
 
   d.clock.advanceTo(3600);
   assert.ok(!d.is("hud-open"), "実行すると HUD が閉じる");
   assert.ok(d.is("toast-show"), "実行したマスを知らせる");
-  assert.strictEqual(d.toastText.textContent, cellsInPage[0].label);
+  assert.strictEqual(d.toastText.textContent, cellsInPage[8].label);
 
   d.clock.advanceTo(4500);
   assert.ok(!d.is("toast-show"));
@@ -232,29 +248,29 @@ function testOpensFromTheTopEdgeRunsThenCancelsInTheFrame() {
   assert.strictEqual(d.finger.style.top, "4%", "もう一度、上の縁から");
 
   d.clock.advanceTo(5750);
-  assert.ok(d.is("hud-open") && d.is("in-frame"), "開く");
+  assert.ok(d.is("hud-open") && !d.is("in-frame"), "開く。薄くしない");
+  assert.strictEqual(d.pointer.style.top, "50%");
 
-  d.clock.advanceTo(7200);
-  assert.ok(!d.is("in-frame"));
-  assert.deepStrictEqual(d.highlighted(), [4], "中央のマスへ");
-  assert.strictEqual(d.finger.style.top, MIDDLE_ROW);
+  d.clock.advanceTo(6600);
+  assert.deepStrictEqual(d.highlighted(), [7], "下のアイコンへ");
 
-  d.clock.advanceTo(8000);
-  assert.ok(d.is("in-frame"), "右の外枠へ滑らせると、マスが暗くなり「離すとやめる」");
-  assert.deepStrictEqual(d.highlighted(), [], "外枠ではマスは光らない");
-  assert.strictEqual(d.finger.style.left, "94.5%");
-  assert.strictEqual(d.finger.style.top, MIDDLE_ROW);
+  d.clock.advanceTo(7500);
+  assert.ok(d.is("in-frame"), "輪の外まで動かすと、全部のアイコンが薄くなる");
+  assert.deepStrictEqual(d.highlighted(), [], "輪の外では何も光らない");
+  assert.strictEqual(d.pointer.style.top, pct(OUTSIDE.y), "ポインタは輪の外（下）");
+  assert.strictEqual(d.finger.style.top, pct(fingerFor(OUTSIDE).y));
+  assert.ok(parseFloat(d.finger.style.top) < 100, "指はトラックパッドの中");
 
-  d.clock.advanceTo(9050);
-  assert.ok(!d.is("finger-down"), "外枠で指を離す");
+  d.clock.advanceTo(8650);
+  assert.ok(!d.is("finger-down"), "輪の外で指を離す");
 
-  d.clock.advanceTo(9400);
+  d.clock.advanceTo(8950);
   assert.ok(!d.is("hud-open") && !d.is("in-frame"), "何も実行せずに閉じる");
   assert.ok(!d.is("toast-show"), "知らせも出ない");
   assert.deepStrictEqual(d.fired(), [], "どのマスも実行しない");
-  assert.strictEqual(d.toastText.textContent, cellsInPage[0].label);
+  assert.strictEqual(d.toastText.textContent, cellsInPage[8].label);
 
-  d.clock.advanceTo(10700);
+  d.clock.advanceTo(10300);
   assert.strictEqual(d.caption.textContent, figureData.captionRun, "最初からくり返す");
   assert.ok(!d.is("hud-open") && !d.is("toast-show"));
   assert.ok(d.clock.pending() > 0);
@@ -268,8 +284,9 @@ function testPauseShowsTheStaticPicture() {
   assert.deepStrictEqual(d.highlighted(), [staticIndex]);
   assert.strictEqual(d.caption.textContent, staticCaption);
   assert.strictEqual(d.toggle.textContent, figureData.labelPlay);
-  assert.deepStrictEqual(d.finger.style, {}, "指は中央のマス（CSS の既定）に戻る");
-  assert.deepStrictEqual(d.trail.style, {}, "跡は上の縁から中央のマスまで（CSS の既定）");
+  assert.deepStrictEqual(d.finger.style, {}, "指は静止画の位置（CSS の既定）に戻る");
+  assert.deepStrictEqual(d.trail.style, {}, "跡は静止画の長さと向き（CSS の既定）");
+  assert.deepStrictEqual(d.pointer.style, {}, "ポインタは静止画のアイコンの上（CSS の既定）");
   for (const name of ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show"]) {
     assert.ok(!d.is(name), `静止画では ${name} を外す`);
   }
@@ -312,7 +329,7 @@ function testPagesWithoutTheDemoAreUntouched() {
 }
 
 const tests = [
-  testOpensFromTheTopEdgeRunsThenCancelsInTheFrame,
+  testOpensFromTheTopEdgeRunsThenCancelsOutsideTheRing,
   testPauseShowsTheStaticPicture,
   testReducedMotionStartsPaused,
   testStopsWhileOffScreenOrHidden,

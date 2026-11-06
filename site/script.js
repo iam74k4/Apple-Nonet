@@ -51,37 +51,51 @@
 
   // MARK: HUD のデモ
 
-  // 上の縁から指を下へ滑らせて開き、マスで離して実行する。続けて、もう一度開いて外枠で離し、何も実行せずに閉じる
+  // 上の縁から指を下へ滑らせて開き（ポインタの周りに9つのアイコン）、指を滑らせてポインタを向け、アイコンで離して実行する。
+  // 続けて、もう一度開いてアイコンの輪の外まで動かし、離して何も実行せずに閉じる
   const setUpDemo = () => {
     const demo = doc.querySelector("[data-demo]");
     if (!demo) return;
 
     const cells = Array.from(demo.querySelectorAll("[data-cell]"));
+    const pointer = demo.querySelector(".pointer");
     const finger = demo.querySelector(".finger");
     const trail = demo.querySelector(".trail");
     const ripple = demo.querySelector(".ripple");
     const toastText = demo.querySelector("[data-toast-text]");
     const caption = demo.querySelector("[data-demo-caption]");
     const toggle = demo.querySelector("[data-demo-toggle]");
-    if (cells.length !== 9 || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
+    if (cells.length !== 9 || !pointer || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
 
     const staticCaption = caption.textContent;
     const staticHighlight = cells.findIndex((cell) => cell.classList.contains("on"));
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const states = ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show"];
 
-    // トラックパッドの外枠（9マスの外側の帯）の幅（%）。アプリと同じ割合（GridMapper.cancelFrame）。
-    // style.css の .trackpad-cells と合わせる
-    const FRAME = { left: 11, right: 11, top: 17, bottom: 15 };
+    // HUD の円（正方形の %）。8つのアイコンは中心から RING の円の上に 45° おき、真ん中に 9つ目。
+    // アプリの RadialLayout（鍵の円 108 / 外枠 134）と同じ割合。style.css の --ring・--ring-diagonal と合わせる
+    const RING = 40.3;
+    const DIAGONAL = 28.5; // RING × cos 45°
+    const CENTER = { x: 50, y: 50 };
+    // マスの番号（左上から右へ、上の行から）→ そのアイコンの位置（ポインタを向けるところ）
+    const KEYS = [
+      { x: 50 - DIAGONAL, y: 50 - DIAGONAL }, { x: 50, y: 50 - RING }, { x: 50 + DIAGONAL, y: 50 - DIAGONAL },
+      { x: 50 - RING, y: 50 }, CENTER, { x: 50 + RING, y: 50 },
+      { x: 50 - DIAGONAL, y: 50 + DIAGONAL }, { x: 50, y: 50 + RING }, { x: 50 + DIAGONAL, y: 50 + DIAGONAL },
+    ];
+    const OUTSIDE_BELOW = { x: 50, y: 106 }; // アイコンの輪の外（下。輪の縁は正方形の縁）。越えると全部が薄くなる。画面の中に収まる位置
 
     // 指の位置（トラックパッドの左上からの %）
-    const cellPoint = (index) => ({
-      x: FRAME.left + ((index % 3) + 0.5) * ((100 - FRAME.left - FRAME.right) / 3),
-      y: FRAME.top + (Math.floor(index / 3) + 0.5) * ((100 - FRAME.top - FRAME.bottom) / 3),
-    });
     const EDGE = { x: 50, y: 4 }; // 上の縁に指を置いたところ
-    const OPENED = { x: 50, y: 12 }; // 下へ滑らせて開いたところ（指はまだ上の外枠にいる）
-    const RIGHT_FRAME = { x: 100 - FRAME.right / 2, y: cellPoint(4).y }; // 右の外枠
+    const OPENED = { x: 50, y: 12 }; // 下へ滑らせて開いたところ。ポインタはここで円の中心に来る
+    // 指の動き（トラックパッドの %）をポインタの動き（HUD の %）にする倍率。トラックパッドは横長なので縦は大きめ
+    const TRAVEL = { x: 1.3, y: 2 };
+    const fingerFor = (point) => ({
+      x: OPENED.x + (point.x - CENTER.x) / TRAVEL.x,
+      y: OPENED.y + (point.y - CENTER.y) / TRAVEL.y,
+    });
+    // トラックパッドの図の大きさ（style.css の .trackpad）。滑らせた跡の長さと向きに使う
+    const PAD = { width: 240, height: 150 };
 
     const percent = (value) => `${Math.round(value * 100) / 100}%`;
 
@@ -101,21 +115,36 @@
 
     const setState = (name, on) => demo.classList.toggle(name, on);
 
-    // 指と、上の縁から滑らせた跡を動かす。jump のときは滑らせずに、その場に置く
+    // 指を動かし、上の縁に置いたところからの跡を指まで伸ばす。jump のときは滑らせずに、その場に置く
     const place = ({ x, y }, { jump = false } = {}) => {
       finger.classList.toggle("jump", jump);
       trail.classList.toggle("jump", jump);
       finger.style.left = percent(x);
       finger.style.top = percent(y);
-      trail.style.left = percent(x);
-      trail.style.height = percent(y);
+      const dx = ((x - EDGE.x) / 100) * PAD.width;
+      const dy = ((y - EDGE.y) / 100) * PAD.height;
+      trail.style.height = `${Math.round(Math.hypot(dx, dy))}px`;
+      trail.style.transform = `translateX(-50%) rotate(${Math.round((-Math.atan2(dx, dy) * 180) / Math.PI)}deg)`;
+    };
+
+    // ポインタを動かす（HUD の正方形の %）。jump は開いたときに円の中心へ置くとき
+    const movePointer = ({ x, y }, { jump = false } = {}) => {
+      pointer.classList.toggle("jump", jump);
+      pointer.style.left = percent(x);
+      pointer.style.top = percent(y);
+    };
+
+    // 指を滑らせてポインタを向ける。指が動いた分だけポインタが動く
+    const pointAt = (point) => {
+      place(fingerFor(point));
+      movePointer(point);
     };
 
     const highlight = (index) => {
       cells.forEach((cell, i) => cell.classList.toggle("on", i === index));
     };
 
-    // 振動（開いたとき・マスの境界をまたいだとき・実行したとき。何も実行せずに閉じたときは2回）
+    // 振動（開いたとき・アイコンが替わったとき・実行したとき。何も実行せずに閉じたときは2回）
     const buzz = () => {
       ripple.style.left = finger.style.left;
       ripple.style.top = finger.style.top;
@@ -138,8 +167,8 @@
       setState("toast-show", true);
     };
 
-    // 上の縁に指を置き、下へ滑らせると開く。開いた直後の指は上の外枠にいるので、HUD は「離すとやめる」を出す。
-    // そのまま上の段の中央のマスまで滑らせる
+    // 上の縁に指を置き、下へ滑らせると開く。開くとポインタは円の中心に来て、アイコンは全部はっきり見える
+    // （まだ何も向けていない。このまま離せば何もしない）
     const openFromTopEdge = (at) => {
       later(at, () => {
         place(EDGE, { jump: true });
@@ -148,15 +177,8 @@
       });
       later(at + 300, () => place(OPENED));
       later(at + 520, () => {
+        movePointer(CENTER, { jump: true });
         setState("hud-open", true);
-        setState("in-frame", true);
-        buzz();
-      });
-      later(at + 1100, () => place(cellPoint(1)));
-      later(at + 1260, () => {
-        setState("in-frame", false);
-        setState("slide-in", false);
-        highlight(1);
         buzz();
       });
     };
@@ -166,6 +188,7 @@
       highlight(-1);
       clearFire();
       place(EDGE, { jump: true });
+      movePointer(CENTER, { jump: true });
     };
 
     const scene = () => {
@@ -173,51 +196,58 @@
       resetScene();
       caption.textContent = demo.dataset.captionRun || staticCaption;
 
-      // 実行する: 上の縁から開く → 指を滑らせて選ぶ → マスで離す
+      // 実行する: 上の縁から開く → 指を滑らせて下のアイコン、右下のアイコンへ向ける → そこで離す
       openFromTopEdge(400);
-      later(2300, () => place(cellPoint(0)));
+      later(1500, () => pointAt(KEYS[7]));
+      later(1660, () => {
+        setState("slide-in", false);
+        highlight(7);
+        buzz();
+      });
+      later(2300, () => pointAt(KEYS[8]));
       later(2460, () => {
-        highlight(0);
+        highlight(8);
         buzz();
       });
       later(3300, () => {
         setState("finger-down", false);
-        fire(0);
+        fire(8);
         buzz();
       });
       later(3500, () => {
         setState("hud-open", false);
-        showToast(0);
+        showToast(8);
       });
       later(4400, () => setState("toast-show", false));
 
-      // やめる: もう一度開く → 外枠まで滑らせる（マスが暗くなり「離すとやめる」）→ 離すと、何も実行せずに閉じる
+      // やめる: もう一度開く → 下のアイコンを通って輪の外まで動かす（全部が薄くなる）→ 離すと、何も実行せずに閉じる
       later(5000, () => {
         caption.textContent = demo.dataset.captionCancel || staticCaption;
         highlight(-1);
         clearFire();
       });
       openFromTopEdge(5200);
-      later(7000, () => place(cellPoint(4)));
-      later(7160, () => {
-        highlight(4);
+      later(6400, () => pointAt(KEYS[7]));
+      later(6560, () => {
+        setState("slide-in", false);
+        highlight(7);
         buzz();
       });
-      later(7800, () => place(RIGHT_FRAME));
-      later(7960, () => {
+      later(7300, () => pointAt(OUTSIDE_BELOW));
+      later(7460, () => {
         highlight(-1);
         setState("in-frame", true);
       });
-      later(9000, () => {
+      later(8600, () => {
         setState("finger-down", false);
         buzz();
       });
-      later(9180, buzz);
-      later(9300, () => {
+      later(8780, buzz);
+      later(8900, () => {
         setState("hud-open", false);
         setState("in-frame", false);
       });
-      later(10600, scene);
+      later(10200, scene);
     };
 
     const start = () => {
@@ -232,7 +262,7 @@
       clearTimers();
       setState("is-live", false);
       states.forEach((name) => setState(name, false));
-      [finger, trail].forEach((element) => {
+      [finger, trail, pointer].forEach((element) => {
         element.removeAttribute("style");
         element.classList.remove("jump");
       });

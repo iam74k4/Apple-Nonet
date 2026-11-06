@@ -13,22 +13,17 @@
   --surface: #fafafa;
   --btn-bg: #111111;
   --btn-fg: #ffffff;
+  /* 機能紹介の図の暗い板（ターミナルなど。.ill の panel・tile・label-hud） */
   --hud-bg: #111111;
   --hud-border: transparent;
   --hud-cell: #1e1e1e;
   --hud-fg: #a8a8a8;
   --hud-title: #ffffff;
-  --hud-hint: #9a9a9a;
   --hud-on-bg: #ffffff;
-  --hud-on-fg: #111111;
-  /* HUD の9マスの周りの外枠（アプリの HUD と同じ。指が外枠にあるときは -on） */
-  --hud-frame: rgba(255, 255, 255, 0.035);
-  --hud-frame-line: rgba(255, 255, 255, 0.1);
-  --hud-frame-on: rgba(255, 255, 255, 0.13);
-  --hud-frame-line-on: rgba(255, 255, 255, 0.8);
-  /* デモのトラックパッドの外枠の帯 */
-  --pad-frame: #ececec;
-  --pad-frame-on: #d9d9d9;
+  /* デモの HUD: 8つのアイコンが乗る円の半径（HUD の正方形の %）と、その斜めの成分（× cos 45°）。
+     アプリの RadialLayout（鍵の円 108 / 外枠 134）と同じ割合。script.js の RING・DIAGONAL と合わせる */
+  --ring: 40.3%;
+  --ring-diagonal: 28.5%;
   --toast-bg: rgba(17, 17, 17, 0.92);
   --toast-fg: #ffffff;
   --header-bg: rgba(255, 255, 255, 0.86);
@@ -55,8 +50,6 @@
     --hud-bg: #161616;
     --hud-border: #2c2c2c;
     --hud-cell: #232323;
-    --pad-frame: #1e1e1e;
-    --pad-frame-on: #343434;
     --toast-bg: rgba(242, 242, 242, 0.94);
     --toast-fg: #111111;
     --header-bg: rgba(11, 11, 11, 0.86);
@@ -604,91 +597,67 @@ kbd {
   height: 13px;
 }
 
+/* HUD: ポインタを中心にした円の上の 8つのアイコンと、真ん中の 9つ目。皿も輪も文字も無く、
+   向けたアイコンの下にだけ白い円が出る（アプリと同じ）。正方形の中の位置は --x・--y（slot-N） */
 .hud {
   position: absolute;
   left: 50%;
-  top: calc(50% + 12px);
-  width: 83%;
-  aspect-ratio: 400 / 260;
-  display: flex;
-  flex-direction: column;
-  gap: 3%;
-  padding: 3.5%;
-  border: 1px solid var(--hud-border);
-  border-radius: 18px;
-  background: var(--hud-bg);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  top: calc(50% + 4px);
+  width: 52%;
+  aspect-ratio: 1;
   transform: translate(-50%, -50%);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.hud-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: clamp(9px, 2.3vw, 11px);
-  line-height: 1.2;
-  color: var(--hud-hint);
-  white-space: nowrap;
-}
-
-.hud-title {
-  color: var(--hud-title);
-  font-weight: 500;
-}
-
-/* 9マスと、その周りの外枠（トラックパッドの外枠を表す帯。指を出して離すと、何も実行せずに閉じる）。
-   帯の幅の順はトラックパッドと同じ（奥がいちばん広く、左右がいちばん狭い） */
-.hud-pad {
-  position: relative;
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  padding: 4% 3% 3.6%;
-  border: 1px solid var(--hud-frame-line);
-  border-radius: 14px;
-  background: var(--hud-frame);
-  transition: background-color 0.12s ease, border-color 0.12s ease;
-}
-
-.hud-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  /* マスの下とすき間は外枠ではないので、HUD の地の色で塗る（明るく見えるのは外枠の帯だけ） */
-  border-radius: 12px;
-  background: var(--hud-bg);
-  box-shadow: 0 0 0 3px var(--hud-bg);
-}
-
 .cell {
+  --x: 50%;
+  --y: 50%;
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-width: 0;
-  border-radius: 10px;
-  background: var(--hud-cell);
-  color: var(--hud-fg);
-  font-size: clamp(9px, 2.3vw, 11px);
-  font-weight: 500;
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
+  border-radius: 50%;
+  color: var(--fg);
   transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
 }
 
+/* 上から時計回り。slot-0 が上（実行）、slot-2 が右、slot-4 が下、slot-6 が左。真ん中は slot-c */
+.slot-0 { --x: 50%; --y: calc(50% - var(--ring)); }
+.slot-1 { --x: calc(50% + var(--ring-diagonal)); --y: calc(50% - var(--ring-diagonal)); }
+.slot-2 { --x: calc(50% + var(--ring)); --y: 50%; }
+.slot-3 { --x: calc(50% + var(--ring-diagonal)); --y: calc(50% + var(--ring-diagonal)); }
+.slot-4 { --x: 50%; --y: calc(50% + var(--ring)); }
+.slot-5 { --x: calc(50% - var(--ring-diagonal)); --y: calc(50% + var(--ring-diagonal)); }
+.slot-6 { --x: calc(50% - var(--ring)); --y: 50%; }
+.slot-7 { --x: calc(50% - var(--ring-diagonal)); --y: calc(50% - var(--ring-diagonal)); }
+
+/* アイコンは黒に白い縁（アプリの、下地に合わせないときの色）。ダークのサイトでは地の色の縁 */
 .cell .icon {
-  width: clamp(14px, 3.6vw, 18px);
-  height: clamp(14px, 3.6vw, 18px);
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+  filter: drop-shadow(0 0 1px var(--bg-soft)) drop-shadow(0 0 1px var(--bg-soft));
 }
 
+.slot-c .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 向けているアイコン: 白い円に濃いアイコン（いま離すと実行） */
 .cell.on {
-  background: var(--hud-on-bg);
-  color: var(--hud-on-fg);
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.22);
+}
+
+.cell.on .icon {
+  filter: none;
 }
 
 .cell.fire {
@@ -701,33 +670,25 @@ kbd {
   }
 }
 
-/* 指が外枠にあるときに、暗くしたマスの上に出す「✕ 離すとやめる」 */
-.hud-cancel {
+/* ポインタ（macOS の矢印）。先端が left・top。静止画では右のアイコン（Claude Code）を向いている */
+.pointer {
   position: absolute;
-  left: 50%;
+  left: calc(50% + var(--ring));
   top: 50%;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--hud-frame-line-on);
-  border-radius: 9px;
-  background: var(--hud-bg);
-  color: var(--hud-title);
-  font-size: clamp(10px, 2.6vw, 13px);
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.12s ease;
+  width: 12px;
+  height: 19px;
+  margin: -1px 0 0 -1px;
+  fill: #000000;
+  stroke: #ffffff;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+  transition: left 0.32s ease, top 0.32s ease;
   pointer-events: none;
 }
 
-.hud-cancel .icon {
-  width: 11px;
-  height: 11px;
-  stroke-width: 2.6;
+.pointer.jump {
+  transition: none;
 }
 
 .toast {
@@ -755,63 +716,33 @@ kbd {
   height: 14px;
 }
 
-/* トラックパッド。縁に沿った帯が外枠、内側が9マス。帯の幅はアプリと同じ割合
-   （左右 11%・奥 17%・手前 15%。GridMapper.cancelFrame。script.js の FRAME と合わせる） */
+/* トラックパッド。描くのは上の縁の帯（開く場所）だけ。マスはポインタで選ぶので、面には何も無い（アプリの図と同じ） */
 .trackpad {
   position: relative;
   width: 240px;
   height: 150px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background: var(--pad-frame);
-  transition: background-color 0.12s ease, border-color 0.12s ease;
-}
-
-.trackpad-cells {
-  position: absolute;
-  left: 11%;
-  right: 11%;
-  top: 17%;
-  bottom: 15%;
-  border: 1px solid var(--line-strong);
-  border-radius: 6px;
   background: var(--surface);
+  overflow: hidden;
 }
 
-.trackpad-lines {
+.trackpad-edge {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 9%;
+  background: var(--line);
+  opacity: 0.7;
 }
 
-.trackpad-lines path {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-dasharray: 4 4;
-}
-
-/* 手前の帯に置く「外枠」の文字 */
-.trackpad-label {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  height: 15%;
-  display: flex;
-  align-items: center;
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  color: var(--fg-muted);
-  transform: translateX(-50%);
-  transition: color 0.12s ease;
-}
-
+/* 静止画の指: 上の縁から開いた位置（50%・12%）から右へ滑らせて、ポインタを右のアイコンに向けたところ（script.js の fingerFor） */
 .finger,
 .ripple {
   position: absolute;
-  left: 50%;
-  top: 51%;
+  left: 81%;
+  top: 12%;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -828,17 +759,18 @@ kbd {
   transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-/* 上の縁から指を滑らせた跡（静止画では、上の縁から中央のマスまで） */
+/* 上の縁に置いた指から、いまの指までの跡。上端を縁に置き、長さと向きで指まで伸ばす（静止画は右のアイコンまで。script.js の place） */
 .trail {
   position: absolute;
   left: 50%;
-  top: 0;
+  top: 4%;
   width: 3px;
-  height: 51%;
+  height: 75px;
   border-radius: 2px;
   background: linear-gradient(to bottom, transparent, var(--fg-muted));
-  transform: translateX(-50%);
-  transition: left 0.32s ease, height 0.32s ease, opacity 0.3s ease;
+  transform: translateX(-50%) rotate(-81deg);
+  transform-origin: top center;
+  transition: height 0.32s ease, transform 0.32s ease, opacity 0.3s ease;
   pointer-events: none;
 }
 
@@ -868,7 +800,7 @@ kbd {
   }
 }
 
-/* JavaScript が無い・止めているときは、ここまでの静止画（上の縁から中央のマスまで指を滑らせ、HUD が出ている）。
+/* JavaScript が無い・止めているときは、ここまでの静止画（上の縁から滑らせた指でポインタを右のアイコンに向け、HUD が出ている）。
    動いているときは、script.js が付ける状態（hud-open・finger-down・slide-in・in-frame・toast-show）で見せる */
 .demo.is-live .hud {
   opacity: 0;
@@ -898,27 +830,9 @@ kbd {
   opacity: 1;
 }
 
-/* 指が外枠にある: 外枠を明るくし、マスを暗くして「✕ 離すとやめる」を出す */
-.demo.is-live.in-frame .hud-pad {
-  border-color: var(--hud-frame-line-on);
-  background: var(--hud-frame-on);
-}
-
+/* ポインタがアイコンの輪の外にある: 全部のアイコンが薄くなる（離しても何も実行しない。アプリと同じで文字は出さない） */
 .demo.is-live.in-frame .cell {
-  opacity: 0.3;
-}
-
-.demo.is-live.in-frame .hud-cancel {
-  opacity: 1;
-}
-
-.demo.is-live.in-frame .trackpad {
-  border-color: var(--fg);
-  background: var(--pad-frame-on);
-}
-
-.demo.is-live.in-frame .trackpad-label {
-  color: var(--fg);
+  opacity: 0.35;
 }
 
 .demo.is-live.toast-show .toast {
@@ -1250,10 +1164,9 @@ kbd {
   stroke: var(--line-strong);
 }
 
-/* トラックパッドの外枠の帯 */
-.ill .band {
-  fill: var(--pad-frame);
-  stroke: var(--line-strong);
+/* トラックパッドの上の縁の帯（開く場所） */
+.ill .faint-fill {
+  fill: var(--line);
 }
 
 .ill .dashed {
