@@ -16,7 +16,7 @@
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="2" y="2" width="5" height="5" rx="1.5"/><rect x="9.5" y="2" width="5" height="5" rx="1.5"/><rect x="17" y="2" width="5" height="5" rx="1.5"/><rect x="2" y="9.5" width="5" height="5" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1.5" fill="currentColor" stroke="none"/><rect x="17" y="9.5" width="5" height="5" rx="1.5"/><rect x="2" y="17" width="5" height="5" rx="1.5"/><rect x="9.5" y="17" width="5" height="5" rx="1.5"/><rect x="17" y="17" width="5" height="5" rx="1.5"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
 </svg>
 
 <a class="skip" href="#main">Skip to content</a>
@@ -150,7 +150,7 @@
       <li>Open Nonet from the Applications folder</li>
     </ol>
     <p>If you open Nonet from the disk image or from the folder you downloaded it to, it can't install updates from there, so Nonet asks "Move Nonet to the Applications folder?". Click <strong>Move to Applications Folder</strong>, and Nonet moves there and opens again. On an account that isn't an administrator, it moves to the Applications folder in your home folder. If the Applications folder already has a copy of Nonet, Nonet asks again before replacing it and moves the old copy to the Trash. If Nonet can't move itself to either folder, it explains how to move it in the Finder.</p>
-    <p>Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu.</p>
+    <p>Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a ring of eight dots with a dot in the center. In this guide, the menu that opens when you click this icon is called the Nonet menu.</p>
     <p>Only one copy of Nonet runs at a time. If you open Nonet again while it's running, the running copy opens its Settings window right away instead of a second copy starting. If you open it right after quitting, it waits for the old copy to finish quitting. When a copy opened from the disk image and the copy in the Applications folder meet, the one in the Applications folder runs, unless the disk image copy is a newer version. Then the disk image copy runs: if the copy in the Applications folder is running, Nonet quits it first, and then asks "Move Nonet to the Applications folder?". If the disk image copy isn't newer, it says "Nonet Is Already Running" and quits, and the running copy opens its Settings window.</p>
     <h3 id="accessibility">Accessibility permission</h3>
     <p>The first time you open Nonet, the Welcome to Nonet window (the welcome guide) opens. Click <strong>Open System Settings</strong>, and macOS asks for permission. From there, open <strong>System Settings › Privacy &amp; Security › Accessibility</strong> and turn on Nonet (macOS asks for your password or Touch ID). If macOS doesn't ask, or when you click the button again, Nonet opens that section of System Settings. Once you allow Nonet, the welcome guide comes back in front of System Settings and moves on automatically.</p>
@@ -236,7 +236,7 @@
     <p>When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the <strong>Haptic feedback</strong> setting (you can feel it only on a Force Touch trackpad).</p>
 
     <h2 id="menu-bar">Menu bar</h2>
-    <p>Click the 3×3 icon in the menu bar to open the Nonet menu.</p>
+    <p>Click the Nonet icon (the ring of dots) in the menu bar to open the Nonet menu.</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -264,7 +264,7 @@
         </tbody>
       </table>
     </div>
-    <p>The icon also shows the status. It's dimmed while Nonet is disabled. When something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended or has 3 days or fewer left, or a notice), the top-right square turns into a "!", and the top line of the menu says why. When a new version is available, the top-right square turns into a dot.</p>
+    <p>The icon also shows the status. It's dimmed while Nonet is disabled. When something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended or has 3 days or fewer left, or a notice), the top-right dot turns into a "!", and the top line of the menu says why. When a new version is available, the top-right dot grows larger.</p>
     <p>While the Settings window or the welcome guide is in front, you can also press ⌘? (<strong>Nonet Help</strong>) to open this guide.</p>
 
     <h2 id="profiles">Editing profiles</h2>
@@ -538,7 +538,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
     </ul>
 
     <h2 id="updates">Updates and About</h2>
-    <p>Nonet checks for new versions automatically. When it finds one, the top-right square of the menu bar icon turns into a dot, and the <strong>Check for Updates…</strong> item in the Nonet menu changes to <strong>Update Available…</strong>. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose <strong>Check for Updates…</strong> from the Nonet menu.</p>
+    <p>Nonet checks for new versions automatically. When it finds one, the top-right dot of the menu bar icon grows larger, and the <strong>Check for Updates…</strong> item in the Nonet menu changes to <strong>Update Available…</strong>. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose <strong>Check for Updates…</strong> from the Nonet menu.</p>
     <p>The Nonet tab of Settings, below the license section and Export &amp; Import, shows the version and has <strong>Check for Updates…</strong>, <strong>User Guide</strong> (this guide), <strong>Privacy Policy</strong>, <strong>Contact Support…</strong> and <strong>Uninstall Nonet…</strong>, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.</p>
     <p><strong>Contact Support…</strong> opens an email to us in your email app. It contains only the versions of Nonet and macOS, your Mac model and your keyboard type (never your license key or your settings). You decide whether to send it.</p>
 

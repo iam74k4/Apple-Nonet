@@ -1,22 +1,23 @@
 #!/usr/bin/env swift
 // アプリのアイコンを描いて App/Assets.xcassets/AppIcon.appiconset に書き出す。
-// 使い方: swift scripts/make-icon.swift [出力先の .appiconset] [--accent RRGGBB] [--preview 1024px の PNG]
-// 同じ作者の AppMixer・SaifuLog のアイコンに合わせる: 上から下へ暗くなる無彩色の角丸の板に、触るところだけを
-// システムの色1つで塗る。Nonet では 3×3 のうち、指を離して実行するマス（中央）だけを塗り、ほかの8マスは薄い白にする
+// 使い方: swift scripts/make-icon.swift [出力先の .appiconset] [--accent RRGGBB か RRGGBB-RRGGBB] [--preview 1024px の PNG]
+// HUD と同じ形にする: HUD はポインタの周りに9つのアイコンが輪になって出るので、黒い板に8つの白い点を輪に置き、
+// 真ん中（ポインタのいるところ。指を離して実行するマス）だけを差し色で塗る。差し色は青から紫へのグラデーション
+// （同じ作者の AppMixer は青、SaifuLog はオレンジなので、それらとかぶらない色）。
+// 板の作り（824 の角丸・100 の余白・影・上から下へ暗くなるグラデーション）は AppMixer・SaifuLog と同じ
 import CoreGraphics
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-/// 色（AppMixer の make_icon.py と同じ値。板は #3A3A3C から #0B0B0D、影は下へ 18・ぼかし 22・不透明度 0.38）
+/// 色。板は #1C1C1E から #000000 へ暗くなる黒い板、影は下へ 18・ぼかし 44・不透明度 0.38
 enum IconPalette {
-    static let plateTop = (r: 0x3A, g: 0x3A, b: 0x3C)
-    static let plateBottom = (r: 0x0B, g: 0x0B, b: 0x0D)
-    /// 使っていないマス（AppMixer のフェーダーの溝と同じ、白の 16%）。小さいサイズは潰れないよう濃くする
-    static let restingCellAlpha: CGFloat = 0.16
-    static let restingCellAlphaSimplified: CGFloat = 0.3
-    /// 指を離して実行するマスの色（システムの緑。AppMixer は青、SaifuLog はオレンジ）
-    static let accent = "30D158"
+    static let plateTop = (r: 0x1C, g: 0x1C, b: 0x1E)
+    static let plateBottom = (r: 0x00, g: 0x00, b: 0x00)
+    /// 輪の8つの点（白。わずかに透かして板になじませる）
+    static let ringDotAlpha: CGFloat = 0.92
+    /// 真ん中の点の差し色。左上から右下へ、システムの青（#0A84FF）からシステムの紫（#BF5AF2）へ
+    static let accent = "0A84FF-BF5AF2"
 }
 
 /// 1024 の下絵での寸法（macOS 11 以降のアイコンのテンプレート: 824 の板を 100 の余白で置く）
@@ -24,29 +25,22 @@ enum IconGeometry {
     static let canvas: CGFloat = 1024
     static let plate = CGRect(x: 100, y: 100, width: 824, height: 824)
     static let plateRadius: CGFloat = 185.4
-    /// 板の幅に対する 3×3 の幅（小さいサイズは大きめにして読めるようにする）。
-    /// AppMixer のフェーダーの高さ（板の 60%）とそろえる
-    static func gridRatio(simplified: Bool) -> CGFloat { simplified ? 0.66 : 0.6 }
-    /// マスと隙間の比はロゴと同じ（マス 5、隙間 2.5）
-    static let cellToGap: CGFloat = 2
-    static let cornerRatio: CGFloat = 0.28
+    static var center: CGPoint { CGPoint(x: plate.midX, y: plate.midY) }
+    /// 板の幅に対する輪の半径と点の半径。小さいサイズ（32px 以下）は点を大きく、輪を少し広げて読めるようにする
+    static func ringRadius(simplified: Bool) -> CGFloat { plate.width * (simplified ? 0.32 : 0.30) }
+    static func dotRadius(simplified: Bool) -> CGFloat { plate.width * (simplified ? 0.1 : 0.072) }
 
-    /// 9つのマス（左下が原点の座標）。左上から右へ、上の行から
-    static func cells(simplified: Bool) -> [CGRect] {
-        let gridSize = plate.width * gridRatio(simplified: simplified)
-        let cell = gridSize / (3 + 2 / cellToGap)
-        let gap = cell / cellToGap
-        let origin = CGPoint(x: plate.midX - gridSize / 2, y: plate.midY - gridSize / 2)
-        return (0..<9).map { index in
-            let row = CGFloat(index / 3)
-            let column = CGFloat(index % 3)
-            return CGRect(
-                x: origin.x + column * (cell + gap),
-                y: origin.y + (2 - row) * (cell + gap),
-                width: cell,
-                height: cell
-            )
+    /// 輪の8つの点の中心（左下が原点の座標）。上から時計回り（HUD のアイコンの並びと同じ: 0 が上、1 が右上…）
+    static func ringPoints(simplified: Bool) -> [CGPoint] {
+        let radius = ringRadius(simplified: simplified)
+        return (0..<8).map { slot in
+            let angle = (-90 + 45 * Double(slot)) * .pi / 180
+            return CGPoint(x: center.x + radius * cos(angle), y: center.y - radius * sin(angle))
         }
+    }
+
+    static func circle(at point: CGPoint, radius: CGFloat) -> CGPath {
+        CGPath(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2), transform: nil)
     }
 }
 
@@ -74,7 +68,39 @@ func color(_ rgb: (r: Int, g: Int, b: Int)) -> CGColor {
     CGColor(srgbRed: CGFloat(rgb.r) / 255, green: CGFloat(rgb.g) / 255, blue: CGFloat(rgb.b) / 255, alpha: 1)
 }
 
-func render(pixels: Int, accent: String) -> CGImage? {
+/// 差し色。1色（RRGGBB）か、左上から右下へのグラデーション（RRGGBB-RRGGBB）
+struct Accent {
+    var top: CGColor
+    var bottom: CGColor
+
+    init?(_ text: String) {
+        let parts = text.split(separator: "-").map(String.init)
+        guard (1...2).contains(parts.count), parts.allSatisfy({ $0.count == 6 && Int($0, radix: 16) != nil }) else { return nil }
+        top = color(hex: parts[0])
+        bottom = color(hex: parts.count == 2 ? parts[1] : parts[0])
+    }
+
+    func fill(_ path: CGPath, in context: CGContext, space: CGColorSpace) {
+        context.saveGState()
+        defer { context.restoreGState() }
+        context.addPath(path)
+        guard top != bottom, let gradient = CGGradient(colorsSpace: space, colors: [top, bottom] as CFArray, locations: [0, 1]) else {
+            context.setFillColor(top)
+            context.fillPath()
+            return
+        }
+        context.clip()
+        let box = path.boundingBox
+        context.drawLinearGradient(
+            gradient,
+            start: CGPoint(x: box.minX, y: box.maxY),
+            end: CGPoint(x: box.maxX, y: box.minY),
+            options: []
+        )
+    }
+}
+
+func render(pixels: Int, accent: Accent) -> CGImage? {
     guard let space = CGColorSpace(name: CGColorSpace.sRGB),
           let context = CGContext(
               data: nil,
@@ -124,14 +150,14 @@ func render(pixels: Int, accent: String) -> CGImage? {
     }
     context.restoreGState()
 
-    // 3×3。中央（指を離して実行するマス）だけを差し色で塗り、ほかは薄い白
-    let restingAlpha = simplified ? IconPalette.restingCellAlphaSimplified : IconPalette.restingCellAlpha
-    for (index, rect) in IconGeometry.cells(simplified: simplified).enumerated() {
-        let radius = rect.width * IconGeometry.cornerRatio
-        context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
-        context.setFillColor(index == 4 ? color(hex: accent) : CGColor(gray: 1, alpha: restingAlpha))
+    // 輪の8つの点は白、真ん中（ポインタのいるところ）だけ差し色
+    let radius = IconGeometry.dotRadius(simplified: simplified)
+    context.setFillColor(CGColor(gray: 1, alpha: IconPalette.ringDotAlpha))
+    for point in IconGeometry.ringPoints(simplified: simplified) {
+        context.addPath(IconGeometry.circle(at: point, radius: radius))
         context.fillPath()
     }
+    accent.fill(IconGeometry.circle(at: IconGeometry.center, radius: radius), in: context, space: space)
     return context.makeImage()
 }
 
@@ -176,12 +202,15 @@ func option(_ name: String) -> String? {
     return value
 }
 
-let accent = option("--accent") ?? IconPalette.accent
+let accentText = option("--accent") ?? IconPalette.accent
 let preview = option("--preview")
 let output = arguments.first.map { URL(fileURLWithPath: $0, isDirectory: true) }
     ?? root.appendingPathComponent("App/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
 
 do {
+    guard let accent = Accent(accentText) else {
+        throw NSError(domain: "make-icon", code: 4, userInfo: [NSLocalizedDescriptionKey: "--accent は RRGGBB か RRGGBB-RRGGBB で: \(accentText)"])
+    }
     if let preview {
         guard let image = render(pixels: Int(IconGeometry.canvas), accent: accent) else {
             throw NSError(domain: "make-icon", code: 3, userInfo: [NSLocalizedDescriptionKey: "下絵を描けません"])

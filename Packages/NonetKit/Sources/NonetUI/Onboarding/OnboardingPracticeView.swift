@@ -46,7 +46,7 @@ struct OnboardingClosingOptions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if !model.isStatusItemVisible {
-                // ノッチの陰などで見えないときは、「3×3 のアイコン」と言っても見つけられない
+                // ノッチの陰などで見えないときは、「メニューバーのアイコン」と言っても見つけられない
                 OnboardingNote(
                     symbol: "menubar.rectangle",
                     text: String(localized: "メニューバーにアイコンが見えないときは、アプリケーションフォルダから Nonet を開くと設定が開きます", bundle: .module)

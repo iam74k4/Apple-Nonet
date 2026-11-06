@@ -212,14 +212,12 @@ kbd {
   color: inherit;
 }
 
-/* <use> の中身には CSS のセレクタが届かないので、継承する fill / stroke で色を付ける */
+/* <use> の中身には CSS のセレクタが届かないので、継承する fill で色を付ける（点の輪。アプリのアイコンと同じ形） */
 .logo {
   width: 26px;
   height: 26px;
   flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
+  fill: currentColor;
 }
 
 .site-nav {
@@ -1288,7 +1286,7 @@ kbd {
   font-size: 11px;
 }
 
-/* 塗りの上に抜きで描くもの（アイコンの中の 3×3・スイッチのつまみなど） */
+/* 塗りの上に抜きで描くもの（アイコンの中の点の輪・スイッチのつまみなど） */
 .ill .knock {
   fill: var(--bg);
 }

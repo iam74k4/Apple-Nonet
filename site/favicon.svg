@@ -1,21 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- アプリのアイコン（scripts/make-icon.swift）を小さくしたもの。板は上から下へ暗く、指を離して実行する中央のマスだけ緑 -->
+  <!-- アプリのアイコン（scripts/make-icon.swift）を小さくしたもの。黒い板に8つの白い点の輪、真ん中（ポインタのいるところ）だけ青から紫 -->
   <defs>
     <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3A3A3C"/>
-      <stop offset="1" stop-color="#0B0B0D"/>
+      <stop offset="0" stop-color="#1C1C1E"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#BF5AF2"/>
     </linearGradient>
   </defs>
   <rect width="32" height="32" rx="7.2" fill="url(#plate)"/>
-  <g fill="#FFFFFF" fill-opacity="0.3">
-    <rect x="5.5" y="5.5" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="13.375" y="5.5" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="21.25" y="5.5" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="5.5" y="13.375" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="21.25" y="13.375" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="5.5" y="21.25" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="13.375" y="21.25" width="5.25" height="5.25" rx="1.5"/>
-    <rect x="21.25" y="21.25" width="5.25" height="5.25" rx="1.5"/>
+  <g fill="#FFFFFF" fill-opacity="0.92">
+    <circle cx="16" cy="5.8" r="3.2"/>
+    <circle cx="23.2" cy="8.8" r="3.2"/>
+    <circle cx="26.2" cy="16" r="3.2"/>
+    <circle cx="23.2" cy="23.2" r="3.2"/>
+    <circle cx="16" cy="26.2" r="3.2"/>
+    <circle cx="8.8" cy="23.2" r="3.2"/>
+    <circle cx="5.8" cy="16" r="3.2"/>
+    <circle cx="8.8" cy="8.8" r="3.2"/>
   </g>
-  <rect x="13.375" y="13.375" width="5.25" height="5.25" rx="1.5" fill="#30D158"/>
+  <circle cx="16" cy="16" r="3.2" fill="url(#accent)"/>
 </svg>

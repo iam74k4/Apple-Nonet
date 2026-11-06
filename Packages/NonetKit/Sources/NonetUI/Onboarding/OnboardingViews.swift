@@ -365,7 +365,7 @@ struct OnboardingNotice<Actions: View>: View {
     }
 }
 
-/// ロゴ（角の丸い 3×3、中央が塗り）。メニューバーのアイコンと同じ形
+/// ロゴ（輪に並んだ8つの点と真ん中の点）。メニューバーのアイコンと同じ形
 struct OnboardingLogo: View {
     let size: CGFloat
 
@@ -373,17 +373,11 @@ struct OnboardingLogo: View {
         let geometry = MenuBarIconGeometry.self
         let scale = size / geometry.canvas.width
         ZStack(alignment: .topLeading) {
-            ForEach(Array(geometry.cellRects().enumerated()), id: \.offset) { index, rect in
-                let shape = RoundedRectangle(cornerRadius: geometry.cornerRadius * scale, style: .continuous)
-                Group {
-                    if index == geometry.centerIndex {
-                        shape.fill(Color.primary)
-                    } else {
-                        shape.strokeBorder(Color.primary, lineWidth: geometry.lineWidth * scale)
-                    }
-                }
-                .frame(width: rect.width * scale, height: rect.height * scale)
-                .offset(x: rect.minX * scale, y: rect.minY * scale)
+            ForEach(Array((geometry.ringDotRects() + [geometry.centerDotRect]).enumerated()), id: \.offset) { _, rect in
+                Circle()
+                    .fill(Color.primary)
+                    .frame(width: rect.width * scale, height: rect.height * scale)
+                    .offset(x: rect.minX * scale, y: rect.minY * scale)
             }
         }
         .frame(width: size, height: size, alignment: .topLeading)

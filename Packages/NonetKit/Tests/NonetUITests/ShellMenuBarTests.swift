@@ -516,34 +516,43 @@ struct ShellMenuBarTests {
         #expect(seen == [true, false])
     }
 
-    @Test("アイコンの形: 9マスが同じ大きさで重ならず、キャンバスに収まる")
+    @Test("アイコンの形: 輪の8つの点と真ん中の点が重ならず、キャンバスに収まり、中央にそろう")
     func iconGeometry() {
         let canvas = CGRect(origin: .zero, size: MenuBarIconGeometry.canvas)
-        let cells = MenuBarIconGeometry.cellRects()
-        #expect(cells.count == 9)
-        for (index, cell) in cells.enumerated() {
-            #expect(canvas.contains(cell))
-            #expect(cell.width == MenuBarIconGeometry.cellSize && cell.height == MenuBarIconGeometry.cellSize)
-            for other in cells[(index + 1)...] {
-                #expect(!cell.intersects(other))
+        let dots = MenuBarIconGeometry.ringDotRects() + [MenuBarIconGeometry.centerDotRect]
+        #expect(dots.count == 9)
+        for (index, dot) in dots.enumerated() {
+            #expect(canvas.contains(dot))
+            for other in dots[(index + 1)...] {
+                #expect(!dot.intersects(other))
             }
         }
-        // 左上から右へ、上の行から（y は下向き）
-        #expect(cells[0].minX < cells[1].minX && cells[1].minX < cells[2].minX)
-        #expect(cells[0].minY < cells[3].minY && cells[3].minY < cells[6].minY)
+        // 上から時計回り（y は下向き）: 0 が上、1 が右上、2 が右、4 が下、6 が左。どれも輪の上
+        let center = MenuBarIconGeometry.center
+        let points = MenuBarIconGeometry.ringPoints()
+        #expect(points.count == 8)
+        #expect(abs(points[0].x - center.x) < 0.001 && points[0].y < center.y)
+        #expect(points[1].x > center.x && points[1].y < center.y)
+        #expect(points[2].x > center.x && abs(points[2].y - center.y) < 0.001)
+        #expect(abs(points[4].x - center.x) < 0.001 && points[4].y > center.y)
+        #expect(points[6].x < center.x && abs(points[6].y - center.y) < 0.001)
+        for point in points {
+            #expect(abs(Self.distance(from: point, to: center) - MenuBarIconGeometry.ringRadius) < 0.001)
+        }
         // 中央にそろう
-        let grid = MenuBarIconGeometry.gridBounds
-        #expect(abs(grid.midX - canvas.midX) < 0.001)
-        #expect(abs(grid.midY - canvas.midY) < 0.001)
-        #expect(cells[MenuBarIconGeometry.centerIndex].midX == grid.midX)
+        let bounds = MenuBarIconGeometry.markBounds
+        #expect(abs(bounds.midX - canvas.midX) < 0.001)
+        #expect(abs(bounds.midY - canvas.midY) < 0.001)
+        #expect(abs(MenuBarIconGeometry.centerDotRect.midX - canvas.midX) < 0.001)
+        #expect(abs(MenuBarIconGeometry.centerDotRect.midY - canvas.midY) < 0.001)
     }
 
-    @Test("アイコンの形: 中央の塗りと印。確かめてほしいことは「!」、アップデートは点（見分けられるように）")
+    @Test("アイコンの形: 真ん中の塗りと印。確かめてほしいことは「!」、アップデートは点（見分けられるように）")
     func iconVariants() {
-        #expect(MenuBarIconGeometry.filledCells(for: .normal) == [4])
-        #expect(MenuBarIconGeometry.filledCells(for: .attention) == [4])
-        #expect(MenuBarIconGeometry.filledCells(for: .updateAvailable) == [4])
-        #expect(MenuBarIconGeometry.filledCells(for: .disabled).isEmpty)
+        #expect(MenuBarIconGeometry.fillsCenter(for: .normal))
+        #expect(MenuBarIconGeometry.fillsCenter(for: .attention))
+        #expect(MenuBarIconGeometry.fillsCenter(for: .updateAvailable))
+        #expect(!MenuBarIconGeometry.fillsCenter(for: .disabled))
         #expect(MenuBarIconGeometry.badge(for: .attention) == .exclamation)
         #expect(MenuBarIconGeometry.badge(for: .updateAvailable) == .dot)
         #expect(MenuBarIconGeometry.badge(for: .normal) == nil)
@@ -554,30 +563,30 @@ struct ShellMenuBarTests {
         #expect(!MenuBarIconGeometry.showsBadge(for: .disabled))
         #expect(MenuBarIconRenderer.image(for: .attention) !== MenuBarIconRenderer.image(for: .updateAvailable))
 
-        // 「!」は右上のマスを切り抜いた輪の中に収まり、キャンバスからはみ出さない
-        let canvasRect = CGRect(origin: .zero, size: MenuBarIconGeometry.canvas)
+        // 「!」は右上の点を切り抜いた輪の中に収まり、キャンバスからはみ出さない
+        let canvas = CGRect(origin: .zero, size: MenuBarIconGeometry.canvas)
+        let badgeCenter = MenuBarIconGeometry.badgeCenter
         let cutout = MenuBarIconGeometry.badgeCutoutRadius
         let mark = MenuBarIconGeometry.exclamationBar.union(MenuBarIconGeometry.exclamationDot)
-        #expect(canvasRect.contains(mark))
+        #expect(canvas.contains(mark))
         for corner in [CGPoint(x: mark.minX, y: mark.minY), CGPoint(x: mark.maxX, y: mark.minY), CGPoint(x: mark.minX, y: mark.maxY), CGPoint(x: mark.maxX, y: mark.maxY)] {
-            let dx = corner.x - MenuBarIconGeometry.badgeCenter.x
-            let dy = corner.y - MenuBarIconGeometry.badgeCenter.y
-            #expect((dx * dx + dy * dy).squareRoot() <= cutout)
+            #expect(Self.distance(from: corner, to: badgeCenter) <= cutout)
         }
         // 縦棒と点は離れている（「!」に見える）
         #expect(MenuBarIconGeometry.exclamationBar.maxY < MenuBarIconGeometry.exclamationDot.minY)
 
-        // 印は右上のマスに重なり、キャンバスからはみ出さず、ほかのマスには触れない
-        let center = MenuBarIconGeometry.badgeCenter
+        // 印は右上の点の代わりに置く: その点は切り抜きの中にすっぽり入り、ほかの点と真ん中の点には触れず、キャンバスからはみ出さない
         let radius = MenuBarIconGeometry.badgeRadius
-        let canvas = CGRect(origin: .zero, size: MenuBarIconGeometry.canvas)
-        #expect(canvas.contains(CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)))
-        let cells = MenuBarIconGeometry.cellRects()
-        #expect(cells[2].contains(center))
-        for index in [0, 1, 3, 4, 5, 6, 7, 8] {
-            #expect(Self.distance(from: center, to: cells[index]) >= MenuBarIconGeometry.badgeCutoutRadius - 0.001)
+        #expect(canvas.contains(MenuBarIconGeometry.rect(center: badgeCenter, radius: radius)))
+        #expect(cutout > radius)
+        let points = MenuBarIconGeometry.ringPoints()
+        let replaced = points[MenuBarIconGeometry.badgeSlot]
+        #expect(replaced.x > MenuBarIconGeometry.center.x && replaced.y < MenuBarIconGeometry.center.y)
+        #expect(Self.distance(from: replaced, to: badgeCenter) + MenuBarIconGeometry.dotRadius <= cutout + 0.001)
+        for (slot, point) in points.enumerated() where slot != MenuBarIconGeometry.badgeSlot {
+            #expect(Self.distance(from: point, to: badgeCenter) - MenuBarIconGeometry.dotRadius >= cutout - 0.001)
         }
-        #expect(MenuBarIconGeometry.badgeCutoutRadius > radius)
+        #expect(Self.distance(from: MenuBarIconGeometry.center, to: badgeCenter) - MenuBarIconGeometry.centerDotRadius >= cutout)
     }
 
     @Test("アイコンの画像はテンプレートで、状態ごとに使い回す")
@@ -633,6 +642,10 @@ struct ShellMenuBarTests {
         #expect(!menuBar.isStatusItemVisible)
         menuBar.pointAtStatusItem()
         #expect(menuBar.statusItem.button?.isHighlighted != true)
+    }
+
+    static func distance(from point: CGPoint, to other: CGPoint) -> CGFloat {
+        ((point.x - other.x) * (point.x - other.x) + (point.y - other.y) * (point.y - other.y)).squareRoot()
     }
 
     static func distance(from point: CGPoint, to rect: CGRect) -> CGFloat {

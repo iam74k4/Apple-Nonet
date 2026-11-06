@@ -1,0 +1,31 @@
+{
+  "hud": "shots-launcher/round1-1-HUDOverlayPanel.png",
+  "hudScale": 1.7,
+  "pointer": [
+    174,
+    174
+  ],
+  "eyebrow": "グローバルのページ",
+  "headline": [
+    "Dock のアプリを、",
+    "輪で開く。"
+  ],
+  "description": [
+    "アプリに9つが無いときは、グローバルのページ。",
+    "ウインドウを画面に置く9つと、ランチャーがあります。"
+  ],
+  "bullets": [
+    {
+      "symbol": "macwindow.on.rectangle",
+      "text": "ウインドウを左半分・最大化などに置く"
+    },
+    {
+      "symbol": "square.grid.3x3",
+      "text": "Mac にあるアプリを並べたランチャー"
+    },
+    {
+      "symbol": "rectangle.stack",
+      "text": "最大 3 ページ・27 個まで"
+    }
+  ]
+}

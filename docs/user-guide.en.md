@@ -27,7 +27,7 @@ Slide a finger in from the top edge, and Nonet turns your MacBook trackpad into 
 
 If you open Nonet from the disk image or from the folder you downloaded it to, it can't install updates from there, so Nonet asks "Move Nonet to the Applications folder?". Click **Move to Applications Folder**, and Nonet moves there and opens again. On an account that isn't an administrator, it moves to the Applications folder in your home folder. If the Applications folder already has a copy of Nonet, Nonet asks again before replacing it and moves the old copy to the Trash. If Nonet can't move itself to either folder, it explains how to move it in the Finder.
 
-Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a 3×3 grid with a filled center. In this guide, the menu that opens when you click this icon is called the Nonet menu.
+Nonet lives in the menu bar and doesn't appear in the Dock. Its menu bar icon is a ring of eight dots with a dot in the center. In this guide, the menu that opens when you click this icon is called the Nonet menu.
 
 Only one copy of Nonet runs at a time. If you open Nonet again while it's running, the running copy opens its Settings window right away instead of a second copy starting. If you open it right after quitting, it waits for the old copy to finish quitting. When a copy opened from the disk image and the copy in the Applications folder meet, the one in the Applications folder runs, unless the disk image copy is a newer version. Then the disk image copy runs: if the copy in the Applications folder is running, Nonet quits it first, and then asks "Move Nonet to the Applications folder?". If the disk image copy isn't newer, it says "Nonet Is Already Running" and quits, and the running copy opens its Settings window.
 
@@ -140,7 +140,7 @@ When the nine buttons open, and each time your finger crosses into another butto
 
 ## Menu bar
 
-Click the 3×3 icon in the menu bar to open the Nonet menu.
+Click the Nonet icon (the ring of dots) in the menu bar to open the Nonet menu.
 
 | Item | What it does |
 |---|---|
@@ -160,7 +160,7 @@ Click the 3×3 icon in the menu bar to open the Nonet menu.
 | Check for Updates… | Checks for a new version. When an automatic check has already found one, this item changes to **Update Available…**; choose it to see the update |
 | Quit Nonet | Quits Nonet |
 
-The icon also shows the status. It's dimmed while Nonet is disabled. When something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended or has 3 days or fewer left, or a notice), the top-right square turns into a "!", and the top line of the menu says why. When a new version is available, the top-right square turns into a dot.
+The icon also shows the status. It's dimmed while Nonet is disabled. When something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended or has 3 days or fewer left, or a notice), the top-right dot turns into a "!", and the top line of the menu says why. When a new version is available, the top-right dot grows larger.
 
 While the Settings window or the welcome guide is in front, you can also press ⌘? (**Nonet Help**) to open this guide.
 
@@ -426,7 +426,7 @@ The license section of the Nonet tab of Settings:
 
 ## Updates and About
 
-Nonet checks for new versions automatically. When it finds one, the top-right square of the menu bar icon turns into a dot, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
+Nonet checks for new versions automatically. When it finds one, the top-right dot of the menu bar icon grows larger, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
 
 The Nonet tab of Settings, below the license section and Export & Import, shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
 
