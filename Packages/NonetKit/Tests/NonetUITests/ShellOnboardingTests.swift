@@ -605,6 +605,10 @@ struct ShellOnboardingTests {
         #expect(model.practice == .cancel)
         #expect(model.practiceFeedback == .notRun(.liftedTooSoon, whileCancelling: true))
         #expect(recorder.announcements.last == ShellText.practiceNotRun(.liftedTooSoon, target: page.runTarget, whileCancelling: true))
+        // 開いてすぐ（ポインタを真ん中から出さずに）離したのは、外枠まで動かしてやめたことにしない
+        model.handleCancellation(CancellationRecord(reason: .liftedInFrame, date: started.addingTimeInterval(4.5), liftedBeforeMoving: true))
+        #expect(model.practice == .cancel)
+        #expect(model.practiceFeedback == .notRun(.liftedInFrame, whileCancelling: true))
         // 外枠で離した
         model.handleCancellation(ShellFixtures.cancellation(date: started.addingTimeInterval(5)))
         #expect(model.practice == .succeeded)

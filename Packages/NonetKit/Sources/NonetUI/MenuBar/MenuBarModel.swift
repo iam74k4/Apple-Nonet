@@ -221,9 +221,9 @@ enum MenuBarEntry: Equatable {
 /// メニューバーの状態の文言・アイコン・メニューの並び。AppKit に触れない
 enum MenuBarModel {
     /// 「最近の実行」の1行。「✓ Xcode › ビルド」。失敗なら理由の1行目を添える
-    static func recentRunTitle(_ record: ExecutionRecord) -> String {
+    static func recentRunTitle(_ record: ExecutionRecord, in configuration: NonetConfiguration? = nil) -> String {
         let mark = record.succeeded ? "✓" : "✗"
-        let base = String(localized: "\(mark) \(record.profileName) › \(record.cellTitle)", bundle: .module)
+        let base = String(localized: "\(mark) \(record.profileName) › \(cellTitle(of: record, in: configuration))", bundle: .module)
         guard !record.succeeded,
               let reason = record.message?.split(separator: "\n").first.map(String.init),
               !reason.isEmpty else { return base }
@@ -288,10 +288,22 @@ enum MenuBarModel {
             guard let name = state.activeProfileName, !name.isEmpty else {
                 return String(localized: "動作中", bundle: .module)
             }
+            // 「このアプリでは使わない」アプリが前面: どのプロファイルも使っていない（ページの一覧はグローバルに戻っているが、開かない）
+            if state.isTurnedOffInFrontApp {
+                return String(localized: "このアプリでは使いません", bundle: .module)
+            }
             return state.isGlobalProfileActive
                 ? String(localized: "グローバルのプロファイル", bundle: .module)
                 : String(localized: "\(name) のプロファイル", bundle: .module)
         }
+    }
+
+    /// 実行したマスの名前。表示名の無いマスは、いまの設定のそのマスのアクションの説明（設定の格子・早見表と同じ。「」と出さない）
+    static func cellTitle(of record: ExecutionRecord, in configuration: NonetConfiguration?) -> String {
+        guard record.cellTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let configuration, let id = record.profileID, let profile = configuration.profile(id: id),
+              let cell = SettingsGrid.cell(at: record.address, in: profile) else { return record.cellTitle }
+        return SettingsGrid.displayTitle(for: cell)
     }
 
     static func licenseText(for entitlement: Entitlement) -> String {

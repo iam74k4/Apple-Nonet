@@ -233,7 +233,7 @@ public final class MenuBarController {
             let item = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
             let submenu = NSMenu(title: entry.title)
             for record in records {
-                let run = NSMenuItem(title: MenuBarModel.recentRunTitle(record), action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
+                let run = NSMenuItem(title: MenuBarModel.recentRunTitle(record, in: controller.configuration), action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
                 run.target = actionTarget
                 run.representedObject = MenuBarAction { [weak self] in
                     guard let self else { return }

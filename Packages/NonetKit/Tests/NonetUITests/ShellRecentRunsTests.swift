@@ -47,6 +47,23 @@ struct ShellRecentRunsTests {
         #expect(MenuBarModel.recentRunTitle(failedWithoutReason) == base)
     }
 
+    @Test("表示名の無いマスは、いまの設定のそのマスのアクションの説明で出す（「」と出さない）")
+    func unnamedCellTitles() {
+        let cell = Cell(title: "", icon: .symbol("keyboard"), action: .keystroke(.key("b", .command)))
+        let global = Profile(kind: .global, pages: [Page(cells: [cell])])
+        let configuration = NonetConfiguration(profiles: [global])
+        let record = ExecutionRecord(
+            cellTitle: "", profileName: "グローバル", address: CellAddress(page: 0, index: 0),
+            succeeded: true, message: nil, date: Date(), profileID: global.id
+        )
+        let title = SettingsGrid.displayTitle(for: cell)
+        #expect(!title.isEmpty)
+        #expect(MenuBarModel.recentRunTitle(record, in: configuration) == L10n.ui("\("✓") \("グローバル") › \(title)"))
+        // 名前のあるマスは記録の名前のまま
+        let named = Self.record(profile: "Xcode")
+        #expect(MenuBarModel.recentRunTitle(named, in: configuration) == MenuBarModel.recentRunTitle(named))
+    }
+
     @Test("選ぶと、記録のプロファイル（id、無ければ名前）のページとマスを開く")
     func selectsTheRecordedCell() throws {
         _ = NSApplication.shared

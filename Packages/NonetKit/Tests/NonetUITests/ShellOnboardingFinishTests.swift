@@ -89,6 +89,29 @@ struct ShellOnboardingFinishTests {
         #expect(!harness.loginItem.isEnabled)
     }
 
+    @Test("初回起動でも、同じ起動の中で開き直した案内では「ログイン時に起動」を勧めない。触らずに閉じれば変えない")
+    func reopenedGuideDoesNotRecommendTheLoginItemAgain() {
+        let (first, harness) = Base.make()
+        first.opensAtLogin = false
+        Base.enterPractice(first)
+        #expect(first.finish())
+        #expect(!harness.loginItem.isEnabled)
+
+        let second = OnboardingModel(controller: harness.controller, permissions: harness.permissions, loginItem: harness.loginItem)
+        #expect(!second.opensAtLogin)
+        second.next()
+        #expect(second.finish())
+        #expect(!harness.loginItem.isEnabled)
+        // 開いている間に設定の「一般」でオンにしても、触っていなければ戻さない
+        let third = OnboardingModel(controller: harness.controller, permissions: harness.permissions, loginItem: harness.loginItem)
+        third.next()
+        try? harness.loginItem.setEnabled(true)
+        let count = harness.loginItem.setCount
+        #expect(third.finish())
+        #expect(harness.loginItem.isEnabled)
+        #expect(harness.loginItem.setCount == count)
+    }
+
     @Test("閉じるボタンで閉じても、練習の画面で選んでいた「ログイン時に起動」を反映する")
     func closingTheWindowAppliesTheLoginItem() {
         let harness = ShellControllerHarness(installed: Base.installed)

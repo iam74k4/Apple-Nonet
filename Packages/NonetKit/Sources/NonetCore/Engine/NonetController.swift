@@ -59,10 +59,13 @@ public struct ExecutionRecord: Equatable, Sendable {
 public struct CancellationRecord: Equatable, Sendable {
     public var reason: SessionCancellation
     public var date: Date
+    /// ポインタで選ぶとき、開いてからポインタを真ん中から出さずに離した（外枠扱いで閉じたが、外枠まで動かしてはいない）
+    public var liftedBeforeMoving: Bool
 
-    public init(reason: SessionCancellation, date: Date) {
+    public init(reason: SessionCancellation, date: Date, liftedBeforeMoving: Bool = false) {
         self.reason = reason
         self.date = date
+        self.liftedBeforeMoving = liftedBeforeMoving
     }
 }
 
@@ -110,6 +113,16 @@ public final class NonetController {
     }
     /// 保存された設定が無かった（初回起動）
     public private(set) var isFirstLaunch = false
+    /// 初回起動の案内で「ログイン時に起動」を勧めた（takeLoginItemRecommendation）
+    @ObservationIgnored private var hasRecommendedLoginItem = false
+
+    /// 初回起動で、まだ「ログイン時に起動」を勧めていなければ true を返し、勧めたことにする。
+    /// 同じ起動の中で案内を開き直しても、もう勧めない（外したものを、また選んだ状態にしない）
+    public func takeLoginItemRecommendation() -> Bool {
+        guard isFirstLaunch, !hasRecommendedLoginItem else { return false }
+        hasRecommendedLoginItem = true
+        return true
+    }
     /// 利用者に知らせたい問題（設定ファイルが壊れていた・保存できない など）。設定画面とメニューに出す
     public private(set) var notice: String?
 
@@ -479,8 +492,9 @@ public final class NonetController {
         }
         guard status == .running else { return false }
         // 「このアプリでは Nonet を使わない」アプリが前面なら開かない。ポインタを止めず、HUD も出さない。
-        // 試用期間の終了を知らせるトーストと触覚も出さない（仕様: そのアプリでは何もしない）
-        return !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID)
+        // 試用期間の終了を知らせるトーストと触覚も出さない（仕様: そのアプリでは何もしない）。
+        // 初回の案内の練習は別: 案内のウィンドウの上で試すので、その前に使っていたアプリで使わない設定でも開く（グローバルのページ）
+        return isPracticeMode || !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID)
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
@@ -555,6 +569,8 @@ public final class NonetController {
         case .requestTick(let time):
             scheduleTick(at: time)
         case .sessionEnded(let reason):
+            // hideHUD でポインタの選び方を捨てる前に、開いたまま真ん中から出ずに離したかを見ておく
+            let liftedBeforeMoving = hudMapFrame != nil && pointerSelection.isWaitingAtCenter
             tickTask?.cancel()
             tickTask = nil
             if services.keyboard.isSuppressingPointer {
@@ -563,7 +579,7 @@ public final class NonetController {
             hideHUD()
             session = nil
             if case .cancelled(let cancellation) = reason {
-                lastCancellation = CancellationRecord(reason: cancellation, date: currentDate())
+                lastCancellation = CancellationRecord(reason: cancellation, date: currentDate(), liftedBeforeMoving: liftedBeforeMoving)
             }
             controllerLogger.debug("セッションが終わりました: \(String(describing: reason), privacy: .public)")
         }

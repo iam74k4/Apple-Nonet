@@ -65,6 +65,13 @@ struct ShellMenuBarTests {
         #expect(MenuBarModel.statusText(for: state) == expected)
     }
 
+    @Test("「このアプリでは使わない」アプリが前面なら、状態の行はプロファイルの名前ではなく、使わないこと")
+    func statusTextInATurnedOffApp() {
+        var state = ShellMenuState.make(profile: "グローバル", global: true)
+        state.isTurnedOffInFrontApp = true
+        #expect(MenuBarModel.statusText(for: state) == L10n.ui("このアプリでは使いません"))
+    }
+
     @Test("試用期間の残りが3日以下なら、状態の行で残りの日数を言う（文言の言語の規則で数える）")
     func trialEndingText() {
         for days in 1...MenuBarModel.trialWarningDays {

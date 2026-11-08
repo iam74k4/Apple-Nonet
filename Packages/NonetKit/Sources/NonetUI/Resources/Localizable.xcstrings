@@ -2307,6 +2307,16 @@
         }
       }
     },
+    "このアプリでは使いません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not used in this app"
+          }
+        }
+      }
+    },
     "このアプリでは使わない" : {
       "localizations" : {
         "en" : {

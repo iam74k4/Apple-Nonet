@@ -67,8 +67,9 @@ struct OnboardingPracticePage: Equatable {
     /// 中身のあるマスが無ければ nil（空きマスで離しても何も記録されないので、練習にならない）
     init?(_ page: ResolvedPage?) {
         guard let page else { return nil }
+        // 表示名の無いマスは、アクションの説明（設定の格子と同じ。練習の文や図に「」と出さない）
         let titles = (0..<Page.cellCount).map { index in
-            page.cells.indices.contains(index) ? page.cells[index]?.title : nil
+            page.cells.indices.contains(index) ? page.cells[index].map(SettingsGrid.displayTitle(for:)) : nil
         }
         let occupied = Set(titles.indices.filter { titles[$0] != nil })
         // 少し長く止めてから実行するマス（Cell.requiresHold）は、最初の練習には使わない（そればかりなら使う）
@@ -218,7 +219,14 @@ final class OnboardingModel {
     /// トラックパッドが見つからない（最初の画面で知らせる。許可より前に分かる）
     private(set) var isTrackpadMissing = false
     /// 練習の画面の「Mac にログインしたら Nonet を自動で起動する」。初回起動では最初から選んでおき、案内を閉じるときに反映する
-    var opensAtLogin: Bool
+    var opensAtLogin: Bool {
+        didSet { hasChosenLoginItem = true }
+    }
+    /// 案内の中で「ログイン時に起動」を選び直した。選び直さず、初回起動の勧めでもなければ、閉じるときに変えない
+    /// （案内を開いている間に設定の「一般」で変えたものを戻さない）
+    private var hasChosenLoginItem = false
+    /// 初回起動で「ログイン時に起動」を勧めている（選んだ状態で始める）。同じ起動で開き直した案内では勧めない
+    private let recommendsLoginItem: Bool
     /// ログイン時に起動を変えられなかった（システム設定での許可待ちを含む）ときの知らせ
     private(set) var loginItemMessage: String?
     /// メニューバーのアイコンが見えている（練習の画面に入ったときに確かめる）。見えなければ、見つけ方を文で伝える
@@ -279,8 +287,10 @@ final class OnboardingModel {
         self.loginItem = loginItem
         self.now = now
         isAccessibilityGranted = permissions.isAccessibilityGranted
-        // 初回起動では勧める（選んだままにしておく）。もう一度見るときは、いまの状態から（設定の「一般」で外したものを戻さない）
-        opensAtLogin = controller.isFirstLaunch || (loginItem?.isEnabled ?? true)
+        // 初回起動では勧める（選んだままにしておく）。もう一度見るときは、いまの状態から（設定の「一般」で外したものを戻さない）。
+        // 勧めるのは起動して最初の案内だけ（同じ起動の中で開き直した案内で、外したものをまた選ばない）
+        recommendsLoginItem = controller.takeLoginItemRecommendation()
+        opensAtLogin = recommendsLoginItem || (loginItem?.isEnabled ?? true)
         refreshTrackpad()
     }
 
@@ -433,6 +443,8 @@ final class OnboardingModel {
     /// 最初の画面では、まだ選択を見せていないので何もしない
     func finish() -> Bool {
         guard step == .practice, let loginItem else { return true }
+        // 選び直していない（初回起動の勧めでもない）なら、いまの状態のまま（開いている間に設定で変えたものも戻さない）
+        guard hasChosenLoginItem || recommendsLoginItem else { return true }
         if let loginAttempt, loginAttempt == opensAtLogin { return true }
         loginAttempt = nil
         guard loginItem.isEnabled != opensAtLogin else {
@@ -503,7 +515,8 @@ final class OnboardingModel {
             practiceFeedback = .notRun(record.reason, whileCancelling: false)
             announce(ShellText.practiceNotRun(record.reason, target: practicePage?.runTarget, whileCancelling: false))
         case .cancel:
-            if record.reason == .liftedInFrame {
+            // 開いてすぐ（ポインタを真ん中から出さずに）離したのは、外枠まで動かしてやめたことにしない
+            if record.reason == .liftedInFrame, !record.liftedBeforeMoving {
                 practice = .succeeded
                 practiceFeedback = nil
                 announce(ShellText.practiceCancelDone)

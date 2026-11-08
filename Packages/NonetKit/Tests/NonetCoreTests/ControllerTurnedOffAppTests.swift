@@ -37,6 +37,17 @@ import Testing
         expectNoSession(h)
     }
 
+    /// 初回の案内の練習は、案内のウィンドウの上で試すので、その前に使っていたアプリを「使わない」にしていても開く（グローバルのページ）
+    @Test func practiceOpensEvenIfThePreviousAppIsOff() throws {
+        let h = try harness()
+        h.start()
+        h.controller.isPracticeMode = true
+        h.open()
+        #expect(h.keyboard.isSuppressingPointer)
+        #expect(h.hud.shown.count == 1)
+        h.liftAndClose()
+    }
+
     /// 試用期間が終わっていても、Nonet を使わないアプリでは何も知らせない（トーストも触覚も出さない）
     @Test func anEndedTrialSaysNothingInAnAppWhereNonetIsOff() async throws {
         let h = try harness(trialEnded: true)
