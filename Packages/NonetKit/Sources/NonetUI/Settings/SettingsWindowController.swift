@@ -153,7 +153,9 @@ public final class SettingsWindowController {
         select(.profiles)
         let configuration = model.configuration
         if let app, OnboardingModel.profile(forBundleID: app.bundleID, in: configuration.profiles) == nil {
-            // 作ったプロファイルを選ぶ（プリセットがあれば、その中身で作る）
+            // 作ったプロファイルを選ぶ（プリセットがあれば、その中身で作る）。追加か「複製して別のアプリに使う…」のシートが開いていても、
+            // それを閉じてから作る（開いたままだと、複製の元のページを写してしまう）
+            model.isAddingProfile = false
             model.addProfile(for: app)
         } else {
             let profile = app.flatMap { OnboardingModel.profile(forBundleID: $0.bundleID, in: configuration.profiles) }
@@ -162,9 +164,9 @@ public final class SettingsWindowController {
         }
     }
 
-    /// record がそのプロファイルで少し前に実行したマスなら、その場所。プロファイルは名前で見分ける（記録に id が無いため）
+    /// record がそのプロファイルで少し前に実行したマスなら、その場所。プロファイルは id で見分ける（記録に id が無ければ名前で）
     static func recentAddress(of record: ExecutionRecord?, in profile: Profile, now: Date) -> CellAddress? {
-        guard let record, record.profileName == profile.name else { return nil }
+        guard let record, record.profileID.map({ $0 == profile.id }) ?? (record.profileName == profile.name) else { return nil }
         let elapsed = now.timeIntervalSince(record.date)
         guard elapsed >= 0, elapsed <= recentExecutionWindow,
               profile.pages.indices.contains(record.address.page),

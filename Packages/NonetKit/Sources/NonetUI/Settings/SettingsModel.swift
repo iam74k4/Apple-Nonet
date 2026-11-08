@@ -207,6 +207,8 @@ final class SettingsModel {
     // MARK: 状態の帯
     /// アクセシビリティの帯の「システム設定を開く」で、macOS の許可のダイアログをもう出した（このプロセスで）
     @ObservationIgnored private var hasRequestedAccessibility = false
+    /// 設定のウィンドウがキー（windowDidBecomeKey・windowDidResignKey）。macOS の確認が出なかったときにシステム設定を開くかを決める
+    @ObservationIgnored private var isWindowKey = true
 
     // MARK: 読み込みに時間のかかる一覧
     let menuBrowser: SettingsMenuBrowser
@@ -374,12 +376,13 @@ final class SettingsModel {
 
     /// プロファイルを消す。消す前の設定を控えに残し、元に戻せるようにする（そのプロファイルのマスの変更も、戻した後なら戻せる）
     func deleteProfile(_ id: UUID, actionName: String? = nil, makesBackup: Bool = true) {
+        // 保存待ちの文と記録中のキーを先に保存してから、元に戻すための控えを取る（控えに入れ損ねない）
+        pendingEdits.flushAll()
+        finishRecording()
         let before = appProfiles
         guard let position = before.firstIndex(where: { $0.id == id }) else { return }
         let removed = before[position]
         let actionName = actionName ?? String(localized: "プロファイルの削除", bundle: .module)
-        pendingEdits.flushAll()
-        finishRecording()
         closeEditGroup()
         if makesBackup {
             backupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
@@ -534,12 +537,13 @@ final class SettingsModel {
 
     /// ページを消す。マスがあれば消す前の設定を控えに残す。元に戻せるようにする
     func removePage(_ index: Int, profileID: UUID, makesBackup: Bool = true) {
+        // 保存待ちの文と記録中のキーを先に保存してから、元に戻すための控えを取る（控えに入れ損ねない）
+        pendingEdits.flushAll()
+        finishRecording()
         guard let profile = configuration.profile(id: profileID), profile.pages.count > 1,
               profile.pages.indices.contains(index) else { return }
         let removed = profile.pages[index]
         let actionName = String(localized: "ページの削除", bundle: .module)
-        pendingEdits.flushAll()
-        finishRecording()
         closeEditGroup()
         if makesBackup, removed.cells.contains(where: { $0 != nil }) {
             backupStore?.makeBackup(of: configuration, reason: .beforeDeletingPage)
@@ -945,6 +949,8 @@ final class SettingsModel {
     // MARK: - テスト実行
 
     func startTestRun(cellID: UUID) {
+        // 打ったばかりで保存待ちの文（スクリプトなど）も含めて試す。ボタンを押しても入力欄のフォーカスは外れないので、ここで保存する
+        pendingEdits.flushAll()
         // ファイルの操作は、今 Finder で選んでいるファイルに実際に働くので、確かめてから行う
         if case .file(let file)? = cell(id: cellID)?.action {
             confirmation = .testRunFile(cellID: cellID, operation: file.operation.title)
@@ -1102,49 +1108,9 @@ final class SettingsModel {
         SettingsStatusBanner(status: controller.status)
     }
 
-    // MARK: - 画面収録（HUD のアイコンの色を下地に合わせる）
-
-    /// macOS の許可を読み直す（ウィンドウが前面に戻ったとき・許可のボタンを押したとき）。アクセシビリティはコントローラーが、
-    /// 画面収録はここで読み直す（permissionRefreshCount を進めて、それを読んでいる値を計算し直させる）
+    /// macOS の許可を読み直す（ウィンドウが前面に戻ったとき）
     func refreshPermissions() {
         controller.refreshPermissions()
-        permissionRefreshCount += 1
-    }
-
-    /// 「画面収録」の許可があるか
-    var isScreenCaptureGranted: Bool {
-        _ = permissionRefreshCount
-        return services.permissions.isScreenCaptureGranted
-    }
-
-    /// 許可はあるが、このプロセスでは効かない: 起動した後に許可した（macOS は開き直したプロセスから効かせる）か、許可があるのに撮れなかった。
-    /// 起動した後に許可しても撮れていれば（screenCaptureWorked）、開き直しは要らない
-    var screenCaptureNeedsRelaunch: Bool {
-        guard isScreenCaptureGranted else { return false }
-        switch screenCaptureOutcome() {
-        case .failed: return true
-        case .succeeded: return false
-        case .notTried: return !services.permissions.screenCaptureGrantedAtLaunch
-        }
-    }
-
-    /// 直近の撮影の結果（テストで差し替える）
-    @ObservationIgnored var screenCaptureOutcome: () -> ScreenCaptureBackdropSampler.Outcome = { ScreenCaptureBackdropSampler.lastOutcome }
-    /// Nonet を開き直す（テストで差し替える）
-    @ObservationIgnored var relaunch: () -> Void = { ShellRelaunch.relaunch() }
-
-    /// isScreenCaptureGranted・screenCaptureNeedsRelaunch を読み直させる目印
-    private(set) var permissionRefreshCount = 0
-
-    /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、システム設定を開くボタンも並べてある
-    func requestScreenCapture() {
-        services.permissions.requestScreenCapture()
-        permissionRefreshCount += 1
-    }
-
-    func openScreenCaptureSettings() {
-        services.permissions.openScreenCaptureSettings()
-        permissionRefreshCount += 1
     }
 
     func perform(_ action: SettingsStatusBanner.Action) {
@@ -1157,6 +1123,12 @@ final class SettingsModel {
             } else {
                 hasRequestedAccessibility = true
                 services.permissions.requestAccessibility()
+                // macOS は確認のダイアログを一度しか出さない（前に出したことがあると、何も出ない）。少し待っても
+                // このウィンドウがキーのまま（ダイアログが出ていない）で許可も無ければ、システム設定を開く（初回の案内と同じ）
+                services.scheduler.schedule(after: OnboardingModel.promptFallbackDelay) { [weak self] in
+                    guard let self, self.isWindowKey, !self.services.permissions.isAccessibilityGranted else { return }
+                    self.services.permissions.openAccessibilitySettings()
+                }
             }
         case .recheck:
             break
@@ -1168,14 +1140,18 @@ final class SettingsModel {
 
     // MARK: - 書き出しと読み込み
 
+    /// 書き出す先を選んでから書き出す。中身は書き出す時点のもの（保存待ちの文を先に保存し、メニューを開いた後の変更も含める）
     func exportProfiles(_ profiles: [Profile], suggestedName: String) async {
         guard let files, let url = await files.chooseExportDestination(suggestedName: suggestedName) else { return }
-        exportProfiles(profiles, to: url)
+        pendingEdits.flushAll()
+        exportProfiles(profiles.map { configuration.profile(id: $0.id) ?? $0 }, to: url)
     }
 
-    /// すべての書き出し
+    /// すべての書き出し（書き出す時点のすべてのプロファイル）
     func exportAllProfiles(suggestedName: String) async {
-        await exportProfiles(configuration.profiles, suggestedName: suggestedName)
+        guard let files, let url = await files.chooseExportDestination(suggestedName: suggestedName) else { return }
+        pendingEdits.flushAll()
+        exportProfiles(configuration.profiles, to: url)
     }
 
     func exportProfiles(_ profiles: [Profile], to url: URL) {
@@ -1431,7 +1407,11 @@ final class SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         do {
-            let result = try uninstaller.run(loginItem: services.loginItem) { controller.stop() }
+            // 設定のフォルダをゴミ箱に入れる前に、試用の記録を書くのもやめる（終了までに数え直して、写しでフォルダを作り直さない）
+            let result = try uninstaller.run(loginItem: services.loginItem) {
+                controller.stop()
+                license.stopRecordingTrial()
+            }
             uninstallStep = .finished(result)
         } catch {
             uninstallStep = .failed
@@ -1472,6 +1452,7 @@ final class SettingsModel {
     /// 開き直したときや、ほかのアプリから戻ったとき。閉じるときに止めた読み込みを続け、古くなった一覧を読み直す
     /// （使い回すウィンドウでは onAppear がもう一度呼ばれないため、ここで行う）
     func windowDidBecomeKey() {
+        isWindowKey = true
         refreshPermissions()
         refreshLoginItem()
         license.refresh()
@@ -1487,6 +1468,7 @@ final class SettingsModel {
 
     /// ほかのアプリに移ったら記録を終える（記録中は9マスが開かないため）
     func windowDidResignKey() {
+        isWindowKey = false
         finishRecording()
         closeEditGroup()
     }

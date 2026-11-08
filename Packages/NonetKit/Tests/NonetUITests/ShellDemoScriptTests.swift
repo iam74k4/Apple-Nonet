@@ -19,7 +19,8 @@ struct ShellDemoScriptTests {
     static func replay(pageCount: Int = 4) -> Replay {
         var engine = SessionEngine()
         var recognizer = EdgeSlideRecognizer()
-        let configuration = SessionConfiguration(pageCount: pageCount)
+        // Xcode のプロファイル（1 ページ）の後ろにグローバルのページ。下の帯でグローバルの層（2 ページ目から）へ移る
+        let configuration = SessionConfiguration(pageCount: pageCount, layerStart: 1)
         var result = Replay()
         var nextTick: TimeInterval?
         var wasTouching = false
@@ -66,13 +67,14 @@ struct ShellDemoScriptTests {
         return result
     }
 
-    @Test("3回開く: 中央のマスを実行・次のページへ切り替えて中央のマスを実行・外枠で離してやめる")
+    @Test("3回開く: 中央のマスを実行・下の帯でグローバルのページへ移って中央のマスを実行・外枠ですぐ離してやめる")
     func theScriptShowsTheThreeSessions() {
         let result = Self.replay()
         #expect(result.openedAt.count == 3)
         // 1回目はいちばん上のページの中央、2回目は1つ先のページの中央（1回だけ切り替わる）
         #expect(result.executions == ["0:4", "1:4"])
-        #expect(result.haptics.filter { $0 == .pageChange }.count == 1)
+        #expect(result.haptics.filter { $0 == .layerChange }.count == 1)
+        #expect(result.haptics.filter { $0 == .pageChange }.isEmpty)
         #expect(result.ends == [.released, .released, .cancelled(.liftedInFrame)])
     }
 

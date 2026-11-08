@@ -147,7 +147,8 @@ import Testing
         s.slideIn(at: 0)
         s.touch(on: 4, at: 0.1)
         s.touch(x: point.x, y: point.y, at: 0.3)
-        let effects = s.lift(at: 2)
+        // 止め終える前に離す（上下の帯に止め終えると、層が1つなので案内を出す: restingUpOrDownWithOneLayerShowsTheHint）
+        let effects = s.lift(at: 0.5)
         #expect(effects.executions.isEmpty)
         #expect(effects.visible == [
             .haptic(.rejected),
@@ -284,20 +285,27 @@ import Testing
         let second = s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
         #expect(second.hudStates == [SessionHUDState(page: 0, highlightedCell: nil)])
         let swipe = s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 0.3)
-        #expect(swipe.hudStates == [SessionHUDState(page: 1, highlightedCell: nil)])
+        #expect(swipe.hudStates == [SessionHUDState(page: 1, highlightedCell: nil, lastTurn: .right)])
         #expect(swipe.hapticEvents == [.pageChange])
         // 1回のスワイプで1ページ
         #expect(s.setFingers([(1, 0.1, 0.5), (2, 0.3, 0.5)], at: 0.4).visible.isEmpty)
         #expect(s.engine.pageIndex == 1)
     }
 
-    @Test func swipingRightGoesBackAndTheEndsBuzz() {
-        var s = SessionScenario(pageCount: 2)
+    /// 右へ動かすと前のページ。最初のページからは最後のページへ回る。ページが1つなら受け付けなかった触覚
+    @Test func swipingRightGoesBackAndWrapsAround() {
+        var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
         s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1)
         let back = s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.2)
-        #expect(back.hapticEvents == [.rejected])
-        #expect(s.engine.pageIndex == 0)
+        #expect(back.hudStates == [SessionHUDState(page: 2, highlightedCell: nil, lastTurn: .left)])
+        #expect(back.hapticEvents == [.pageChange])
+
+        var single = SessionScenario(pageCount: 1)
+        single.slideIn(at: 0)
+        single.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1)
+        #expect(single.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.2).hapticEvents == [.rejected])
+        #expect(single.engine.pageIndex == 0)
     }
 
     /// 2本指の後に1本指に戻ったら、残った指でまた選べる。選ぶには滑らせ直す（2本の指は同時に離れにくい）

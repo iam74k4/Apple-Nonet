@@ -56,7 +56,7 @@ struct ShellRenderTests {
             )
         }
 
-        // 外枠と、少し長く止めるマスの進み具合（Xcode のクリーン）。「コントラストを上げる」・「視差効果を減らす」・下地の色も
+        // 外枠と、少し長く止めるマスの進み具合（Xcode のクリーン）。「コントラストを上げる」・「視差効果を減らす」・暗い下地と白い下地も
         var page = xcode.pages[0]
         let clean = try #require(page.cells.firstIndex { $0?.requiresHold == true })
         page.cells[clean]?.requiresHold = true
@@ -66,59 +66,94 @@ struct ShellRenderTests {
             transform(&model)
             return model
         }
-        let mixed = HUDInks(keys: [.onDark, .onDark, .onLight, .onDark, .onLight, .onLight, .onDark, .onLight, .onLight])
-        let states: [(String, HUDModel, HUDInks, Bool, Bool, Double?, Color)] = [
-            ("hud-state-cell", variant { $0.highlightedIndex = 5 }, .fallback, false, false, nil, Color(white: 0.82)),
-            // 暗い下地: 白いアイコンに影
-            ("hud-state-dark", variant { $0.highlightedIndex = 5 }, HUDInks(all: .onDark), false, false, nil, Color(white: 0.12)),
-            // 左が暗く右が明るい下地: 鍵ごとに色が違う
-            ("hud-state-mixed", variant { $0.highlightedIndex = 7 }, mixed, false, false, nil, Color(white: 0.5)),
+        let states: [(String, HUDModel, Bool, Bool, Double?, Color)] = [
+            ("hud-state-cell", variant { $0.highlightedIndex = 5 }, false, false, nil, Color(white: 0.82)),
+            // 暗い下地・真っ白な下地: どちらも同じ暗い台に白いアイコン
+            ("hud-state-dark", variant { $0.highlightedIndex = 5 }, false, false, nil, Color(white: 0.12)),
+            ("hud-state-white", variant { $0.highlightedIndex = 7 }, false, false, nil, Color.white),
             // 右の外へ出して止めて、次のページへ
             ("hud-state-page", variant {
                 $0.isFingerInFrame = true
                 $0.pageCount = 2
                 $0.edgePaging = HUDEdgePaging(edge: .right, duration: 0.5)
-            }, .fallback, false, false, nil, Color(white: 0.82)),
+            }, false, false, nil, Color(white: 0.82)),
             // 2本の指（光るマスが無く、離しても何も起きない）
-            ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, .fallback, false, false, nil, Color(white: 0.82)),
+            ("hud-state-idle", variant { $0.highlightedIndex = nil; $0.isFingerInFrame = false }, false, false, nil, Color(white: 0.82)),
             // 開いた直後（ポインタが真ん中から出る前）: 外枠扱いでも薄くしない
-            ("hud-state-opened", variant { $0.isFingerInFrame = true; $0.isWaitingAtCenter = true }, .fallback, false, false, nil, Color(white: 0.82)),
-            ("hud-state-frame", variant { $0.isFingerInFrame = true }, .fallback, false, false, nil, Color(white: 0.82)),
-            ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, .fallback, true, false, nil, Color(white: 0.82)),
+            ("hud-state-opened", variant { $0.isFingerInFrame = true; $0.isWaitingAtCenter = true }, false, false, nil, Color(white: 0.82)),
+            ("hud-state-frame", variant { $0.isFingerInFrame = true }, false, false, nil, Color(white: 0.82)),
+            ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, true, false, nil, Color(white: 0.82)),
+            // 上下の帯に止めても切り替える先が無い（前面のアプリのページが無い・グローバルのページを使う設定）: 真ん中の鍵の下の案内
+            ("hud-state-layer-hint", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("このアプリのページはまだありません") }, false, false, nil, Color(white: 0.82)),
+            ("hud-state-layer-hint-global", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("このアプリはグローバルのページを使います") }, false, false, nil, Color.white),
+            ("hud-state-side-hint", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("左右に送るページはありません") }, false, false, nil, Color(white: 0.82)),
             ("hud-state-hold", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
-            }, .fallback, false, false, 0.55, Color(white: 0.82)),
+            }, false, false, 0.55, Color(white: 0.82)),
             ("hud-state-hold-reduce-motion", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)
-            }, .fallback, false, true, nil, Color(white: 0.82)),
+            }, false, true, nil, Color(white: 0.82)),
             ("hud-state-hold-ready", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: true)
-            }, .fallback, false, false, nil, Color(white: 0.82)),
-            ("hud-state-contrast-cell", variant { $0.highlightedIndex = 4 }, .fallback, true, false, nil, Color(white: 0.82)),
+            }, false, false, nil, Color(white: 0.82)),
+            ("hud-state-contrast-cell", variant { $0.highlightedIndex = 4 }, true, false, nil, Color(white: 0.82)),
             ("hud-state-large-frame", variant {
                 $0.isFingerInFrame = true
                 $0.scale = 1.5
                 $0.pageCount = 2
                 $0.edgePaging = HUDEdgePaging(edge: .left, duration: 0.5)
-            }, .fallback, false, false, nil, Color(white: 0.82)),
+            }, false, false, nil, Color(white: 0.82)),
         ]
+        // ページ（右）と層（下でグローバル）を切り替える途中の押し出し。進み具合 0.35 と 0.6
+        var appNext = variant { $0.isFingerInFrame = true }
+        appNext.layer = .app
+        appNext.pageIndex = 1
+        appNext.pageCount = 2
+        appNext.cells = appNext.cells.reversed()
+        var globalModel = Self.hudModel(title: L10n.globalName, page: global.pages[0], highlighted: nil, pageCount: 2)
+        globalModel.isFingerInFrame = true
+        globalModel.layer = .global
+        for progress in [0.35, 0.6] {
+            for (name, model, direction) in [("hud-turn-page", appNext, PageEdge.right), ("hud-turn-layer", globalModel, PageEdge.down)] {
+                let turn = HUDTurn(outgoingCells: base.cells, outgoingLayer: .app, direction: direction, serial: 1)
+                let size = HUDLayout.size(for: model)
+                let margin = HUDLayout.shadowMargin
+                try Self.render(
+                    HUDView(model: model, turn: turn, turnProgress: progress)
+                        .padding(margin)
+                        .background(Color(white: 0.82)),
+                    size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),
+                    appearance: .aqua,
+                    name: "\(name)-\(Int(progress * 100))"
+                )
+            }
+        }
+        // 層を切り替えた直後: グローバルの層の紺の台と、真ん中の鍵の下の層の名前
+        try Self.render(
+            HUDView(model: globalModel, layerName: HUDLayerName(text: L10n.globalName, serial: 1))
+                .padding(HUDLayout.shadowMargin)
+                .background(Color(white: 0.82)),
+            size: CGSize(width: HUDLayout.size(for: globalModel).width + HUDLayout.shadowMargin * 2, height: HUDLayout.size(for: globalModel).height + HUDLayout.shadowMargin * 2),
+            appearance: .aqua,
+            name: "hud-layer-global"
+        )
         // 向けたまま止めて、アイコンの名前が出たところ
         try Self.render(
-            HUDView(model: variant { $0.highlightedIndex = 5 }, inks: .fallback, showsLabelImmediately: true)
+            HUDView(model: variant { $0.highlightedIndex = 5 }, showsLabelImmediately: true)
                 .padding(HUDLayout.shadowMargin)
                 .background(Color(white: 0.82)),
             size: CGSize(width: HUDLayout.size(for: base).width + HUDLayout.shadowMargin * 2, height: HUDLayout.size(for: base).height + HUDLayout.shadowMargin * 2),
             appearance: .aqua,
             name: "hud-state-label"
         )
-        for (name, model, inks, increasedContrast, reduceMotion, progress, backdrop) in states {
+        for (name, model, increasedContrast, reduceMotion, progress, backdrop) in states {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin
             try Self.render(
-                HUDView(model: model, inks: inks, increasedContrast: increasedContrast, reduceMotion: reduceMotion, fixedHoldProgress: progress)
+                HUDView(model: model, increasedContrast: increasedContrast, reduceMotion: reduceMotion, fixedHoldProgress: progress)
                     .padding(margin)
                     .background(backdrop),
                 size: CGSize(width: size.width + margin * 2, height: size.height + margin * 2),

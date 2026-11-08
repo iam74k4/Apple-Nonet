@@ -58,8 +58,8 @@ public enum ScriptEnvironment {
         projectDirectory(forDocumentPath: path, homeDirectory: NSHomeDirectory(), fileExists: fileExists)
     }
 
-    /// homeDirectory より上（とルート）はプロジェクトとみなさない。ホームの dotfiles の .git を拾わないため
-    /// 空のパスには空を返す
+    /// homeDirectory より上（とルート）はプロジェクトとみなさない。ホームの dotfiles の .git を拾わないため。
+    /// 書類がホームそのものならホーム（その上にはしない）。空のパスには空を返す
     public static func projectDirectory(forDocumentPath path: String, homeDirectory: String, fileExists: (String) -> Bool) -> String {
         let normalized = normalizedPath(path)
         guard !normalized.isEmpty else { return "" }
@@ -83,6 +83,10 @@ public enum ScriptEnvironment {
             if projectMarkers.contains(where: { fileExists(directory + "/" + $0) }) {
                 return directory
             }
+        }
+        // 書類がホームそのもの（ホームで開いたターミナルのウインドウなど）なら、その上（/Users）ではなくホーム
+        if normalized == home {
+            return home
         }
         return document.path(prefixCount: max(document.parts.count - 1, 0))
     }

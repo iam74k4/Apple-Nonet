@@ -20,6 +20,9 @@ struct ActionURLTests {
     func localhostUsesHTTP() {
         #expect(URLNormalizer.normalize("localhost:3000")?.absoluteString == "http://localhost:3000")
         #expect(URLNormalizer.normalize("127.0.0.1:8080/api")?.absoluteString == "http://127.0.0.1:8080/api")
+        // IPv6 の手元のアドレス（[ ] の中の「:」はポートの区切りではない）
+        #expect(URLNormalizer.normalize("[::1]:3000")?.absoluteString == "http://[::1]:3000")
+        #expect(URLNormalizer.normalize("[::1]/api")?.absoluteString == "http://[::1]/api")
         #expect(URLNormalizer.normalize("LOCALHOST/x")?.absoluteString == "http://LOCALHOST/x")
     }
 

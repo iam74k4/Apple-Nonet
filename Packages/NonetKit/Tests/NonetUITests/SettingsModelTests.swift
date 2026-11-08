@@ -752,6 +752,26 @@ import Testing
         #expect(h.model.statusBanner == nil)
     }
 
+    /// macOS の確認が出なかった（前に出したことがある）: 少し待ってもウィンドウがキーのままで許可も無ければ、システム設定を開く。
+    /// 確認が出てウィンドウがキーでなくなった・許可されたなら開かない
+    @Test func accessibilityBannerFallsBackToSettings() throws {
+        let h = try SettingsHarness()
+        h.permissions.isAccessibilityGranted = false
+        h.controller.refreshPermissions()
+        h.model.perform(.openAccessibilitySettings)
+        h.scheduler.advance(by: OnboardingModel.promptFallbackDelay)
+        #expect(h.permissions.requestCount == 1)
+        #expect(h.permissions.openCount == 1)
+
+        let prompted = try SettingsHarness()
+        prompted.permissions.isAccessibilityGranted = false
+        prompted.controller.refreshPermissions()
+        prompted.model.perform(.openAccessibilitySettings)
+        prompted.model.windowDidResignKey()
+        prompted.scheduler.advance(by: OnboardingModel.promptFallbackDelay)
+        #expect(prompted.permissions.openCount == 0)
+    }
+
     @Test func accessibilityBannerActions() throws {
         let h = try SettingsHarness()
         h.permissions.isAccessibilityGranted = false

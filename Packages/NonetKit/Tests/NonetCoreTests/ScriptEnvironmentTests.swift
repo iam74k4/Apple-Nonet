@@ -30,6 +30,14 @@ import Testing
         ])
     }
 
+    /// 書類がホームそのもの（ホームで開いたターミナルのウインドウ）なら、その上の /Users ではなくホーム
+    @Test func aHomeDocumentStaysAtHome() {
+        #expect(Self.project("/Users/me", existing: []) == "/Users/me")
+        #expect(Self.project("file:///Users/me/", existing: []) == "/Users/me")
+        // ホームの中のフォルダはこれまでどおり
+        #expect(Self.project("/Users/me/notes.txt", existing: []) == "/Users/me")
+    }
+
     @Test func omitsMissingAndEmptyValues() {
         #expect(ScriptEnvironment.variables(for: ScriptContextInfo(), projectDirectory: nil).isEmpty)
         let empty = ScriptContextInfo(app: AppReference(bundleID: "", name: ""), documentPath: "", browserURL: "", selectedText: "")

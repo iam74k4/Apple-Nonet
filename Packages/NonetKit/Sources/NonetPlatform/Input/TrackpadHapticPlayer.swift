@@ -68,6 +68,8 @@ enum HapticTuning {
         // 2打（secondPulseDelays）。境界と同じ強さでも、打つ回数で分かる。
         // 弱では「受け付けなかった」（3 の2打）と同じにならないよう、1つ強くする
         .pageChange: (light: 4, medium: 4, strong: 5),
+        // 上下の帯でアプリとグローバルの層を切り替えた。ページの2打と打つ回数で分け、実行と同じ強めの1打にする
+        .layerChange: (light: 5, medium: 6, strong: 6),
         // 少し長く止めるマスを止め終えた（いま離すと実行する）。境界より1つ強い1打で、離してよいことを指に知らせる
         .holdReady: (light: 4, medium: 5, strong: 6),
         .execute: (light: 4, medium: 6, strong: 6),
@@ -88,6 +90,7 @@ enum HapticTuning {
     static let minimumIntervals: [HapticEvent: TimeInterval] = [
         .boundary: 0.06,
         .pageChange: 0.15,
+        .layerChange: 0.15,
         .holdReady: 0.15,
         .execute: 0.08,
         .activation: 0.15,
@@ -124,6 +127,7 @@ enum HapticTuning {
         switch event {
         case .boundary: .alignment
         case .pageChange: .levelChange
+        case .layerChange: .levelChange
         case .holdReady: .levelChange
         case .execute: .generic
         case .activation: .levelChange

@@ -39,13 +39,6 @@ struct SettingsGeneralView: View {
                     Text("触覚", bundle: .module)
                     Text(SettingsText.hapticsDetail)
                 }
-                Toggle(isOn: binding(\.adaptiveHUDInk)) {
-                    Text(SettingsText.adaptiveInkTitle)
-                    Text(SettingsText.adaptiveInkDetail)
-                }
-                if model.settings.adaptiveHUDInk {
-                    SettingsScreenCaptureRow(model: model)
-                }
             } header: {
                 Text("開き方と HUD", bundle: .module)
             }
@@ -67,31 +60,6 @@ struct SettingsGeneralView: View {
 
     private func binding<Value: Equatable>(_ keyPath: WritableKeyPath<GlobalSettings, Value>) -> Binding<Value> {
         Binding(get: { model.settings[keyPath: keyPath] }, set: { model.setSetting(keyPath, $0) })
-    }
-}
-
-/// 「背景に合わせて色を変える」の下の、画面収録の許可の知らせとボタン。許可があればそう言うだけ。
-/// 起動した後に許可したときは、開き直すまで効かないので、そう言って開き直すボタンを出す
-private struct SettingsScreenCaptureRow: View {
-    let model: SettingsModel
-
-    var body: some View {
-        if model.screenCaptureNeedsRelaunch {
-            VStack(alignment: .leading, spacing: 8) {
-                SettingsNote(text: SettingsText.screenCaptureNeedsRelaunch, symbol: "arrow.clockwise.circle")
-                Button { model.relaunch() } label: { Text(SettingsText.relaunchButton) }
-            }
-        } else if model.isScreenCaptureGranted {
-            SettingsNote(text: SettingsText.screenCaptureGranted, symbol: "checkmark.circle")
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                SettingsNote(text: SettingsText.screenCaptureNeeded, symbol: "info.circle")
-                HStack(spacing: 8) {
-                    Button { model.requestScreenCapture() } label: { Text(SettingsText.screenCaptureRequestButton) }
-                    Button { model.openScreenCaptureSettings() } label: { Text(SettingsText.screenCaptureSettingsButton) }
-                }
-            }
-        }
     }
 }
 

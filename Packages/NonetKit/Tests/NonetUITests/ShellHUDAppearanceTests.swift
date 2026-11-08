@@ -33,6 +33,11 @@ struct ShellHUDAppearanceTests {
         #expect(HUDMetrics(scale: 1).pillFrame(below: true) == CGRect(x: 0, y: side + HUDLayout.pillGap, width: side, height: HUDLayout.pillHeight))
         #expect(HUDMetrics(scale: 1).pillFrame(below: false) == CGRect(x: 0, y: -(HUDLayout.pillGap + HUDLayout.pillHeight), width: side, height: HUDLayout.pillHeight))
         #expect(HUDLayout.pillGap + HUDLayout.pillHeight + 9 <= HUDLayout.shadowMargin)
+        // 大きい HUD でも、倍率を掛けた帯とその影がパネルの余白に入る（帯が切れない）
+        for scale in [1.0, 1.25, 1.5] {
+            let metrics = HUDMetrics(scale: scale)
+            #expect(metrics.pillGap + metrics.pillHeight + 9 <= metrics.shadowMargin)
+        }
         #expect(HUDMetrics(scale: 1.5).iconSize == 30)
         #expect(HUDMetrics(scale: 1.5).selectionRadius == 33)
         #expect(HUDMetrics(scale: 1.5).keyRadius == 162)
@@ -97,10 +102,10 @@ struct ShellHUDAppearanceTests {
         #expect(HUDColors.standard.secondaryText == Color(white: HUDColors.standard.secondaryTextWhite))
     }
 
-    @Test("外枠にいるときは鍵を薄くする。「コントラストを上げる」では薄くしすぎない")
+    @Test("外枠にいるときは鍵のアイコンを薄くする。「コントラストを上げる」では薄くしすぎない")
     func dimming() {
-        #expect(HUDInkPalette.dimmedOpacity < HUDInkPalette.dimmedOpacityIncreased)
-        #expect(HUDInkPalette.dimmedOpacityIncreased <= 0.6)
+        #expect(HUDKeyPalette.dimmedIconOpacity < HUDKeyPalette.dimmedIconOpacityIncreased)
+        #expect(HUDKeyPalette.dimmedIconOpacityIncreased <= 0.6)
     }
 
     @Test("アプリのページとグローバルのページの点の間を空ける")

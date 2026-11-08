@@ -82,16 +82,10 @@ final class SettingsFakeMenus: MenuReading {
 final class SettingsFakePermissions: PermissionsProviding {
     var isAccessibilityGranted = true
     var isSecureInputActive = false
-    var isScreenCaptureGranted = false
-    var screenCaptureGrantedAtLaunch = false
     private(set) var requestCount = 0
     private(set) var openCount = 0
-    private(set) var screenCaptureRequestCount = 0
-    private(set) var screenCaptureOpenCount = 0
     func requestAccessibility() { requestCount += 1 }
     func openAccessibilitySettings() { openCount += 1 }
-    func requestScreenCapture() { screenCaptureRequestCount += 1 }
-    func openScreenCaptureSettings() { screenCaptureOpenCount += 1 }
 }
 
 @MainActor
@@ -131,10 +125,13 @@ struct SettingsFakeLoginError: LocalizedError {
 @MainActor
 final class SettingsFakeLoginItem: LoginItemControlling {
     var isEnabled = false
+    /// 登録したが、システム設定の「ログイン項目」で許可されていない（isEnabled は false。外すと消える）
+    var isWaitingForApproval = false
     var failure: (any Error)?
     func setEnabled(_ enabled: Bool) throws {
         if let failure { throw failure }
         isEnabled = enabled
+        if !enabled { isWaitingForApproval = false }
     }
 }
 

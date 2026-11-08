@@ -33,19 +33,26 @@ public struct CellIconView: View {
     }
 }
 
-/// アプリのアイコンを bundleID から引く。見つからなければ汎用のアイコン
+/// アプリのアイコンを bundleID から引く。見つからなければ汎用のアイコン。
+/// 見つからなかったアプリは覚えておかず、missRetryInterval ごとに引き直す（後から入れた・つないだボリュームのアプリも、起動し直さずに出る）
 @MainActor
 public enum AppIconCache {
     private static var cache: [String: NSImage] = [:]
+    /// 見つからなかった bundleID と、最後に引いた時刻（描くたびに引き直さない）
+    private static var misses: [String: TimeInterval] = [:]
+    static let missRetryInterval: TimeInterval = 10
+    private static let placeholder = NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil) ?? NSImage()
 
     public static func icon(forBundleID bundleID: String) -> NSImage {
         if let cached = cache[bundleID] { return cached }
-        let image: NSImage
-        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-            image = NSWorkspace.shared.icon(forFile: url.path)
-        } else {
-            image = NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil) ?? NSImage()
+        let now = ProcessInfo.processInfo.systemUptime
+        if let missed = misses[bundleID], now - missed < missRetryInterval { return placeholder }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            misses[bundleID] = now
+            return placeholder
         }
+        let image = NSWorkspace.shared.icon(forFile: url.path)
+        misses[bundleID] = nil
         cache[bundleID] = image
         return image
     }

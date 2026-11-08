@@ -95,6 +95,9 @@ enum OnboardingPracticeBlocker: Equatable {
     case noButtons
     /// 試用期間が終わっていて、9マスが開かない
     case licenseRequired
+    /// 案内のウィンドウを使っていない（キーでない・隠れている）。練習モードにならず、開くとマスを本当に実行する
+    /// （許可した後のシステム設定が前面のままのときなど）
+    case notAttended
 
     var message: String {
         switch self {
@@ -110,6 +113,8 @@ enum OnboardingPracticeBlocker: Equatable {
             String(localized: "いま使うページのマスはすべて空いています。設定でマスにアクションを入れると試せます。", bundle: .module)
         case .licenseRequired:
             String(localized: "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます。", bundle: .module)
+        case .notAttended:
+            String(localized: "このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。", bundle: .module)
         }
     }
 
@@ -121,7 +126,7 @@ enum OnboardingPracticeBlocker: Equatable {
         case .noTrackpad: .recheck
         case .noButtons: .openProfiles
         case .licenseRequired: .openLicense
-        case .secureInput: nil
+        case .secureInput, .notAttended: nil
         }
     }
 }
@@ -303,6 +308,10 @@ final class OnboardingModel {
         // 試用期間が終わっていると9マスが開かない。ライセンスキーを登録すれば（@Observable なので）知らせは消える
         if license?.canExecuteActions == false {
             return .licenseRequired
+        }
+        // 練習モードは、このウィンドウを使っている間だけ。そうでなければ「何も実行されません」とは言えない
+        if !isWindowAttended {
+            return .notAttended
         }
         return nil
     }

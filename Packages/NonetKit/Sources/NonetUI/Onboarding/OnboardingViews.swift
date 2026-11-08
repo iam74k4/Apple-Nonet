@@ -65,7 +65,10 @@ struct OnboardingView: View {
                 Text("許可すると、自動で次へ進みます", bundle: .module)
             }
         case .practice:
-            Text("練習中は、何も実行されません", bundle: .module)
+            // 練習モードは、このウィンドウを使っている間だけ（そうでなければ練習の欄で、クリックするよう知らせる）
+            if model.isWindowAttended {
+                Text("練習中は、何も実行されません", bundle: .module)
+            }
         }
     }
 

@@ -748,6 +748,19 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
     }
 
+    @Test("案内のウィンドウを使っていない（許可した後もシステム設定が前面のまま など）なら、練習にならないことを知らせる")
+    func practiceNeedsTheWindow() {
+        let (model, _) = Self.make()
+        Self.enterPractice(model)
+        #expect(model.practiceBlocker == nil)
+        model.setWindowKey(false)
+        #expect(model.practiceBlocker == .notAttended)
+        #expect(model.practiceBlocker?.message == L10n.ui("このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。"))
+        #expect(model.practiceBlocker?.remedy == nil)
+        model.setWindowKey(true)
+        #expect(model.practiceBlocker == nil)
+    }
+
     @Test("トラックパッドが無ければ、見つけ方の知らせと「もう一度確かめる」。つないで確かめ直したら練習できる")
     func practiceNoTrackpad() throws {
         let (model, harness) = Self.make()

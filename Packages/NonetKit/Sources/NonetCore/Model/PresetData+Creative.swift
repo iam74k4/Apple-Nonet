@@ -29,6 +29,7 @@ extension PresetData {
     /// 出典: https://support.apple.com/guide/final-cut-pro/keyboard-shortcuts-ver90ba5929/mac
     /// 中央: 選択中のテキストが無いので AI ではなく、編集でいちばん使うブレード ⌘B。
     /// 接続 Q・挿入 W・上書き D・追加 E・マーカー M などは修飾キーなしの単キーで、入力欄にフォーカスがあると文字が入るので入れない。
+    /// 全体を表示（表示 › 全体を表示）は ⇧Z（⇧⌘Z は「やり直す」なので使わない）。
     /// 少し長く止めてから実行する: 共有 ⌘E（書き出しが始まり、時間が掛かる）
     static var finalCut: AppPreset {
         PresetBuilder.preset(
@@ -37,7 +38,7 @@ extension PresetData {
             cells: [
                 PresetBuilder.key("読み込み", "square.and.arrow.down", .key("i", .command)),
                 PresetBuilder.key("新規プロジェクト", "film", .key("n", .command)),
-                PresetBuilder.key("全体を表示", "arrow.up.left.and.arrow.down.right", .key("z", [.shift, .command])),
+                PresetBuilder.key("全体を表示", "arrow.up.left.and.arrow.down.right", .key("z", .shift)),
                 PresetBuilder.key("ソロ", "headphones", .key("s", .option)),
                 PresetBuilder.key("ブレード", "scissors", .key("b", .command)),
                 PresetBuilder.key("すべてブレード", "scissors.badge.ellipsis", .key("b", [.shift, .command])),

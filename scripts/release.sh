@@ -927,8 +927,10 @@ main() {
   if [[ -n "$NOTES" ]]; then
     cp -f "$NOTES" "$appcast_dir/Nonet-$VERSION.${NOTES##*.}"
   fi
-  # -o が無いと generate_appcast は SUFeedURL の最後の名前（例: nonet.xml）で読み書きするので、手元の名前を決めておく
-  local appcast_args=(--account "$SPARKLE_ACCOUNT" --download-url-prefix "$prefix" -o "$appcast_dir/appcast.xml")
+  # -o が無いと generate_appcast は SUFeedURL の最後の名前（例: nonet.xml）で読み書きするので、手元の名前を決めておく。
+  # --maximum-versions 0: 既定（3）では古い版の項目を appcast から消し、その DMG を old_updates/ へ移す。
+  # 出した版の番号を使い直さない確かめ（reused_version_problem・existing_dmg_problem・publish.sh）は、appcast にすべての版が残る前提
+  local appcast_args=(--account "$SPARKLE_ACCOUNT" --download-url-prefix "$prefix" --maximum-versions 0 -o "$appcast_dir/appcast.xml")
   [[ -z "$NOTES" ]] || appcast_args+=(--embed-release-notes)
   run_logged "$WORK/generate_appcast.log" "$SPARKLE_BIN/generate_appcast" "${appcast_args[@]}" "$appcast_dir"
   grep -q "<sparkle:version>$BUILD</sparkle:version>" "$appcast_dir/appcast.xml" 2>/dev/null ||

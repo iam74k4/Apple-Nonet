@@ -97,13 +97,12 @@ struct SettingsUninstaller {
         guard targets.app.pathExtension == "app" else { throw SettingsUninstallError.notAnApp }
         var result = SettingsUninstallResult()
         let wasLoginItemEnabled = loginItem.isEnabled
-        if wasLoginItemEnabled {
-            do {
-                try loginItem.setEnabled(false)
-            } catch {
-                uninstallLog.error("ログイン時の起動を止められませんでした: \(error.localizedDescription, privacy: .public)")
-                result.loginItemFailed = true
-            }
+        // 動いている登録だけでなく、システム設定での許可待ちの登録も外す（setEnabled(false) は、登録が無ければ何もしない）
+        do {
+            try loginItem.setEnabled(false)
+        } catch {
+            uninstallLog.error("ログイン時の起動を止められませんでした: \(error.localizedDescription, privacy: .public)")
+            result.loginItemFailed = true
         }
         do {
             try trash.moveToTrash(targets.app)

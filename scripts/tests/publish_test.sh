@@ -487,6 +487,12 @@ test_publish_refuses_when_the_published_state_is_unexpected() {
   publish 1.2.0
   assert_refused "ビルド 42 はもう公開されていて、R2 の Nonet-1.2.0.dmg は手元のものと中身が違います"
 
+  # 同じ版を別のビルドでもう公開している（手元の appcast が古いまま --force-local-appcast で作り直した など）
+  prepare_publish
+  write_release_appcast "$R2/appcast.xml" "$(release_item 41 1.2.0)"
+  publish 1.2.0
+  assert_refused "版 1.2.0（Nonet-1.2.0.dmg）はビルド 41 としてもう公開されています"
+
   # 公開中の appcast の場所が HTML のページを返す（SPA のフォールバックなど）
   prepare_publish
   printf '<!doctype html><html><body>Nonet</body></html>\n' >"$R2/appcast.xml"

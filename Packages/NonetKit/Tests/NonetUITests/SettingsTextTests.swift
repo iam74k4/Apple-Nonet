@@ -15,7 +15,7 @@ import Testing
     /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
     @Test func theOpenGestureIsExplained() {
         #expect(SettingsText.openGestureTitle == L10n.ui("開き方とやめ方"))
-        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。右か左の外へ出して止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。"))
+        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。"))
     }
 
     @Test func tabTitles() {
@@ -77,6 +77,15 @@ import Testing
     private func review(_ action: Action) -> [String] {
         let cell = Cell(title: "x", icon: .symbol("x"), action: action)
         return SettingsText.reviewLines(for: SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell)).map(\.text)
+    }
+
+    /// ショートカット.app のショートカットは、読み込む前にその名前と、選択中のテキストを渡すかを見せる（何でも実行できるため）
+    @Test func shortcutsAreShownInTheImportReview() {
+        #expect(review(.shortcut(ShortcutAction(name: "ダウンロードを片付ける", passSelectedText: true))) == [
+            L10n.ui("実行するショートカット: \("ダウンロードを片付ける")"),
+            L10n.ui("選択中のテキストをショートカットに渡します"),
+        ])
+        #expect(review(.shortcut(ShortcutAction(name: "Hello"))) == [L10n.ui("実行するショートカット: \("Hello")")])
     }
 
     /// 打つ文字は「」でまとめ、修飾キーのある打鍵は表記で並べる。長くても切らない（押すキーをすべて見せる）

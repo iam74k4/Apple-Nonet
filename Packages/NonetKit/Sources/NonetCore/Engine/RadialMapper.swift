@@ -6,8 +6,10 @@ import Foundation
 /// HUD（NonetUI）が描く位置と、ポインタの位置をマスに写す RadialMapper が同じ値を使う。
 /// 8つの鍵（アイコン）が半径 keyRadius の円の上に 45° おきに並び、真ん中に 9つ目（中央のマス）。皿も輪も無く、アイコンだけ
 public enum RadialLayout {
-    /// ここより外は外枠（離すとやめる。左右なら、止めるとページ）。見えない線だが、越えると全部が薄くなるので手がすぐ覚える
+    /// ここより外は外枠（離すとやめる。止めると、左右はページ、上下は層を切り替える）。見えない線だが、越えるとアイコンが全部薄くなるので手がすぐ覚える
     public static let outerRadius: Double = 134
+    /// 外枠のうち、止めると切り替える帯の外端。これより遠くで止めても何も起きない（迷って止まりたいときの逃げ場。離せばどこでもやめる）
+    public static let pagingOuterRadius: Double = 210
     /// 8つの鍵の中心が乗る円
     public static let keyRadius: Double = 108
     /// ここより内側は中央のマス（鍵と中央の中ほど。鍵の円 108 と中央の間で、中央の玉（半径 22）より十分広い）
@@ -18,7 +20,7 @@ public enum RadialLayout {
     public static let centerCell = 4
     /// 鍵と鍵の間の角度
     public static let slotAngle: Double = 360 / Double(ringCells.count)
-    /// 外枠のうち、止めるとページを切り替える左右の範囲（真横から上下にこの角度まで。右上・右下の斜めも含む）
+    /// 外枠の帯を上下左右に分ける角度（それぞれの真ん中の向きから、この角度まで。斜めは左右に入る）
     public static let pagingHalfAngle: Double = 45
 
     /// 鍵 slot（0 が上、時計回り）の中心の向き（度。右が 0、時計回り）
@@ -78,22 +80,22 @@ public struct RadialMapper: Equatable, Sendable {
         return .cell(RadialLayout.ringCells[Self.slot(at: angle)])
     }
 
-    /// 外枠のうち、止めるとページを切り替える側。外枠にいるとき（zone が .frame）だけ呼ぶ。
-    /// current はいま止めている側。その側の端では、角度のヒステリシスの分だけ保つ（境目で止めた指の揺れで数え直さないように）
+    /// 外枠のうち、止めると切り替える側（左右はページ、上は前の層、下は次の層）。外枠にいるとき（zone が .frame）だけ呼ぶ。
+    /// 帯の外端（pagingOuterRadius）より遠ければ nil（止めても何も起きない）。
+    /// current はいま止めている側。その側の端と帯の外端では、ヒステリシスの分だけ保つ（境目で止めた指の揺れで数え直さないように）
     public func pagingEdge(dx: Double, dy: Double, current: PageEdge? = nil) -> PageEdge? {
         guard dx.isFinite, dy.isFinite, dx != 0 || dy != 0 else { return nil }
+        let outerLimit = RadialLayout.pagingOuterRadius + (current == nil ? 0 : radialHysteresis)
+        guard hypot(dx, dy) <= outerLimit else { return nil }
         let angle = atan2(dy, dx) * 180 / .pi
-        let toRight = abs(Self.difference(angle, 0))
-        let toLeft = abs(Self.difference(angle, 180))
+        // y は下向きなので、上は -90°、下は 90°
+        let centers: [(PageEdge, Double)] = [(.right, 0), (.left, 180), (.up, -90), (.down, 90)]
         let limit = RadialLayout.pagingHalfAngle
-        switch current {
-        case .right? where toRight <= limit + angularHysteresis: return .right
-        case .left? where toLeft <= limit + angularHysteresis: return .left
-        default: break
+        if let current, let center = centers.first(where: { $0.0 == current })?.1,
+           abs(Self.difference(angle, center)) <= limit + angularHysteresis {
+            return current
         }
-        if toRight <= limit { return .right }
-        if toLeft <= limit { return .left }
-        return nil
+        return centers.first { abs(Self.difference(angle, $0.1)) <= limit }?.0
     }
 
     /// 向き（度）にいちばん近い鍵（0 が上、時計回り）

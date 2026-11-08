@@ -27,7 +27,7 @@ IDS = [
     (2, "updates"),
     (2, "troubleshooting"), (3, "no-accessibility"), (3, "secure-input"), (3, "no-trackpad"),
     (3, "nothing-happens"), (3, "menu-bar-icon-missing"), (3, "opens-by-accident"), (3, "pointer-stuck"),
-    (3, "wrong-button"), (3, "script-fails"), (3, "automation"), (3, "menu-item-fails"),
+    (3, "wrong-button"), (3, "script-fails"), (3, "automation"), (3, "screen-recording"), (3, "menu-item-fails"),
     (3, "ai-unavailable"), (3, "selected-text"), (3, "no-haptics"), (3, "login-item"), (3, "damaged-settings"), (3, "reset"),
     (2, "uninstall"),
 ]

@@ -30,42 +30,7 @@ enum SettingsText {
     }
 
     static var openGestureDetail: String {
-        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。右か左の外へ出して止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
-    }
-
-    /// 「背景に合わせて色を変える」（GlobalSettings.adaptiveHUDInk）
-    static var adaptiveInkTitle: String {
-        String(localized: "背景に合わせて色を変える", bundle: .module)
-    }
-
-    static var adaptiveInkDetail: String {
-        String(localized: "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません", bundle: .module)
-    }
-
-    /// 画面収録の許可が無いときの知らせ（スイッチがオンのとき）
-    static var screenCaptureNeeded: String {
-        String(localized: "測るには「画面収録」の許可が必要です。許可が無い間は、黒いアイコンに白い縁で表示します。", bundle: .module)
-    }
-
-    static var screenCaptureGranted: String {
-        String(localized: "「画面収録」は許可されています", bundle: .module)
-    }
-
-    /// 許可はあるが、このプロセスでは効かない（起動した後に許可した）
-    static var screenCaptureNeedsRelaunch: String {
-        String(localized: "「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。", bundle: .module)
-    }
-
-    static var relaunchButton: String {
-        String(localized: "Nonet を開き直す", bundle: .module)
-    }
-
-    static var screenCaptureRequestButton: String {
-        String(localized: "許可を求める…", bundle: .module)
-    }
-
-    static var screenCaptureSettingsButton: String {
-        String(localized: "システム設定を開く…", bundle: .module)
+        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
     }
 
     static func name(_ sensitivity: OpenSensitivity) -> String {

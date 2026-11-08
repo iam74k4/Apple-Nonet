@@ -44,9 +44,15 @@ public struct HUDHold: Equatable, Sendable {
     }
 }
 
-/// 左右の外枠に指を止めている間の、ページを切り替えるまでの進み具合（SessionEdgePaging）
+/// アプリのページとグローバルのページの2つの層があるときの、いまの層
+public enum HUDLayer: Equatable, Sendable {
+    case app
+    case global
+}
+
+/// 外枠の帯に指を止めている間の、ページか層を切り替えるまでの進み具合（SessionEdgePaging）
 public struct HUDEdgePaging: Equatable, Sendable {
-    /// 指を止めている側。左は前のページ、右は次のページ
+    /// 指を止めている側。左は前のページ、右は次のページ、下はグローバルの層、上はアプリの層
     public var edge: PageEdge
     /// 止め始めた時刻（Scheduler.now の秒）。HUD は、これが変わったら進み具合を最初から満たし直す
     public var since: TimeInterval
@@ -64,6 +70,7 @@ public struct HUDEdgePaging: Equatable, Sendable {
 public struct HUDModel: Equatable, Sendable {
     /// プロファイル名
     public var title: String
+    /// いまの層（layer）の中でのページの番号と数
     public var pageIndex: Int
     public var pageCount: Int
     /// 常に9個。nil は空きマス
@@ -74,7 +81,7 @@ public struct HUDModel: Equatable, Sendable {
     public var isFingerInFrame: Bool
     /// 少し長く止めてから実行するマスに指を止めている間の進み具合。そのマスを光らせていなければ nil
     public var hold: HUDHold?
-    /// 指が左右の外枠にあり、そちらにページがあるときの、切り替えるまでの進み具合。HUD は外枠の帯に進み具合を、
+    /// 指が外枠の帯にあり、その側に切り替える先（ページか層）があるときの、切り替えるまでの進み具合。HUD は外枠の帯に進み具合を、
     /// 「離すとやめる」の下に「止めると次のページ」を出す
     public var edgePaging: HUDEdgePaging?
     /// 指が境目の線の上にあり、いま離しても実行しない。HUD は光っているマスを塗らず、空きマスと同じく枠だけで示す
@@ -88,18 +95,19 @@ public struct HUDModel: Equatable, Sendable {
     /// 上部の注意書き（例: 試用期間の終了）
     public var banner: String?
     public var bannerStyle: HUDBannerStyle
-    /// アプリのページの後ろにグローバルのページをつなげたとき、グローバルの最初のページの位置。
-    /// ページの点をそこで少し離す。つなげていなければ nil
-    public var globalPagesStart: Int?
+    /// アプリとグローバルの2つの層があるときの、いまの層（グローバルの層は台を紺に寄せる）。層が1つなら nil
+    public var layer: HUDLayer?
+    /// 最後にページか層を切り替えた向き（SessionHUDState.lastTurn）。HUD は切り替わったときに、この向きへ輪を押し出す
+    public var lastTurn: PageEdge?
     /// 寸法と文字に掛ける倍率（設定の「HUD の大きさ」。HUDScale.factor）
     public var scale: Double
-    /// アイコンの色を下地に合わせる（設定の「背景に合わせて色を変える」。GlobalSettings.adaptiveHUDInk）。
-    /// HUD は出すときに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白で描く（画面収録の許可が無ければ測らない）
-    public var adaptsInk: Bool
     /// 開いた直後で、ポインタがまだ真ん中から出ていない（ControllerPointerSelection.isWaitingAtCenter）。
     /// エンジンには外枠として伝えているので isFingerInFrame も true になるが（離しても何も起きない）、
     /// HUD は「離すとやめる」の薄い見た目にせず、まだ何も選んでいない見た目で出す（開くたびに薄くなっては、選べないように見える）
     public var isWaitingAtCenter: Bool
+    /// 外枠の帯に止めても切り替える先が無いときの案内（SessionHUDState.edgeHint。上下は ControllerPresentation.layerHint、
+    /// 左右は ControllerPresentation.sidePageHint）。HUD は真ん中の鍵の下に出し、VoiceOver でも読む
+    public var edgeHint: String?
 
     public init(
         title: String,
@@ -116,10 +124,11 @@ public struct HUDModel: Equatable, Sendable {
         isPractice: Bool = false,
         banner: String? = nil,
         bannerStyle: HUDBannerStyle = .warning,
-        globalPagesStart: Int? = nil,
+        layer: HUDLayer? = nil,
+        lastTurn: PageEdge? = nil,
         scale: Double = 1,
-        adaptsInk: Bool = false,
-        isWaitingAtCenter: Bool = false
+        isWaitingAtCenter: Bool = false,
+        edgeHint: String? = nil
     ) {
         self.title = title
         self.pageIndex = pageIndex
@@ -135,10 +144,11 @@ public struct HUDModel: Equatable, Sendable {
         self.isPractice = isPractice
         self.banner = banner
         self.bannerStyle = bannerStyle
-        self.globalPagesStart = globalPagesStart
+        self.layer = layer
+        self.lastTurn = lastTurn
         self.scale = scale
-        self.adaptsInk = adaptsInk
         self.isWaitingAtCenter = isWaitingAtCenter
+        self.edgeHint = edgeHint
     }
 }
 

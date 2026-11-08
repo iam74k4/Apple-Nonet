@@ -66,6 +66,21 @@ import Testing
         #expect(h.haptics.plays.isEmpty)
     }
 
+    /// 待つ間に、滑らせた指が離れたフレームで別の指が触れたら（指が入れ替わった）、開かない。その指は縁から滑らせていない
+    @Test func aSwappedFingerDuringTheConfirmDelayCancelsOpening() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.advance(0.03)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        h.advance(EdgeSlideRecognizer.entryConfirmDelay / 2)
+        h.replaceFingers(with: [2: (0.4, 0.5)])
+        h.advance(0.2)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.hud.shown.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
     /// 待つ間に指が離れたら（短くなぞっただけ）、開かない
     @Test func liftingDuringTheConfirmDelayCancelsOpening() throws {
         let h = try ControllerHarness()
@@ -335,22 +350,31 @@ import Testing
         #expect(h.keyboard.suppressionAfterEvent == [false])
     }
 
-    /// 2本指で横にスワイプするとページが変わり、残った指を滑らせて選べる（アプリのページの後ろにグローバルのページ）
-    @Test func twoFingerSwipesTurnPagesAcrossTheAppAndGlobalPages() async throws {
+    /// 2本指で横にスワイプするとページが変わり、残った指を滑らせて選べる。スワイプはアプリの層の中で輪になり
+    /// （最後のページの次は最初のページ）、グローバルのページへは下の帯に止めて移る（強めの1打）
+    @Test func twoFingerSwipesStayInTheLayerAndRestingDownReachesTheGlobalPages() async throws {
         let h = try ControllerHarness()
         h.start()
         h.open()
         h.advance(0.05)
-        for expected in [1, 2] {
+        for expected in [1, 0] {
             h.touch(1, x: 0.5, y: 0.5)
             h.touch(2, x: 0.7, y: 0.5)
             h.touch(1, x: 0.3, y: 0.5)
             h.touch(2, x: 0.5, y: 0.5)
             #expect(h.hud.current?.pageIndex == expected)
+            #expect(h.hud.current?.layer == .app)
             h.lift(2)
         }
-        #expect(h.hud.current?.title == ModelFixtures.globalName)
         #expect(h.haptics.events.filter { $0 == .pageChange }.count == 2)
+        #expect(!h.haptics.events.contains(.rejected))
+
+        h.touch(1, x: 0.5, y: 0.04)
+        h.advance(SessionConfiguration.defaultEdgePageDwell + 0.05)
+        #expect(h.hud.current?.layer == .global)
+        #expect(h.hud.current?.title == ModelFixtures.globalName)
+        #expect(h.hud.current?.lastTurn == .down)
+        #expect(h.haptics.events.contains(.layerChange))
         h.touch(on: 8)
         h.advance(0.3)
         h.lift()

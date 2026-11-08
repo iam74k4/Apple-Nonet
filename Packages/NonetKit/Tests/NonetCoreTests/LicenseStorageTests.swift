@@ -188,6 +188,19 @@ private final class StorageSandbox {
         storage.trialStartDate = nil
     }
 
+    /// アンインストールで設定のフォルダをゴミ箱に入れた後は、数え直しても試用の記録の写しでフォルダを作り直さない
+    @MainActor @Test func stoppedRecordingDoesNotRecreateTheFolder() throws {
+        let storage = sandbox.makeStorage()
+        let manager = LicenseManager(verifier: nil, storage: storage, now: { Date() })
+        #expect(FileManager.default.fileExists(atPath: sandbox.mirrorFile.path))
+        let entitlement = manager.entitlement
+        manager.stopRecordingTrial()
+        try FileManager.default.removeItem(at: sandbox.directory)
+        manager.refresh()
+        #expect(!FileManager.default.fileExists(atPath: sandbox.directory.path))
+        #expect(manager.entitlement == entitlement)
+    }
+
     @Test func worksWithoutAMirrorDirectory() {
         let storage = UserDefaultsLicenseStorage(defaults: sandbox.defaults, supportDirectory: nil)
         storage.trialStartDate = date

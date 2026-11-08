@@ -597,8 +597,8 @@ kbd {
   height: 13px;
 }
 
-/* HUD: ポインタを中心にした円の上の 8つのアイコンと、真ん中の 9つ目。皿も輪も文字も無く、
-   向けたアイコンの下にだけ白い円が出る（アプリと同じ）。正方形の中の位置は --x・--y（slot-N） */
+/* HUD: ポインタを中心にした円の上の 8つのアイコンと、真ん中の 9つ目。全体の皿も輪も文字も無く、
+   アイコンは1つずつ暗い丸い台に白、向けたアイコンだけ白い円に濃いアイコン（アプリと同じ）。正方形の中の位置は --x・--y（slot-N） */
 .hud {
   position: absolute;
   left: 50%;
@@ -622,8 +622,26 @@ kbd {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--fg);
+  color: #ffffff;
   transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
+}
+
+/* アイコンの下の暗い台（アプリの HUDPlate）。白い円より一回り小さく（30px と 34px。アプリは 36pt と 44pt）、
+   どの地の上でも白いアイコンが読める濃さ。台の下はぼかす。向けたアイコンでは消えて白い円になる */
+.cell::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: rgba(26, 26, 26, 0.68);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 1px 3px rgba(0, 0, 0, 0.25);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: opacity 0.12s ease;
+}
+
+.cell.on::before {
+  opacity: 0;
 }
 
 /* 上から時計回り。slot-0 が上（実行）、slot-2 が右、slot-4 が下、slot-6 が左。真ん中は slot-c */
@@ -636,12 +654,13 @@ kbd {
 .slot-6 { --x: calc(50% - var(--ring)); --y: 50%; }
 .slot-7 { --x: calc(50% - var(--ring-diagonal)); --y: calc(50% - var(--ring-diagonal)); }
 
-/* アイコンは黒に白い縁（アプリの、下地に合わせないときの色）。ダークのサイトでは地の色の縁 */
+/* アイコンは台の上に白（台より手前に描く） */
 .cell .icon {
+  position: relative;
   width: 18px;
   height: 18px;
   stroke-width: 1.9;
-  filter: drop-shadow(0 0 1px var(--bg-soft)) drop-shadow(0 0 1px var(--bg-soft));
+  transition: opacity 0.12s ease;
 }
 
 .slot-c .icon {
@@ -649,15 +668,11 @@ kbd {
   height: 16px;
 }
 
-/* 向けているアイコン: 白い円に濃いアイコン（いま離すと実行） */
+/* 向けているアイコン: 白い円に濃いアイコン（いま離すと実行）。細い暗い縁で、明るい地でも台の並びの穴に見えない */
 .cell.on {
   background: #ffffff;
   color: #111111;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.22);
-}
-
-.cell.on .icon {
-  filter: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 0 12px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.22);
 }
 
 .cell.fire {
@@ -852,9 +867,10 @@ kbd {
   opacity: 1;
 }
 
-/* ポインタがアイコンの輪の外にある: 全部のアイコンが薄くなる（離しても何も実行しない。アプリと同じで文字は出さない） */
-.demo.is-live.in-frame .cell {
-  opacity: 0.35;
+/* ポインタがアイコンの輪の外にある: 全部のアイコンが薄くなる（離しても何も実行しない。アプリと同じで文字は出さない）。
+   台は残し、アイコンだけを薄くする（台ごと薄くすると、明るい地でアイコンが消える） */
+.demo.is-live.in-frame .cell .icon {
+  opacity: 0.4;
 }
 
 /* 動いている間、名前は向けたまま止めたときだけ出る */

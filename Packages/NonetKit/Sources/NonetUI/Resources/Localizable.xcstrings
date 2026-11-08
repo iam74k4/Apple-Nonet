@@ -1394,6 +1394,7 @@
       }
     },
     "Nonet を開き直す" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2045,6 +2046,7 @@
       }
     },
     "「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2055,6 +2057,7 @@
       }
     },
     "「画面収録」は許可されています" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2330,6 +2333,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You can't choose this app because it has no bundle ID."
+          }
+        }
+      }
+    },
+    "このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click this window to start practicing. While you use another app, buttons really run."
           }
         }
       }
@@ -4180,6 +4193,7 @@
       }
     },
     "システム設定を開く…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4712,11 +4726,22 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。右か左の外へ出して止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift, or press any key. Hold the pointer outside the ring to the right or left to change pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift, or press any key. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
           }
         }
       }
@@ -7371,6 +7396,16 @@
         }
       }
     },
+    "実行するショートカット: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs the shortcut: %@"
+          }
+        }
+      }
+    },
     "実行するスクリプト" : {
       "localizations" : {
         "en" : {
@@ -8069,6 +8104,26 @@
         }
       }
     },
+    "止めるとアプリのページへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for the app's pages"
+          }
+        }
+      }
+    },
+    "止めるとグローバルのページへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for the global pages"
+          }
+        }
+      }
+    },
     "止めると前のページ" : {
       "localizations" : {
         "en" : {
@@ -8131,6 +8186,7 @@
       }
     },
     "測るには「画面収録」の許可が必要です。許可が無い間は、黒いアイコンに白い縁で表示します。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8818,6 +8874,7 @@
       }
     },
     "背景に合わせて色を変える" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9149,6 +9206,7 @@
       }
     },
     "許可を求める…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9795,6 +9853,16 @@
         }
       }
     },
+    "選択中のテキストをショートカットに渡します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passes the selected text to the shortcut"
+          }
+        }
+      }
+    },
     "選択中のテキストを渡す" : {
       "localizations" : {
         "en" : {
@@ -9939,6 +10007,7 @@
       }
     },
     "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

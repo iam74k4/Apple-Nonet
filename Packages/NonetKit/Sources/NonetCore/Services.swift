@@ -126,13 +126,15 @@ public enum HapticEvent: Equatable, Sendable {
     /// 指がマスの境界をまたいだ
     case boundary
     case pageChange
+    /// 上下の帯に止めて、アプリとグローバルの層を切り替えた（ページの2打と指で見分けられる、強めの1打）
+    case layerChange
     /// 少し長く止めるマスを止め終えた（いま離すと実行する）
     case holdReady
     case execute
     /// トラックパッドの上の縁から指を滑らせて9マスを開いた（開いたことを指に知らせる）
     case activation
     /// 受け付けたが何もしなかった（外枠・境界の帯・空きマスで離した・止める時間が足りずに離した・2本以上の指で離した・
-    /// 試用期間の終了や Nonet のウィンドウで実行しなかった・最初や最後のページから先へスワイプした）。
+    /// 試用期間の終了や Nonet のウィンドウで実行しなかった・切り替える先の無い向きへスワイプした）。
     /// 「何も起きなかった」と「届かなかった」を指で見分けられるように
     case rejected
 }
@@ -233,23 +235,6 @@ public protocol PermissionsProviding: AnyObject {
     func openAccessibilitySettings()
     /// パスワード入力中など、キーの監視ができない状態
     var isSecureInputActive: Bool { get }
-    /// 「画面収録」の許可（HUD のアイコンの色を下地に合わせるために、HUD の下の画面の明るさを測る。GlobalSettings.adaptiveHUDInk）。
-    /// 任意の許可で、無くても Nonet は動く
-    var isScreenCaptureGranted: Bool { get }
-    /// 起動したときに「画面収録」の許可があったか。macOS はこの許可を、与えた後に開き直したプロセスから効かせるので、
-    /// 起動時に無くて今はある（isScreenCaptureGranted）なら、Nonet を開き直すまで撮れない
-    var screenCaptureGrantedAtLaunch: Bool { get }
-    /// システムの許可ダイアログを出す（すでに断られていれば、システム設定で変える）
-    func requestScreenCapture()
-    func openScreenCaptureSettings()
-}
-
-extension PermissionsProviding {
-    /// 画面収録を扱わない実装の既定（許可は無く、求めない）
-    public var isScreenCaptureGranted: Bool { false }
-    public var screenCaptureGrantedAtLaunch: Bool { isScreenCaptureGranted }
-    public func requestScreenCapture() {}
-    public func openScreenCaptureSettings() {}
 }
 
 @MainActor

@@ -70,10 +70,10 @@ public enum ShellMoveToApplications {
         guard ShellInstallLocation.of(bundleURL: source) == .temporary else { return false }
         logger.notice("一時的な場所から開かれています: \(source.path, privacy: .private)")
         let fileManager = FileManager.default
-        let directory = targetDirectory(
-            isSystemWritable: fileManager.isWritableFile(atPath: applicationsDirectory.path),
-            home: fileManager.homeDirectoryForCurrentUser
-        )
+        let home = fileManager.homeDirectoryForCurrentUser
+        // すでに入っている Nonet があれば、そのフォルダで置き換える（別のフォルダに2つ目を入れない。Sparkle やアンインストールは片方しか扱わない）
+        let directory = existingInstallDirectory(for: source, home: home, exists: { fileManager.fileExists(atPath: $0) })
+            ?? targetDirectory(isSystemWritable: fileManager.isWritableFile(atPath: applicationsDirectory.path), home: home)
         let destination = destination(for: source, in: directory)
         let plan = plan(
             destinationExists: fileManager.fileExists(atPath: destination.path),
@@ -153,6 +153,13 @@ public enum ShellMoveToApplications {
             return fileManager.isWritableFile(atPath: directory.deletingLastPathComponent().path)
         }
         return fileManager.isWritableFile(atPath: directory.path)
+    }
+
+    /// source と同じ名前の Nonet がすでに入っているフォルダ（/Applications、無ければホームの「アプリケーション」）。どちらにも無ければ nil。
+    /// /Applications にあって書き込めない（管理者が入れた）なら、ホームに2つ目を入れずに、移し方を伝える（plan が explain）
+    static func existingInstallDirectory(for source: URL, home: URL, exists: (String) -> Bool) -> URL? {
+        [applicationsDirectory, home.appendingPathComponent("Applications", isDirectory: true)]
+            .first { exists(destination(for: source, in: $0).path) }
     }
 
     static func destination(for source: URL, in applications: URL) -> URL {

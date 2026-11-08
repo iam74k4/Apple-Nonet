@@ -484,7 +484,7 @@ struct ShellMenuBarTests {
             license: harness.license,
             canCheckForUpdates: false,
             frontApp: xcode,
-            links: AppLinks(purchase: try #require(URL(string: "https://example.com/buy")), support: try #require(URL(string: "https://example.com/guide")))
+            links: AppLinks(purchase: URL(string: "https://example.com/buy"), support: URL(string: "https://example.com/guide"))
         )
         let xcodeName = try #require(harness.controller.configuration.appProfile(forBundleID: ShellFixtures.xcode)).name
         #expect(linked.editTarget == .app(xcode, name: xcodeName))

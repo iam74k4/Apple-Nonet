@@ -335,6 +335,14 @@ struct ShellInstallTests {
         let home = URL(fileURLWithPath: "/Users/me", isDirectory: true)
         #expect(ShellMoveToApplications.targetDirectory(isSystemWritable: true, home: home).path == "/Applications")
         #expect(ShellMoveToApplications.targetDirectory(isSystemWritable: false, home: home).path == "/Users/me/Applications")
+        // すでに入っている Nonet があれば、そのフォルダ（別のフォルダに2つ目を入れない）。/Applications を先に見る
+        let source = URL(fileURLWithPath: "/Volumes/Nonet/Nonet.app")
+        let inSystem: Set<String> = ["/Applications/Nonet.app"]
+        let inHome: Set<String> = ["/Users/me/Applications/Nonet.app"]
+        #expect(ShellMoveToApplications.existingInstallDirectory(for: source, home: home, exists: inSystem.contains)?.path == "/Applications")
+        #expect(ShellMoveToApplications.existingInstallDirectory(for: source, home: home, exists: inHome.contains)?.path == "/Users/me/Applications")
+        #expect(ShellMoveToApplications.existingInstallDirectory(for: source, home: home, exists: inSystem.union(inHome).contains)?.path == "/Applications")
+        #expect(ShellMoveToApplications.existingInstallDirectory(for: source, home: home, exists: { _ in false }) == nil)
 
         // まだ無いフォルダは、作る場所に書き込めれば書き込めるとみなす
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("nonet-install-\(UUID().uuidString)", isDirectory: true)

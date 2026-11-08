@@ -28,11 +28,11 @@ public struct SessionConfiguration: Equatable, Sendable {
     /// 開いた後、マスを選び始めるのに要る動き（トラックパッドを 1 とした距離）。開いた瞬間は、指がどこにあっても上の外枠にいることにし、
     /// ここまで滑らせてからマスを選ぶ。開く動きの後の 0.04 秒の待ちの間に指が上の段まで進んでいても、止めて離せば何もせずに閉じる
     public static let openTravel = 0.02
-    /// 左右の外枠で「止めている」とみなす、指の動きの許容（トラックパッドを 1 とした距離）。
+    /// 外枠の帯で「止めている」とみなす、指の動きの許容（トラックパッドを 1 とした距離）。
     /// これより動かしたら、止め始めた時刻から数え直す（行き過ぎた指を、外枠の中でゆっくり戻している間に、ページが変わらないように）。
     /// 止めた指の揺れ（1mm より十分小さい）より大きく、狙って動かせば超える 4〜5mm
     public static let edgeRestTravel = 0.03
-    /// 左右の外枠（9マスの行の横）に指を止めてから、ページを切り替えるまでの秒数。
+    /// 外枠の帯（左右はページ、上下は層）に指を止めてから、切り替えるまでの秒数。
     /// やめるつもりで外枠に出て離すまで（0.2〜0.3 秒ほど）よりは長く、待つのがもどかしくない短さ
     public static let defaultEdgePageDwell: TimeInterval = 0.5
     /// 切り替えた後も止めているとき、次に切り替えるまでの秒数。続けて送れるが、行き過ぎないよう最初より長くする
@@ -40,13 +40,16 @@ public struct SessionConfiguration: Equatable, Sendable {
 
     /// 前面アプリで使うページの数（resolvedPages の数）。1 未満は 1 とみなす
     public var pageCount: Int
+    /// 2つ目の層（グローバルのページ）の最初のページ。アプリのページの後ろにグローバルのページをつなげたとき。
+    /// 左右はその層の中だけでページを送り、下で止めるとこの層へ、上で止めるとアプリの層へ戻る。nil なら層は1つ（上下では何も起きない）
+    public var layerStart: Int?
     /// マスの境界で今のマスを保つ余裕（トラックパッド全体を 1 とした割合）
     public var hysteresis: Double
     /// 9マスの外側の枠（やめる場所）の幅
     public var frame: GridInsets
     /// 外枠と9マスの境目で今の場所を保つ余裕
     public var frameHysteresis: Double
-    /// ページを切り替える、2本の指の平均の横の移動量（トラックパッドの幅を 1 とした割合）
+    /// 切り替える、2本の指の平均の移動量（トラックパッドの幅・奥行きを 1 とした割合）。横ならページ、縦なら層
     public var swipeThreshold: Double
     public var maxDuration: TimeInterval
     /// ページごとの、中身のあるマス（0〜8）。nil や範囲外のページは、すべてのマスに中身があるとみなす。
@@ -63,6 +66,7 @@ public struct SessionConfiguration: Equatable, Sendable {
 
     public init(
         pageCount: Int = 1,
+        layerStart: Int? = nil,
         hysteresis: Double = GridMapper.defaultHysteresis,
         frame: GridInsets = .cancelFrame,
         frameHysteresis: Double = GridMapper.defaultFrameHysteresis,
@@ -77,6 +81,7 @@ public struct SessionConfiguration: Equatable, Sendable {
         edgePageRepeat: TimeInterval = SessionConfiguration.defaultEdgePageRepeat
     ) {
         self.pageCount = pageCount
+        self.layerStart = layerStart
         self.hysteresis = hysteresis
         self.frame = frame
         self.frameHysteresis = frameHysteresis
@@ -96,6 +101,8 @@ public struct SessionConfiguration: Equatable, Sendable {
         var result = self
         result.maxDuration = maxDuration.isFinite && maxDuration > 0 ? maxDuration : Self.defaultMaxDuration
         result.pageCount = max(pageCount, 1)
+        // 層の境目は、どちらの層にも1ページ以上あるときだけ
+        result.layerStart = layerStart.flatMap { $0 > 0 && $0 < result.pageCount ? $0 : nil }
         let grid = self.grid
         result.hysteresis = grid.hysteresis
         result.boundaryBand = grid.boundaryBand
@@ -177,7 +184,7 @@ public struct SessionHold: Equatable, Sendable {
     }
 }
 
-/// 左右の外枠に指を止めている間の、ページを切り替えるまでの進み具合
+/// 外枠の帯に指を止めている間の、ページか層を切り替えるまでの進み具合
 public struct SessionEdgePaging: Equatable, Sendable {
     public var edge: PageEdge
     /// 止め始めた時刻（外枠のその側に入った時刻か、前に切り替えた時刻）
@@ -202,10 +209,16 @@ public struct SessionHUDState: Equatable, Sendable {
     public var isInFrame: Bool
     /// 光っているマスが少し長く止めるマスなら、その進み具合
     public var hold: SessionHold?
-    /// 指が左右の外枠にあり、そちらにページがあれば、切り替えるまでの進み具合
+    /// 指が外枠の帯にあり、その側に切り替える先（ページか層）があれば、切り替えるまでの進み具合
     public var edgePaging: SessionEdgePaging?
     /// 指が、光っているマスと隣との境目の線の上にあり、いま離しても実行しない（止め終えた少し長く止めるマスは別。離せば実行する）
     public var isOnBoundary: Bool
+    /// 最後にページか層を切り替えた向き（右・左は次・前のページ、下・上は次・前の層。2本指のスワイプは右・左）。
+    /// HUD は、切り替わったときにこの向きへ輪を押し出す。このセッションでまだ切り替えていなければ nil
+    public var lastTurn: PageEdge?
+    /// 切り替える先の無い帯に指を edgePageDwell 止めた: その側。ページが1つの層の左右と、層が1つ（前面のアプリのページが無く、
+    /// グローバルのページだけ）の上下。HUD は、左右なら送るページが無いこと、上下ならアプリのページが無いことを案内する（HUDModel.edgeHint）。帯を出れば nil
+    public var edgeHint: PageEdge?
 
     public init(
         page: Int,
@@ -213,7 +226,9 @@ public struct SessionHUDState: Equatable, Sendable {
         isInFrame: Bool = false,
         hold: SessionHold? = nil,
         edgePaging: SessionEdgePaging? = nil,
-        isOnBoundary: Bool = false
+        isOnBoundary: Bool = false,
+        lastTurn: PageEdge? = nil,
+        edgeHint: PageEdge? = nil
     ) {
         self.page = page
         self.highlightedCell = highlightedCell
@@ -221,6 +236,8 @@ public struct SessionHUDState: Equatable, Sendable {
         self.hold = hold
         self.edgePaging = edgePaging
         self.isOnBoundary = isOnBoundary
+        self.lastTurn = lastTurn
+        self.edgeHint = edgeHint
     }
 }
 
@@ -238,7 +255,7 @@ public enum SessionEffect: Equatable, Sendable {
     case updateHUD(SessionHUDState)
     case hideHUD
     /// activation（開いた）・boundary（マスと外枠の境目をまたいだ）・pageChange・holdReady（少し長く止めるマスを止め終えた）・
-    /// rejected（何も実行せずに指を離した・端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
+    /// rejected（何も実行せずに指を離した・切り替える先の無い向きへのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする

@@ -43,9 +43,15 @@ enum URLNormalizer {
         return true
     }
 
+    /// 手元のサーバー（localhost・127.0.0.1・[::1]）は http、ほかは https。IPv6 の [ ] の中の「:」はポートの区切りではない
     private static func defaultScheme(for text: String) -> String {
-        let host = text.prefix { !"/:?#".contains($0) }.lowercased()
-        return ["localhost", "127.0.0.1", "[::1]"].contains(host) ? "http" : "https"
+        let host: String
+        if text.hasPrefix("["), let close = text.firstIndex(of: "]") {
+            host = String(text[...close])
+        } else {
+            host = String(text.prefix { !"/:?#".contains($0) })
+        }
+        return ["localhost", "127.0.0.1", "[::1]"].contains(host.lowercased()) ? "http" : "https"
     }
 
     private static func isValidHost(_ host: String) -> Bool {

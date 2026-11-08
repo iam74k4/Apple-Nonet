@@ -273,6 +273,18 @@ test_strict_mode_fails_on_placeholders() {
   assert_contains "$OUT" "TODO.invalid/buy"
 }
 
+# 試すために入れた Paddle のテスト用のトークン（test_）は、公開前の --strict で止める（残すと本当の購入ができない）
+test_strict_mode_fails_on_a_sandbox_paddle_token() {
+  write_fixture_site
+  printf '<div id="checkout" data-paddle-token="test_0123456789abcdef" data-paddle-price="pri_01abc"></div>\n' >>"$SITE/index.html"
+  check_fixture
+  assert_status 0
+  assert_contains "$OUT" "Paddle のテスト用のトークン（test_）が入っています（--strict で失敗にする）: 1 か所"
+  check_fixture --strict
+  assert_status 1
+  assert_contains "$OUT" "Paddle のテスト用のトークン（test_）が残っています"
+}
+
 # 検索に出すページは、自分の URL の canonical と、日英の組の hreflang（ja・en・x-default。どれも絶対の URL）を持つ
 test_head_needs_canonical_and_hreflang() {
   write_fixture_site

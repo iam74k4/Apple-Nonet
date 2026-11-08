@@ -22,6 +22,9 @@ public final class MultitouchTouchSource: TouchSource {
     private var runningDeviceIDs: [UInt64] = []
     private var planner = MultitouchRestartPlanner()
     private var recovery = MultitouchRecovery()
+    /// このユーザーのセッションが前面（画面に出ている）。ユーザーを切り替えて裏に回っている間は、届いた指を渡さない
+    /// （見えない9マスを開いて、裏から何かを実行しないため）
+    private var isSessionActive = true
 
     /// 抜き差しやスリープ復帰の後、デバイスが使えるようになるまで待つ秒数。指が離れるのを待つ間は、この間隔で確かめ直す
     nonisolated static let restartDelay: TimeInterval = 1
@@ -61,9 +64,15 @@ public final class MultitouchTouchSource: TouchSource {
         ]
         observations = restarts.map { center, name, reason in
             NotificationObservation(center: center, name: name) { [weak self] _ in
+                if reason == .sessionActive { self?.isSessionActive = true }
                 self?.scheduleRestart(reason)
             }
         }
+        // ユーザーを切り替えて裏に回った: 開いていれば何もせずに閉じ（指が離れたことにする）、前面に戻るまで指を渡さない
+        isSessionActive = MultitouchSession.isOnConsole()
+        observations.append(NotificationObservation(center: workspace, name: NSWorkspace.sessionDidResignActiveNotification) { [weak self] _ in
+            self?.sessionDidResign()
+        })
         // 通知を取りこぼしても追いつけるよう、一覧をときどき見直す（間隔は長く、時刻はゆるくして電力を使わない）
         let timer = Timer(timeInterval: MultitouchRecovery.listCheckInterval, repeats: true) { [weak self] timer in
             MainActor.assumeIsolated {
@@ -161,9 +170,18 @@ public final class MultitouchTouchSource: TouchSource {
         }
     }
 
+    private func sessionDidResign() {
+        guard isRunning, isSessionActive else { return }
+        isSessionActive = false
+        inputLogger.info("ユーザーが切り替わったので、前面に戻るまで指を受け取らない")
+        deliver(TouchFrame(timestamp: ProcessInfo.processInfo.systemUptime, points: [], isSynthesizedLift: true), from: nil)
+    }
+
     private func drainFrames() {
         guard isRunning, let connection else { return }
         let (frames, device) = connection.pipeline.drain()
+        // 裏に回っている間に届いた指は捨てる（ためておくと、前面に戻ったときに古い指が届く）
+        guard isSessionActive else { return }
         if let device { MultitouchActivity.lastTouchedDeviceID = device }
         for frame in frames {
             guard isRunning else { return }
@@ -174,6 +192,16 @@ public final class MultitouchTouchSource: TouchSource {
     private func deliver(_ frame: TouchFrame, from device: UInt64?) {
         planner.delivered(frame, from: device)
         onFrame?(frame)
+    }
+}
+
+/// このプロセスのユーザーのセッションが、画面に出ている（ユーザーの切り替えで裏に回っていない）か
+enum MultitouchSession {
+    /// 分からなければ（辞書が無い・キーが無い）前面とみなす（指を受け取らなくなるより安全）
+    static func isOnConsole() -> Bool {
+        guard let info = CGSessionCopyCurrentDictionary() as? [String: Any],
+              let onConsole = info[kCGSessionOnConsoleKey as String] as? Bool else { return true }
+        return onConsole
     }
 }
 

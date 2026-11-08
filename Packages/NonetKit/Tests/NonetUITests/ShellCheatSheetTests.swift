@@ -50,7 +50,7 @@ struct ShellCheatSheetTests {
         "noProfile", "usesGlobal", "unknownApp",
     ])
     func globalFallback(_ situation: String) {
-        var configuration = SettingsFixtures.configuration()
+        let configuration = SettingsFixtures.configuration()
         var front: AppReference? = Self.xcode
         switch situation {
         case "noProfile": front = SettingsFixtures.figma
