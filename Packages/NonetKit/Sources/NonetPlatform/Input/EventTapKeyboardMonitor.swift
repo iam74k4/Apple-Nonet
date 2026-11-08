@@ -23,10 +23,32 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// トラックパッドにいま指が触れているか。抑止中に、触れていない間に届いたマウスやホイールのイベントでセッションを終える
     public var isTrackpadTouched: Bool {
         get { contact.isTouched }
-        set { contact.update(isTouched: newValue, at: now()) }
+        set {
+            contact.update(isTouched: newValue, at: now())
+            updateTouchActivity(touched: newValue)
+        }
     }
 
-    public var isRunning: Bool { keyboardTap != nil }
+    /// トラックパッドに触れている間の ProcessInfo のアクティビティ。メニューバーのアプリは、ウィンドウが無いと App Nap で
+    /// タイマーがまとめて遅らされることがある。触れている間だけ遅らせないようにする（開く前の entryConfirmDelay、
+    /// 止めて切り替えるまでの 0.5 秒、少し長く止めるマス）。離せば終える（電力を使い続けない）
+    private var touchActivity: NSObjectProtocol?
+
+    private func updateTouchActivity(touched: Bool) {
+        if touched, touchActivity == nil {
+            touchActivity = ProcessInfo.processInfo.beginActivity(
+                options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
+                reason: "トラックパッドに触れている"
+            )
+        } else if !touched, let activity = touchActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            touchActivity = nil
+        }
+    }
+
+    /// 両方のタップがあり、システムに無効にされていない（アクセシビリティを切ると、タップの Mach ポートが無効になることがある。
+    /// 2秒ごとの確かめの間に切って入れ直しても、ここが false になれば start で作り直す）
+    public var isRunning: Bool { keyboardTap?.isAlive == true && pointerTap?.isAlive == true }
 
     /// 見るボタンの番号（0: 左・1: 右・2: 真ん中、その先はマウスの追加のボタン。CGMouseButton は 32 個まで）
     static let watchedButtons: Range<Int64> = 0..<32
@@ -106,6 +128,11 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
 
     public func start() throws {
         guard !isRunning else { return }
+        // システムに無効にされたタップが残っていれば、外してから作り直す
+        if keyboardTap != nil || pointerTap != nil {
+            inputLogger.notice("イベントタップが無効になっていたので、作り直す")
+            stop()
+        }
         guard isAccessibilityTrusted() else {
             throw NonetError.permissionDenied(InputText.accessibility)
         }
@@ -483,6 +510,11 @@ final class EventTapConnection {
     func setEnabled(_ enabled: Bool) {
         guard isValid else { return }
         CGEvent.tapEnable(tap: tap, enable: enabled)
+    }
+
+    /// 外していなくて、システムにも無効にされていない
+    var isAlive: Bool {
+        isValid && CFMachPortIsValid(tap)
     }
 
     func invalidate() {
