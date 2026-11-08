@@ -28,7 +28,7 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
 
   撮ったあとは、メニューバーの左側に画面が写っていないかを、0.5 秒ごとのフレームの明るさで確かめてから中身を見る（背景が消えると、ユーザーの画面が写る。`--demo-start-file` は、録画が止まって go を消すまで背景を出したままにする）。AstLog の動画は H.264 の MP4・10MB まで・HEVC は不可。
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
-- **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足す
+- **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足し、購入画面が開くようになったら `Buy` を足す（[リンクを追加する](#リンクを追加する任意)）
 
 ## 0. 前提
 
@@ -123,10 +123,13 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 |---|---|---|
 | `Website` | `https://nonet.astlog.dev/` | いま入れる（公開は販売ページが開いてから） |
 | `Download` | `https://nonet.astlog.dev/download` | **いまは入れない。** 公証済みの DMG を出したら、Website の次に足す（最新の DMG へ飛ぶ固定の URL） |
+| `Buy` | `https://nonet.astlog.dev/buy.html` | **いまは入れない。** 購入のページ（`site/buy.html`）に Paddle のトークンと価格の ID を入れて公開し、Paddle の購入画面が開くのを確かめてから、Download の次に足す |
 | `Repository` | — | **入れない。** 有料のアプリなので、GitHub のリポジトリ（`iam74k4/Apple-Nonet`）は非公開にした（2026-10-31） |
 
 - ラベルは既にある作品と同じく英語（`App Store`・`Repository`）
+- 並びは Website・Download・Buy（販売ページと同じく、試してから買う順）
 - URL は `https://` で始める（`isSafeUrl`）。ラベルと URL の片方だけの行は保存できない
+- 購入は `Buy` のリンクで販売ページの購入のページへ渡し、AstLog のページで Paddle の購入画面を直に開くことはしない。AstLog の公開ページはスクリプトを動かさない（CSP の `script-src 'none'`）ので AstLog のコードを変えることになり、Paddle に `astlog.dev` のドメインの承認を別に申請し、AstLog のプライバシーポリシーにも Paddle のことを書き足すことになる。買う人が見る購入画面は販売ページの「購入する」と同じなので、リンクで足りる
 
 ### 成果の数字を追加する（任意）
 
@@ -249,6 +252,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | 成果の CI の一文 | 書いていない | コードを push して GitHub Actions が緑になったら、2段落目に「プッシュのたびに GitHub Actions でも同じ一式を動かしています。」を足す |
 | 工夫の触覚・ポインタの書き方 | MTActuator を優先し、使えなければ NSHapticFeedbackManager に切り替える作り | 手動テスト（ポインタの固定・触覚）で方式が決まったら、それに合わせる |
 | リンク `Download` | 入れない | 公証済みの DMG を出したら `Download` / `https://nonet.astlog.dev/download` を Website の次に足す |
+| リンク `Buy` | 入れない | 購入のページに Paddle のトークンと価格の ID を入れて公開し、`scripts/check-site.sh --strict` が通って購入画面が開くのを確かめたら、`Buy` / `https://nonet.astlog.dev/buy.html` を Download の次に足す |
 | リンク `Repository` | 入れない | リポジトリは非公開なので入れない |
 | 公開する | 外す（下書き） | nonet.astlog.dev が開き、`scripts/check-site.sh --strict` が通ったら入れる |
 | 画像 | — | 画面が変わったら撮り直し、代替テキストも合わせる。動画を販売ページのデモで代えていたら、実際のアプリの収録に替える |
@@ -273,4 +277,5 @@ scripts/tests/run.sh | tail -1                                       # 「… �
 要らない。本番の AstLog（`main` の `cb899fd`）の管理画面だけで、この作品を載せられる。
 
 - 開発中であることは説明文と Story の成果で言う（AstLog に状態の欄は無く、SaifuLog も同じ書き方）
+- AstLog から買えるようにするのも、リンク（`Buy`）だけで足りる（[リンクを追加する](#リンクを追加する任意)）
 - 動画のスクリーンショット・Story の小さな Markdown・作品の文書の欄は、本番にはあるが手元の `develop` には無い。手元で試すときは `main` に合わせてから
