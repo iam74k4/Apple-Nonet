@@ -2026,11 +2026,22 @@
       }
     },
     "「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ %lld」に戻ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name the page after what it’s for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+          }
+        }
+      }
+    },
+    "「デバッグ」「Git」のように、何のページかを付けます。メニューバーの早見表の題名にも出ます。空にすると「ページ %lld」に戻ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name the page after what it’s for, like “Debug” or “Git”. The name also appears in the title of the menu bar’s quick reference. Leave it empty to go back to “Page %lld”."
           }
         }
       }

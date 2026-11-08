@@ -49,7 +49,7 @@
 | 画面に置く | Place on Screen | Action type that moves the front app's window to a fixed part of the screen. Title Case as an action type and as the name of the Global profile's first page; in prose "place the window". Not "snap", "tile" or "window management". |
 | 場所（画面に置く） | Position | Inspector label of the Place on Screen action. The nine values are Top Left / Top Half / Top Right / Left Half / Maximize / Right Half / Bottom Left / Bottom Half / Bottom Right (Title Case; "half", not "side"). |
 | 置く枠 / 離すと、ここに置きます | target area (outline) / Lift to place it here | The light-blue outline shown on screen while a Place on Screen button is highlighted, and its note. |
-| %@ のウインドウ / 前面のウインドウ（HUD の帯） | %@ window / The front window | The context band under the HUD title that says what a Place on Screen page acts on: "Safari window". |
+| %@ のウインドウ / 前面のウインドウ（VoiceOver） | %@ window / The front window | Added to the HUD's VoiceOver name to say what a Place on Screen page acts on: "Safari window". The HUD draws no title. |
 | スクリプト | Script | Action type; "zsh script" in prose. |
 | 実行の仕方: 裏で実行 / ターミナルで実行 | Run: In Background / In Terminal | Script options. In prose: "run in the background", "run in Terminal". |
 | 制限時間 | Timeout | "Timeout: 60 s". |
@@ -96,7 +96,7 @@
 | 前面にあるとき / このプロファイル / グローバルを使う / このアプリでは Nonet を使わない | When in Front / This Profile / Use Global / Turn Off Nonet in This App | Pop-up menu in the profile header (and in the profile context menu) that sets how an app uses Nonet. The header's tooltip is "When %@ is in front". |
 | オフ / グローバル / 使用中（サイドバーの印） | Off / Global / In Use | Badges in the profile list: turned off in this app, uses the Global buttons (its own key, `settings.sidebar.usesGlobalBadge`), and the profile the front app is using now. |
 | プロファイルを絞り込む / 名前・マス・キーで絞り込み / 絞り込みをやめる | Filter Profiles / Filter by name, button or keys / Clear Filter | The filter above the profile list (⌘F; always shown with 8 or more app profiles). Results read "Xcode › Build". |
-| 名前を変更… / ページの名前 | Rename… / Page Name | Renaming a page. A named page shows in the HUD title as "Xcode · Debug". |
+| 名前を変更… / ページの名前 | Rename… / Page Name | Renaming a page. A named page shows in the menu bar's quick reference title as "Xcode · Debug", and briefly under the center icon after switching between the app's pages and the Global pages. |
 | ページの操作 / ページを追加 / このページを削除… | Page Actions / Add Page / Delete This Page… | The … menu next to the page chips (its help tag and VoiceOver label are "Page Actions"). It acts on the selected page and also has Rename…. The menu item Add Page has its own key (`settings.pageMenu.addPage`), because the + button's help tag ページを追加 is "Add page". |
 | 以前の設定に戻す… / 戻す… / この設定に戻す / 控え | Restore an Earlier Version… / Restore… / Restore / saved version | Button under Export & Import, its sheet and its confirmation. In prose, 控え (a saved copy of the settings) is "saved version". Don't call it a "backup" in the UI, so it isn't confused with an exported file. |
 | このマスをテスト実行 | Test This Button | Context menu command. In prose: "test run". Nonet doesn't open from the top edge while its own window is the key window (Settings uses the trackpad for dragging buttons), so this is how to try a button from Settings. |

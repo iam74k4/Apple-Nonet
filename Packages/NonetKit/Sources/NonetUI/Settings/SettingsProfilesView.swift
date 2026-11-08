@@ -635,7 +635,7 @@ struct SettingsPageNameEditor: View {
             .focused($isFocused)
             .onSubmit { model.renamePage(index, to: text) }
             .onExitCommand { model.renamingPage = nil }
-            Text("「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります。", bundle: .module)
+            Text("「デバッグ」「Git」のように、何のページかを付けます。メニューバーの早見表の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります。", bundle: .module)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
