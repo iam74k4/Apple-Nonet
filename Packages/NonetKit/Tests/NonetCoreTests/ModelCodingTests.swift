@@ -463,4 +463,12 @@ struct ModelCodingFixtureTests {
         let configuration = try ModelFixtures.decode(NonetConfiguration.self, json)
         #expect(configuration.profiles.map(\.kind) == [.global, .app(ModelFixtures.safari)])
     }
+
+    /// スクリプトとショートカットの名前に入った NUL は、設定を直すときに除く（子プロセスに渡せない）
+    @Test func nulIsRemovedFromScriptsAndShortcutNames() {
+        let script = Action.script(ScriptAction(source: "echo a\u{0}b")).validated()
+        #expect(script == .script(ScriptAction(source: "echo ab")))
+        let shortcut = Action.shortcut(ShortcutAction(name: "x\u{0}y")).validated()
+        #expect(shortcut == .shortcut(ShortcutAction(name: "xy")))
+    }
 }

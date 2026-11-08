@@ -17,7 +17,7 @@ public final class AXWindowPlacer: WindowPlacing {
 
     /// 下見で読んだ、前面のウインドウのある画面の使える範囲（読んだプロセスと時刻）。9マスを開いている間はウインドウが動かないので、
     /// 「画面に置く」のマスを向くたびに AX で読み直さない（固まりかけたアプリでは、1回の読み取りが previewTimeout まで待つ）
-    private var previewCache: (pid: pid_t, at: TimeInterval, visible: CGRect)?
+    private var previewCache: (pid: pid_t, at: TimeInterval, visible: CGRect?)?
     static let previewCacheLifetime: TimeInterval = 2
 
     public func resetPreview() {
@@ -28,10 +28,11 @@ public final class AXWindowPlacer: WindowPlacing {
         let pid = app?.processID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier
         let now = ProcessInfo.processInfo.systemUptime
         if let cache = previewCache, cache.pid == pid, now - cache.at >= 0, now - cache.at < Self.previewCacheLifetime {
-            return region.frame(in: cache.visible)
+            return cache.visible.map { region.frame(in: $0) }
         }
         guard let placement = placement(for: region, app: app, timeout: Self.previewTimeout) else {
-            previewCache = nil
+            // 読めなかったことも覚える（固まったアプリで、マスを向くたびに待たない。ほかのキーやポインタも止まる）
+            previewCache = pid.map { ($0, now, nil) }
             return nil
         }
         if let pid {

@@ -468,6 +468,16 @@
         }
       }
     },
+    "スクリプトかショートカットの名前に、使えない文字（NUL）が入っています" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The script or shortcut name contains a character that can't be used (NUL)"
+          }
+        }
+      }
+    },
     "スクリプトが中断されました（シグナル %d）" : {
       "localizations" : {
         "en" : {

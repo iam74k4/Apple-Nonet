@@ -264,14 +264,23 @@ extension FileOperation {
 }
 
 extension Action {
-    /// 範囲外の値を直したもの（スクリプトの制限時間）
+    /// 範囲外の値を直したもの（スクリプトの制限時間）。スクリプトとショートカットの名前からは NUL（U+0000）を除く
+    /// （どちらも引数として子プロセスに渡す。NUL は意味を持たず、渡すと実行できない）
     func validated() -> Action {
-        guard case .script(var script) = self else { return self }
-        let range = ScriptAction.timeoutRange
-        script.timeout = script.timeout.isFinite
-            ? min(max(script.timeout, range.lowerBound), range.upperBound)
-            : ScriptAction.defaultTimeout
-        return .script(script)
+        switch self {
+        case .script(var script):
+            let range = ScriptAction.timeoutRange
+            script.timeout = script.timeout.isFinite
+                ? min(max(script.timeout, range.lowerBound), range.upperBound)
+                : ScriptAction.defaultTimeout
+            script.source = script.source.replacingOccurrences(of: "\0", with: "")
+            return .script(script)
+        case .shortcut(var shortcut):
+            shortcut.name = shortcut.name.replacingOccurrences(of: "\0", with: "")
+            return .shortcut(shortcut)
+        default:
+            return self
+        }
     }
 }
 

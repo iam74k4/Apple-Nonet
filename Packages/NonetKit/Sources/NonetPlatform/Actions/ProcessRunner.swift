@@ -1,5 +1,6 @@
 // 担当: platform-actions
 import Foundation
+import NonetCore
 
 /// 末尾の limit バイトだけを残すバッファ（標準エラーは最後の数行が要る）
 struct TailBuffer {
@@ -69,6 +70,11 @@ struct ProcessOutput: Sendable, Equatable {
 /// 子は自分のプロセスグループで動くので、打ち切るときはグループごと止める
 enum ProcessRunner {
     static func run(_ request: ProcessRequest) async throws -> ProcessOutput {
+        // NUL（U+0000）の入った引数や環境変数を Process に渡すと、Swift のエラーではなく Objective-C の例外になり、アプリが落ちる
+        // （ファイルから来たスクリプトやショートカットの名前に入りうる）。始める前に断る
+        if Self.containsNUL(request) {
+            throw NonetError.actionFailed(String(localized: "スクリプトかショートカットの名前に、使えない文字（NUL）が入っています", bundle: .nonetActions))
+        }
         let run = ProcessRun(request: request)
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -77,6 +83,14 @@ enum ProcessRunner {
         } onCancel: {
             run.stop(timedOut: false)
         }
+    }
+
+    /// 引数・環境変数・実行ファイルの場所のどれかに NUL がある
+    static func containsNUL(_ request: ProcessRequest) -> Bool {
+        let values = [request.executable.path] + request.arguments
+            + (request.environment.map { Array($0.keys) + Array($0.values) } ?? [])
+            + [request.currentDirectory?.path].compactMap { $0 }
+        return values.contains { $0.unicodeScalars.contains("\0") }
     }
 }
 

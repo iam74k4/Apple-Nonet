@@ -670,4 +670,27 @@ struct ActionBlockingCallTests {
         let value = await BlockingCall.run(timeout: 2, fallback: 0) { 42 }
         #expect(value == 42)
     }
+
+    /// アクションの結果は、ほかのアクションが ⌘C で読んでいる・⌘V で貼っている間は書かず、終わってから書く
+    /// （読み取りの最中に書くと、その結果を選択中のテキストと取り違え、戻すときに消してしまう）
+    @MainActor @Test func resultWritesWaitForAClipboardOperation() async {
+        await withPrivatePasteboard { pasteboard in
+            put("before", on: pasteboard)
+            let session = ClipboardSession.of(pasteboard)
+            var release: CheckedContinuation<Void, Never>?
+            let holder = Task { @MainActor in
+                await session.exclusive { _ in
+                    await withCheckedContinuation { release = $0 }
+                }
+            }
+            while release == nil { await Task.yield() }
+            let writer = Task { @MainActor in await PasteboardWriter.writeAfterOtherOperations("result", to: pasteboard) }
+            for _ in 0..<50 { await Task.yield() }
+            #expect(pasteboard.string(forType: .string) == "before")
+            release?.resume()
+            _ = await writer.value
+            await holder.value
+            #expect(pasteboard.string(forType: .string) == "result")
+        }
+    }
 }

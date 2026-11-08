@@ -424,6 +424,16 @@ enum PasteboardWriter {
         return pasteboard.changeCount
     }
 
+    /// アクションの結果をクリップボードに書く。ほかのアクションが ⌘C で選択中のテキストを読んでいる・⌘V で貼り付けている間は、
+    /// それが終わるのを待ってから書く（読み取りの最中に書くと、その結果を選択中のテキストと取り違え、戻すときに消してしまう）
+    @MainActor
+    @discardableResult
+    static func writeAfterOtherOperations(_ text: String, to pasteboard: NSPasteboard) async -> Int {
+        await ClipboardSession.of(pasteboard).exclusive { _ in
+            write(text, to: pasteboard)
+        }
+    }
+
     /// 文字列を「読まれたときに渡す」形で書く（履歴のアプリに残さない印つき）。いつ読まれたかが provider で分かる
     @MainActor
     static func writeOnDemand(_ provider: PasteDataProvider, to pasteboard: NSPasteboard) -> Int {

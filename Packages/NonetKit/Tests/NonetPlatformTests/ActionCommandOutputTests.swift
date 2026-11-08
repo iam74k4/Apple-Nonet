@@ -334,4 +334,17 @@ struct ActionDockAppsTests {
             #expect(!tile.bundleID.isEmpty)
         }
     }
+
+    /// NUL（U+0000）の入った引数や環境変数は、Process に渡すとアプリが落ちる（Objective-C の例外）。始める前にエラーにする
+    @Test func argumentsWithNULAreRefusedBeforeLaunch() async throws {
+        let echo = URL(fileURLWithPath: "/bin/echo")
+        await #expect(throws: NonetError.self) {
+            _ = try await ProcessRunner.run(ProcessRequest(executable: echo, arguments: ["a\u{0}b"], environment: nil, currentDirectory: nil, timeout: 5))
+        }
+        await #expect(throws: NonetError.self) {
+            _ = try await ProcessRunner.run(ProcessRequest(executable: echo, arguments: ["ok"], environment: ["X": "a\u{0}b"], currentDirectory: nil, timeout: 5))
+        }
+        let output = try await ProcessRunner.run(ProcessRequest(executable: echo, arguments: ["ok"], environment: nil, currentDirectory: nil, timeout: 5))
+        #expect(output.stdout == "ok\n")
+    }
 }

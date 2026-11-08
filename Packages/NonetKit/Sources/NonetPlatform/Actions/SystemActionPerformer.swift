@@ -26,7 +26,7 @@ public final class SystemActionPerformer: ActionPerforming {
     public func perform(_ action: Action, context: ActionContext) async throws {
         if let text = try await performReturningOutput(action, context: context) {
             // 「画面に表示」を HUD に出す口がまだ無いので、クリップボードに入れておく
-            PasteboardWriter.write(text, to: .general)
+            await PasteboardWriter.writeAfterOtherOperations(text, to: .general)
         }
     }
 
@@ -136,7 +136,7 @@ public final class SystemActionPerformer: ActionPerforming {
             }
             return try await replaceSelection(with: text, in: frontmost) ? nil : text
         case .copyToClipboard:
-            PasteboardWriter.write(text, to: .general)
+            await PasteboardWriter.writeAfterOtherOperations(text, to: .general)
             return nil
         case .showResult:
             return text
@@ -247,7 +247,7 @@ public final class SystemActionPerformer: ActionPerforming {
             }
             return outcome == .pasted
         } catch is FrontmostAppChanged {
-            PasteboardWriter.write(text, to: pasteboard)
+            await PasteboardWriter.writeAfterOtherOperations(text, to: pasteboard)
             throw NonetError.actionFailed(String(localized: "前面のアプリが変わったため、結果をクリップボードにコピーしました", bundle: .nonetActions))
         }
     }
