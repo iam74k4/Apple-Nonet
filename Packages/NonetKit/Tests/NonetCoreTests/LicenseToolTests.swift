@@ -222,6 +222,20 @@ private final class FakeToolEnvironment {
         #expect(environment.errorOutput.contains("発行しました"))
     }
 
+    /// 秘密鍵のファイルを本人以外も読めれば知らせる（発行はする）
+    @Test func issueWarnsAboutAWidelyReadablePrivateKey() throws {
+        let keys = try installKeys()
+        var io = environment.io
+        io.filePermissions = { $0 == keys.privatePath ? 0o644 : nil }
+        environment.errorOutput = ""
+        #expect(LicenseTool.run(["issue", "--key", keys.privatePath, "--name", "A"], io: io) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("chmod 600"))
+        io.filePermissions = { _ in 0o600 }
+        environment.errorOutput = ""
+        #expect(LicenseTool.run(["issue", "--key", keys.privatePath, "--name", "A"], io: io) == LicenseTool.exitSuccess)
+        #expect(!environment.errorOutput.contains("chmod 600"))
+    }
+
     @Test func issueUsesGivenIDAndEdition() throws {
         let keys = try installKeys()
         #expect(environment.run(["issue", "--key", keys.privatePath, "--name", "A", "--id", "ORDER-42", "--edition", "family"]) == LicenseTool.exitSuccess)

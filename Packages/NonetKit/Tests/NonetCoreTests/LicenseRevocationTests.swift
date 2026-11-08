@@ -57,6 +57,9 @@ private final class RevokeToolEnvironment {
         #expect(LicenseRevocationList.hash(of: "NONET-0001") == Self.hashOfFixtureID)
         #expect(LicenseRevocationList.hash(of: "  NONET-0001\n") == Self.hashOfFixtureID)
         #expect(LicenseRevocationList.hash(of: "nonet-0001") != Self.hashOfFixtureID)
+        // UUID の形の ID は大文字小文字を区別しない（issue は大文字で作る）
+        let upper = "AA265987-1B55-4C3E-9F00-0123456789AB"
+        #expect(LicenseRevocationList.hash(of: upper.lowercased()) == LicenseRevocationList.hash(of: upper))
     }
 
     @Test func readsHashesAndSkipsCommentsAndBrokenLines() {
@@ -175,6 +178,17 @@ private final class RevokeToolEnvironment {
         #expect(environment.run(["revoke", "NONET-0001"]) == LicenseTool.exitSuccess)
         #expect(environment.writes == 1)
         #expect(environment.errorOutput.contains("すでに無効にしてあります"))
+    }
+
+    /// 小文字で書いた UUID の ID で無効にしても、大文字で作ったキーに効く。UUID の形でない ID（注文番号など）は注意する
+    @Test func revokingAUUIDInLowerCaseStillRevokesTheKey() {
+        environment.files[RevokeToolEnvironment.listPath] = Self.header
+        let id = "AA265987-1B55-4C3E-9F00-0123456789AB"
+        #expect(environment.run(["revoke", id.lowercased()]) == LicenseTool.exitSuccess)
+        #expect(LicenseRevocationList(text: environment.files[RevokeToolEnvironment.listPath] ?? "").isRevoked(id))
+        #expect(!environment.errorOutput.contains("UUID の形ではありません"))
+        #expect(environment.run(["revoke", "NONET-0001"]) == LicenseTool.exitSuccess)
+        #expect(environment.errorOutput.contains("UUID の形ではありません"))
     }
 
     @Test func revokingAKeyUsesTheIDInsideIt() throws {

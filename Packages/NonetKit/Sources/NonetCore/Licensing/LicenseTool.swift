@@ -36,6 +36,8 @@ package struct LicenseToolIO {
     package var createNewFile: (_ path: String, _ contents: String, _ permissions: UInt16) throws -> Void
     /// ファイルを書き換える（無効にしたライセンスの一覧）。既定は書かずに失敗する（.live だけが本物のファイルに書く）
     package var replaceFile: (_ path: String, _ contents: String) throws -> Void
+    /// ファイルの権限（下位 9 ビット）。分からなければ nil（既定。.live だけが本物のファイルを調べる）
+    package var filePermissions: (String) -> UInt16? = { _ in nil }
     package var standardOutput: (String) -> Void
     package var standardError: (String) -> Void
     package var now: () -> Date
@@ -69,7 +71,7 @@ package struct LicenseToolIO {
     }
 
     package static var live: LicenseToolIO {
-        LicenseToolIO(
+        var io = LicenseToolIO(
             currentDirectory: { FileManager.default.currentDirectoryPath },
             fileExists: { FileManager.default.fileExists(atPath: $0) },
             readFile: { try String(contentsOfFile: $0, encoding: .utf8) },
@@ -82,6 +84,10 @@ package struct LicenseToolIO {
             makeLicenseID: { UUID().uuidString },
             replaceFile: { path, contents in try Data(contents.utf8).write(to: URL(fileURLWithPath: path), options: .atomic) }
         )
+        io.filePermissions = { path in
+            (try? FileManager.default.attributesOfItem(atPath: path)[.posixPermissions] as? NSNumber).map { UInt16(truncating: $0) & 0o777 }
+        }
+        return io
     }
 }
 
@@ -333,9 +339,17 @@ package enum LicenseTool {
             return exitUsage
         }
 
+        let privateKeyFile = absolutePath(privateKeyPath, io: io)
+        // keygen は本人だけが読める権限で、リポジトリの外に作る。控えから戻したときなどに広がっていれば知らせる
+        if let permissions = io.filePermissions(privateKeyFile), permissions & 0o077 != 0 {
+            io.standardError("注意: 秘密鍵のファイルを本人以外も読めます（権限 \(String(permissions, radix: 8))）。chmod 600 \(privateKeyFile) にしてください\n")
+        }
+        if let repository = enclosingRepository(of: (privateKeyFile as NSString).deletingLastPathComponent, io: io) {
+            io.standardError("注意: 秘密鍵が git の作業ツリー（\(repository)）の中にあります。コミットしないよう、リポジトリの外へ移してください\n")
+        }
         let signer: LicenseSigner
         do {
-            signer = try LicenseSigner(privateKeyBase64: try io.readFile(absolutePath(privateKeyPath, io: io)))
+            signer = try LicenseSigner(privateKeyBase64: try io.readFile(privateKeyFile))
         } catch let error as LicenseError {
             io.standardError("エラー: \(message(for: error))\n")
             return exitFailure
@@ -433,7 +447,8 @@ package enum LicenseTool {
             io.standardError("すでに無効にしてあります: ライセンス ID \(licenseID)（\(path)）\n")
             return exitSuccess
         }
-        let date = io.now().formatted(Date.ISO8601FormatStyle().year().month().day())
+        // 返金の記録と同じ日付にする（ISO8601FormatStyle の既定は UTC で、日本の朝は前の日になる）
+        let date = io.now().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
         var updated = text
         if !updated.isEmpty, !updated.hasSuffix("\n") {
             updated += "\n"
@@ -473,6 +488,10 @@ package enum LicenseTool {
         }
         guard !trimmed.contains(where: \.isNewline) else {
             throw LicenseToolFailure(message: "ライセンス ID に改行が入っています")
+        }
+        // issue が作る ID は UUID。注文番号などを書くと、どのキーにも効かない（--id で決めた ID なら、このままでよい）
+        if UUID(uuidString: trimmed) == nil {
+            io.standardError("注意: 「\(trimmed)」は UUID の形ではありません。注文番号ではなく、ライセンス ID かキー全体を指定してください（issue の --id で決めた ID なら、このままで構いません）\n")
         }
         return trimmed
     }

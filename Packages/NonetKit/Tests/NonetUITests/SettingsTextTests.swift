@@ -177,6 +177,15 @@ import Testing
         #expect(warnsEdits([KeyChord(.character("osascri")), KeyChord(.special(.tab)), KeyChord(.character(" -e x")), enter]))
         // キーコードの ⌫（制御文字になる）も数える
         #expect(SettingsImportPlan.editsTypedText(.keystroke(KeySequence([KeyChord(.character("x")), KeyChord(.keyCode(0x33))])), keys: ControlCharacterKeys()))
+        // ⌃ の編集キー（⌃A で行の頭へ・⌃H で1文字消す）も写し、目立たせる
+        #expect(warnsRm([KeyChord(.character("m -rf ~")), KeyChord(.character("a"), modifiers: .control), KeyChord(.character("r")), enter]))
+        #expect(warnsRm([KeyChord(.character("rx")), KeyChord(.character("h"), modifiers: .control), KeyChord(.character("m -rf ~")), enter]))
+        #expect(warnsEdits([KeyChord(.character("m -rf ~")), KeyChord(.character("a"), modifiers: .control), KeyChord(.character("r")), enter]))
+        // 大文字の RM も rm を動かす（大文字小文字を区別しないディスク）
+        #expect(warnsRm([KeyChord(.character("RM -rf ~")), enter]))
+        // 文字を打たない再生の操作（Space ←）や、F キー（制御文字 0x10 になる）では、消す・動かすキーの注意を出さない
+        #expect(!warnsEdits([KeyChord(.special(.space)), left]))
+        #expect(!SettingsImportPlan.editsTypedText(.keystroke(KeySequence([KeyChord(.character("make")), KeyChord(.keyCode(96))])), keys: ControlCharacterKeys()))
         // 普通のキー入力では知らせない（文字だけ・ショートカットの矢印だけ）
         #expect(!warnsRm([modifier, KeyChord(.character("ls -la")), enter]))
         #expect(!warnsEdits([KeyChord(.character("ls -la")), enter]))
@@ -188,6 +197,7 @@ import Testing
         func characters(for chord: KeyChord) -> String? {
             switch chord.key {
             case .keyCode(0x33): "\u{8}"
+            case .keyCode(96): "\u{10}"
             case .character(let character): character
             default: nil
             }

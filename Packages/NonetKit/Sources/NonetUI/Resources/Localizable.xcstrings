@@ -5046,16 +5046,6 @@
         }
       }
     },
-    "ドラッグか ⌥⌘＋矢印キーで入れ替え" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drag, or press ⌥⌘ and an arrow key, to swap"
-          }
-        }
-      }
-    },
     "バージョン %@" : {
       "localizations" : {
         "en" : {
@@ -9982,6 +9972,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Puts it in the selected Menu Item button (or an empty button)."
+          }
+        }
+      }
+    },
+    "選んでから ⌥⌘＋矢印キーで、隣のマスと入れ替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select it, then press ⌥⌘ and an arrow key to swap it with the neighbouring cell"
           }
         }
       }

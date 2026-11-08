@@ -153,7 +153,8 @@ struct SettingsGridCell: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
             .accessibilityValue(HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true))
-            .accessibilityHint(String(localized: "ドラッグか ⌥⌘＋矢印キーで入れ替え", bundle: .module))
+            // ⌥⌘＋矢印キーで入れ替えるのは、選んでいるマス（VoiceOver で読んでいるマスではない）
+            .accessibilityHint(String(localized: "選んでから ⌥⌘＋矢印キーで、隣のマスと入れ替え", bundle: .module))
             .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
             .accessibilityActions {

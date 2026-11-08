@@ -195,7 +195,12 @@ struct SettingsImportPlan: Identifiable, Equatable {
         var texts: [String] = []
         for rule in rules {
             var typed = TypedText(rules: rule)
-            for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
+            for chord in sequence.chords where !chord.modifiers.contains(.command) {
+                if chord.modifiers.contains(.control) {
+                    // シェルと標準の入力欄の ⌃ の編集キー（⌃A で行の頭へ、⌃H で1文字消す など）。ほかの ⌃ のキーは文字を打たない
+                    if let letter = controlLetter(chord, keys: translator) { typed.pressControl(letter) }
+                    continue
+                }
                 let byWord = chord.modifiers.contains(.option)
                 if let characters = translator?.characters(for: chord) {
                     // キーコードの ⌫ や矢印は、制御文字として返る
@@ -221,7 +226,11 @@ struct SettingsImportPlan: Identifiable, Equatable {
         let editKeys: Set<SpecialKey> = [.delete, .forwardDelete, .leftArrow, .rightArrow, .upArrow, .downArrow, .home, .end, .pageUp, .pageDown, .escape, .tab]
         var typesText = false
         var edits = false
-        for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
+        for chord in sequence.chords where !chord.modifiers.contains(.command) {
+            if chord.modifiers.contains(.control) {
+                if let letter = controlLetter(chord, keys: translator), TypedText.controlEditLetters.contains(letter) { edits = true }
+                continue
+            }
             let text: String?
             if let characters = translator?.characters(for: chord) {
                 text = characters
@@ -233,21 +242,36 @@ struct SettingsImportPlan: Identifiable, Equatable {
             if let text {
                 for scalar in text.unicodeScalars {
                     switch scalar.value {
-                    // Return と同じ文字は、消す・動かすキーではない
-                    case 0x0D, 0x0A, 0x03:
-                        break
-                    case 0x00..<0x20, 0x7F:
+                    // ⌃A・⌃D（End）・⌫・Tab・Page Up/Down・Esc・矢印・⌦ の文字。F キーなどほかの制御文字は数えない
+                    case 0x01, 0x04, 0x08, 0x09, 0x0B, 0x0C, 0x1B, 0x1C...0x1F, 0x7F:
                         edits = true
+                    case 0x00..<0x20:
+                        break
                     default:
-                        typesText = true
+                        // 空白だけでは文字を打ったことにしない（Space ← のような再生の操作）
+                        if !scalar.properties.isWhitespace { typesText = true }
                     }
                 }
-            } else if case .special(let key) = chord.key {
-                if editKeys.contains(key) { edits = true }
-                if key == .space { typesText = true }
+            } else if case .special(let key) = chord.key, editKeys.contains(key) {
+                edits = true
             }
         }
         return typesText && edits
+    }
+
+    /// ⌃ の付いたキーの文字（小文字の a〜z）。⌃ を外したキーが英字でなければ nil
+    static func controlLetter(_ chord: KeyChord, keys translator: (any SettingsKeyCharacterTranslating)?) -> Character? {
+        var plain = chord
+        plain.modifiers.remove(.control)
+        plain.modifiers.remove(.shift)
+        let text: String?
+        if case .character(let character) = chord.key {
+            text = character
+        } else {
+            text = translator?.characters(for: plain)
+        }
+        guard let text, text.count == 1, let letter = text.lowercased().first, ("a"..."z").contains(letter) else { return nil }
+        return letter
     }
 
     /// 1行の入力欄で打った結果。打つ場所（cursor）に文字を入れ、⌫・⌦ で消し、←→（と、決まりによって Home・End）で打つ場所を動かす。
@@ -339,6 +363,33 @@ struct SettingsImportPlan: Identifiable, Equatable {
             }
         }
 
+        /// 文字を消す・打つ場所を動かす ⌃ のキー（zsh・bash と標準の入力欄の決まり）
+        static let controlEditLetters: Set<Character> = ["a", "b", "d", "e", "f", "h", "k", "t", "u", "w", "y"]
+
+        /// ⌃ と英字。⌃A・⌃E は行の頭・終わり（Home・End と違い、どのアプリでも動く）、⌃B・⌃F は ←→、⌃H・⌃D は ⌫・⌦、
+        /// ⌃K は打つ場所から後ろを、⌃U は前を、⌃W は前の語を消す。⌃M・⌃J は Return。ほかは何もしない
+        mutating func pressControl(_ letter: Character) {
+            guard rules.appliesEdits || letter == "m" || letter == "j" else { return }
+            switch letter {
+            case "a": cursor = 0
+            case "e": cursor = line.count
+            case "b": press(.leftArrow, byWord: false)
+            case "f": press(.rightArrow, byWord: false)
+            case "h": press(.delete, byWord: false)
+            case "d": press(.forwardDelete, byWord: false)
+            case "k": line.removeSubrange(cursor..<line.count)
+            case "u":
+                line.removeSubrange(0..<cursor)
+                cursor = 0
+            case "w":
+                let start = wordStart(before: cursor)
+                line.removeSubrange(start..<cursor)
+                cursor = start
+            case "m", "j": press(.returnKey, byWord: false)
+            default: break
+            }
+        }
+
         private mutating func insert(_ character: Character) {
             line.insert(character, at: cursor)
             cursor += 1
@@ -421,7 +472,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
 
     /// rm に、再帰（-r・-R）と強制（-f）の両方のオプションが付いている（「rm -rf」「rm -fr」「rm -r -f」「rm -Rf」）
     static func removesRecursively(_ line: String) -> Bool {
-        line.matches(of: #/\brm\s+((?:-\S+\s+)*-\S+)/#).contains { match in
+        // 大文字小文字を区別しないディスクでは「RM -rf」も rm を動かす
+        line.matches(of: #/(?i)\brm\s+((?:-\S+\s+)*-\S+)/#).contains { match in
             let options = match.output.1.split(whereSeparator: \.isWhitespace).filter { $0.hasPrefix("-") && !$0.hasPrefix("--") }
             let letters = options.joined()
             return (letters.contains("r") || letters.contains("R")) && letters.contains("f")

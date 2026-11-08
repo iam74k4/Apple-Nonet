@@ -55,9 +55,12 @@ public struct LicenseRevocationList: Equatable, Sendable {
         !hashes.isEmpty && hashes.contains(Self.hash(of: licenseID))
     }
 
-    /// ライセンス ID の SHA-256（前後の空白を除いた UTF-8）。16 進の小文字 64 文字
+    /// ライセンス ID の SHA-256（前後の空白を除いた UTF-8）。16 進の小文字 64 文字。
+    /// UUID の形の ID は大文字にそろえてから（issue は大文字で作る。小文字で書いて無効にしても、そのキーに効くように）
     public static func hash(of licenseID: String) -> String {
-        let digest = SHA256.hash(data: Data(licenseID.trimmingCharacters(in: .whitespacesAndNewlines).utf8))
+        let trimmed = licenseID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let canonical = UUID(uuidString: trimmed)?.uuidString ?? trimmed
+        let digest = SHA256.hash(data: Data(canonical.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
