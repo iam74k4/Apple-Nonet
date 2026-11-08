@@ -122,6 +122,7 @@ import Testing
         ("example.com", .addsScheme("https")),
         ("example.com:8080/a", .addsScheme("https")),
         ("localhost:3000", .addsScheme("http")),
+        ("[::1]:3000", .addsScheme("http")),
         ("//example.com", .addsScheme("https")),
         ("/Users/me/Documents", .file),
         ("~/Desktop", .file),

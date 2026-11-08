@@ -221,7 +221,7 @@ struct SettingsMenuRow: View {
         .accessibilityElement(children: .combine)
         // 薄くしただけでは VoiceOver に伝わらないので、使えない項目は「使用不可」と読ませる
         .accessibilityValue(entry.node.isEnabled ? "" : String(localized: "使用不可", bundle: .module))
-        .accessibilityHint(String(localized: "空いているマスに入れます", bundle: .module))
+        .accessibilityHint(String(localized: "選んでいるメニュー項目のマス（無ければ空いているマス）に入れます", bundle: .module))
     }
 }
 

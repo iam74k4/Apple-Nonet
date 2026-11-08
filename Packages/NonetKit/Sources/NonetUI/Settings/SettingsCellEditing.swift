@@ -241,9 +241,15 @@ enum SettingsURLCheck: Equatable {
         return true
     }
 
+    /// 開くときに補うスキーム（URLNormalizer.defaultScheme と同じ。IPv6 の [ ] の中の「:」はポートの区切りではない）
     private static func defaultScheme(for text: String) -> String {
-        let host = text.prefix { !"/:?#".contains($0) }.lowercased()
-        return ["localhost", "127.0.0.1", "[::1]"].contains(host) ? "http" : "https"
+        let host: String
+        if text.hasPrefix("["), let close = text.firstIndex(of: "]") {
+            host = String(text[...close])
+        } else {
+            host = String(text.prefix { !"/:?#".contains($0) })
+        }
+        return ["localhost", "127.0.0.1", "[::1]"].contains(host.lowercased()) ? "http" : "https"
     }
 }
 

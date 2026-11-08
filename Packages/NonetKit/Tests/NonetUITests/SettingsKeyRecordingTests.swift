@@ -18,6 +18,25 @@ import Testing
         #expect(chord?.displayString == "⇧⌘4")
     }
 
+    /// ⌘ を押していれば、⌘ を付けて入力される文字を記録する（送るときも ⌘ のキー表から先に探す）。
+    /// Dvorak - QWERTY ⌘ で C の位置のキー: 修飾キーなしは "j"、⌘ 付きは "c"。ロシア語で ⌘C: 修飾キーなしは "с"、⌘ 付きは "c"
+    @Test func commandShortcutsRecordTheCommandLayerCharacter() {
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "j", withCommand: "c", flags: .command) == "c")
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "с", withCommand: "c", flags: [.command, .shift]) == "c")
+        // ⌘ なしは修飾キーなしの文字（⇧4 は "4"）
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "4", withCommand: "4", flags: .shift) == "4")
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "j", withCommand: "c", flags: .control) == "j")
+        // ⌘ 付きの文字が見える文字でなければ、修飾キーなしの文字
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "a", withCommand: "\u{1}", flags: .command) == "a")
+        #expect(SettingsKeyChordConverter.recordedCharacters(plain: "a", withCommand: nil, flags: .command) == "a")
+    }
+
+    /// Help（Insert）のキーには macOS が fn の印を付けるが、押した人は fn を押していない
+    @Test func theHelpKeyHasNoImplicitFunction() {
+        #expect(SettingsKeyChordConverter.chord(keyCode: 0x72, characters: nil, flags: .function) == KeyChord(.keyCode(0x72)))
+        #expect(SettingsKeyChordConverter.chord(keyCode: 0x72, characters: nil, flags: [.function, .command]) == KeyChord(.keyCode(0x72), modifiers: .command))
+    }
+
     @Test func specialKeysUseTheKeyCode() {
         #expect(SettingsKeyChordConverter.chord(keyCode: 0x24, characters: "\r", flags: .command) == KeyChord(.special(.returnKey), modifiers: .command))
         #expect(SettingsKeyChordConverter.chord(keyCode: 0x30, characters: "\t", flags: []) == KeyChord(.special(.tab)))

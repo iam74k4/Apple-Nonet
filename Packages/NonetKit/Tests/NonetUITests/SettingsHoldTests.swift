@@ -47,6 +47,20 @@ import Testing
         #expect(h.model.selectedProfile.pages[0].cells[0]?.requiresHold == true)
     }
 
+    /// 覚えていた「ゴミ箱に入れる」に種類を切り替えて戻したら、選んだときと同じく少し長く止めてから実行にする（途中で外していても）
+    @Test func switchingBackToTrashRequiresAHoldAgain() throws {
+        let h = try harness()
+        let safari = try #require(h.model.selectedProfile.pages[0].cells[0])
+        h.model.changeKind(ofCell: safari.id, to: .file)
+        h.model.chooseFileOperation(.trash, forCell: safari.id)
+        #expect(h.model.selectedProfile.pages[0].cells[0]?.requiresHold == true)
+        h.model.changeKind(ofCell: safari.id, to: .keystroke)
+        h.model.setRequiresHold(false, ofCell: safari.id)
+        h.model.changeKind(ofCell: safari.id, to: .file)
+        #expect(FileAction.content(of: try #require(h.model.selectedProfile.pages[0].cells[0]).action)?.operation == .trash)
+        #expect(h.model.selectedProfile.pages[0].cells[0]?.requiresHold == true)
+    }
+
     /// 名前は「。」で終えない。説明は2文なので、どちらの文も「。」で終える。トラックパッドに「押す」「長押し」と言わない
     @Test func theWording() {
         #expect(SettingsText.holdTitle == L10n.ui("少し長く止めてから実行"))

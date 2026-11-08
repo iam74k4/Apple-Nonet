@@ -21,6 +21,19 @@ enum SettingsKeyChordConverter {
         0x66: .eisu, 0x68: .kana,
     ]
 
+    /// Help（Insert）のキー（kVK_Help）。macOS が fn の印を自動で付ける（文字にならないので、キーコードのまま残す）
+    static let helpKeyCode: UInt16 = 0x72
+
+    /// 記録する文字。⌘ を押していれば、⌘ を付けて入力される文字（KeySender が ⌘ のキー表から先に探すのと同じ）。
+    /// Dvorak - QWERTY ⌘ や、ロシア語・ギリシャ語など ⌘ を押すと英字になるキー配列で、記録した文字と送るキーをそろえる。
+    /// ⌘ を押していない・⌘ を付けた文字が見える文字でなければ、修飾キーを付けずに入力される文字
+    static func recordedCharacters(plain: String?, withCommand: String?, flags: NSEvent.ModifierFlags) -> String? {
+        if flags.contains(.command), printableCharacter(withCommand) != nil {
+            return withCommand
+        }
+        return plain
+    }
+
     /// macOS が fn の印を自動で付けるキー。押した人は fn を押していないので外す
     static let keysWithImplicitFunction: Set<SpecialKey> = {
         var keys: Set<SpecialKey> = [.leftArrow, .rightArrow, .upArrow, .downArrow, .home, .end, .pageUp, .pageDown, .forwardDelete]
@@ -41,7 +54,7 @@ enum SettingsKeyChordConverter {
     }
 
     /// 押したキーの組み合わせ。修飾キーだけなら nil。
-    /// characters は修飾キーを付けずに入力される文字（NSEvent.characters(byApplyingModifiers: [])）。
+    /// characters は記録する文字（recordedCharacters。ふつうは修飾キーを付けずに入力される文字、⌘ を押していれば ⌘ を付けた文字）。
     /// ⇧4 を "$" ではなく "4"＋⇧ として残す（キーを送るときに配列から探すのと同じ書き方）
     static func chord(keyCode: UInt16, characters: String?, flags: NSEvent.ModifierFlags) -> KeyChord? {
         guard !modifierKeyCodes.contains(keyCode) else { return nil }
@@ -51,6 +64,9 @@ enum SettingsKeyChordConverter {
                 modifiers.remove(.function)
             }
             return KeyChord(.special(special), modifiers: modifiers)
+        }
+        if keyCode == helpKeyCode {
+            modifiers.remove(.function)
         }
         // テンキーは本体の同じ文字のキーと区別するアプリがあるので、キーコードのまま残す
         if flags.contains(.numericPad) {

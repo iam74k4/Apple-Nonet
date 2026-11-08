@@ -886,7 +886,14 @@ final class SettingsModel {
         }
         rememberedActions[id, default: [:]][cell.action.kind] = cell.action
         let remembered = rememberedActions[id]?[kind]
-        updateCell(id: id) { $0 = SettingsCellEditing.changingKind(of: $0, to: kind, remembered: remembered) }
+        updateCell(id: id) { cell in
+            let wasTrash = FileAction.content(of: cell.action)?.operation == .trash
+            cell = SettingsCellEditing.changingKind(of: cell, to: kind, remembered: remembered)
+            // 覚えていた「ゴミ箱に入れる」に戻ったら、選んだときと同じく少し長く止めてから実行にする（chooseFileOperation）
+            if FileAction.content(of: cell.action)?.operation == .trash, !wasTrash {
+                cell.requiresHold = true
+            }
+        }
     }
 
     /// アクションを差し替える（自動で付いた名前とアイコンは合わせる）
@@ -1588,7 +1595,11 @@ final class SettingsKeyEventMonitor {
             case .keyDown:
                 // 押しっぱなしで同じキーが何度も入らないように
                 if !event.isARepeat {
-                    let characters = event.characters(byApplyingModifiers: []) ?? event.charactersIgnoringModifiers
+                    let characters = SettingsKeyChordConverter.recordedCharacters(
+                        plain: event.characters(byApplyingModifiers: []) ?? event.charactersIgnoringModifiers,
+                        withCommand: event.characters(byApplyingModifiers: .command),
+                        flags: event.modifierFlags
+                    )
                     keyDown(event.keyCode, characters, event.modifierFlags)
                 }
                 return nil

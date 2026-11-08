@@ -8649,6 +8649,7 @@
       }
     },
     "空いているマスに入れます" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9807,6 +9808,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet adds profiles for the apps you choose. Existing profiles stay as they are."
+          }
+        }
+      }
+    },
+    "選んでいるメニュー項目のマス（無ければ空いているマス）に入れます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puts it in the selected Menu Item button (or an empty button)."
           }
         }
       }
