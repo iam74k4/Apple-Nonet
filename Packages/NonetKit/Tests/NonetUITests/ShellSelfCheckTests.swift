@@ -77,6 +77,9 @@ struct ShellSelfCheckTests {
         #expect(roundTrip["error"] as? String == "disk full")
         let multitouch = try #require(json["multitouch"] as? [String: Any])
         #expect(multitouch["error"] as? String == "dlopen failed")
+        // 版（CFBundleShortVersionString）が無くビルド番号だけあると、AppInfo は「? (42)」になる
+        #expect(Self.report(version: "? (42)").failures == ["version"])
+        #expect(Self.report(version: "1.2.0 (42)").failures.isEmpty)
     }
 
     @Test("トラックパッドが無い・許可が無い・試用切れは失敗にしない（Mac による）")

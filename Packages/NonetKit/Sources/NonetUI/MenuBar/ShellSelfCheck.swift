@@ -56,7 +56,8 @@ public enum ShellSelfCheck {
         /// 失敗とみなすもの。権限・トラックパッドの有無・試用の状態は Mac によるので失敗にしない
         public var failures: [String] {
             var failures: [String] = []
-            if version.isEmpty || version == "?" { failures.append("version") }
+            // 版が読めないと AppInfo は「?」か「? (42)」（ビルド番号だけある）を返す
+            if version.isEmpty || version.hasPrefix("?") { failures.append("version") }
             if presetCount == 0 { failures.append("presets") }
             if launcherCandidateCount == 0 { failures.append("launcherCandidates") }
             if configurationRoundTripError != nil { failures.append("configurationRoundTrip") }

@@ -205,6 +205,15 @@ enum MultitouchSession {
     }
 }
 
+/// 自己チェック（--self-check）用: MultitouchSupport を、アプリが使うのと同じ読み込みで読めるか
+public enum MultitouchLoadCheck {
+    /// 読めなければ理由（使う関数のどれかが無い など）。読めれば nil
+    @MainActor
+    public static func loadError() -> String? {
+        MultitouchLibrary.loadError()
+    }
+}
+
 /// 最後に指が触れたトラックパッド。触覚をそのデバイスで鳴らすために使う
 @MainActor
 enum MultitouchActivity {
@@ -230,6 +239,14 @@ enum MultitouchLibrary {
             inputLogger.error("MultitouchSupport を読み込めない: \(reason, privacy: .public)")
         }
         throw NonetError.unavailable(InputText.multitouchUnavailable)
+    }
+
+    /// アプリと同じ読み込み（cmt_load: 使う関数がすべてそろっているかまで見る）で読めなければ、その理由。読めれば nil
+    static func loadError() -> String? {
+        var buffer = [CChar](repeating: 0, count: 256)
+        if cmt_load(&buffer, Int32(buffer.count)) { return nil }
+        let reason = buffer.withUnsafeBufferPointer { $0.baseAddress.map { String(cString: $0) } } ?? ""
+        return reason.isEmpty ? "cmt_load failed" : reason
     }
 
     /// いまつながっているデバイス。読み込めなければ空

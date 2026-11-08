@@ -39,6 +39,10 @@ enum MultitouchProbe {
     private static let frameworkPath = "/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport"
 
     static func check() -> ShellSelfCheck.Multitouch {
+        // アプリと同じ読み込み（使う関数がすべてそろっているか）で確かめる。macOS の更新で1つでも無くなれば、9マスは開かない
+        if let error = MultitouchLoadCheck.loadError() {
+            return ShellSelfCheck.Multitouch(loaded: false, deviceCount: 0, trackpadAvailable: false, error: error)
+        }
         guard let handle = dlopen(frameworkPath, RTLD_NOW) else {
             let reason = dlerror().map { String(cString: $0) } ?? "dlopen failed"
             return ShellSelfCheck.Multitouch(loaded: false, deviceCount: 0, trackpadAvailable: false, error: reason)

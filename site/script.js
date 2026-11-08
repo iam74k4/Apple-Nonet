@@ -304,10 +304,17 @@
       update();
     });
 
-    reduceMotion.addEventListener("change", (event) => {
+    // Safari 13 以前の MediaQueryList には addEventListener が無い（addListener だけ）。ここで止まると、
+    // この後の言語の帯・Mac だけの知らせ・メニューも動かなくなる
+    const onReduceMotion = (event) => {
       pausedByUser = event.matches;
       update();
-    });
+    };
+    if (typeof reduceMotion.addEventListener === "function") {
+      reduceMotion.addEventListener("change", onReduceMotion);
+    } else if (typeof reduceMotion.addListener === "function") {
+      reduceMotion.addListener(onReduceMotion);
+    }
 
     doc.addEventListener("visibilitychange", update);
 

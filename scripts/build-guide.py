@@ -59,8 +59,16 @@ class Converter:
         self.slugs = {}
         # 見出しに id を振る（位置で決める）
         in_code = False
+        in_comment = False
         found = []
         for line in self.lines:
+            # convert と同じく、コードと <!-- --> の中の行は見出しにしない（数えると、その後の id がずれる）
+            if in_comment:
+                in_comment = "-->" not in line
+                continue
+            if not in_code and line.startswith("<!--"):
+                in_comment = "-->" not in line
+                continue
             if line.startswith("```"):
                 in_code = not in_code
                 continue
@@ -110,7 +118,8 @@ class Converter:
             if path not in LINKS:
                 raise GuideError(f"{self.source}: サイトでの行き先が分からないリンクです: {url}（scripts/build-guide.py の LINKS に足してください）")
             url = LINKS[path] + url[len(path):]
-        return f'<a href="{html.escape(url)}">{label}</a>'
+        # url は inline で文字参照にした後の文なので、戻してから属性の形にする（& が &amp;amp; にならないように）
+        return f'<a href="{html.escape(html.unescape(url))}">{label}</a>'
 
     def convert(self):
         out = []
@@ -164,7 +173,10 @@ class Converter:
                     i += 1
                 out.append(self.list_html(block))
                 continue
-            para = []
+            # ほかのどれにも当たらなかった行（「#1」「#hashtag」のように # で始まる文も）は、段落の最初の行にする
+            # （段落の続きにしない行で始まると、1行も進まずに空の段落を足し続けて止まらない）
+            para = [line.strip()]
+            i += 1
             while i < len(lines) and lines[i].strip() and not re.match(r"^(#|```|\||\s*([-*]|\d+\.) )", lines[i]):
                 para.append(lines[i].strip())
                 i += 1

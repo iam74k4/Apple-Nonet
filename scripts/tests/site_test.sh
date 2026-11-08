@@ -273,6 +273,16 @@ test_strict_mode_fails_on_placeholders() {
   assert_contains "$OUT" "TODO.invalid/buy"
 }
 
+# アプリが開くサイトの節（設定の「ライセンスキーが見つからないときは」: AppLinks.licenseKeyHelpAnchor）が、日英のトップページにある。
+# URL は Swift で組み立てるので、check-site.sh のリンクの確かめでは見つからない
+test_app_anchors_exist_on_the_site() {
+  local anchor
+  anchor="$(sed -nE 's/.*licenseKeyHelpAnchor = "([^"]+)".*/\1/p' "$ROOT/Packages/NonetKit/Sources/NonetUI/Settings/SettingsLicenseLink.swift")"
+  [[ -n "$anchor" ]] || fail "SettingsLicenseLink.swift に licenseKeyHelpAnchor が見つかりません"
+  grep -q "id=\"$anchor\"" "$ROOT/site/index.html" || fail "site/index.html に id=\"$anchor\" がありません"
+  grep -q "id=\"$anchor\"" "$ROOT/site/en/index.html" || fail "site/en/index.html に id=\"$anchor\" がありません"
+}
+
 # 試すために入れた Paddle のテスト用のトークン（test_）は、公開前の --strict で止める（残すと本当の購入ができない）
 test_strict_mode_fails_on_a_sandbox_paddle_token() {
   write_fixture_site
@@ -907,6 +917,23 @@ test_guide_pages_are_built_from_their_markdown() {
   build_guide --check
   assert_status 0
   assert_contains "$OUT" "利用ガイドのページは Markdown と同じです"
+}
+
+# # で始まるが見出しでない行（「#1」など）も段落にする（前は1行も進まずに空の段落を足し続け、止まらなかった）。
+# <!-- --> の中の「## 」は見出しに数えない
+test_guide_build_treats_hash_lines_as_text() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf 'python3 が無いので飛ばしました\n'
+    return 0
+  fi
+  local repo="$TEST_TMP/repo"
+  mkdir -p "$repo/docs" "$repo/site/en"
+  cp "$ROOT/docs/user-guide.md" "$ROOT/docs/user-guide.en.md" "$ROOT/docs/privacy.md" "$repo/docs/"
+  printf '\n#1 のコツ: 上の縁から\n\n<!--\n## 書きかけの節\n-->\n' >>"$repo/docs/user-guide.md"
+  build_guide --root "$repo"
+  assert_status 0
+  assert_contains "$(cat "$repo/site/guide.html")" "<p>#1 のコツ: 上の縁から</p>"
+  assert_not_contains "$(cat "$repo/site/guide.html")" "書きかけの節"
 }
 
 # 本文だけを直して作り直し忘れたページ・無い見出しや無いファイルへのリンクを見つける
