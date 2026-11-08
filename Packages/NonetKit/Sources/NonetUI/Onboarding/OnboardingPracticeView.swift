@@ -16,7 +16,7 @@ struct OnboardingPracticeStep: View {
                 .onboardingHeading()
             HStack(alignment: .top, spacing: 28) {
                 OnboardingTrackpadFigure(page: page, state: model.practice, feedback: model.practiceFeedback)
-                    .frame(width: 312, height: 204)
+                    .frame(width: OnboardingTrackpadFigure.size.width, height: OnboardingTrackpadFigure.size.height)
                 Group {
                     if let blocker {
                         OnboardingNotice(text: blocker.message) {
@@ -220,13 +220,26 @@ struct OnboardingTrackpadFigure: View {
         return [page.runTarget.index]
     }
 
+    /// 図の大きさ。上の帯（openArrowBand）に開き方の矢印を置き、その下の正方形に輪を描く
+    static let size = CGSize(width: 312, height: 222)
+    /// 開き方の矢印を置く、輪の上の帯の高さ。上の鍵の名前は輪の上の端にかかるので、矢印は輪の外に出して重ねない
+    static let openArrowBand: CGFloat = 18
+
+    /// 輪の中心・外の線の半径・鍵の円の半径（外の線を帯の下に収め、鍵の円と真ん中の鍵は HUD と同じ割合）
+    static func ring(in size: CGSize) -> (center: CGPoint, outer: CGFloat, keyRadius: CGFloat) {
+        let height = size.height - openArrowBand
+        let outer = min(size.width, height) / 2 - 2
+        return (
+            CGPoint(x: size.width / 2, y: openArrowBand + height / 2),
+            outer,
+            outer * RadialLayout.keyRadius / RadialLayout.outerRadius
+        )
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            // 外の線を図に収め、鍵の円と真ん中の鍵は HUD と同じ割合
-            let outer = min(size.width, size.height) / 2 - 2
-            let keyRadius = outer * RadialLayout.keyRadius / RadialLayout.outerRadius
+            let (center, outer, keyRadius) = Self.ring(in: size)
             ZStack {
                 Circle()
                     .fill(isFrameTarget ? Color.primary.opacity(0.08) : Color.primary.opacity(0.03))
@@ -242,11 +255,11 @@ struct OnboardingTrackpadFigure: View {
                         .opacity(isFrameTarget ? 0.45 : 1)
                         .position(Self.position(ofCell: index, center: center, keyRadius: keyRadius))
                 }
-                // 開き方: 上の縁から下へ（ポインタは真ん中に出る）
+                // 開き方: 上の縁から下へ（ポインタは真ん中に出る）。輪の上の帯に置き、上の鍵の名前に重ねない
                 Image(systemName: "arrow.down")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .position(x: center.x, y: 7)
+                    .position(x: center.x, y: Self.openArrowBand / 2)
                 if isFrameTarget {
                     Text("輪の外で離す", bundle: .module)
                         .font(.system(size: 10, weight: .bold))

@@ -1,4 +1,5 @@
 // 担当: ui-shell
+import AppKit
 import Foundation
 import NonetCore
 @testable import NonetUI
@@ -850,5 +851,19 @@ struct ShellPracticeTextTests {
         for text in texts + Array(cancelling) + [ShellText.practiceOpenHint] {
             #expect(!text.contains("押す") && !text.contains("長押し"))
         }
+    }
+
+    @Test("練習の図: 開き方の矢印は輪の上の帯にあり、上の鍵の名前に重ならない")
+    func practiceFigureArrowClearsTheTopKey() {
+        let size = OnboardingTrackpadFigure.size
+        let band = OnboardingTrackpadFigure.openArrowBand
+        let (center, outer, keyRadius) = OnboardingTrackpadFigure.ring(in: size)
+        // 輪は帯の下に収まる
+        #expect(center.y - outer >= band)
+        #expect(center.y + outer <= size.height)
+        // 上の鍵は名前を印の上に出す。名前（10pt の1行）・間 2・印 20 を鍵の位置を中心に積んだ上端が、帯より下にある
+        let top = OnboardingTrackpadFigure.position(ofCell: 1, center: center, keyRadius: keyRadius)
+        let labelHeight = NSLayoutManager().defaultLineHeight(for: .systemFont(ofSize: 10))
+        #expect(top.y - (labelHeight + 2 + 20) / 2 >= band)
     }
 }

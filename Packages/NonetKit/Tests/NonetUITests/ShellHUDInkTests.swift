@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import NonetCore
 @testable import NonetUI
+import SwiftUI
 import Testing
 
 @Suite("HUD のアイコンの色")
@@ -197,5 +198,55 @@ struct ShellHUDInkTests {
         second([0, 0, 0, 0, 0, 0, 0, 0, 0])
         #expect(hud.inks == HUDInks(all: .onDark))
         hud.hide()
+    }
+
+    /// 鍵を黒い下地に描き、鍵の円の縁のあたり（アイコンより外）でいちばん明るい画素の明るさ（0〜1）
+    private static func brightestNearTheRing(_ key: HUDKeyView) throws -> Double {
+        let metrics = HUDMetrics(scale: 1)
+        let side = metrics.selectionRadius * 2 + 16
+        let renderer = ImageRenderer(content: key.frame(width: side, height: side).background(Color.black))
+        renderer.scale = 2
+        let image = try #require(renderer.cgImage)
+        let width = image.width
+        let height = image.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let context = try #require(CGContext(
+            data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        // 線は円の内側に沿って引くので、線の幅と縁の分だけ内から、円の少し外まで
+        let ring = (metrics.selectionRadius - metrics.holdLineWidth - 2)...(metrics.selectionRadius + 2)
+        let scale = CGFloat(width) / side
+        var brightest = 0.0
+        for y in 0..<height {
+            for x in 0..<width {
+                let distance = hypot(CGFloat(x) - CGFloat(width) / 2, CGFloat(y) - CGFloat(height) / 2) / scale
+                guard ring.contains(distance) else { continue }
+                let offset = (y * width + x) * 4
+                let value = (Double(pixels[offset]) + Double(pixels[offset + 1]) + Double(pixels[offset + 2])) / (3 * 255)
+                brightest = max(brightest, value)
+            }
+        }
+        return brightest
+    }
+
+    @Test("既定の濃い色でも、少し長く止める線と空きマスの点線には縁があり、暗い画面の上で見える")
+    func holdRingAndEmptyOutlineShowOnDarkBackdrops() throws {
+        // 縁が無いと、濃い色（0x1A）の線は黒い下地にほぼ溶ける。縁があれば白く光る
+        let holding = HUDKeyView(
+            cell: HUDCell(title: "クリーン", icon: .symbol("eraser")),
+            index: 7,
+            isHighlighted: true,
+            hold: HUDHold(cellIndex: 7, duration: 0.45, isReady: false),
+            ink: .onLight,
+            fixedHoldProgress: 1
+        )
+        #expect(try Self.brightestNearTheRing(holding) > 0.5)
+        let emptyCell = HUDKeyView(cell: nil, index: 0, isHighlighted: true, ink: .onLight)
+        #expect(try Self.brightestNearTheRing(emptyCell) > 0.5)
+        // 光らせていない鍵には、円の縁のあたりに何も描かない（測り方が明るさを拾いすぎていないことの確かめ）
+        let idle = HUDKeyView(cell: HUDCell(title: "クリーン", icon: .symbol("eraser")), index: 7, isHighlighted: false, ink: .onLight)
+        #expect(try Self.brightestNearTheRing(idle) < 0.2)
     }
 }

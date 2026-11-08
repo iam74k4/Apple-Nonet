@@ -255,7 +255,8 @@ struct HUDView: View {
 }
 
 /// 1つの鍵。アイコンだけ。光らせると（いま離すと実行する）下に白い円が出る。
-/// 境目の線の上・少し長く止めている途中は白く塗らず、線だけで示す。空きマスは小さな点
+/// 境目の線の上・少し長く止めている途中は白く塗らず、線だけで示す。空きマスは小さな点。
+/// 白い円の上でないところに描くもの（アイコン・線・点・バッジ）には、どれも同じ縁（HUDHalo）を付ける。下の画面が明るくても暗くても見えるように
 struct HUDKeyView: View {
     let cell: HUDCell?
     let index: Int
@@ -300,6 +301,7 @@ struct HUDKeyView: View {
                     strong: increasedContrast
                 )
                 if isHolding, let hold {
+                    // アイコンと同じ縁を付ける（縁が無いと、既定の濃い色の線が暗い画面に溶けて進み具合が見えない）
                     HUDHoldRing(
                         hold: hold,
                         lineWidth: metrics.holdLineWidth,
@@ -307,10 +309,12 @@ struct HUDKeyView: View {
                         animates: !reduceMotion,
                         fixedProgress: fixedHoldProgress
                     )
+                    .modifier(HUDHalo(ink: ink, radius: metrics.haloRadius, strong: increasedContrast))
                 }
             } else if isHighlighted {
-                // 空きマスは実行しても何も起きないので、塗らずに線だけで示す
+                // 空きマスは実行しても何も起きないので、塗らずに線だけで示す（線にもアイコンと同じ縁を付ける）
                 Circle().strokeBorder(ink.color.opacity(0.85), style: StrokeStyle(lineWidth: 1.5 * metrics.scale, dash: [3 * metrics.scale, 3 * metrics.scale]))
+                    .modifier(HUDHalo(ink: ink, radius: metrics.haloRadius, strong: increasedContrast))
                 HUDEmptyDot(ink: ink, radius: metrics.emptyDotRadius, haloRadius: metrics.haloRadius)
             } else {
                 // 空きマス: 小さな点だけ（「コントラストを上げる」では少し濃く）
