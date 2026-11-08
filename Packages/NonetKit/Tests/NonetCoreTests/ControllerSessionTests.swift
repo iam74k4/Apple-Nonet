@@ -458,7 +458,7 @@ import Testing
 
     // MARK: 試用期間・練習モード・Nonet のウィンドウ
 
-    /// 開いたら（60 秒に1回まで）表示用のライセンスを新しくする。ライセンスがあれば数えない
+    /// 9マスを閉じたら（60 秒に1回まで）表示用のライセンスを新しくする（開いている間の最初のフレームでは読み書きしない）。ライセンスがあれば数えない
     @Test func openingRefreshesTheLicenseAtMostOncePerInterval() async throws {
         let h = try ControllerHarness()
         h.start()

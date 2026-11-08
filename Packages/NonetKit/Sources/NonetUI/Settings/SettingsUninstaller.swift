@@ -88,8 +88,10 @@ struct SettingsUninstaller {
     var trash: any SettingsTrashing
     var targets: SettingsUninstallTargets
 
-    /// 1. ログイン時の起動を止める（アプリをゴミ箱に入れた後では、登録を外せないことがあるため先に）
+    /// 1. 動いているログイン時の起動を止める（アプリをゴミ箱に入れた後では、登録を外せないことがあるため先に）
     /// 2. アプリをゴミ箱に入れる。できなければログイン時の起動を元に戻し、ほかには何もせずにやめる
+    ///    （システム設定での許可待ちの登録は、ここまで残す。入れられずにやめるとき、登録し直すとシステム設定が開くため）。
+    ///    入れられたら許可待ちの登録を外し、外れなければ（ゴミ箱の中のアプリは外せないことがある）知らせる
     /// 3. stopController で待っている設定の保存を書き出してから、設定のフォルダとキャッシュをゴミ箱に入れる
     ///    （後から保存されて、フォルダが作り直されないように）
     /// ライセンスキーと試用の記録が入っている環境設定（~/Library/Preferences）とキーチェーンには触れない
@@ -122,6 +124,9 @@ struct SettingsUninstaller {
                 try loginItem.setEnabled(false)
             } catch {
                 uninstallLog.error("許可待ちのログイン項目を外せませんでした: \(error.localizedDescription, privacy: .public)")
+            }
+            // 何も言わずに外せないこともあるので、残っていれば知らせる（システム設定の「ログイン項目」で外してもらう）
+            if loginItem.isRegistered {
                 result.loginItemFailed = true
             }
         }

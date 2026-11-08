@@ -129,7 +129,7 @@
     </nav>
 
     <h2 id="about">About Nonet</h2>
-    <p>Slide a finger in from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.</p>
+    <p>Slide a finger down from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.</p>
     <ul>
       <li>Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it</li>
       <li>The trackpad is split into a 3×3 grid, and the <strong>direction of the pointer</strong> from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen</li>
@@ -259,10 +259,10 @@
           <tr><td>Allow Accessibility Access…</td><td>Appears only when Nonet doesn't have permission. Opens the permission step of the welcome guide</td></tr>
           <tr><td>Dismiss Notice</td><td>Appears with a notice, for example when Nonet couldn't read its settings file</td></tr>
           <tr><td>Cheat sheet</td><td>Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead</td></tr>
-          <tr><td>Enable Nonet</td><td>Uncheck it, and sliding in from the top edge no longer opens the buttons</td></tr>
+          <tr><td>Enable Nonet</td><td>Uncheck it, and sliding down from the top edge no longer opens the buttons</td></tr>
           <tr><td>Settings…</td><td>Opens the Settings window on the General tab</td></tr>
           <tr><td>Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons…</td><td>Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons</td></tr>
-          <tr><td>Turn Off in This App</td><td>Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding in from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see <a href="#profile-list">Profile list</a> under Editing profiles)</td></tr>
+          <tr><td>Turn Off in This App</td><td>Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see <a href="#profile-list">Profile list</a> under Editing profiles)</td></tr>
           <tr><td>Recent Runs</td><td>Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason. Choose one to open that button on the Profiles tab of Settings</td></tr>
           <tr><td>Show Welcome Guide</td><td>Opens the Welcome to Nonet window</td></tr>
           <tr><td>User Guide</td><td>Opens this guide</td></tr>
@@ -284,7 +284,7 @@
       <li>App profiles are listed below it, under <strong>Apps</strong>. Drag to reorder them. The profile the front app is using now is marked In Use</li>
       <li>Click <strong>Add Profile…</strong> and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click <strong>Choose Another App…</strong></li>
       <li>Control-click (or right-click) a profile to see the three <strong>When in Front</strong> choices and <strong>Duplicate for Another App…</strong>, <strong>Reset to Preset…</strong> (only for apps with a preset), <strong>Export This Profile…</strong> and <strong>Delete…</strong>. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)</li>
-      <li><strong>When in Front</strong>: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: <strong>This Profile</strong>, <strong>Use Global</strong> or <strong>Turn Off Nonet in This App</strong>. A profile set to <strong>Use Global</strong> is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to <strong>Turn Off Nonet in This App</strong> is marked Off. In that app, sliding in from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. <strong>Turn Off in This App</strong> in the Nonet menu switches it too</li>
+      <li><strong>When in Front</strong>: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: <strong>This Profile</strong>, <strong>Use Global</strong> or <strong>Turn Off Nonet in This App</strong>. A profile set to <strong>Use Global</strong> is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to <strong>Turn Off Nonet in This App</strong> is marked Off. In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. <strong>Turn Off in This App</strong> in the Nonet menu switches it too</li>
       <li>With 8 or more app profiles, a <strong>Filter by name, button or keys</strong> field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like <code>⌘B</code>). Results look like "Xcode › Build"</li>
       <li><strong>Enable Nonet</strong> under the list is the same switch as in the General settings</li>
     </ul>
@@ -481,7 +481,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
           </tr>
         </thead>
         <tbody>
-          <tr><td>Enable Nonet</td><td>On</td><td>When off, sliding in from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list</td></tr>
+          <tr><td>Enable Nonet</td><td>On</td><td>When off, sliding down from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list</td></tr>
           <tr><td>How to open and cancel</td><td></td><td>Shows how to open and cancel, with a drawing of the trackpad (see <a href="#basics">Basics</a>)</td></tr>
           <tr><td>Open sensitivity</td><td>Standard</td><td>Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see <a href="#open">Opening the buttons</a>). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them</td></tr>
           <tr><td>Show larger</td><td>Off</td><td>Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits</td></tr>
@@ -532,7 +532,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
     <ul>
       <li>You can use every feature free for <strong>14 days</strong> from the day you first open Nonet. The days left appear in the Nonet menu and on the Nonet tab of Settings</li>
       <li>With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with <strong>Buy Nonet…</strong> and <strong>Enter License Key…</strong> in the Nonet menu</li>
-      <li>When the trial ends, sliding in from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with <strong>Buy Nonet</strong>, <strong>Register License Key…</strong> and <strong>Not Now</strong>), and from the banner at the top of the Settings window (<strong>Buy Nonet</strong> and <strong>Enter License Key…</strong>)</li>
+      <li>When the trial ends, sliding down from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with <strong>Buy Nonet</strong>, <strong>Register License Key…</strong> and <strong>Not Now</strong>), and from the banner at the top of the Settings window (<strong>Buy Nonet</strong> and <strong>Enter License Key…</strong>)</li>
       <li>After you buy Nonet, your license key arrives by email. One license covers every Mac you use. You can get a full refund within 30 days of purchase</li>
       <li>Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the Nonet tab says why, and Nonet goes back to the trial if any trial time is left</li>
     </ul>
@@ -569,7 +569,7 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
       <li>Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")</li>
       <li>Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown</li>
       <li>Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down from near the far edge does open them, however slowly you start (see <a href="#open">Opening the buttons</a> under Basics)</li>
-      <li>While a Nonet window such as Settings is in front, sliding in from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use <strong>Test This Button</strong> in the inspector. When you close the Settings window, the app you were using before comes back to the front</li>
+      <li>While a Nonet window such as Settings is in front, sliding down from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use <strong>Test This Button</strong> in the inspector. When you close the Settings window, the app you were using before comes back to the front</li>
     </ul>
     <h3 id="menu-bar-icon-missing">The menu bar icon is missing</h3>
     <p>When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder, and the Settings window opens right away.</p>

@@ -23,27 +23,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// トラックパッドにいま指が触れているか。抑止中に、触れていない間に届いたマウスやホイールのイベントでセッションを終える
     public var isTrackpadTouched: Bool {
         get { contact.isTouched }
-        set {
-            contact.update(isTouched: newValue, at: now())
-            updateTouchActivity(touched: newValue)
-        }
-    }
-
-    /// トラックパッドに触れている間の ProcessInfo のアクティビティ。メニューバーのアプリは、ウィンドウが無いと App Nap で
-    /// タイマーがまとめて遅らされることがある。触れている間だけ遅らせないようにする（開く前の entryConfirmDelay、
-    /// 止めて切り替えるまでの 0.5 秒、少し長く止めるマス）。離せば終える（電力を使い続けない）
-    private var touchActivity: NSObjectProtocol?
-
-    private func updateTouchActivity(touched: Bool) {
-        if touched, touchActivity == nil {
-            touchActivity = ProcessInfo.processInfo.beginActivity(
-                options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
-                reason: "トラックパッドに触れている"
-            )
-        } else if !touched, let activity = touchActivity {
-            ProcessInfo.processInfo.endActivity(activity)
-            touchActivity = nil
-        }
+        set { contact.update(isTouched: newValue, at: now()) }
     }
 
     /// 両方のタップがあり、システムに無効にされていない（アクセシビリティを切ると、タップの Mach ポートが無効になることがある。

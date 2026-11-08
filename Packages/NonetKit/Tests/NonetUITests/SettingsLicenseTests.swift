@@ -441,6 +441,16 @@ private final class FakeTrash: SettingsTrashing {
         #expect(!loginItem.isWaitingForApproval)
     }
 
+    /// ゴミ箱に入れた後に許可待ちのログイン項目を外せず、残ったら知らせる（システム設定の「ログイン項目」で外してもらう）
+    @Test func reportsALoginItemWaitingForApprovalThatStays() throws {
+        let trash = FakeTrash(existing: [targets.app])
+        let loginItem = SettingsFakeLoginItem()
+        loginItem.isWaitingForApproval = true
+        loginItem.failure = SettingsFakeLoginError()
+        let result = try SettingsUninstaller(trash: trash, targets: targets).run(loginItem: loginItem) {}
+        #expect(result.loginItemFailed)
+    }
+
     /// アプリをゴミ箱に入れられずにやめるときは、許可待ちのログイン項目もそのまま（先に外さない）
     @Test func keepsALoginItemWaitingForApprovalWhenTheAppStays() throws {
         let trash = FakeTrash(existing: [targets.app])

@@ -162,6 +162,12 @@ public final class NonetController {
     @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
     /// pendingOpen を決めた、上の縁から滑らせた指（同じフレームで指が入れ替わったら開かない）
     @ObservationIgnored private var pendingOpenFingerID: Int?
+    /// 上の縁で触れ始めてから離すまでの ProcessInfo のアクティビティ。メニューバーのアプリはウィンドウが無いと App Nap で
+    /// タイマーがまとめて遅らされることがあるので、開く前の entryConfirmDelay・止めて切り替えるまでの時間・少し長く止めるマスを
+    /// 遅らせない。ふつうにポインタを動かすだけのタッチでは持たない（電力を使わない）
+    @ObservationIgnored private var latencyActivity: NSObjectProtocol?
+    /// 閉じた後のライセンスの数え直し（止めるときは取り消す）
+    @ObservationIgnored private var licenseRefreshTask: (any ScheduledTask)?
     /// HUD を隠したとき、ポインタがまだ開いた直後の真ん中にいた（hideHUD で覚え、.sessionEnded で使って戻す）
     @ObservationIgnored private var wasHiddenBeforeMoving = false
     /// 初回起動で、claude を調べ終えてからプリセットを作り直す（rebuildFirstPresetsWhenResolved）
@@ -229,8 +235,12 @@ public final class NonetController {
 
     /// 監視をすべて止める。セッション中なら何も実行せずに終え（ポインタの抑止をやめ、HUD を閉じる）、待っている保存を書く
     public func stop() {
+        endLatencyActivity()
         if isStarted {
             endSession()
+            // 止めるときに閉じたセッションの後の数え直しは行わない（止めた後に予定を残さない）
+            licenseRefreshTask?.cancel()
+            licenseRefreshTask = nil
             isStarted = false
             tickTask?.cancel()
             tickTask = nil
@@ -387,6 +397,9 @@ public final class NonetController {
         if touching != isTrackpadTouched {
             isTrackpadTouched = touching
             services.keyboard.isTrackpadTouched = touching
+            if !touching, !engine.isInSession {
+                endLatencyActivity()
+            }
         }
         // トラックパッドの続きが来なくなって離れたことにしたフレーム。光っているマスで離したことにせず、何も実行せずに閉じる
         if frame.isSynthesizedLift {
@@ -418,6 +431,7 @@ public final class NonetController {
         case .touchBeganInBand:
             // 開く動きの間に指を滑らせた分だけポインタが動くので、触れ始めた位置を覚えておき、開いたらそこへ戻す
             services.keyboard.rememberPointerLocation()
+            beginLatencyActivity()
         case .slid:
             scheduleOpen(fingerID: frame.touching.first?.id)
         }
@@ -434,6 +448,20 @@ public final class NonetController {
             guard self.isTrackpadTouched else { return }
             self.openFromEdge()
         }
+    }
+
+    private func beginLatencyActivity() {
+        guard latencyActivity == nil else { return }
+        latencyActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
+            reason: "上の縁から9マスを開いている"
+        )
+    }
+
+    private func endLatencyActivity() {
+        guard let activity = latencyActivity else { return }
+        ProcessInfo.processInfo.endActivity(activity)
+        latencyActivity = nil
     }
 
     private func cancelPendingOpen() {
@@ -481,7 +509,6 @@ public final class NonetController {
         let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current)
         // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
         send(.open(at: services.scheduler.now, configuration: next.engineConfiguration), starting: next)
-        refreshLicenseAfterOpening()
     }
 
     /// セッションを始められるか（開く前と、試用期間が終わっていて開かないときの知らせの前に確かめる）
@@ -500,14 +527,16 @@ public final class NonetController {
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
-    /// 保存先への書き込みがあるので、フレームの処理を返してから行い、licenseRefreshInterval に1回までにする。
+    /// 9マスを閉じた後に呼ぶ。保存先への書き込みがあるので、フレームの処理を返してから行い、licenseRefreshInterval に1回までにする。
     /// ライセンスがあれば試用を数えなくてよいので呼ばない。実行してよいかは canExecuteActions がいつでも正しく答える
-    private func refreshLicenseAfterOpening() {
+    private func refreshLicenseAfterSession() {
         if case .licensed = license.entitlement { return }
         let now = services.scheduler.now
         if let last = lastLicenseRefresh, now >= last, now - last < Self.licenseRefreshInterval { return }
         lastLicenseRefresh = now
-        services.scheduler.schedule(after: 0) { [weak self] in
+        licenseRefreshTask?.cancel()
+        licenseRefreshTask = services.scheduler.schedule(after: 0) { [weak self] in
+            self?.licenseRefreshTask = nil
             self?.license.refresh()
         }
     }
@@ -584,6 +613,11 @@ public final class NonetController {
             if case .cancelled(let cancellation) = reason {
                 lastCancellation = CancellationRecord(reason: cancellation, date: currentDate(), liftedBeforeMoving: liftedBeforeMoving)
             }
+            if !isTrackpadTouched {
+                endLatencyActivity()
+            }
+            // 表示用のライセンスを新しくする（ファイルを読み書きするので、開いている間の最初のフレームではなく、閉じた後に）
+            refreshLicenseAfterSession()
             controllerLogger.debug("セッションが終わりました: \(String(describing: reason), privacy: .public)")
         }
     }

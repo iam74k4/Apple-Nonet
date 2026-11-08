@@ -15,8 +15,25 @@ public final class AXWindowPlacer: WindowPlacing {
     static let previewTimeout: Float = 0.25
     static let placeTimeout: Float = 1
 
+    /// 下見で読んだ、前面のウインドウのある画面の使える範囲（読んだプロセスと時刻）。9マスを開いている間はウインドウが動かないので、
+    /// 「画面に置く」のマスを向くたびに AX で読み直さない（固まりかけたアプリでは、1回の読み取りが previewTimeout まで待つ）
+    private var previewCache: (pid: pid_t, at: TimeInterval, visible: CGRect)?
+    static let previewCacheLifetime: TimeInterval = 2
+
     public func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect? {
-        targetFrame(for: region, app: app, timeout: Self.previewTimeout)
+        let pid = app?.processID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let now = ProcessInfo.processInfo.systemUptime
+        if let cache = previewCache, cache.pid == pid, now - cache.at >= 0, now - cache.at < Self.previewCacheLifetime {
+            return region.frame(in: cache.visible)
+        }
+        guard let placement = placement(for: region, app: app, timeout: Self.previewTimeout) else {
+            previewCache = nil
+            return nil
+        }
+        if let pid {
+            previewCache = (pid, now, placement.visible)
+        }
+        return placement.target
     }
 
     private func targetFrame(for region: WindowRegion, app: RunningAppInfo?, timeout: Float) -> CGRect? {
