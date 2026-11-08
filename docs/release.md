@@ -102,7 +102,7 @@ swift run nonet-license verify --public ../../Config/Nonet.xcconfig "<発行し�
 ```
 NONET_APPCAST_URL = https:/$()/nonet.astlog.dev/updates/appcast.xml
 NONET_SPARKLE_PUBLIC_KEY = <generate_keys の公開鍵>
-NONET_PURCHASE_URL = https:/$()/nonet.example.com/buy
+NONET_PURCHASE_URL = https:/$()/nonet.astlog.dev/buy.html
 NONET_SUPPORT_URL = https:/$()/nonet.astlog.dev/guide.html
 NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
 NONET_LICENSE_PUBLIC_KEY = <nonet-license keygen の公開鍵>
@@ -110,6 +110,8 @@ NONET_SUPPORT_EMAIL = <問い合わせを受けるメールアドレス>
 ```
 
 `NONET_SUPPORT_EMAIL` は、設定の「Nonet」のタブと、ライセンスキーを登録できなかったときのエラーの横に出る「お問い合わせ…」の宛先になる（Info.plist の `NonetSupportEmail`）。押すと、件名「Nonet <版> のお問い合わせ」と、アプリの版・macOS の版・Mac の機種・キーボードの種類（JIS / ANSI / ISO）だけを書いた本文で、メールのアプリが開く（ライセンスキーやプロファイルの中身は入れない）。`support@nonet.astlog.dev` のようなアドレスだけを書き、`mailto:` は付けない。空のままだとボタンを出さない。プライバシーポリシー（[privacy.md](privacy.md) の「お問い合わせ」）と販売ページの問い合わせ先も同じアドレスにする。`scripts/release.sh` は、空・メールアドレスの形でない・`example.com` などの仮の値のときに止まり、書き出したアプリの Info.plist の値も確かめる。
+
+`NONET_PURCHASE_URL` は、メニュー・設定の「Nonet」のタブ・試用が終わったときのウインドウの「購入する」が開く購入のページ（`site/buy.html`。2026-11-08 に埋めた）。アプリの言語にかかわらずこのページを開く（Paddle の購入画面はブラウザの言語で出る）。
 
 `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` は設定の「Nonet」のタブの「利用ガイド」「プライバシー」のリンクになる。日本語のページ（`site/guide.html`・`site/privacy.html`）を指しておく。アプリが英語で動いているときは、最後の要素の前に `en/` を入れた英語のページ（`https://nonet.astlog.dev/en/guide.html`。`site/en/guide.html`）を開く。`#troubleshooting` のような節へのリンクは、日本語と英語で同じ id にしてある。
 
@@ -127,17 +129,18 @@ Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONE
 - DMG とデルタは appcast と同じ場所（例: `https://nonet.astlog.dev/updates/Nonet-1.0.0.dmg`）。`NONET_DOWNLOAD_URL_PREFIX` は設定しない（Worker は `/updates/` の下しか配らず、`scripts/publish.sh` も別の URL を指す appcast は上げない）
 - 無いファイルには 404 を返す（`cloudflare/wrangler.toml` の `not_found_handling = "404-page"`）。無いファイルにも 200 で `index.html` を返す設定（SPA 向けのフォールバック）にすると、スクリプトが公開中の appcast を確かめられずに止まる
 - 販売ページの「ダウンロード」は、ダウンロードのページ（`thanks.html`・`en/thanks.html`。インストールの3つの手順つき）を指し、そのページが `https://nonet.astlog.dev/download` を開く。Worker が appcast の最新の DMG へリダイレクトするので、リリースのたびに書き換えなくてよい
+- 販売ページとアプリの「購入する」は、購入のページ（`buy.html`・`en/buy.html`）を開き、そのページが Paddle の購入画面を開く（3.6）
 - `site/` には利用ガイド（`guide.html`・`en/guide.html`）とプライバシーポリシー（`privacy.html`・`en/privacy.html`）も入っている。アプリの「利用ガイド」「プライバシー」が開くページで、Worker が販売ページと一緒に配る
 - 最初の準備（R2・バケット `nonet-updates`・API トークン・DNS・最初のデプロイ・GitHub の environment）は hosting.md の「2. 最初の準備」
 
 ### 1.8 販売ページの仮の値を埋める
 
-`site/` には、まだ埋められない仮の値（`TODO` と `TODO.invalid`）が残っている（価格と販売サービスの名前は埋めた）。どれも同じ書き方なので、検索して置き換える:
+`site/` には、まだ埋められない仮の値（`TODO` と `TODO.invalid`）が残っている（価格・販売サービスの名前・購入のページは埋めた）。どれも同じ書き方なので、検索して置き換える:
 
 | 仮の値 | 場所 | 埋めるもの |
 |---|---|---|
 | 価格（2026-11-08 に決めて埋めた） | `index.html`・`en/index.html` の価格と head の JSON-LD の `offers`、`tokushoho.html` の販売価格 | ¥1,480（税込）・$9.99（税は別）。変えるときは全部をそろえる（`scripts/tests/site_test.sh` の `test_price_is_the_same_everywhere` が確かめる） |
-| 販売サービス: `https://TODO.invalid/buy`・`TODO: 販売事業者の電話番号の表記` | 購入のボタン（`NONET_PURCHASE_URL` と同じ URL）・`tokushoho.html` の所在地・電話番号 | 購入のボタンは Paddle の購入画面を開くページ（3.6）。電話番号は 3.4 のとおり決める。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地は 2026-11-08 に埋めた |
+| 販売サービス: `data-paddle-token="TODO: …"`・`data-paddle-price="TODO: …"`・`TODO: 販売事業者の電話番号の表記` | 購入のページ（`buy.html`・`en/buy.html`。同じ値）・`tokushoho.html` の電話番号 | Paddle のクライアント用トークン（`live_…`）と価格の ID（`pri_…`）は 3.6 で作る。電話番号は 3.4 のとおり決める。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地・購入のボタン（`buy.html`）は 2026-11-08 に埋めた |
 | 問い合わせ先: `support@TODO.invalid` | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー | サポートのメールアドレス（利用ガイドのフッターは `scripts/build-guide.py` で直す） |
 
 ```bash
@@ -152,7 +155,7 @@ scripts/check-site.sh --strict   # 上の仮の値が1つでも残っていれ�
 python3 -I scripts/make-site-images.py   # site/images/og-ja.png・og-en.png（1200×630）と site/apple-touch-icon.png（180×180）
 ```
 
-`scripts/check-site.sh` は、`Config/Nonet.xcconfig`（`--config <xcconfig>` でほかのファイルも選べる）の `NONET_SUPPORT_URL` と `NONET_PRIVACY_URL` のホストが `site/index.html` の canonical と同じなら、そのページが `site/` にあるか、英語で動くアプリが開くページ（最後の要素の前に `en/` を入れたもの）もあるか、`.html` を省いていないかを確かめる。`--strict` では、これらの URL を入れたのに `site/index.html` に canonical が無い（確かめられない）ときも失敗にする。
+`scripts/check-site.sh` は、`Config/Nonet.xcconfig`（`--config <xcconfig>` でほかのファイルも選べる）の `NONET_SUPPORT_URL`・`NONET_PRIVACY_URL`・`NONET_PURCHASE_URL` のホストが `site/index.html` の canonical と同じなら、そのページが `site/` にあるか、英語で動くアプリが開くページ（最後の要素の前に `en/` を入れたもの。購入のページはそのまま開くので見ない）もあるか、`.html` を省いていないかを確かめる。`--strict` では、これらの URL を入れたのに `site/index.html` に canonical が無い（確かめられない）ときも失敗にする。
 
 ### 1.9 Sparkle の版を上げる
 
@@ -423,7 +426,7 @@ Paddle では:
 
 まだ埋めていないもの（1.8 の仮の値）:
 
-- 購入のボタンの URL（`site/` の TODO。3.6）
+- 購入のページの Paddle のクライアント用トークンと価格の ID（`site/buy.html`・`site/en/buy.html` の TODO。3.6）
 - 問い合わせ先のメールアドレス
 - 特定商取引法に基づく表記の、販売事業者（Paddle）の電話番号の表記（上の「販売」）
 
@@ -447,13 +450,24 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 
 ### 3.6 Paddle の準備と購入のボタン
 
-1. Paddle のアカウントを作り、本人と事業の確認を済ませる。入金先（銀行か Payoneer）を登録する
-2. 価格を決めて販売ページの仮の値を埋め（1.8）、nonet.astlog.dev を公開する（[hosting.md](hosting.md)）
-3. Paddle › Settings › Website approval で `nonet.astlog.dev` を申請する（承認されるまで本番の購入画面は開けない。sandbox はどのドメインでも試せる）
-4. 商品と価格（JPY と USD）を作る。クライアント用のトークンと価格の ID を控える
-5. 販売ページの「購入する」で Paddle.js のオーバーレイ（`Paddle.Initialize({ token })` → `Paddle.Checkout.open({ items: [{ priceId, quantity: 1 }] })`）を開くようにする。`site/_headers` の Content-Security-Policy で Paddle の読み込みと購入画面を許す。Paddle › Checkout › Checkout configuration の Default payment link に、承認したドメインのページを入れる
-6. アプリの「購入」（`NONET_PURCHASE_URL`）は、開くとすぐに購入画面を出す販売ページの URL にする
-7. キーの届け方を決める（手動は 3.1、自動は 3.2）
+サイトとアプリの側はできている（2026-11-08）:
+
+- 販売ページの「購入する」とアプリの「購入する」（`NONET_PURCHASE_URL`）は、購入のページ `buy.html`（英語は `en/buy.html`）を開く。ページは Paddle.js を読み、`site/buy.js` がすぐに購入画面（オーバーレイ）を開く。購入画面の言語はブラウザの言語
+- 閉じたら「購入画面を開く」で開き直せる。開けなかったとき・Paddle.js を読めなかったとき（拡張機能で止められたなど）・購入が済んだときは、そう知らせる（購入が済んだら「領収書は Paddle から、ライセンスキーは開発者からメールで届く」）
+- トークンと価格の ID は、2つのページの `data-paddle-token`・`data-paddle-price`（同じ値。`scripts/tests/buy_script_harness.js` が確かめる）。`test_` で始まるトークンなら sandbox で開く。仮の値のままなら購入画面を開かずに「準備中」と出す（`scripts/check-site.sh --strict` は止まる）
+- `?_ptxn=…` を付けて開かれたら、その取引の購入画面は Paddle.js が開く（Paddle の Default payment link をこのページにするため）
+- 外のスクリプト（Paddle.js）を読むのはこの2つのページだけ。`site/_headers` でこの2つの CSP だけを Paddle の分だけ広げる（中身と理由は `_headers` のコメント）。Paddle.js が本番で足す Paddle Retain（解約を減らすための追跡。買い切りには要らない）は CSP で止める。プライバシーポリシーの「8. 販売ページ」に、購入のページだけが Paddle のスクリプトを読むことを書いた
+
+持ち主がすること（アカウントの作成・本人確認・入金先の登録は、本人にしかできない）:
+
+1. **sandbox で試す**: https://sandbox-vendors.paddle.com/signup でテスト用のアカウントを作り、下の 3 と同じ商品と価格、Developer tools › Authentication のクライアント用トークン（`test_…`）を作る。Checkout › Checkout settings の Default payment link には `https://nonet.astlog.dev/buy.html` を入れる。トークンと価格の ID を `buy.html` に一時的に入れて（コミットしない）、`cd site && python3 -m http.server 8000` で http://localhost:8000/buy.html を開き、Paddle のテスト用のカードで買えることと、国を日本にしたときの合計がちょうど ¥1,480（税込み。上乗せされない）で、米国では $9.99 に税が足されることを確かめる
+2. **本番のアカウント**: https://vendors.paddle.com/signup でアカウントを作り、本人と事業の確認を済ませ、入金先（銀行か Payoneer）を登録する。$10 未満の商品なので、手数料（5% + 50¢）の相談もこのときにする
+3. **商品と価格**: Catalog › Products で商品「Nonet」（税のカテゴリは Standard digital goods）を作り、価格を1つ足す: 1回払い・USD 9.99、国ごとの価格で日本（JP）を JPY 1,480。税の扱いは、1 で日本の合計がちょうど ¥1,480 になったもの（候補は「場所による（Location）」: 日本は税込み・米国は税抜き。1つの価格で決まらなければ、日本向けの税込みの価格を別に作り、相談する）
+4. **トークン**: Developer tools › Authentication でクライアント用トークン（`live_…`）を作る。トークンと価格の ID（`pri_…`）を `buy.html`・`en/buy.html` に入れる（クライアント用のトークンはページに載せるためのもので、公開してよい。API キー（`pdl_…`）は載せない）
+5. **公開**: 問い合わせ先のメールアドレスと特商法の電話番号の表記も埋め（1.8）、`scripts/check-site.sh --strict` を通して nonet.astlog.dev を公開する（[hosting.md](hosting.md)）
+6. **ドメインの承認**: Paddle の設定の Website approval で `nonet.astlog.dev` を申請する（販売ページに価格・利用規約・返金の方針・プライバシーポリシーがあることを見られる）。承認されるまで、本番の購入画面は開かない。Default payment link に `https://nonet.astlog.dev/buy.html` を入れる
+7. **確かめる**: 承認されたら、本番の購入のページを開き、購入画面が日本語・円で出ること、ブラウザのコンソールに Paddle Retain（`public.profitwell.com`）のほかの CSP の違反が無いことを見る。自分で一度買い、返金まで通しておく
+8. **キーの届け方**を決める（手動は 3.1、自動は 3.2）。Paddle › Notifications で、販売のメールを受け取るようにしておく
 
 ## 4. 公開前のチェックリスト
 
@@ -494,7 +508,8 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 - [ ] appcast.xml と DMG に HTTPS で届く
 
 **販売**
-- [ ] 販売サービスの商品・価格・税の設定をした
+- [ ] 販売サービスの商品・価格・税の設定をした（Paddle。日本の合計がちょうど ¥1,480 になることを sandbox で確かめた。3.6）
+- [ ] Paddle のドメインの承認（`nonet.astlog.dev`）と Default payment link（`https://nonet.astlog.dev/buy.html`）が済み、本番の購入のページで購入画面が開く
 - [ ] テスト購入 → キーが届く → アプリで登録できる、を通した
 - [ ] 返金やキーの流出で無効にしたライセンスがあれば、`RevokedLicenses.txt` の変更をコミットした（3.5。この版に入る）
 - [ ] `scripts/check-site.sh --strict` が通る（価格・URL・問い合わせ先が埋まっている）

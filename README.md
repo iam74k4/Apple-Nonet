@@ -15,7 +15,7 @@
 | `App/` | アプリ本体の組み立て（AppDelegate・Sparkle） |
 | `Packages/NonetKit/` | それ以外のすべて（ロジック・macOS の実装・画面・`nonet-license`）。`swift build` と `swift test` で動く |
 | `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの共有の画像作り（`make-site-images.py`）・販売ページの確認（`check-site.sh`）。`scripts/tests/` はそのテスト |
-| `site/` | 販売ページ（静的な HTML。日本語と `en/`）。利用規約・特定商取引法に基づく表記・プライバシーポリシー・ダウンロードのページ（`thanks.html`）・`robots.txt`・`sitemap.xml` も |
+| `site/` | 販売ページ（静的な HTML。日本語と `en/`）。利用規約・特定商取引法に基づく表記・プライバシーポリシー・ダウンロードのページ（`thanks.html`）・購入のページ（`buy.html`。Paddle の購入画面を開く）・`robots.txt`・`sitemap.xml` も |
 | `docs/` | 設計・リリースの手順・利用ガイド・プライバシーポリシー |
 | `Spikes/NonetSpike/` | フェーズ0の技術検証アプリ（使い捨て） |
 | `.github/workflows/ci.yml` | main への push・main へのプルリクエスト・手動の実行（workflow_dispatch）で `scripts/test.sh` を動かす（リポジトリは非公開で、macOS の実行時間を節約するため、ほかのブランチへの push では動かさない） |

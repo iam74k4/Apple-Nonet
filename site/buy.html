@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>購入 — Nonet</title>
+<meta name="description" content="Nonet のライセンスの購入ページ。販売代理店（Merchant of Record）の Paddle の購入画面を開きます。">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<!-- 購入のページ。販売ページの「購入する」と、アプリの「購入する」（Config/Nonet.xcconfig の NONET_PURCHASE_URL）がここを開く。
+     Paddle の Default payment link（Paddle › Checkout › Checkout configuration）もこのページにする。
+     buy.js が Paddle.js で購入画面（オーバーレイ）を開く。?_ptxn=… で開かれたときは、その取引の購入画面を Paddle.js が開く。
+     サイトで外のスクリプト（Paddle.js）を読むのはこのページと en/buy.html だけ。CSP は site/_headers でこの2つだけ広げる
+     （プライバシーポリシーの「8. 販売ページ」。scripts/check-site.sh が、ほかのページで読んでいないかを確かめる）。
+     トークンと価格の ID は data-paddle-*（en/buy.html と同じ値にする）。live_ のトークンなら本番、test_ なら sandbox で開く -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
+<script src="buy.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">本文へ移動</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="en/buy.html" hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="thanks">
+  <div class="wrap">
+    <div class="thanks-head" data-checkout
+         data-paddle-token="TODO: Paddle のクライアント用トークン（live_ で始まる）"
+         data-paddle-price="TODO: Paddle の価格の ID（pri_ で始まる）"
+         data-text-unavailable="いまは購入の準備中です。しばらくしてから、もう一度お試しください。"
+         data-text-blocked="購入画面（Paddle）を読み込めませんでした。広告やトラッキングを止める拡張機能を一時的に止めるか、ほかのブラウザでお試しください。"
+         data-text-closed="購入画面を閉じました。購入するときは、下のボタンからもう一度開いてください。"
+         data-text-error="購入画面を開けませんでした。時間をおいて、下のボタンからもう一度お試しください。続くときは、お問い合わせください。"
+         data-text-completed="ご購入ありがとうございます。領収書は Paddle から、ライセンスキーは開発者から、購入のときのメールアドレスにお送りします。">
+      <h1>Nonet を購入</h1>
+      <p data-checkout-status role="status">購入画面（Paddle）を開いています。</p>
+      <noscript><p>購入画面を開くには、JavaScript を有効にしてください。</p></noscript>
+      <p><button class="btn" type="button" data-checkout-open hidden>購入画面を開く</button></p>
+    </div>
+
+    <div class="thanks-after">
+      <p>Nonet のライセンス（買い切り）: 1,480円（税込）。1つのライセンスで、あなたが使うすべての Mac で使えます。1.x のアップデートはすべて無料です。</p>
+      <p>お支払い・領収書・税の計算は、販売代理店（Merchant of Record）の Paddle が行います。購入から30日以内なら、理由を問わず全額を返金します。</p>
+      <p>購入の前に、14日間の無料の試用で、お使いの Mac で動くことを確かめられます（<a href="thanks.html">ダウンロード</a>）。</p>
+      <ul class="price-links fine">
+        <li><a href="terms.html">利用規約</a></li>
+        <li><a href="terms.html#refunds">返金について</a></li>
+        <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">利用ガイド</a></li>
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+        <li><a href="terms.html">利用規約</a></li>
+        <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="mailto:support@TODO.invalid">お問い合わせ</a></li>
+        <li><a href="en/buy.html" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
