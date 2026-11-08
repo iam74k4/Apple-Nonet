@@ -39,11 +39,11 @@ ctx.scaleBy(x: s, y: s)
 ctx.interpolationQuality = .high
 func rgb(_ hex: Int, _ a: CGFloat = 1) -> CGColor { CGColor(srgbRed: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: a) }
 
-// 背景: 暗い無地のグラデーション（左上 #1C2227 → 右下 #0E1114）
-let bg = CGGradient(colorsSpace: space, colors: [rgb(0x1C2227), rgb(0x0E1114)] as CFArray, locations: [0, 1])!
+// 背景: 暗い無彩色のグラデーション（左上 #1F1F21 → 右下 #0E0E0F。macOS のダークに近い灰。色みを持たせず、どのアプリの差し色にも合う。2026-11-09 に所有者が選んだ）
+let bg = CGGradient(colorsSpace: space, colors: [rgb(0x1F1F21), rgb(0x0E0E0F)] as CFArray, locations: [0, 1])!
 ctx.drawLinearGradient(bg, start: CGPoint(x: 0, y: H), end: CGPoint(x: W, y: 0), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
-// メニューバー（高さ 34・#15191C。下に白 6% の 1pt の線）
-ctx.setFillColor(rgb(0x15191C)); ctx.fill(CGRect(x: 0, y: H - 34, width: W, height: 34))
+// メニューバー（高さ 34・#161617。下に白 6% の 1pt の線）
+ctx.setFillColor(rgb(0x161617)); ctx.fill(CGRect(x: 0, y: H - 34, width: W, height: 34))
 ctx.setFillColor(rgb(0xFFFFFF, 0.06)); ctx.fill(CGRect(x: 0, y: H - 35, width: W, height: 1))
 
 func text(_ string: String, font: CTFont, color: CGColor, rightEdge x: CGFloat, baseline y: CGFloat) {

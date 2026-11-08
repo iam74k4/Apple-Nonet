@@ -16,7 +16,7 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
   **デモ動画の決まり（2026-11-09。全アプリで同じ。手順と道具は skill `app-promo-media`（`~/.claude/skills/app-promo-media/`）、要点は `~/.claude/rules/demo-video.md`）**:
 
   - 実際の画面（壁紙・ほかのアプリのウインドウ・本物のメニューバー）は写さない。画面いっぱいに共通の背景を敷いて、その上で撮る
-  - 背景はどの動画も `scripts/make-backdrop.swift` の同じもの（暗いグラデーション #1C2227 → #0E1114 と、日付・コントロールセンター・Wi-Fi・電池・アプリのアイコンを並べたメニューバー）。販売ページ・AstLog の画像（`compose-store-image.swift`）も同じ背景なので、画像と動画で見た目がそろう。色と寸法は変えない
+  - 背景はどの動画も `scripts/make-backdrop.swift` の同じもの（暗いグラデーション #1F1F21 → #0E0E0F と、日付・コントロールセンター・Wi-Fi・電池・アプリのアイコンを並べたメニューバー）。販売ページ・AstLog の画像（`compose-store-image.swift`）も同じ背景なので、画像と動画で見た目がそろう。色と寸法は変えない
   - 操作は図で見せる。画面の右下に、指の位置を示すトラックパッドの図を出す（`DemoTrackpadView`）
   - `--demo` は背景（`--demo-backdrop`）が無い・画面と縦横比が違うと、始めずに終える
 
@@ -35,7 +35,7 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
   zsh では `${=REGION}` のように分けて渡す（変数を引用せずに書いても単語に分かれない）。録画を `go` の前に始めると先頭に背景だけの数秒が入るので、最後の引数（最初に捨てる秒）でその分を捨てる。
 
   撮ったあとは、メニューバーの左側に画面が写っていないかを、0.5 秒ごとのフレームの明るさで確かめてから中身を見る（背景が消えると、ユーザーの画面が写る。`--demo-start-file` は、録画が止まって go を消すまで背景を出したままにする）。AstLog の動画は H.264 の MP4・10MB まで・HEVC は不可。
-- **共通の背景にそろえる（2026-11-09）**: 画像4枚は、いまの共通の背景と同じ絵（`compose-store-image.swift` の出力が 1 画素も変わらないことを確かめた）。動画（2026-11-07）は、メニューバーが日付やアイコンの無い帯なので、`make-backdrop.swift` の背景で撮り直して差し替える
+- **共通の背景にそろえる（2026-11-09）**: 所有者が全アプリの背景を無彩色（`#1F1F21` → `#0E0E0F`）に決めた。画像4枚は `make-backdrop.swift` の背景で作り直し、wrangler で差し替えた（メイン `nonet-16b4aeab7423a13f7a094fa2bb251c28.jpg`・並び順 10 `nonet-86ff5fe439e90fec7d704799be0f943d.jpg`・20 `nonet-2cc9d47189abd165f66034a897454198.jpg`・30 `nonet-8d62ab7ff343ebd1a1f466aad00f8955.jpg`。前の4枚は `archive/` に 90 日。文言は公開中の版（ページの画像の箇条は develop の `docs/astlog-images/shot10.json`））。**動画（2026-11-07）はまだ前のまま**: メニューバーが日付やアイコンの無い帯で、地も前の色なので、画面のロックを解いた Mac で `make-backdrop.swift` の背景を敷いて撮り直し、差し替える
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
 - **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足し、購入画面が開くようになったら `Buy` を足す（[リンクを追加する](#リンクを追加する任意)）
 
