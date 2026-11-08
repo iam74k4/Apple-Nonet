@@ -8,7 +8,7 @@
 
 ## 日本語
 
-最終更新: 2026年11月3日
+最終更新: 2026年11月8日
 
 Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち」）が提供する macOS 用のアプリです。本アプリは、あなたの情報を集めないように作っています。
 
@@ -82,7 +82,7 @@ AI のアクションは、Apple の Foundation Models フレームワークを�
 
 購入の手続きと支払いは販売サービスが行い、カード番号などの支払いの情報を私たちが受け取ることはありません。私たちは、ライセンスキーの発行とサポートのために、販売サービスから購入者の名前・メールアドレス・注文の情報を受け取ります。これらは、ライセンスキーの発行と再発行、問い合わせへの対応、法令で求められる記録のためだけに使い、第三者に売ったり広告に使ったりしません。
 
-購入の記録は、法令で求められる期間保存し、その後消します。ご自身の情報の開示・訂正・削除を求めるときは、お問い合わせ先までご連絡ください。販売サービスが持つ情報は、販売サービス（TODO: 販売サービス名）のプライバシーポリシー（TODO: その URL）に従って扱われます。
+購入の記録は、法令で求められる期間保存し、その後消します。ご自身の情報の開示・訂正・削除を求めるときは、お問い合わせ先までご連絡ください。販売サービスが持つ情報は、販売サービス（Paddle）の[プライバシーポリシー](https://www.paddle.com/legal/privacy)に従って扱われます。
 
 ### 8. 販売ページ
 
@@ -102,7 +102,7 @@ Takanari Okazaki（問い合わせ先: TODO: サポートのメールアドレ�
 
 ## English
 
-Last updated: November 3, 2026
+Last updated: November 8, 2026
 
 Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.
 
@@ -176,7 +176,7 @@ License keys are verified on your Mac without using the network. Refunded licens
 
 The store handles checkout and payment; we never receive your card details. To issue license keys and provide support, we receive the buyer's name, email address and order details from the store. We use them only to issue and reissue license keys, answer your questions and keep records required by law. We never sell them or use them for advertising.
 
-Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the privacy policy of the store (TODO: store name and the URL of its privacy policy).
+Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the [privacy policy](https://www.paddle.com/legal/privacy) of the store (Paddle).
 
 ### 8. Website
 

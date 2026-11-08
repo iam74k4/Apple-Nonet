@@ -137,7 +137,7 @@ Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONE
 | 仮の値 | 場所 | 埋めるもの |
 |---|---|---|
 | 価格: `¥TODO`・`$TODO` | `index.html`・`en/index.html` の価格 | 税込の価格。決めたら、両方の head の JSON-LD に `offers`（`"@type": "Offer"`・`price`・`priceCurrency`）を足す（決まるまでは書かない） |
-| 販売サービス: `TODO: 販売サービス名`・`TODO: store name`・`https://TODO.invalid/buy`・`https://TODO.invalid/legal`・`https://TODO.invalid/privacy` | 価格の注記・購入のボタン（`NONET_PURCHASE_URL` と同じ URL）・`tokushoho.html`（名前と同社の特定商取引法に基づく表記）・`privacy.html`・`en/privacy.html` の 7（同社のプライバシーポリシー） | Paddle か Lemon Squeezy（どちらも販売代理店 = Merchant of Record。`tokushoho.html` はどちらでも正しいように書いてある） |
+| 販売サービス: `https://TODO.invalid/buy`・`TODO: 販売事業者の電話番号の表記` | 購入のボタン（`NONET_PURCHASE_URL` と同じ URL）・`tokushoho.html` の所在地・電話番号 | 購入のボタンは Paddle の購入画面を開くページ（3.6）。電話番号は 3.4 のとおり決める。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地は 2026-11-08 に埋めた |
 | 問い合わせ先: `support@TODO.invalid` | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー | サポートのメールアドレス（利用ガイドのフッターは `scripts/build-guide.py` で直す） |
 
 ```bash
@@ -315,15 +315,29 @@ git push origin v1.2.0
 
 ## 3. 販売とライセンスの届け方
 
-アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。販売サービスは Paddle か Lemon Squeezy（販売代理店 = Merchant of Record。3.4）に決めた。どちらにするかは**オーナーが決める**。
+アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。販売サービスは **Paddle（Paddle Billing。販売代理店 = Merchant of Record）** に決めた（2026-11-08）。キーは Paddle のライセンスキーの機能ではなく自前で発行し、発売直後は手動で（3.1）、数が増えたら Webhook で（3.2）届ける。
 
-| 方法 | 向いているとき | 注意 |
-|---|---|---|
-| Lemon Squeezy | 海外にも売る。消費税・VAT を販売代行（Merchant of Record）として扱ってほしい | 独自のライセンスキー機能はあるが、形が違うのでアプリは検証できない。自前のキーを届けるには Webhook が要る |
-| Paddle | 同上。手数料と審査の条件を比べて選ぶ | Webhook（`transaction.completed`）でキーを発行する |
-| 手動（メール） | 発売直後で数が少ない（販売は上のどちらか） | 販売の通知を見て `nonet-license issue` で発行し、メールで送る。数が増えたら自動化する |
+Paddle にした理由（2026-11-08 に各社の公式ページで比べた。手数料と規約は申し込む前にもう一度確かめる）:
 
-税の扱いと手数料は各社の最新の規約で確かめる。
+| | Paddle | Lemon Squeezy | Stripe Managed Payments |
+|---|---|---|---|
+| 手数料 | 5% + 50¢（海外の買い手も同じ） | 5% + 50¢、米国の外の取引は +1.5%、入金ごとに 1% | 3.5% + Stripe の決済手数料（日本 3.6%、通貨の換算 +2%） |
+| 日本の購入者 | 円で決済、購入画面は日本語。日本の消費税 10% を集めて納めると明記 | 決済はすべて USD。日本の消費税の記載は無い | 日本の事業者が日本の購入者に売った分の税は対象外（自分で扱う） |
+| これから | 通常どおり | Stripe Managed Payments への移行を公式に予告（2026） | 審査制 |
+
+Stripe をそのまま使う（売主が自分）と手数料は最も安いが、各国の消費税・VAT・売上税の登録と申告を自分で背負うので選ばない。
+
+Paddle で決まっていること（公式のヘルプと開発者向けの資料による）:
+
+| 項目 | 内容 |
+|---|---|
+| 手数料 | 1回の決済ごとに 5% + 50¢。$10 未満の商品は個別に相談 |
+| 入金 | 月1回（15日まで）、最低 $100（残りは繰り越し）。電信送金か Payoneer。残高の通貨は USD・EUR・GBP・AUD・CAD で、別の通貨で受け取ると最大 1.5% の換算、通貨をまたぐ送金は $15 |
+| 審査（ドメイン） | 販売ページに、商品の説明・価格・利用規約・返金の方針・プライバシーポリシー（ナビゲーションから開ける）と HTTPS が要る。規約には個人の開発者の名前（法的な名前が望ましい）。多くは自動で承認、手動の審査は 5〜7 営業日。購入画面を開くドメインごとに申請する（nonet.astlog.dev） |
+| 購入画面 | 承認したドメインのページで Paddle.js のオーバーレイを開く（3.6）。購入画面だけのリンク（hosted checkout）は別の承認が要る |
+| 返金 | 売り手がダッシュボードか API で行う。確認済みのアカウントで $400 以下なら自動で承認、それ以外は Paddle の承認待ち |
+| 売主 | 日本の購入者には Paddle.com Market Limited（30 Old Bailey, London, United Kingdom, EC4M 7AU）。Paddle Buyer Terms の「Rest of world」 |
+| 消費税 | 日本の消費税 10% を事業者向け・個人向けとも Paddle が集めて納める。Paddle から受け取るお金の、自分の側の扱いは税理士に確かめる |
 
 ### 3.1 手動で届ける
 
@@ -363,7 +377,14 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 3. 秘密鍵で署名し、`base64url(JSON).base64url(署名)` の形のキーを作る。JSON の項目名と日付の書き方は `nonet-license` と完全に同じにする（`nonet-license verify` で検証できることをテストで確かめる）
 4. 購入者にメールで送り、記録を残す
 
-決めることは、どのサービスを使うか、秘密鍵をクラウドの秘密の変数に置くことを受け入れるか（置けば漏れる経路が増える）、メールをどこから送るか。決まるまでは手動で届ける。
+Paddle では:
+
+- 購入が済んだ知らせは `transaction.completed`（状態が `completed` になったとき）
+- 署名は `Paddle-Signature: ts=<UNIX 時刻>;h1=<16進>`。`ts + ":" + 受け取ったままの本文` を、通知先ごとの秘密（`pdl_ntfset_` で始まる。Paddle › Events › Notifications）で HMAC-SHA256 したものと、時間のかからない比べ方で比べる。本文は解釈し直さずにそのまま使う。時刻のずれの許容は既定で5秒
+- 通知に購入者の名前とメールアドレスは入らない（`customer_id` だけ）。Paddle の API で顧客を引くので、API キーも秘密の変数に置く
+- 秘密鍵・通知の秘密・API キーは、nonet.astlog.dev の Worker の秘密の変数（`wrangler secret`）に置く案がいちばん手軽
+
+決めることは、秘密鍵をクラウドの秘密の変数に置くことを受け入れるか（置けば漏れる経路が増える）と、購入者宛てのメールをどこから送るか。決まるまでは手動で届ける（Paddle からの販売の通知を見て 3.1 の手順で発行する）。
 
 ### 3.3 試用の記録（方針）
 
@@ -397,14 +418,14 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - 返金: 購入から30日以内なら、理由を問わず全額。macOS のアップデートで動かなくなり直せないときは、購入からの日数にかかわらず返金
 - ライセンス: 1人に1つ。その人が使うすべての Mac で使える（キーは Mac の中で確かめるので、台数の登録や解除は無い）
 - アップデート: 1.x はすべて無料
-- 販売: Paddle か Lemon Squeezy（販売代理店 = Merchant of Record）。売主は販売サービスなので、`tokushoho.html` は「販売事業者は販売サービス」と書き、同社の表記へリンクし、開発者の問い合わせ先も載せる
+- 販売: Paddle（販売代理店 = Merchant of Record）。売主は Paddle なので、`tokushoho.html` は「販売事業者は Paddle.com Market Limited」と書き、所在地と同社の購入者向け規約（Paddle Buyer Terms）へのリンク、開発者の問い合わせ先を載せる。Paddle には日本の特定商取引法に基づく表記のページが無く、規約にも電話番号が無いので、販売事業者の電話番号の表記（`TODO: 販売事業者の電話番号の表記`）は公開前に決める（Paddle に問い合わせる・専門家に確かめる）
 - 利用規約（`terms.html`・`en/terms.html`）: 1人に1つのライセンス・返金・保証の否認と責任の範囲（軽過失は支払った金額まで）・準拠法は日本法
 
 まだ埋めていないもの（1.8 の仮の値）:
 
-- 価格・購入ページの URL・販売サービスの名前と URL（`site/` の TODO）
+- 価格・購入のボタンの URL（`site/` の TODO。購入のボタンは 3.6）
 - 問い合わせ先のメールアドレス
-- プライバシーポリシー（`site/privacy.html`。原本は [privacy.md](privacy.md)）の販売サービスの名前とプライバシーポリシーの URL
+- 特定商取引法に基づく表記の、販売事業者（Paddle）の電話番号の表記（上の「販売」）
 
 ### 3.5 ライセンスを無効にする（返金・キーの流出）
 
@@ -423,6 +444,16 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 - `nonet-license verify` は一覧を見ない（署名と製品だけを確かめる）
 
 ---
+
+### 3.6 Paddle の準備と購入のボタン
+
+1. Paddle のアカウントを作り、本人と事業の確認を済ませる。入金先（銀行か Payoneer）を登録する
+2. 価格を決めて販売ページの仮の値を埋め（1.8）、nonet.astlog.dev を公開する（[hosting.md](hosting.md)）
+3. Paddle › Settings › Website approval で `nonet.astlog.dev` を申請する（承認されるまで本番の購入画面は開けない。sandbox はどのドメインでも試せる）
+4. 商品と価格（JPY と USD）を作る。クライアント用のトークンと価格の ID を控える
+5. 販売ページの「購入する」で Paddle.js のオーバーレイ（`Paddle.Initialize({ token })` → `Paddle.Checkout.open({ items: [{ priceId, quantity: 1 }] })`）を開くようにする。`site/_headers` の Content-Security-Policy で Paddle の読み込みと購入画面を許す。Paddle › Checkout › Checkout configuration の Default payment link に、承認したドメインのページを入れる
+6. アプリの「購入」（`NONET_PURCHASE_URL`）は、開くとすぐに購入画面を出す販売ページの URL にする
+7. キーの届け方を決める（手動は 3.1、自動は 3.2）
 
 ## 4. 公開前のチェックリスト
 

@@ -329,7 +329,7 @@ test_strict_mode_on_the_real_site_stops_only_on_price_store_and_contact() {
     esac
     if [[ "$line" == *"¥TODO"* || "$line" == *"\$TODO"* ]]; then
       price=$((price + 1))
-    elif [[ "$line" == *"TODO: 販売サービス名"* || "$line" == *"TODO: store name"* || "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO.invalid/legal"* || "$line" == *"TODO.invalid/privacy"* ]]; then
+    elif [[ "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO: 販売事業者の電話番号の表記"* ]]; then
       store=$((store + 1))
     elif [[ "$line" == *"support@TODO.invalid"* || "$line" == *"TODO: 問い合わせ先のメールアドレス"* || "$line" == *"TODO: support email address"* ]]; then
       contact=$((contact + 1))
@@ -411,11 +411,14 @@ test_pages_state_the_sales_terms() {
     "no matter when you bought it" "Every 1.x update is free" "provided as is" "slight negligence" "governed by the laws of Japan" "id=\"refunds\""; do
     assert_contains "$en_terms" "$text" "en/terms.html"
   done
-  # 販売サービスが売主（Merchant of Record）。どちらの販売サービスに決めても正しいよう、名前は仮の値1つにする
-  for text in "販売事業者" "販売代理店（Merchant of Record）" "同社の特定商取引法に基づく表記" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
+  # 売主（Merchant of Record）は Paddle。日本の表記のページが無いので、名前・所在地・購入者向け規約へのリンクを載せる。
+  # 電話番号の表記は公開前に決める仮の値として1つだけ残す（docs/release.md §3.4）
+  for text in "販売事業者" "販売代理店（Merchant of Record）" "Paddle.com Market Limited" "30 Old Bailey, London" \
+    "https://www.paddle.com/legal/buyer-terms" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
     assert_contains "$legal" "$text" "tokushoho.html"
   done
-  assert_eq 1 "$(grep -c 'TODO: 販売サービス名' "$ROOT/site/tokushoho.html")" "tokushoho.html の販売サービス名の仮の値"
+  assert_not_contains "$legal" "TODO: 販売サービス名"
+  assert_eq 1 "$(grep -c 'TODO: 販売事業者の電話番号の表記' "$ROOT/site/tokushoho.html")" "tokushoho.html の電話番号の仮の値"
 }
 
 # 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。

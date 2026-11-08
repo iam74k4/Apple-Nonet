@@ -228,7 +228,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 | グローバルのページは Launchpad の代わりのランチャーから始まる（macOS 26 で Launchpad が無くなった） | `docs/architecture.md` §6「プロファイルとページ」、`Presets.swift` の `makeGlobalProfile` |
 | Mac App Store ではなく直販。利用者のアカウントもライセンスのサーバーも無い | `README.md`、`docs/architecture.md` §1 |
 | ライセンスキーは Ed25519 の署名で、アプリの中だけで確かめる | `NonetCore/Licensing/License.swift`（`Curve25519.Signing`）、`docs/release.md` の冒頭 |
-| 14日間の試用のあと買い切り。価格・販売サービスは未定 | `README.md`、`site/index.html`（`¥TODO`・`TODO: 販売サービス名`） |
+| 14日間の試用のあと買い切り。販売サービスは Paddle、価格は未定 | `README.md`、`site/index.html`（`¥TODO`）、`docs/release.md` §3 |
 | scripts/release.sh が Developer ID の署名・公証・DMG・Sparkle 2 の appcast までをつくる形。外部のツールを差し替えたテストで確かめている | `docs/release.md` §2.4、`scripts/release.sh`、`scripts/tests/release_test.sh` と `scripts/tests/fakes/` |
 | 実機での手動テストはまだ | `docs/release.md` §4「公開前のチェックリスト」の「アプリ」、`docs/architecture.md` §7 |
 | 9つの担当範囲と契約を先に決め、Claude Code の複数のセッションで並行に実装 | `docs/architecture.md` §3、コミットの `Co-Authored-By: Claude` と `Merge ui-shell` などの統合のコミット |
