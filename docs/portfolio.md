@@ -10,7 +10,7 @@
 
 https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と SaifuLog の間）。この下の手順と値は、そのときの下書きとして残す。実際に入れたものとの違い:
 
-- **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。2026-11-06 に輪のアイコンへ差し替えた（`icon_256x256.png`。管理画面にログインせず、この Mac の wrangler から管理画面の保存と同じ手順で: KV `items/nonet-icon-<乱数>.png` に置く → D1 の `icon_url` を更新 → 古い画像を `archive/` に 90 日の控えとして移して公開の鍵を消す → `site:version` を進める）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る）
+- **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。2026-11-06 に輪のアイコンへ差し替えた（`icon_256x256.png`。管理画面にログインせず、この Mac の wrangler から管理画面の保存と同じ手順で: KV `items/nonet-icon-<乱数>.png` に置く → D1 の `icon_url` を更新 → 古い画像を `archive/` に 90 日の控えとして移して公開の鍵を消す → `site:version` を進める）。2026-11-08 に、同じ絵を影なしにしたもの（`swift scripts/make-icon.swift --site-icon` の 256×256 を可逆の WebP にしたもの）へ同じ手順で差し替えた（KV `items/nonet-<16進 32 字>.webp`。いまの AstLog の `putImage` と同じ長さの乱数）。アプリのアイコンの影は板の外の余白を薄い黒で埋めて絵の端で四角く切れるので、明るい地では板のまわりに灰色の四角が見えていた（AppMixer・SaifuLog のアイコンは影なし）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る）
 - **デモ動画（AstLog の「ほかの画像」の先頭（並び順 5）。2026-11-07 に輪の HUD で撮り直して差し替えた: 15.7 秒・321KB・H.264・1440×900。差し替えはアイコンと同じく wrangler から、KV `items/nonet-<乱数>.mp4` → D1 `item_shots.url`・`alt` → 旧動画を `archive/` へ → `site:version`。代替テキストに「指の動きは台本どおりに入れたもの」と書いた。メインの画像と「ほかの画像」2〜4 の JPEG も同じ日に輪の HUD で作り直した: `--preview-hud --snapshot` で撮った HUD の窓の PNG（色合わせをオンにし、別プロセスの暗い窓の上で撮ると白いアイコンになる）を、`scripts/compose-store-image.swift` が `docs/astlog-images/*.json` の文言と並べて 1440×900 の JPEG にする。ランチャーの HUD は、見本の設定でグローバルのページの先頭をランチャーに入れ替え、プロファイルの無いアプリ（TextEdit）を `--preview-app` にして撮る）**: Debug ビルドの `--demo` で撮る。本物の操作のロジック・NonetController・HUD を動かし、何も実行せず（performer を差し替える）、ポインタも抑止しない（HUD に重なるポインタだけは、本物と同じく開いている間 HUD の外へ寄せる）。画面の右下に、指の位置を示すトラックパッドの図が出る。`--demo-script` を付けると、実機の指の代わりに台本（`NonetUI/MenuBar/DemoScript.swift`。3回開く: 中央のマスを実行・右の外枠で次のページへ切り替えて実行・手前の外枠で離してやめる）を入れる。台本は `ShellDemoScriptTests` が本物の `EdgeSlideRecognizer`・`SessionEngine` に通して確かめている。付けなければ実機の指をそのまま図に出す。人が操作したものではなく、台本どおりの指の位置を入れたものなので、説明文もそう書く。撮るには画面が点いていてロックされていないこと（スリープ中・ロック中は画面の一覧が空になり、録画できない）。録画の道具 `scripts/record-screen.swift` は ScreenCaptureKit で書く（`screencapture -v` は録画を始められなかった）:
 
   ```bash
@@ -70,7 +70,7 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
 |---|---|
 | 画像 | HUD の画面（[3. 画像](#3-画像) の「メインの画像」） |
 | 画像の代替テキスト | `Nonet の HUD。Xcode の画面の上に9マス（ビルド・実行・テストなど）が出て、真ん中の「Claude Code」が白く光っている画面` |
-| アイコン | `App/Assets.xcassets/AppIcon.appiconset/icon_256x256.png` |
+| アイコン | `swift scripts/make-icon.swift --site-icon <出力先>.png` で書き出した 256×256 の PNG（影なし。[3. 画像](#3-画像) の「アイコン」） |
 | ほかの画像（スクリーンショット） | [3. 画像](#3-画像) の「ほかの画像」1〜4（5 は任意）。代替テキストも同じ表にある |
 
 代替テキストは、実際に撮った画面に合わせて直す（写っていないものを書かない）。画像を公開するときは1枚ずつ必須。
@@ -179,7 +179,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 
 | 枠 | 中身 | 形 | 代替テキスト |
 |---|---|---|---|
-| アイコン | `App/Assets.xcassets/AppIcon.appiconset/icon_256x256.png`（256×256 の PNG）をそのまま | 正方形・256×256 | なし |
+| アイコン | `swift scripts/make-icon.swift --site-icon <出力先>.png` で書き出した 256×256 の PNG。アプリのアイコン（`App/Assets.xcassets/AppIcon.appiconset/icon_256x256.png`）は**そのまま上げない**——影が板の外の余白を薄い黒で埋めていて、明るい地では板のまわりに灰色の四角が見える。ほかの作品にそろえて WebP にするなら可逆で書き出す | 正方形・256×256・板の外は透明 | なし |
 | メインの画像 | HUD の画面。Xcode を前面にして HUD を出し、真ん中の「Claude Code」が光っている。上にプロファイル名「Xcode」と「マスで指を離すと実行」（Xcode のプリセットの並びは ビルド・実行・テスト／シミュレータ・Claude Code・ターミナル／停止・クリーン・コミット） | 1440×900（16:10）の JPEG・1MB 未満 | `Nonet の HUD。Xcode の画面の上に9マス（ビルド・実行・テストなど）が出て、真ん中の「Claude Code」が白く光っている画面` |
 | ほかの画像 1 | 操作の動画（10〜15 秒）。上の縁から指を滑らせて開く → HUD を見ながら指を滑らせ、マスで離して実行、次にもう一度開いて外枠で離してやめる | 16:10・H.264 の MP4・音なし・10MB 未満 | `Nonet の操作を収録した画面の動画。HUD が出て、指の位置に合わせて光るマスが移り、そのマスが実行される。続けてもう一度 HUD を出し、「離すとやめる」が出たところで何も実行せずに閉じる` |
 | ほかの画像 2 | 設定のウィンドウ（プロファイル）。左にグローバルとアプリのプロファイル、中央に Xcode の 3×3、右にインスペクタ | 1440×900 の JPEG（ウィンドウを 16:10 の地に置く） | `設定のウィンドウ。左にグローバルとアプリのプロファイル、中央に Xcode の 3×3 のマス、右に選んだマスのアクションが並ぶ画面` |

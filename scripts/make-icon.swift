@@ -1,6 +1,7 @@
 #!/usr/bin/env swift
 // アプリのアイコンを描いて App/Assets.xcassets/AppIcon.appiconset に書き出す。
 // 使い方: swift scripts/make-icon.swift [出力先の .appiconset] [--accent RRGGBB か RRGGBB-RRGGBB] [--preview 1024px の PNG]
+//        [--site-icon AstLog のアイコンにする 256px の PNG（影なし）]
 // HUD と同じ形にする: HUD はポインタの周りに9つのアイコンが輪になって出るので、黒い板に8つの白い点を輪に置き、
 // 真ん中（ポインタのいるところ。指を離して実行するマス）だけを差し色で塗る。差し色は青から紫へのグラデーション
 // （同じ作者の AppMixer は青、SaifuLog はオレンジなので、それらとかぶらない色）。
@@ -25,6 +26,8 @@ enum IconGeometry {
     static let canvas: CGFloat = 1024
     static let plate = CGRect(x: 100, y: 100, width: 824, height: 824)
     static let plateRadius: CGFloat = 185.4
+    /// AstLog（https://astlog.dev）の作品のアイコンの大きさ。AppMixer・SaifuLog も 256×256
+    static let sitePixels = 256
     static var center: CGPoint { CGPoint(x: plate.midX, y: plate.midY) }
     /// 板の幅に対する輪の半径と点の半径。小さいサイズ（32px 以下）は点を大きく、輪を少し広げて読めるようにする
     static func ringRadius(simplified: Bool) -> CGFloat { plate.width * (simplified ? 0.32 : 0.30) }
@@ -100,7 +103,10 @@ struct Accent {
     }
 }
 
-func render(pixels: Int, accent: Accent) -> CGImage? {
+/// shadow を外すのは AstLog に載せるアイコン（--site-icon）だけ。影は板の外の余白を薄い黒で埋め、
+/// 絵の端で四角く切れるので、Web ページの明るい地に置くと板のまわりに灰色の四角が見える
+/// （AstLog の AppMixer・SaifuLog のアイコンも影なし。板の外は透明）
+func render(pixels: Int, accent: Accent, shadow: Bool = true) -> CGImage? {
     guard let space = CGColorSpace(name: CGColorSpace.sRGB),
           let context = CGContext(
               data: nil,
@@ -124,7 +130,7 @@ func render(pixels: Int, accent: Accent) -> CGImage? {
         transform: nil
     )
     context.saveGState()
-    if !simplified {
+    if shadow && !simplified {
         context.setShadow(offset: CGSize(width: 0, height: -18), blur: 44, color: CGColor(gray: 0, alpha: 0.38))
     }
     context.addPath(plate)
@@ -204,6 +210,7 @@ func option(_ name: String) -> String? {
 
 let accentText = option("--accent") ?? IconPalette.accent
 let preview = option("--preview")
+let siteIcon = option("--site-icon")
 let output = arguments.first.map { URL(fileURLWithPath: $0, isDirectory: true) }
     ?? root.appendingPathComponent("App/Assets.xcassets/AppIcon.appiconset", isDirectory: true)
 
@@ -217,6 +224,14 @@ do {
         }
         try writePNG(image, to: URL(fileURLWithPath: preview))
         print("書き出しました: \(preview)")
+        exit(0)
+    }
+    if let siteIcon {
+        guard let image = render(pixels: IconGeometry.sitePixels, accent: accent, shadow: false) else {
+            throw NSError(domain: "make-icon", code: 3, userInfo: [NSLocalizedDescriptionKey: "AstLog のアイコンを描けません"])
+        }
+        try writePNG(image, to: URL(fileURLWithPath: siteIcon))
+        print("書き出しました: \(siteIcon)")
         exit(0)
     }
     try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
