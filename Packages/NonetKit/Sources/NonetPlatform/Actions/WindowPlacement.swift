@@ -69,7 +69,8 @@ public final class AXWindowPlacer: WindowPlacing {
         return CGRect(origin: position, size: size)
     }
 
-    private func read<T>(_ window: AXUIElement, _ attribute: String, _ type: AXValueType, into result: inout T) -> Bool {
+    /// AXValue の中身（CGPoint・CGSize）を result に写す。参照を含まない値だけに限る（生のバイトで書き込むので）
+    private func read<T: BitwiseCopyable>(_ window: AXUIElement, _ attribute: String, _ type: AXValueType, into result: inout T) -> Bool {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(window, attribute as CFString, &value) == .success,
               let value, CFGetTypeID(value) == AXValueGetTypeID() else { return false }

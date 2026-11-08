@@ -4,7 +4,7 @@ import Testing
 @testable import NonetPlatform
 
 @Suite struct InputHapticTuningTests {
-    static let events: [HapticEvent] = [.boundary, .pageChange, .execute, .activation, .rejected]
+    static let events: [HapticEvent] = [.boundary, .pageChange, .layerChange, .execute, .activation, .rejected]
 
     @Test(arguments: events)
     func offPlaysNothing(event: HapticEvent) {
@@ -54,6 +54,19 @@ import Testing
         // 境界の強さ（弱 / 中 / 強）
         #expect([HapticStrength.light, .medium, .strong].map { HapticTuning.actuation(for: .boundary, strength: $0)?.actuationID } == [3, 4, 5])
         #expect([HapticStrength.light, .medium, .strong].map { HapticTuning.actuation(for: .execute, strength: $0)?.actuationID } == [4, 6, 6])
+    }
+
+    /// 層の切り替えは強めの1打。帯で止めている間に鳴りうるページの切り替え（2打）・境界と、どの強さでも違う
+    @Test(arguments: [HapticStrength.light, .medium, .strong])
+    func aLayerChangeIsOneStrongPulse(strength: HapticStrength) throws {
+        let layer = HapticTuning.pulses(for: .layerChange, strength: strength)
+        #expect(layer.count == 1)
+        let feel = { (event: HapticEvent) in HapticTuning.pulses(for: event, strength: strength).map { "\($0.actuation.actuationID)@\($0.delay)" } }
+        #expect(feel(.layerChange) != feel(.pageChange))
+        #expect(feel(.layerChange) != feel(.boundary))
+        let boundary = try #require(HapticTuning.actuation(for: .boundary, strength: strength))
+        #expect(layer[0].actuation.actuationID > boundary.actuationID)
+        #expect(HapticTuning.fallback(for: .layerChange) == .levelChange)
     }
 
     @Test func fallbackPatterns() {

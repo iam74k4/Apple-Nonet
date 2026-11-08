@@ -5,6 +5,7 @@ import Foundation
 private struct SwipeBaseline: Sendable {
     var fingerIDs: [Int]
     var x: Double
+    var y: Double
 }
 
 /// 1回のセッション。開いたときに触れていた指のタッチ1つで、すべての指が離れたら終える
@@ -37,7 +38,7 @@ struct SessionState: Sendable {
     private var reselectAnchor: FingerTracker.Finger?
     /// 開いたときの指の位置。ここから openTravel 滑らせるまでは上の外枠にいることにする（開いた瞬間に離せば、必ず何もせずに閉じる）
     private var openAnchor: FingerTracker.Finger?
-    /// 指が止まっている左右の外枠（そちらにページがあるときだけ）。止め続けるとページを切り替える
+    /// 指が止まっている外枠の帯の側（切り替える先があるときだけ）。止め続けるとページか層を切り替える
     private var pagingEdge: PageEdge?
     /// pagingEdge に入った時刻か、前に切り替えた時刻。外枠の中で edgeRestTravel より動かしたときも数え直す
     private var edgeSince: TimeInterval
@@ -45,6 +46,10 @@ struct SessionState: Sendable {
     private var edgeAnchor: FingerTracker.Finger?
     /// pagingEdge に止めたまま切り替えた回数（2回目からは edgePageRepeat ごと）
     private var edgeTurns = 0
+    /// 下でグローバルの層へ移る前にいた、アプリの層のページ（上で戻るときにそこへ戻る）
+    private var appPage = 0
+    /// 最後にページか層を切り替えた向き（SessionHUDState.lastTurn）
+    private var lastTurn: PageEdge?
     /// すべての指が離れた時刻（遅れて届くクリックの判断に使う）
     private var lastLiftAt: TimeInterval?
 
@@ -81,7 +86,8 @@ struct SessionState: Sendable {
             isInFrame: shown == .frame,
             hold: cell.flatMap { isHoldCell($0) ? SessionHold(cell: $0, since: zoneSince, duration: configuration.holdDwell, isReady: isHoldReady) : nil },
             edgePaging: isMultiFinger ? nil : pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) },
-            isOnBoundary: cell.map(isOnBoundary) ?? false
+            isOnBoundary: cell.map(isOnBoundary) ?? false,
+            lastTurn: lastTurn
         )
     }
 
@@ -99,12 +105,12 @@ struct SessionState: Sendable {
         return zoneSince + configuration.holdDwell
     }
 
-    /// 左右の外枠に止めてから、ページを切り替えるまでの秒数（切り替えた後も止めていれば edgePageRepeat）
+    /// 外枠の帯に止めてから、ページか層を切り替えるまでの秒数（切り替えた後も止めていれば edgePageRepeat）
     private var edgeDuration: TimeInterval {
         edgeTurns == 0 ? configuration.edgePageDwell : configuration.edgePageRepeat
     }
 
-    /// 左右の外枠に止めた指で、ページを切り替える時刻。止めていなければ nil
+    /// 外枠の帯に止めた指で、ページか層を切り替える時刻。止めていなければ nil
     private var edgeDeadline: TimeInterval? {
         guard !isMultiFinger, pagingEdge != nil else { return nil }
         return edgeSince + edgeDuration
@@ -163,28 +169,58 @@ struct SessionState: Sendable {
         }
     }
 
-    /// 左右の外枠に止め続けた: 右なら次、左なら前のページにする。端のページまで来たら、それ以上は待たない
+    /// 外枠の帯に止め続けた: その側へ切り替える（turn）。その先にページや層が無くなったら、それ以上は待たない
     private mutating func turnPageAtEdge(now: TimeInterval, effects: inout [SessionEffect]) {
-        guard let edge = pagingEdge else { return }
-        page = min(max(edge == .right ? page + 1 : page - 1, 0), configuration.pageCount - 1)
+        guard let edge = pagingEdge, let haptic = turn(edge) else { return }
         edgeTurns += 1
         edgeSince = now
         pagingEdge = availableEdge(edge)
         if pagingEdge == nil { edgeAnchor = nil }
         refreshHUD(effects: &effects)
-        effects.append(.haptic(.pageChange))
+        effects.append(.haptic(haptic))
     }
 
-    /// その側にページがあれば edge、無ければ nil
-    private func availableEdge(_ edge: PageEdge?) -> PageEdge? {
+    /// edge の側へ切り替える: 右なら次、左なら前のページ（今の層の中）。下ならグローバルの層の最初のページ、上ならアプリの層の、
+    /// 下へ移る前にいたページ。切り替える先が無ければ何もせず nil。切り替えたら、その触覚（ページか層）
+    private mutating func turn(_ edge: PageEdge) -> HapticEvent? {
+        guard availableEdge(edge) != nil else { return nil }
+        let layer = layerRange
+        let haptic: HapticEvent
         switch edge {
-        case .left?: page > 0 ? .left : nil
-        case .right?: page < configuration.pageCount - 1 ? .right : nil
-        case nil: nil
+        case .left, .right:
+            page = min(max(edge == .right ? page + 1 : page - 1, layer.lowerBound), layer.upperBound - 1)
+            haptic = .pageChange
+        case .down:
+            appPage = page
+            page = configuration.layerStart ?? page
+            haptic = .layerChange
+        case .up:
+            page = min(appPage, max((configuration.layerStart ?? 1) - 1, 0))
+            haptic = .layerChange
+        }
+        lastTurn = edge
+        return haptic
+    }
+
+    /// 今のページがある層の、ページの範囲（アプリの層か、グローバルの層。層が1つならすべて）
+    private var layerRange: Range<Int> {
+        guard let start = configuration.layerStart else { return 0..<configuration.pageCount }
+        return page < start ? 0..<start : start..<configuration.pageCount
+    }
+
+    /// その側に切り替える先（同じ層の隣のページか、もう一方の層）があれば edge、無ければ nil
+    private func availableEdge(_ edge: PageEdge?) -> PageEdge? {
+        let layer = layerRange
+        switch edge {
+        case .left?: return page > layer.lowerBound ? .left : nil
+        case .right?: return page < layer.upperBound - 1 ? .right : nil
+        case .down?: return configuration.layerStart.map { page < $0 } == true ? .down : nil
+        case .up?: return configuration.layerStart.map { page >= $0 } == true ? .up : nil
+        case nil: return nil
         }
     }
 
-    /// finger が左右の外枠（9マスの行の横）にあり、そちらにページがあればその側
+    /// finger が外枠の帯（左右はページ、上下は層）にあり、その側に切り替える先があればその側
     private func availableEdge(at finger: FingerTracker.Finger) -> PageEdge? {
         guard zone == .frame else { return nil }
         return availableEdge(grid.pagingEdge(x: finger.x, y: finger.y))
@@ -228,7 +264,7 @@ struct SessionState: Sendable {
         }
     }
 
-    /// 2本以上の指: ハイライトを消し（実行しないマスを光らせない）、2本指の横のスワイプでページを変える
+    /// 2本以上の指: ハイライトを消し（実行しないマスを光らせない）、2本指の横のスワイプでページを、縦のスワイプで層を変える
     private mutating func followSeveralFingers(_ tracker: FingerTracker, effects: inout [SessionEffect]) {
         if !isMultiFinger {
             isMultiFinger = true
@@ -245,21 +281,24 @@ struct SessionState: Sendable {
         // 2本がそろった時点（指が入れ替わったら、その時点）の平均を起点にする
         let ids = fingers.map(\.id).sorted()
         if swipeBaseline?.fingerIDs != ids {
-            swipeBaseline = SwipeBaseline(fingerIDs: ids, x: Self.averageX(fingers))
+            swipeBaseline = SwipeBaseline(fingerIDs: ids, x: Self.averageX(fingers), y: Self.averageY(fingers))
             return
         }
         guard let baseline = swipeBaseline, !hasTurnedPage else { return }
         let dx = Self.averageX(fingers) - baseline.x
-        guard abs(dx) >= configuration.swipeThreshold else { return }
+        let dy = Self.averageY(fingers) - baseline.y
+        let threshold = configuration.swipeThreshold
+        guard abs(dx) >= threshold || abs(dy) >= threshold else { return }
         hasTurnedPage = true
-        // Launchpad などと同じく、指を左へ動かすと次のページ
-        let target = min(max(dx < 0 ? page + 1 : page - 1, 0), configuration.pageCount - 1)
-        let didChange = target != page
-        page = target
-        if didChange {
+        // Launchpad などと同じく、指と中身が一緒に動く: 指を左へ動かすと次のページ（今の層の中だけ）。
+        // 縦が大きければ層: 指を奥へ動かすと中身が上へ動いて下の層（グローバル）が出て、手前へ動かすとアプリの層へ戻る
+        let edge: PageEdge = abs(dy) > abs(dx) ? (dy > 0 ? .down : .up) : (dx < 0 ? .right : .left)
+        if let haptic = turn(edge) {
             refreshHUD(effects: &effects)
+            effects.append(.haptic(haptic))
+        } else {
+            effects.append(.haptic(.rejected))
         }
-        effects.append(.haptic(didChange ? .pageChange : .rejected))
     }
 
     /// 1本指: 外枠かマスかを追い、変わったら HUD と境界の触覚で知らせる。
@@ -298,7 +337,7 @@ struct SessionState: Sendable {
             zoneSince = now
             isHoldReady = false
         }
-        // 左右の外枠に入った・出た・反対の側へ移った、または外枠の中で動かした: ページを切り替えるまでの時間を最初から数える
+        // 外枠の帯のある側に入った・出た・ほかの側へ移った、または帯の中で動かした: 切り替えるまでの時間を最初から数える
         let edge = availableEdge(at: finger)
         if edge != pagingEdge {
             pagingEdge = edge
@@ -320,6 +359,10 @@ struct SessionState: Sendable {
 
     private static func averageX(_ fingers: [FingerTracker.Finger]) -> Double {
         fingers.reduce(0) { $0 + $1.x } / Double(max(fingers.count, 1))
+    }
+
+    private static func averageY(_ fingers: [FingerTracker.Finger]) -> Double {
+        fingers.reduce(0) { $0 + $1.y } / Double(max(fingers.count, 1))
     }
 
     // MARK: 離す・実行

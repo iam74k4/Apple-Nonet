@@ -40,6 +40,8 @@ final class DebugPreview {
     /// 前面アプリの最初のページの HUD を出したままにし、3秒ごとに状態を替える（--snapshot の各回で1つずつ写る）:
     /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
     /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
+    /// 6. 下の帯で止めてグローバルの層へ移った（押し出し・紺の台・層の名前） 7. 上の帯で止めてアプリの層へ戻った
+    /// （6・7 は前面のアプリにプロファイルがあるときだけ。無ければ 1 と同じ）
     func showHUD(bundleID: String? = nil, backdrop image: URL? = nil) {
         previewBundleID = bundleID
         if let image {
@@ -57,7 +59,7 @@ final class DebugPreview {
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    private static let hudStateCount = 5
+    private static let hudStateCount = 7
     /// --preview-app で選んだアプリ。nil なら前面のアプリ
     private var previewBundleID: String?
 
@@ -82,7 +84,14 @@ final class DebugPreview {
     private func showHUDState(_ state: Int) {
         let configuration = controller.configuration
         let pages = configuration.resolvedPages(frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
-        guard let page = pages.first else { return }
+        guard let first = pages.first else { return }
+        // アプリのプロファイルがあれば、アプリの層とグローバルの層の2つ（ControllerPresentation と同じ分け方）
+        let layerStart = pages.firstIndex { $0.profileID != first.profileID }
+        let showsGlobal = state == 5 && layerStart != nil
+        let page = showsGlobal ? pages[layerStart!] : first
+        let layer: HUDLayer? = layerStart == nil ? nil : (showsGlobal ? .global : .app)
+        let layerPageCount = layerStart.map { showsGlobal ? pages.count - $0 : $0 } ?? pages.count
+        let lastTurn: PageEdge? = layerStart == nil ? nil : (state == 5 ? .down : state == 6 ? .up : nil)
         let holdIndex = page.cells.firstIndex { $0?.requiresHold == true } ?? Self.previewHoldCell
         let cells = page.cells.enumerated().map { index, cell in
             cell.map {
@@ -95,11 +104,11 @@ final class DebugPreview {
             }
         }
         let since = ProcessInfo.processInfo.systemUptime
-        let edgePaging = state == 4 && pages.count > 1
+        let edgePaging = state == 4 && layerPageCount > 1
             ? HUDEdgePaging(edge: .right, since: since, duration: SessionConfiguration.defaultEdgePageDwell)
             : nil
         let (highlight, inFrame, hold): (Int?, Bool, HUDHold?) = switch state {
-        case 1, 4: (nil, true, nil)
+        case 1, 4, 5, 6: (nil, true, nil)
         case 2: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: false))
         case 3: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: true))
         default: (4, false, nil)
@@ -107,7 +116,7 @@ final class DebugPreview {
         let model = HUDModel(
             title: page.title,
             pageIndex: 0,
-            pageCount: pages.count,
+            pageCount: layerPageCount,
             cells: cells,
             highlightedIndex: highlight,
             isFingerInFrame: inFrame,
@@ -115,9 +124,9 @@ final class DebugPreview {
             edgePaging: edgePaging,
             isPractice: controller.isPracticeMode,
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
-            scale: configuration.settings.hudScale.factor,
-            // 本物と同じく、設定がオンなら下の画面を測って鍵ごとの色を決める（見た目の確認でも色合わせを見られるように）
-            adaptsInk: configuration.settings.adaptiveHUDInk
+            layer: layer,
+            lastTurn: lastTurn,
+            scale: configuration.settings.hudScale.factor
         )
         hud.show(model)
     }

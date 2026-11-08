@@ -53,7 +53,7 @@
 <main id="main" class="doc">
   <div class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: November 3, 2026</p>
+    <p class="updated">Last updated: November 8, 2026</p>
 
     <p>Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.</p>
 
@@ -86,7 +86,7 @@
       <li>Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable <code>NONET_SELECTED_TEXT</code>. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.</li>
     </ul>
     <p>When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked <code>org.nspasteboard.ConcealedType</code>). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.</p>
-    <p>Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge) and to decide which button you are on. They are never stored or sent.</p>
+    <p>Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge). They are never stored or sent.</p>
 
     <h2>4. Automation (Apple Events)</h2>
     <p>The app sends Apple Events to other apps in only two cases. macOS asks for your permission to control that app the first time.</p>

@@ -25,7 +25,13 @@ struct ControllerSession: Equatable, Sendable {
         let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
         // 少し長く止めてから実行するマス
         let holds = pages.map { page in Set(page.cells.indices.filter { page.cells[$0]?.requiresHold == true }) }
-        return SessionConfiguration(pageCount: pages.count, occupiedCells: occupied, holdCells: holds)
+        // 下で止めるとグローバルのページの層へ、上でアプリのページの層へ戻る
+        return SessionConfiguration(
+            pageCount: pages.count,
+            layerStart: ControllerPresentation.globalPagesStart(pages),
+            occupiedCells: occupied,
+            holdCells: holds
+        )
     }
 
     /// page（resolvedPages での位置）の cell 番目のマス。範囲外と空きマスは nil
@@ -58,7 +64,6 @@ struct ControllerSession: Equatable, Sendable {
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             scale: settings.hudScale.factor,
-            adaptsInk: settings.adaptiveHUDInk,
             isWaitingAtCenter: isWaitingAtCenter
         )
     }

@@ -30,9 +30,12 @@ import Testing
         #expect(Self.near(ControllerPointerSelection.cellCenter(8), (1 - frame.right - width / 6, frame.bottom + height / 6)))
         #expect(Self.near(ControllerPointerSelection.cellCenter(-1), ControllerPointerSelection.cellCenter(0)))
         #expect(Self.near(ControllerPointerSelection.cellCenter(20), ControllerPointerSelection.cellCenter(8)))
-        #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: nil), (0.5, 1 - frame.top / 2)))
+        // どの側でもない外枠は奥の左の角、切り替える側があればその帯の中央
+        #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: nil), (frame.left / 2, 1 - frame.top / 2)))
         #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: .left), (frame.left / 2, 0.5)))
         #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: .right), (1 - frame.right / 2, 0.5)))
+        #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: .up), (0.5, 1 - frame.top / 2)))
+        #expect(Self.near(ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: .down), (0.5, frame.bottom / 2)))
         // 合成した位置は、エンジンのマス分けでそのマスになる（外枠の帯の中央は外枠で、左右ならページを切り替える側）
         let grid = GridMapper(insets: frame)
         for index in 0..<9 {
@@ -40,10 +43,12 @@ import Testing
             #expect(grid.zone(x: p.x, y: p.y) == .cell(index))
             #expect(!grid.isInBoundaryBand(x: p.x, y: p.y))
         }
-        let top = ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: nil)
-        #expect(grid.zone(x: top.x, y: top.y) == .frame && grid.pagingEdge(x: top.x, y: top.y) == nil)
-        let right = ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: .right)
-        #expect(grid.zone(x: right.x, y: right.y) == .frame && grid.pagingEdge(x: right.x, y: right.y) == .right)
+        let neutral = ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: nil)
+        #expect(grid.zone(x: neutral.x, y: neutral.y) == .frame && grid.pagingEdge(x: neutral.x, y: neutral.y) == nil)
+        for edge in [PageEdge.left, .right, .up, .down] {
+            let p = ControllerPointerSelection.gridPosition(for: .frame, pagingEdge: edge)
+            #expect(grid.zone(x: p.x, y: p.y) == .frame && grid.pagingEdge(x: p.x, y: p.y) == edge)
+        }
     }
 
     @Test("開いたときのポインタは円の中心")
@@ -55,10 +60,11 @@ import Testing
     func positions() {
         var selection = ControllerPointerSelection()
         let frame = GridInsets.cancelFrame
-        // 開いた直後（中心）: 外へ出るまでは外枠
-        #expect(Self.near(selection.position(of: Self.center, in: Self.map), (0.5, 1 - frame.top / 2)))
+        // 開いた直後（中心）: 外へ出るまでは外枠（どの側でもない角）
+        let neutral = (frame.left / 2, 1 - frame.top / 2)
+        #expect(Self.near(selection.position(of: Self.center, in: Self.map), neutral))
         #expect(selection.zone == .cell(4) && !selection.hasLeftCenter && selection.isWaitingAtCenter)
-        #expect(Self.near(selection.position(of: Self.pointer(30, 0), in: Self.map), (0.5, 1 - frame.top / 2)))
+        #expect(Self.near(selection.position(of: Self.pointer(30, 0), in: Self.map), neutral))
         // 右の鍵
         #expect(Self.near(selection.position(of: Self.pointer(108, 0), in: Self.map), ControllerPointerSelection.cellCenter(5)))
         #expect(selection.hasLeftCenter && !selection.isWaitingAtCenter)
@@ -67,8 +73,10 @@ import Testing
         // 上・左下
         #expect(Self.near(selection.position(of: Self.pointer(0, -100), in: Self.map), ControllerPointerSelection.cellCenter(1)))
         #expect(Self.near(selection.position(of: Self.pointer(-76, 76), in: Self.map), ControllerPointerSelection.cellCenter(6)))
-        // 外（上）: 外枠。右へ出れば、止めるとページの側
+        // 外（上の帯）: 止めると層を切り替える側。帯の外端より遠ければどの側でもない。右へ出れば、止めるとページの側
         #expect(Self.near(selection.position(of: Self.pointer(0, -150), in: Self.map), (0.5, 1 - frame.top / 2)))
+        #expect(selection.pagingEdge == .up)
+        #expect(Self.near(selection.position(of: Self.pointer(0, -260), in: Self.map), neutral))
         #expect(selection.pagingEdge == nil)
         #expect(Self.near(selection.position(of: Self.pointer(150, 20), in: Self.map), (1 - frame.right / 2, 0.5)))
         #expect(selection.pagingEdge == .right)

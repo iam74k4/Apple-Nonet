@@ -8,7 +8,7 @@
 
 ## 日本語
 
-最終更新: 2026年11月3日
+最終更新: 2026年11月8日
 
 Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち」）が提供する macOS 用のアプリです。本アプリは、あなたの情報を集めないように作っています。
 
@@ -45,10 +45,6 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 クリップボードを一時的に使うときは、パスワード管理アプリがパスワードとしてコピーしたもの（`org.nspasteboard.ConcealedType` の印があるもの）を読みも戻しもしません。macOS（15.4 以降）がクリップボードを読む前に確かめる設定のときは、その答えに従い、拒否されていればクリップボードを読みません。
 
 トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み（この読み取りには許可は要りません）、9マスを開く動き（上の縁から指を滑らせる）を見分けることのためにメモリの中だけで使います。保存も送信もしません。
-
-#### 画面収録の許可（任意）
-
-設定の「背景に合わせて色を変える」（既定でオフ。オンにした人だけ）が働くには、macOS の「画面収録」の許可が必要です。本アプリはこの許可を、9マスを開くたびに、HUD の下の画面（ポインタの周りの 268×268 ポイント。縮めて 48×48 ピクセル）を 1 枚だけ撮り、9つのアイコンそれぞれの下の明るさを測ることだけに使います。測った結果はアイコンを白か黒のどちらで描くかを決めるためにその場で使い、撮った画像はすぐに捨てます。画像も明るさも、保存も送信もしません。本アプリ自身のウィンドウ以外を撮りますが、画面の内容を読み取ったり記録したりすることはありません。この許可が無いときと設定をオフにしたときは撮らず、アイコンは黒に白い縁で描きます。許可のダイアログは、設定画面の「許可を求める…」を押したときにだけ出します。
 
 ### 4. オートメーション（Apple Events）
 
@@ -102,7 +98,7 @@ Takanari Okazaki（問い合わせ先: TODO: サポートのメールアドレ�
 
 ## English
 
-Last updated: November 3, 2026
+Last updated: November 8, 2026
 
 Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.
 
@@ -139,10 +135,6 @@ The app uses the macOS Accessibility permission only to:
 When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked `org.nspasteboard.ConcealedType`). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.
 
 Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge). They are never stored or sent.
-
-#### Screen Recording permission (optional)
-
-The **Match colors to the background** setting (off by default; only if you turn it on) needs the macOS Screen Recording permission. The app uses this permission only to take one picture of the screen under the HUD (the 268×268 points around the pointer, scaled down to 48×48 pixels) each time the nine buttons open, and to measure the brightness under each of the nine icons. The result is used at that moment to decide whether each icon is drawn in white or black, and the picture is discarded immediately. Neither the picture nor the brightness values are stored or sent. The picture excludes the app's own windows; the app never reads or records what is on your screen. Without this permission, or with the setting off, nothing is captured and the icons are drawn black with a white outline. The permission dialog appears only when you click “Request Permission…” in Settings.
 
 ### 4. Automation (Apple Events)
 

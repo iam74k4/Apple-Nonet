@@ -17,18 +17,18 @@
   "bullets": [
     {
       "symbol": "circle.dashed",
-      "text": "輪の外では、全部が薄くなる",
+      "text": "輪の外では、アイコンが薄くなる",
       "tag": "外"
     },
     {
       "symbol": "arrow.left.arrow.right",
-      "text": "右か左の外で止めると、次のページ",
+      "text": "右か左のすぐ外で止めると、次・前のページ",
       "tag": "ページ"
     },
     {
-      "symbol": "keyboard",
-      "text": "キーを押しても閉じる",
-      "tag": "キー"
+      "symbol": "arrow.down",
+      "text": "下のすぐ外で止めると、画面に置く・ランチャー",
+      "tag": "グローバル"
     }
   ]
 }

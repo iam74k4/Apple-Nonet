@@ -97,10 +97,10 @@ struct ShellHUDAppearanceTests {
         #expect(HUDColors.standard.secondaryText == Color(white: HUDColors.standard.secondaryTextWhite))
     }
 
-    @Test("外枠にいるときは鍵を薄くする。「コントラストを上げる」では薄くしすぎない")
+    @Test("外枠にいるときは鍵のアイコンを薄くする。「コントラストを上げる」では薄くしすぎない")
     func dimming() {
-        #expect(HUDInkPalette.dimmedOpacity < HUDInkPalette.dimmedOpacityIncreased)
-        #expect(HUDInkPalette.dimmedOpacityIncreased <= 0.6)
+        #expect(HUDKeyPalette.dimmedIconOpacity < HUDKeyPalette.dimmedIconOpacityIncreased)
+        #expect(HUDKeyPalette.dimmedIconOpacityIncreased <= 0.6)
     }
 
     @Test("アプリのページとグローバルのページの点の間を空ける")

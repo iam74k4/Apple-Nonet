@@ -90,7 +90,7 @@ The icon on the white disc runs, and the HUD closes.
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Buttons are chosen by the **direction** of the pointer from the center. The eight directions (up, up-right, right, down-right, down, down-left, left, up-left) are the eight outer buttons of the 3×3 grid in Settings, and the center is the center button. Between two icons, the current one sticks a little, so a shaky finger on the border doesn't switch
 - The HUD shows no text: only the icons, without the profile name or the keys a button presses (like ⌘B). Empty buttons are small dots. Only in practice mode, "Practice" appears under the ring
-- Icons are normally drawn black with a white outline, which reads on any background. With the [Match colors to the background](#opening-and-hud) setting on (it needs the macOS Screen Recording permission), each icon is drawn black with a white outline or white with a shadow, depending on how bright the screen is under it
+- Each icon is drawn in white on its own dark round plate, so it reads the same on light windows, dark windows and photos
 
 ### Canceling
 
@@ -117,17 +117,23 @@ While the nine buttons are open, the pointer moves as usual (the front app sees 
 
 ### Pages
 
-While the nine buttons are open, **hold the pointer outside the ring to the right or left** to switch to the page on that side. The right side goes to the next page, and the left side goes to the previous page.
+While the nine buttons are open, **hold the pointer just outside the ring** to switch pages. Where you hold it decides where you go.
 
-1. Move the pointer outside the icons to the right or left (within 45° of horizontal; a diagonal is fine) and hold it there
-2. After about 0.5 seconds, the page changes and the trackpad gives two taps. If you keep holding it there, it moves one more page every 0.9 seconds
+- **Right or left** (within 45° of horizontal; a diagonal is fine): the next or previous page of that profile
+- **Down**: the Global pages (Place on Screen and the launcher). Only when the front app has a profile
+- **Up**: from the Global pages, back to the app page you were on before you went down
+
+1. Move the pointer just outside the ring of icons (about 134 to 210 pt from the center, a little beyond the icons) and hold it there
+2. After about 0.5 seconds, it switches. The trackpad gives two taps for a new page, and one stronger tap when you switch between the app and Global. If you keep holding it to the right or left, it moves one more page every 0.9 seconds
 3. Point back at an icon to choose it, then lift to run it
 
-While you hold the pointer there, a white arrow appears at that edge of the HUD with a line growing around it, and dots under the center icon show the current page (with a small gap between the dots of the app's pages and the dots of the Global pages). Lifting outside the ring still closes the buttons without running anything, even after the page has changed. It doesn't go past the first or last page (when there is no page on that side, no arrow appears).
+While you hold the pointer there, a white arrow appears at that edge of the HUD with a line growing around it. To the right or left, dots under the center icon also show the current page. When it switches, the ring of icons is pushed in the direction you went and the next ring slides in (with Reduce Motion on in System Settings, they swap without moving). On the Global pages, the circles under the icons turn slightly navy, and right after switching, the profile name appears under the center icon.
 
-You can also **swipe left or right with two fingers**. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
+Holding the pointer farther out (more than about 210 pt from the center) switches nothing. If you're unsure, move farther out. Lifting anywhere outside the ring still closes the buttons without running anything, even after a switch. It doesn't go past the first or last page (when there is no page on that side, no arrow appears).
 
-Each profile can have up to three pages. Global pages always follow an app profile's pages.
+You can also **swipe left or right with two fingers** to switch pages within the profile. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. **Swipe up or down with two fingers** to switch between the app's pages and the Global pages: moving two fingers up goes to the Global pages, and moving them down goes back to the app's pages (when there is nothing to switch to, you get two light taps). After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
+
+Each profile can have up to three pages. For an app with a profile, you reach the Global pages by holding the pointer below the ring (they no longer follow the app's pages to the right).
 
 ### Global profile and launcher
 
@@ -376,7 +382,6 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you move to another icon and when a button runs (Force Touch trackpads only). Two taps when the page changes, and two light taps mean they closed without running anything |
-| Match colors to the background | Off | When on, each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. It decides per icon, so the HUD stays readable across a dark sidebar and a light page. The image is discarded at once; nothing is saved or sent. Measuring needs the macOS Screen Recording permission; the row below shows whether it is allowed and offers Request Permission… and Open System Settings…. On macOS 15 and later, macOS itself shows a confirmation dialog about once a month for apps that capture the screen directly (Nonet doesn't show it; choose “Allow for one month” and it stays away for that long). Without the permission (and when this is off), icons are black with a white outline. If you grant the permission after Nonet has started, it takes effect only after Nonet reopens; a Reopen Nonet button appears below, so click it |
 
 Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
 
@@ -498,6 +503,10 @@ When a script contains `NONET_BROWSER_URL` and a supported browser (Safari, Goog
 The first time you use a File action, macOS asks whether Nonet may control Finder. Nonet uses it to read the files selected in Finder and to trash, rename or duplicate them. If you don't allow it, File buttons show “Automation (Finder) permission required.” and do nothing.
 
 If you denied it and want it later, turn on the browser or Finder under Nonet in **System Settings › Privacy & Security › Automation**.
+
+### Nonet is listed under Screen Recording
+
+An earlier version had a setting that changed icon colors to match the brightness of the screen under the HUD, and it asked for the macOS Screen Recording permission for that. Nonet now draws each icon in white on a dark plate and no longer uses this permission. You can turn Nonet off, or remove it from the list, in **System Settings › Privacy & Security › Screen & System Audio Recording** (Screen Recording on macOS 14).
 
 ### A Menu Item action fails
 

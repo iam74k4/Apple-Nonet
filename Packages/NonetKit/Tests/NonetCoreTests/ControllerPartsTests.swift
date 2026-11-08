@@ -15,16 +15,19 @@ import Testing
         let pages = pages(frontmost: F.safari)
         let model = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 1, highlightedCell: 0), banner: "帯")
         #expect(model.title == "Safari")
+        // ページの番号と数は、いまの層（Safari の 2 ページ）の中で数える
         #expect(model.pageIndex == 1)
-        #expect(model.pageCount == 3)
+        #expect(model.pageCount == 2)
         #expect(model.cells.count == Page.cellCount)
         #expect(model.cells[0]?.title == F.reload.title)
         #expect(model.cells[1...].allSatisfy { $0 == nil })
         #expect(model.highlightedIndex == 0)
         #expect(model.banner == "帯")
 
+        // 範囲外は最後のページ（グローバルの層の 1 ページ目）に寄せる
         let beyond = ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: 9, highlightedCell: 12), banner: nil)
-        #expect(beyond.pageIndex == 2)
+        #expect(beyond.pageIndex == 0)
+        #expect(beyond.layer == .global)
         #expect(beyond.title == ModelFixtures.globalName)
         #expect(beyond.highlightedIndex == nil)
         #expect(ControllerPresentation.hudModel(pages: pages, state: SessionHUDState(page: -1, highlightedCell: -1), banner: nil).pageIndex == 0)
@@ -59,13 +62,30 @@ import Testing
         ))
     }
 
-    /// アプリのページの後ろにつなげたグローバルのページの位置（ページの点をそこで離す）
-    @Test func globalPagesStartWhereTheProfileChanges() {
-        #expect(ControllerPresentation.globalPagesStart(pages(frontmost: F.safari)) == 2)
+    /// アプリのページとグローバルのページは別の層。HUD のページの番号と数は、いまの層の中で数える
+    @Test func layersSplitWhereTheProfileChanges() {
+        let all = pages(frontmost: F.safari)
+        #expect(ControllerPresentation.globalPagesStart(all) == 2)
         #expect(ControllerPresentation.globalPagesStart(pages(frontmost: nil)) == nil)
         #expect(ControllerPresentation.globalPagesStart([]) == nil)
-        let model = ControllerPresentation.hudModel(pages: pages(frontmost: F.safari), state: SessionHUDState(page: 0, highlightedCell: nil), banner: nil)
-        #expect(model.globalPagesStart == 2)
+        let app = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 1, highlightedCell: nil), banner: nil)
+        #expect(app.layer == .app)
+        #expect(app.pageIndex == 1)
+        #expect(app.pageCount == 2)
+        let global = ControllerPresentation.hudModel(pages: all, state: SessionHUDState(page: 2, highlightedCell: nil, lastTurn: .down), banner: nil)
+        #expect(global.layer == .global)
+        #expect(global.pageIndex == 0)
+        #expect(global.pageCount == all.count - 2)
+        #expect(global.lastTurn == .down)
+        // アプリのプロファイルが無ければ層は1つ
+        let globalOnly = pages(frontmost: nil)
+        let only = ControllerPresentation.hudModel(pages: globalOnly, state: SessionHUDState(page: 0, highlightedCell: nil), banner: nil)
+        #expect(only.layer == nil)
+        #expect(only.pageCount == globalOnly.count)
+        // 隣のページの端をのぞかせるのは、同じ層の左右だけ（上下・層の境目の先は無い）
+        #expect(ControllerPresentation.edgePeek(pages: all, page: 0, edge: .right) != nil)
+        #expect(ControllerPresentation.edgePeek(pages: all, page: 1, edge: .right) == nil)
+        #expect(ControllerPresentation.edgePeek(pages: all, page: 0, edge: .down) == nil)
     }
 
     /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ
@@ -121,7 +141,8 @@ import Testing
         #expect(session.pages.map(\.profileName) == ["Safari", "Safari", ModelFixtures.globalName])
         // 中身のあるマスも渡す（空きマスで離したらやめる）。少し長く止めるマスは無い
         let occupied: [Set<Int>] = [[0, 2, 4, 8], [0], [0, 8]]
-        #expect(session.engineConfiguration == SessionConfiguration(pageCount: 3, occupiedCells: occupied, holdCells: [[], [], []]))
+        // グローバルの層は 3 ページ目から
+        #expect(session.engineConfiguration == SessionConfiguration(pageCount: 3, layerStart: 2, occupiedCells: occupied, holdCells: [[], [], []]))
 
         let other = ControllerSession(configuration: F.configuration(), frontmostApp: nil)
         #expect(other.pages.map(\.profileName) == [ModelFixtures.globalName])
@@ -160,7 +181,9 @@ import Testing
         #expect(model.bannerStyle == .warning)
         #expect(model.highlightedIndex == 4)
         #expect(model.scale == 1)
-        #expect(model.globalPagesStart == 2)
+        #expect(model.layer == .app)
+        // 下で止めるとグローバルの層へ移れるよう、エンジンに層の境目を渡す
+        #expect(session.engineConfiguration.layerStart == 2)
         #expect(session.hudModel(SessionHUDState(page: 0, highlightedCell: nil), isPracticeMode: true, isTrialEnded: false).banner == nil)
     }
 

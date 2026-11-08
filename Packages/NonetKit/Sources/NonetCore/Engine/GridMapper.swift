@@ -57,10 +57,13 @@ public enum GridZone: Equatable, Sendable {
     }
 }
 
-/// 左右の外枠（指を止めるとページを切り替える場所）。左は前のページ、右は次のページ
+/// 外枠のうち、指を止めると切り替える側。左は前のページ、右は次のページ（どちらも同じ層の中）。
+/// 下はグローバルのページの層へ、上はアプリのページの層へ戻る（層が2つあるときだけ。SessionConfiguration.layerStart）
 public enum PageEdge: Equatable, Sendable {
     case left
     case right
+    case up
+    case down
 }
 
 /// 指の位置（x は左が 0、y は手前が 0 の 0〜1）を 3×3 のマス番号（0〜8、左上から右へ、上の行から）に変える。
@@ -132,12 +135,18 @@ public struct GridMapper: Equatable, Sendable {
         isInBoundaryBand(x: point.x, y: point.y)
     }
 
-    /// 9マスの行の横の、左右の外枠にあるか（ページを切り替える場所）。角（上下の外枠と重なるところ）は含めない。
-    /// 開いた直後の指は上の外枠にいるので、上の角で止めてもページは変わらない。外枠かどうかは zone で確かめてから呼ぶ
+    /// 外枠のうち、止めると切り替える側。9マスの行の横の左右の外枠はページ、列の上下の外枠は層。四隅は含めない（どの側でもない）。
+    /// 開いた直後の指は上の外枠にいるが、そのときはアプリの層（か層が1つ）なので、上で止めても何も変わらない（SessionState.availableEdge）。
+    /// 外枠かどうかは zone で確かめてから呼ぶ
     public func pagingEdge(x: Double, y: Double) -> PageEdge? {
-        guard y >= insets.bottom, y <= 1 - insets.top else { return nil }
-        if x < insets.left { return .left }
-        if x > 1 - insets.right { return .right }
+        if y >= insets.bottom, y <= 1 - insets.top {
+            if x < insets.left { return .left }
+            if x > 1 - insets.right { return .right }
+        }
+        if x >= insets.left, x <= 1 - insets.right {
+            if y > 1 - insets.top { return .up }
+            if y < insets.bottom { return .down }
+        }
         return nil
     }
 

@@ -94,6 +94,15 @@ struct ModelCodingRoundTripTests {
         #expect(GlobalSettings.retiredKeys.contains("hudPosition"))
     }
 
+    /// 前の版の「背景に合わせて色を変える」は読み飛ばし、もう書かない（アイコンを暗い台に白で載せるようになり、下の画面を撮って色を決めない）
+    @Test func adaptiveHUDInkIsRetired() throws {
+        let settings = try ModelFixtures.decode(GlobalSettings.self, #"{"adaptiveHUDInk": true, "haptics": "off"}"#)
+        #expect(settings == GlobalSettings(haptics: .off))
+        #expect(GlobalSettings.retiredKeys.contains("adaptiveHUDInk"))
+        let keys = try ModelFixtures.jsonObject(settings).allKeys.compactMap { $0 as? String }
+        #expect(!keys.contains("adaptiveHUDInk"))
+    }
+
     @Test("触覚の強さのすべての値が往復する", arguments: HapticStrength.allCases)
     func hapticsRoundTrip(_ strength: HapticStrength) throws {
         let settings = GlobalSettings(haptics: strength)

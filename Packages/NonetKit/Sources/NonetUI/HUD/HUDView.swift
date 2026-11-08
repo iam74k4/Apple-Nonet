@@ -25,13 +25,19 @@ struct HUDMetrics: Equatable {
     var centerIconSize: CGFloat { HUDLayout.centerIconSize * scale }
     /// 光らせた鍵の下の白い円の半径
     var selectionRadius: CGFloat { HUDLayout.selectionRadius * scale }
+    /// アイコンの下の暗い台の半径
+    var plateRadius: CGFloat { HUDLayout.plateRadius * scale }
+    /// 空きマスの小さな台の半径
+    var emptyPlateRadius: CGFloat { HUDLayout.emptyPlateRadius * scale }
+    /// 止めている途中・空きマスを光らせたときの線を、台の縁から内へ離す幅（線の外側にも台の暗さを残す）
+    var ringInset: CGFloat { 2 * scale }
     /// 空きマスの点の半径
-    var emptyDotRadius: CGFloat { 2.5 * scale }
+    var emptyDotRadius: CGFloat { 2 * scale }
     /// 少し長く止めるマスの進み具合の線の太さ
     var holdLineWidth: CGFloat { 2.5 * scale }
     /// 少し長く止めてから実行するマスの印（HoldBadge）の大きさ
     var badgeSize: CGFloat { 7 * scale }
-    /// 左右の外へ出して止めているときの矢印の円の半径
+    /// 外枠の帯に止めているときの矢印の円の半径
     var pageArrowRadius: CGFloat { HUDLayout.pageArrowRadius * scale }
     var dotSize: CGFloat { 4.5 * scale }
     var dotSpacing: CGFloat { 6 * scale }
@@ -40,8 +46,6 @@ struct HUDMetrics: Equatable {
     var pillHeight: CGFloat { HUDLayout.pillHeight * scale }
     var pillGap: CGFloat { HUDLayout.pillGap * scale }
     var pillFontSize: CGFloat { 11 * scale }
-    /// アイコンの縁（白い縁・黒い影）のぼかし
-    var haloRadius: CGFloat { 1.2 * scale }
     /// 向けたまま止めたアイコンの下に出す名前の帯
     var labelHeight: CGFloat { HUDLayout.labelHeight * scale }
     var labelGap: CGFloat { HUDLayout.labelGap * scale }
@@ -59,10 +63,15 @@ struct HUDMetrics: Equatable {
         return CGPoint(x: key.x, y: key.y + selectionRadius + labelGap + labelHeight / 2)
     }
 
-    /// 左右の外へ出して止めているときの矢印の中心（円の縁の内側）
+    /// 外枠の帯に出して止めているときの矢印の中心（その側の円の縁の内側）
     func pageArrowPosition(_ edge: PageEdge) -> CGPoint {
         let offset = outerRadius - pageArrowRadius - 2 * scale
-        return CGPoint(x: center.x + (edge == .right ? offset : -offset), y: center.y)
+        return switch edge {
+        case .right: CGPoint(x: center.x + offset, y: center.y)
+        case .left: CGPoint(x: center.x - offset, y: center.y)
+        case .down: CGPoint(x: center.x, y: center.y + offset)
+        case .up: CGPoint(x: center.x, y: center.y - offset)
+        }
     }
 
     /// ページの点の中心（真ん中の鍵の下）
@@ -83,12 +92,17 @@ struct HUDMetrics: Equatable {
     }
 }
 
-/// HUD の標準の寸法（倍率 1）。ポインタを中心にした円に、8つの鍵をアイコンだけで並べ、真ん中に 9つ目。皿も輪も文字も無い。
-/// 形があるのは「いま向いているもの」の下の白い円だけ。位置は RadialLayout（NonetCore）と同じで、ポインタの向きと距離で選ぶ
+/// HUD の標準の寸法（倍率 1）。ポインタを中心にした円に、8つの鍵を並べ、真ん中に 9つ目。全体の皿も輪も文字も無い。
+/// 鍵ごとに暗い丸い台（HUDPlate）に白いアイコンを載せ、「いま向いているもの」だけ白い円に濃いアイコンにする。
+/// 位置は RadialLayout（NonetCore）と同じで、ポインタの向きと距離で選ぶ
 enum HUDLayout {
     static let iconSize: CGFloat = 20
     static let centerIconSize: CGFloat = 18
     static let selectionRadius: CGFloat = 22
+    /// アイコンの下の暗い台（直径 36）。光らせた白い円（直径 44）より小さく、向いているものが一回り大きく見える
+    static let plateRadius: CGFloat = 18
+    /// 空きマスの小さな台（直径 12）
+    static let emptyPlateRadius: CGFloat = 6
     static let pageArrowRadius: CGFloat = 13
     /// ページの点の、中心からの距離（真ん中の鍵の下）
     static let pageDotsOffset: CGFloat = 30
@@ -101,7 +115,7 @@ enum HUDLayout {
     static let labelDelay: TimeInterval = 0.6
     static let labelHeight: CGFloat = 18
     static let labelGap: CGFloat = 5
-    /// 枠の外に描くもの（帯とその影、白い円の光、アイコンの縁）のための余白。ウィンドウの影は使わない。
+    /// 枠の外に描くもの（帯とその影、白い円の光、台の影）のための余白。ウィンドウの影は使わない。
     /// 帯（pillGap + pillHeight = 30）とその影（下へ 3・ぼかし 6）が入る大きさ
     static let shadowMargin: CGFloat = 40
 
@@ -116,14 +130,148 @@ enum HUDLayout {
 @Observable
 final class HUDStore {
     var model: HUDModel?
-    /// 鍵ごとの色。出したときに下の画面を測って決める（測れなければ fallback）
-    var inks = HUDInks.fallback
     /// システム設定の「コントラストを上げる」（出すたびに読み直す）
     var increasedContrast = false
     /// システム設定の「視差効果を減らす」（出すたびに読み直す）。外枠の切り替えをアニメーションにせず、進み具合も満たしていかない
     var reduceMotion = false
+    /// システム設定の「透明度を下げる」（出すたびに読み直す）。台の下にガラスを敷かず、台を不透明にする
+    var reduceTransparency = false
     /// 帯を円の下に出すか（画面の下端で入らなければ上に出す。HUDPlacement.pillFitsBelow）
     var pillBelow = true
+    /// ページか層を切り替えたときに出ていく輪（押し出しの動き）。動き終えたら nil
+    var turn: HUDTurn?
+    /// 押し出しの進み具合（0〜1。時間に比例して進め、輪ごとのカーブは HUDMotion.turnFrame で付ける）。動いていなければ 1
+    var turnProgress: Double = 1
+    /// 層を切り替えたときに、真ん中の鍵の下へ一瞬出す層の名前（serial が変わるたびに出し直す）
+    var layerName: HUDLayerName?
+    private var turnSerial = 0
+
+    /// 表示中の HUD のページか層が替わった: 前の輪を残して、切り替えた向きへ押し出す。層が替わったら、その名前も出す
+    func beginTurn(from previous: HUDModel, to model: HUDModel) {
+        guard let direction = model.lastTurn else { return }
+        turnSerial += 1
+        let serial = turnSerial
+        turn = HUDTurn(outgoingCells: previous.cells, outgoingLayer: previous.layer, direction: direction, serial: serial)
+        if previous.layer != model.layer {
+            layerName = HUDLayerName(text: model.title, serial: serial)
+        }
+        // 0 から始め直してから、次の周回で 1 へ動かす（同じ更新の中で 0 と 1 を書くと、動かずに 1 のまま描かれる）
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) { turnProgress = 0 }
+        let animation = HUDMotion.turnAnimation(reduceMotion: reduceMotion)
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.turn?.serial == serial else { return }
+            withAnimation(animation) {
+                self.turnProgress = 1
+            } completion: { [weak self] in
+                guard let self, self.turn?.serial == serial else { return }
+                self.turn = nil
+            }
+        }
+    }
+
+    /// 新しく出す・閉じる: 動きの途中のものを捨てる
+    func resetTurn() {
+        turn = nil
+        turnProgress = 1
+        layerName = nil
+    }
+}
+
+/// ページか層を切り替えたときに出ていく輪
+struct HUDTurn: Equatable {
+    /// 切り替える前のページのマス
+    var outgoingCells: [HUDCell?]
+    var outgoingLayer: HUDLayer?
+    /// 切り替えた向き（その側から次の輪が入り、前の輪は反対へ抜ける）
+    var direction: PageEdge
+    /// 何回目の切り替えか（続けて切り替えたときに、前の動きの終わりで今の輪を消さないため）
+    var serial: Int
+
+    /// ページか層が替わったと見る目印（層・層の中のページの番号・題名）
+    static func pageKey(_ model: HUDModel) -> String {
+        "\(String(describing: model.layer))|\(model.pageIndex)|\(model.title)"
+    }
+}
+
+/// 層を切り替えたときに出す層の名前
+struct HUDLayerName: Equatable {
+    var text: String
+    var serial: Int
+}
+
+/// ページと層を切り替えるときの押し出しの動き。左右も上下も同じ動きで、違うのは向きだけ。
+/// 前の輪は進む向きと反対へ少し縮みながら抜け、次の輪は進んだ側から少し大きめに入って落ち着く（減速して止まる）
+enum HUDMotion {
+    /// 全体の時間。「視差効果を減らす」では動かさず、reducedTurnDuration で入れ替えるだけ
+    static let turnDuration: TimeInterval = 0.27
+    static let reducedTurnDuration: TimeInterval = 0.12
+    /// 輪が動く距離（倍率 1 のポイント）
+    static let turnDistance: CGFloat = 36
+    /// 縮み（出ていく輪）・膨らみ（入る輪）の割合
+    static let turnScale = 0.04
+
+    static func turnAnimation(reduceMotion: Bool) -> Animation {
+        .linear(duration: reduceMotion ? reducedTurnDuration : turnDuration)
+    }
+
+    /// 進み具合 progress（時間に比例、0〜1）での、輪の位置（向きの単位ベクトルに掛ける。出ていく輪は負）・大きさ・不透明度。
+    /// 出ていく輪は最初の 150ms で加速しながら抜け、入る輪は 40ms 遅れて 230ms で減速しながら入る
+    static func turnFrame(progress: Double, isOutgoing: Bool, reduceMotion: Bool) -> (shift: Double, scale: Double, opacity: Double) {
+        let t = min(max(progress.isFinite ? progress : 1, 0), 1)
+        if reduceMotion { return isOutgoing ? (0, 1, 1 - t) : (0, 1, t) }
+        let ms = t * turnDuration * 1000
+        if isOutgoing {
+            let a = easeIn(ms / 150)
+            return (-a, 1 - turnScale * a, 1 - a)
+        }
+        let b = easeOut((ms - 40) / 230)
+        return (1 - b, 1 + turnScale * (1 - b), b)
+    }
+
+    /// 向きの単位ベクトル（画面の座標。y は下向き）
+    static func vector(_ edge: PageEdge) -> (dx: CGFloat, dy: CGFloat) {
+        switch edge {
+        case .right: (1, 0)
+        case .left: (-1, 0)
+        case .down: (0, 1)
+        case .up: (0, -1)
+        }
+    }
+
+    private static func easeIn(_ value: Double) -> Double {
+        let t = min(max(value, 0), 1)
+        return t * t
+    }
+
+    private static func easeOut(_ value: Double) -> Double {
+        let t = min(max(value, 0), 1)
+        return 1 - pow(1 - t, 3)
+    }
+}
+
+/// 押し出しの動きを、輪全体（9つの鍵）に掛ける。進み具合を SwiftUI のアニメーションで補間させる
+struct HUDTurnEffect: ViewModifier, Animatable {
+    var progress: Double
+    let direction: PageEdge?
+    let distance: CGFloat
+    let isOutgoing: Bool
+    let reduceMotion: Bool
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let frame = HUDMotion.turnFrame(progress: direction == nil ? 1 : progress, isOutgoing: isOutgoing, reduceMotion: reduceMotion)
+        let vector: (dx: CGFloat, dy: CGFloat) = direction.map(HUDMotion.vector) ?? (0, 0)
+        content
+            .scaleEffect(frame.scale)
+            .offset(x: vector.dx * distance * frame.shift, y: vector.dy * distance * frame.shift)
+            .opacity(frame.opacity)
+    }
 }
 
 /// パネルに置く根のビュー。影の余白の中に HUD を描く
@@ -135,10 +283,13 @@ struct HUDRootView: View {
             if let model = store.model {
                 HUDView(
                     model: model,
-                    inks: store.inks,
                     increasedContrast: store.increasedContrast,
                     reduceMotion: store.reduceMotion,
-                    pillBelow: store.pillBelow
+                    reduceTransparency: store.reduceTransparency,
+                    pillBelow: store.pillBelow,
+                    turn: store.turn,
+                    turnProgress: store.turnProgress,
+                    layerName: store.layerName
                 )
             }
         }
@@ -146,14 +297,19 @@ struct HUDRootView: View {
     }
 }
 
-/// HUD。ポインタの周りの 8つの鍵と真ん中の鍵、左右の外へ出して止めているときの矢印とページの点、円の外の帯
+/// HUD。ポインタの周りの 8つの鍵と真ん中の鍵、外枠の帯に止めているときの矢印とページの点、円の外の帯
 struct HUDView: View {
     let model: HUDModel
-    var inks: HUDInks = .fallback
     var increasedContrast = false
     var reduceMotion = false
+    var reduceTransparency = false
     /// 帯を円の下に出すか（入らなければ上）
     var pillBelow = true
+    /// ページか層を切り替えた直後の、出ていく輪と進み具合（HUDStore）
+    var turn: HUDTurn?
+    var turnProgress: Double = 1
+    /// 層を切り替えたときに出す層の名前（HUDStore）
+    var layerName: HUDLayerName?
     /// 少し長く止めるマスの進み具合を、この値（0〜1）で止めて描く（見た目の確認用）。nil なら止め始めてから duration で満たす
     var fixedHoldProgress: Double?
     /// 向けているアイコンの名前を待たずに出す（見た目の確認用。ふだんは HUDLayout.labelDelay 止まってから）
@@ -161,6 +317,11 @@ struct HUDView: View {
 
     /// 名前を出している鍵（向けたまま labelDelay とどまった）
     @State private var labeledIndex: Int?
+    /// 層の名前を出している（layerName が届いてから layerNameDuration の間）
+    @State private var showsLayerName = false
+
+    /// 層を切り替えたときに、層の名前を出しておく秒数
+    static let layerNameDuration: TimeInterval = 1.0
 
     /// 向けたまま止めたときに名前を出す鍵: 中身のあるマスを向けているとき（外枠・開いた直後・空きマスでは無い）
     static func labelCandidate(_ model: HUDModel) -> Int? {
@@ -179,7 +340,7 @@ struct HUDView: View {
         labelCandidate(model).map { "\(model.pageIndex)|\(model.title)|\($0)" }
     }
 
-    /// 鍵を薄くする（離しても何も起きないことを見せる）: 外枠にいる・2本以上の指・滑らせ直すまで。
+    /// 鍵のアイコンを薄くする（離しても何も起きないことを見せる。台は薄くしない）: 外枠にいる・2本以上の指・滑らせ直すまで。
     /// 開いた直後（ポインタがまだ真ん中から出ていない）は、エンジンには外枠でも薄くしない: 開くたびに薄くなっては、選べないように見える
     static func dimsKeys(_ model: HUDModel) -> Bool {
         if model.isFingerInFrame { return !model.isWaitingAtCenter }
@@ -190,36 +351,38 @@ struct HUDView: View {
         let metrics = HUDMetrics(scale: model.scale)
         let size = metrics.size(for: model)
         let inFrame = model.isFingerInFrame && !model.isWaitingAtCenter
-        let dimmed = increasedContrast ? HUDInkPalette.dimmedOpacityIncreased : HUDInkPalette.dimmedOpacity
+        // 押し出している間は、どちらの輪もガラスを外す（HUDPlateStyle.showsGlass）
+        let plateStyle = HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: model.layer == .global, showsGlass: turn == nil)
+        let dims = Self.dimsKeys(model)
+        let distance = HUDMotion.turnDistance * metrics.scale
         ZStack(alignment: .topLeading) {
-            ForEach(0..<Page.cellCount, id: \.self) { index in
-                HUDKeyView(
-                    cell: cell(at: index),
-                    index: index,
-                    isHighlighted: model.highlightedIndex == index,
-                    hold: model.hold?.cellIndex == index && model.highlightedIndex == index ? model.hold : nil,
-                    ink: inks.ink(at: index),
-                    metrics: metrics,
-                    increasedContrast: increasedContrast,
-                    reduceMotion: reduceMotion,
-                    fixedHoldProgress: fixedHoldProgress
-                )
-                .position(metrics.position(ofCell: index))
+            // 切り替える前のページの輪（押し出されて抜けていく）。マスは光らせない
+            if let turn {
+                keyRing(cells: turn.outgoingCells, highlight: nil, hold: nil, dims: dims, metrics: metrics,
+                        plateStyle: HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: turn.outgoingLayer == .global, showsGlass: false))
+                    .modifier(HUDTurnEffect(progress: turnProgress, direction: turn.direction, distance: distance, isOutgoing: true, reduceMotion: reduceMotion))
             }
-            .opacity(Self.dimsKeys(model) ? dimmed : 1)
+            keyRing(cells: model.cells, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics, plateStyle: plateStyle)
+                .modifier(HUDTurnEffect(progress: turn == nil ? 1 : turnProgress, direction: turn?.direction, distance: distance, isOutgoing: false, reduceMotion: reduceMotion))
             if let paging = model.edgePaging {
                 HUDPagingArrow(paging: paging, metrics: metrics, animates: !reduceMotion)
                     .position(metrics.pageArrowPosition(paging.edge))
-                if model.pageCount > 1 {
+                // ページの点は、いまの層のページだけ。左右（ページ）で止めている間だけ出す
+                if model.pageCount > 1, paging.edge == .left || paging.edge == .right {
                     HUDPageIndicator(
                         pageIndex: model.pageIndex,
                         pageCount: model.pageCount,
-                        globalPagesStart: model.globalPagesStart,
                         metrics: metrics,
-                        ink: inks.ink(at: RadialLayout.centerCell)
+                        plateStyle: plateStyle
                     )
                     .position(metrics.pageDotsPosition)
                 }
+            }
+            // 層を切り替えた直後だけ、真ん中の鍵の下に層の名前（白い帯）
+            if showsLayerName, let layerName {
+                HUDKeyLabel(text: layerName.text, metrics: metrics)
+                    .position(metrics.pageDotsPosition)
+                    .transition(.opacity)
             }
             if let pill = HUDPillContent.content(for: model) {
                 let frame = metrics.pillFrame(below: pillBelow)
@@ -238,6 +401,15 @@ struct HUDView: View {
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: labeledIndex)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsLayerName)
+        .task(id: layerName?.serial) {
+            showsLayerName = false
+            guard layerName != nil else { return }
+            showsLayerName = true
+            try? await Task.sleep(for: .seconds(Self.layerNameDuration))
+            guard !Task.isCancelled else { return }
+            showsLayerName = false
+        }
         .task(id: Self.labelTimerID(model)) {
             labeledIndex = nil
             guard let index = Self.labelCandidate(model) else { return }
@@ -249,23 +421,43 @@ struct HUDView: View {
         .accessibilityLabel(Text(HUDAnnouncement.frameTitle(for: model)))
     }
 
-    private func cell(at index: Int) -> HUDCell? {
-        model.cells.indices.contains(index) ? model.cells[index] : nil
+    /// 9つの鍵の輪。台のガラスは鍵ごとに描く（GlassEffectContainer でまとめると、まとめたガラスがアイコンや線より上に描かれて隠れる）
+    private func keyRing(cells: [HUDCell?], highlight: Int?, hold: HUDHold?, dims: Bool, metrics: HUDMetrics, plateStyle: HUDPlateStyle) -> some View {
+        let size = metrics.size(for: model)
+        return ZStack(alignment: .topLeading) {
+            ForEach(0..<Page.cellCount, id: \.self) { index in
+                HUDKeyView(
+                    cell: cells.indices.contains(index) ? cells[index] : nil,
+                    index: index,
+                    isHighlighted: highlight == index,
+                    hold: hold?.cellIndex == index && highlight == index ? hold : nil,
+                    isDimmed: dims,
+                    metrics: metrics,
+                    plateStyle: plateStyle,
+                    reduceMotion: reduceMotion,
+                    fixedHoldProgress: fixedHoldProgress
+                )
+                .position(metrics.position(ofCell: index))
+            }
+        }
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
     }
 }
 
-/// 1つの鍵。アイコンだけ。光らせると（いま離すと実行する）下に白い円が出る。
-/// 境目の線の上・少し長く止めている途中は白く塗らず、線だけで示す。空きマスは小さな点。
-/// 白い円の上でないところに描くもの（アイコン・線・点・バッジ）には、どれも同じ縁（HUDHalo）を付ける。下の画面が明るくても暗くても見えるように
+/// 1つの鍵。暗い丸い台（HUDPlate）に白いアイコン。光らせると（いま離すと実行する）白い円に濃いアイコンになる。
+/// 少し長く止めている途中は、台を白い円と同じ大きさにして、その内側に白い線を伸ばす（止め終えたら白い円）。
+/// 空きマスは小さな台に点、光らせると大きな台に点線。下の画面が明るくても暗くても、いつも暗い台の上に白で描くので同じように読める。
+/// 外枠などで薄くするときは、アイコン・点・印だけを薄くし、台はそのまま残す（HUDKeyPalette.dimmedIconOpacity）
 struct HUDKeyView: View {
     let cell: HUDCell?
     let index: Int
     let isHighlighted: Bool
     /// 光っている、少し長く止めるマスの進み具合。止め終えるまでは白く塗らず、円に沿って線を伸ばす
     var hold: HUDHold?
-    var ink: HUDInk = .onLight
+    /// 離しても何も起きない（外枠・2本の指）: アイコンを薄くする（HUDView.dimsKeys）
+    var isDimmed = false
     var metrics = HUDMetrics(scale: 1)
-    var increasedContrast = false
+    var plateStyle = HUDPlateStyle()
     var reduceMotion = false
     var fixedHoldProgress: Double?
 
@@ -281,52 +473,65 @@ struct HUDKeyView: View {
 
     private var isCenter: Bool { index == RadialLayout.centerCell }
 
+    /// アイコン・点・印の不透明度
+    private var markOpacity: Double { isDimmed ? plateStyle.dimmedIconOpacity : 1 }
+
     var body: some View {
         let radius = metrics.selectionRadius
         let side = radius * 2
         ZStack {
             if let cell {
                 if isFilled {
+                    // 細い暗い縁: 明るい画面の上で、白い円が台の並びの穴に見えないように
                     Circle()
                         .fill(Color.white)
+                        .overlay(Circle().strokeBorder(Color.black.opacity(0.12), lineWidth: metrics.scale))
                         .shadow(color: .white.opacity(0.9), radius: 6 * metrics.scale)
                         .shadow(color: .black.opacity(0.25), radius: 6 * metrics.scale, y: 2 * metrics.scale)
+                        .opacity(markOpacity)
+                } else {
+                    // 止めている途中は白い円と同じ大きさにして、向いていることを見せる
+                    HUDPlate(radius: isHolding ? radius : metrics.plateRadius, scale: metrics.scale, style: plateStyle)
                 }
                 HUDGlyph(
                     icon: cell.icon,
                     size: isCenter ? metrics.centerIconSize : metrics.iconSize,
-                    ink: ink,
-                    onSelection: isFilled,
-                    haloRadius: metrics.haloRadius,
-                    strong: increasedContrast
+                    onSelection: isFilled
                 )
+                .opacity(markOpacity)
                 if isHolding, let hold {
-                    // アイコンと同じ縁を付ける（縁が無いと、既定の濃い色の線が暗い画面に溶けて進み具合が見えない）
+                    // 線は台の縁から少し内側に引く（外側にも台の暗さが残り、明るい画面でも線が背景に溶けない）
                     HUDHoldRing(
                         hold: hold,
                         lineWidth: metrics.holdLineWidth,
-                        color: ink.color,
                         animates: !reduceMotion,
                         fixedProgress: fixedHoldProgress
                     )
-                    .modifier(HUDHalo(ink: ink, radius: metrics.haloRadius, strong: increasedContrast))
+                    .padding(metrics.ringInset)
                 }
             } else if isHighlighted {
-                // 空きマスは実行しても何も起きないので、塗らずに線だけで示す（線にもアイコンと同じ縁を付ける）
-                Circle().strokeBorder(ink.color.opacity(0.85), style: StrokeStyle(lineWidth: 1.5 * metrics.scale, dash: [3 * metrics.scale, 3 * metrics.scale]))
-                    .modifier(HUDHalo(ink: ink, radius: metrics.haloRadius, strong: increasedContrast))
-                HUDEmptyDot(ink: ink, radius: metrics.emptyDotRadius, haloRadius: metrics.haloRadius)
+                // 空きマスは実行しても何も起きないので、白く塗らずに大きな台と点線で示す
+                HUDPlate(radius: radius, scale: metrics.scale, style: plateStyle)
+                Circle().strokeBorder(Color.white.opacity(0.85), style: StrokeStyle(lineWidth: 1.5 * metrics.scale, dash: [3 * metrics.scale, 3 * metrics.scale]))
+                    .padding(metrics.ringInset)
+                    .opacity(markOpacity)
+                HUDEmptyDot(radius: metrics.emptyDotRadius)
+                    .opacity(markOpacity)
             } else {
-                // 空きマス: 小さな点だけ（「コントラストを上げる」では少し濃く）
-                HUDEmptyDot(ink: ink, radius: metrics.emptyDotRadius, haloRadius: metrics.haloRadius)
-                    .opacity(increasedContrast ? 0.8 : 0.5)
+                // 空きマス: 小さな台に点（「コントラストを上げる」では点を少し濃く）
+                HUDPlate(radius: metrics.emptyPlateRadius, scale: metrics.scale, style: plateStyle)
+                HUDEmptyDot(radius: metrics.emptyDotRadius)
+                    .opacity((plateStyle.increasedContrast ? 0.9 : 0.6) * markOpacity)
             }
         }
         .frame(width: side, height: side)
         .overlay(alignment: .topTrailing) {
             if cell?.requiresHold == true {
-                HoldBadge(size: metrics.badgeSize, color: isFilled ? HUDInkPalette.onSelection.opacity(0.7) : ink.color)
-                    .modifier(HUDHalo(ink: ink, radius: metrics.haloRadius, strong: false))
+                // 印も小さな台に白で載せ、台の縁に重ねる
+                HoldBadge(size: metrics.badgeSize, color: .white)
+                    .opacity(markOpacity)
+                    .padding(2.5 * metrics.scale)
+                    .background(HUDPlate(radius: nil, scale: metrics.scale, style: plateStyle))
             }
         }
         .accessibilityElement(children: .ignore)
@@ -336,68 +541,70 @@ struct HUDKeyView: View {
     }
 }
 
-/// 空きマスの点
+/// 空きマスの点（台の上なので白）
 private struct HUDEmptyDot: View {
-    let ink: HUDInk
     let radius: CGFloat
-    let haloRadius: CGFloat
 
     var body: some View {
         Circle()
-            .fill(ink.color)
+            .fill(Color.white)
             .frame(width: radius * 2, height: radius * 2)
-            .modifier(HUDHalo(ink: ink, radius: haloRadius, strong: false))
     }
 }
 
-/// アイコン。明るい下地では濃い色に白い縁、暗い下地では白に黒い影。白い円の上では濃い色（縁は要らない）
+/// アイコン。台の上では白、白い円の上では濃い色
 struct HUDGlyph: View {
     let icon: CellIcon
     let size: CGFloat
-    var ink: HUDInk = .onLight
     /// 白い円の上
     var onSelection = false
-    var haloRadius: CGFloat = 1.2
-    /// 「コントラストを上げる」: 縁を濃くする
-    var strong = false
 
     var body: some View {
         CellIconView(icon, size: size)
             .fontWeight(.medium)
-            .foregroundStyle(onSelection ? HUDInkPalette.onSelection : ink.color)
-            .modifier(HUDHalo(ink: ink, radius: haloRadius, strong: strong, enabled: !onSelection))
+            .foregroundStyle(onSelection ? HUDKeyPalette.onSelection : Color.white)
             .accessibilityHidden(true)
     }
 }
 
-/// アイコンの縁。SwiftUI では文字や記号に縁取りを引けないので、同じ色の影を何枚か重ねて縁にする。
-/// 明るい下地（濃いアイコン）は白い縁、暗い下地（白いアイコン）は黒い影
-struct HUDHalo: ViewModifier {
-    let ink: HUDInk
-    let radius: CGFloat
-    var strong = false
-    var enabled = true
+/// アイコンの下の暗い丸い台。半透明の暗い面に細い明るい縁と薄い影（濃さと下のガラスは HUDPlateStyle）。
+/// 真っ白な画面の上でも白いアイコンとのコントラスト比が 4.5:1 を下回らない。
+/// 縁は暗い画面で台の形を、影は明るい画面で台の浮きを見せる。radius が nil なら置かれた枠いっぱい（印の台）
+struct HUDPlate: View {
+    let radius: CGFloat?
+    let scale: CGFloat
+    var style = HUDPlateStyle()
 
-    func body(content: Content) -> some View {
-        if !enabled {
-            content
+    var body: some View {
+        let circle = Circle()
+            .fill(style.fill)
+            .modifier(HUDPlateBlur(enabled: style.usesGlass))
+            .overlay(Circle().strokeBorder(Color.white.opacity(style.borderOpacity), lineWidth: scale))
+            .shadow(color: .black.opacity(0.25), radius: 3 * scale, y: scale)
+        if let radius {
+            circle.frame(width: radius * 2, height: radius * 2)
         } else {
-            switch ink {
-            case .onLight:
-                content
-                    .shadow(color: .white, radius: radius)
-                    .shadow(color: .white, radius: radius)
-                    .shadow(color: .white.opacity(strong ? 1 : 0.9), radius: radius * (strong ? 1.6 : 1))
-            case .onDark:
-                content
-                    .shadow(color: .black.opacity(0.9), radius: radius, y: 0.5)
-                    .shadow(color: .black.opacity(strong ? 0.9 : 0.5), radius: radius * 2)
-            }
+            circle
         }
     }
 }
 
-/// 少し長く止めるマスの進み具合。白い円の縁に沿って線を伸ばし、一周したら（HUDHold.isReady）円が白くなる。
+/// macOS 26 以降は、台の下に Liquid Glass（HUDSurface.glass）を敷いて下の画面をぼかす（台を透ける文字や模様を読ませない）。
+/// 暗さは上に塗る面だけで決める: .regular のガラスは下地に合わせて明るくも暗くもなり、台ごとに濃さが揃わないので、色を足さない .clear にする。
+/// 「透明度を下げる」では敷かない（HUDPlateStyle.usesGlass）
+private struct HUDPlateBlur: ViewModifier {
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled, #available(macOS 26, *) {
+            content.glassEffect(.clear, in: Circle())
+        } else {
+            content
+        }
+    }
+}
+
+/// 少し長く止めるマスの進み具合。台の縁の内側に沿って白い線を伸ばし、一周したら（HUDHold.isReady）円が白くなる。
 /// 「視差効果を減らす」では線を伸ばさず、点線で囲むだけにする（止め終えたら白くなるのは同じ）
 struct HUDHoldRing: View {
     let hold: HUDHold
@@ -439,11 +646,21 @@ struct HUDHoldRing: View {
     }
 }
 
-/// 左右の外へ出して止めている間、その側の縁に出る矢印。周りの線が切り替えるまでの進み具合
+/// 外枠の帯に止めている間、その側の縁に出る矢印。周りの線が切り替えるまでの進み具合
 struct HUDPagingArrow: View {
     let paging: HUDEdgePaging
     let metrics: HUDMetrics
     let animates: Bool
+
+    /// 止めている側を指す矢印（SF Symbols）
+    static func symbol(_ edge: PageEdge) -> String {
+        switch edge {
+        case .left: "chevron.left"
+        case .right: "chevron.right"
+        case .up: "chevron.up"
+        case .down: "chevron.down"
+        }
+    }
 
     var body: some View {
         let side = metrics.pageArrowRadius * 2
@@ -452,10 +669,10 @@ struct HUDPagingArrow: View {
                 .fill(Color.white)
                 .shadow(color: .white.opacity(0.9), radius: 5 * metrics.scale)
                 .shadow(color: .black.opacity(0.25), radius: 4 * metrics.scale, y: 2 * metrics.scale)
-            Image(systemName: paging.edge == .left ? "chevron.left" : "chevron.right")
+            Image(systemName: HUDPagingArrow.symbol(paging.edge))
                 .font(.system(size: 11 * metrics.scale, weight: .bold))
-                .foregroundStyle(HUDInkPalette.onSelection)
-            HUDEdgePagingBar(paging: paging, color: HUDInkPalette.onSelection, animates: animates)
+                .foregroundStyle(HUDKeyPalette.onSelection)
+            HUDEdgePagingBar(paging: paging, color: HUDKeyPalette.onSelection, animates: animates)
                 .id(HUDEdgePagingBar.restartID(for: paging))
                 .padding(2 * metrics.scale)
         }
@@ -464,7 +681,7 @@ struct HUDPagingArrow: View {
     }
 }
 
-/// 左右の外へ出して止めている間、ページを切り替えるまでの進み具合。矢印の円の縁に沿って線を伸ばす。
+/// 外枠の帯に止めている間、ページか層を切り替えるまでの進み具合。矢印の円の縁に沿って線を伸ばす。
 /// 「視差効果を減らす」では伸ばさず、点線で囲む。animates が false のときの線は、見た目の確認用の静止画
 struct HUDEdgePagingBar: View {
     let paging: HUDEdgePaging
@@ -540,7 +757,7 @@ private struct HUDKeyLabel: View {
         Text(text)
             .font(.system(size: metrics.labelFontSize, weight: .semibold))
             .lineLimit(1)
-            .foregroundStyle(HUDInkPalette.onSelection)
+            .foregroundStyle(HUDKeyPalette.onSelection)
             .padding(.horizontal, 8 * metrics.scale)
             .frame(height: metrics.labelHeight)
             .background(Capsule().fill(Color(white: 0.98)).shadow(color: .black.opacity(0.22), radius: 5 * metrics.scale, y: 2 * metrics.scale))
@@ -564,7 +781,7 @@ private struct HUDPill: View {
                 .minimumScaleFactor(0.75)
         }
         .font(.system(size: metrics.pillFontSize, weight: .semibold))
-        .foregroundStyle(HUDInkPalette.onSelection)
+        .foregroundStyle(HUDKeyPalette.onSelection)
         .padding(.horizontal, 10 * metrics.scale)
         .frame(height: metrics.pillHeight)
         .background(Capsule().fill(Color(white: 0.98)).shadow(color: .black.opacity(0.25), radius: 6 * metrics.scale, y: 3 * metrics.scale))
@@ -572,27 +789,27 @@ private struct HUDPill: View {
     }
 }
 
-/// ページの点（左右の外へ出して止めている間だけ、真ん中の鍵の下に出す）。
+/// ページの点（左右の帯に止めている間だけ、真ん中の鍵の下に出す。いまの層のページだけ）。
 /// アプリのページの後ろにグローバルのページをつなげたときは、その境目を少し離す
 private struct HUDPageIndicator: View {
     let pageIndex: Int
     let pageCount: Int
-    let globalPagesStart: Int?
     let metrics: HUDMetrics
-    var ink: HUDInk = .onLight
+    var plateStyle = HUDPlateStyle()
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(0..<pageCount, id: \.self) { page in
                 Circle()
-                    .fill(page == pageIndex ? ink.color : ink.color.opacity(0.35))
+                    .fill(page == pageIndex ? Color.white : Color.white.opacity(0.4))
                     .frame(width: metrics.dotSize, height: metrics.dotSize)
-                    .padding(.leading, HUDPageDots.leadingSpace(before: page, globalPagesStart: globalPagesStart, metrics: metrics))
+                    .padding(.leading, HUDPageDots.leadingSpace(before: page, globalPagesStart: nil, metrics: metrics))
             }
         }
         .padding(.horizontal, 5 * metrics.scale)
         .padding(.vertical, 3 * metrics.scale)
-        .background(Capsule().fill(ink == .onLight ? Color.white.opacity(0.85) : Color.black.opacity(0.55)))
+        // 鍵の台と同じ暗い面に白い点
+        .background(Capsule().fill(plateStyle.fill))
         // 見るのは点だけ（「1 / 3」を並べると同じことを2回言う）。何ページ目かは VoiceOver の値で読む
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("ページ", bundle: .module))
@@ -670,15 +887,17 @@ enum HUDAnnouncement {
         String(localized: "離すとやめる", bundle: .module)
     }
 
-    /// 左右の外枠に指を止めているときに「離すとやめる」に添える文
+    /// 外枠の帯に指を止めているときに「離すとやめる」に添える文
     static func edgePagingLabel(_ edge: PageEdge) -> String {
         switch edge {
         case .left: String(localized: "止めると前のページ", bundle: .module)
         case .right: String(localized: "止めると次のページ", bundle: .module)
+        case .up: String(localized: "止めるとアプリのページへ", bundle: .module)
+        case .down: String(localized: "止めるとグローバルのページへ", bundle: .module)
         }
     }
 
-    /// 指が外枠にあるときに読む文。左右の外枠でそちらにページがあれば、止めるとページが変わることも言う
+    /// 指が外枠にあるときに読む文。帯で止めるとページか層が変わるなら、そのことも言う
     static func frameLabel(in model: HUDModel) -> String {
         guard let edge = model.edgePaging?.edge else { return cancelLabel }
         return [cancelLabel, edgePagingLabel(edge)].joined(separator: String(localized: "、", bundle: .module))

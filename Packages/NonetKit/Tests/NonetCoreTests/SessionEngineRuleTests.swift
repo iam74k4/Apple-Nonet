@@ -284,7 +284,7 @@ import Testing
         let second = s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
         #expect(second.hudStates == [SessionHUDState(page: 0, highlightedCell: nil)])
         let swipe = s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 0.3)
-        #expect(swipe.hudStates == [SessionHUDState(page: 1, highlightedCell: nil)])
+        #expect(swipe.hudStates == [SessionHUDState(page: 1, highlightedCell: nil, lastTurn: .right)])
         #expect(swipe.hapticEvents == [.pageChange])
         // 1回のスワイプで1ページ
         #expect(s.setFingers([(1, 0.1, 0.5), (2, 0.3, 0.5)], at: 0.4).visible.isEmpty)

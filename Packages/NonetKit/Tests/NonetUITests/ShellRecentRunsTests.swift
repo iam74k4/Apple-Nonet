@@ -30,7 +30,8 @@ struct ShellRecentRunsTests {
         let runs = [Self.record(profile: "Xcode"), Self.record(profile: "Safari", succeeded: false)]
         state.recentRuns = runs
         let entries = MenuBarModel.entries(for: state)
-        let index = try? #require(entries.firstIndex(of: .recentRuns(runs)))
+        let index = entries.firstIndex(of: .recentRuns(runs))
+        #expect(index != nil)
         #expect(index.map { entries[$0 + 1] } == .showOnboarding)
         #expect(MenuBarEntry.recentRuns(runs).title == L10n.ui("最近の実行"))
     }

@@ -50,30 +50,24 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
-    /// HUD のアイコンの色を下地に合わせる（開くたびに下の画面の明るさを鍵ごとに測り、明るければ濃い色、暗ければ白）。
-    /// 測るには macOS の「画面収録」の許可が要り、macOS 15 以降では画面を直接撮るアプリにシステムが月に一度ほど確認のダイアログを出す。
-    /// 使うかどうかは利用者に選んでもらうので既定はオフ（オプトイン）。オフと許可が無いときは、黒いアイコンに白い縁で描く（HUDModel.adaptsInk）
-    public var adaptiveHUDInk: Bool
 
     public init(
         isEnabled: Bool = true,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
-        openSensitivity: OpenSensitivity = .standard,
-        adaptiveHUDInk: Bool = false
+        openSensitivity: OpenSensitivity = .standard
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
-        self.adaptiveHUDInk = adaptiveHUDInk
     }
 }
 
 // MARK: - Codable
 // 無い項目や知らない値は既定値にする（版の違う Nonet で書いた設定も読めるように）。
 // 前の版の項目（トリガーキーで開いていた版の trigger・fireMode・hudDelay・passTriggerToApps・touchActivation と、
-// 設定から外した autoSwitchProfiles・appendGlobalPages・showExecutionToast・cursorLock・hudPosition）は、書いてあっても読み飛ばし、
+// 設定から外した autoSwitchProfiles・appendGlobalPages・showExecutionToast・cursorLock・hudPosition・adaptiveHUDInk）は、書いてあっても読み飛ばし、
 // もう書かない（前の版はそれらが無ければ既定値で読む）
 
 extension GlobalSettings {
@@ -83,6 +77,8 @@ extension GlobalSettings {
         "autoSwitchProfiles", "appendGlobalPages", "showExecutionToast", "cursorLock",
         // HUD はポインタのすぐ下に出すだけになり、置く場所の設定が無くなった
         "hudPosition",
+        // アイコンを暗い台に白で載せるようになり、下の画面に合わせて色を変える（画面収録の許可で下を撮る）設定が要らなくなった
+        "adaptiveHUDInk",
     ]
 
     /// 設定ファイル（JSONSerialization で読んだもの）から、settings の retiredKeys を除いたもの。
@@ -94,7 +90,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, haptics, hudScale, openSensitivity, adaptiveHUDInk
+        case isEnabled, haptics, hudScale, openSensitivity
     }
 
     public init(from decoder: any Decoder) throws {
@@ -104,8 +100,7 @@ extension GlobalSettings {
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
-            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
-            adaptiveHUDInk: container.decodeLossy(Bool.self, forKey: .adaptiveHUDInk, default: defaults.adaptiveHUDInk)
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
         )
     }
 
@@ -119,9 +114,6 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
-        }
-        if adaptiveHUDInk {
-            try container.encode(adaptiveHUDInk, forKey: .adaptiveHUDInk)
         }
     }
 }

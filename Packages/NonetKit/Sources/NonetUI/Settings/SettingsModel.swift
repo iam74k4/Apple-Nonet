@@ -1102,49 +1102,9 @@ final class SettingsModel {
         SettingsStatusBanner(status: controller.status)
     }
 
-    // MARK: - 画面収録（HUD のアイコンの色を下地に合わせる）
-
-    /// macOS の許可を読み直す（ウィンドウが前面に戻ったとき・許可のボタンを押したとき）。アクセシビリティはコントローラーが、
-    /// 画面収録はここで読み直す（permissionRefreshCount を進めて、それを読んでいる値を計算し直させる）
+    /// macOS の許可を読み直す（ウィンドウが前面に戻ったとき）
     func refreshPermissions() {
         controller.refreshPermissions()
-        permissionRefreshCount += 1
-    }
-
-    /// 「画面収録」の許可があるか
-    var isScreenCaptureGranted: Bool {
-        _ = permissionRefreshCount
-        return services.permissions.isScreenCaptureGranted
-    }
-
-    /// 許可はあるが、このプロセスでは効かない: 起動した後に許可した（macOS は開き直したプロセスから効かせる）か、許可があるのに撮れなかった。
-    /// 起動した後に許可しても撮れていれば（screenCaptureWorked）、開き直しは要らない
-    var screenCaptureNeedsRelaunch: Bool {
-        guard isScreenCaptureGranted else { return false }
-        switch screenCaptureOutcome() {
-        case .failed: return true
-        case .succeeded: return false
-        case .notTried: return !services.permissions.screenCaptureGrantedAtLaunch
-        }
-    }
-
-    /// 直近の撮影の結果（テストで差し替える）
-    @ObservationIgnored var screenCaptureOutcome: () -> ScreenCaptureBackdropSampler.Outcome = { ScreenCaptureBackdropSampler.lastOutcome }
-    /// Nonet を開き直す（テストで差し替える）
-    @ObservationIgnored var relaunch: () -> Void = { ShellRelaunch.relaunch() }
-
-    /// isScreenCaptureGranted・screenCaptureNeedsRelaunch を読み直させる目印
-    private(set) var permissionRefreshCount = 0
-
-    /// まだ聞いていなければシステムのダイアログを出す。断られた後は何も出ないので、システム設定を開くボタンも並べてある
-    func requestScreenCapture() {
-        services.permissions.requestScreenCapture()
-        permissionRefreshCount += 1
-    }
-
-    func openScreenCaptureSettings() {
-        services.permissions.openScreenCaptureSettings()
-        permissionRefreshCount += 1
     }
 
     func perform(_ action: SettingsStatusBanner.Action) {

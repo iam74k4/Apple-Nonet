@@ -110,22 +110,39 @@ import Testing
         #expect(broken.angularHysteresis == RadialMapper.defaultAngularHysteresis && broken.radialHysteresis == 0)
     }
 
-    @Test("外枠のうち、真横から上下 45° までが、止めるとページを切り替える側")
+    @Test("外枠の帯を上下左右に分ける: 真横から上下 45° までが左右（ページ）、残りが上下（層）。斜めは左右")
     func pagingEdges() {
-        func edge(_ angle: Double, current: PageEdge? = nil) -> PageEdge? {
-            let p = Self.point(angle, 150)
+        func edge(_ angle: Double, current: PageEdge? = nil, distance: Double = 150) -> PageEdge? {
+            let p = Self.point(angle, distance)
             return mapper.pagingEdge(dx: p.dx, dy: p.dy, current: current)
         }
-        #expect(edge(0) == .right && edge(44) == .right && edge(-44) == .right)
-        #expect(edge(46) == nil && edge(90) == nil && edge(-90) == nil)
+        #expect(edge(0) == .right && edge(44) == .right && edge(-44) == .right && edge(45) == .right)
         #expect(edge(180) == .left && edge(140) == .left && edge(-140) == .left)
-        #expect(edge(130) == nil)
+        // y は下向き: 90° が下、-90° が上
+        #expect(edge(46) == .down && edge(90) == .down && edge(130) == .down)
+        #expect(edge(-46) == .up && edge(-90) == .up && edge(-130) == .up)
         // 止めている側の端では、角度のヒステリシスの分だけ保つ
         #expect(edge(48, current: .right) == .right)
-        #expect(edge(50, current: .right) == nil)
+        #expect(edge(50, current: .right) == .down)
         #expect(edge(-132, current: .left) == .left)
-        #expect(edge(48, current: .left) == nil)
+        #expect(edge(42, current: .down) == .down)
+        #expect(edge(40, current: .down) == .right)
         #expect(mapper.pagingEdge(dx: 0, dy: 0) == nil)
         #expect(mapper.pagingEdge(dx: .nan, dy: 0) == nil)
+    }
+
+    @Test("帯の外端（pagingOuterRadius）より遠くでは、どの側でもない（止めても何も起きない）。止めている側は距離のヒステリシスの分だけ保つ")
+    func beyondTheBandIsNoSide() {
+        func edge(_ angle: Double, _ distance: Double, current: PageEdge? = nil) -> PageEdge? {
+            let p = Self.point(angle, distance)
+            return mapper.pagingEdge(dx: p.dx, dy: p.dy, current: current)
+        }
+        let outer = RadialLayout.pagingOuterRadius
+        #expect(outer > RadialLayout.outerRadius)
+        #expect(edge(0, outer - 1) == .right)
+        #expect(edge(0, outer + 1) == nil)
+        #expect(edge(90, outer + 1) == nil)
+        #expect(edge(0, outer + mapper.radialHysteresis - 1, current: .right) == .right)
+        #expect(edge(0, outer + mapper.radialHysteresis + 1, current: .right) == nil)
     }
 }

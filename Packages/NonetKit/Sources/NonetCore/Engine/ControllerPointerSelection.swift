@@ -5,7 +5,7 @@ import Foundation
 /// ポインタの位置を、エンジンが受け取る指の位置（0〜1。x は左が 0、y は手前が 0）に合成する。
 /// HUD の枠（HUDPresenting.show が返す、円を囲む正方形。主画面の左上が原点で y が下向き）の中心からの向きと距離を
 /// RadialMapper でマスか外枠に変え、そのマスの中央（外枠なら帯の中央）の座標をエンジンに渡す。
-/// エンジン（SessionEngine・GridMapper）は 3×3 の座標のまま変えない: 留まる時間・少し長く止めるマス・左右の外枠に止めるとページ、はそのまま働く。
+/// エンジン（SessionEngine・GridMapper）は 3×3 の座標のまま変えない: 留まる時間・少し長く止めるマス・外枠に止めるとページや層、はそのまま働く。
 /// 鍵の境目のちらつきは RadialMapper のヒステリシスで防ぐので、エンジンのヒステリシスと境目の帯（マスの中央には無い）は働かない
 public struct ControllerPointerSelection: Equatable, Sendable {
     public static let mapper = RadialMapper()
@@ -58,7 +58,8 @@ public struct ControllerPointerSelection: Equatable, Sendable {
         return result
     }
 
-    /// 合成する指の位置。マスはその中央、外枠は奥の帯の中央（ページを切り替える側で止めていれば、左右の帯の中央）
+    /// 合成する指の位置。マスはその中央、外枠は切り替える側の帯の中央（左右・上下）。
+    /// どの側でもない外枠（帯の外端より遠い・開いた直後）は奥の左の角: GridMapper.pagingEdge がどの側にもしない場所
     public static func gridPosition(for zone: GridZone, pagingEdge: PageEdge?) -> (x: Double, y: Double) {
         let insets = GridInsets.cancelFrame
         switch zone {
@@ -68,7 +69,9 @@ public struct ControllerPointerSelection: Equatable, Sendable {
             switch pagingEdge {
             case .left?: return (insets.left / 2, 0.5)
             case .right?: return (1 - insets.right / 2, 0.5)
-            case nil: return (0.5, 1 - insets.top / 2)
+            case .up?: return (0.5, 1 - insets.top / 2)
+            case .down?: return (0.5, insets.bottom / 2)
+            case nil: return (insets.left / 2, 1 - insets.top / 2)
             }
         }
     }
