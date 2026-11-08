@@ -535,6 +535,18 @@ if [[ -n "$todos" ]]; then
   fi
 fi
 
+# 試すために入れた Paddle のテスト用（sandbox）のトークン。公開したページに残ると、本当の購入ができない（docs/release.md 3.6.1）
+sandbox="$(grep -rnIE 'data-paddle-token="test_' "$SITE" | sed "s|^$SITE/||" || true)"
+if [[ -n "$sandbox" ]]; then
+  if [[ "$STRICT" == 1 ]]; then
+    while IFS= read -r line; do
+      problem "Paddle のテスト用のトークン（test_）が残っています。公開するページには live_ のトークンを入れる: $(trim "$line")"
+    done <<<"$sandbox"
+  else
+    info "Paddle のテスト用のトークン（test_）が入っています（--strict で失敗にする）: $(printf '%s\n' "$sandbox" | wc -l | tr -d ' ') か所"
+  fi
+fi
+
 # リリースのたびに、実物で確かめて埋めるところ（data-placeholder。確認済みの macOS の版など）。
 # 価格・販売サービス・問い合わせ先のように一度埋めれば済むものではないので、--strict でも止めずに知らせる（docs/release.md）
 pending="$(grep -rnIoE 'data-placeholder="[^"]+"' "$SITE" | sed -E "s|^$SITE/||; s|:[0-9]+:data-placeholder=\"([^\"]+)\"| \\1|" | sort -u || true)"

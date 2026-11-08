@@ -94,7 +94,7 @@ extension SettingsText {
     }
 
     /// マスの中身。スクリプトは全部の行、キー入力は押すキーのすべて、メニュー項目はパスとショートカット、AI は指示と結果の出し方、
-    /// URL は開くファイル、ファイルの操作はその操作。ファイルから来た文は、見えない文字を「⟨U+202E⟩」のように見える形にする（visibleLine）
+    /// URL は開くファイル、ファイルの操作はその操作、ショートカット.app のショートカットはその名前と選択中のテキストを渡すか。ファイルから来た文は、見えない文字を「⟨U+202E⟩」のように見える形にする（visibleLine）
     static func reviewLines(for reviewed: SettingsImportPlan.ReviewedCell) -> [(text: String, style: SettingsImportReviewEntry.Style)] {
         var lines: [(text: String, style: SettingsImportReviewEntry.Style)] = []
         switch reviewed.cell.action {
@@ -126,7 +126,12 @@ extension SettingsText {
             lines.append((String(localized: "開くファイル: \(visibleLine(url.url.trimmingCharacters(in: .whitespacesAndNewlines)))", bundle: .module), .label))
         case .file(let file):
             lines.append((String(localized: "Finder で選んだファイルを: \(file.operation.title)", bundle: .module), .label))
-        case .launchApp, .shortcut, .placeWindow:
+        case .shortcut(let shortcut):
+            lines.append((String(localized: "実行するショートカット: \(visibleLine(shortcut.name))", bundle: .module), .label))
+            if shortcut.passSelectedText {
+                lines.append((String(localized: "選択中のテキストをショートカットに渡します", bundle: .module), .label))
+            }
+        case .launchApp, .placeWindow:
             break
         }
         if reviewed.pressesSubmitKey {

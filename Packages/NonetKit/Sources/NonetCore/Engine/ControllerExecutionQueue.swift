@@ -54,15 +54,21 @@ final class ControllerExecutionTurn {
     private(set) var isPassed = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var deadline: (any ScheduledTask)?
+    /// deadline が順番を譲る時刻（scheduler の時計）
+    private var deadlineAt: TimeInterval?
 
     init(scheduler: any Scheduler) {
         self.scheduler = scheduler
     }
 
-    /// seconds が過ぎたら、終わっていなくても順番を譲る。前に決めた時間は置き換える
+    /// seconds が過ぎたら、終わっていなくても順番を譲る。前に決めた時間より早ければ置き換え、遅ければ前の時間のまま
+    /// （テスト実行で前面に出すのに掛かった分、後の実行を holdLimit より長く待たせない）
     func pass(after seconds: TimeInterval) {
         guard !isPassed else { return }
+        let at = scheduler.now + max(0, seconds)
+        if let deadlineAt, deadlineAt <= at { return }
         deadline?.cancel()
+        deadlineAt = at
         deadline = scheduler.schedule(after: max(0, seconds)) { [weak self] in
             self?.pass()
         }

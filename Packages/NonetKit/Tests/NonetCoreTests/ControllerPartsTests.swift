@@ -497,6 +497,28 @@ import Testing
         await queue.waitUntilIdle()
     }
 
+    /// 後から長い時間を頼んでも、前に決めた時間より遅くはしない（テスト実行の前面に出す待ちと実行の待ちで、holdLimit を超えて待たせない）
+    @Test func aLaterCallNeverPushesTheDeadlineBack() async {
+        let queue = ControllerExecutionQueue(scheduler: scheduler)
+        let latch = ControllerFakeLatch()
+        var started: [String] = []
+        queue.enqueue { turn in
+            started.append("a")
+            turn.pass(after: 1)
+            turn.pass(after: 5)
+            await latch.wait()
+        }
+        queue.enqueue { _ in
+            started.append("b")
+        }
+        await controllerWaitUntil { started == ["a"] }
+        scheduler.advance(by: 1)
+        await controllerWaitUntil { started.count > 1 }
+        #expect(started == ["a", "b"])
+        latch.open()
+        await queue.waitUntilIdle()
+    }
+
     @Test func finishingCancelsTheDeadline() async {
         let queue = ControllerExecutionQueue(scheduler: scheduler)
         queue.enqueue { turn in

@@ -79,6 +79,15 @@ import Testing
         return SettingsText.reviewLines(for: SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell)).map(\.text)
     }
 
+    /// ショートカット.app のショートカットは、読み込む前にその名前と、選択中のテキストを渡すかを見せる（何でも実行できるため）
+    @Test func shortcutsAreShownInTheImportReview() {
+        #expect(review(.shortcut(ShortcutAction(name: "ダウンロードを片付ける", passSelectedText: true))) == [
+            L10n.ui("実行するショートカット: \("ダウンロードを片付ける")"),
+            L10n.ui("選択中のテキストをショートカットに渡します"),
+        ])
+        #expect(review(.shortcut(ShortcutAction(name: "Hello"))) == [L10n.ui("実行するショートカット: \("Hello")")])
+    }
+
     /// 打つ文字は「」でまとめ、修飾キーのある打鍵は表記で並べる。長くても切らない（押すキーをすべて見せる）
     @Test func keysToTypeAreShownAsText() {
         let save = KeySequence([KeyChord(.character("s"), modifiers: .command)])

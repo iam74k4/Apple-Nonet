@@ -171,7 +171,8 @@ public final class HUDWindowController: HUDPresenting {
             mapFrame = HUDPlacement.mapFrame(hudFrame: frame, metrics: metrics, primaryScreen: primary)
             hudStore.pillBelow = HUDPlacement.pillFitsBelow(hudFrame: frame, metrics: metrics, screen: screen)
         }
-        let margin = HUDLayout.shadowMargin
+        // 余白は HUDRootView の padding と同じ（倍率に合わせる）
+        let margin = HUDMetrics(scale: hudStore.model?.scale ?? 1).shadowMargin
         hudPanel.setFrame(frame.insetBy(dx: -margin, dy: -margin), display: true)
     }
 }

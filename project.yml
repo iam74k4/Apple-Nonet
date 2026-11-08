@@ -72,10 +72,13 @@ targets:
             CFBundleTypeRole: Viewer
             LSHandlerRank: Owner
             LSItemContentTypes: [com.iam74k4.nonet.license]
-        # 設定画面の中のドラッグ（マスの入れ替えなど）と、プロファイルの書き出しファイルと、ライセンスキーのファイル
+        # 設定画面の中のドラッグ（マスの入れ替えなど）とマスのコピー、プロファイルの書き出しファイルと、ライセンスキーのファイル
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: com.iam74k4.nonet.settings-drag
             UTTypeDescription: Nonet Settings Item
+            UTTypeConformsTo: [public.data]
+          - UTTypeIdentifier: com.iam74k4.nonet.cell
+            UTTypeDescription: Nonet Button
             UTTypeConformsTo: [public.data]
           - UTTypeIdentifier: com.iam74k4.nonet.profile
             UTTypeDescription: Nonet Profile

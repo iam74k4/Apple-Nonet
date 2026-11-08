@@ -56,6 +56,36 @@ struct ShellHUDTests {
         let bottom = metrics.labelPosition(ofCell: 7)
         #expect(bottom.y + metrics.labelHeight / 2 <= metrics.circleSide + HUDLayout.shadowMargin)
         #expect(bottom.y > metrics.position(ofCell: 7).y + metrics.selectionRadius)
+        // 円の下の帯に重なるのは下の鍵だけ。そのときは白い円のすぐ上に出す
+        for scale in [1.0, 1.25, 1.5] {
+            let scaled = HUDMetrics(scale: scale)
+            #expect(scaled.labelOverlapsPillBelow(ofCell: 7))
+            #expect((0..<9).filter { scaled.labelOverlapsPillBelow(ofCell: $0) } == [7])
+            let above = scaled.labelPosition(ofCell: 7, above: true)
+            #expect(above.y + scaled.labelHeight / 2 < scaled.position(ofCell: 7).y - scaled.selectionRadius)
+            #expect(above.y - scaled.labelHeight / 2 > scaled.pageDotsPosition.y)
+        }
+        // 長い名前の幅の上限: 左右の鍵ではパネルの端まで（余白の中）、真ん中ではもっと広い
+        let side = metrics.labelMaxWidth(centeredAt: metrics.position(ofCell: 5).x)
+        #expect(metrics.position(ofCell: 5).x + side / 2 <= metrics.circleSide + metrics.shadowMargin)
+        #expect(metrics.labelMaxWidth(centeredAt: metrics.center.x) > side)
+    }
+
+    @Test("層の名前は、真ん中の鍵の下にページの点・案内・真ん中の鍵の名前が出たら、そちらに譲る")
+    func theLayerNameGivesWayUnderTheCenter() {
+        var model = Self.model(highlighted: nil, pageCount: 2)
+        #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
+        model.edgePaging = HUDEdgePaging(edge: .right, since: 1, duration: 0.5)
+        #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
+        // 上下の帯ではページの点を出さないので、譲らない
+        model.edgePaging = HUDEdgePaging(edge: .down, since: 1, duration: 0.5)
+        #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
+        model.edgePaging = nil
+        model.edgeHint = "案内"
+        #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
+        model.edgeHint = nil
+        #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: false, keyLabel: 4))
+        #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: false, keyLabel: 5))
     }
 
     @Test("マスの位置の呼び方")

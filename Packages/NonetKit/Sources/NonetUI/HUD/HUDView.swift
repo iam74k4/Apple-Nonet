@@ -50,6 +50,8 @@ struct HUDMetrics: Equatable {
     var labelHeight: CGFloat { HUDLayout.labelHeight * scale }
     var labelGap: CGFloat { HUDLayout.labelGap * scale }
     var labelFontSize: CGFloat { 10.5 * scale }
+    /// パネルの、円を囲む正方形の外の余白（帯とその影が入る大きさ）。帯は倍率に合わせて大きくなるので、余白も倍率に合わせる（1 より小さくはしない）
+    var shadowMargin: CGFloat { HUDLayout.shadowMargin * max(scale, 1) }
 
     /// 正方形の中の、マスの中心（中央のマスは円の中心）
     func position(ofCell index: Int) -> CGPoint {
@@ -57,10 +59,21 @@ struct HUDMetrics: Equatable {
         return CGPoint(x: center.x + position.x * scale, y: center.y + position.y * scale)
     }
 
-    /// 向けたまま止めたアイコンの名前の中心（白い円のすぐ下）
-    func labelPosition(ofCell index: Int) -> CGPoint {
+    /// 向けたまま止めたアイコンの名前の中心（白い円のすぐ下。above なら白い円のすぐ上）
+    func labelPosition(ofCell index: Int, above: Bool = false) -> CGPoint {
         let key = position(ofCell: index)
-        return CGPoint(x: key.x, y: key.y + selectionRadius + labelGap + labelHeight / 2)
+        let offset = selectionRadius + labelGap + labelHeight / 2
+        return CGPoint(x: key.x, y: above ? key.y - offset : key.y + offset)
+    }
+
+    /// 白い円のすぐ下に出した名前が、円の下の帯（pillFrame(below: true)）に重なるか（下の鍵）
+    func labelOverlapsPillBelow(ofCell index: Int) -> Bool {
+        labelPosition(ofCell: index).y + labelHeight / 2 > pillFrame(below: true).minY
+    }
+
+    /// 名前の帯の幅の上限: x を中心にして、パネル（円を囲む正方形と余白）からはみ出さない幅。長い名前は末尾を省く
+    func labelMaxWidth(centeredAt x: CGFloat) -> CGFloat {
+        max(2 * (min(x, circleSide - x) + shadowMargin) - 8 * scale, 40 * scale)
     }
 
     /// 外枠の帯に出して止めているときの矢印の中心（その側の円の縁の内側）
@@ -115,8 +128,8 @@ enum HUDLayout {
     static let labelDelay: TimeInterval = 0.6
     static let labelHeight: CGFloat = 18
     static let labelGap: CGFloat = 5
-    /// 枠の外に描くもの（帯とその影、白い円の光、台の影）のための余白。ウィンドウの影は使わない。
-    /// 帯（pillGap + pillHeight = 30）とその影（下へ 3・ぼかし 6）が入る大きさ
+    /// 枠の外に描くもの（帯とその影、白い円の光、台の影）のための余白（倍率 1。倍率を掛けたものは HUDMetrics.shadowMargin）。
+    /// ウィンドウの影は使わない。帯（pillGap + pillHeight = 30）とその影（下へ 3・ぼかし 6）が入る大きさ
     static let shadowMargin: CGFloat = 40
 
     /// model.scale の倍率を掛けた大きさ
@@ -293,7 +306,7 @@ struct HUDRootView: View {
                 )
             }
         }
-        .padding(HUDLayout.shadowMargin)
+        .padding(store.model.map { HUDMetrics(scale: $0.scale).shadowMargin } ?? HUDLayout.shadowMargin)
     }
 }
 
@@ -355,6 +368,9 @@ struct HUDView: View {
         let plateStyle = HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: model.layer == .global, showsGlass: turn == nil)
         let dims = Self.dimsKeys(model)
         let distance = HUDMotion.turnDistance * metrics.scale
+        // 向けたまま止めたアイコンの名前（出すときだけ）
+        let keyLabel: (index: Int, text: String)? = (showsLabelImmediately ? Self.labelCandidate(model) : labeledIndex)
+            .flatMap { index in index == Self.labelCandidate(model) ? Self.labelText(model, index: index).map { (index, $0) } : nil }
         ZStack(alignment: .topLeading) {
             // 切り替える前のページの輪（押し出されて抜けていく）。マスは光らせない
             if let turn {
@@ -378,15 +394,15 @@ struct HUDView: View {
                     .position(metrics.pageDotsPosition)
                 }
             }
-            // 層を切り替えた直後だけ、真ん中の鍵の下に層の名前（白い帯）
-            if showsLayerName, let layerName {
-                HUDKeyLabel(text: layerName.text, metrics: metrics)
+            // 層を切り替えた直後だけ、真ん中の鍵の下に層の名前（白い帯）。同じ場所にページの点・案内・真ん中の鍵の名前が出たら、そちらに譲る
+            if showsLayerName, let layerName, !Self.isSpotUnderCenterTaken(model, inFrame: inFrame, keyLabel: keyLabel?.index) {
+                HUDKeyLabel(text: layerName.text, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: metrics.center.x))
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
             }
             // 帯に止めても切り替える先が無い（ページが1つの層の左右・前面のアプリのページが無いときの上下）: 真ん中の鍵の下に、そのことを1行で
             if inFrame, let hint = model.edgeHint {
-                HUDKeyLabel(text: hint, metrics: metrics)
+                HUDKeyLabel(text: hint, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: metrics.center.x))
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
             }
@@ -396,11 +412,12 @@ struct HUDView: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(y: frame.minY)
             }
-            // 向けたまま止めたアイコンの名前（白い円のすぐ下）。動かせば消える
-            if let index = showsLabelImmediately ? Self.labelCandidate(model) : labeledIndex,
-               index == Self.labelCandidate(model), let text = Self.labelText(model, index: index) {
-                HUDKeyLabel(text: text, metrics: metrics)
-                    .position(metrics.labelPosition(ofCell: index))
+            // 向けたまま止めたアイコンの名前（白い円のすぐ下。円の下の帯に重なる下の鍵では、白い円のすぐ上）。動かせば消える
+            if let keyLabel {
+                let above = pillBelow && HUDPillContent.content(for: model) != nil && metrics.labelOverlapsPillBelow(ofCell: keyLabel.index)
+                let position = metrics.labelPosition(ofCell: keyLabel.index, above: above)
+                HUDKeyLabel(text: keyLabel.text, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: position.x))
+                    .position(position)
                     .transition(.opacity)
             }
         }
@@ -759,17 +776,28 @@ enum HUDPillContent: Equatable {
 private struct HUDKeyLabel: View {
     let text: String
     let metrics: HUDMetrics
+    /// 帯の幅の上限（HUDMetrics.labelMaxWidth）。長い名前は末尾を省き、パネルの端で切れないようにする
+    let maxWidth: CGFloat
 
     var body: some View {
         Text(text)
             .font(.system(size: metrics.labelFontSize, weight: .semibold))
             .lineLimit(1)
+            .truncationMode(.tail)
             .foregroundStyle(HUDKeyPalette.onSelection)
             .padding(.horizontal, 8 * metrics.scale)
             .frame(height: metrics.labelHeight)
             .background(Capsule().fill(Color(white: 0.98)).shadow(color: .black.opacity(0.22), radius: 5 * metrics.scale, y: 2 * metrics.scale))
-            .fixedSize()
+            .frame(maxWidth: maxWidth)
             .accessibilityHidden(true)
+    }
+}
+
+extension HUDView {
+    /// 真ん中の鍵の下（pageDotsPosition）に、層の名前より優先して出すものがある: 左右で止めているときのページの点、案内、真ん中の鍵の名前
+    static func isSpotUnderCenterTaken(_ model: HUDModel, inFrame: Bool, keyLabel: Int?) -> Bool {
+        let showsDots = model.pageCount > 1 && (model.edgePaging?.edge == .left || model.edgePaging?.edge == .right)
+        return showsDots || (inFrame && model.edgeHint != nil) || keyLabel == RadialLayout.centerCell
     }
 }
 

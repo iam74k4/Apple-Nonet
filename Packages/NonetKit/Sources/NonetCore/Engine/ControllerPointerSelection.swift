@@ -4,7 +4,8 @@ import Foundation
 
 /// ポインタの位置を、エンジンが受け取る指の位置（0〜1。x は左が 0、y は手前が 0）に合成する。
 /// HUD の枠（HUDPresenting.show が返す、円を囲む正方形。主画面の左上が原点で y が下向き）の中心からの向きと距離を
-/// RadialMapper でマスか外枠に変え、そのマスの中央（外枠なら帯の中央）の座標をエンジンに渡す。
+/// RadialMapper でマスか外枠に変え、そのマスの中央（外枠なら帯の中央）の座標をエンジンに渡す。マスでは、鍵の中でポインタを動かした分だけ
+/// 中央から少しずらす（cellOffset。2本指から1本指に戻った後に、同じ鍵の中で滑らせ直しても数えられるように）。
 /// エンジン（SessionEngine・GridMapper）は 3×3 の座標のまま変えない: 留まる時間・少し長く止めるマス・外枠に止めるとページや層、はそのまま働く。
 /// 鍵の境目のちらつきは RadialMapper のヒステリシスで防ぐので、エンジンのヒステリシスと境目の帯（マスの中央には無い）は働かない
 public struct ControllerPointerSelection: Equatable, Sendable {
@@ -43,7 +44,23 @@ public struct ControllerPointerSelection: Equatable, Sendable {
         } else {
             hasLeftCenter = true
         }
-        return Self.gridPosition(for: next, pagingEdge: pagingEdge)
+        let position = Self.gridPosition(for: next, pagingEdge: pagingEdge)
+        guard case .cell(let cell) = next else { return position }
+        let offset = Self.cellOffset(of: cell, dx: dx, dy: dy)
+        return (position.x + offset.x, position.y + offset.y)
+    }
+
+    /// cellOffset の、ポインタ 1pt（倍率 1）あたりのずれ。SessionConfiguration.reselectTravel（0.02）は 8pt ほど
+    static let cellOffsetPerPoint = 0.0025
+    /// cellOffset の上限（3×3 の座標）。マスは幅 0.26・奥行き 0.227 ほどなので、中央から 0.06 なら境目の帯（GridMapper.boundaryBand）にも、
+    /// 隣のマスへのヒステリシスにも届かない
+    static let cellOffsetLimit = 0.06
+
+    /// 鍵の中のポインタの位置（鍵の中心からのずれ。倍率 1 のポイント、y は下向き）を、マスの中央からのずれ（3×3 の座標、y は奥向き）にする
+    static func cellOffset(of cell: Int, dx: Double, dy: Double) -> (x: Double, y: Double) {
+        guard let key = RadialLayout.position(ofCell: cell) else { return (0, 0) }
+        func limited(_ value: Double) -> Double { min(max(value, -cellOffsetLimit), cellOffsetLimit) }
+        return (limited((dx - key.x) * cellOffsetPerPoint), limited(-(dy - key.y) * cellOffsetPerPoint))
     }
 
     /// 1本指のフレームなら、その指の位置をポインタから合成した位置に置き換える。2本以上の指（スワイプでページを切り替える）は実物の位置のまま。

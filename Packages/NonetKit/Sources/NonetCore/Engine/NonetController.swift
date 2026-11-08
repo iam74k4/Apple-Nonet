@@ -147,6 +147,8 @@ public final class NonetController {
     @ObservationIgnored private var opener = EdgeSlideRecognizer()
     /// 開く動きを見分けてから、開くまで待っている（EdgeSlideRecognizer.entryConfirmDelay）
     @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
+    /// pendingOpen を決めた、上の縁から滑らせた指（同じフレームで指が入れ替わったら開かない）
+    @ObservationIgnored private var pendingOpenFingerID: Int?
     /// 初回起動で、claude を調べ終えてからプリセットを作り直す（rebuildFirstPresetsWhenResolved）
     @ObservationIgnored private var firstPresetsRebuild: Task<Void, Never>?
     /// Nonet のウィンドウが前面で開かなかったことを、この起動で知らせた（知らせるのは1回だけ）
@@ -385,8 +387,9 @@ public final class NonetController {
                 hudMapFrame = map
             }
         }
-        // 待つ間に2本目の指が触れた・指が離れたなら、開かない（2本指のスクロールを始めた・短くなぞっただけ）
-        if frame.touching.count != 1 {
+        // 待つ間に2本目の指が触れた・指が離れた・別の指に入れ替わったなら、開かない（2本指のスクロールを始めた・短くなぞっただけ・
+        // 滑らせた指を離したフレームで別の指が触れた。その指は縁から滑らせていない）
+        if frame.touching.count != 1 || frame.touching.first?.id != pendingOpenFingerID {
             cancelPendingOpen()
         }
         // 開きやすさは設定からそのつど入れる（触れ始めた後に変えても、そのタッチは触れたときの決まりで見る）
@@ -401,16 +404,18 @@ public final class NonetController {
             // 開く動きの間に指を滑らせた分だけポインタが動くので、触れ始めた位置を覚えておき、開いたらそこへ戻す
             services.keyboard.rememberPointerLocation()
         case .slid:
-            scheduleOpen()
+            scheduleOpen(fingerID: frame.touching.first?.id)
         }
     }
 
     /// 開く動きを見分けた。entryConfirmDelay だけ待って、1本指のままなら開く（待つ間のフレームに頼らず、タイマーで待つ）
-    private func scheduleOpen() {
+    private func scheduleOpen(fingerID: Int?) {
         cancelPendingOpen()
+        pendingOpenFingerID = fingerID
         pendingOpen = services.scheduler.schedule(after: EdgeSlideRecognizer.entryConfirmDelay) { [weak self] in
             guard let self else { return }
             self.pendingOpen = nil
+            self.pendingOpenFingerID = nil
             guard self.isTrackpadTouched else { return }
             self.openFromEdge()
         }
@@ -419,6 +424,7 @@ public final class NonetController {
     private func cancelPendingOpen() {
         pendingOpen?.cancel()
         pendingOpen = nil
+        pendingOpenFingerID = nil
     }
 
     /// 上の縁からの滑り込みを見分けた。開いてよければセッションを始める。

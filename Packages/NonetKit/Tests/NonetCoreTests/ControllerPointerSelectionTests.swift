@@ -19,6 +19,16 @@ import Testing
         return abs(a.x - b.x) < 1e-9 && abs(a.y - b.y) < 1e-9
     }
 
+    /// 合成した位置が index のマスの中: 中央から cellOffset の上限以内で、エンジンのマス分けでもそのマス、境目の帯の外
+    static func inCell(_ a: (x: Double, y: Double)?, _ index: Int) -> Bool {
+        guard let a else { return false }
+        let center = ControllerPointerSelection.cellCenter(index)
+        let limit = ControllerPointerSelection.cellOffsetLimit + 1e-9
+        let grid = GridMapper(insets: .cancelFrame)
+        return abs(a.x - center.x) <= limit && abs(a.y - center.y) <= limit
+            && grid.zone(x: a.x, y: a.y) == .cell(index) && !grid.isInBoundaryBand(x: a.x, y: a.y)
+    }
+
     @Test("合成する位置: マスはその中央、外枠は奥の帯の中央、止めている側があれば左右の帯の中央")
     func gridPositions() {
         let frame = GridInsets.cancelFrame
@@ -56,7 +66,7 @@ import Testing
         #expect(ControllerPointerSelection.startPoint(in: Self.map) == Self.center)
     }
 
-    @Test("ポインタの向きと距離でマスを決め、そのマスの中央の座標にする。中央のマスは、一度外へ出てから戻したときだけ")
+    @Test("ポインタの向きと距離でマスを決め、そのマスの中央あたりの座標にする。中央のマスは、一度外へ出てから戻したときだけ")
     func positions() {
         var selection = ControllerPointerSelection()
         let frame = GridInsets.cancelFrame
@@ -66,13 +76,13 @@ import Testing
         #expect(selection.zone == .cell(4) && !selection.hasLeftCenter && selection.isWaitingAtCenter)
         #expect(Self.near(selection.position(of: Self.pointer(30, 0), in: Self.map), neutral))
         // 右の鍵
-        #expect(Self.near(selection.position(of: Self.pointer(108, 0), in: Self.map), ControllerPointerSelection.cellCenter(5)))
+        #expect(Self.inCell(selection.position(of: Self.pointer(108, 0), in: Self.map), 5))
         #expect(selection.hasLeftCenter && !selection.isWaitingAtCenter)
         // 戻せば中央のマス
         #expect(Self.near(selection.position(of: Self.center, in: Self.map), ControllerPointerSelection.cellCenter(4)))
         // 上・左下
-        #expect(Self.near(selection.position(of: Self.pointer(0, -100), in: Self.map), ControllerPointerSelection.cellCenter(1)))
-        #expect(Self.near(selection.position(of: Self.pointer(-76, 76), in: Self.map), ControllerPointerSelection.cellCenter(6)))
+        #expect(Self.inCell(selection.position(of: Self.pointer(0, -100), in: Self.map), 1))
+        #expect(Self.inCell(selection.position(of: Self.pointer(-76, 76), in: Self.map), 6))
         // 外（上の帯）: 止めると層を切り替える側。帯の外端より遠ければどの側でもない。右へ出れば、止めるとページの側
         #expect(Self.near(selection.position(of: Self.pointer(0, -150), in: Self.map), (0.5, 1 - frame.top / 2)))
         #expect(selection.pagingEdge == .up)
@@ -83,7 +93,7 @@ import Testing
         #expect(Self.near(selection.position(of: Self.pointer(-150, 0), in: Self.map), (frame.left / 2, 0.5)))
         #expect(selection.pagingEdge == .left)
         // 鍵に戻れば、止めている側は無い
-        #expect(Self.near(selection.position(of: Self.pointer(-108, 0), in: Self.map), ControllerPointerSelection.cellCenter(3)))
+        #expect(Self.inCell(selection.position(of: Self.pointer(-108, 0), in: Self.map), 3))
         #expect(selection.pagingEdge == nil)
     }
 
@@ -93,15 +103,15 @@ import Testing
         _ = selection.position(of: Self.pointer(108, 0), in: Self.map)
         // 右（0°）と右下（45°）の境目 22.5° を少し過ぎても右のまま
         let past = Self.pointer(108 * cos(25 * .pi / 180), 108 * sin(25 * .pi / 180))
-        #expect(Self.near(selection.position(of: past, in: Self.map), ControllerPointerSelection.cellCenter(5)))
+        #expect(Self.inCell(selection.position(of: past, in: Self.map), 5))
         var fresh = ControllerPointerSelection()
-        #expect(Self.near(fresh.position(of: past, in: Self.map), ControllerPointerSelection.cellCenter(8)))
+        #expect(Self.inCell(fresh.position(of: past, in: Self.map), 8))
         // 1.5 倍の枠: 中心から 162pt が鍵の円、201pt の外が外枠（鍵からは、余裕 6pt × 1.5 の先）
         let large = CGRect(x: 0, y: 0, width: 402, height: 402)
         var scaled = ControllerPointerSelection()
-        #expect(Self.near(scaled.position(of: CGPoint(x: 201 + 162, y: 201), in: large), ControllerPointerSelection.cellCenter(5)))
-        #expect(Self.near(scaled.position(of: CGPoint(x: 201 + 140, y: 201), in: large), ControllerPointerSelection.cellCenter(5)))
-        #expect(Self.near(scaled.position(of: CGPoint(x: 201 + 209, y: 201), in: large), ControllerPointerSelection.cellCenter(5)))
+        #expect(Self.inCell(scaled.position(of: CGPoint(x: 201 + 162, y: 201), in: large), 5))
+        #expect(Self.inCell(scaled.position(of: CGPoint(x: 201 + 140, y: 201), in: large), 5))
+        #expect(Self.inCell(scaled.position(of: CGPoint(x: 201 + 209, y: 201), in: large), 5))
         #expect(scaled.position(of: CGPoint(x: 201 + 211, y: 201), in: large)?.x == 1 - GridInsets.cancelFrame.right / 2)
         // 壊れた枠や位置
         #expect(selection.position(of: .zero, in: .zero) == nil)
@@ -200,5 +210,44 @@ import Testing
         h.advance(SessionConfiguration.defaultEdgePageDwell)
         #expect(h.hud.current?.pageIndex == 1)
         h.keyboard.pressKey()
+    }
+
+    @Test("鍵の中で動かした分だけマスの中央からずらす（同じ鍵の中で滑らせ直しても数えられる）。ずれには上限があり、境目の帯に入らない")
+    func offsetsInsideTheKey() {
+        var selection = ControllerPointerSelection()
+        let center = selection.position(of: Self.pointer(108, 0), in: Self.map)
+        #expect(Self.near(center, ControllerPointerSelection.cellCenter(5)))
+        // 10pt 下へ: 奥行きの座標が reselectTravel より大きく減る（y は奥向き）
+        let lower = selection.position(of: Self.pointer(108, 10), in: Self.map)
+        #expect(Self.inCell(lower, 5))
+        if let center, let lower {
+            #expect(center.y - lower.y > SessionConfiguration.reselectTravel)
+            #expect(abs(lower.x - center.x) < 1e-9)
+        }
+        // 鍵の端まで動かしても、上限で止まり、右のマスのまま
+        let edge = selection.position(of: Self.pointer(108, 40), in: Self.map)
+        #expect(selection.zone == .cell(5))
+        #expect(Self.inCell(edge, 5))
+        #expect(Self.near(edge, (ControllerPointerSelection.cellCenter(5).x, ControllerPointerSelection.cellCenter(5).y - ControllerPointerSelection.cellOffsetLimit)))
+    }
+
+    @Test("ポインタで選ぶとき、2本指でページを変えた後は、同じ鍵の中で滑らせ直せば選べる")
+    func reselectingTheSameKeyAfterATwoFingerSwipe() {
+        var s = SessionScenario(pageCount: 2)
+        s.slideIn(at: 0)
+        var selection = ControllerPointerSelection()
+        let onKey = selection.position(of: Self.pointer(108, 0), in: Self.map)!
+        s.touch(x: onKey.x, y: onKey.y, at: 0.1)
+        s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
+        s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 0.3)
+        #expect(s.engine.pageIndex == 1)
+        // 1本指に戻る: ポインタは右の鍵の上のまま。滑らせ直すまでは選ばない
+        s.setFingers([(1, onKey.x, onKey.y)], at: 0.4)
+        #expect(s.engine.hud?.highlightedCell == nil)
+        // 同じ鍵の中で 10pt 動かすと、そのマスを光らせる
+        let slid = selection.position(of: Self.pointer(108, 10), in: Self.map)!
+        let moved = s.touch(x: slid.x, y: slid.y, at: 0.5)
+        #expect(moved.hudStates.last?.highlightedCell == 5)
+        #expect(s.lift(at: 0.7).executions == [.execute(page: 1, cell: 5)])
     }
 }

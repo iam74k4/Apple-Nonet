@@ -46,6 +46,35 @@ struct ShellEditButtonsTests {
         #expect(window.model.selectedIndex == 0)
     }
 
+    @Test("「複製して別のアプリに使う…」のシートが開いていても、メニューバーから作るプロファイルはプリセットから作る（複製の元を写さない）")
+    func makingButtonsClosesTheDuplicateSheet() throws {
+        _ = NSApplication.shared
+        let harness = try SettingsHarness()
+        let window = Self.makeWindow(harness)
+        let xcode = try #require(harness.xcodeProfile)
+        window.model.beginDuplicatingProfile(xcode.id)
+        window.selectButtons(for: SettingsFixtures.notes, now: Self.now)
+        #expect(!window.model.isAddingProfile)
+        #expect(window.model.duplicatingProfileID == nil)
+        let notes = try #require(harness.controller.configuration.profiles.first { $0.app?.bundleID == SettingsFixtures.notes.bundleID })
+        #expect(window.model.selectedProfile.id == notes.id)
+        let titles = { (profile: Profile) in profile.pages.flatMap(\.cells).map { $0?.title } }
+        #expect(titles(notes) != titles(xcode))
+    }
+
+    @Test("最近実行したマスは、プロファイルの id で見分ける（名前が同じ別のプロファイルを選ばない。id の無い記録は名前で）")
+    func recentCellsAreMatchedByProfileID() throws {
+        _ = NSApplication.shared
+        let harness = try SettingsHarness()
+        let profile = try #require(harness.xcodeProfile)
+        var byID = Self.record(profile: "名前が変わった", page: 0, index: 5, date: Self.now)
+        byID.profileID = profile.id
+        #expect(SettingsWindowController.recentAddress(of: byID, in: profile, now: Self.now) == CellAddress(page: 0, index: 5))
+        var sameName = Self.record(profile: profile.name, page: 0, index: 5, date: Self.now)
+        sameName.profileID = UUID()
+        #expect(SettingsWindowController.recentAddress(of: sameName, in: profile, now: Self.now) == nil)
+    }
+
     @Test("60秒以内にそのプロファイルのマスを実行していれば、そのページとマスを選ぶ")
     func selectsTheRecentCell() async throws {
         _ = NSApplication.shared

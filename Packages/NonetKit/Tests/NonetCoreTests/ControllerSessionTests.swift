@@ -66,6 +66,21 @@ import Testing
         #expect(h.haptics.plays.isEmpty)
     }
 
+    /// 待つ間に、滑らせた指が離れたフレームで別の指が触れたら（指が入れ替わった）、開かない。その指は縁から滑らせていない
+    @Test func aSwappedFingerDuringTheConfirmDelayCancelsOpening() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.touch(x: 0.5, y: ControllerHarness.edgeY)
+        h.advance(0.03)
+        h.touch(x: 0.5, y: ControllerHarness.slidY)
+        h.advance(EdgeSlideRecognizer.entryConfirmDelay / 2)
+        h.replaceFingers(with: [2: (0.4, 0.5)])
+        h.advance(0.2)
+        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.hud.shown.isEmpty)
+        #expect(h.haptics.plays.isEmpty)
+    }
+
     /// 待つ間に指が離れたら（短くなぞっただけ）、開かない
     @Test func liftingDuringTheConfirmDelayCancelsOpening() throws {
         let h = try ControllerHarness()

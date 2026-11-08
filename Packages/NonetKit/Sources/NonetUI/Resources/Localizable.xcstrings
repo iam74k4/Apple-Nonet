@@ -7386,6 +7386,16 @@
         }
       }
     },
+    "実行するショートカット: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runs the shortcut: %@"
+          }
+        }
+      }
+    },
     "実行するスクリプト" : {
       "localizations" : {
         "en" : {
@@ -9829,6 +9839,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Passes the selected text to the shortcut as input."
+          }
+        }
+      }
+    },
+    "選択中のテキストをショートカットに渡します" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passes the selected text to the shortcut"
           }
         }
       }

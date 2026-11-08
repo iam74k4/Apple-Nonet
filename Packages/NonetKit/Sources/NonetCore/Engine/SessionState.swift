@@ -115,9 +115,10 @@ struct SessionState: Sendable {
     }
 
     /// 止め続けると切り替える側: 指がいる帯の側（bandEdge）のうち、切り替える先があるもの。
-    /// 左右は、止め続けて層のページを一回りしたら（止め始めたページの手前で）待たない。続けるには帯の中で動かすか、止め直す
+    /// 左右は、止め続けて層のページを一回りしたら（止め始めたページの手前で）待たない。続けるには帯の中で動かすか、止め直す。
+    /// 開いた直後（openAnchor）は待たない: 指が上の外枠にいることにしているので、横の帯の近くで開いても、動かさずにページは変わらない
     private var pagingEdge: PageEdge? {
-        guard !isMultiFinger, let edge = availableEdge(bandEdge) else { return nil }
+        guard !isMultiFinger, openAnchor == nil, let edge = availableEdge(bandEdge) else { return nil }
         if edge == .left || edge == .right, edgeTurns >= layerRange.count - 1 { return nil }
         return edge
     }

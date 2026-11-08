@@ -198,6 +198,12 @@ final class ControllerHarness {
         sendFrame()
     }
 
+    /// 触れている指をまとめて入れ替えたフレームを1つ送る（同じフレームで指が離れ、別の指が触れた）
+    func replaceFingers(with points: [Int: (x: Double, y: Double)]) {
+        fingers = points
+        sendFrame()
+    }
+
     /// トラックパッドの続きが来なくなり、トラックパッドの側が指を離れたことにしたフレームを送る（切断・スリープ明け）
     func synthesizedLift() {
         fingers.removeAll()

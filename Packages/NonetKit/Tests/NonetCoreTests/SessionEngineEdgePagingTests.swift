@@ -178,6 +178,18 @@ import Testing
         #expect(justOpened.engine.hud?.edgeHint == nil)
     }
 
+    /// 横の帯の近くで開いても、開いた直後の指（上の外枠にいることにしている）は、動かさなければページを変えない
+    @Test func anOpeningFingerBesideTheSideBandDoesNotTurnThePage() {
+        var s = SessionScenario(pageCount: 3)
+        s.touch(x: 0.05, y: 0.86, at: 0)
+        s.touch(x: 0.05, y: 0.80, at: 0.05)
+        s.open(at: 0.05)
+        #expect(GridMapper(insets: .cancelFrame).pagingEdge(x: 0.05, y: 0.80) == .left)
+        #expect(s.engine.hud?.edgePaging == nil)
+        #expect(s.tick(at: 2).hapticEvents.isEmpty)
+        #expect(s.engine.pageIndex == 0)
+    }
+
     /// 2本目の指を置いたら、端での切り替えは待たない
     @Test func aSecondFingerStopsWaitingAtTheEdge() {
         var s = SessionScenario(pageCount: 3)

@@ -36,4 +36,21 @@ struct ActionWindowPlacementTests {
         #expect(WindowPlacementMath.isPlaced(CGRect(x: 0, y: 25, width: 900, height: 875), at: target))
         #expect(!WindowPlacementMath.isPlaced(CGRect(x: 300, y: 25, width: 720, height: 875), at: target))
     }
+
+    @Test("大きさに下限があって置く枠より大きくなったウインドウは、使える範囲からはみ出さない所までずらす")
+    func shiftedIntoTheVisibleArea() {
+        // AX の座標（y は下向き）。使える範囲は x 0〜1440、y 25〜875
+        let visible = CGRect(x: 0, y: 25, width: 1440, height: 850)
+        // 右半分に置いたが幅が 900 になった: 右の端にそろえる
+        let wide = CGRect(x: 720, y: 25, width: 900, height: 850)
+        #expect(WindowPlacementMath.shifted(wide, into: visible) == CGRect(x: 540, y: 25, width: 900, height: 850))
+        // 下半分に置いたが高さが 600 になった: 下の端にそろえる
+        let tall = CGRect(x: 0, y: 450, width: 1440, height: 600)
+        #expect(WindowPlacementMath.shifted(tall, into: visible) == CGRect(x: 0, y: 275, width: 1440, height: 600))
+        // 収まっていれば動かさない。範囲より大きければ左上にそろえる
+        let inside = CGRect(x: 100, y: 100, width: 400, height: 300)
+        #expect(WindowPlacementMath.shifted(inside, into: visible) == inside)
+        #expect(WindowPlacementMath.shifted(CGRect(x: 300, y: 300, width: 2000, height: 1000), into: visible)
+            == CGRect(x: 0, y: 25, width: 2000, height: 1000))
+    }
 }

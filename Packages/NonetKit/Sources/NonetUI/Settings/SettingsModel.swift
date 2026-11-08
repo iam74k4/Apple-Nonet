@@ -374,12 +374,13 @@ final class SettingsModel {
 
     /// プロファイルを消す。消す前の設定を控えに残し、元に戻せるようにする（そのプロファイルのマスの変更も、戻した後なら戻せる）
     func deleteProfile(_ id: UUID, actionName: String? = nil, makesBackup: Bool = true) {
+        // 保存待ちの文と記録中のキーを先に保存してから、元に戻すための控えを取る（控えに入れ損ねない）
+        pendingEdits.flushAll()
+        finishRecording()
         let before = appProfiles
         guard let position = before.firstIndex(where: { $0.id == id }) else { return }
         let removed = before[position]
         let actionName = actionName ?? String(localized: "プロファイルの削除", bundle: .module)
-        pendingEdits.flushAll()
-        finishRecording()
         closeEditGroup()
         if makesBackup {
             backupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
@@ -534,12 +535,13 @@ final class SettingsModel {
 
     /// ページを消す。マスがあれば消す前の設定を控えに残す。元に戻せるようにする
     func removePage(_ index: Int, profileID: UUID, makesBackup: Bool = true) {
+        // 保存待ちの文と記録中のキーを先に保存してから、元に戻すための控えを取る（控えに入れ損ねない）
+        pendingEdits.flushAll()
+        finishRecording()
         guard let profile = configuration.profile(id: profileID), profile.pages.count > 1,
               profile.pages.indices.contains(index) else { return }
         let removed = profile.pages[index]
         let actionName = String(localized: "ページの削除", bundle: .module)
-        pendingEdits.flushAll()
-        finishRecording()
         closeEditGroup()
         if makesBackup, removed.cells.contains(where: { $0 != nil }) {
             backupStore?.makeBackup(of: configuration, reason: .beforeDeletingPage)
@@ -945,6 +947,8 @@ final class SettingsModel {
     // MARK: - テスト実行
 
     func startTestRun(cellID: UUID) {
+        // 打ったばかりで保存待ちの文（スクリプトなど）も含めて試す。ボタンを押しても入力欄のフォーカスは外れないので、ここで保存する
+        pendingEdits.flushAll()
         // ファイルの操作は、今 Finder で選んでいるファイルに実際に働くので、確かめてから行う
         if case .file(let file)? = cell(id: cellID)?.action {
             confirmation = .testRunFile(cellID: cellID, operation: file.operation.title)
@@ -1128,14 +1132,18 @@ final class SettingsModel {
 
     // MARK: - 書き出しと読み込み
 
+    /// 書き出す先を選んでから書き出す。中身は書き出す時点のもの（保存待ちの文を先に保存し、メニューを開いた後の変更も含める）
     func exportProfiles(_ profiles: [Profile], suggestedName: String) async {
         guard let files, let url = await files.chooseExportDestination(suggestedName: suggestedName) else { return }
-        exportProfiles(profiles, to: url)
+        pendingEdits.flushAll()
+        exportProfiles(profiles.map { configuration.profile(id: $0.id) ?? $0 }, to: url)
     }
 
-    /// すべての書き出し
+    /// すべての書き出し（書き出す時点のすべてのプロファイル）
     func exportAllProfiles(suggestedName: String) async {
-        await exportProfiles(configuration.profiles, suggestedName: suggestedName)
+        guard let files, let url = await files.chooseExportDestination(suggestedName: suggestedName) else { return }
+        pendingEdits.flushAll()
+        exportProfiles(configuration.profiles, to: url)
     }
 
     func exportProfiles(_ profiles: [Profile], to url: URL) {
