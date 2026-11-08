@@ -17,13 +17,13 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var previewHUD = false
     /// --preview-app <bundle ID>: --preview-hud で、前面のアプリの代わりにこのアプリのページを出す
     public var previewBundleID: String?
-    /// --preview-backdrop <画像>: --preview-hud で、HUD の後ろに画面いっぱいに敷く絵（ガラスの HUD を決まった背景で撮る）
+    /// --preview-backdrop <画像>: --preview-hud で、HUD の後ろに画面いっぱいに敷く絵（ガラスの HUD を決まった背景で撮る。scripts/make-backdrop.swift の背景）
     public var previewBackdrop: URL?
     /// --demo: 販売ページ用のデモ動画を撮る（本物の操作のロジックと HUD で、何も実行しない。指の位置を示すトラックパッドの図を出す）
     public var demo = false
     /// --demo-app <bundle ID>: --demo で、前面のアプリの代わりにこのアプリのプロファイルを使う
     public var demoBundleID: String?
-    /// --demo-backdrop <画像>: --demo で、画面いっぱいに敷く背景
+    /// --demo-backdrop <画像>: --demo で、画面いっぱいに敷く背景（必須。scripts/make-backdrop.swift で画面と同じ大きさに作る。無い・縦横比が違うときは始めずに終える）
     public var demoBackdrop: URL?
     /// --demo-script: --demo で、実機の指の代わりに台本どおりの指の動きを入れる（終わったらアプリを終える）
     public var demoScript = false

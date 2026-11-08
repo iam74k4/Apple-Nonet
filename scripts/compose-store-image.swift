@@ -1,5 +1,8 @@
-// AstLog の画像（1440×900 の JPEG）を作る。暗いグラデーションにメニューバー、左に小見出し・見出し・説明・3 行の箇条、右に HUD の窓の画像（--snapshot の PNG）とポインタ。
-// 使い方: swift compose.swift <spec.json> <out.jpg>
+// AstLog の画像（1440×900 の JPEG）を作る。共通の背景（暗いグラデーションとメニューバー。scripts/make-backdrop.swift）の上に、
+// 左に小見出し・見出し・説明・3 行の箇条、右に HUD の窓の画像（--snapshot の PNG）とポインタ。
+// 背景はここで描かず、デモ動画と同じ make-backdrop.swift の PNG（2880×1800）を敷く（画像と動画の背景を1か所で決める）。
+// 使い方: swift scripts/make-backdrop.swift backdrop.png 2880 1800
+//         swift scripts/compose-store-image.swift <spec.json> <out.jpg> backdrop.png
 import AppKit
 import CoreText
 import Foundation
@@ -25,12 +28,16 @@ let ctx = CGContext(data: nil, width: W * scale, height: H * scale, bitsPerCompo
 ctx.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
 ctx.interpolationQuality = .high
 func rgb(_ hex: Int, _ a: CGFloat = 1) -> CGColor { CGColor(srgbRed: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: a) }
-// 背景: 暗い無地のグラデーション（旧画像と同じ色味）
-let bg = CGGradient(colorsSpace: space, colors: [rgb(0x1C2227), rgb(0x0E1114)] as CFArray, locations: [0, 1])!
-ctx.drawLinearGradient(bg, start: CGPoint(x: 0, y: CGFloat(H)), end: CGPoint(x: CGFloat(W), y: 0), options: [])
-// メニューバー（高さ 34。右に Nonet のアイコン・電池・Wi-Fi・日付）
-ctx.setFillColor(rgb(0x15191C)); ctx.fill(CGRect(x: 0, y: CGFloat(H) - 34, width: CGFloat(W), height: 34))
-ctx.setFillColor(rgb(0xFFFFFF, 0.06)); ctx.fill(CGRect(x: 0, y: CGFloat(H) - 35, width: CGFloat(W), height: 1))
+// 背景: make-backdrop.swift の PNG（2880×1800。暗いグラデーションとメニューバー）を 1px ずつそのまま敷く
+guard args.count == 4,
+      let backdropSource = CGImageSourceCreateWithURL(URL(fileURLWithPath: args[3]) as CFURL, nil),
+      let backdrop = CGImageSourceCreateImageAtIndex(backdropSource, 0, nil) else {
+    FileHandle.standardError.write(Data("使い方: swift scripts/compose-store-image.swift <spec.json> <out.jpg> <backdrop.png>（背景は swift scripts/make-backdrop.swift backdrop.png 2880 1800）\n".utf8)); exit(2)
+}
+guard backdrop.width == W * scale, backdrop.height == H * scale else {
+    FileHandle.standardError.write(Data("背景は \(W * scale)×\(H * scale) で作ってください（いまは \(backdrop.width)×\(backdrop.height)）\n".utf8)); exit(2)
+}
+ctx.draw(backdrop, in: CGRect(x: 0, y: 0, width: CGFloat(W), height: CGFloat(H)))
 func text(_ s: String, font: CTFont, color: CGColor, at p: CGPoint, align: String = "left") -> CGFloat {
     let attr = [kCTFontAttributeName: font, kCTForegroundColorAttributeName: color] as CFDictionary
     let line = CTLineCreateWithAttributedString(CFAttributedStringCreate(nil, s as CFString, attr))
@@ -39,7 +46,6 @@ func text(_ s: String, font: CTFont, color: CGColor, at p: CGPoint, align: Strin
     CTLineDraw(line, ctx); return width
 }
 func hira(_ weight: String, _ size: CGFloat) -> CTFont { CTFontCreateWithName("HiraginoSans-\(weight)" as CFString, size, nil) }
-func sf(_ size: CGFloat, _ weight: CGFloat = 0) -> CTFont { CTFontCreateUIFontForLanguage(.system, size, nil)! }
 func symbol(_ name: String, size: CGFloat, weight: NSFont.Weight, color: NSColor) -> CGImage? {
     guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(.init(pointSize: size, weight: weight)) else { return nil }
     let tinted = NSImage(size: image.size, flipped: false) { rect in
@@ -51,18 +57,6 @@ func drawSymbol(_ name: String, center: CGPoint, size: CGFloat, weight: NSFont.W
     guard let img = symbol(name, size: size, weight: weight, color: color) else { return }
     let w = CGFloat(img.width) / 2, h = CGFloat(img.height) / 2  // NSImage は @2x で出るので半分に
     ctx.draw(img, in: CGRect(x: center.x - w / 2, y: center.y - h / 2, width: w, height: h))
-}
-// メニューバーの右側
-let barY = CGFloat(H) - 17
-_ = text("11月7日(土) 9:41", font: sf(13), color: rgb(0xF2F2F2), at: CGPoint(x: 1416, y: barY - 5), align: "right")
-drawSymbol("switch.2", center: CGPoint(x: 1222, y: barY), size: 13)
-drawSymbol("wifi", center: CGPoint(x: 1172, y: barY), size: 13)
-drawSymbol("battery.100percent", center: CGPoint(x: 1116, y: barY), size: 15, weight: .regular)
-// Nonet のメニューバーのアイコン（輪の 8 点と真ん中）
-do {
-    let c = CGPoint(x: 1066, y: barY); ctx.setFillColor(rgb(0xF2F2F2))
-    for slot in 0..<8 { let a = (-90 + 45 * Double(slot)) * .pi / 180; let p = CGPoint(x: c.x + 6.3 * cos(a), y: c.y - 6.3 * sin(a)); ctx.fillEllipse(in: CGRect(x: p.x - 1.7, y: p.y - 1.7, width: 3.4, height: 3.4)) }
-    ctx.fillEllipse(in: CGRect(x: c.x - 2.1, y: c.y - 2.1, width: 4.2, height: 4.2))
 }
 // 左の文: 小見出し（差し色）・見出し・説明・箇条
 let accent = rgb(0x8C8BFF)

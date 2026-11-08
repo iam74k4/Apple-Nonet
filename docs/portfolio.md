@@ -10,24 +10,33 @@
 
 https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と SaifuLog の間）。この下の手順と値は、そのときの下書きとして残す。実際に入れたものとの違い:
 
-- **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。2026-11-06 に輪のアイコンへ差し替えた（`icon_256x256.png`。管理画面にログインせず、この Mac の wrangler から管理画面の保存と同じ手順で: KV `items/nonet-icon-<乱数>.png` に置く → D1 の `icon_url` を更新 → 古い画像を `archive/` に 90 日の控えとして移して公開の鍵を消す → `site:version` を進める）。2026-11-08 に、同じ絵を影なしにしたもの（`swift scripts/make-icon.swift --site-icon` の 256×256 を可逆の WebP にしたもの）へ同じ手順で差し替えた（KV `items/nonet-<16進 32 字>.webp`。いまの AstLog の `putImage` と同じ長さの乱数）。アプリのアイコンの影は板の外の余白を薄い黒で埋めて絵の端で四角く切れるので、明るい地では板のまわりに灰色の四角が見えていた（AppMixer・SaifuLog のアイコンは影なし）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る）
-- **デモ動画（AstLog の「ほかの画像」の先頭（並び順 5）。2026-11-07 に輪の HUD で撮り直して差し替えた: 15.7 秒・321KB・H.264・1440×900。差し替えはアイコンと同じく wrangler から、KV `items/nonet-<乱数>.mp4` → D1 `item_shots.url`・`alt` → 旧動画を `archive/` へ → `site:version`。代替テキストに「指の動きは台本どおりに入れたもの」と書いた。メインの画像と「ほかの画像」2〜4 の JPEG も同じ日に輪の HUD で作り直した: `--preview-hud --snapshot` で撮った HUD の窓の PNG（色合わせをオンにし、別プロセスの暗い窓の上で撮ると白いアイコンになる）を、`scripts/compose-store-image.swift` が `docs/astlog-images/*.json` の文言と並べて 1440×900 の JPEG にする。ランチャーの HUD は、見本の設定でグローバルのページの先頭をランチャーに入れ替え、プロファイルの無いアプリ（TextEdit）を `--preview-app` にして撮る）**: Debug ビルドの `--demo` で撮る。本物の操作のロジック・NonetController・HUD を動かし、何も実行せず（performer を差し替える）、ポインタも抑止しない（HUD に重なるポインタだけは、本物と同じく開いている間 HUD の外へ寄せる）。画面の右下に、指の位置を示すトラックパッドの図が出る。`--demo-script` を付けると、実機の指の代わりに台本（`NonetUI/MenuBar/DemoScript.swift`。3回開く: 中央のマスを実行・輪のすぐ下で止めてグローバルのページへ移って実行・手前の外枠ですぐ離してやめる）を入れる。台本は `ShellDemoScriptTests` が本物の `EdgeSlideRecognizer`・`SessionEngine` に通して確かめている。付けなければ実機の指をそのまま図に出す。人が操作したものではなく、台本どおりの指の位置を入れたものなので、説明文もそう書く。撮るには画面が点いていてロックされていないこと（スリープ中・ロック中は画面の一覧が空になり、録画できない）。録画の道具 `scripts/record-screen.swift` は ScreenCaptureKit で書く（`screencapture -v` は録画を始められなかった）:
+- **画像**: アイコンは `App/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png`（512×512）。2026-11-06 に輪のアイコンへ差し替えた（`icon_256x256.png`。管理画面にログインせず、この Mac の wrangler から管理画面の保存と同じ手順で: KV `items/nonet-icon-<乱数>.png` に置く → D1 の `icon_url` を更新 → 古い画像を `archive/` に 90 日の控えとして移して公開の鍵を消す → `site:version` を進める）。2026-11-08 に、同じ絵を影なしにしたもの（`swift scripts/make-icon.swift --site-icon` の 256×256 を可逆の WebP にしたもの）へ同じ手順で差し替えた（KV `items/nonet-<16進 32 字>.webp`。いまの AstLog の `putImage` と同じ長さの乱数）。アプリのアイコンの影は板の外の余白を薄い黒で埋めて絵の端で四角く切れるので、明るい地では板のまわりに灰色の四角が見えていた（AppMixer・SaifuLog のアイコンは影なし）。メインとほかの画像は、AppMixer の Mac App Store の画像（2026-10 の版）と同じ作りの 1440×900 の JPEG を4枚（メイン: Xcode の9マス / 外枠とページの切り替え / アプリごとの9マス（Zoom） / ランチャー）。暗い無地のグラデーションの上にメニューバーを描き、左に緑の小見出し・2行の見出し・説明・3行の箇条、右に HUD を置く。HUD は実物のガラスを撮った（Debug ビルドの `--preview-hud --preview-app <bundle ID> --preview-backdrop <背景の画像>` で、背景を画面いっぱいに敷いてから撮る。背景は `scripts/make-backdrop.swift` の共通のもの）
+- **デモ動画（AstLog の「ほかの画像」の先頭（並び順 5）。2026-11-07 に輪の HUD で撮り直して差し替えた: 15.7 秒・321KB・H.264・1440×900。差し替えはアイコンと同じく wrangler から、KV `items/nonet-<乱数>.mp4` → D1 `item_shots.url`・`alt` → 旧動画を `archive/` へ → `site:version`。代替テキストに「指の動きは台本どおりに入れたもの」と書いた。メインの画像と「ほかの画像」2〜4 の JPEG も同じ日に輪の HUD で作り直した: `--preview-hud --snapshot` で撮った HUD の窓の PNG（色合わせをオンにし、別プロセスの暗い窓の上で撮ると白いアイコンになる）を、`scripts/compose-store-image.swift` が `docs/astlog-images/*.json` の文言と並べて 1440×900 の JPEG にする（背景はデモ動画と同じ `scripts/make-backdrop.swift` の PNG。`swift scripts/make-backdrop.swift backdrop-store.png 2880 1800` を3つめの引数に渡す）。ランチャーの HUD は、見本の設定でグローバルのページの先頭をランチャーに入れ替え、プロファイルの無いアプリ（TextEdit）を `--preview-app` にして撮る）**: Debug ビルドの `--demo` で撮る。本物の操作のロジック・NonetController・HUD を動かし、何も実行せず（performer を差し替える）、ポインタも抑止しない（HUD に重なるポインタだけは、本物と同じく開いている間 HUD の外へ寄せる）。画面の右下に、指の位置を示すトラックパッドの図が出る。`--demo-script` を付けると、実機の指の代わりに台本（`NonetUI/MenuBar/DemoScript.swift`。3回開く: 中央のマスを実行・輪のすぐ下で止めてグローバルのページへ移って実行・手前の外枠ですぐ離してやめる）を入れる。台本は `ShellDemoScriptTests` が本物の `EdgeSlideRecognizer`・`SessionEngine` に通して確かめている。付けなければ実機の指をそのまま図に出す。人が操作したものではなく、台本どおりの指の位置を入れたものなので、説明文もそう書く。撮るには画面が点いていてロックされていないこと（スリープ中・ロック中は画面の一覧が空になり、録画できない）。録画の道具 `scripts/record-screen.swift` は ScreenCaptureKit で書く（`screencapture -v` は録画を始められなかった）:
+
+  **デモ動画の決まり（2026-11-09。全アプリで同じ。手順と道具は skill `app-promo-media`（`~/.claude/skills/app-promo-media/`）、要点は `~/.claude/rules/demo-video.md`）**:
+
+  - 実際の画面（壁紙・ほかのアプリのウインドウ・本物のメニューバー）は写さない。画面いっぱいに共通の背景を敷いて、その上で撮る
+  - 背景はどの動画も `scripts/make-backdrop.swift` の同じもの（暗いグラデーション #1F1F21 → #0E0E0F と、日付・コントロールセンター・Wi-Fi・電池・アプリのアイコンを並べたメニューバー）。販売ページ・AstLog の画像（`compose-store-image.swift`）も同じ背景なので、画像と動画で見た目がそろう。色と寸法は変えない
+  - 操作は図で見せる。画面の右下に、指の位置を示すトラックパッドの図を出す（`DemoTrackpadView`）
+  - `--demo` は背景（`--demo-backdrop`）が無い・画面と縦横比が違うと、始めずに終える
 
   ```bash
   swiftc -O -parse-as-library scripts/record-screen.swift -o build/record-screen
+  swift scripts/make-backdrop.swift build/backdrop.png   # 共通の背景を、いまの画面と同じ大きさ（ピクセル）で
   app=build/DerivedData/Build/Products/Debug/Nonet.app/Contents/MacOS/Nonet
-  # backdrop.png: 暗いグラデーションとメニューバーを描いた、画面と同じ縦横比の画像。$demo: 見本の設定（Xcode のプロファイルの中央が Claude Code）
-  "$app" --config-dir "$demo" --demo-script --demo-start-file go --demo-app com.apple.dt.Xcode --demo-backdrop backdrop.png 2> demo.log &
+  # $demo: 見本の設定（Xcode のプロファイルの中央が Claude Code）
+  "$app" --config-dir "$demo" --demo-script --demo-start-file go --demo-app com.apple.dt.Xcode --demo-backdrop build/backdrop.png 2> demo.log &
   # 背景が出てから録画を始め、録画が始まってから台本を動かす。台本が終わったら録画を止め、go を消してアプリを終えさせる
   build/record-screen demo.mp4 30 0 0 1710 1069 1440 900 3000000 > rec.log &   # 範囲は demo.log の capture-region
   touch go; # …demo.log に "demo: finished" が出るまで待つ
   kill -INT %2; wait %2; rm go
   ```
 
-  zsh では `${=REGION}` のように分けて渡す（変数を引用せずに書いても単語に分かれない）。録画を `go` の前に始めると先頭に背景だけの数秒が入るので、最後の引数（最初に捨てる秒）でその分を捨てる。背景の画像は 3420×2224 px（画面と同じ）の暗いグラデーションに上端の帯を描いた PNG を CoreGraphics で作ればよい。
+  zsh では `${=REGION}` のように分けて渡す（変数を引用せずに書いても単語に分かれない）。録画を `go` の前に始めると先頭に背景だけの数秒が入るので、最後の引数（最初に捨てる秒）でその分を捨てる。
 
   撮ったあとは、メニューバーの左側に画面が写っていないかを、0.5 秒ごとのフレームの明るさで確かめてから中身を見る（背景が消えると、ユーザーの画面が写る。`--demo-start-file` は、録画が止まって go を消すまで背景を出したままにする）。AstLog の動画は H.264 の MP4・10MB まで・HEVC は不可。
 - **2026-11-08 の差し替え**: アイコンを暗い丸い台に載せ、下で止めてグローバルのページへ移るようにした版で、メインの画像・ほかの画像 2〜4・デモ動画（13.9 秒・301KB・H.264・1440×900）を作り直し、同じ wrangler の手順で差し替えた（KV `items/nonet-<16進 32 字>.<拡張子>` に置き、metadata は `contentType` と `size` → D1 の `items.image_url`・`image_alt` と `item_shots` の `url`・`alt`・寸法を書き換え → 古い5つを `archive/`（`expirationTtl` 90 日、metadata に `originalKey`・`archivedAt`）へ写してから消す → `site:version` を新しい UUID に）。メインの代替テキストは真ん中を「Claude Code」に、動画とほかの画像 2 の代替テキストは下で止めてグローバルのページへ移る流れに直した。見本の設定は Xcode の1ページ目の真ん中と右（クイックオープンと Claude Code）を入れ替えたもの、ランチャーの画像はさらにグローバルの1・2ページ目を入れ替えたもの。動画は台本を流す前にポインタを録る範囲の真ん中へ動かし（HUD はポインタの位置に開く）、0.5 秒ごとのコマで背景以外が写っていないことを確かめた。zsh では行を単語に分けないので、キーと大きさを並べて回すときは bash で回す
+- **共通の背景にそろえる（2026-11-09）**: 所有者が全アプリの背景を無彩色（`#1F1F21` → `#0E0E0F`）に決めた。画像4枚は `make-backdrop.swift` の背景で作り直し、wrangler で差し替えた（メイン `nonet-16b4aeab7423a13f7a094fa2bb251c28.jpg`・並び順 10 `nonet-86ff5fe439e90fec7d704799be0f943d.jpg`・20 `nonet-2cc9d47189abd165f66034a897454198.jpg`・30 `nonet-8d62ab7ff343ebd1a1f466aad00f8955.jpg`。前の4枚は `archive/` に 90 日。文言は公開中の版（ページの画像の箇条は develop の `docs/astlog-images/shot10.json`））。**動画（2026-11-07）はまだ前のまま**: メニューバーが日付やアイコンの無い帯で、地も前の色なので、画面のロックを解いた Mac で `make-backdrop.swift` の背景を敷いて撮り直し、差し替える
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
 - **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足し、購入画面が開くようになったら `Buy` を足す（[リンクを追加する](#リンクを追加する任意)）
 
