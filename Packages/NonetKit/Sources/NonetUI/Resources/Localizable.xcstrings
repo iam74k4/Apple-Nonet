@@ -7790,6 +7790,16 @@
         }
       }
     },
+    "打った文字を消す・打つ場所を動かす・補完するキー（⌫・矢印・Tab・Esc など）も押します。実際に入る文字はアプリによって変わり、ここに出ている文字のとおりとは限りません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also presses keys that delete, move the insertion point or complete what was typed (⌫, arrows, Tab, Esc and so on). What actually gets typed depends on the app and may differ from the text shown here."
+          }
+        }
+      }
+    },
     "打つ文字（キーコードも文字にしたもの）: 「%@」" : {
       "localizations" : {
         "en" : {

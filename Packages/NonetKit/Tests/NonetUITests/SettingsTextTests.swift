@@ -128,33 +128,70 @@ import Testing
         // ⌥⌫ は語ごと消す。見せるのは Home・End で打つ場所が動かない決まり（ターミナル・標準の入力欄）。動く決まりで打ったものも探す
         let words = KeySequence([KeyChord(.character("echo hi")), KeyChord(.special(.delete), modifiers: .option), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), KeyChord(.special(.end)), KeyChord(.keyCode(56)), KeyChord(.character("x"))])
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters()) == "echo x")
-        #expect(SettingsImportPlan.textsTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters())?.contains("cho x") == true)
+        #expect(SettingsImportPlan.textsTyped(.keystroke(words), keys: FakeKeyCharacters())?.contains("cho x") == true)
         // キーコードを含まなければ、表記で読めるので nil
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.keyCode(8), modifiers: .command)])), keys: FakeKeyCharacters()) == nil)
     }
 
-    /// 打ち方の決まりを変えて打ったもののどれかに注意が要る命令があれば知らせる。⏎ で送った行は、後の ⌫ や ← では消えない
+    /// 打ち方の決まりを変えて打ったもののどれかに注意が要る命令があれば知らせる。⏎ で送った行は、後の ⌫ や ← では消えない。
+    /// キーコードを含まないキー入力も探す。写せない打ち方（シェルの履歴・補完）は、消す・動かすキーを押すことを目立たせる
     @Test func riskyCommandsAreFoundUnderEveryTypingRule() throws {
-        func warns(_ chords: [KeyChord]) throws -> Bool {
+        func lines(_ chords: [KeyChord]) -> [(text: String, style: SettingsImportReviewEntry.Style)] {
             let action = Action.keystroke(KeySequence(chords))
             let cell = Cell(title: "x", icon: .symbol("x"), action: action)
-            let texts = try #require(SettingsImportPlan.textsTypedByKeyCodes(action, keys: FakeKeyCharacters()))
-            let reviewed = SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell, keyCodeTexts: texts)
-            return SettingsText.reviewLines(for: reviewed).contains { $0.style == .warning && $0.text.contains("rm -rf") }
+            let keys = FakeKeyCharacters()
+            let reviewed = SettingsImportPlan.ReviewedCell(
+                profileName: "P",
+                cell: cell,
+                keyCodeText: SettingsImportPlan.textTypedByKeyCodes(action, keys: keys),
+                typedTexts: SettingsImportPlan.textsTyped(action, keys: keys) ?? [],
+                editsTypedText: SettingsImportPlan.editsTypedText(action, keys: keys)
+            )
+            return SettingsText.reviewLines(for: reviewed)
+        }
+        func warnsRm(_ chords: [KeyChord]) -> Bool {
+            lines(chords).contains { $0.style == .warning && $0.text.contains("rm -rf") }
+        }
+        func warnsEdits(_ chords: [KeyChord]) -> Bool {
+            lines(chords).contains { $0.style == .warning && $0.text == SettingsText.importEditKeyWarning }
         }
         let modifier = KeyChord(.keyCode(56))
         let enter = KeyChord(.special(.returnKey))
+        let left = KeyChord(.special(.leftArrow))
         // ⏎ で送った後に ⌫ や ⌥⌫ で消しても、Home で戻って打っても、送った命令は残る
-        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete)), count: 9)))
-        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete), modifiers: .option), count: 3)))
-        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter, KeyChord(.special(.home)), KeyChord(.character("x"))]))
+        #expect(warnsRm([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete)), count: 9)))
+        #expect(warnsRm([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete), modifiers: .option), count: 3)))
+        #expect(warnsRm([modifier, KeyChord(.character("rm -rf ~")), enter, KeyChord(.special(.home)), KeyChord(.character("x"))]))
         // Home で打つ場所が動くかどうかで変わる（動かないターミナルでは rm を打つ）
-        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), enter]))
-        #expect(try warns([modifier, KeyChord(.character("rm")), KeyChord(.special(.home)), KeyChord(.character(" -rf ~")), enter]))
-        // 普通のキー入力では知らせない
-        #expect(try !warns([modifier, KeyChord(.character("ls -la")), enter]))
+        #expect(warnsRm([modifier, KeyChord(.character("rm -rf ~")), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), enter]))
+        #expect(warnsRm([modifier, KeyChord(.character("rm")), KeyChord(.special(.home)), KeyChord(.character(" -rf ~")), enter]))
+        // ⏎ が改行を入れるだけのアプリ（fish の続きの行など）で、前の行に戻って直す
+        #expect(warnsRm([modifier, KeyChord(.character("m -rf ~; echo '")), enter, KeyChord(.character("'"))] + Array(repeating: left, count: 17) + [KeyChord(.character("r")), enter]))
+        // キーコードを含まなくても探す
+        #expect(warnsRm([KeyChord(.character("m -rf ~"))] + Array(repeating: left, count: 7) + [KeyChord(.character("r")), enter]))
+        // 写せない打ち方（↑ で前の行を呼び出す・Esc b で語を戻る）も、消す・動かすキーを押すと目立たせる
+        #expect(warnsEdits([KeyChord(.character("m -rf ~")), enter, KeyChord(.special(.upArrow))] + Array(repeating: left, count: 7) + [KeyChord(.character("r")), enter]))
+        #expect(warnsEdits([KeyChord(.character("m -rf ~")), KeyChord(.special(.escape)), KeyChord(.character("b")), KeyChord(.character("r")), enter]))
+        #expect(warnsEdits([KeyChord(.character("osascri")), KeyChord(.special(.tab)), KeyChord(.character(" -e x")), enter]))
+        // キーコードの ⌫（制御文字になる）も数える
+        #expect(SettingsImportPlan.editsTypedText(.keystroke(KeySequence([KeyChord(.character("x")), KeyChord(.keyCode(0x33))])), keys: ControlCharacterKeys()))
+        // 普通のキー入力では知らせない（文字だけ・ショートカットの矢印だけ）
+        #expect(!warnsRm([modifier, KeyChord(.character("ls -la")), enter]))
+        #expect(!warnsEdits([KeyChord(.character("ls -la")), enter]))
+        #expect(!warnsEdits([KeyChord(.special(.leftArrow), modifiers: [.option, .command]), KeyChord(.special(.rightArrow))]))
+    }
+
+    /// キーコード 0x33（⌫）を制御文字にする（本物のキー配列と同じ）
+    private final class ControlCharacterKeys: SettingsKeyCharacterTranslating {
+        func characters(for chord: KeyChord) -> String? {
+            switch chord.key {
+            case .keyCode(0x33): "\u{8}"
+            case .character(let character): character
+            default: nil
+            }
+        }
     }
 
     /// 見えない文字（異体字セレクタ・ハングルの埋め字など）も見える形にする。絵文字の ️・旗のタグ文字・ZWJ は残す

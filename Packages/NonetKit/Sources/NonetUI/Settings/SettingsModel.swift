@@ -799,10 +799,6 @@ final class SettingsModel {
                 configuration.setCell(snapshot.cell, at: snapshot.address, profileID: profileID)
             }
         }
-        // 元に戻した「開く」のマスがアプリか URL かを覚え直す（切り替えを元に戻した後に、戻す前の方へ戻さない）
-        for case let cell? in restored.map(\.cell) where SettingsActionKinds.menuKind(of: cell.action) == .launchApp {
-            lastOpenKinds[cell.id] = cell.action.kind
-        }
         if let address = addresses.first {
             reveal(address, profileID: profileID)
         }
@@ -900,11 +896,12 @@ final class SettingsModel {
             cancelRecording()
         }
         rememberedActions[id, default: [:]][cell.action.kind] = cell.action
-        // 「開く」のアプリか URL か。アプリ・URL の切り替えでは、切り替えた先を覚える
-        if SettingsActionKinds.menuKind(of: cell.action) == .launchApp {
+        // 「開く」を別の種類にしたときだけ、アプリだったか URL だったかを覚える（一覧で「開く」に戻したときにそちらにする）。
+        // アプリ・URL の切り替えは、覚えていればその先に合わせる。元に戻す・差し替えでは変えない（覚えるのは利用者が種類を選んだときだけ）
+        let isOpen = { (kind: ActionKind) in kind == .launchApp || kind == .openURL }
+        if isOpen(cell.action.kind), !isOpen(kind) {
             lastOpenKinds[id] = cell.action.kind
-        }
-        if kind == .launchApp || kind == .openURL {
+        } else if isOpen(kind), lastOpenKinds[id] != nil {
             lastOpenKinds[id] = kind
         }
         let remembered = rememberedActions[id]?[kind]

@@ -18,27 +18,12 @@ struct SettingsImportPlan: Identifiable, Equatable {
         var installedAppNames: [String] = []
         /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーをすべて、順に）。無ければ nil。
         /// 「keyCode(8)」のような表記では何を打つか分からず、文字と混ぜて書いた命令も見つけられないので、つなげて文字にして見せる。
-        /// 最初が見せるもの。注意が要る命令は、打ち方の決まりを変えて打ったもの（textsTypedByKeyCodes）のどれかにあれば知らせる
-        var keyCodeTexts: [String] = []
-
-        var keyCodeText: String? { keyCodeTexts.first }
-
-        init(
-            profileName: String,
-            cell: Cell,
-            pressesSubmitKey: Bool = false,
-            app: AppReference? = nil,
-            installedAppNames: [String] = [],
-            keyCodeText: String? = nil,
-            keyCodeTexts: [String] = []
-        ) {
-            self.profileName = profileName
-            self.cell = cell
-            self.pressesSubmitKey = pressesSubmitKey
-            self.app = app
-            self.installedAppNames = installedAppNames
-            self.keyCodeTexts = keyCodeText.map { [$0] + keyCodeTexts } ?? keyCodeTexts
-        }
+        var keyCodeText: String? = nil
+        /// キー入力を、打ち方の決まりを変えて打ったもの（textsTyped。キーコードを含まなくても）。注意が要る命令は、このどれかにあれば知らせる
+        var typedTexts: [String] = []
+        /// 文字を打ち、それを消す・打つ場所を動かす・補完するキー（⌫・矢印・Tab・Esc など）も押す（editsTypedText）。
+        /// 打たれる文字はアプリ（シェルの決まり・履歴・補完）によって変わり、見せる文字のとおりとは限らないので、目立たせる
+        var editsTypedText = false
     }
 
     let id = UUID()
@@ -84,7 +69,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
                     pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys),
                     app: source.app,
                     installedAppNames: source.installed,
-                    keyCodeTexts: Self.textsTypedByKeyCodes(cell.action, keys: keys) ?? []
+                    keyCodeText: Self.textTypedByKeyCodes(cell.action, keys: keys),
+                    typedTexts: Self.textsTyped(cell.action, keys: keys) ?? [],
+                    editsTypedText: Self.editsTypedText(cell.action, keys: keys)
                 )
             }
         }
@@ -185,21 +172,24 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// ⌫・⌦・矢印は、打った文字を消したり、打つ場所を動かしたりする（TypedText）。見せるのは、ターミナルと標準の入力欄の
     /// 決まり（Home・End は打つ場所を動かさない）で打ったもの。キーコードを含まない・文字にならなければ nil
     static func textTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> String? {
-        textsTypedByKeyCodes(action, keys: translator)?.first
+        guard case .keystroke(let sequence) = action, translator != nil,
+              sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
+        return textsTyped(action, keys: translator)?.first
     }
 
     /// 打ち方の決まりを変えて打ったものをすべて（最初は見せるもの）。注意が要る命令は、このどれかに入っていれば知らせる。
     /// アプリによって Home・End や ⌥⌫ の働きが違い、どれか1つの決まりで打ったものだけを見ると、別の決まりのアプリで打つ命令を隠せる
     /// （「rm」Home ⌦ ⏎ は、Home で行の頭へ移るアプリでは「m」、移らないターミナルでは rm を打つ）。
-    /// 消すキーを使わずに打ったもの（raw）も見る（⏎ で送った後に ⌫ で消して見せても、送った命令は残る）
-    static func textsTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> [String]? {
-        guard case .keystroke(let sequence) = action, let translator,
-              sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
+    /// 消すキーを使わずに打ったもの（raw）と、⏎ が改行を入れるだけのもの（fish の続きの行・エディタ）も見る。
+    /// ここで写せないもの（シェルの履歴・補完・語の決まり）は、editsTypedText で目立たせる
+    static func textsTyped(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> [String]? {
+        guard case .keystroke(let sequence) = action else { return nil }
         let rules: [TypedText.Rules] = [
             .init(homeEndMove: false, optionByWord: true),
             .init(homeEndMove: false, optionByWord: false),
             .init(homeEndMove: true, optionByWord: true),
             .init(homeEndMove: true, optionByWord: false),
+            .init(homeEndMove: false, optionByWord: true, returnSendsLine: false),
             .raw,
         ]
         var texts: [String] = []
@@ -207,7 +197,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             var typed = TypedText(rules: rule)
             for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
                 let byWord = chord.modifiers.contains(.option)
-                if let characters = translator.characters(for: chord) {
+                if let characters = translator?.characters(for: chord) {
                     // キーコードの ⌫ や矢印は、制御文字として返る
                     for character in characters { typed.type(character, byWord: byWord) }
                 } else if case .character(let text) = chord.key {
@@ -224,6 +214,42 @@ struct SettingsImportPlan: Identifiable, Equatable {
         return texts.isEmpty ? nil : texts
     }
 
+    /// 文字を打ち、それを消す・打つ場所を動かす・補完するキー（⌫・⌦・矢印・Home・End・Page Up/Down・Esc・Tab）も押すか。
+    /// キーコードで書いたそれらのキー（制御文字になる）も数える。⌘・⌃ の付いたキーは数えない（⌃ は pressesSubmitKey で目立たせる）
+    static func editsTypedText(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> Bool {
+        guard case .keystroke(let sequence) = action else { return false }
+        let editKeys: Set<SpecialKey> = [.delete, .forwardDelete, .leftArrow, .rightArrow, .upArrow, .downArrow, .home, .end, .pageUp, .pageDown, .escape, .tab]
+        var typesText = false
+        var edits = false
+        for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
+            let text: String?
+            if let characters = translator?.characters(for: chord) {
+                text = characters
+            } else if case .character(let character) = chord.key {
+                text = character
+            } else {
+                text = nil
+            }
+            if let text {
+                for scalar in text.unicodeScalars {
+                    switch scalar.value {
+                    // Return と同じ文字は、消す・動かすキーではない
+                    case 0x0D, 0x0A, 0x03:
+                        break
+                    case 0x00..<0x20, 0x7F:
+                        edits = true
+                    default:
+                        typesText = true
+                    }
+                }
+            } else if case .special(let key) = chord.key {
+                if editKeys.contains(key) { edits = true }
+                if key == .space { typesText = true }
+            }
+        }
+        return typesText && edits
+    }
+
     /// 1行の入力欄で打った結果。打つ場所（cursor）に文字を入れ、⌫・⌦ で消し、←→（と、決まりによって Home・End）で打つ場所を動かす。
     /// ⌥ を付けた ←→⌫⌦ は、決まりによって語ごと。Space・Tab は語の区切り。Return は行を送る（送った行は、後の ⌫ や ← では変わらない）。
     /// 消してから打った文字（「x」⌫「rm」）や、戻って前に打った文字（「m」←「r」）も、実際に打つ並びにして命令を探す
@@ -233,6 +259,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
             var homeEndMove: Bool
             /// ⌥ を付けた ←→⌫⌦ を語ごとにする
             var optionByWord: Bool
+            /// ⏎ で行を送る（送った行は後の ⌫ や ← では変わらない）。false なら、区切りを入れて同じ行を打ち続ける
+            var returnSendsLine = true
             /// ⌫・⌦・矢印などを効かせる。false なら、打った文字をそのまま並べる
             var appliesEdits = true
 
@@ -282,10 +310,13 @@ struct SettingsImportPlan: Identifiable, Equatable {
             switch key {
             case .space, .tab:
                 insert(" ")
-            case .returnKey:
+            case .returnKey where rules.returnSendsLine:
                 sent += line + [" "]
                 line = []
                 cursor = 0
+            case .returnKey:
+                cursor = line.count
+                insert(" ")
             case _ where !rules.appliesEdits:
                 break
             case .delete:

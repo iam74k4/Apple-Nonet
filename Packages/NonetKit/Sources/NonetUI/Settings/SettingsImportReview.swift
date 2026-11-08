@@ -75,6 +75,11 @@ extension SettingsText {
         String(localized: "Return と同じ働きのキー（または ⌃ の付いたキー）を押します。コマンドの実行やメッセージの送信になることがあります。", bundle: .module)
     }
 
+    /// 文字を打ち、それを消す・動かす・補完するキーも押すマスの注意
+    static var importEditKeyWarning: String {
+        String(localized: "打った文字を消す・打つ場所を動かす・補完するキー（⌫・矢印・Tab・Esc など）も押します。実際に入る文字はアプリによって変わり、ここに出ている文字のとおりとは限りません。", bundle: .module)
+    }
+
     /// 注意が要る命令を含む行の注意
     static func suspiciousNote(_ terms: [String]) -> String {
         let list = terms.joined(separator: ", ")
@@ -122,13 +127,16 @@ extension SettingsText {
             }
             var terms = SettingsImportPlan.suspiciousTerms(in: preview + (typed.map { " " + $0 } ?? ""))
             // 打ち方の決まりを変えて打ったもの（Home・End・⌥⌫ の働きが違うアプリ・消すキーを効かせない）にあっても知らせる
-            for text in reviewed.keyCodeTexts.dropFirst().map(visibleLine) {
+            for text in reviewed.typedTexts.map(visibleLine) {
                 for term in SettingsImportPlan.suspiciousTerms(in: text) where !terms.contains(term) {
                     terms.append(term)
                 }
             }
             if !terms.isEmpty {
                 lines.append((suspiciousNote(terms), .warning))
+            }
+            if reviewed.editsTypedText {
+                lines.append((importEditKeyWarning, .warning))
             }
         case .menuItem(let menu):
             let app = menu.app.map { $0.name.isEmpty ? visibleLine($0.bundleID) : "\(visibleLine($0.name))（\(visibleLine($0.bundleID))）" }
