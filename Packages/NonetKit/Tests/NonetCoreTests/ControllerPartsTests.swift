@@ -107,6 +107,10 @@ import Testing
         #expect(ControllerPresentation.layerHint(configuration: globalMode, pages: globalMode.resolvedPages(frontmostBundleID: safari), frontmostBundleID: safari)
             == ModelFixtures.text("このアプリはグローバルのページを使います"))
         #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: nil), frontmostBundleID: nil) == nil)
+        // 「このアプリでは使わない」（練習でだけ開く）: ページが無いのではないので言わない
+        var offMode = configuration
+        offMode.profiles[index].mode = .off
+        #expect(ControllerPresentation.layerHint(configuration: offMode, pages: offMode.resolvedPages(frontmostBundleID: safari), frontmostBundleID: safari) == nil)
 
         // 上下はこの案内、左右（ページが1つの層）は送るページが無いこと
         let below = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .down)

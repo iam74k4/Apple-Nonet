@@ -149,6 +149,20 @@ struct ShellRenderTests {
             appearance: .aqua,
             name: "hud-state-label"
         )
+        // 長い名前: 横の鍵では余白の中まで（端で切れずに末尾を省く）、下の鍵では正方形より広くても余白の中まで出す
+        for (name, index) in [("hud-state-label-long-side", 5), ("hud-state-label-long-bottom", 7)] {
+            try Self.render(
+                HUDView(model: variant {
+                    $0.highlightedIndex = index
+                    $0.cells[index]?.title = "ウインドウを画面の左半分に移動してから最大化して整える"
+                }, showsLabelImmediately: true)
+                    .padding(HUDLayout.shadowMargin)
+                    .background(Color(white: 0.82)),
+                size: CGSize(width: HUDLayout.size(for: base).width + HUDLayout.shadowMargin * 2, height: HUDLayout.size(for: base).height + HUDLayout.shadowMargin * 2),
+                appearance: .aqua,
+                name: name
+            )
+        }
         for (name, model, increasedContrast, reduceMotion, progress, backdrop) in states {
             let size = HUDLayout.size(for: model)
             let margin = HUDLayout.shadowMargin

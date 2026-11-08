@@ -12,6 +12,11 @@ public final class SMAppServiceLoginItem: LoginItemControlling {
         SMAppService.mainApp.status == .enabled
     }
 
+    public var isRegistered: Bool {
+        let status = SMAppService.mainApp.status
+        return status == .enabled || status == .requiresApproval
+    }
+
     public func setEnabled(_ enabled: Bool) throws {
         let service = SMAppService.mainApp
         do {

@@ -788,7 +788,10 @@ private struct HUDKeyLabel: View {
             .padding(.horizontal, 8 * metrics.scale)
             .frame(height: metrics.labelHeight)
             .background(Capsule().fill(Color(white: 0.98)).shadow(color: .black.opacity(0.22), radius: 5 * metrics.scale, y: 2 * metrics.scale))
-            .frame(maxWidth: maxWidth)
+            // 円を囲む正方形より広い名前も、余白の中まで（maxWidth）は省かずに出す（.position は正方形の幅しか勧めないので、
+            // 幅は自分で決める）。それより長ければ末尾を省く
+            .frame(idealWidth: maxWidth, maxWidth: maxWidth)
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityHidden(true)
     }
 }

@@ -127,6 +127,7 @@ final class SettingsFakeLoginItem: LoginItemControlling {
     var isEnabled = false
     /// 登録したが、システム設定の「ログイン項目」で許可されていない（isEnabled は false。外すと消える）
     var isWaitingForApproval = false
+    var isRegistered: Bool { isEnabled || isWaitingForApproval }
     var failure: (any Error)?
     func setEnabled(_ enabled: Bool) throws {
         if let failure { throw failure }

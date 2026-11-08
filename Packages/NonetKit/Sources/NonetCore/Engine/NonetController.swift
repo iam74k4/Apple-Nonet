@@ -162,6 +162,8 @@ public final class NonetController {
     @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
     /// pendingOpen を決めた、上の縁から滑らせた指（同じフレームで指が入れ替わったら開かない）
     @ObservationIgnored private var pendingOpenFingerID: Int?
+    /// HUD を隠したとき、ポインタがまだ開いた直後の真ん中にいた（hideHUD で覚え、.sessionEnded で使って戻す）
+    @ObservationIgnored private var wasHiddenBeforeMoving = false
     /// 初回起動で、claude を調べ終えてからプリセットを作り直す（rebuildFirstPresetsWhenResolved）
     @ObservationIgnored private var firstPresetsRebuild: Task<Void, Never>?
     /// Nonet のウィンドウが前面で開かなかったことを、この起動で知らせた（知らせるのは1回だけ）
@@ -569,8 +571,9 @@ public final class NonetController {
         case .requestTick(let time):
             scheduleTick(at: time)
         case .sessionEnded(let reason):
-            // hideHUD でポインタの選び方を捨てる前に、開いたまま真ん中から出ずに離したかを見ておく
-            let liftedBeforeMoving = hudMapFrame != nil && pointerSelection.isWaitingAtCenter
+            // 開いたまま真ん中から出ずに離したか（先に届く .hideHUD で覚えたもの。まだ隠していなければここで見る）
+            let liftedBeforeMoving = hudMapFrame != nil ? pointerSelection.isWaitingAtCenter : wasHiddenBeforeMoving
+            wasHiddenBeforeMoving = false
             tickTask?.cancel()
             tickTask = nil
             if services.keyboard.isSuppressingPointer {
@@ -635,6 +638,11 @@ public final class NonetController {
     }
 
     private func hideHUD() {
+        // セッションの終わりは .hideHUD の後に .sessionEnded が届くので、ポインタの選び方を捨てる前に、
+        // 開いたまま真ん中から出ずに閉じたかを覚えておく（CancellationRecord.liftedBeforeMoving）
+        if hudMapFrame != nil {
+            wasHiddenBeforeMoving = pointerSelection.isWaitingAtCenter
+        }
         hudMapFrame = nil
         lastHUDState = nil
         pointerSelection = ControllerPointerSelection()
@@ -898,6 +906,8 @@ public final class NonetController {
     private func startKeyboard() -> Bool {
         let keyboard = services.keyboard
         guard !keyboard.isRunning else { return true }
+        // 開いている間にタップが無効になった: 作り直す前にセッションを終える（作り直しでポインタの抑止が外れ、開いたまま残らないように）
+        endSession()
         do {
             try keyboard.start()
             // マウスやホイールのイベントを見分けられるよう、トラックパッドに触れているかを先に知らせておく
@@ -911,10 +921,13 @@ public final class NonetController {
     }
 
     private func stopKeyboard() {
-        guard services.keyboard.isRunning else { return }
+        let wasRunning = services.keyboard.isRunning
         endSession()
+        // 動いていなくても止める（システムに無効にされたタップと、その後片付けを残さない。止める物が無ければ何もしない）
         services.keyboard.stop()
-        controllerLogger.info("キーボードの監視を止めました")
+        if wasRunning {
+            controllerLogger.info("キーボードの監視を止めました")
+        }
     }
 
     private func serviceFailed(_ name: String, _ error: any Error) {

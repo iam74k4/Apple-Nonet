@@ -190,6 +190,28 @@ import Testing
         h.keyboard.pressKey()
     }
 
+    @Test("ポインタで選ぶとき、開いてすぐ（真ん中から出さずに）離したやめ方は、そうと分かるように記録する（初回の案内の「外枠で離す」に数えない）")
+    func liftingBeforeMovingIsRecorded() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.hud.mapFrame = Self.map
+        h.keyboard.pointerLocation = Self.center
+        h.open()
+        h.liftAndClose()
+        #expect(h.controller.lastCancellation?.reason == .liftedInFrame)
+        #expect(h.controller.lastCancellation?.liftedBeforeMoving == true)
+
+        // 輪の外まで動かしてから離せば、ふつうのやめ方
+        h.keyboard.pointerLocation = Self.center
+        h.open()
+        h.advance(0.05)
+        h.keyboard.pointerLocation = Self.pointer(0, 150)
+        h.touch(x: 0.5, y: 0.5)
+        h.liftAndClose()
+        #expect(h.controller.lastCancellation?.reason == .liftedInFrame)
+        #expect(h.controller.lastCancellation?.liftedBeforeMoving == false)
+    }
+
     @Test("右の外へ出して止めると次のページ。外枠の中で動かしても数え直さない")
     func holdingOutsideToTheRightTurnsThePage() throws {
         let h = try ControllerHarness()

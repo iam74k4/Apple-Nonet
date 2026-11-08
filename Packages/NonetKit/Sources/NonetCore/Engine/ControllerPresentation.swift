@@ -57,8 +57,16 @@ public enum ControllerPresentation {
     /// プロファイルを「グローバルのページを使う」にしていればそのこと。層が2つ・前面のアプリが分からなければ nil
     public static func layerHint(configuration: NonetConfiguration, pages: [ResolvedPage], frontmostBundleID: String?) -> String? {
         guard globalPagesStart(pages) == nil, let bundleID = frontmostBundleID?.trimmedNonEmpty else { return nil }
-        if let index = configuration.appProfileIndex(forBundleID: bundleID), configuration.profiles[index].mode == .global {
-            return String(localized: "このアプリはグローバルのページを使います", bundle: .module)
+        if let index = configuration.appProfileIndex(forBundleID: bundleID) {
+            switch configuration.profiles[index].mode {
+            case .global:
+                return String(localized: "このアプリはグローバルのページを使います", bundle: .module)
+            case .off:
+                // 「このアプリでは使わない」（ふだんは開かない。初回の案内の練習でだけ開く）: ページが無いのではないので、何も言わない
+                return nil
+            case .profile:
+                break
+            }
         }
         return String(localized: "このアプリのページはまだありません", bundle: .module)
     }

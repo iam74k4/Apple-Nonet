@@ -97,12 +97,16 @@ struct SettingsUninstaller {
         guard targets.app.pathExtension == "app" else { throw SettingsUninstallError.notAnApp }
         var result = SettingsUninstallResult()
         let wasLoginItemEnabled = loginItem.isEnabled
-        // 動いている登録だけでなく、システム設定での許可待ちの登録も外す（setEnabled(false) は、登録が無ければ何もしない）
-        do {
-            try loginItem.setEnabled(false)
-        } catch {
-            uninstallLog.error("ログイン時の起動を止められませんでした: \(error.localizedDescription, privacy: .public)")
-            result.loginItemFailed = true
+        // システム設定での許可待ちの登録は、アプリをゴミ箱に入れられてから外す（入れられずにやめるとき、登録し直すと
+        // システム設定が開いてしまうので、先に外さない）
+        let waitsForApproval = !wasLoginItemEnabled && loginItem.isRegistered
+        if wasLoginItemEnabled {
+            do {
+                try loginItem.setEnabled(false)
+            } catch {
+                uninstallLog.error("ログイン時の起動を止められませんでした: \(error.localizedDescription, privacy: .public)")
+                result.loginItemFailed = true
+            }
         }
         do {
             try trash.moveToTrash(targets.app)
@@ -112,6 +116,14 @@ struct SettingsUninstaller {
                 try? loginItem.setEnabled(true)
             }
             throw SettingsUninstallError.appNotTrashed
+        }
+        if waitsForApproval {
+            do {
+                try loginItem.setEnabled(false)
+            } catch {
+                uninstallLog.error("許可待ちのログイン項目を外せませんでした: \(error.localizedDescription, privacy: .public)")
+                result.loginItemFailed = true
+            }
         }
         stopController()
         for folder in [targets.settingsFolder] + targets.caches where trash.exists(folder) {

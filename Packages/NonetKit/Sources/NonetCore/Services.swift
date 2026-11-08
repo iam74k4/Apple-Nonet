@@ -259,7 +259,14 @@ public protocol AIAvailabilityProviding: AnyObject {
 @MainActor
 public protocol LoginItemControlling: AnyObject {
     var isEnabled: Bool { get }
+    /// 登録してある（動いている、またはシステム設定の「ログイン項目」での許可待ち）
+    var isRegistered: Bool { get }
     func setEnabled(_ enabled: Bool) throws
+}
+
+extension LoginItemControlling {
+    /// 許可待ちを区別しない実装の既定
+    public var isRegistered: Bool { isEnabled }
 }
 
 // MARK: - 時間
