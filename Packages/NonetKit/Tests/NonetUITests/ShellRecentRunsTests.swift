@@ -47,6 +47,16 @@ struct ShellRecentRunsTests {
         #expect(MenuBarModel.recentRunTitle(failedWithoutReason) == base)
     }
 
+    @Test("VoiceOver では ✓・✗ の代わりに、成功・失敗を言葉で読む")
+    func accessibilityLabels() {
+        let ok = Self.record(profile: "Xcode")
+        #expect(MenuBarModel.recentRunAccessibilityLabel(ok) == L10n.ui("成功: \("Xcode") › \("ビルド")"))
+        let failed = Self.record(profile: "Xcode", succeeded: false, message: "終了コード 1\n詳しいログ")
+        let base = L10n.ui("失敗: \("Xcode") › \("ビルド")")
+        #expect(MenuBarModel.recentRunAccessibilityLabel(failed) == L10n.ui("\(base) — \("終了コード 1")"))
+        #expect(!MenuBarModel.recentRunAccessibilityLabel(failed).contains("✗"))
+    }
+
     @Test("表示名の無いマスは、いまの設定のそのマスのアクションの説明で出す（「」と出さない）")
     func unnamedCellTitles() {
         let cell = Cell(title: "", icon: .symbol("keyboard"), action: .keystroke(.key("b", .command)))

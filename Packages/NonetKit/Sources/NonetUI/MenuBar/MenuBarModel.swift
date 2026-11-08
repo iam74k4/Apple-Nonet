@@ -298,6 +298,18 @@ enum MenuBarModel {
         }
     }
 
+    /// 最近の実行の項目の VoiceOver の読み上げ。✓・✗ の記号ではなく、成功・失敗を言葉で言う（記号の名前を読ませない）
+    static func recentRunAccessibilityLabel(_ record: ExecutionRecord, in configuration: NonetConfiguration? = nil) -> String {
+        let title = cellTitle(of: record, in: configuration)
+        let base = record.succeeded
+            ? String(localized: "成功: \(record.profileName) › \(title)", bundle: .module)
+            : String(localized: "失敗: \(record.profileName) › \(title)", bundle: .module)
+        guard !record.succeeded,
+              let reason = record.message?.split(separator: "\n").first.map(String.init),
+              !reason.isEmpty else { return base }
+        return String(localized: "\(base) — \(reason)", bundle: .module)
+    }
+
     /// 実行したマスの名前。表示名の無いマスは、いまの設定のそのマスのアクションの説明（設定の格子・早見表と同じ。「」と出さない）
     static func cellTitle(of record: ExecutionRecord, in configuration: NonetConfiguration?) -> String {
         guard record.cellTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

@@ -7349,6 +7349,22 @@
         }
       }
     },
+    "失敗: %@ › %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed: %1$@ › %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "失敗: %1$@ › %2$@"
+          }
+        }
+      }
+    },
     "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに" : {
       "localizations" : {
         "en" : {
@@ -7677,6 +7693,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About"
+          }
+        }
+      }
+    },
+    "成功: %@ › %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Succeeded: %1$@ › %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "成功: %1$@ › %2$@"
           }
         }
       }

@@ -234,6 +234,7 @@ public final class MenuBarController {
             let submenu = NSMenu(title: entry.title)
             for record in records {
                 let run = NSMenuItem(title: MenuBarModel.recentRunTitle(record, in: controller.configuration), action: #selector(MenuBarActionTarget.runAction(_:)), keyEquivalent: "")
+                run.setAccessibilityLabel(MenuBarModel.recentRunAccessibilityLabel(record, in: controller.configuration))
                 run.target = actionTarget
                 run.representedObject = MenuBarAction { [weak self] in
                     guard let self else { return }

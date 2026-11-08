@@ -50,6 +50,7 @@ public final class SystemActionPerformer: ActionPerforming {
         switch action {
         case .keystroke(let keys):
             try KeyTarget.check(expected: frontmost, frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
+            if try await pressMenuItemForUntypableShortcut(keys, frontmost: frontmost) { return nil }
             try await keySender.send(keys)
         case .launchApp(let launch):
             try await AppLauncher.launch(launch)
@@ -143,6 +144,26 @@ public final class SystemActionPerformer: ActionPerforming {
     }
 
     // MARK: - メニュー項目
+
+    /// 今のキー配列で打てない1打のショートカット（ドイツ語・フランス語の配列の ⌘[ など）は、前面のアプリのメニューに
+    /// 同じショートカットの項目があれば、それを押す。押したら true。打てる・項目が無い・許可が無ければ false（キーを送る。
+    /// 打てなければ、これまでどおり「今のキー配列では入力できません」になる）
+    private func pressMenuItemForUntypableShortcut(_ keys: KeySequence, frontmost: RunningAppInfo?) async throws -> Bool {
+        guard keys.chords.count == 1, let frontmost, AXIsProcessTrusted(),
+              (try? keySender.strokes(for: keys, keyboardType: KeyboardLayoutResolver.currentKeyboardType())) == nil else { return false }
+        let pid = frontmost.processID
+        let path = await Task.detached(priority: .userInitiated) { () -> [String]? in
+            guard let nodes = try? MenuTreeBuilder.build(AXMenuTree(pid: pid)) else { return nil }
+            return MenuShortcutSearch.path(for: keys, in: nodes)
+        }.value
+        guard let path else { return false }
+        ActionLog.logger.notice("今のキー配列で打てないショートカットなので、同じショートカットのメニュー項目を押します")
+        let name = frontmost.app.name
+        try await Task.detached(priority: .userInitiated) {
+            try MenuItemPresser.press(path: path, keyEquivalent: keys, pid: pid, appName: name)
+        }.value
+        return true
+    }
 
     private func pressMenuItem(_ action: MenuItemAction, frontmost: RunningAppInfo?) async throws {
         let target: NSRunningApplication

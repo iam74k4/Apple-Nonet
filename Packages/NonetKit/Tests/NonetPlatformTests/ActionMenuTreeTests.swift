@@ -259,4 +259,22 @@ struct ActionRunningAppsTests {
         #expect(apps.map(\.app.name) == ["App 2", "App 10", "com.example.unnamed", "Safari", "Xcode"])
         #expect(apps.first { $0.app.bundleID == "com.apple.Safari" }?.processID == 10)
     }
+
+    /// 今のキー配列で打てないショートカット（ドイツ語の配列の ⌘[ など）の代わりに押す項目: 同じショートカットの、使える、子の無い項目
+    @Test("ショートカットでメニュー項目を探す")
+    func findsAMenuItemByShortcut() {
+        let back = KeySequence.key("[", .command)
+        let nodes = [
+            MenuItemNode(title: "表示", path: ["表示"], children: [
+                MenuItemNode(title: "戻る（使えない）", path: ["表示", "戻る（使えない）"], keyEquivalent: back, isEnabled: false),
+            ]),
+            MenuItemNode(title: "履歴", path: ["履歴"], children: [
+                MenuItemNode(title: "戻る", path: ["履歴", "戻る"], keyEquivalent: back),
+                MenuItemNode(title: "進む", path: ["履歴", "進む"], keyEquivalent: .key("]", .command)),
+            ]),
+        ]
+        #expect(MenuShortcutSearch.path(for: back, in: nodes) == ["履歴", "戻る"])
+        #expect(MenuShortcutSearch.path(for: .key("]", .command), in: nodes) == ["履歴", "進む"])
+        #expect(MenuShortcutSearch.path(for: .key("[", [.shift, .command]), in: nodes) == nil)
+    }
 }
