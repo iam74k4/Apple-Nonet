@@ -5,6 +5,7 @@
 // - 前面のアプリを固定する（--demo-app）
 // - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる。付けなければ実機の指をそのまま使う
 // 画面の隅のトラックパッドの図は、どちらのときも指の位置（TouchFrame）をそのまま示す
+// 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の暗いグラデーションとメニューバー）を敷き、実際の画面を写さない
 import AppKit
 import NonetCore
 import NonetUI
@@ -283,17 +284,20 @@ final class DemoSession {
         return services
     }
 
-    /// 背景と図を出し、撮る範囲を標準出力に書く（screencapture -R の x,y,幅,高さ。左上が原点）
+    /// 背景と図を出し、撮る範囲を標準出力に書く（screencapture -R の x,y,幅,高さ。左上が原点）。
+    /// 背景（--demo-backdrop）は必ず敷く。敷かずに撮ると、ユーザーの画面（壁紙・ほかのウインドウ）が写る。
+    /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（暗いグラデーションとメニューバー）にそろえる
     func present() {
         guard let screen = NSScreen.main else { return }
         let region = CGRect(x: 0, y: 0, width: screen.frame.width, height: (screen.frame.width / Self.aspect).rounded())
-        if let url = options.demoBackdrop, let image = NSImage(contentsOf: url) {
-            backdrop = window(frame: screen.frame, level: NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue - 1)) {
-                let view = NSImageView(frame: NSRect(origin: .zero, size: screen.frame.size))
-                view.image = image
-                view.imageScaling = .scaleAxesIndependently
-                return view
-            }
+        guard let image = Self.backdropImage(options.demoBackdrop, fitting: screen.frame.size) else {
+            exit(2)
+        }
+        backdrop = window(frame: screen.frame, level: NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue - 1)) {
+            let view = NSImageView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            view.image = image
+            view.imageScaling = .scaleAxesIndependently
+            return view
         }
         // 撮る範囲の右下（下の端から 40pt、右の端から 44pt）
         let origin = NSPoint(
@@ -304,6 +308,25 @@ final class DemoSession {
             NSHostingView(rootView: DemoTrackpadView(model: model))
         }
         DemoLog.write("demo: capture-region=\(Int(region.minX)),\(Int(region.minY)),\(Int(region.width)),\(Int(region.height))")
+    }
+
+    /// 敷く背景の画像。無い・読めない・画面と縦横比が違う（引き伸ばすとメニューバーの字がゆがむ）ときは、理由を書いて nil
+    private static func backdropImage(_ url: URL?, fitting screen: CGSize) -> NSImage? {
+        let hint = "scripts/make-backdrop.swift で画面と同じ大きさに作る（swift scripts/make-backdrop.swift backdrop.png）"
+        guard let url else {
+            DemoLog.write("demo: error: --demo-backdrop <画像> が要ります。\(hint)")
+            return nil
+        }
+        guard let image = NSImage(contentsOf: url), let rep = image.representations.first, rep.pixelsWide > 0, rep.pixelsHigh > 0 else {
+            DemoLog.write("demo: error: 背景の画像を読めません: \(url.path)")
+            return nil
+        }
+        let ratio = CGFloat(rep.pixelsWide) / CGFloat(rep.pixelsHigh)
+        guard abs(ratio - screen.width / screen.height) < 0.01 else {
+            DemoLog.write("demo: error: 背景の縦横比（\(rep.pixelsWide)×\(rep.pixelsHigh)）が画面（\(Int(screen.width))×\(Int(screen.height)) pt）と違います。\(hint)")
+            return nil
+        }
+        return image
     }
 
     private func window(frame: NSRect, level: NSWindow.Level, content: () -> NSView) -> NSWindow {
