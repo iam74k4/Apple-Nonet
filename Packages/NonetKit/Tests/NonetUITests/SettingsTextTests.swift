@@ -120,6 +120,14 @@ import Testing
         let typed = try #require(SettingsImportPlan.textTypedByKeyCodes(.keystroke(joined), keys: FakeKeyCharacters()))
         #expect(typed == "rm -rf ~")
         #expect(SettingsImportPlan.suspiciousTerms(in: typed).contains("rm -rf"))
+        // ⌫ で消した文字・← で戻って打った文字も、実際に打つ並びにする（「x」⌫「rm」・「m」←「r」→）
+        let deleted = KeySequence([KeyChord(.character("x")), KeyChord(.special(.delete)), KeyChord(.keyCode(56)), KeyChord(.character("rm -rf ~"))])
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(deleted), keys: FakeKeyCharacters()) == "rm -rf ~")
+        let moved = KeySequence([KeyChord(.character("m")), KeyChord(.special(.leftArrow)), KeyChord(.character("r")), KeyChord(.special(.rightArrow)), KeyChord(.keyCode(56)), KeyChord(.character(" -rf ~"))])
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(moved), keys: FakeKeyCharacters()) == "rm -rf ~")
+        // ⌥⌫ は語ごと消す。⌦・Home・End も打つ場所の決まりどおり
+        let words = KeySequence([KeyChord(.character("echo hi")), KeyChord(.special(.delete), modifiers: .option), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), KeyChord(.special(.end)), KeyChord(.keyCode(56)), KeyChord(.character("x"))])
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters()) == "cho x")
         // キーコードを含まなければ、表記で読めるので nil
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない

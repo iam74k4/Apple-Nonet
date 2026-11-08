@@ -162,26 +162,107 @@ struct SettingsImportPlan: Identifiable, Equatable {
     }
 
     /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーを、文字で書いたものも含めて順に）。
+    /// ⌫・⌦・矢印・Home・End は、打った文字を消したり、打つ場所を動かしたりする（TypedText）。
     /// キーコードを含まない・文字にならなければ nil
     static func textTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> String? {
         guard case .keystroke(let sequence) = action, let translator,
               sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
-        let text = sequence.chords.compactMap { chord -> String? in
-            guard chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
-            if let typed = translator.characters(for: chord) { return typed }
-            switch chord.key {
-            case .character(let character):
-                return character
-            // Space・Return・Tab は語の区切りとして残す（落とすと、前後の文字がつながって注意が要る命令を見逃す）
-            case .special(.space), .special(.returnKey), .special(.tab):
-                return " "
-            // 文字を打たないキー（修飾キー・消音・英数・かな・矢印など）は落とす。区切りにすると、
-            // 「r」修飾キー「m」が「r m」に見えて、実際に打つ「rm」を見逃す
-            case .special, .keyCode:
-                return nil
+        var typed = TypedText()
+        for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
+            let byWord = chord.modifiers.contains(.option)
+            if let characters = translator.characters(for: chord) {
+                // キーコードの ⌫ や矢印は、制御文字として返る
+                for character in characters { typed.type(character, byWord: byWord) }
+            } else if case .character(let text) = chord.key {
+                for character in text { typed.type(character, byWord: byWord) }
+            } else if case .special(let key) = chord.key {
+                typed.press(key, byWord: byWord)
             }
-        }.joined()
+            // 文字を打たないキー（修飾キー・消音・英数・かな・↑↓・Esc・F キーなど）は何もしない。区切りにすると、
+            // 「r」修飾キー「m」が「r m」に見えて、実際に打つ「rm」を見逃す
+        }
+        let text = String(typed.characters)
         return text.isEmpty ? nil : text
+    }
+
+    /// 1行の入力欄で打った結果。打つ場所（cursor）に文字を入れ、⌫・⌦ で消し、←→・Home・End で打つ場所を動かす。
+    /// ⌥ を付けた ←→⌫ は語ごと。Return・Tab・Space は語の区切り（Return は行の最後へ移ってから）。
+    /// 消してから打った文字（「x」⌫「rm」）や、戻って前に打った文字（「m」←「r」）も、実際に打つ並びにして命令を探す
+    struct TypedText {
+        private(set) var characters: [Character] = []
+        private var cursor = 0
+
+        mutating func type(_ character: Character, byWord: Bool) {
+            switch character.unicodeScalars.first?.value ?? 0 {
+            case 0x08:
+                press(.delete, byWord: byWord)
+            case 0x7F:
+                press(.forwardDelete, byWord: byWord)
+            case 0x0D, 0x0A, 0x03:
+                press(.returnKey, byWord: byWord)
+            case 0x09:
+                press(.tab, byWord: byWord)
+            case 0x1C:
+                press(.leftArrow, byWord: byWord)
+            case 0x1D:
+                press(.rightArrow, byWord: byWord)
+            case 0x01:
+                press(.home, byWord: byWord)
+            case 0x04:
+                press(.end, byWord: byWord)
+            case 0x00..<0x20:
+                // ほかの制御文字（↑↓・Esc など）は文字を打たない
+                break
+            default:
+                insert(character)
+            }
+        }
+
+        mutating func press(_ key: SpecialKey, byWord: Bool) {
+            switch key {
+            case .space, .tab:
+                insert(" ")
+            case .returnKey:
+                cursor = characters.count
+                insert(" ")
+            case .delete:
+                let start = byWord ? wordStart(before: cursor) : max(0, cursor - 1)
+                characters.removeSubrange(start..<cursor)
+                cursor = start
+            case .forwardDelete:
+                let end = byWord ? wordEnd(after: cursor) : min(characters.count, cursor + 1)
+                characters.removeSubrange(cursor..<end)
+            case .leftArrow:
+                cursor = byWord ? wordStart(before: cursor) : max(0, cursor - 1)
+            case .rightArrow:
+                cursor = byWord ? wordEnd(after: cursor) : min(characters.count, cursor + 1)
+            case .home:
+                cursor = 0
+            case .end:
+                cursor = characters.count
+            default:
+                break
+            }
+        }
+
+        private mutating func insert(_ character: Character) {
+            characters.insert(character, at: cursor)
+            cursor += 1
+        }
+
+        private func wordStart(before position: Int) -> Int {
+            var index = position
+            while index > 0, characters[index - 1].isWhitespace { index -= 1 }
+            while index > 0, !characters[index - 1].isWhitespace { index -= 1 }
+            return index
+        }
+
+        private func wordEnd(after position: Int) -> Int {
+            var index = position
+            while index < characters.count, characters[index].isWhitespace { index += 1 }
+            while index < characters.count, !characters[index].isWhitespace { index += 1 }
+            return index
+        }
     }
 
     /// キー入力かメニュー項目のショートカットが、Return と同じ働きのキーか ⌃ の付いたキーを押す

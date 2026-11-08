@@ -106,11 +106,15 @@ struct TouchDeviceSelector: Sendable {
 
 /// メインスレッドが遅れたときにフレームをまとめる。触れている指の組み合わせが同じ間は、
 /// その最初のフレームと最新のフレームと、途中の位置を keepInterval ごとに1つ残す（指を置いた時刻と今の位置は失わない）。
-/// 指が増えた・減ったフレームは残すので、短いタップも取りこぼさない。上限を超えたら古いものから捨てる
+/// 指が増えた・減ったフレームは残すので、短いタップも取りこぼさない。上限を超えたら途中の位置から捨てる（dropOne）
 struct TouchFrameCoalescer: Sendable {
     /// 途中の位置を残す間隔。9マスを開くかは、指を置いてから決まった時間のうちに滑らせたかで決まる。
     /// 最新のフレームだけにすると、メインスレッドが長く止まったとき、間に合った滑りも遅すぎたように見えて開かない
     static let keepInterval: TimeInterval = 0.05
+    /// 指を置いてからこの間の位置は、上限を超えても後まで残す（開く動きを見る時間。いちばん長い「開きやすい」に合わせる）
+    static let openingWindow: TimeInterval = EdgeSlideRecognizer.Thresholds(.high).window + EdgeSlideRecognizer.entryConfirmDelay
+    /// ふだんの上限。開く動きを見る時間の位置（約 21 個）と、今に近い位置（マスで止めていた時間が分かるだけ）を残せる
+    static let defaultCapacity = 64
 
     let capacity: Int
     private var pending: [(frame: TouchFrame, ids: [Int])] = []
@@ -136,16 +140,34 @@ struct TouchFrameCoalescer: Sendable {
         }
     }
 
-    /// 上限を超えたとき。途中の位置（前後と同じ指の組み合わせのフレーム）を、最新に近いものから捨てる。
+    /// 上限を超えたとき。途中の位置（前後と同じ指の組み合わせのフレーム）を1つ捨てる。捨てるのは:
+    /// 1. 指を置いてから openingWindow より後の位置の、いちばん古いもの（開く動きを見る最初の位置と、今に近い位置を残す。
+    ///    今に近い位置が無いと、マスで止めていた時間が分からず、長押しのマスが実行できない）
+    /// 2. それが無ければ、最新に近い途中の位置
     /// 指が増えた・減ったフレームと、離れたことにしたフレームは残す（捨てると、離した・置き直したことが分からなくなる）。
-    /// 早い時刻の位置も残す（開くかは、指を置いてからの時間で決まる）。途中の位置が無ければ、古いものから捨てる
+    /// 途中の位置が無ければ、古いものから捨てる
     private mutating func dropOne() {
         let n = pending.count
-        if n >= 3, let index = (1..<(n - 1)).reversed().first(where: { index in
-            pending[index - 1].ids == pending[index].ids && pending[index + 1].ids == pending[index].ids
-                && !pending[index].frame.isSynthesizedLift
-        }) {
-            pending.remove(at: index)
+        guard n >= 3 else {
+            pending.removeFirst()
+            return
+        }
+        var runStart = pending[0].frame.timestamp
+        var latestMiddle: Int?
+        for index in 1..<(n - 1) {
+            if pending[index].ids != pending[index - 1].ids || pending[index - 1].frame.isSynthesizedLift {
+                runStart = pending[index].frame.timestamp
+            }
+            guard pending[index - 1].ids == pending[index].ids, pending[index + 1].ids == pending[index].ids,
+                  !pending[index].frame.isSynthesizedLift else { continue }
+            if pending[index].frame.timestamp - runStart > Self.openingWindow {
+                pending.remove(at: index)
+                return
+            }
+            latestMiddle = index
+        }
+        if let latestMiddle {
+            pending.remove(at: latestMiddle)
         } else {
             pending.removeFirst()
         }
@@ -174,7 +196,7 @@ final class TouchPipeline: @unchecked Sendable {
     private let state: OSAllocatedUnfairLock<State>
     private let scheduleDrain: @Sendable () -> Void
 
-    init(capacity: Int = 32, staleInterval: TimeInterval = 0.5, scheduleDrain: @escaping @Sendable () -> Void) {
+    init(capacity: Int = TouchFrameCoalescer.defaultCapacity, staleInterval: TimeInterval = 0.5, scheduleDrain: @escaping @Sendable () -> Void) {
         var selector = TouchDeviceSelector()
         selector.staleInterval = staleInterval
         state = OSAllocatedUnfairLock(initialState: State(selector: selector, coalescer: TouchFrameCoalescer(capacity: capacity)))

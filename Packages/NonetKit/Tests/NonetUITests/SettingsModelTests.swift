@@ -352,6 +352,11 @@ import Testing
         // 別の種類から「開く」に戻すと、前に使っていた URL に戻る
         h.model.chooseKind(ofCell: id, .launchApp)
         #expect(h.model.cell(id: id)?.action == url)
+        // アプリ・URL の切り替えでアプリにしてから、別の中身に差し替えて「開く」に戻すと、アプリになる（前の URL に戻さない）
+        h.model.changeKind(ofCell: id, to: .launchApp)
+        h.model.replaceAction(ofCell: id, with: .keystroke(KeySequence([KeyChord(.character("b"), modifiers: .command)])))
+        h.model.chooseKind(ofCell: id, .launchApp)
+        #expect(h.model.cell(id: id)?.action.kind == .launchApp)
     }
 
     /// 記録中にライセンスのタブへ移って ⌘V を押しても、記録には入らない

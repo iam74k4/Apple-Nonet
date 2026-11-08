@@ -896,8 +896,12 @@ final class SettingsModel {
             cancelRecording()
         }
         rememberedActions[id, default: [:]][cell.action.kind] = cell.action
+        // 「開く」のアプリか URL か。アプリ・URL の切り替えでは、切り替えた先を覚える
         if SettingsActionKinds.menuKind(of: cell.action) == .launchApp {
             lastOpenKinds[id] = cell.action.kind
+        }
+        if kind == .launchApp || kind == .openURL {
+            lastOpenKinds[id] = kind
         }
         let remembered = rememberedActions[id]?[kind]
         updateCell(id: id) { cell in

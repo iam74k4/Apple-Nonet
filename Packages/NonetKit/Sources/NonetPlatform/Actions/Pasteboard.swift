@@ -471,7 +471,7 @@ final class PasteDataProvider: NSObject, NSPasteboardItemDataProvider, @unchecke
         self.text = text
     }
 
-    /// 最初に読まれた時刻。まだなら nil
+    /// 最初に読まれた時刻（ClipboardPaste.steadyNow の時計）。まだなら nil
     var requestedAt: Date? {
         lock.lock()
         defer { lock.unlock() }
@@ -480,7 +480,7 @@ final class PasteDataProvider: NSObject, NSPasteboardItemDataProvider, @unchecke
 
     func pasteboard(_ pasteboard: NSPasteboard?, item: NSPasteboardItem, provideDataForType type: NSPasteboard.PasteboardType) {
         lock.lock()
-        if firstRequest == nil { firstRequest = Date() }
+        if firstRequest == nil { firstRequest = ClipboardPaste.steadyNow() }
         lock.unlock()
         item.setString(text, forType: type)
     }
@@ -696,11 +696,11 @@ enum ClipboardPaste {
                 if pasteboard.changeCount == changeCount { snapshot.restore(to: pasteboard) }
                 throw error
             }
-            let pastedAt = Date()
+            let pastedAt = Self.steadyNow()
             let token = session.setPendingRestore(snapshot, changeCount: changeCount)
             Task { @MainActor in
                 // 相手が読み終えるのを待つ。その間に次の操作が始まったら、その操作が戻す。利用者がコピーしたものは消さない
-                while !Self.isTimeToRestore(now: Date(), pastedAt: pastedAt, requestedAt: provider.requestedAt, timing: timing) {
+                while !Self.isTimeToRestore(now: Self.steadyNow(), pastedAt: pastedAt, requestedAt: provider.requestedAt, timing: timing) {
                     try? await Task.sleep(for: .milliseconds(50))
                     guard session.isPending(token) else { return }
                 }
@@ -711,11 +711,16 @@ enum ClipboardPaste {
         }
     }
 
+    /// 待つ時間を測る時計（起動してからの秒を Date の形にしたもの）。時計を合わせ直しても進み方が変わらないので、
+    /// 戻したときに長く待ったり、進めたときに相手が読む前に戻したりしない
+    static func steadyNow() -> Date {
+        Date(timeIntervalSinceReferenceDate: ProcessInfo.processInfo.systemUptime)
+    }
+
     /// 読まれたら少し待ってから（ただし ⌘V から minimumDelay は待つ）、読まれないままなら fallback で戻す
     static func isTimeToRestore(now: Date, pastedAt: Date, requestedAt: Date?, timing: Timing) -> Bool {
         let sincePaste = now.timeIntervalSince(pastedAt)
-        // 時計が戻った（手で合わせた・スリープ明けに合わせ直した）ときは、戻した分を待たずにすぐ戻す
-        if sincePaste >= timing.fallback || sincePaste < 0 { return true }
+        if sincePaste >= timing.fallback { return true }
         guard let requestedAt else { return false }
         return sincePaste >= timing.minimumDelay && now.timeIntervalSince(requestedAt) >= timing.settle
     }

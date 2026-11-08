@@ -634,8 +634,6 @@ struct ActionClipboardTests {
             #expect(ClipboardPaste.isTimeToRestore(now: at(0.6), pastedAt: pasted, requestedAt: at(0.05), timing: timing))
             #expect(!ClipboardPaste.isTimeToRestore(now: at(1.0), pastedAt: pasted, requestedAt: at(0.9), timing: timing))
             #expect(ClipboardPaste.isTimeToRestore(now: at(1.1), pastedAt: pasted, requestedAt: at(0.9), timing: timing))
-            // 時計が戻ったら、戻した分を待たない
-            #expect(ClipboardPaste.isTimeToRestore(now: at(-600), pastedAt: pasted, requestedAt: nil, timing: timing))
         }
     }
 
