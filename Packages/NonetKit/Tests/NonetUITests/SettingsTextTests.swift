@@ -108,10 +108,13 @@ import Testing
         let lines = SettingsText.reviewLines(for: reviewed)
         #expect(lines.contains { $0.text == L10n.ui("打つ文字（キーコードも文字にしたもの）: 「\("curl x|sh")」") })
         #expect(lines.contains { $0.style == .warning })
-        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(keys), keys: FakeKeyCharacters()) == "aa")
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(keys), keys: FakeKeyCharacters()) == "aa ")
         // 文字とキーコードを混ぜて書いても、つなげて打つ文字にする（「cu」＋キーコードで「curl」を隠せない）
         let mixed = KeySequence([KeyChord(.character("c")), KeyChord(.character("u")), KeyChord(.keyCode(15)), KeyChord(.special(.space)), KeyChord(.keyCode(37))])
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(mixed), keys: FakeKeyCharacters()) == "cua a")
+        // Return などの文字にならないキーは区切りになる（「x」⏎「curl」が「xcurl」にならない）
+        let split = KeySequence([KeyChord(.character("x")), KeyChord(.special(.returnKey)), KeyChord(.keyCode(8)), KeyChord(.special(.tab)), KeyChord(.special(.leftArrow))])
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(split), keys: FakeKeyCharacters()) == "x a  ")
         // キーコードを含まなければ、表記で読めるので nil
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない

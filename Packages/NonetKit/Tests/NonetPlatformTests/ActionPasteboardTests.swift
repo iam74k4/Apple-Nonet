@@ -693,4 +693,19 @@ struct ActionBlockingCallTests {
             #expect(pasteboard.string(forType: .string) == "result")
         }
     }
+
+    /// 貼り付けた中身を相手がまだ読んでいない間は、結果を書かずに待つ（先に書くと、相手はこちらの結果を貼り付ける）
+    @MainActor @Test func resultWritesWaitUntilAPasteIsRead() async throws {
+        try await withPrivatePasteboard { pasteboard in
+            put("before", on: pasteboard)
+            let timing = ClipboardPaste.Timing(settle: 0.05, minimumDelay: 0.1, fallback: 3)
+            _ = try await ClipboardPaste.paste("pasted", to: pasteboard, timing: timing) {}
+            let writer = Task { @MainActor in await PasteboardWriter.writeAfterOtherOperations("result", to: pasteboard) }
+            // 相手のアプリが少し遅れて読む。そのときに届くのは、貼り付けたもの（書き終えた結果ではない）
+            try await Task.sleep(for: .milliseconds(200))
+            #expect(pasteboard.string(forType: .string) == "pasted")
+            _ = await writer.value
+            #expect(pasteboard.string(forType: .string) == "result")
+        }
+    }
 }

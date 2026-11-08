@@ -1,6 +1,7 @@
 // 担当: platform-actions
 import AppKit
 import NonetCore
+import os
 
 /// 起動中アプリの候補（NSRunningApplication から必要なものだけ）
 struct RunningAppCandidate: Equatable {
@@ -72,13 +73,34 @@ public final class AccessibilityMenuReader: MenuReading {
         let name = app.app.name.isEmpty ? app.app.bundleID : app.app.name
         let pid = app.processID
         do {
-            // 遅いアプリでは数秒かかる。メインスレッドはキーのイベントタップも動かしているので塞がない
-            return try await Task.detached(priority: .userInitiated) {
-                try MenuTreeBuilder.build(AXMenuTree(pid: pid))
-            }.value
+            // 遅いアプリでは数秒かかる。メインスレッドはキーのイベントタップも動かしているので塞がない。
+            // 呼んだ側が取り消したら（ほかのアプリを選び直した）、裏の読み取りもやめる（遅いアプリは要求を1つずつしか受けないので、
+            // 古い読み取りが残ると、新しい読み取りが期限に届いて途中で切れる）
+            let cancelled = MenuReadCancellation()
+            let nodes = try await withTaskCancellationHandler {
+                try await Task.detached(priority: .userInitiated) {
+                    try MenuTreeBuilder.build(AXMenuTree(pid: pid, isCancelled: { cancelled.isSet }))
+                }.value
+            } onCancel: {
+                cancelled.set()
+            }
+            // やめたなら、途中までの木を読み終えたものとして返さない
+            try Task.checkCancellation()
+            return nodes
         } catch let error as AXCallError {
             ActionLog.logger.error("メニューを読めませんでした: AXError \(error.code.rawValue)")
             throw error.nonetError(appName: name)
         }
+    }
+}
+
+/// メニューの読み取りをやめた印（裏のスレッドから読み、取り消しの通知から立てる）
+final class MenuReadCancellation: Sendable {
+    private let flag = OSAllocatedUnfairLock(initialState: false)
+
+    var isSet: Bool { flag.withLock { $0 } }
+
+    func set() {
+        flag.withLock { $0 = true }
     }
 }

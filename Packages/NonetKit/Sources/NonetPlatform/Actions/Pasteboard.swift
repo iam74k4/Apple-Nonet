@@ -390,6 +390,11 @@ final class ClipboardSession {
         pending?.token == token
     }
 
+    /// 貼り付けた中身（changeCount のまま）を、相手がまだ読み終えていない（戻していない）
+    func isPastingContent(_ changeCount: Int) -> Bool {
+        pending?.changeCount == changeCount
+    }
+
     /// token の写しがまだ戻されていなければ、戻す役を引き受ける
     func claimPendingRestore(_ token: Int) -> PasteboardSnapshot? {
         guard let pending, pending.token == token else { return nil }
@@ -429,8 +434,15 @@ enum PasteboardWriter {
     @MainActor
     @discardableResult
     static func writeAfterOtherOperations(_ text: String, to pasteboard: NSPasteboard) async -> Int {
-        await ClipboardSession.of(pasteboard).exclusive { _ in
-            write(text, to: pasteboard)
+        let session = ClipboardSession.of(pasteboard)
+        return await session.exclusive { _ in
+            // 貼り付けの順番は ⌘V を送った時点で空くが、相手のアプリが中身を読むのはその後。読み終えて戻すまで待つ
+            // （先に書くと、相手はこちらの結果を貼り付ける）。読まれないままなら、貼り付けが戻すのと同じ時間でやめる
+            let deadline = Date().addingTimeInterval(ClipboardPaste.Timing.standard.fallback + 0.5)
+            while session.isPastingContent(pasteboard.changeCount), Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            return write(text, to: pasteboard)
         }
     }
 

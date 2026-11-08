@@ -168,10 +168,10 @@ struct SettingsImportPlan: Identifiable, Equatable {
               sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
         let text = sequence.chords.compactMap { chord -> String? in
             guard chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
-            if case .special(.space) = chord.key { return " " }
             if let typed = translator.characters(for: chord) { return typed }
             if case .character(let character) = chord.key { return character }
-            return nil
+            // Space・Return・Tab など文字にならないキーも区切りとして残す（落とすと、前後の文字がつながって注意が要る命令を見逃す）
+            return " "
         }.joined()
         return text.isEmpty ? nil : text
     }

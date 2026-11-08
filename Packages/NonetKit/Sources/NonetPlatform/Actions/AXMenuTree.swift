@@ -69,11 +69,14 @@ struct AXMenuTree: MenuTree {
     let application: AXUIElement
     let timeout: Float
     let deadline: Date
+    /// 読むのをやめた（呼んだ側のタスクが取り消された）。期限と同じく、それ以上サブメニューを読まない
+    let isCancelled: @Sendable () -> Bool
 
-    init(pid: pid_t, timeout: Float = 1, budget: TimeInterval = 5) {
+    init(pid: pid_t, timeout: Float = 1, budget: TimeInterval = 5, isCancelled: @escaping @Sendable () -> Bool = { false }) {
         application = AXRead.application(pid: pid, timeout: timeout)
         self.timeout = timeout
         deadline = Date().addingTimeInterval(budget)
+        self.isCancelled = isCancelled
     }
 
     private static let attributeNames = [
@@ -115,7 +118,7 @@ struct AXMenuTree: MenuTree {
 
     /// 項目の子は AXMenu が1つで、その子が項目
     func submenuItems(of node: AXUIElement) -> [AXUIElement] {
-        guard Date() < deadline else { return [] }
+        guard Date() < deadline, !isCancelled() else { return [] }
         guard let menu = AXRead.children(node).first else { return [] }
         AXUIElementSetMessagingTimeout(menu, timeout)
         return AXRead.children(menu)

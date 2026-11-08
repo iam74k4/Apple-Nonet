@@ -2,6 +2,14 @@ import Testing
 @testable import NonetCore
 
 @Suite struct KeyNotationTests {
+    /// 修飾キーを長く並べても、深く読まない（メインスレッドの外の小さなスタックで読んでも落ちない）。読み方は変わらない
+    @Test func manyModifiersDoNotRecurse() async {
+        #expect(KeySequence(parsing: "⌃⌥⇧⌘B") == KeySequence([KeyChord(.character("b"), modifiers: [.control, .option, .shift, .command])]))
+        let long = String(repeating: "⌘", count: 999) + "B"
+        let parsed = await Task.detached { KeySequence(parsing: long) }.value
+        #expect(parsed == KeySequence([KeyChord(.character("b"), modifiers: .command)]))
+    }
+
     private static func char(_ character: String, _ modifiers: ModifierSet = []) -> KeyChord {
         KeyChord(.character(character), modifiers: modifiers)
     }

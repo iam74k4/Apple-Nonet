@@ -312,20 +312,27 @@ struct KeyNotationParser {
     }
 
     /// start から読める打鍵の候補（優先順）と、その終わりの位置
-    private func chords(at start: Int, modifiers: ModifierSet) -> [(KeyChord, Int)] {
-        let position = skipWhitespace(from: start)
-        if let (modifier, end) = modifier(at: position) {
-            let combined = modifiers.union(modifier)
+    /// 修飾キーは前から順に読む（修飾キーごとに深く読まない。「⌘⌘⌘…」のような長い入力でも、メインスレッドの外の小さなスタックで落ちない）。
+    /// 候補の順: 修飾キーをすべてつなぎとして読んだ打鍵、続けて「+」を「+」キーとして読んだもの（後ろの「+」から）
+    private func chords(at start: Int, modifiers initial: ModifierSet) -> [(KeyChord, Int)] {
+        var modifiers = initial
+        var position = skipWhitespace(from: start)
+        var plusKeys: [(KeyChord, Int)] = []
+        while let (modifier, end) = modifier(at: position) {
+            modifiers.formUnion(modifier)
             let next = skipWhitespace(from: end)
-            guard next < characters.count, characters[next] == "+" else {
-                return chords(at: end, modifiers: combined)
+            if next < characters.count, characters[next] == "+" {
+                plusKeys.append((KeyChord(.character("+"), modifiers: modifiers), next + 1))
+                position = skipWhitespace(from: next + 1)
+            } else {
+                position = skipWhitespace(from: end)
             }
-            return chords(at: next + 1, modifiers: combined) + [(KeyChord(.character("+"), modifiers: combined), next + 1)]
         }
+        var result: [(KeyChord, Int)] = []
         if let (key, end) = key(at: position) {
-            return [(KeyChord(key, modifiers: modifiers), end)]
+            result.append((KeyChord(key, modifiers: modifiers), end))
         }
-        return []
+        return result + plusKeys.reversed()
     }
 
     private func modifier(at position: Int) -> (ModifierSet, Int)? {
