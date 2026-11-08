@@ -82,7 +82,7 @@ public struct AppPreset: Identifiable, Sendable {
         let pages = pages.map { page in
             Page(cells: page.cells.map { cell in
                 cell.map { Cell(title: $0.title, icon: $0.icon, action: $0.action, requiresHold: $0.requiresHold) }
-            })
+            }, name: page.name)
         }
         return Profile(kind: .app(app), pages: pages)
     }

@@ -14,7 +14,7 @@ private final class FakeKeychainItem: TrialRecordKeychain {
         self.data = data
     }
 
-    func readTrialRecord() -> Data? { data }
+    func readTrialRecord() -> TrialRecordReading { data.map(TrialRecordReading.found) ?? .notFound }
 
     func writeTrialRecord(_ data: Data) {
         writes += 1
@@ -151,7 +151,7 @@ private final class EvidenceSandbox {
         // swift test は Developer ID で署名した Nonet ではないので、項目を読み書きしない
         let marker = SystemTrialRecordKeychain.machineMarker()
         #expect(!marker.isEnabled)
-        #expect(marker.readTrialRecord() == nil)
+        #expect(marker.readTrialRecord() == .notFound)
         #expect(marker.itemService != SystemTrialRecordKeychain.service)
     }
 

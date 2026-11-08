@@ -338,6 +338,19 @@ import Testing
         #expect(h.model.cell(id: id)?.action.kind == .openURL)
     }
 
+    /// 種類の一覧で URL のマスの「開く」を選び直しても、URL のまま（アプリの空のマスにならない）
+    @Test func choosingOpenAgainKeepsAURLCell() throws {
+        let h = try SettingsHarness()
+        let id = try keystrokeCell(h)
+        h.model.changeKind(ofCell: id, to: .openURL)
+        let url = try #require(h.model.cell(id: id)?.action)
+        h.model.chooseKind(ofCell: id, .launchApp)
+        #expect(h.model.cell(id: id)?.action == url)
+        // ほかの種類は今までどおり切り替わる
+        h.model.chooseKind(ofCell: id, .script)
+        #expect(h.model.cell(id: id)?.action.kind == .script)
+    }
+
     /// 記録中にライセンスのタブへ移って ⌘V を押しても、記録には入らない
     @Test func switchingTabsFinishesTheRecording() throws {
         let h = try SettingsHarness()

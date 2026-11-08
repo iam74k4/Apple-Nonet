@@ -81,7 +81,8 @@ final class HUDResultPanel: NSPanel {
     /// ⌘C・⌘A・⌘W はここで受ける。メインメニュー（ShellMainMenu）の「コピー」は選択が無いと使えないが、
     /// この画面では選択が無ければ全文をコピーする
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Caps Lock・テンキー・fn は見ない（Caps Lock が点いていると ⌘Q がメインメニューの「終了」に回り、Nonet が終わる）
+        let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
         guard flags == .command, let key = event.charactersIgnoringModifiers?.lowercased() else {
             return super.performKeyEquivalent(with: event)
         }

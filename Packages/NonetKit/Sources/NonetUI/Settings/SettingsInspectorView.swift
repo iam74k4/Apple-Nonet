@@ -96,7 +96,7 @@ struct SettingsCellEditor: View {
             }
             SettingsField(title: String(localized: "アクションの種類", bundle: .module)) {
                 // URL のマスも、種類の一覧では「開く」（launchApp）として見せる（SettingsOpenEditor の中でアプリと URL を切り替える）
-                Picker(selection: Binding(get: { SettingsActionKinds.menuKind(of: cell.action) }, set: { model.changeKind(ofCell: cell.id, to: $0) })) {
+                Picker(selection: Binding(get: { SettingsActionKinds.menuKind(of: cell.action) }, set: { model.chooseKind(ofCell: cell.id, $0) })) {
                     ForEach(SettingsActionKinds.ordered, id: \.self) { kind in
                         Label(SettingsActionKinds.name(kind), systemImage: SettingsActionKinds.symbol(kind))
                             .tag(kind)

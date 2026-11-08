@@ -156,6 +156,9 @@ struct ShellMainMenuTests {
         #expect(panel.performKeyEquivalent(with: Self.commandKey("w", keyCode: 13, window: panel)))
         #expect(closed == 2)
         #expect(!panel.performKeyEquivalent(with: Self.commandKey("z", keyCode: 6, window: panel)))
+        // Caps Lock が点いていても同じ（メインメニューの「終了」に回さない）
+        #expect(panel.performKeyEquivalent(with: Self.commandKey("Q", keyCode: 12, window: panel, flags: [.command, .capsLock])))
+        #expect(closed == 3)
     }
 
     static func item(in menu: NSMenu, key: String, modifiers: NSEvent.ModifierFlags) -> NSMenuItem? {
@@ -170,11 +173,11 @@ struct ShellMainMenuTests {
         return nil
     }
 
-    static func commandKey(_ characters: String, keyCode: UInt16, window: NSWindow) -> NSEvent {
+    static func commandKey(_ characters: String, keyCode: UInt16, window: NSWindow, flags: NSEvent.ModifierFlags = .command) -> NSEvent {
         NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
-            modifierFlags: .command,
+            modifierFlags: flags,
             timestamp: ProcessInfo.processInfo.systemUptime,
             windowNumber: window.windowNumber,
             context: nil,

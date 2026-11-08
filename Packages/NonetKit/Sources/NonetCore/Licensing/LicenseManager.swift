@@ -125,6 +125,9 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     private var hasReadKeychain = false
     /// marker の項目はあるが、記録として読めなかった（壊れている・書き換えられた）
     private var markerIsUnreadable = false
+    /// 今は読めない（キーチェーンがロックされているなど）。読めるまで、数えるたびに読み直し、書かない
+    private var keychainIsUnavailable = false
+    private var markerIsUnavailable = false
     /// この起動でキーチェーンに最後に書いた記録
     private var lastKeychainWrite: TrialRecord?
 
@@ -207,11 +210,12 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .sortedKeys
             let data = try encoder.encode(record)
-            keychain?.writeTrialRecord(data)
-            marker?.writeTrialRecord(data)
+            // 読めていない項目には書かない（読んでいない前の記録を上書きして消さない）
+            if !keychainIsUnavailable { keychain?.writeTrialRecord(data) }
+            if !markerIsUnavailable { marker?.writeTrialRecord(data) }
             lastKeychainWrite = record
             keychainRecord = record
-            hasReadKeychain = true
+            hasReadKeychain = !keychainIsUnavailable && !markerIsUnavailable
         } catch {
             logger.error("試用の記録をキーチェーン用にまとめられません: \(error.localizedDescription, privacy: .public)")
         }
@@ -387,12 +391,20 @@ public final class UserDefaultsLicenseStorage: LicenseStorage {
     private func readKeychain() -> TrialRecord? {
         guard keychain != nil || marker != nil else { return nil }
         if !hasReadKeychain {
-            hasReadKeychain = true
+            let wasUnavailable = keychainIsUnavailable || markerIsUnavailable
+            let keychainReading = keychain?.readTrialRecord() ?? .notFound
+            let markerReading = marker?.readTrialRecord() ?? .notFound
+            keychainIsUnavailable = keychainReading == .unavailable
+            markerIsUnavailable = markerReading == .unavailable
+            // 読めなかった項目があれば、次に数えるときに読み直す
+            hasReadKeychain = !keychainIsUnavailable && !markerIsUnavailable
+            // 読めるようになった項目にも、次に数えたときに写す
+            if wasUnavailable, hasReadKeychain { lastKeychainWrite = nil }
             var records: [TrialRecord] = []
-            if let record = keychain?.readTrialRecord().flatMap(Self.decodeKeychainRecord) {
+            if let record = keychainReading.data.flatMap(Self.decodeKeychainRecord) {
                 records.append(record)
             }
-            if let data = marker?.readTrialRecord() {
+            if let data = markerReading.data {
                 if let record = Self.decodeKeychainRecord(data) {
                     records.append(record)
                 } else {

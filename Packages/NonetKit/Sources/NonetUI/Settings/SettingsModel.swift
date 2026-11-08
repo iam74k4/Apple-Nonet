@@ -879,6 +879,12 @@ final class SettingsModel {
         }
     }
 
+    /// 種類の一覧で選んだとき。一覧では URL のマスも「開く」なので、「開く」を選び直しても URL のまま（アプリの空のマスにしない）
+    func chooseKind(ofCell id: UUID, _ kind: ActionKind) {
+        guard let cell = cell(id: id), SettingsActionKinds.menuKind(of: cell.action) != kind else { return }
+        changeKind(ofCell: id, to: kind)
+    }
+
     func changeKind(ofCell id: UUID, to kind: ActionKind) {
         // 打ちかけを先に確定させ、切り替える前の中身として覚えておく
         pendingEdits.flushAll()

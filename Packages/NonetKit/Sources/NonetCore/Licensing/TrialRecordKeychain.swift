@@ -11,17 +11,31 @@ import Security
 
 private let logger = Logger(subsystem: "com.iam74k4.Nonet", category: "keys-license")
 
+/// 項目を読んだ結果。項目が無いのと、今は読めない（キーチェーンがロックされているなど）のとを分ける
+public enum TrialRecordReading: Equatable, Sendable {
+    case found(Data)
+    case notFound
+    /// 今は読めない。試用は残りの置き場所で数え、後で読み直す。読めるまでは書かない
+    /// （書くと、読んでいない前の記録を、新しい記録で上書きして消してしまう）
+    case unavailable
+
+    var data: Data? {
+        if case .found(let data) = self { return data }
+        return nil
+    }
+}
+
 /// 試用の記録（開始日・最後に数えた時刻・使った時間をまとめた1つのデータ）を置く場所。
-/// 読めない・書けないときは nil を返す・何もしない（試用は残りの置き場所で数える）
+/// 書けないときは何もしない（試用は残りの置き場所で数える）
 public protocol TrialRecordKeychain: AnyObject {
-    func readTrialRecord() -> Data?
+    func readTrialRecord() -> TrialRecordReading
     func writeTrialRecord(_ data: Data)
 }
 
 /// ログインキーチェーンの汎用パスワードの項目（サービス com.iam74k4.Nonet.license.trial）。
 /// - Developer ID で署名した Nonet 本体でだけ使う。署名なし・アドホック・開発用の署名のビルドは、署名の身元が配布版と違い、
 ///   項目を作ったのと別の身元で読むとキーチェーンが「許可しますか」と聞いてくるため、何もしない（テストも同じ）
-/// - 聞かずに失敗させる指定（interactionNotAllowed）を付け、失敗したら記録が無いものとして扱う
+/// - 聞かずに失敗させる指定（interactionNotAllowed）を付ける。読めなければ unavailable（後で読み直し、読めるまでは書かない）
 /// - iCloud キーチェーンとは同期しない（ファイルベースのキーチェーンの項目は同期されず、この Mac のログインキーチェーンにだけある。
 ///   kSecAttrAccessible の ThisDeviceOnly はデータ保護キーチェーンの指定で、それにはアプリに無い entitlement が要る）
 public final class SystemTrialRecordKeychain: TrialRecordKeychain {
@@ -77,8 +91,8 @@ public final class SystemTrialRecordKeychain: TrialRecordKeychain {
         return uuid
     }
 
-    public func readTrialRecord() -> Data? {
-        guard isEnabled else { return nil }
+    public func readTrialRecord() -> TrialRecordReading {
+        guard isEnabled else { return .notFound }
         var result: CFTypeRef?
         let status = perform { query in
             query[kSecReturnData as String] = true
@@ -87,12 +101,13 @@ public final class SystemTrialRecordKeychain: TrialRecordKeychain {
         }
         switch status {
         case errSecSuccess:
-            return result as? Data
+            // 中身がデータでなければ、壊れた記録として扱う（空のデータは読めない記録になる）
+            return .found(result as? Data ?? Data())
         case errSecItemNotFound:
-            return nil
+            return .notFound
         default:
             logger.error("キーチェーンの試用の記録を読めません: \(status, privacy: .public)")
-            return nil
+            return .unavailable
         }
     }
 

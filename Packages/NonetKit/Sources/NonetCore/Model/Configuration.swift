@@ -259,7 +259,7 @@ extension NonetConfiguration {
         return copy.id
     }
 
-    /// プロファイルのページをプリセットの中身に戻す（ページの名前も外す）。id と使い方（mode）は変えない
+    /// プロファイルのページをプリセットの中身に戻す（ページの名前もプリセットのものにする）。id と使い方（mode）は変えない
     public mutating func resetProfile(id: UUID, to preset: AppPreset) {
         updateProfile(id: id) { profile in
             // makeProfile() はマスの id を振り直すので、ほかのプロファイルと重ならない

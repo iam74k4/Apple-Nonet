@@ -471,6 +471,8 @@ import Testing
         #expect(firstIDs.isDisjoint(with: secondIDs))
 
         for (made, original) in zip(first.pages, preset.pages) {
+            // ページの名前（Finder の「選んだファイル」など）も写す
+            #expect(made.name == original.name)
             for (madeCell, originalCell) in zip(made.cells, original.cells) {
                 #expect(madeCell?.title == originalCell?.title)
                 #expect(madeCell?.icon == originalCell?.icon)

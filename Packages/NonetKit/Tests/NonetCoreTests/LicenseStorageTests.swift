@@ -7,14 +7,18 @@ private final class MemoryTrialKeychain: TrialRecordKeychain {
     var data: Data?
     var reads = 0
     var writes = 0
+    /// ロックされたキーチェーンのように、読めず書けない
+    var isLocked = false
 
-    func readTrialRecord() -> Data? {
+    func readTrialRecord() -> TrialRecordReading {
         reads += 1
-        return data
+        if isLocked { return .unavailable }
+        return data.map(TrialRecordReading.found) ?? .notFound
     }
 
     func writeTrialRecord(_ data: Data) {
         writes += 1
+        guard !isLocked else { return }
         self.data = data
     }
 
@@ -527,6 +531,29 @@ private final class StorageSandbox {
         #expect(launch(day: 7).entitlement == .trial(daysLeft: 14))
     }
 
+    /// キーチェーンがロックされていて読めないまま起動しても、前の記録を上書きしない。ロックを外した後に読み直して数える
+    @MainActor
+    @Test func aLockedKeychainIsReadAgainLaterAndNotOverwritten() throws {
+        let keychain = MemoryTrialKeychain()
+        _ = launch(day: 0, keychain: keychain)
+        _ = launch(day: 5, keychain: keychain)
+        sandbox.defaults.removePersistentDomain(forName: sandbox.suiteName)
+        try FileManager.default.removeItem(at: sandbox.directory)
+        let writes = keychain.writes
+        keychain.isLocked = true
+        let clock = TestClock(Self.day(7))
+        let manager = LicenseManager(verifier: nil, storage: sandbox.makeStorage(keychain: keychain), now: { clock.now })
+        #expect(manager.entitlement == .trial(daysLeft: 14))
+        #expect(keychain.writes == writes)
+        // ロックを外した後に数えると、キーチェーンの記録（5日使った）も数え、キーチェーンにも書く
+        keychain.isLocked = false
+        clock.now = Self.day(7).addingTimeInterval(60)
+        manager.refresh()
+        #expect(manager.entitlement == .trial(daysLeft: 9))
+        #expect(keychain.writes == writes + 1)
+        #expect((keychain.record?.used ?? 0) >= 5 * 86_400)
+    }
+
     /// 起動したまま時計を進めたり戻したりする（refresh で数える）
     private final class TestClock: @unchecked Sendable {
         private let lock = NSLock()
@@ -698,9 +725,9 @@ private final class StorageSandbox {
         #expect(SystemTrialRecordKeychain.isDistributedApp() == false)
         let keychain = SystemTrialRecordKeychain()
         #expect(keychain.isEnabled == false)
-        #expect(keychain.readTrialRecord() == nil)
+        #expect(keychain.readTrialRecord() == .notFound)
         keychain.writeTrialRecord(Data("{}".utf8))
-        #expect(keychain.readTrialRecord() == nil)
+        #expect(keychain.readTrialRecord() == .notFound)
     }
 
     /// 使った時間だけ残り、最後に数えた時刻が消されたときも、使った時間より少なくは数えない（下限として使う）
