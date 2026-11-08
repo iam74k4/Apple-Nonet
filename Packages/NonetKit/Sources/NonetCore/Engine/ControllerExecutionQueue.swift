@@ -96,8 +96,10 @@ final class ControllerExecutionTurn {
 /// アクションの種類ごとの、実行の順番の扱い
 enum ControllerExecutionPolicy {
     /// 長く掛かるアクションが、後の実行を待たせる最長の時間。始めに前面アプリの選択テキストや URL を読む
-    /// （⌘C を送ることもある）ので、読み終えるまでは後のキー入力（⌘W など）を送らない
-    static let longRunningHold: TimeInterval = 1
+    /// （⌘C を送ることもある）ので、読み終えるまでは後のキー入力（⌘W など）を送らない。ふつうは読み終えたとき
+    /// （ActionContext.didReadContext）に譲る。これは知らせが来ないときの上限で、いちばん遅い読み取り
+    /// （ブラウザの URL を聞く 2 秒と、⌘C の待ち）に合わせる
+    static let longRunningHold: TimeInterval = 3
     /// どの実行も、後の実行をこれより長くは待たせない（応答しないアプリなどで、後のマスがすべて止まらないように）
     static let holdLimit: TimeInterval = 5
 

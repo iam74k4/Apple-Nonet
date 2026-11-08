@@ -159,9 +159,13 @@ public struct RunningAppInfo: Equatable, Sendable {
 public struct ActionContext: Sendable {
     /// 9マスを開いたときに前面にあったアプリ
     public var frontmostApp: RunningAppInfo?
+    /// 長く掛かるアクションが、前面アプリの選択テキストや URL を読み終えた（⌘C も戻し終えた）ときに呼ぶ。
+    /// そこで後の実行に順番を譲る（読み終える前に後のキー入力（⌘W など）が届かないように）
+    public var didReadContext: (@MainActor @Sendable () -> Void)?
 
-    public init(frontmostApp: RunningAppInfo?) {
+    public init(frontmostApp: RunningAppInfo?, didReadContext: (@MainActor @Sendable () -> Void)? = nil) {
         self.frontmostApp = frontmostApp
+        self.didReadContext = didReadContext
     }
 }
 

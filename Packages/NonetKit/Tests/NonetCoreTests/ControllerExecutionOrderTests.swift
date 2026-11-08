@@ -92,6 +92,28 @@ import Testing
         #expect(h.performer.finished == [F.newTab.action, action])
     }
 
+    /// 長く掛かるマスが文脈を読み終えたと知らせたら、上限（longRunningHold）を待たずに後のマスを始める。
+    /// 知らせる口を渡すのは長く掛かるマスだけ（ほかは終わるまで順番を持つ）
+    @Test(arguments: longRunning)
+    func aLongRunningActionPassesItsTurnOnceItHasReadTheContext(_ action: Action) async throws {
+        let h = try harness(first: action)
+        h.performer.readsContextFirst = true
+        h.start()
+        h.open()
+        h.choose(0)
+        await h.waitUntil { h.performer.calls.count == 1 }
+        h.choose(1)
+        await h.waitUntil { h.performer.calls.count == 2 }
+        #expect(h.performer.actions == [action, F.newTab.action])
+        #expect(h.performer.waitingActions == [action])
+        #expect(h.performer.calls.map(\.canReportContextRead) == [true, false])
+        h.closeIfOpen()
+
+        h.performer.release(action)
+        await h.settle()
+        #expect(h.performer.finished == [F.newTab.action, action])
+    }
+
     @Test func aLongRunningActionThatFinishesQuicklyDoesNotHoldAnything() async throws {
         let h = try ControllerHarness(configuration: configuration(first: Self.build))
         h.start()

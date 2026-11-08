@@ -34,7 +34,7 @@ public final class SystemActionPerformer: ActionPerforming {
     /// 呼び出し側が結果を表示できるときはこちらを使う
     public func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
         do {
-            return try await run(action, frontmost: context.frontmostApp ?? Self.currentFrontmostApp())
+            return try await run(action, frontmost: context.frontmostApp ?? Self.currentFrontmostApp(), didReadContext: context.didReadContext ?? {})
         } catch let error as NonetError {
             ActionLog.logger.error("アクション \(action.kind.rawValue, privacy: .public) に失敗しました: \(error.localizedDescription)")
             throw error
@@ -46,7 +46,8 @@ public final class SystemActionPerformer: ActionPerforming {
         }
     }
 
-    private func run(_ action: Action, frontmost: RunningAppInfo?) async throws -> String? {
+    /// didReadContext: 長く掛かるアクションが前面アプリの文脈を読み終えたら呼ぶ（後の実行に順番を譲る）
+    private func run(_ action: Action, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
         switch action {
         case .keystroke(let keys):
             try KeyTarget.check(expected: frontmost, frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
@@ -57,17 +58,17 @@ public final class SystemActionPerformer: ActionPerforming {
         case .openURL(let url):
             try await URLNormalizer.open(url.url)
         case .script(let script):
-            return try await runScript(script, frontmost: frontmost)
+            return try await runScript(script, frontmost: frontmost, didReadContext: didReadContext)
         case .shortcut(let shortcut):
-            return try await runShortcut(shortcut, frontmost: frontmost)
+            return try await runShortcut(shortcut, frontmost: frontmost, didReadContext: didReadContext)
         case .menuItem(let menuItem):
             try await pressMenuItem(menuItem, frontmost: frontmost)
         case .ai(let ai):
-            return try await runAI(ai, frontmost: frontmost)
+            return try await runAI(ai, frontmost: frontmost, didReadContext: didReadContext)
         case .placeWindow(let place):
             try windowPlacer.place(place.region, app: frontmost)
         case .file(let file):
-            try await fileRunner.run(file)
+            try await fileRunner.run(file, didReadSelection: didReadContext)
         }
         return nil
     }
@@ -79,9 +80,10 @@ public final class SystemActionPerformer: ActionPerforming {
 
     // MARK: - スクリプト
 
-    private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?) async throws -> String? {
+    private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
         try ScriptRunner.validate(source: script.source)
         let reading = await contextReader.read(.forScript(source: script.source), app: frontmost)
+        didReadContext()
         var info = reading.info
         if let text = info.selectedText, text.count > ContextReader.scriptSelectedTextLimit {
             info.selectedText = String(text.prefix(ContextReader.scriptSelectedTextLimit))
@@ -112,11 +114,12 @@ public final class SystemActionPerformer: ActionPerforming {
 
     // MARK: - ショートカット
 
-    private func runShortcut(_ shortcut: ShortcutAction, frontmost: RunningAppInfo?) async throws -> String? {
+    private func runShortcut(_ shortcut: ShortcutAction, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
         var reading: ContextReading?
         if shortcut.passSelectedText {
             reading = await contextReader.read(.forShortcut(shortcut), app: frontmost)
         }
+        didReadContext()
         let output = try await ShortcutRunner.run(name: shortcut.name, input: reading?.info.selectedText)
         // テキストを返したら結果のパネルに出す（何も返さない・テキストでなければ何も出さない）
         return CommandOutput.text(from: output)
@@ -218,10 +221,11 @@ public final class SystemActionPerformer: ActionPerforming {
 
     // MARK: - AI
 
-    private func runAI(_ ai: AIAction, frontmost: RunningAppInfo?) async throws -> String? {
+    private func runAI(_ ai: AIAction, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
         // 使えないなら、⌘C などを送る前に知らせる
         try OnDeviceAI.checkAvailability()
         let reading = await contextReader.read(.forAI, app: frontmost)
+        didReadContext()
         guard let text = reading.info.selectedText, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
         }

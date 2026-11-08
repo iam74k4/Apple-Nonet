@@ -751,6 +751,11 @@ public final class NonetController {
         // 長く掛かるアクション（裏のスクリプト・ショートカット・AI）は、文脈を読み終えるころに順番を譲る。
         // 終わるまで待たせると、後のマスが数十秒後に、押したときとは別のアプリへまとめて送られる
         turn.pass(after: ControllerExecutionPolicy.hold(for: target.cell.action))
+        var context = context
+        // 文脈を読み終えたら、上限を待たずに譲る。ほかのアクション（ターミナルのスクリプト・ゴミ箱に入れる）は、終わるまで譲らない
+        if ControllerExecutionPolicy.isLongRunning(target.cell.action) {
+            context.didReadContext = { [weak turn] in turn?.pass() }
+        }
         let run = startRunningToast(for: target)
         do {
             let output = try await services.performer.performReturningOutput(target.cell.action, context: context)

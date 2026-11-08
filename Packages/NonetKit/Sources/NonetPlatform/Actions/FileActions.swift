@@ -156,7 +156,8 @@ final class FileActionRunner {
         self.frontmostBundleID = frontmostBundleID
     }
 
-    func run(_ action: FileAction) async throws {
+    /// didReadSelection: Finder の選択を読み終えたら呼ぶ（長く掛かる複製のあいだ、後の実行を待たせない）
+    func run(_ action: FileAction, didReadSelection: @MainActor () -> Void = {}) async throws {
         // 9マスを開いたときの前面アプリではなく、今の前面アプリで確かめる（待っている間に変わることがある）。
         // 別のアプリが前面のとき、Finder の裏のウインドウで選んだままのファイルを動かさない
         try requireFinderInFront()
@@ -164,6 +165,7 @@ final class FileActionRunner {
         try FilePlan.check(action.operation, paths: paths, home: home)
         // 選択を読んでいる間に、前面が変わっていないことも確かめる
         try requireFinderInFront()
+        didReadSelection()
         switch action.operation {
         case .trash:
             try await perform(FileScripts.trash, paths, timeout: Self.actionTimeout)

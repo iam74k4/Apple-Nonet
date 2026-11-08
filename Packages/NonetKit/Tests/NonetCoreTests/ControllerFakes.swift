@@ -339,6 +339,8 @@ final class ControllerFakePerformer: ActionPerforming {
     struct Call {
         var action: Action
         var frontmostApp: RunningAppInfo?
+        /// 文脈を読み終えたと知らせる口（ActionContext.didReadContext）を渡されたか
+        var canReportContextRead = false
     }
 
     private(set) var calls: [Call] = []
@@ -354,6 +356,8 @@ final class ControllerFakePerformer: ActionPerforming {
     var holds = false
     /// true を返すアクションだけ止める（holds が false のとき）
     var holdsAction: ((Action) -> Bool)?
+    /// true なら、止める前に「文脈を読み終えた」と知らせる（本物の performer が選択や URL を読み終えたときと同じ）
+    var readsContextFirst = false
     private var waiting: [(action: Action, continuation: CheckedContinuation<Void, Never>)] = []
     private(set) var running = 0
     private(set) var maxRunning = 0
@@ -371,12 +375,13 @@ final class ControllerFakePerformer: ActionPerforming {
     }
 
     func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
-        calls.append(Call(action: action, frontmostApp: context.frontmostApp))
+        calls.append(Call(action: action, frontmostApp: context.frontmostApp, canReportContextRead: context.didReadContext != nil))
         recorder.log("perform:\(action.kind.rawValue)")
         running += 1
         maxRunning = max(maxRunning, running)
         defer { running -= 1 }
         onPerform?(action)
+        if readsContextFirst { context.didReadContext?() }
         if holds || holdsAction?(action) == true {
             await withCheckedContinuation { waiting.append((action, $0)) }
         }
