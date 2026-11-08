@@ -259,6 +259,8 @@ struct SettingsProfileRow: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .overlay(Capsule(style: .circular).strokeBorder(Color.accentColor.opacity(0.6)))
+                    // VoiceOver では値（accessibilityValue）で読むので、ここでは読まない（2回読まない）
+                    .accessibilityHidden(true)
             }
             if let badge = Self.badge(profile.mode) {
                 Text(badge)
@@ -269,10 +271,12 @@ struct SettingsProfileRow: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .overlay(Capsule(style: .circular).strokeBorder(Color.secondary.opacity(0.5)))
+                    .accessibilityHidden(true)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue([isInUse ? String(localized: "使用中", bundle: .module) : "", isUsed ? "" : SettingsText.name(profile.mode)].filter { !$0.isEmpty }.joined(separator: "、"))
+        .accessibilityValue([isInUse ? String(localized: "使用中", bundle: .module) : "", isUsed ? "" : SettingsText.name(profile.mode)]
+            .filter { !$0.isEmpty }.joined(separator: String(localized: "、", bundle: .module)))
     }
 
     /// 一覧の右の小さな印。グローバルを使うプロファイルは「グローバル」、使わないアプリは「オフ」
@@ -635,7 +639,7 @@ struct SettingsPageNameEditor: View {
             .focused($isFocused)
             .onSubmit { model.renamePage(index, to: text) }
             .onExitCommand { model.renamingPage = nil }
-            Text("「デバッグ」「Git」のように、何のページかを付けます。メニューバーの早見表の題名にも出ます。空にすると「ページ \(index + 1)」に戻ります。", bundle: .module)
+            Text("「デバッグ」「Git」のように、何のページかを付けます。Nonet のメニューのいちばん上の一覧にも出ます。空にすると「ページ \(index + 1)」に戻ります。", bundle: .module)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

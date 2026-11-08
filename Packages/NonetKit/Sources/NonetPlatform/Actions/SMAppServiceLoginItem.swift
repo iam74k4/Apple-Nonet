@@ -29,10 +29,11 @@ public final class SMAppServiceLoginItem: LoginItemControlling {
             }
         } catch {
             ActionLog.logger.error("ログイン項目を変更できませんでした: \(error.localizedDescription)")
+            // 呼んだ側が「ログイン時に起動するように設定できませんでした（理由）」と包むので、理由（SMAppService のエラー）だけを渡す
             if enabled, service.status != .requiresApproval {
-                throw NonetError.actionFailed(String(localized: "ログイン時に起動するよう設定できませんでした", bundle: .nonetActions))
+                throw NonetError.actionFailed(error.localizedDescription)
             } else if !enabled {
-                throw NonetError.actionFailed(String(localized: "ログイン時の起動を止められませんでした", bundle: .nonetActions))
+                throw NonetError.actionFailed(error.localizedDescription)
             }
         }
         // 登録はできたが、システム設定の「ログイン項目」で許可されるまで動かない

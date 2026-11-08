@@ -160,10 +160,13 @@ struct OnboardingStepIndicator: View {
                     Text(verbatim: "\(number)")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color(nsColor: .windowBackgroundColor))
+                        // 太字だけでは VoiceOver に伝わらないので、いまのステップだと読む
+                        .accessibilityLabel(Text("ステップ \(number)（いま）", bundle: .module))
                 case .done:
                     Circle().strokeBorder(Color.primary, lineWidth: 1)
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
+                        .accessibilityLabel(Text("済み", bundle: .module))
                 case .skipped:
                     // 許可しないまま進んだ。済んだように見せない
                     Circle().strokeBorder(Color.orange, lineWidth: 1)

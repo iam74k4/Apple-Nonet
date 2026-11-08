@@ -533,7 +533,9 @@ struct ShellOnboardingTests {
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。") + L10n.ui("アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
+            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
+        // 文をつなげて作らない（英語で文と文の間の空白が抜けないように。1つの文言の中で区切る）
+        #expect(!ShellText.practiceRunInstruction(page.runTarget).contains(".If"))
         #expect(ShellText.practiceCancelInstruction
             == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")

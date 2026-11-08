@@ -101,7 +101,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ uses the Global buttons. This profile’s buttons are kept."
+            "value" : "%@ uses the Global buttons. This profile's buttons are kept."
           }
         }
       }
@@ -111,7 +111,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ uses the Global buttons. This profile’s buttons are kept."
+            "value" : "%@ uses the Global buttons. This profile's buttons are kept."
           }
         }
       }
@@ -1278,7 +1278,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet Is Already Running"
+            "value" : "Nonet is already running"
           }
         }
       }
@@ -1898,7 +1898,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn’t undo because a “%@” profile already exists."
+            "value" : "Couldn't undo because a “%@” profile already exists."
           }
         }
       }
@@ -1908,7 +1908,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "There’s already a profile for “%@”."
+            "value" : "There's already a profile for “%@”."
           }
         }
       }
@@ -2020,7 +2020,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name the page after what it’s for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
           }
         }
       }
@@ -2031,17 +2031,28 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name the page after what it’s for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+          }
+        }
+      }
+    },
+    "「デバッグ」「Git」のように、何のページかを付けます。Nonet のメニューのいちばん上の一覧にも出ます。空にすると「ページ %lld」に戻ります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the grid at the top of the Nonet menu. Leave it empty to go back to “Page %lld”."
           }
         }
       }
     },
     "「デバッグ」「Git」のように、何のページかを付けます。メニューバーの早見表の題名にも出ます。空にすると「ページ %lld」に戻ります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name the page after what it’s for, like “Debug” or “Git”. The name also appears in the title of the menu bar’s quick reference. Leave it empty to go back to “Page %lld”."
+            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the title of the menu bar's quick reference. Leave it empty to go back to “Page %lld”."
           }
         }
       }
@@ -2495,6 +2506,7 @@
       }
     },
     "このマスは、縁が一周するまで少し止めてから離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2633,7 +2645,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This version can’t be read"
+            "value" : "This version can't be read"
           }
         }
       }
@@ -3133,7 +3145,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tap the button again to hide the app, so you can switch to it and back."
+            "value" : "Run the button again to hide the app, so you can switch to it and back."
           }
         }
       }
@@ -3189,6 +3201,7 @@
       }
     },
     "アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3460,7 +3473,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose Apps"
+            "value" : "Choose App"
           }
         }
       }
@@ -3553,7 +3566,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet (%@) is already running from the Applications folder, so that copy will be used. This copy (%@) will quit. To replace it, quit the running Nonet and open this copy again."
+            "value" : "Nonet (version %1$@) is already running from the Applications folder, so that copy will be used. This copy (version %2$@) will quit. To replace it, quit the running Nonet and open this copy again."
           }
         },
         "ja" : {
@@ -3631,7 +3644,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, sliding in from the top edge of the trackpad doesn't open the buttons"
+            "value" : "When off, sliding down from the top edge of the trackpad doesn't open the buttons"
           }
         }
       }
@@ -4470,6 +4483,16 @@
         }
       }
     },
+    "ステップ %lld（いま）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %lld (current)"
+          }
+        }
+      }
+    },
     "タップを待っています…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4666,7 +4689,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sliding in from the top edge of the trackpad won't open the buttons"
+            "value" : "Sliding down from the top edge of the trackpad won't open the buttons"
           }
         }
       }
@@ -4676,7 +4699,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger in from the top edge and your trackpad becomes nine buttons that change with each app"
+            "value" : "Slide a finger down from the top edge and your trackpad becomes nine buttons that change with each app"
           }
         }
       }
@@ -4737,11 +4760,32 @@
       }
     },
     "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
           }
         }
       }
@@ -5381,7 +5425,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn’t bring the page back because there are already %lld pages."
+            "value" : "Couldn't bring the page back because there are already %lld pages."
           }
         }
       }

@@ -610,6 +610,7 @@
       }
     },
     "ログイン時に起動するよう設定できませんでした" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -620,6 +621,7 @@
       }
     },
     "ログイン時の起動を止められませんでした" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

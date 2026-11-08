@@ -15,11 +15,12 @@ enum ShellText {
 
     /// 1つ目の課題: 開いて、目標のマスで離す（例: 「…「Safari」まで滑らせて、そこで指を離してください。」）。
     /// アイコンだけの HUD なので、向けたまま止めると名前が出ることも添える。少し長く止めてから実行するマスばかりのページでは、そのマスの止め方も
+    /// 文をつなげずに、組み合わせごとに1つの文言にする（つなげると、英語で文と文の間の空白が抜ける）
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
-        let base = String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。", bundle: .module)
-            + String(localized: "アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。", bundle: .module)
-        guard target.requiresHold else { return base }
-        return base + String(localized: "このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
+        guard target.requiresHold else {
+            return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。", bundle: .module)
+        }
+        return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
     }
 
     /// 1つ目の課題の下に出す、開かないときの手がかり
