@@ -2337,6 +2337,16 @@
         }
       }
     },
+    "このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click this window to start practicing. While you use another app, buttons really run."
+          }
+        }
+      }
+    },
     "このプロファイル" : {
       "localizations" : {
         "en" : {

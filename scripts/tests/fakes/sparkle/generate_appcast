@@ -3,6 +3,7 @@
 # 既存の appcast の項目はそのまま残し、まだ載っていないビルドの偽の DMG ごとに項目（版・ビルド・DMG の URL）を足す。
 # 本物と同じく、同じ名前の DMG をビルド番号を変えて作り直すと、同じ URL を指す項目が2つになる。
 # 本物と同じく、書く先（と引き継ぐ既存の appcast）は -o、無ければ SUFeedURL の最後の名前（無ければ appcast.xml）。
+# 本物と同じく、--maximum-versions（既定 3。0 なら全部）より古いビルドの項目は消す。
 #   FAKE_APPCAST_SKIP_ITEM  1 なら新しい DMG の項目を作らない（失敗の再現）
 set -euo pipefail
 shopt -s nullglob
@@ -11,11 +12,12 @@ printf 'generate_appcast %s\n' "$*" >>"${FAKE_LOG:?}"
 dir="${*: -1}"
 printf 'generate_appcast files: %s\n' "$(cd "$dir" && printf '%s ' *)" >>"$FAKE_LOG"
 
-out="" prefix=""
+out="" prefix="" max=3
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o) out="$2" ;;
     --download-url-prefix) prefix="$2" ;;
+    --maximum-versions) max="$2" ;;
   esac
   shift
 done
@@ -49,6 +51,13 @@ if [[ -z "${FAKE_APPCAST_SKIP_ITEM:-}" ]]; then
     items+="<sparkle:shortVersionString>$version</sparkle:shortVersionString>"
     items+="<enclosure url=\"$prefix$(basename "$dmg")\" length=\"1\" type=\"application/octet-stream\" sparkle:edSignature=\"c2ln\"/></item>"
   done
+fi
+
+# 新しいビルドから max 個だけ残す（0 なら全部）
+if [[ "$max" != 0 && -n "$items" ]]; then
+  items="$(while IFS= read -r item; do
+    printf '%s\t%s\n' "$(grep -oE '<sparkle:version>[0-9]+' <<<"$item" | grep -oE '[0-9]+')" "$item"
+  done <<<"$items" | sort -t $'\t' -k1,1nr | head -n "$max" | cut -f2-)"
 fi
 
 {

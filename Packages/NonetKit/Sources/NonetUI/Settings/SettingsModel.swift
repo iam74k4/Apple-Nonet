@@ -207,6 +207,8 @@ final class SettingsModel {
     // MARK: 状態の帯
     /// アクセシビリティの帯の「システム設定を開く」で、macOS の許可のダイアログをもう出した（このプロセスで）
     @ObservationIgnored private var hasRequestedAccessibility = false
+    /// 設定のウィンドウがキー（windowDidBecomeKey・windowDidResignKey）。macOS の確認が出なかったときにシステム設定を開くかを決める
+    @ObservationIgnored private var isWindowKey = true
 
     // MARK: 読み込みに時間のかかる一覧
     let menuBrowser: SettingsMenuBrowser
@@ -1121,6 +1123,12 @@ final class SettingsModel {
             } else {
                 hasRequestedAccessibility = true
                 services.permissions.requestAccessibility()
+                // macOS は確認のダイアログを一度しか出さない（前に出したことがあると、何も出ない）。少し待っても
+                // このウィンドウがキーのまま（ダイアログが出ていない）で許可も無ければ、システム設定を開く（初回の案内と同じ）
+                services.scheduler.schedule(after: OnboardingModel.promptFallbackDelay) { [weak self] in
+                    guard let self, self.isWindowKey, !self.services.permissions.isAccessibilityGranted else { return }
+                    self.services.permissions.openAccessibilitySettings()
+                }
             }
         case .recheck:
             break
@@ -1399,7 +1407,11 @@ final class SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         do {
-            let result = try uninstaller.run(loginItem: services.loginItem) { controller.stop() }
+            // 設定のフォルダをゴミ箱に入れる前に、試用の記録を書くのもやめる（終了までに数え直して、写しでフォルダを作り直さない）
+            let result = try uninstaller.run(loginItem: services.loginItem) {
+                controller.stop()
+                license.stopRecordingTrial()
+            }
             uninstallStep = .finished(result)
         } catch {
             uninstallStep = .failed
@@ -1440,6 +1452,7 @@ final class SettingsModel {
     /// 開き直したときや、ほかのアプリから戻ったとき。閉じるときに止めた読み込みを続け、古くなった一覧を読み直す
     /// （使い回すウィンドウでは onAppear がもう一度呼ばれないため、ここで行う）
     func windowDidBecomeKey() {
+        isWindowKey = true
         refreshPermissions()
         refreshLoginItem()
         license.refresh()
@@ -1455,6 +1468,7 @@ final class SettingsModel {
 
     /// ほかのアプリに移ったら記録を終える（記録中は9マスが開かないため）
     func windowDidResignKey() {
+        isWindowKey = false
         finishRecording()
         closeEditGroup()
     }

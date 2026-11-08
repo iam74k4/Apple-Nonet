@@ -507,6 +507,8 @@ public final class LicenseManager {
     @ObservationIgnored private var trial: (progress: TrialProgress, uptime: TimeInterval?)?
     /// 同じキーを何度も検証・ログしないための記録
     @ObservationIgnored private var checkedKey: (key: String, result: Result<LicenseInfo, LicenseError>)?
+    /// stopRecordingTrial の後: refresh は何もしない
+    @ObservationIgnored private var isRecordingStopped = false
 
     /// 本物の時計で動かす。スリープ中も進む単調な時計と比べて、起動中に時計を変えても試用が延びも縮みもしないようにする
     public convenience init(verifier: LicenseVerifier?, storage: any LicenseStorage) {
@@ -544,9 +546,16 @@ public final class LicenseManager {
         }
     }
 
+    /// アンインストールで設定のフォルダをゴミ箱に入れる前に呼ぶ。この後は refresh で試用を数え直さず、どこにも書かない
+    /// （終了するまでにメニューや設定のウィンドウを開いても、試用の記録の写しでフォルダを作り直さない）
+    public func stopRecordingTrial() {
+        isRecordingStopped = true
+    }
+
     /// 日付の変化を反映する。有効なライセンスがあれば試用は数えず、保存先にも何も書かない
     /// （ライセンスを外すと、保存してある記録から数え直す。ライセンスがあった間も時計のとおりに数える）
     public func refresh() {
+        guard !isRecordingStopped else { return }
         if let info = storedLicense() {
             update(.licensed(info))
             return

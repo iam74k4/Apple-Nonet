@@ -635,7 +635,7 @@ test_release_runs_the_whole_pipeline_in_order() {
     "xcrun notarytool submit $work/Nonet-1.2.0.dmg --keychain-profile nonet-test-profile --wait" \
     "xcrun stapler staple $work/Nonet-1.2.0.dmg" \
     "spctl -a -vv -t open --context context:primary-signature $work/Nonet-1.2.0.dmg" \
-    "generate_appcast --account ed25519 --download-url-prefix https://nonet.test/updates/ -o $RELEASES/appcast.xml $RELEASES"
+    "generate_appcast --account ed25519 --download-url-prefix https://nonet.test/updates/ --maximum-versions 0 -o $RELEASES/appcast.xml $RELEASES"
   assert_called "MARKETING_VERSION=1.2.0 CURRENT_PROJECT_VERSION=42 DEVELOPMENT_TEAM=$TEST_TEAM CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=Developer ID Application ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp"
   assert_called "hdiutil srcfolder: Applications Nonet.app"
   assert_called "hdiutil applications-link: /Applications"
@@ -1382,7 +1382,7 @@ test_download_prefix_and_key_account_can_be_overridden() {
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 0
   assert_called "generate_keys --account nonet -p"
-  assert_called "generate_appcast --account nonet --download-url-prefix https://cdn.nonet.test/dl/ -o $RELEASES/appcast.xml $RELEASES"
+  assert_called "generate_appcast --account nonet --download-url-prefix https://cdn.nonet.test/dl/ --maximum-versions 0 -o $RELEASES/appcast.xml $RELEASES"
 }
 
 test_appcast_without_the_new_item_fails() {

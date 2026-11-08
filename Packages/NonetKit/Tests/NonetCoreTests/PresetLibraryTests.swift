@@ -35,10 +35,11 @@ import Testing
     /// 選択範囲を置き換えてよいアプリ（自分で書いた文章を選ぶ場所）。それ以外は結果を表示するだけ
     static let replaceSelectionBundleIDs: Set<String> = ["com.apple.Notes", "notion.id", "com.microsoft.Word", "com.apple.iWork.Pages", "md.obsidian"]
 
-    /// ⌘⌃⌥ なしで送るキー。Figma のキャンバス用ショートカットは既定が ⇧ だけ
+    /// ⌘⌃⌥ なしで送るキー。Figma のキャンバス用ショートカットは既定が ⇧ だけ。Final Cut Pro の「全体を表示」は ⇧Z（⇧⌘Z はやり直す）
     static let shiftOnlyExceptions: Set<String> = [
         "com.figma.Desktop:a",
         "com.figma.Desktop:1",
+        "com.apple.FinalCut:z",
     ]
 
     /// US でも JIS でも修飾キーなしで入力できる文字。.character はこの範囲でないと JIS で送れない
@@ -216,14 +217,22 @@ import Testing
     }
 
     @Test func shiftOnlyExceptionsAreActuallyUsed() throws {
-        let figma = try Self.preset("com.figma.Desktop")
-        let used = Self.cells(of: figma).compactMap { cell -> String? in
-            guard case .keystroke(let sequence) = cell.action,
-                  let chord = sequence.chords.first, chord.modifiers == .shift,
-                  case .character(let text) = chord.key else { return nil }
-            return "com.figma.Desktop:\(text)"
+        var used: [String] = []
+        for bundleID in ["com.figma.Desktop", "com.apple.FinalCut"] {
+            used += Self.cells(of: try Self.preset(bundleID)).compactMap { cell -> String? in
+                guard case .keystroke(let sequence) = cell.action,
+                      let chord = sequence.chords.first, chord.modifiers == .shift,
+                      case .character(let text) = chord.key else { return nil }
+                return "\(bundleID):\(text)"
+            }
         }
         #expect(Set(used) == Self.shiftOnlyExceptions)
+    }
+
+    /// Final Cut Pro の「全体を表示」は ⇧Z。⇧⌘Z は「やり直す」で、押すと取り消した編集が戻る
+    @Test func finalCutZoomToFitIsNotRedo() throws {
+        let cell = try #require(Self.cells(of: try Self.preset("com.apple.FinalCut")).first { $0.title == ModelFixtures.text("全体を表示") })
+        #expect(cell.action == .keystroke(.key("z", .shift)))
     }
 
     /// ショートカット.app のショートカットはユーザーが作らないと存在しないので、プリセットには入れない

@@ -224,4 +224,21 @@ import Testing
         await h.settle()
         #expect(h.hud.toasts.map(\.scale) == [HUDScale.large.factor])
     }
+
+    /// 起動したまま一日の途中で試用期間が終わった: 開こうとして断られたときに数え直し、表示も「終わった」にする
+    /// （「試用期間が終わりました」のウィンドウや設定の帯が、日付が変わるまで遅れない）
+    @Test func aRefusedOpenRefreshesATrialThatJustEnded() throws {
+        let h = try ControllerHarness(trialDaysUsed: Double(LicenseManager.trialDays) - 0.01)
+        h.start()
+        guard case .trial = h.license.entitlement else {
+            Issue.record("まだ試用中のはず: \(h.license.entitlement)")
+            return
+        }
+        h.clock.advance(days: 0.02)
+        #expect(!h.license.canExecuteActions)
+        h.open()
+        h.advance(0)
+        #expect(h.license.entitlement == .expired)
+        #expect(h.hud.shown.isEmpty)
+    }
 }

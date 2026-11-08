@@ -454,6 +454,13 @@ public final class NonetController {
             controllerLogger.notice("試用期間が終わっているため、開きません")
             playHaptic(.rejected, strength: configuration.settings.haptics)
             showToast(ControllerPresentation.trialEndedToast)
+            // 起動したまま一日の途中で終わったときは、表示用の entitlement がまだ試用中のまま（日付が変わるか、メニューを開くまで）。
+            // 数え直して「試用期間が終わりました」のウィンドウや設定の帯をすぐ出す
+            if case .trial = license.entitlement {
+                services.scheduler.schedule(after: 0) { [weak self] in
+                    self?.license.refresh()
+                }
+            }
             return
         }
         let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current)

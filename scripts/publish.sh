@@ -346,6 +346,14 @@ check_published() {
       fi
       LIVE=0
       [[ -z "$(rows "$WORK/published.tsv" item 2 "$BUILD")" ]] || LIVE=1
+      if [[ "$LIVE" == 0 ]]; then
+        # 同じ版（か同じ DMG の URL）を別のビルドでもう公開している: 出した版の番号は使い直さない。
+        # 上げると公開中の DMG を別の中身で差し替え、その版の項目は appcast から消える
+        local reused
+        reused="$( { rows "$WORK/published.tsv" item 3 "$VERSION"; rows "$WORK/published.tsv" item 5 "$DMG_URL"; } | first_column 2)"
+        [[ -z "$reused" ]] || die "版 $VERSION（$DMG_NAME）はビルド $reused としてもう公開されています。出した版の番号は使い直しません。
+    新しい版の番号で scripts/release.sh からやり直してください"
+      fi
       if [[ "$LIVE" == 1 ]]; then
         info "公開中の appcast: ビルド $published_max まで（ビルド $BUILD はもう公開されています）"
       else

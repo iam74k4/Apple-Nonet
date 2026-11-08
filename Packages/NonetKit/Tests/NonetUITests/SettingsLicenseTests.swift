@@ -431,6 +431,16 @@ private final class FakeTrash: SettingsTrashing {
         #expect(trash.events == ["trash Nonet.app", "stop", "trash Nonet", "trash com.iam74k4.Nonet"])
     }
 
+    /// システム設定で許可されていない（許可待ちの）ログイン項目も外す。ゴミ箱に入れた後のアプリの項目が残らないように
+    @Test func removesALoginItemWaitingForApproval() throws {
+        let trash = FakeTrash(existing: [targets.app])
+        let loginItem = SettingsFakeLoginItem()
+        loginItem.isWaitingForApproval = true
+        let result = try SettingsUninstaller(trash: trash, targets: targets).run(loginItem: loginItem) {}
+        #expect(result == SettingsUninstallResult())
+        #expect(!loginItem.isWaitingForApproval)
+    }
+
     @Test func stopsWithoutChangesWhenTheAppCannotBeTrashed() throws {
         let trash = FakeTrash(existing: [targets.app, targets.settingsFolder])
         trash.failing = [targets.app]
