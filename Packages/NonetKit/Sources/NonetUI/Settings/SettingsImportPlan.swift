@@ -1,6 +1,6 @@
 // 担当: ui-settings
 // プロファイルの読み込みを、実際に設定へ入れる前に写しで試した結果。置き換わるものや、何かを実行するマスがあれば先に確かめる
-import Foundation
+import AppKit
 import NonetCore
 
 struct SettingsImportPlan: Identifiable, Equatable {
@@ -11,6 +11,13 @@ struct SettingsImportPlan: Identifiable, Equatable {
         /// Return と同じ働きのキー（Return・Enter・⌃M・⌃J・⌃C など、今のキー配列で改行や Enter の文字になるもの）か ⌃ の付いたキーを押す。
         /// コマンドの実行やメッセージの送信になりうるので、確かめるときに目立たせる
         var pressesSubmitKey = false
+        /// マスのあるアプリのプロファイルのアプリ（グローバルなら nil）。ファイルの中の名前だけでなく bundle ID も見せる
+        var app: AppReference? = nil
+        /// この Mac にある、app の bundle ID のアプリの名前（無ければ nil）。ファイルの中の名前と違えば目立たせる
+        var installedAppName: String? = nil
+        /// キー入力のうち、キーコードで書いた（文字で書いていない）キーが今のキー配列で打つ文字。無ければ nil。
+        /// 「keyCode(8)」のような表記では何を打つか分からず、注意が要る命令も見つけられないので、文字にして見せる
+        var keyCodeText: String? = nil
     }
 
     let id = UUID()
@@ -31,7 +38,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
         document: ConfigurationStore.ImportedProfiles,
         configuration: NonetConfiguration,
         fileName: String,
-        keys: (any SettingsKeyCharacterTranslating)? = nil
+        keys: (any SettingsKeyCharacterTranslating)? = nil,
+        installedAppName: (String) -> String? = SettingsImportPlan.lookUpInstalledAppName
     ) {
         self.fileName = SettingsText.singleLine(fileName, limit: SettingsText.importFileNameLimit)
         let document = Self.withoutLongMenuShortcuts(document)
@@ -42,13 +50,20 @@ struct SettingsImportPlan: Identifiable, Equatable {
             Self.existingProfile(for: app, in: configuration)?.id
         })
         replacedNames = configuration.profiles.filter { replacedIDs.contains($0.id) }.map(\.name)
-        let sources: [(name: String, cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
-            (profile.name, profile.pages.flatMap(\.cells))
+        let sources: [(name: String, app: AppReference?, cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
+            (profile.name, profile.app, profile.pages.flatMap(\.cells))
         }
         reviewedCells = sources.flatMap { source -> [ReviewedCell] in
             source.cells.compactMap { cell -> ReviewedCell? in
                 guard let cell, Self.needsReview(cell.action) else { return nil }
-                return ReviewedCell(profileName: source.name, cell: cell, pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys))
+                return ReviewedCell(
+                    profileName: source.name,
+                    cell: cell,
+                    pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys),
+                    app: source.app,
+                    installedAppName: source.app.flatMap { installedAppName($0.bundleID) },
+                    keyCodeText: Self.textTypedByKeyCodes(cell.action, keys: keys)
+                )
             }
         }
     }
@@ -105,20 +120,41 @@ struct SettingsImportPlan: Identifiable, Equatable {
             // Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製する
             true
         case .openURL(let url):
-            opensLocalFile(url.url) || opensAnotherTool(url.url)
+            !opensWebOrMail(url.url)
         case .launchApp, .placeWindow:
             false
         }
     }
 
-    /// 開くと別のものを動かす・つなぐスキーム（ウェブや、アプリ固有のリンクは含めない）
-    static let toolSchemes: Set<String> = ["shortcuts", "ssh", "telnet", "smb", "afp", "vnc", "ftp", "sftp", "applescript"]
+    /// この Mac にある、その bundle ID のアプリの名前。無ければ nil
+    static func lookUpInstalledAppName(_ bundleID: String) -> String? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
+        let name = FileManager.default.displayName(atPath: url.path)
+        return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
+    }
 
-    /// ショートカットの実行・ssh・共有フォルダなど、別のものを動かす URL か
-    static func opensAnotherTool(_ url: String) -> Bool {
+    /// 確かめずに読み込んでよいスキーム（ウェブのページとメールの宛先）
+    static let webSchemes: Set<String> = ["http", "https", "mailto"]
+
+    /// ウェブのページかメールの宛先を開く URL か（スキームを省いたホストも、開くときに http(s) を補うので含める）。
+    /// ほかのスキームは、どれが何を動かすかがアプリしだいで数え上げられない（ショートカットの実行・共有フォルダへの接続など）ので、
+    /// Mac の中のファイルと同じく、読み込む前に見せる
+    static func opensWebOrMail(_ url: String) -> Bool {
         let text = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let colon = text.firstIndex(of: ":") else { return false }
-        return toolSchemes.contains(text[..<colon].lowercased())
+        if opensLocalFile(text) { return false }
+        if text.hasPrefix("//") || !SettingsURLCheck.hasScheme(text) { return true }
+        guard let colon = text.firstIndex(of: ":") else { return true }
+        return webSchemes.contains(text[..<colon].lowercased())
+    }
+
+    /// キー入力のうち、キーコードで書いた（⌘・⌃ の付かない）キーが今のキー配列で打つ文字をつなげたもの。無ければ nil
+    static func textTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> String? {
+        guard case .keystroke(let sequence) = action, let translator else { return nil }
+        let text = sequence.chords.compactMap { chord -> String? in
+            guard case .keyCode = chord.key, chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
+            return translator.characters(for: chord)
+        }.joined()
+        return text.isEmpty ? nil : text
     }
 
     /// キー入力かメニュー項目のショートカットが、Return と同じ働きのキーか ⌃ の付いたキーを押す

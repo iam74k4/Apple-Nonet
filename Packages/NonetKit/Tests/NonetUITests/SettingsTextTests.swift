@@ -79,6 +79,57 @@ import Testing
         return SettingsText.reviewLines(for: SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell)).map(\.text)
     }
 
+    /// アプリのプロファイルのマスは、bundle ID も見せる。この Mac のそのアプリの名前とファイルの名前が違えば目立たせる
+    @Test func reviewShowsTheRealAppBehindAProfile() {
+        let cell = Cell(title: "片付け", icon: .symbol("x"), action: .keystroke(.special(.delete, [.option, .shift, .command])))
+        let disguised = SettingsImportPlan.ReviewedCell(
+            profileName: "メモ", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "メモ"), installedAppName: "Finder"
+        )
+        let lines = SettingsText.reviewLines(for: disguised)
+        #expect(lines.first?.text == L10n.ui("アプリ: \("com.apple.finder")"))
+        #expect(lines.contains { $0.text == L10n.ui("このファイルでの名前は「\("メモ")」ですが、この Mac ではそのアプリは「\("Finder")」です。") && $0.style == .warning })
+        // 名前が同じ・この Mac に無いアプリなら、注意は出さない
+        let honest = SettingsImportPlan.ReviewedCell(
+            profileName: "Finder", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "finder"), installedAppName: "Finder"
+        )
+        #expect(!SettingsText.reviewLines(for: honest).contains { $0.style == .warning })
+    }
+
+    /// キーコードで書いたキーは、今のキー配列で打つ文字にして見せ、注意が要る命令も探す
+    @Test func keyCodesAreShownAsTypedText() {
+        let keys = KeySequence([KeyChord(.keyCode(8)), KeyChord(.keyCode(32)), KeyChord(.special(.returnKey))])
+        let cell = Cell(title: "x", icon: .symbol("x"), action: .keystroke(keys))
+        let reviewed = SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell, keyCodeText: "curl x|sh")
+        let lines = SettingsText.reviewLines(for: reviewed)
+        #expect(lines.contains { $0.text == L10n.ui("キーコードで打つ文字: 「\("curl x|sh")」") })
+        #expect(lines.contains { $0.style == .warning })
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(keys), keys: FakeKeyCharacters()) == "aa")
+        // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.keyCode(8), modifiers: .command)])), keys: FakeKeyCharacters()) == nil)
+    }
+
+    /// 見えない文字（異体字セレクタ・ハングルの埋め字など）も見える形にする。絵文字の ️・旗のタグ文字・ZWJ は残す
+    @Test func invisibleCharactersAreShown() {
+        #expect(SettingsText.visibleLine("a\u{FE01}b") == "a⟨U+FE01⟩b")
+        #expect(SettingsText.visibleLine("a\u{3164}b") == "a⟨U+3164⟩b")
+        #expect(SettingsText.visibleLine("x\u{FE0F}") == "x⟨U+FE0F⟩")
+        #expect(SettingsText.visibleLine("❤\u{FE0F}") == "❤\u{FE0F}")
+        let scotland = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"
+        #expect(SettingsText.visibleLine(scotland) == scotland)
+        #expect(SettingsText.visibleLine("a\u{E0067}b") == "a⟨U+E0067⟩b")
+        #expect(SettingsText.visibleLine("👩\u{200D}💻") == "👩\u{200D}💻")
+    }
+
+    /// ウェブのページ以外を開く URL は「開くリンク」、Mac の中のファイルは「開くファイル」
+    @Test func urlReviewSaysLinkOrFile() {
+        func line(_ url: String) -> String? {
+            let cell = Cell(title: "x", icon: .symbol("x"), action: .openURL(URLAction(url: url)))
+            return SettingsText.reviewLines(for: SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell)).first?.text
+        }
+        #expect(line("workflow://x") == L10n.ui("開くリンク: \("workflow://x")"))
+        #expect(line("~/a.command") == L10n.ui("開くファイル: \("~/a.command")"))
+    }
+
     /// ショートカット.app のショートカットは、読み込む前にその名前と、選択中のテキストを渡すかを見せる（何でも実行できるため）
     @Test func shortcutsAreShownInTheImportReview() {
         #expect(review(.shortcut(ShortcutAction(name: "ダウンロードを片付ける", passSelectedText: true))) == [

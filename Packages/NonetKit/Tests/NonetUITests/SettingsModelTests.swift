@@ -1066,6 +1066,7 @@ import Testing
         #expect(SettingsText.importConfirmation(plan) == [
             Self.reviewIntro,
             L10n.ui("・\("Figma") › \("片付け")"),
+            L10n.ui("アプリ: \(SettingsFixtures.figma.bundleID)"),
             L10n.uiCounted("スクリプト（\(1)行）:"),
             "rm -rf ~/build",
             "⚠ " + L10n.ui("注意が要る命令（\("rm -rf")）を含みます。ネットワークから取ってきたものを実行したり、ファイルを消したりできます。"),
@@ -1157,6 +1158,7 @@ import Testing
         #expect(SettingsText.importConfirmation(plan) == [
             Self.reviewIntro,
             L10n.ui("・\(SettingsFixtures.terminal.name) › \("Clear")"),
+            L10n.ui("アプリ: \(SettingsFixtures.terminal.bundleID)"),
             L10n.ui("キー入力: \(typed + " → " + KeyChord(.special(.returnKey)).displayString)"),
             "⚠ " + L10n.ui("注意が要る命令（\("curl, | sh")）を含みます。ネットワークから取ってきたものを実行したり、ファイルを消したりできます。"),
             Self.submitWarning,
@@ -1182,9 +1184,11 @@ import Testing
         #expect(lines == [
             Self.reviewIntro,
             L10n.ui("・\(SettingsFixtures.terminal.name) › \("Clear")"),
+            L10n.ui("アプリ: \(SettingsFixtures.terminal.bundleID)"),
             L10n.ui("キー入力: \([control, L10n.ui("「\("rm")」"), KeyChord(.character("m"), modifiers: .control).displayString].joined(separator: " → "))"),
             Self.submitWarning,
             L10n.ui("・\(SettingsFixtures.terminal.name) › \("4打")"),
+            L10n.ui("アプリ: \(SettingsFixtures.terminal.bundleID)"),
             L10n.ui("キー入力: \(L10n.ui("「\("abcd")」"))"),
         ])
     }
@@ -1245,10 +1249,12 @@ import Testing
         #expect(SettingsText.importConfirmation(plan).components(separatedBy: "\n") == [
             Self.reviewIntro,
             L10n.ui("・\("Finder") › \("Copy")"),
-            L10n.ui("メニュー項目: \("Finder") › \("Edit › Copy")"),
+            L10n.ui("アプリ: \("com.apple.finder")"),
+            L10n.ui("メニュー項目: \("Finder（com.apple.finder）") › \("Edit › Copy")"),
             L10n.ui("ショートカット: \(shortcut)"),
             L10n.ui("ショートカットは、アプリのメニューにあるこの項目のショートカットと同じときだけ送ります。違うときはメニューを押します。"),
             L10n.ui("・\("Finder") › \("要約")"),
+            L10n.ui("アプリ: \("com.apple.finder")"),
             L10n.ui("AI への指示:"),
             "3行で要約して",
             "箇条書きで",
@@ -1320,11 +1326,13 @@ import Testing
         for local in ["~/Downloads/run.command", "/Applications/Calculator.app", "file:///tmp/x.command", " FILE:///tmp/y "] {
             #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: local))), "\(local)")
         }
-        for web in ["https://example.com", "//example.com/a", "obsidian://open?vault=a", "mailto:a@example.com"] {
+        for web in ["https://example.com", "//example.com/a", "mailto:a@example.com", "example.com/a", "localhost:3000", " HTTP://x "] {
             #expect(!SettingsImportPlan.needsReview(.openURL(URLAction(url: web))), "\(web)")
         }
-        // 開くと別のものを動かす・つなぐ URL（ショートカットの実行・ssh・共有フォルダ）と、ショートカットそのものも確かめる
-        for tool in ["shortcuts://run-shortcut?name=x", " SSH://host ", "smb://host/share", "vnc://host"] {
+        // ウェブとメール以外のスキームはすべて確かめる（ショートカットの実行・ssh・共有フォルダ、その別名、アプリを動かすリンク）。
+        // どのスキームが何を動かすかはアプリしだいで、数え上げられない
+        for tool in ["shortcuts://run-shortcut?name=x", "workflow://run-workflow?name=x", "shortcuts-production://x", " SSH://host ",
+                     "smb://host/share", "cifs://host/share", "vnc://host", "obsidian://open?vault=a"] {
             #expect(SettingsImportPlan.needsReview(.openURL(URLAction(url: tool))), "\(tool)")
         }
         #expect(SettingsImportPlan.needsReview(.shortcut(ShortcutAction(name: "x", passSelectedText: false))))
@@ -1334,7 +1342,7 @@ import Testing
         let figma = Profile(kind: .app(SettingsFixtures.figma), pages: [Page(cells: [open])])
         let plan = try #require(importPlan(h, [figma]))
         #expect(SettingsText.importConfirmation(plan).hasSuffix(
-            [L10n.ui("・\("Figma") › \("資料")"), L10n.ui("開くファイル: \("~/Downloads/run.command")")].joined(separator: "\n")
+            [L10n.ui("・\("Figma") › \("資料")"), L10n.ui("アプリ: \(SettingsFixtures.figma.bundleID)"), L10n.ui("開くファイル: \("~/Downloads/run.command")")].joined(separator: "\n")
         ))
     }
 
@@ -1385,6 +1393,7 @@ import Testing
         #expect(lines == [
             Self.reviewIntro,
             L10n.ui("・\(profileName) › \("Build lmth.exe")"),
+            L10n.ui("アプリ: \(SettingsFixtures.figma.bundleID)"),
             L10n.uiCounted("スクリプト（\(4)行）:"),
             "make",
             "",

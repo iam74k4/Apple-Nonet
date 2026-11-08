@@ -508,6 +508,23 @@ private func pasteboard() -> NSPasteboard {
         #expect(try h.store.loadBackup(h.store.backups()[0]).profile(id: xcode.id) == nil)
     }
 
+    /// 戻す前の設定を控えに残せなければ（フォルダに書けない・ディスクがいっぱい）、戻さずに知らせる。残したとは言わない
+    @Test func restoringStopsWhenTheCurrentSettingsCannotBeKept() throws {
+        let h = try harness()
+        let xcode = try #require(h.xcodeProfile)
+        h.model.deleteProfile(xcode.id)
+        h.model.showBackups()
+        let entry = try #require(h.model.backupEntries.first)
+        let folder = entry.backup.url.deletingLastPathComponent()
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path(percentEncoded: false))
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path(percentEncoded: false)) }
+        let before = h.controller.configuration
+        h.model.restoreBackup(entry.backup)
+        #expect(h.controller.configuration == before)
+        #expect(h.model.fileMessage?.isError == true)
+        #expect(h.model.fileMessage?.text == L10n.ui("今の設定を控えに残せなかったので、戻しませんでした。ディスクの空きと、設定のフォルダに書き込めるかを確かめてください。"))
+    }
+
     @Test func anUnreadableBackupIsShownButNotRestored() throws {
         let h = try harness()
         let backup = try #require(h.store.makeBackup(of: h.controller.configuration, reason: .beforeImport))

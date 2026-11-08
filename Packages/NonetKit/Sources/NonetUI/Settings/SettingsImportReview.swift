@@ -97,6 +97,15 @@ extension SettingsText {
     /// URL は開くファイル、ファイルの操作はその操作、ショートカット.app のショートカットはその名前と選択中のテキストを渡すか。ファイルから来た文は、見えない文字を「⟨U+202E⟩」のように見える形にする（visibleLine）
     static func reviewLines(for reviewed: SettingsImportPlan.ReviewedCell) -> [(text: String, style: SettingsImportReviewEntry.Style)] {
         var lines: [(text: String, style: SettingsImportReviewEntry.Style)] = []
+        // アプリのプロファイルのマスは、ファイルの中の名前だけでなく、本当に動くアプリ（bundle ID）を見せる。
+        // この Mac にあるそのアプリの名前とファイルの名前が違えば目立たせる（別のアプリの名前を付けて、危ないキーを読み違えさせない）
+        if let app = reviewed.app {
+            lines.append((String(localized: "アプリ: \(visibleLine(app.bundleID))", bundle: .module), .label))
+            if let installed = reviewed.installedAppName,
+               installed.compare(app.name, options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]) != .orderedSame {
+                lines.append((String(localized: "このファイルでの名前は「\(visibleLine(app.name))」ですが、この Mac ではそのアプリは「\(installed)」です。", bundle: .module), .warning))
+            }
+        }
         switch reviewed.cell.action {
         case .script(let script):
             let source = sourceLines(script.source)
@@ -105,12 +114,17 @@ extension SettingsText {
         case .keystroke(let keys):
             let preview = visibleLine(keysPreview(keys))
             lines.append((String(localized: "キー入力: \(preview)", bundle: .module), .label))
-            let terms = SettingsImportPlan.suspiciousTerms(in: preview)
+            // キーコードで書いたキーが打つ文字（表記からは分からない）も見せて、注意が要る命令を探す
+            let typed = reviewed.keyCodeText.map(visibleLine)
+            if let typed {
+                lines.append((String(localized: "キーコードで打つ文字: 「\(typed)」", bundle: .module), .code(terms: SettingsImportPlan.suspiciousTerms(in: typed))))
+            }
+            let terms = SettingsImportPlan.suspiciousTerms(in: preview + (typed.map { " " + $0 } ?? ""))
             if !terms.isEmpty {
                 lines.append((suspiciousNote(terms), .warning))
             }
         case .menuItem(let menu):
-            let app = menu.app.map { visibleLine($0.name.isEmpty ? $0.bundleID : $0.name) }
+            let app = menu.app.map { $0.name.isEmpty ? visibleLine($0.bundleID) : "\(visibleLine($0.name))（\(visibleLine($0.bundleID))）" }
                 ?? String(localized: "前面のアプリ", bundle: .module)
             let path = menu.path.map(visibleLine).joined(separator: " › ")
             lines.append((String(localized: "メニュー項目: \(app) › \(path)", bundle: .module), .label))
@@ -123,7 +137,10 @@ extension SettingsText {
             lines += sourceLines(ai.prompt).map { ($0, .code(terms: [])) }
             lines.append((String(localized: "結果: \(name(ai.output))", bundle: .module), .label))
         case .openURL(let url):
-            lines.append((String(localized: "開くファイル: \(visibleLine(url.url.trimmingCharacters(in: .whitespacesAndNewlines)))", bundle: .module), .label))
+            let target = visibleLine(url.url.trimmingCharacters(in: .whitespacesAndNewlines))
+            lines.append(SettingsImportPlan.opensLocalFile(url.url)
+                ? (String(localized: "開くファイル: \(target)", bundle: .module), .label)
+                : (String(localized: "開くリンク: \(target)", bundle: .module), .label))
         case .file(let file):
             lines.append((String(localized: "Finder で選んだファイルを: \(file.operation.title)", bundle: .module), .label))
         case .shortcut(let shortcut):
@@ -156,16 +173,38 @@ extension SettingsText {
     /// 「⟨U+202E⟩」にする（確かめる画面で、見えない文字で中身を隠したり並びを入れ替えたりできないように）
     static func visibleLine(_ text: String) -> String {
         var result = ""
+        var previous: Unicode.Scalar?
+        var inFlagTags = false
         for scalar in text.unicodeScalars {
+            defer { previous = scalar }
+            // 旗の絵文字（🏴 に続くタグ文字）の中か
+            let isTag = (0xE0020...0xE007F).contains(scalar.value)
+            inFlagTags = isTag && (inFlagTags || previous?.value == 0x1F3F4)
             if scalar == "\t" {
                 result += "    "
-            } else if isHidden(scalar) {
+            } else if isHidden(scalar) && !(isTag && inFlagTags) || isInvisibleInReview(scalar, after: previous, inFlagTags: inFlagTags) {
                 result += String(format: "⟨U+%04X⟩", scalar.value)
             } else {
                 result.unicodeScalars.append(scalar)
             }
         }
         return result
+    }
+
+    /// 書式文字のほかに、見えない文字（Default_Ignorable: 異体字セレクタ・ハングルの埋め字など）。
+    /// 絵文字をつなぐ ZWJ・ZWNJ、絵文字の直後の異体字セレクタ（️）、旗の絵文字のタグ文字は残す
+    static func isInvisibleInReview(_ scalar: Unicode.Scalar, after previous: Unicode.Scalar?, inFlagTags: Bool) -> Bool {
+        guard scalar.properties.isDefaultIgnorableCodePoint else { return false }
+        switch scalar.value {
+        case 0x200C, 0x200D:
+            return false
+        case 0xFE0E, 0xFE0F:
+            return !(previous?.properties.isEmoji ?? false)
+        case 0xE0020...0xE007F:
+            return !inFlagTags
+        default:
+            return true
+        }
     }
 }
 

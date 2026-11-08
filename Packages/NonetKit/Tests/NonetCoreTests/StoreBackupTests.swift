@@ -158,4 +158,20 @@ struct StoreBackupTests {
             #expect(ConfigurationStore.lastLoadedDirectory != nil)
         }
     }
+
+    /// 時計が進んでいた間の控えが 10 個あっても、いま書いた控えはすぐには消さない（前は日時で並べて 11 番目になり、書いたそばから消えていた）
+    @Test("時計が進んでいた間の控えがあっても、いま書いた控えは残す")
+    func aNewBackupSurvivesFutureDatedOnes() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let future = Self.start + 365 * 86_400
+            for index in 0..<ConfigurationStore.maxBackups {
+                _ = store.makeBackup(of: configuration(profileName: "future \(index)"), reason: .automatic, now: future + Double(index))
+            }
+            let made = try #require(store.makeBackup(of: configuration(profileName: "now"), reason: .beforeRestoring, now: Self.start))
+            #expect(FileManager.default.fileExists(atPath: made.url.path(percentEncoded: false)))
+            #expect(store.backups().contains(made))
+            #expect(store.backups().count == ConfigurationStore.maxBackups)
+        }
+    }
 }

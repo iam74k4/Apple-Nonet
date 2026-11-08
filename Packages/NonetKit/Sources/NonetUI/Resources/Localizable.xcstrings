@@ -2379,6 +2379,22 @@
         }
       }
     },
+    "このファイルでの名前は「%@」ですが、この Mac ではそのアプリは「%@」です。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file calls it “%1$@”, but on this Mac that app is “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "このファイルでの名前は「%1$@」ですが、この Mac ではそのアプリは「%2$@」です。"
+          }
+        }
+      }
+    },
     "このプロファイル" : {
       "localizations" : {
         "en" : {
@@ -3383,6 +3399,16 @@
         }
       }
     },
+    "アプリ: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App: %@"
+          }
+        }
+      }
+    },
     "アプリのアイコンは、アプリを開くマス・メニュー項目のマスか、アプリのプロファイルで使えます" : {
       "localizations" : {
         "en" : {
@@ -3935,6 +3961,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Key Release"
+          }
+        }
+      }
+    },
+    "キーコードで打つ文字: 「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text typed with key codes: “%@”"
           }
         }
       }
@@ -6476,6 +6512,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All current buttons are replaced with the preset. You can undo this with ⌘Z."
+          }
+        }
+      }
+    },
+    "今の設定を控えに残せなかったので、戻しませんでした。ディスクの空きと、設定のフォルダに書き込めるかを確かめてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current settings couldn't be kept as a backup, so nothing was restored. Check that the disk has free space and that the settings folder can be written to."
           }
         }
       }
@@ -10172,6 +10218,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "File to open: %@"
+          }
+        }
+      }
+    },
+    "開くリンク: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link to open: %@"
           }
         }
       }

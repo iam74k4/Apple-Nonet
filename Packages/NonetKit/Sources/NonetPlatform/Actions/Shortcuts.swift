@@ -20,8 +20,9 @@ enum ShortcutRunner {
         return arguments + ["--", name]
     }
 
+    /// 利用者ごとの一時フォルダ（TMPDIR を /tmp などに変えていても、OS に聞いた本人だけの場所。ターミナルの一時ファイルと同じ）
     static var inputDirectory: URL {
-        FileManager.default.temporaryDirectory
+        TerminalCommandFile.perUserTemporaryDirectory
             .appendingPathComponent("Nonet", isDirectory: true)
             .appendingPathComponent("Shortcuts", isDirectory: true)
     }
@@ -69,13 +70,23 @@ enum ShortcutRunner {
         return .actionFailed(ActionText.message(headline, detail: output.stderr.isEmpty ? output.stdout : output.stderr))
     }
 
+    /// 選択中のテキストを、本人だけが読み書きできるファイルとして書く。フォルダが前からあっても本人だけのものにし、
+    /// ファイルは新しく作る（既にあるファイルやリンクには書かない。ほかの利用者に入れ替えられたり読まれたりしない）
     private static func writeInput(_ text: String) throws -> URL {
         let fileManager = FileManager.default
         let directory = inputDirectory
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
         let url = directory.appendingPathComponent("input-\(UUID().uuidString).txt", isDirectory: false)
-        guard fileManager.createFile(atPath: url.path, contents: Data(text.utf8), attributes: [.posixPermissions: 0o600]) else {
-            throw CocoaError(.fileWriteUnknown)
+        let descriptor = Darwin.open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        do {
+            try handle.write(contentsOf: Data(text.utf8))
+            try handle.close()
+        } catch {
+            try? fileManager.removeItem(at: url)
+            throw error
         }
         return url
     }

@@ -253,7 +253,7 @@ extension ConfigurationStore {
             }
             try data.write(to: url, options: .atomic)
             modelLogger.info("設定の控えを残した: \(url.lastPathComponent, privacy: .public)")
-            pruneBackups()
+            pruneBackups(keeping: url)
             return ConfigurationBackup(url: url, date: Self.parseBackupName(url.lastPathComponent)?.date ?? now, reason: reason)
         } catch {
             modelLogger.error("設定の控えを残せない: \(error.localizedDescription, privacy: .public)")
@@ -261,9 +261,12 @@ extension ConfigurationStore {
         }
     }
 
-    /// 古い控えを消し、maxBackups 個にする
-    private func pruneBackups() {
-        for old in backups().dropFirst(Self.maxBackups) {
+    /// 古い控えを消し、maxBackups 個にする。いま書いた控えは消さない（時計が進んでいた間の控えがあると、
+    /// 日時で並べたときにいま書いた控えが古い方に回り、書いたそばから消してしまうため）
+    private func pruneBackups(keeping kept: URL) {
+        let keptPath = kept.standardizedFileURL.path
+        let others = backups().filter { $0.url.standardizedFileURL.path != keptPath }
+        for old in others.dropFirst(Self.maxBackups - 1) {
             do {
                 try FileManager.default.removeItem(at: old.url)
             } catch {

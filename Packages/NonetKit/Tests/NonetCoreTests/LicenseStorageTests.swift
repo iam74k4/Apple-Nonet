@@ -702,4 +702,18 @@ private final class StorageSandbox {
         keychain.writeTrialRecord(Data("{}".utf8))
         #expect(keychain.readTrialRecord() == nil)
     }
+
+    /// 使った時間だけ残り、最後に数えた時刻が消されたときも、使った時間より少なくは数えない（下限として使う）
+    @Test func usedTimeWithoutLastSeenIsALowerBound() {
+        let start = Date(timeIntervalSinceReferenceDate: 815_000_000)
+        let progress = TrialProgress.resumed(start: start, lastSeen: nil, used: 12 * 86_400, now: start + 86_400)
+        #expect(progress?.used == TimeInterval(12 * 86_400))
+        #expect(progress?.entitlement == .trial(daysLeft: 2))
+        // 使った時間より、開始日からの時間の方が長ければそちら
+        #expect(TrialProgress.resumed(start: start, lastSeen: nil, used: 60, now: start + 86_400)?.used == TimeInterval(86_400))
+        // 使った時間が残っていれば、時計が開始日より前でも期限切れにしない
+        #expect(TrialProgress.resumed(start: start, lastSeen: nil, used: 3 * 86_400, now: start - 10 * 86_400)?.used == TimeInterval(3 * 86_400))
+        // 何も残っていなければ、これまでどおり
+        #expect(TrialProgress.resumed(start: start, lastSeen: nil, used: nil, now: start - 10 * 86_400) == nil)
+    }
 }

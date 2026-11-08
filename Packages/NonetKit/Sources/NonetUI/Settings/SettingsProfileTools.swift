@@ -296,7 +296,14 @@ extension SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         editGroup = nil
-        store.makeBackup(of: configuration, reason: .beforeRestoring)
+        // 戻す前の設定を控えに残せなければ、戻さない（残したと言って、今の設定を失わないように）
+        guard store.makeBackup(of: configuration, reason: .beforeRestoring) != nil else {
+            fileMessage = SettingsMessage(
+                text: String(localized: "今の設定を控えに残せなかったので、戻しませんでした。ディスクの空きと、設定のフォルダに書き込めるかを確かめてください。", bundle: .module),
+                isError: true
+            )
+            return
+        }
         controller.replaceConfiguration(restored)
         undoManager.removeAllActions()
         isShowingBackups = false

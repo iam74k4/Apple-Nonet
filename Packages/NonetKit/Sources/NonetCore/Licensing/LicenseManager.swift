@@ -453,8 +453,10 @@ struct TrialProgress: Equatable, Sendable {
         }
         guard let lastSeen, let used, used.isFinite, used >= 0 else {
             let sinceStart = now.timeIntervalSince(start)
-            guard sinceStart >= -clockTolerance else { return nil }
-            return TrialProgress(start: start, lastSeen: now, used: max(0, sinceStart))
+            // 使った時間だけ残っている（最後に数えた時刻が消された）なら、それより少なくは数えない（TrialRecord.reconciled と同じく下限）
+            let knownUsed = used.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+            guard sinceStart >= -clockTolerance || knownUsed != nil else { return nil }
+            return TrialProgress(start: start, lastSeen: now, used: max(knownUsed ?? 0, max(0, sinceStart)))
         }
         return TrialProgress(start: start, lastSeen: lastSeen, used: used).advanced(to: now, realElapsed: nil)
     }
