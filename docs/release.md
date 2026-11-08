@@ -132,11 +132,11 @@ Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONE
 
 ### 1.8 販売ページの仮の値を埋める
 
-`site/` には、販売サービスを決めるまで埋められない仮の値（`TODO` と `TODO.invalid`）が3種類ある。どれも同じ書き方なので、検索して置き換える:
+`site/` には、まだ埋められない仮の値（`TODO` と `TODO.invalid`）が残っている（価格と販売サービスの名前は埋めた）。どれも同じ書き方なので、検索して置き換える:
 
 | 仮の値 | 場所 | 埋めるもの |
 |---|---|---|
-| 価格: `¥TODO`・`$TODO` | `index.html`・`en/index.html` の価格 | 税込の価格。決めたら、両方の head の JSON-LD に `offers`（`"@type": "Offer"`・`price`・`priceCurrency`）を足す（決まるまでは書かない） |
+| 価格（2026-11-08 に決めて埋めた） | `index.html`・`en/index.html` の価格と head の JSON-LD の `offers`、`tokushoho.html` の販売価格 | ¥1,480（税込）・$9.99（税は別）。変えるときは全部をそろえる（`scripts/tests/site_test.sh` の `test_price_is_the_same_everywhere` が確かめる） |
 | 販売サービス: `https://TODO.invalid/buy`・`TODO: 販売事業者の電話番号の表記` | 購入のボタン（`NONET_PURCHASE_URL` と同じ URL）・`tokushoho.html` の所在地・電話番号 | 購入のボタンは Paddle の購入画面を開くページ（3.6）。電話番号は 3.4 のとおり決める。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地は 2026-11-08 に埋めた |
 | 問い合わせ先: `support@TODO.invalid` | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー | サポートのメールアドレス（利用ガイドのフッターは `scripts/build-guide.py` で直す） |
 
@@ -423,7 +423,7 @@ Paddle では:
 
 まだ埋めていないもの（1.8 の仮の値）:
 
-- 価格・購入のボタンの URL（`site/` の TODO。購入のボタンは 3.6）
+- 購入のボタンの URL（`site/` の TODO。3.6）
 - 問い合わせ先のメールアドレス
 - 特定商取引法に基づく表記の、販売事業者（Paddle）の電話番号の表記（上の「販売」）
 
