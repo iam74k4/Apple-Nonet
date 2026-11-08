@@ -17,8 +17,28 @@ struct SettingsImportPlan: Identifiable, Equatable {
         /// 無ければ空。ファイルの中の名前がどれとも違えば目立たせる（最初のものを見せる）
         var installedAppNames: [String] = []
         /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーをすべて、順に）。無ければ nil。
-        /// 「keyCode(8)」のような表記では何を打つか分からず、文字と混ぜて書いた命令も見つけられないので、つなげて文字にして見せる
-        var keyCodeText: String? = nil
+        /// 「keyCode(8)」のような表記では何を打つか分からず、文字と混ぜて書いた命令も見つけられないので、つなげて文字にして見せる。
+        /// 最初が見せるもの。注意が要る命令は、打ち方の決まりを変えて打ったもの（textsTypedByKeyCodes）のどれかにあれば知らせる
+        var keyCodeTexts: [String] = []
+
+        var keyCodeText: String? { keyCodeTexts.first }
+
+        init(
+            profileName: String,
+            cell: Cell,
+            pressesSubmitKey: Bool = false,
+            app: AppReference? = nil,
+            installedAppNames: [String] = [],
+            keyCodeText: String? = nil,
+            keyCodeTexts: [String] = []
+        ) {
+            self.profileName = profileName
+            self.cell = cell
+            self.pressesSubmitKey = pressesSubmitKey
+            self.app = app
+            self.installedAppNames = installedAppNames
+            self.keyCodeTexts = keyCodeText.map { [$0] + keyCodeTexts } ?? keyCodeTexts
+        }
     }
 
     let id = UUID()
@@ -64,7 +84,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
                     pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys),
                     app: source.app,
                     installedAppNames: source.installed,
-                    keyCodeText: Self.textTypedByKeyCodes(cell.action, keys: keys)
+                    keyCodeTexts: Self.textsTypedByKeyCodes(cell.action, keys: keys) ?? []
                 )
             }
         }
@@ -162,35 +182,74 @@ struct SettingsImportPlan: Identifiable, Equatable {
     }
 
     /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーを、文字で書いたものも含めて順に）。
-    /// ⌫・⌦・矢印・Home・End は、打った文字を消したり、打つ場所を動かしたりする（TypedText）。
-    /// キーコードを含まない・文字にならなければ nil
+    /// ⌫・⌦・矢印は、打った文字を消したり、打つ場所を動かしたりする（TypedText）。見せるのは、ターミナルと標準の入力欄の
+    /// 決まり（Home・End は打つ場所を動かさない）で打ったもの。キーコードを含まない・文字にならなければ nil
     static func textTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> String? {
-        guard case .keystroke(let sequence) = action, let translator,
-              sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
-        var typed = TypedText()
-        for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
-            let byWord = chord.modifiers.contains(.option)
-            if let characters = translator.characters(for: chord) {
-                // キーコードの ⌫ や矢印は、制御文字として返る
-                for character in characters { typed.type(character, byWord: byWord) }
-            } else if case .character(let text) = chord.key {
-                for character in text { typed.type(character, byWord: byWord) }
-            } else if case .special(let key) = chord.key {
-                typed.press(key, byWord: byWord)
-            }
-            // 文字を打たないキー（修飾キー・消音・英数・かな・↑↓・Esc・F キーなど）は何もしない。区切りにすると、
-            // 「r」修飾キー「m」が「r m」に見えて、実際に打つ「rm」を見逃す
-        }
-        let text = String(typed.characters)
-        return text.isEmpty ? nil : text
+        textsTypedByKeyCodes(action, keys: translator)?.first
     }
 
-    /// 1行の入力欄で打った結果。打つ場所（cursor）に文字を入れ、⌫・⌦ で消し、←→・Home・End で打つ場所を動かす。
-    /// ⌥ を付けた ←→⌫ は語ごと。Return・Tab・Space は語の区切り（Return は行の最後へ移ってから）。
+    /// 打ち方の決まりを変えて打ったものをすべて（最初は見せるもの）。注意が要る命令は、このどれかに入っていれば知らせる。
+    /// アプリによって Home・End や ⌥⌫ の働きが違い、どれか1つの決まりで打ったものだけを見ると、別の決まりのアプリで打つ命令を隠せる
+    /// （「rm」Home ⌦ ⏎ は、Home で行の頭へ移るアプリでは「m」、移らないターミナルでは rm を打つ）。
+    /// 消すキーを使わずに打ったもの（raw）も見る（⏎ で送った後に ⌫ で消して見せても、送った命令は残る）
+    static func textsTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> [String]? {
+        guard case .keystroke(let sequence) = action, let translator,
+              sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
+        let rules: [TypedText.Rules] = [
+            .init(homeEndMove: false, optionByWord: true),
+            .init(homeEndMove: false, optionByWord: false),
+            .init(homeEndMove: true, optionByWord: true),
+            .init(homeEndMove: true, optionByWord: false),
+            .raw,
+        ]
+        var texts: [String] = []
+        for rule in rules {
+            var typed = TypedText(rules: rule)
+            for chord in sequence.chords where chord.modifiers.isDisjoint(with: [.command, .control]) {
+                let byWord = chord.modifiers.contains(.option)
+                if let characters = translator.characters(for: chord) {
+                    // キーコードの ⌫ や矢印は、制御文字として返る
+                    for character in characters { typed.type(character, byWord: byWord) }
+                } else if case .character(let text) = chord.key {
+                    for character in text { typed.type(character, byWord: byWord) }
+                } else if case .special(let key) = chord.key {
+                    typed.press(key, byWord: byWord)
+                }
+                // 文字を打たないキー（修飾キー・消音・英数・かな・↑↓・Esc・F キーなど）は何もしない。区切りにすると、
+                // 「r」修飾キー「m」が「r m」に見えて、実際に打つ「rm」を見逃す
+            }
+            let text = String(typed.characters)
+            if !text.isEmpty, !texts.contains(text) { texts.append(text) }
+        }
+        return texts.isEmpty ? nil : texts
+    }
+
+    /// 1行の入力欄で打った結果。打つ場所（cursor）に文字を入れ、⌫・⌦ で消し、←→（と、決まりによって Home・End）で打つ場所を動かす。
+    /// ⌥ を付けた ←→⌫⌦ は、決まりによって語ごと。Space・Tab は語の区切り。Return は行を送る（送った行は、後の ⌫ や ← では変わらない）。
     /// 消してから打った文字（「x」⌫「rm」）や、戻って前に打った文字（「m」←「r」）も、実際に打つ並びにして命令を探す
     struct TypedText {
-        private(set) var characters: [Character] = []
+        struct Rules {
+            /// Home・End で打つ場所を行の頭・終わりへ動かす（ターミナルや標準の入力欄は動かさない）
+            var homeEndMove: Bool
+            /// ⌥ を付けた ←→⌫⌦ を語ごとにする
+            var optionByWord: Bool
+            /// ⌫・⌦・矢印などを効かせる。false なら、打った文字をそのまま並べる
+            var appliesEdits = true
+
+            static let raw = Rules(homeEndMove: false, optionByWord: false, appliesEdits: false)
+        }
+
+        let rules: Rules
+        /// Return で送った行（区切りの空白つき）
+        private var sent: [Character] = []
+        private var line: [Character] = []
         private var cursor = 0
+
+        init(rules: Rules) {
+            self.rules = rules
+        }
+
+        var characters: [Character] { sent + line }
 
         mutating func type(_ character: Character, byWord: Bool) {
             switch character.unicodeScalars.first?.value ?? 0 {
@@ -219,48 +278,52 @@ struct SettingsImportPlan: Identifiable, Equatable {
         }
 
         mutating func press(_ key: SpecialKey, byWord: Bool) {
+            let byWord = byWord && rules.optionByWord
             switch key {
             case .space, .tab:
                 insert(" ")
             case .returnKey:
-                cursor = characters.count
-                insert(" ")
+                sent += line + [" "]
+                line = []
+                cursor = 0
+            case _ where !rules.appliesEdits:
+                break
             case .delete:
                 let start = byWord ? wordStart(before: cursor) : max(0, cursor - 1)
-                characters.removeSubrange(start..<cursor)
+                line.removeSubrange(start..<cursor)
                 cursor = start
             case .forwardDelete:
-                let end = byWord ? wordEnd(after: cursor) : min(characters.count, cursor + 1)
-                characters.removeSubrange(cursor..<end)
+                let end = byWord ? wordEnd(after: cursor) : min(line.count, cursor + 1)
+                line.removeSubrange(cursor..<end)
             case .leftArrow:
                 cursor = byWord ? wordStart(before: cursor) : max(0, cursor - 1)
             case .rightArrow:
-                cursor = byWord ? wordEnd(after: cursor) : min(characters.count, cursor + 1)
-            case .home:
+                cursor = byWord ? wordEnd(after: cursor) : min(line.count, cursor + 1)
+            case .home where rules.homeEndMove:
                 cursor = 0
-            case .end:
-                cursor = characters.count
+            case .end where rules.homeEndMove:
+                cursor = line.count
             default:
                 break
             }
         }
 
         private mutating func insert(_ character: Character) {
-            characters.insert(character, at: cursor)
+            line.insert(character, at: cursor)
             cursor += 1
         }
 
         private func wordStart(before position: Int) -> Int {
             var index = position
-            while index > 0, characters[index - 1].isWhitespace { index -= 1 }
-            while index > 0, !characters[index - 1].isWhitespace { index -= 1 }
+            while index > 0, line[index - 1].isWhitespace { index -= 1 }
+            while index > 0, !line[index - 1].isWhitespace { index -= 1 }
             return index
         }
 
         private func wordEnd(after position: Int) -> Int {
             var index = position
-            while index < characters.count, characters[index].isWhitespace { index += 1 }
-            while index < characters.count, !characters[index].isWhitespace { index += 1 }
+            while index < line.count, line[index].isWhitespace { index += 1 }
+            while index < line.count, !line[index].isWhitespace { index += 1 }
             return index
         }
     }

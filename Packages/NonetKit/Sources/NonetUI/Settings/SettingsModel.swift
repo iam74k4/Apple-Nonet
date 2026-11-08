@@ -799,6 +799,10 @@ final class SettingsModel {
                 configuration.setCell(snapshot.cell, at: snapshot.address, profileID: profileID)
             }
         }
+        // 元に戻した「開く」のマスがアプリか URL かを覚え直す（切り替えを元に戻した後に、戻す前の方へ戻さない）
+        for case let cell? in restored.map(\.cell) where SettingsActionKinds.menuKind(of: cell.action) == .launchApp {
+            lastOpenKinds[cell.id] = cell.action.kind
+        }
         if let address = addresses.first {
             reveal(address, profileID: profileID)
         }

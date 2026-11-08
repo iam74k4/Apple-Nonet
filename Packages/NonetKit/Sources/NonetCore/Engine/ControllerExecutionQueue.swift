@@ -100,6 +100,9 @@ enum ControllerExecutionPolicy {
     /// （ActionContext.didReadContext）に譲る。これは知らせが来ないときの上限で、いちばん遅い読み取り
     /// （ブラウザの URL を聞く 2 秒と、⌘C の待ち）に合わせる
     static let longRunningHold: TimeInterval = 3
+    /// 読み終えたと知らせが来ても、始めてからこれだけは後の実行を待たせる。スクリプトが自分で前面アプリに問い合わせることもあり
+    /// （osascript で Safari の URL を読むなど）、すぐに終わる AI の「選択を置き換える」は、後のキー入力より先に貼り付けたい
+    static let longRunningMinimumHold: TimeInterval = 1
     /// どの実行も、後の実行をこれより長くは待たせない（応答しないアプリなどで、後のマスがすべて止まらないように）
     static let holdLimit: TimeInterval = 5
 

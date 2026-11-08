@@ -120,7 +120,13 @@ extension SettingsText {
             if let typed {
                 lines.append((String(localized: "打つ文字（キーコードも文字にしたもの）: 「\(typed)」", bundle: .module), .code(terms: SettingsImportPlan.suspiciousTerms(in: typed))))
             }
-            let terms = SettingsImportPlan.suspiciousTerms(in: preview + (typed.map { " " + $0 } ?? ""))
+            var terms = SettingsImportPlan.suspiciousTerms(in: preview + (typed.map { " " + $0 } ?? ""))
+            // 打ち方の決まりを変えて打ったもの（Home・End・⌥⌫ の働きが違うアプリ・消すキーを効かせない）にあっても知らせる
+            for text in reviewed.keyCodeTexts.dropFirst().map(visibleLine) {
+                for term in SettingsImportPlan.suspiciousTerms(in: text) where !terms.contains(term) {
+                    terms.append(term)
+                }
+            }
             if !terms.isEmpty {
                 lines.append((suspiciousNote(terms), .warning))
             }

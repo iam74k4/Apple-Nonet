@@ -156,6 +156,21 @@ import Testing
         #expect(h.controller.configuration == before)
     }
 
+    /// アプリのマスを URL に切り替えて ⌘Z で戻し、別の中身にしてから「開く」に戻すと、アプリに戻る（URL にしない）
+    @Test func undoingTheAppURLSwitchKeepsTheAppForOpen() throws {
+        let h = try SettingsHarness()
+        h.model.undoManager.groupsByEvent = false
+        let safari = try #require(h.model.selectedProfile.pages[0].cells[0])
+        guard case .launchApp = safari.action else { Issue.record("最初のマスはアプリを開く"); return }
+        h.model.changeKind(ofCell: safari.id, to: .openURL)
+        h.model.closeEditGroup()
+        h.model.undoManager.undo()
+        #expect(h.model.cell(id: safari.id)?.action == safari.action)
+        h.model.replaceAction(ofCell: safari.id, with: .keystroke(KeySequence([KeyChord(.character("b"), modifiers: .command)])))
+        h.model.chooseKind(ofCell: safari.id, .launchApp)
+        #expect(h.model.cell(id: safari.id)?.action == safari.action)
+    }
+
     @Test func choosingAnAppForALaunchCell() throws {
         let h = try SettingsHarness()
         h.model.createCell(kind: .launchApp, at: 1)

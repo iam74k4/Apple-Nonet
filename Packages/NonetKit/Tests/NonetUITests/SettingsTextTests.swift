@@ -125,13 +125,36 @@ import Testing
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(deleted), keys: FakeKeyCharacters()) == "rm -rf ~")
         let moved = KeySequence([KeyChord(.character("m")), KeyChord(.special(.leftArrow)), KeyChord(.character("r")), KeyChord(.special(.rightArrow)), KeyChord(.keyCode(56)), KeyChord(.character(" -rf ~"))])
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(moved), keys: FakeKeyCharacters()) == "rm -rf ~")
-        // ⌥⌫ は語ごと消す。⌦・Home・End も打つ場所の決まりどおり
+        // ⌥⌫ は語ごと消す。見せるのは Home・End で打つ場所が動かない決まり（ターミナル・標準の入力欄）。動く決まりで打ったものも探す
         let words = KeySequence([KeyChord(.character("echo hi")), KeyChord(.special(.delete), modifiers: .option), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), KeyChord(.special(.end)), KeyChord(.keyCode(56)), KeyChord(.character("x"))])
-        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters()) == "cho x")
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters()) == "echo x")
+        #expect(SettingsImportPlan.textsTypedByKeyCodes(.keystroke(words), keys: FakeKeyCharacters())?.contains("cho x") == true)
         // キーコードを含まなければ、表記で読めるので nil
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.keyCode(8), modifiers: .command)])), keys: FakeKeyCharacters()) == nil)
+    }
+
+    /// 打ち方の決まりを変えて打ったもののどれかに注意が要る命令があれば知らせる。⏎ で送った行は、後の ⌫ や ← では消えない
+    @Test func riskyCommandsAreFoundUnderEveryTypingRule() throws {
+        func warns(_ chords: [KeyChord]) throws -> Bool {
+            let action = Action.keystroke(KeySequence(chords))
+            let cell = Cell(title: "x", icon: .symbol("x"), action: action)
+            let texts = try #require(SettingsImportPlan.textsTypedByKeyCodes(action, keys: FakeKeyCharacters()))
+            let reviewed = SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell, keyCodeTexts: texts)
+            return SettingsText.reviewLines(for: reviewed).contains { $0.style == .warning && $0.text.contains("rm -rf") }
+        }
+        let modifier = KeyChord(.keyCode(56))
+        let enter = KeyChord(.special(.returnKey))
+        // ⏎ で送った後に ⌫ や ⌥⌫ で消しても、Home で戻って打っても、送った命令は残る
+        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete)), count: 9)))
+        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter] + Array(repeating: KeyChord(.special(.delete), modifiers: .option), count: 3)))
+        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), enter, KeyChord(.special(.home)), KeyChord(.character("x"))]))
+        // Home で打つ場所が動くかどうかで変わる（動かないターミナルでは rm を打つ）
+        #expect(try warns([modifier, KeyChord(.character("rm -rf ~")), KeyChord(.special(.home)), KeyChord(.special(.forwardDelete)), enter]))
+        #expect(try warns([modifier, KeyChord(.character("rm")), KeyChord(.special(.home)), KeyChord(.character(" -rf ~")), enter]))
+        // 普通のキー入力では知らせない
+        #expect(try !warns([modifier, KeyChord(.character("ls -la")), enter]))
     }
 
     /// 見えない文字（異体字セレクタ・ハングルの埋め字など）も見える形にする。絵文字の ️・旗のタグ文字・ZWJ は残す

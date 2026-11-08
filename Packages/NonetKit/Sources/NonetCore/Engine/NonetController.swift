@@ -754,7 +754,12 @@ public final class NonetController {
         var context = context
         // 文脈を読み終えたら、上限を待たずに譲る。ほかのアクション（ターミナルのスクリプト・ゴミ箱に入れる）は、終わるまで譲らない
         if ControllerExecutionPolicy.isLongRunning(target.cell.action) {
-            context.didReadContext = { [weak turn] in turn?.pass() }
+            let scheduler = services.scheduler
+            let start = scheduler.now
+            context.didReadContext = { [weak turn] in
+                // 始めてから longRunningMinimumHold は待たせる（pass(after:) は前に決めた時間より早くするだけ）
+                turn?.pass(after: ControllerExecutionPolicy.longRunningMinimumHold - (scheduler.now - start))
+            }
         }
         let run = startRunningToast(for: target)
         do {

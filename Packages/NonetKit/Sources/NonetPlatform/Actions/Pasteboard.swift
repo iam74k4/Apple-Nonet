@@ -490,7 +490,7 @@ final class PasteDataProvider: NSObject, NSPasteboardItemDataProvider, @unchecke
 enum ClipboardCopy {
     struct Timing: Sendable {
         /// 写すのと、⌘C の後にアプリが書くのを待つのとを合わせた上限（読むと確認が出るときの読み取りは除く）。
-        /// 実行の順番は文脈を読み終えるころ（1 秒）に後のマスへ譲るので、普段はそれより長く掛けない
+        /// 実行の順番は文脈を読み終えたとき（早くても始めてから 1 秒、遅くても 3 秒）に後のマスへ譲るので、普段はそれより長く掛けない
         var copyTimeout: TimeInterval = 1
         /// 写すのに時間が掛かっても、⌘C の後はこれだけは待つ
         var minimumCopyWait: TimeInterval = 0.3
