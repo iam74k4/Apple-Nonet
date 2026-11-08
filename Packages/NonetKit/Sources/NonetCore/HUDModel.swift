@@ -105,6 +105,9 @@ public struct HUDModel: Equatable, Sendable {
     /// エンジンには外枠として伝えているので isFingerInFrame も true になるが（離しても何も起きない）、
     /// HUD は「離すとやめる」の薄い見た目にせず、まだ何も選んでいない見た目で出す（開くたびに薄くなっては、選べないように見える）
     public var isWaitingAtCenter: Bool
+    /// 上下の帯に止めても切り替える先が無いときの案内（前面のアプリのページが無く、グローバルのページだけ。
+    /// SessionHUDState.layerHint・ControllerPresentation.layerHint）。HUD は真ん中の鍵の下に出し、VoiceOver でも読む
+    public var layerHint: String?
 
     public init(
         title: String,
@@ -124,7 +127,8 @@ public struct HUDModel: Equatable, Sendable {
         layer: HUDLayer? = nil,
         lastTurn: PageEdge? = nil,
         scale: Double = 1,
-        isWaitingAtCenter: Bool = false
+        isWaitingAtCenter: Bool = false,
+        layerHint: String? = nil
     ) {
         self.title = title
         self.pageIndex = pageIndex
@@ -144,6 +148,7 @@ public struct HUDModel: Equatable, Sendable {
         self.lastTurn = lastTurn
         self.scale = scale
         self.isWaitingAtCenter = isWaitingAtCenter
+        self.layerHint = layerHint
     }
 }
 

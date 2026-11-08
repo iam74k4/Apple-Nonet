@@ -13,11 +13,14 @@ struct ControllerSession: Equatable, Sendable {
     var hasShownHUD = false
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
+    /// 層が1つのときに、上下の帯に止めたら出す案内（ControllerPresentation.layerHint）
+    let layerHint: String?
 
     init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
         pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
+        layerHint = ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: frontmostApp?.app.bundleID)
     }
 
     var engineConfiguration: SessionConfiguration {
@@ -64,7 +67,8 @@ struct ControllerSession: Equatable, Sendable {
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             scale: settings.hudScale.factor,
-            isWaitingAtCenter: isWaitingAtCenter
+            isWaitingAtCenter: isWaitingAtCenter,
+            layerHint: layerHint
         )
     }
 }

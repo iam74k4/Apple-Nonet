@@ -129,11 +129,13 @@ While the nine buttons are open, **hold the pointer just outside the ring** to s
 
 While you hold the pointer there, a white arrow appears at that edge of the HUD with a line growing around it. To the right or left, dots under the center icon also show the current page. When it switches, the ring of icons is pushed in the direction you went and the next ring slides in (with Reduce Motion on in System Settings, they swap without moving). On the Global pages, the circles under the icons turn slightly navy, and right after switching, the profile name appears under the center icon.
 
-Holding the pointer farther out (more than about 210 pt from the center) switches nothing. If you're unsure, move farther out. Lifting anywhere outside the ring still closes the buttons without running anything, even after a switch. It doesn't go past the first or last page (when there is no page on that side, no arrow appears).
+Holding the pointer farther out (more than about 210 pt from the center) switches nothing. If you're unsure, move farther out. Lifting anywhere outside the ring still closes the buttons without running anything, even after a switch. Holding on the right at the last page goes to the first page, and holding on the left at the first page goes to the last page. It wraps around only within the app's pages or within the Global pages (when there is only one page, left and right switch nothing and no arrow appears).
 
-You can also **swipe left or right with two fingers** to switch pages within the profile. Moving two fingers to the left goes to the next page, and each swipe moves one page. At the first or last page it stops and gives two light taps. **Swipe up or down with two fingers** to switch between the app's pages and the Global pages: moving two fingers up goes to the Global pages, and moving them down goes back to the app's pages (when there is nothing to switch to, you get two light taps). After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
+You can also **swipe left or right with two fingers** to switch pages within the profile. Moving two fingers to the left goes to the next page, and each swipe moves one page. After the last page it wraps around to the first (when there is only one page, you get two light taps). **Swipe up or down with two fingers** to switch between the app's pages and the Global pages: moving two fingers up goes to the Global pages, and moving them down goes back to the app's pages (when there is nothing to switch to, you get two light taps). After a swipe, lift one finger, slide the remaining finger again, then lift it on a button. Lifting it without sliding, or lifting both fingers, runs nothing.
 
 Each profile can have up to three pages. For an app with a profile, you reach the Global pages by holding the pointer below the ring (they no longer follow the app's pages to the right).
+
+An app without a profile uses only the Global pages, so holding above or below the ring switches nothing. Instead, “No pages for this app yet” appears under the center icon. Add the app on the Profiles tab of Settings to give it its own pages, and then holding above or below switches between them and the Global pages. For an app set to **Use Global** while in front, it says “This app uses the Global pages”.
 
 ### Global profile and launcher
 
@@ -143,7 +145,7 @@ The Global profile's first page starts as the nine Place on Screen buttons (Top 
 
 ### Haptic feedback
 
-When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a swipe past the last page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, and twice when the page changes. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a left or right swipe when there is only one page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
 
 ## Menu bar
 

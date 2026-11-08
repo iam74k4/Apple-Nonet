@@ -216,6 +216,9 @@ public struct SessionHUDState: Equatable, Sendable {
     /// 最後にページか層を切り替えた向き（右・左は次・前のページ、下・上は次・前の層。2本指のスワイプは右・左）。
     /// HUD は、切り替わったときにこの向きへ輪を押し出す。このセッションでまだ切り替えていなければ nil
     public var lastTurn: PageEdge?
+    /// 層が1つ（前面のアプリのページが無く、グローバルのページだけ）なのに、指を上下の帯に edgePageDwell 止めた: その側。
+    /// 切り替える先が無いことを HUD が案内する（HUDModel.layerHint）。帯を出れば nil
+    public var layerHint: PageEdge?
 
     public init(
         page: Int,
@@ -224,7 +227,8 @@ public struct SessionHUDState: Equatable, Sendable {
         hold: SessionHold? = nil,
         edgePaging: SessionEdgePaging? = nil,
         isOnBoundary: Bool = false,
-        lastTurn: PageEdge? = nil
+        lastTurn: PageEdge? = nil,
+        layerHint: PageEdge? = nil
     ) {
         self.page = page
         self.highlightedCell = highlightedCell
@@ -233,6 +237,7 @@ public struct SessionHUDState: Equatable, Sendable {
         self.edgePaging = edgePaging
         self.isOnBoundary = isOnBoundary
         self.lastTurn = lastTurn
+        self.layerHint = layerHint
     }
 }
 
@@ -250,7 +255,7 @@ public enum SessionEffect: Equatable, Sendable {
     case updateHUD(SessionHUDState)
     case hideHUD
     /// activation（開いた）・boundary（マスと外枠の境目をまたいだ）・pageChange・holdReady（少し長く止めるマスを止め終えた）・
-    /// rejected（何も実行せずに指を離した・端のページから先へのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
+    /// rejected（何も実行せずに指を離した・切り替える先の無い向きへのスワイプ）だけを出す。execute の触覚は、実際に何かを実行したときに controller が鳴らす
     case haptic(HapticEvent)
     /// マスを実行する。occupiedCells で空きと分かっているマスには出さない。
     /// それ以外の空きマス・ライセンス・練習モード・トーストの判断は controller がする

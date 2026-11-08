@@ -2,7 +2,7 @@
 // NonetController が HUD・トースト・結果のパネルに渡すものを作る純粋な関数
 import Foundation
 
-/// trialEndedBanner・trialReminderBanner だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
+/// trialEndedBanner・trialReminderBanner・layerHint だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
 public enum ControllerPresentation {
     /// page は resolvedPages での位置。範囲外は端に寄せる。HUD のページの番号と数は、いまの層（アプリかグローバル）の中で数える
     static func hudModel(
@@ -13,7 +13,8 @@ public enum ControllerPresentation {
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
         scale: Double = 1,
-        isWaitingAtCenter: Bool = false
+        isWaitingAtCenter: Bool = false,
+        layerHint: String? = nil
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
@@ -41,8 +42,19 @@ public enum ControllerPresentation {
             layer: layers.layer,
             lastTurn: state.lastTurn,
             scale: scale,
-            isWaitingAtCenter: state.isInFrame && isWaitingAtCenter
+            isWaitingAtCenter: state.isInFrame && isWaitingAtCenter,
+            layerHint: state.isInFrame && state.layerHint != nil ? layerHint : nil
         )
+    }
+
+    /// 層が1つ（グローバルのページだけ）のときに、上下の帯に止めたら出す案内。前面のアプリにプロファイルが無ければ「ページはまだありません」、
+    /// プロファイルを「グローバルのページを使う」にしていればそのこと。層が2つ・前面のアプリが分からなければ nil
+    public static func layerHint(configuration: NonetConfiguration, pages: [ResolvedPage], frontmostBundleID: String?) -> String? {
+        guard globalPagesStart(pages) == nil, let bundleID = frontmostBundleID?.trimmedNonEmpty else { return nil }
+        if let index = configuration.appProfileIndex(forBundleID: bundleID), configuration.profiles[index].mode == .global {
+            return String(localized: "このアプリはグローバルのページを使います", bundle: .module)
+        }
+        return String(localized: "このアプリのページはまだありません", bundle: .module)
     }
 
     /// index のページがある層と、その層のページの範囲（resolvedPages での位置）。アプリのプロファイルが無く層が1つなら、layer は nil で範囲はすべて
@@ -61,11 +73,10 @@ public enum ControllerPresentation {
     }
 
     /// 左右の外枠に指を止めている側の、隣のページの端の列（右なら次のページの左の列、左なら前のページの右の列。上の段から）。
-    /// 同じ層の中だけ。上下（層の切り替え）は nil
+    /// 同じ層の中だけで、端のページからは反対の端のページ（PageEdge.neighbor）。上下（層の切り替え）・ページが1つの層は nil
     static func edgePeek(pages: [ResolvedPage], page: Int, edge: PageEdge?) -> [HUDCell?]? {
-        guard let edge, edge == .left || edge == .right else { return nil }
-        let neighbor = edge == .right ? page + 1 : page - 1
-        guard pages.indices.contains(neighbor), layers(of: pages, at: neighbor).range.contains(page) else { return nil }
+        guard let edge, let neighbor = edge.neighbor(of: page, in: layers(of: pages, at: page).range),
+              pages.indices.contains(neighbor) else { return nil }
         let cells = Page(cells: pages[neighbor].cells).cells
         let column = edge == .right ? 0 : 2
         return [0, 1, 2].map { row in cells[row * 3 + column].map(hudCell) }

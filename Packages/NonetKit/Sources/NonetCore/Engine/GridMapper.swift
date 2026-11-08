@@ -57,13 +57,25 @@ public enum GridZone: Equatable, Sendable {
     }
 }
 
-/// 外枠のうち、指を止めると切り替える側。左は前のページ、右は次のページ（どちらも同じ層の中）。
+/// 外枠のうち、指を止めると切り替える側。左は前のページ、右は次のページ（どちらも同じ層の中で、端からは反対の端へ回る）。
 /// 下はグローバルのページの層へ、上はアプリのページの層へ戻る（層が2つあるときだけ。SessionConfiguration.layerStart）
 public enum PageEdge: Equatable, Sendable {
     case left
     case right
     case up
     case down
+
+    /// 左右に1ページ送った先。layer（ページの範囲）の中で輪になる: 最後のページの右は最初のページ、最初のページの左は最後のページ。
+    /// 上下、layer が1ページだけ、page が layer の外なら nil
+    func neighbor(of page: Int, in layer: Range<Int>) -> Int? {
+        guard layer.count > 1, layer.contains(page) else { return nil }
+        let offset = page - layer.lowerBound
+        switch self {
+        case .right: return layer.lowerBound + (offset + 1) % layer.count
+        case .left: return layer.lowerBound + (offset + layer.count - 1) % layer.count
+        case .up, .down: return nil
+        }
+    }
 }
 
 /// 指の位置（x は左が 0、y は手前が 0 の 0〜1）を 3×3 のマス番号（0〜8、左上から右へ、上の行から）に変える。

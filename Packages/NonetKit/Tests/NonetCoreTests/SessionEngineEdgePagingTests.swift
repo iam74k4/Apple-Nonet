@@ -7,7 +7,7 @@ import Testing
     static let dwell = SessionConfiguration.defaultEdgePageDwell
     static let repeatDwell = SessionConfiguration.defaultEdgePageRepeat
 
-    /// 右の外枠に止めると、edgePageDwell で次のページ。止めたままなら edgePageRepeat ごとに進み、最後のページで止まる
+    /// 右の外枠に止めると、edgePageDwell で次のページ。止めたままなら edgePageRepeat ごとに進み、最後のページの次は最初のページへ回る
     @Test func restingOnTheRightFrameTurnsToTheNextPages() {
         var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
@@ -24,37 +24,48 @@ import Testing
         ])
         #expect(first.hapticEvents == [.pageChange])
 
-        // 最後のページに来たら、それ以上は待たない（進み具合も出さない）
-        let second = s.tick(at: 0.7 + Self.repeatDwell)
-        #expect(second.hudStates == [SessionHUDState(page: 2, highlightedCell: nil, isInFrame: true, lastTurn: .right)])
-        #expect(second.hapticEvents == [.pageChange])
-        #expect(s.tick(at: 5).visible.isEmpty)
-        #expect(s.engine.pageIndex == 2)
+        // 最後のページへ。層の中で輪になるので、そこからも待ち続け、次は最初のページへ回る
+        let second = 0.7 + Self.repeatDwell
+        let toLast = s.tick(at: second)
+        #expect(toLast.hudStates == [
+            SessionHUDState(page: 2, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: second, duration: Self.repeatDwell), lastTurn: .right),
+        ])
+        #expect(toLast.hapticEvents == [.pageChange])
+        let third = second + Self.repeatDwell
+        let wrapped = s.tick(at: third)
+        #expect(wrapped.hudStates == [
+            SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: third, duration: Self.repeatDwell), lastTurn: .right),
+        ])
+        #expect(wrapped.hapticEvents == [.pageChange])
+        #expect(s.engine.pageIndex == 0)
 
         // 外枠で離すのは、ページを変えた後でも、やめる操作
-        let lifted = s.lift(at: 5.1)
+        let lifted = s.lift(at: third + 0.1)
         #expect(lifted.executions.isEmpty)
         #expect(lifted.endReason == .cancelled(.liftedInFrame))
     }
 
-    /// 左の外枠に止めると前のページ。最初のページでは何も待たない
+    /// 左の外枠に止めると前のページ。最初のページからは最後のページへ回る
     @Test func restingOnTheLeftFrameTurnsBack() {
-        var s = SessionScenario(pageCount: 2)
+        var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
-        #expect(s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 0.2).visible.isEmpty)
-        #expect(s.tick(at: 2).visible.isEmpty)
-        #expect(s.engine.pageIndex == 0)
-
-        s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 2.1)
-        s.tick(at: 2.1 + Self.dwell)
-        #expect(s.engine.pageIndex == 1)
-        // 反対の側へ移ったら、最初から数え直す
-        let back = s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 3)
-        #expect(back.hudStates == [
-            SessionHUDState(page: 1, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .left, since: 3, duration: Self.dwell), lastTurn: .right),
+        let onEdge = s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 0.2)
+        #expect(onEdge.hudStates == [
+            SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .left, since: 0.2, duration: Self.dwell)),
         ])
-        let turned = s.tick(at: 3 + Self.dwell)
-        #expect(turned.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, lastTurn: .left)])
+        let wrapped = s.tick(at: 0.2 + Self.dwell)
+        #expect(wrapped.hudStates.last?.page == 2)
+        #expect(wrapped.hudStates.last?.lastTurn == .left)
+        #expect(wrapped.hapticEvents == [.pageChange])
+
+        // 反対の側へ移ったら、最初から数え直す。最後のページの右は最初のページ
+        let back = s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 1)
+        #expect(back.hudStates == [
+            SessionHUDState(page: 2, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: 1, duration: Self.dwell), lastTurn: .left),
+        ])
+        let turned = s.tick(at: 1 + Self.dwell)
+        #expect(turned.hudStates.last?.page == 0)
+        #expect(turned.hudStates.last?.lastTurn == .right)
         #expect(turned.hapticEvents == [.pageChange])
     }
 
@@ -79,15 +90,58 @@ import Testing
         #expect(s.lift(at: 1).executions == [.execute(page: 1, cell: 5)])
     }
 
-    /// 層が1つなら、上下の外枠と角では何も変わらない（開いた直後の指は上の外枠にいる）
+    /// 層が1つなら、上下の外枠と角ではページも層も変わらず、触覚も鳴らない（開いた直後の指は上の外枠にいる）。
+    /// 上下では案内だけを出す（restingUpOrDownWithOneLayerShowsTheHint）
     @Test(arguments: [Pad.topFrame, Pad.bottomFrame, (x: 0.97, y: 0.94), (x: 0.03, y: 0.04)])
     func theTopAndBottomFramesAndCornersDoNotTurnPages(point: (x: Double, y: Double)) {
         var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
         s.touch(x: point.x, y: point.y, at: 0.2)
         #expect(s.engine.hud?.edgePaging == nil)
+        #expect(s.tick(at: 3).hapticEvents.isEmpty)
+        #expect(s.engine.pageIndex == 0)
+    }
+
+    /// 層が1つ（前面のアプリのページが無い）なら、上下の帯に edgePageDwell 止めると、切り替える先が無いことを HUD が案内する
+    /// （触覚は鳴らさない）。帯を出る・2本目の指を置くと消える
+    @Test func restingUpOrDownWithOneLayerShowsTheHint() {
+        var s = SessionScenario(pageCount: 3)
+        s.slideIn(at: 0)
+        s.touch(on: 4, at: 0.1)
+        let below = s.touch(x: Pad.bottomFrame.x, y: Pad.bottomFrame.y, at: 0.2)
+        #expect(below.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true)])
+        #expect(below.tickRequests == [0.2 + Self.dwell])
+        #expect(s.tick(at: 0.2 + Self.dwell - 0.01).visible.isEmpty)
+        let hinted = s.tick(at: 0.2 + Self.dwell)
+        #expect(hinted.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, layerHint: .down)])
+        #expect(hinted.hapticEvents.isEmpty)
+        // 案内した後は待たない
         #expect(s.tick(at: 3).visible.isEmpty)
         #expect(s.engine.pageIndex == 0)
+
+        // 帯を出たら消える。上の帯でも同じ
+        let back = s.touch(on: 4, at: 3.1)
+        #expect(back.hudStates.last?.layerHint == nil)
+        s.touch(x: Pad.topFrame.x, y: Pad.topFrame.y, at: 3.2)
+        s.tick(at: 3.2 + Self.dwell)
+        #expect(s.engine.hud?.layerHint == .up)
+        s.touch(2, x: 0.5, y: 0.5, at: 4)
+        #expect(s.engine.hud?.layerHint == nil)
+    }
+
+    /// 層が2つなら、上下に止めても案内しない（アプリの層の上・グローバルの層の下）。開いた直後の指（上の外枠にいることにしているだけ）でも案内しない
+    @Test func theHintIsOnlyForOneLayerAndNotRightAfterOpening() {
+        var layered = Self.layered()
+        layered.slideIn(at: 0)
+        layered.touch(on: 4, at: 0.1)
+        layered.touch(x: Pad.topFrame.x, y: Pad.topFrame.y, at: 0.2)
+        #expect(layered.tick(at: 3).visible.isEmpty)
+        #expect(layered.engine.hud?.layerHint == nil)
+
+        var justOpened = SessionScenario(pageCount: 3)
+        justOpened.slideIn(at: 0)
+        #expect(justOpened.tick(at: 3).visible.isEmpty)
+        #expect(justOpened.engine.hud?.layerHint == nil)
     }
 
     /// 2本目の指を置いたら、端での切り替えは待たない
@@ -149,23 +203,43 @@ import Testing
         #expect(back.hapticEvents == [.layerChange])
     }
 
-    /// 左右はその層の中だけ。アプリの層の最後のページから右へは進まず、グローバルの層の最初のページから左へは戻らない
-    @Test func leftAndRightStayInsideTheLayer() {
+    /// 左右はその層の中で輪になる。アプリの層の最後のページの右はアプリの層の最初のページ（グローバルへは進まない）、
+    /// グローバルの層の最初のページの左はグローバルの層の最後のページ（アプリへは戻らない）
+    @Test func leftAndRightWrapInsideTheLayer() {
         var s = Self.layered()
         s.slideIn(at: 0)
         s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.2)
         s.tick(at: 0.2 + Self.dwell)
-        s.tick(at: 0.2 + Self.dwell + Self.repeatDwell)
         #expect(s.engine.pageIndex == 1)
-        #expect(s.engine.hud?.edgePaging == nil)
+        s.tick(at: 0.2 + Self.dwell + Self.repeatDwell)
+        #expect(s.engine.pageIndex == 0)
+        #expect(s.engine.hud?.lastTurn == .right)
 
         s.touch(x: Pad.bottomFrame.x, y: Pad.bottomFrame.y, at: 2)
         s.tick(at: 2 + Self.dwell)
         #expect(s.engine.pageIndex == 2)
         s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 3)
+        #expect(s.engine.hud?.edgePaging?.edge == .left)
+        s.tick(at: 3 + Self.dwell)
+        #expect(s.engine.pageIndex == 3)
+        #expect(s.engine.hud?.lastTurn == .left)
+    }
+
+    /// ページが1つの層では、左右に止めても何も変わらず、待たない。横のスワイプは受け付けなかった触覚
+    @Test func aLayerWithOnePageDoesNotTurnLeftOrRight() {
+        // アプリの層に 1 ページ（0）、グローバルの層に 2 ページ（1・2）
+        var s = SessionScenario(SessionConfiguration(pageCount: 3, layerStart: 1))
+        s.slideIn(at: 0)
+        s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.2)
         #expect(s.engine.hud?.edgePaging == nil)
-        #expect(s.tick(at: 5).visible.isEmpty)
-        #expect(s.engine.pageIndex == 2)
+        s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 0.3)
+        #expect(s.engine.hud?.edgePaging == nil)
+        #expect(s.tick(at: 3).visible.isEmpty)
+        #expect(s.engine.pageIndex == 0)
+        s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 3.1)
+        let swipe = s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 3.2)
+        #expect(swipe.hapticEvents == [.rejected])
+        #expect(s.engine.pageIndex == 0)
     }
 
     /// アプリの層では、上の帯に止めても何も起きない（開いた直後の指がいる上の外枠で、層が変わらない）
@@ -178,18 +252,18 @@ import Testing
         #expect(s.engine.pageIndex == 0)
     }
 
-    /// 2本指の横のスワイプも、その層の中だけでページを送る
-    @Test func aTwoFingerSwipeStaysInsideTheLayer() {
+    /// 2本指の横のスワイプも、その層の中でページを送り、端からは反対の端へ回る
+    @Test func aTwoFingerSwipeWrapsInsideTheLayer() {
         var s = Self.layered()
         s.slideIn(at: 0)
         s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.2)
         s.tick(at: 0.2 + Self.dwell)
         #expect(s.engine.pageIndex == 1)
         s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 1)
-        // 指を左へ（次のページ）。アプリの層の最後のページなので進まない
+        // 指を左へ（次のページ）。アプリの層の最後のページなので、アプリの層の最初のページへ（グローバルへは進まない）
         let swipe = s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 1.1)
-        #expect(swipe.hapticEvents == [.rejected])
-        #expect(s.engine.pageIndex == 1)
+        #expect(swipe.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, lastTurn: .right)])
+        #expect(swipe.hapticEvents == [.pageChange])
     }
 
     /// 2本指の縦のスワイプで層を切り替える。指を奥へ動かすとグローバルの層へ、手前へ動かすとアプリの層へ戻る（強めの1打）

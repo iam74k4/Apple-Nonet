@@ -82,10 +82,36 @@ import Testing
         let only = ControllerPresentation.hudModel(pages: globalOnly, state: SessionHUDState(page: 0, highlightedCell: nil), banner: nil)
         #expect(only.layer == nil)
         #expect(only.pageCount == globalOnly.count)
-        // 隣のページの端をのぞかせるのは、同じ層の左右だけ（上下・層の境目の先は無い）
+        // 隣のページの端をのぞかせるのは、同じ層の左右だけ（上下は無い）。層の端からは、同じ層の反対の端のページ
+        // （アプリの層の最後のページの右は、グローバルの層ではなくアプリの層の最初のページの左の列）
+        let firstPageLeftColumn = [0, 3, 6].map { Page(cells: all[0].cells).cells[$0].map(ControllerPresentation.hudCell) }
         #expect(ControllerPresentation.edgePeek(pages: all, page: 0, edge: .right) != nil)
-        #expect(ControllerPresentation.edgePeek(pages: all, page: 1, edge: .right) == nil)
+        #expect(ControllerPresentation.edgePeek(pages: all, page: 1, edge: .right) == firstPageLeftColumn)
         #expect(ControllerPresentation.edgePeek(pages: all, page: 0, edge: .down) == nil)
+        // ページが1つの層では、のぞかせる隣のページが無い
+        #expect(ControllerPresentation.edgePeek(pages: Array(all.prefix(1)), page: 0, edge: .right) == nil)
+    }
+
+    /// 層が1つのときの上下の案内: 前面のアプリのプロファイルが無ければ「まだありません」、「グローバルのページを使う」にしていればそのこと。
+    /// 層が2つ・前面のアプリが分からなければ無い。HUD に渡すのは、外枠でエンジンが案内するときだけ
+    @Test func theLayerHintSaysWhyThereIsNoOtherLayer() throws {
+        let configuration = F.configuration()
+        let safari = F.safari.bundleID
+        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: F.safari), frontmostBundleID: safari) == nil)
+        let unknown = "com.example.no-profile"
+        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: configuration.resolvedPages(frontmostBundleID: unknown), frontmostBundleID: unknown)
+            == ModelFixtures.text("このアプリのページはまだありません"))
+        var globalMode = configuration
+        let index = try #require(globalMode.appProfileIndex(forBundleID: safari))
+        globalMode.profiles[index].mode = .global
+        #expect(ControllerPresentation.layerHint(configuration: globalMode, pages: globalMode.resolvedPages(frontmostBundleID: safari), frontmostBundleID: safari)
+            == ModelFixtures.text("このアプリはグローバルのページを使います"))
+        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: nil), frontmostBundleID: nil) == nil)
+
+        let hinted = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, layerHint: .down)
+        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: hinted, banner: nil, layerHint: "案内").layerHint == "案内")
+        let plain = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true)
+        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: plain, banner: nil, layerHint: "案内").layerHint == nil)
     }
 
     /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ

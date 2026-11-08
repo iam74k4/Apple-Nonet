@@ -388,6 +388,26 @@
         }
       }
     },
+    "このアプリのページはまだありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pages for this app yet"
+          }
+        }
+      }
+    },
+    "このアプリはグローバルのページを使います" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app uses the Global pages"
+          }
+        }
+      }
+    },
     "このライセンスキーは Nonet のものではありません" : {
       "localizations" : {
         "en" : {

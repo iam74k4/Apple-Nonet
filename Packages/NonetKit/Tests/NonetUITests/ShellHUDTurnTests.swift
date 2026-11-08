@@ -66,6 +66,11 @@ struct ShellHUDTurnTests {
         model.isFingerInFrame = true
         model.edgePaging = paging
         #expect(HUDAnnouncement.frameLabel(in: model).contains(L10n.ui("止めるとグローバルのページへ")))
+        // 切り替える先が無いときの案内（前面のアプリのページが無い）も読む
+        var hinted = Self.model()
+        hinted.isFingerInFrame = true
+        hinted.layerHint = "このアプリのページはまだありません"
+        #expect(HUDAnnouncement.frameLabel(in: hinted) == [L10n.ui("離すとやめる"), "このアプリのページはまだありません"].joined(separator: L10n.ui("、")))
     }
 
     @Test("ページか層が替わったら、前の輪を残して切り替えた向きへ押し出す。層が替わったら層の名前も出す。閉じたら捨てる")

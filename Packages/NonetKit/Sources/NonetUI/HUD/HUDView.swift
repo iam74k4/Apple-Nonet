@@ -384,6 +384,12 @@ struct HUDView: View {
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
             }
+            // 上下の帯に止めても切り替える先が無い（前面のアプリのページが無い）: 真ん中の鍵の下に、そのことを1行で
+            if inFrame, let hint = model.layerHint {
+                HUDKeyLabel(text: hint, metrics: metrics)
+                    .position(metrics.pageDotsPosition)
+                    .transition(.opacity)
+            }
             if let pill = HUDPillContent.content(for: model) {
                 let frame = metrics.pillFrame(below: pillBelow)
                 HUDPill(content: pill, metrics: metrics)
@@ -402,6 +408,7 @@ struct HUDView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: labeledIndex)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsLayerName)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.layerHint)
         .task(id: layerName?.serial) {
             showsLayerName = false
             guard layerName != nil else { return }
@@ -897,10 +904,11 @@ enum HUDAnnouncement {
         }
     }
 
-    /// 指が外枠にあるときに読む文。帯で止めるとページか層が変わるなら、そのことも言う
+    /// 指が外枠にあるときに読む文。帯で止めるとページか層が変わるなら、そのことも言う。
+    /// 上下の帯に止めても切り替える先が無ければ（HUDModel.layerHint）、その案内を言う
     static func frameLabel(in model: HUDModel) -> String {
-        guard let edge = model.edgePaging?.edge else { return cancelLabel }
-        return [cancelLabel, edgePagingLabel(edge)].joined(separator: String(localized: "、", bundle: .module))
+        guard let addition = model.edgePaging.map({ edgePagingLabel($0.edge) }) ?? model.layerHint else { return cancelLabel }
+        return [cancelLabel, addition].joined(separator: String(localized: "、", bundle: .module))
     }
 
     /// 円の下の帯に出す一言。練習中だけ「練習中」。無ければ nil。

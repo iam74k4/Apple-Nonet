@@ -42,6 +42,7 @@ final class DebugPreview {
     /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
     /// 6. 下の帯で止めてグローバルの層へ移った（押し出し・紺の台・層の名前） 7. 上の帯で止めてアプリの層へ戻った
     /// （6・7 は前面のアプリにプロファイルがあるときだけ。無ければ 1 と同じ）
+    /// 8. 下の帯で止めたが、層が1つで切り替える先が無い（案内。前面のアプリにプロファイルが無いときだけ。あれば 1 と同じ）
     func showHUD(bundleID: String? = nil, backdrop image: URL? = nil) {
         previewBundleID = bundleID
         if let image {
@@ -59,7 +60,7 @@ final class DebugPreview {
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    private static let hudStateCount = 7
+    private static let hudStateCount = 8
     /// --preview-app で選んだアプリ。nil なら前面のアプリ
     private var previewBundleID: String?
 
@@ -108,7 +109,7 @@ final class DebugPreview {
             ? HUDEdgePaging(edge: .right, since: since, duration: SessionConfiguration.defaultEdgePageDwell)
             : nil
         let (highlight, inFrame, hold): (Int?, Bool, HUDHold?) = switch state {
-        case 1, 4, 5, 6: (nil, true, nil)
+        case 1, 4, 5, 6, 7: (nil, true, nil)
         case 2: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: false))
         case 3: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: true))
         default: (4, false, nil)
@@ -126,7 +127,10 @@ final class DebugPreview {
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
             layer: layer,
             lastTurn: lastTurn,
-            scale: configuration.settings.hudScale.factor
+            scale: configuration.settings.hudScale.factor,
+            layerHint: state == 7
+                ? ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
+                : nil
         )
         hud.show(model)
     }
