@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="script.js" defer></script>
 <!-- 検索エンジン向けの説明（実行されないデータ。CSP の script-src には関係しない）。
-     価格を決めたら offers（"@type": "Offer"・price・priceCurrency: "JPY"）を足す。決まるまでは書かない -->
+     offers の価格は、下の価格の表示と en/index.html（USD）とそろえる -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -44,7 +44,8 @@
   "softwareRequirements": "マルチタッチのトラックパッド（MacBook の内蔵トラックパッドまたは Magic Trackpad）",
   "image": "https://nonet.astlog.dev/images/og-ja.png",
   "downloadUrl": "https://nonet.astlog.dev/download",
-  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" }
+  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" },
+  "offers": { "@type": "Offer", "price": "1480", "priceCurrency": "JPY" }
 }
 </script>
 </head>
@@ -349,8 +350,8 @@
       <div class="price-card">
         <p class="price-trial">14日間 無料で試せる</p>
         <div class="price">
-          <!-- 価格を決めたら、次の仮の値を置き換える（en/index.html も。head の JSON-LD に offers も足す） -->
-          <span class="price-amount"><span class="todo">¥TODO</span></span>
+          <!-- 価格（税込）。変えるときは en/index.html と、head の JSON-LD の offers もそろえる -->
+          <span class="price-amount">¥1,480</span>
           <span class="price-note">税込・買い切り</span>
         </div>
         <ul class="checks">
@@ -366,7 +367,7 @@
           <a class="btn" href="https://TODO.invalid/buy">購入する</a>
           <a class="btn btn-secondary" href="thanks.html">無料で試す</a>
         </div>
-        <p class="fine">お支払い・領収書・税の計算は、販売代理店（Merchant of Record）の <span class="todo">TODO: 販売サービス名</span> が行います。購入後、ライセンスキーをメールでお届けします。</p>
+        <p class="fine">お支払い・領収書・税の計算は、販売代理店（Merchant of Record）の Paddle が行います。購入後、ライセンスキーをメールでお届けします。</p>
         <ul class="price-links fine">
           <li><a href="terms.html">利用規約</a></li>
           <li><a href="terms.html#refunds">返金について</a></li>

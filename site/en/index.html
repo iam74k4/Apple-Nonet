@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="../style.css">
 <script src="../script.js" defer></script>
 <!-- For search engines (a data block that never runs, so the CSP script-src does not apply).
-     Once the price is set, add offers ("@type": "Offer", price, priceCurrency). Until then leave it out -->
+     Keep the offers price in step with the price below and ../index.html (JPY) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -44,7 +44,8 @@
   "softwareRequirements": "A multi-touch trackpad (the built-in trackpad of a MacBook or a Magic Trackpad)",
   "image": "https://nonet.astlog.dev/images/og-en.png",
   "downloadUrl": "https://nonet.astlog.dev/download",
-  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" }
+  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" },
+  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }
 }
 </script>
 </head>
@@ -349,8 +350,8 @@
       <div class="price-card">
         <p class="price-trial">14-day free trial</p>
         <div class="price">
-          <!-- Once the price is set, replace the value below (also in ../index.html, and add offers to the JSON-LD in the head) -->
-          <span class="price-amount"><span class="todo">$TODO</span></span>
+          <!-- The price. When it changes, also change ../index.html and the offers in the JSON-LD in the head -->
+          <span class="price-amount">$9.99</span>
           <span class="price-note">one-time purchase</span>
         </div>
         <ul class="checks">
@@ -366,7 +367,7 @@
           <a class="btn" href="https://TODO.invalid/buy">Buy Nonet</a>
           <a class="btn btn-secondary" href="thanks.html">Try it free</a>
         </div>
-        <p class="fine">Payment, receipts and sales tax are handled by <span class="todo">TODO: store name</span>, the merchant of record. Your license key arrives by email after purchase.</p>
+        <p class="fine">Payment, receipts and sales tax are handled by Paddle, the merchant of record. Your license key arrives by email after purchase.</p>
         <ul class="price-links fine">
           <li><a href="terms.html">Terms</a></li>
           <li><a href="terms.html#refunds">Refunds</a></li>

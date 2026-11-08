@@ -317,9 +317,10 @@ test_release_placeholders_are_reported_but_not_strict() {
   assert_contains "$OUT" "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: index.html tested-macos"
 }
 
-# 公開前の --strict が止まるのは、価格・販売サービス（名前と URL）・問い合わせ先の仮の値だけ。どれも1つは残っている
-test_strict_mode_on_the_real_site_stops_only_on_price_store_and_contact() {
-  local line others="" price=0 store=0 contact=0
+# 公開前の --strict が止まるのは、販売サービス（購入のボタンと電話番号の表記）・問い合わせ先の仮の値だけ。どれも1つは残っている。
+# 価格は決めた（¥1,480・$9.99）ので、仮の値として残っていれば失敗
+test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
+  local line others="" store=0 contact=0
   run "$ROOT/scripts/check-site.sh" --strict
   assert_status 1
   while IFS= read -r line; do
@@ -327,9 +328,7 @@ test_strict_mode_on_the_real_site_stops_only_on_price_store_and_contact() {
       *"仮の値が残っています: "*) ;;
       *) others+="$line"$'\n' && continue ;;
     esac
-    if [[ "$line" == *"¥TODO"* || "$line" == *"\$TODO"* ]]; then
-      price=$((price + 1))
-    elif [[ "$line" == *"TODO: 販売サービス名"* || "$line" == *"TODO: store name"* || "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO.invalid/legal"* || "$line" == *"TODO.invalid/privacy"* ]]; then
+    if [[ "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO: 販売事業者の電話番号の表記"* ]]; then
       store=$((store + 1))
     elif [[ "$line" == *"support@TODO.invalid"* || "$line" == *"TODO: 問い合わせ先のメールアドレス"* || "$line" == *"TODO: support email address"* ]]; then
       contact=$((contact + 1))
@@ -337,8 +336,21 @@ test_strict_mode_on_the_real_site_stops_only_on_price_store_and_contact() {
       others+="$line"$'\n'
     fi
   done < <(grep -E '^ +- ' <<<"$OUT")
-  [[ -z "$others" ]] || fail "--strict が価格・販売サービス・問い合わせ先のほかでも止まります" "$others"
-  [[ "$price" -ge 2 && "$store" -ge 2 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（価格 $price・販売サービス $store・問い合わせ先 $contact）"
+  [[ -z "$others" ]] || fail "--strict が販売サービス・問い合わせ先のほかでも止まります" "$others"
+  [[ "$store" -ge 2 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（販売サービス $store・問い合わせ先 $contact）"
+}
+
+# 価格（¥1,480 税込・$9.99）は、価格の表示・head の JSON-LD の offers・特商法の表記でそろっている
+test_price_is_the_same_everywhere() {
+  local ja en legal
+  ja="$(cat "$ROOT/site/index.html")"
+  en="$(cat "$ROOT/site/en/index.html")"
+  legal="$(cat "$ROOT/site/tokushoho.html")"
+  assert_contains "$ja" '<span class="price-amount">¥1,480</span>' "index.html の価格"
+  assert_contains "$ja" '"offers": { "@type": "Offer", "price": "1480", "priceCurrency": "JPY" }' "index.html の JSON-LD"
+  assert_contains "$en" '<span class="price-amount">$9.99</span>' "en/index.html の価格"
+  assert_contains "$en" '"offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }' "en/index.html の JSON-LD"
+  assert_contains "$legal" "1,480円（税込）" "tokushoho.html の販売価格"
 }
 
 test_pages_and_assets_exist() {
@@ -411,11 +423,14 @@ test_pages_state_the_sales_terms() {
     "no matter when you bought it" "Every 1.x update is free" "provided as is" "slight negligence" "governed by the laws of Japan" "id=\"refunds\""; do
     assert_contains "$en_terms" "$text" "en/terms.html"
   done
-  # 販売サービスが売主（Merchant of Record）。どちらの販売サービスに決めても正しいよう、名前は仮の値1つにする
-  for text in "販売事業者" "販売代理店（Merchant of Record）" "同社の特定商取引法に基づく表記" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
+  # 売主（Merchant of Record）は Paddle。日本の表記のページが無いので、名前・所在地・購入者向け規約へのリンクを載せる。
+  # 電話番号の表記は公開前に決める仮の値として1つだけ残す（docs/release.md §3.4）
+  for text in "販売事業者" "販売代理店（Merchant of Record）" "Paddle.com Market Limited" "30 Old Bailey, London" \
+    "https://www.paddle.com/legal/buyer-terms" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
     assert_contains "$legal" "$text" "tokushoho.html"
   done
-  assert_eq 1 "$(grep -c 'TODO: 販売サービス名' "$ROOT/site/tokushoho.html")" "tokushoho.html の販売サービス名の仮の値"
+  assert_not_contains "$legal" "TODO: 販売サービス名"
+  assert_eq 1 "$(grep -c 'TODO: 販売事業者の電話番号の表記' "$ROOT/site/tokushoho.html")" "tokushoho.html の電話番号の仮の値"
 }
 
 # 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。
