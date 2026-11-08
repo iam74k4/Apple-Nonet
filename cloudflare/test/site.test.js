@@ -95,9 +95,19 @@ function parsePolicy(value) {
   return directives;
 }
 
-const pagePolicy = parsePolicy(headerRules().get("/*").get("content-security-policy"));
+const rules = headerRules();
+const pagePolicy = parsePolicy(rules.get("/*").get("content-security-policy"));
+// 購入のページ（Paddle.js で購入画面を開く）。この2つだけ CSP を差し替える
+const PURCHASE_PAGES = ["buy.html", "en/buy.html"];
+const PADDLE_SCRIPT = "https://cdn.paddle.com/paddle/v2/paddle.js";
 
-function sourcesFor(directive) {
+// ページに付く CSP。そのページのルールが CSP を差し替えていれば（! で外して付け直す）そちら、無ければ /* のもの
+function policyFor(page) {
+  const value = rules.get(`/${page}`)?.get("content-security-policy");
+  return value ? parsePolicy(value) : pagePolicy;
+}
+
+function sourcesFor(directive, policy = pagePolicy) {
   const fallbacks = {
     "script-src-elem": ["script-src-elem", "script-src", "default-src"],
     "style-src-elem": ["style-src-elem", "style-src", "default-src"],
@@ -108,8 +118,8 @@ function sourcesFor(directive) {
     "media-src": ["media-src", "default-src"],
   };
   for (const name of fallbacks[directive]) {
-    if (pagePolicy.has(name)) {
-      return pagePolicy.get(name);
+    if (policy.has(name)) {
+      return policy.get(name);
     }
   }
   return [];
@@ -118,6 +128,12 @@ function sourcesFor(directive) {
 // 同じオリジンの相対の URL か（'self' で通る）
 function isSameOrigin(url, page) {
   return new URL(url, `${ORIGIN}/${page}`).origin === ORIGIN;
+}
+
+// ソースの一覧で通るか（同じオリジンなら 'self'、ほかはそのオリジンが書いてある）
+function isAllowed(url, page, sources) {
+  const target = new URL(url, `${ORIGIN}/${page}`);
+  return target.origin === ORIGIN ? sources.includes("'self'") : sources.includes(target.origin);
 }
 
 describe("site/_headers", () => {
@@ -135,6 +151,8 @@ describe("site/_headers", () => {
     const page = relative(SITE_DIR, file);
     test(`${page} は CSP で止まるものを使っていない`, () => {
       const html = readFileSync(file, "utf8").replace(/<!--[\s\S]*?-->/g, "");
+      const policy = policyFor(page);
+      const sources = (directive) => sourcesFor(directive, policy);
       for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
         // 検索エンジン向けの構造化データ（JSON-LD）は、ブラウザが実行しないデータなので script-src に関係しない。
         // その形のものだけを許し、中身が JSON として読めることを確かめる
@@ -144,28 +162,28 @@ describe("site/_headers", () => {
         }
         const src = /\ssrc="([^"]+)"/.exec(attributes);
         assert.ok(src !== null && body.trim() === "", `${page}: インラインのスクリプトは使えない（script-src 'self'）`);
-        assert.ok(isSameOrigin(src[1], page) && sourcesFor("script-src-elem").includes("'self'"), `${page}: ${src[1]}`);
+        assert.ok(isAllowed(src[1], page, sources("script-src-elem")), `${page}: ${src[1]}`);
       }
       assert.doesNotMatch(html, /\son[a-z]+\s*=/i, `${page}: イベント属性（onclick など）は使えない`);
       assert.doesNotMatch(html, /href\s*=\s*["']?\s*javascript:/i, `${page}: javascript: の URL は使えない`);
       if (/<style[\s>]/i.test(html)) {
-        assert.ok(sourcesFor("style-src-elem").includes("'unsafe-inline'"), `${page}: <style> は style-src-elem で止まる`);
+        assert.ok(sources("style-src-elem").includes("'unsafe-inline'"), `${page}: <style> は style-src-elem で止まる`);
       }
       if (/\sstyle\s*=/i.test(html)) {
-        assert.ok(sourcesFor("style-src-attr").includes("'unsafe-inline'"), `${page}: style 属性が style-src-attr で止まる`);
+        assert.ok(sources("style-src-attr").includes("'unsafe-inline'"), `${page}: style 属性が style-src-attr で止まる`);
       }
       for (const [, rel, href] of html.matchAll(/<link\b[^>]*\brel="([^"]+)"[^>]*\bhref="([^"]+)"/g)) {
         const directive = { stylesheet: "style-src-elem", icon: "img-src", "apple-touch-icon": "img-src" }[rel];
         if (directive !== undefined) {
-          assert.ok(isSameOrigin(href, page) && sourcesFor(directive).includes("'self'"), `${page}: <link rel=${rel}> ${href}`);
+          assert.ok(isSameOrigin(href, page) && sources(directive).includes("'self'"), `${page}: <link rel=${rel}> ${href}`);
         }
       }
       for (const [, tag, src] of html.matchAll(/<(img|iframe|video|audio|source|embed|object)\b[^>]*\b(?:src|data)="([^"]+)"/g)) {
         const directive = { img: "img-src", iframe: "frame-src", video: "media-src", audio: "media-src", source: "media-src" }[tag] ?? "default-src";
-        assert.ok(directive !== "default-src" && isSameOrigin(src, page) && sourcesFor(directive).includes("'self'"), `${page}: <${tag}> ${src}`);
+        assert.ok(directive !== "default-src" && isSameOrigin(src, page) && sources(directive).includes("'self'"), `${page}: <${tag}> ${src}`);
       }
       for (const [, href] of html.matchAll(/<base\b[^>]*\bhref="([^"]+)"/g)) {
-        assert.ok(isSameOrigin(href, page) && pagePolicy.get("base-uri")?.includes("'self'"), `${page}: <base href="${href}">`);
+        assert.ok(isSameOrigin(href, page) && policy.get("base-uri")?.includes("'self'"), `${page}: <base href="${href}">`);
       }
       assert.doesNotMatch(html, /<form\b/i, `${page}: フォームは form-action 'none' で止まる`);
     });
@@ -181,10 +199,51 @@ describe("site/_headers", () => {
     }
   });
 
-  test("script.js は eval や外への通信を使わない（script-src に 'unsafe-eval' も connect-src も無い）", () => {
-    const script = readFileSync(join(SITE_DIR, "script.js"), "utf8");
-    assert.doesNotMatch(script, /\beval\(|new Function\(|\bfetch\(|XMLHttpRequest|WebSocket|EventSource/);
-    assert.doesNotMatch(script, /setAttribute\(\s*["']style["']/);
+  test("script.js と buy.js は eval や外への通信を使わない（script-src に 'unsafe-eval' も connect-src も無い）", () => {
+    for (const name of ["script.js", "buy.js"]) {
+      const script = readFileSync(join(SITE_DIR, name), "utf8");
+      assert.doesNotMatch(script, /\beval\(|new Function\(|\bfetch\(|XMLHttpRequest|WebSocket|EventSource/, name);
+      assert.doesNotMatch(script, /setAttribute\(\s*["']style["']/, name);
+    }
+  });
+
+  test("外のスクリプトを許すのは購入のページだけで、許すのは Paddle.js だけ", () => {
+    for (const file of siteFiles(".html")) {
+      const page = relative(SITE_DIR, file);
+      const policy = policyFor(page);
+      const outside = sourcesFor("script-src-elem", policy).filter((source) => source.startsWith("https:"));
+      assert.deepEqual(outside, PURCHASE_PAGES.includes(page) ? ["https://cdn.paddle.com"] : [], page);
+      assert.equal(sourcesFor("script-src-elem", policy).includes("'unsafe-inline'"), false, page);
+      assert.equal(sourcesFor("script-src-elem", policy).includes("'unsafe-eval'"), false, page);
+      const html = readFileSync(file, "utf8");
+      assert.equal(html.includes(PADDLE_SCRIPT), PURCHASE_PAGES.includes(page), `${page}: Paddle.js を読むのは購入のページだけ`);
+    }
+  });
+
+  test("購入のページの CSP は、Paddle の購入画面に要るものだけを足す（2つのページで同じ）", () => {
+    const raw = readFileSync(join(SITE_DIR, "_headers"), "utf8");
+    const [ja, en] = PURCHASE_PAGES.map((page) => rules.get(`/${page}`));
+    assert.ok(ja && en, "_headers に /buy.html と /en/buy.html のルールがありません");
+    assert.deepEqual([...en], [...ja]);
+    for (const page of PURCHASE_PAGES) {
+      // /* の CSP と Permissions-Policy を外してから付け直す（付け足すと2つの CSP が両方効いて、厳しいほうで止まる）
+      assert.match(raw, new RegExp(`^/${page.replace(".", "\\.")}\n  ! Content-Security-Policy\n  ! Permissions-Policy\n`, "m"), page);
+    }
+    const policy = policyFor("buy.html");
+    assert.deepEqual(policy.get("default-src"), ["'none'"]);
+    assert.deepEqual(policy.get("script-src"), ["'self'", "https://cdn.paddle.com"]);
+    assert.deepEqual(policy.get("frame-src"), ["https://buy.paddle.com", "https://sandbox-buy.paddle.com", "https://cdn.paddle.com", "https://sandbox-cdn.paddle.com"]);
+    assert.deepEqual(policy.get("style-src-elem"), ["'self'", "'unsafe-inline'", "https://cdn.paddle.com", "https://sandbox-cdn.paddle.com"]);
+    assert.deepEqual(policy.get("img-src"), ["'self'"]);
+    assert.equal(policy.has("connect-src"), false, "connect-src は要らない（購入画面の通信は枠の中のページが行う）");
+    // ほかは /* と同じ
+    for (const name of ["style-src-attr", "font-src", "manifest-src", "base-uri", "form-action", "frame-ancestors"]) {
+      assert.deepEqual(policy.get(name), pagePolicy.get(name), name);
+    }
+    // 決済（Apple Pay など）は Paddle の購入画面の枠にだけ許し、ほかの機能は /* と同じく止める
+    const permissions = ja.get("permissions-policy");
+    assert.match(permissions, /(^|, )payment=\("https:\/\/buy\.paddle\.com" "https:\/\/sandbox-buy\.paddle\.com"\)(,|$)/);
+    assert.equal(permissions.replace(/payment=\([^)]*\)/, "payment=()"), rules.get("/*").get("permissions-policy"));
   });
 
   test("favicon.svg は中の <style> だけを許す CSP に差し替える", () => {

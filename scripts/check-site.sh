@@ -1,7 +1,7 @@
 #!/bin/bash
-# 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと・商標の表記・
+# 販売ページ（site/）を確かめる: HTML の基本・リンク切れ・最低限のアクセシビリティ・外部の読み込みが無いこと（購入のページの Paddle.js を除く）・商標の表記・
 # canonical と hreflang・フッターから法的な文書（プライバシー・利用規約・特商法）へのリンク・robots.txt と sitemap.xml・共有の画像（og:image）・
-# 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」の URL（xcconfig）がサイトのページとその英語版（en/）を指していること。
+# 利用ガイドの目次と見出しのアンカー・アプリの「利用ガイド」「プライバシー」「購入する」の URL（xcconfig）がサイトのページ（と、購入のほかは英語版の en/）を指していること。
 # --strict を付けると、TODO（価格・販売サービス・問い合わせ先などの仮の値）が残っているときと、canonical が無くてアプリの URL を確かめられないときも失敗にする。公開の前に使う。
 # 使い方: scripts/check-site.sh [--strict] [--config <xcconfig（既定: Config/Nonet.xcconfig）>] [サイトのフォルダ（既定: site）]
 set -euo pipefail
@@ -74,7 +74,12 @@ link_fetches() {
   return 1
 }
 
-# プライバシーの約束（クッキー・解析・外部のフォントやスクリプトを使わない）のため、
+# 外部のスクリプトを読んでよいのは、購入のページの Paddle.js だけ（Paddle の購入画面を開く。site/_headers の CSP も
+# この2つのページだけ広げる。プライバシーポリシーの「8. 販売ページ」）。小文字で書く
+STORE_SCRIPT="https://cdn.paddle.com/paddle/v2/paddle.js"
+STORE_PAGES="buy.html en/buy.html"
+
+# プライバシーの約束（クッキー・解析・外部のフォントを使わず、外部のスクリプトは購入のページの Paddle.js だけ）のため、
 # 開いただけで外部に取りに行くものが無いかを見る。改行をまたぐタグ・一重引用符・大文字も見るよう、
 # 1 行にまとめて小文字にしてから調べる。<a> のリンクは押すまで読み込まれないので対象外
 check_external_markup() {
@@ -94,6 +99,9 @@ check_external_markup() {
     esac
     while IFS= read -r value; do
       if points_outside "$value"; then
+        if [[ "$name" == script && "$value" == "$STORE_SCRIPT" && " $STORE_PAGES " == *" $rel "* ]]; then
+          continue
+        fi
         problem "$rel: 外部の${kind}を読み込んでいます（<$name> の $value）"
       fi
     done < <(attribute_values "$tag" 'src|href|xlink:href|data|poster|srcset')
@@ -242,14 +250,14 @@ english_path() {
   printf '%sen/%s%s' "$parent" "${path##*/}" "$trailing"
 }
 
-# アプリの「利用ガイド」「プライバシー」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
-# そのページと、英語で動くアプリが開く en/ のページが site/ にあるか。ホストは site/index.html の canonical で決める。
+# アプリの「利用ガイド」「プライバシー」「購入する」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
+# そのページと、英語で動くアプリが開く en/ のページが site/ にあるか（購入のページは、アプリの言語にかかわらずそのまま開くので、en/ は見ない）。ホストは site/index.html の canonical で決める。
 # canonical が無いと確かめられないので、--strict では問題にする（ふだんは知らせるだけ）
 check_app_links() {
   local host key url rest url_host path en_path
   [[ -f "$CONFIG" ]] || return 0
   host="$(canonical_host "$SITE/index.html")"
-  for key in NONET_SUPPORT_URL NONET_PRIVACY_URL; do
+  for key in NONET_SUPPORT_URL NONET_PRIVACY_URL NONET_PURCHASE_URL; do
     url="$(xcconfig_value "$CONFIG" "$key")"
     [[ "$url" == http://* || "$url" == https://* ]] || continue
     if [[ -z "$host" ]]; then
@@ -276,7 +284,8 @@ check_app_links() {
       fi
       continue
     fi
-    # アプリは英語で動いているとき、最後の要素の前に en/ を入れたページを開く（…/guide.html → …/en/guide.html）
+    # アプリは英語で動いているとき、最後の要素の前に en/ を入れたページを開く（…/guide.html → …/en/guide.html）。購入のページはそのまま開く
+    [[ "$key" != NONET_PURCHASE_URL ]] || continue
     en_path="$(english_path "$path")"
     if ! site_page_exists "$en_path"; then
       problem "$(basename "$CONFIG") の $key（$url）の英語のページ（${url%%://*}://${rest%%[/?#]*}/$en_path。英語で動くアプリが開く）が $(basename "$SITE")/ にありません"

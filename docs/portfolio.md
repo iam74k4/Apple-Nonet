@@ -34,7 +34,7 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
 ## 0. 前提
 
 - **下書きで保存し、公開は後にする。** Website のリンク先 https://nonet.astlog.dev/ は、まだ開いていない。Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする
-- 販売ページの仮の値（`¥TODO`・`https://TODO.invalid/…`・`support@TODO.invalid`）が残ったまま AstLog に公開すると、リンクの先で TODO が見える。`scripts/check-site.sh --strict` が通ってから公開する
+- 販売ページの仮の値（購入のページの `TODO: Paddle の…`・`support@TODO.invalid` など）が残ったまま AstLog に公開すると、リンクの先で TODO が見える。`scripts/check-site.sh --strict` が通ってから公開する
 - AstLog の Worker が持つのは `astlog.dev` の custom domain だけ（AstLog の `wrangler.toml` の `routes`）。同じ Cloudflare アカウントで `nonet.astlog.dev` を別の Worker（`cloudflare/`）に当てても、AstLog とはぶつからない
 - 手元の AstLog（`/Users/iam74k4/Git/Web-AstLog`）は `develop` で、本番より古い。この文書の欄・上限・画像の決まりは本番の `main`（`cb899fd`）に合わせた（作品の文書の欄・動画・保存後に編集画面へ戻る、は `main` にしか無い）
 

@@ -181,6 +181,60 @@ EOF
   assert_contains "$OUT" "script.js: 外部の URL があります"
 }
 
+# 外部のスクリプトを読んでよいのは、購入のページ（buy.html・en/buy.html）の Paddle.js だけ。
+# ほかのページの Paddle.js・購入のページのほかの外部のスクリプトや画像は止める
+test_store_script_is_allowed_only_on_the_purchase_pages() {
+  local paddle='<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>'
+  write_fixture_site
+  fixture_page buy.html noindex
+  fixture_page en/buy.html noindex
+  printf '%s\n' "$paddle" >>"$SITE/buy.html"
+  printf '%s\n' "${paddle/paddle.js/PADDLE.JS}" >>"$SITE/en/buy.html"
+  check_fixture
+  assert_status 0
+  printf '%s\n' "$paddle" >>"$SITE/index.html"
+  printf '<script src="https://cdn.paddle.com/paddle/v2/other.js"></script>\n<img src="https://cdn.paddle.com/p.gif" alt="">\n' >>"$SITE/buy.html"
+  mkdir -p "$SITE/shop"
+  fixture_page shop/buy.html noindex
+  printf '%s\n' "$paddle" >>"$SITE/shop/buy.html"
+  check_fixture
+  assert_status 1
+  assert_contains "$OUT" "- index.html: 外部のスクリプトを読み込んでいます（<script> の https://cdn.paddle.com/paddle/v2/paddle.js）"
+  assert_contains "$OUT" "- buy.html: 外部のスクリプトを読み込んでいます（<script> の https://cdn.paddle.com/paddle/v2/other.js）"
+  assert_contains "$OUT" "- buy.html: 外部の画像や埋め込みを読み込んでいます（<img> の https://cdn.paddle.com/p.gif）"
+  assert_contains "$OUT" "- shop/buy.html: 外部のスクリプトを読み込んでいます"
+  assert_not_contains "$OUT" "- en/buy.html:"
+}
+
+# 購入のページ: 検索に出さず、Paddle.js と buy.js だけを読み、販売ページとアプリの「購入する」がここを開く
+test_purchase_pages_open_the_store_checkout() {
+  local page html
+  for page in buy.html en/buy.html; do
+    html="$(cat "$ROOT/site/$page")"
+    assert_contains "$html" '<meta name="robots" content="noindex">' "$page"
+    assert_eq 1 "$(grep -c '<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>' "$ROOT/site/$page")" "$page の Paddle.js"
+    assert_eq 2 "$(grep -c '<script ' "$ROOT/site/$page")" "$page のスクリプトは Paddle.js と buy.js だけ"
+    assert_contains "$html" "Paddle"
+  done
+  for page in index.html en/index.html; do
+    assert_eq 2 "$(grep -c 'class="btn[^"]*" href="buy.html"' "$ROOT/site/$page")" "$page の「購入する」（価格と最後）"
+  done
+  assert_contains "$(cat "$ROOT/Config/Nonet.xcconfig")" 'NONET_PURCHASE_URL = https:/$()/nonet.astlog.dev/buy.html' "NONET_PURCHASE_URL"
+  # Paddle.js を読むのは購入のページだけ
+  assert_eq "buy.html en/buy.html" "$(grep -rlF 'cdn.paddle.com' "$ROOT/site" --include='*.html' | sed "s|^$ROOT/site/||" | sort | tr '\n' ' ' | sed 's/ $//')" \
+    "Paddle.js を読むページ"
+}
+
+# 購入のページの動き（偽の DOM と偽の Paddle.js で buy.js を動かす）。node が無ければ飛ばす
+test_buy_script_behaves() {
+  if ! command -v node >/dev/null 2>&1; then
+    printf 'node が無いので飛ばしました\n'
+    return 0
+  fi
+  run node "$ROOT/scripts/tests/buy_script_harness.js" "$ROOT/site/buy.js"
+  assert_status 0
+}
+
 # リンク・関係を示すだけの <link>・ローカルのファイルは、外部の読み込みではない
 test_links_and_local_resources_are_allowed() {
   write_fixture_site
@@ -317,7 +371,8 @@ test_release_placeholders_are_reported_but_not_strict() {
   assert_contains "$OUT" "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: index.html tested-macos"
 }
 
-# 公開前の --strict が止まるのは、販売サービス（購入のボタンと電話番号の表記）・問い合わせ先の仮の値だけ。どれも1つは残っている。
+# 公開前の --strict が止まるのは、販売サービス（購入のページの Paddle のトークンと価格の ID、電話番号の表記）・問い合わせ先の仮の値だけ。
+# どれも1つは残っている。
 # 価格は決めた（¥1,480・$9.99）ので、仮の値として残っていれば失敗
 test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
   local line others="" store=0 contact=0
@@ -328,7 +383,7 @@ test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
       *"仮の値が残っています: "*) ;;
       *) others+="$line"$'\n' && continue ;;
     esac
-    if [[ "$line" == *"TODO.invalid/buy"* || "$line" == *"TODO: 販売事業者の電話番号の表記"* ]]; then
+    if [[ "$line" == *'data-paddle-token="TODO: '* || "$line" == *'data-paddle-price="TODO: '* || "$line" == *"TODO: 販売事業者の電話番号の表記"* ]]; then
       store=$((store + 1))
     elif [[ "$line" == *"support@TODO.invalid"* || "$line" == *"TODO: 問い合わせ先のメールアドレス"* || "$line" == *"TODO: support email address"* ]]; then
       contact=$((contact + 1))
@@ -337,7 +392,7 @@ test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
     fi
   done < <(grep -E '^ +- ' <<<"$OUT")
   [[ -z "$others" ]] || fail "--strict が販売サービス・問い合わせ先のほかでも止まります" "$others"
-  [[ "$store" -ge 2 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（販売サービス $store・問い合わせ先 $contact）"
+  [[ "$store" -ge 5 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（販売サービス $store・問い合わせ先 $contact）"
 }
 
 # 価格（¥1,480 税込・$9.99）は、価格の表示・head の JSON-LD の offers・特商法の表記でそろっている
@@ -351,12 +406,14 @@ test_price_is_the_same_everywhere() {
   assert_contains "$en" '<span class="price-amount">$9.99</span>' "en/index.html の価格"
   assert_contains "$en" '"offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }' "en/index.html の JSON-LD"
   assert_contains "$legal" "1,480円（税込）" "tokushoho.html の販売価格"
+  assert_contains "$(cat "$ROOT/site/buy.html")" "1,480円（税込）" "buy.html の価格"
+  assert_contains "$(cat "$ROOT/site/en/buy.html")" '$9.99' "en/buy.html の価格"
 }
 
 test_pages_and_assets_exist() {
   local file
   for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html terms.html en/terms.html \
-    tokushoho.html thanks.html en/thanks.html 404.html en/404.html style.css script.js favicon.svg robots.txt sitemap.xml \
+    tokushoho.html thanks.html en/thanks.html buy.html en/buy.html buy.js 404.html en/404.html style.css script.js favicon.svg robots.txt sitemap.xml \
     apple-touch-icon.png images/og-ja.png images/og-en.png; do
     assert_file "$ROOT/site/$file"
   done
@@ -641,10 +698,31 @@ test_index_pages_must_link_to_the_guide() {
   assert_not_contains "$OUT" "- index.html: 利用ガイドへのリンクがありません"
 }
 
-# アプリの「利用ガイド」（NONET_SUPPORT_URL）と「プライバシー」（NONET_PRIVACY_URL）だけを書いた xcconfig。
+# アプリの「利用ガイド」（NONET_SUPPORT_URL）と「プライバシー」（NONET_PRIVACY_URL）、あれば「購入する」（NONET_PURCHASE_URL）だけを書いた xcconfig。
 # URL の // は xcconfig ではコメントになるので、https:/$()/… の形で書く
 write_app_links_config() {
-  printf 'NONET_SUPPORT_URL = %s\nNONET_PRIVACY_URL = %s\n' "$2" "$3" | sed 's|://|:/$()/|' >"$1"
+  {
+    printf 'NONET_SUPPORT_URL = %s\nNONET_PRIVACY_URL = %s\n' "$2" "$3"
+    [[ -z "${4:-}" ]] || printf 'NONET_PURCHASE_URL = %s\n' "$4"
+  } | sed 's|://|:/$()/|' >"$1"
+}
+
+# アプリの「購入する」がこのサイトを指すなら、そのページがある。アプリの言語にかかわらずそのまま開くので、英語のページは要らない
+test_app_purchase_link_must_point_to_a_page_of_the_site() {
+  local config="$TEST_TMP/Nonet.xcconfig"
+  write_fixture_site
+  fixture_page buy.html noindex
+  write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://nonet.test/buy.html
+  check_app_links_fixture
+  assert_status 0
+  write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://nonet.test/purchase.html
+  check_app_links_fixture
+  assert_status 1
+  assert_contains "$OUT" "Nonet.xcconfig の NONET_PURCHASE_URL（https://nonet.test/purchase.html）に当たるページが site/ にありません"
+  # 販売サービスのページ（ほかのホスト）を指すなら、このサイトでは確かめない
+  write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://store.nonet.test/buy
+  check_app_links_fixture
+  assert_status 0
 }
 
 check_app_links_fixture() {

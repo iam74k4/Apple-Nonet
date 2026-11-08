@@ -82,7 +82,9 @@ AI のアクションは、Apple の Foundation Models フレームワークを�
 
 ### 8. 販売ページ
 
-販売ページは、Cookie・アクセス解析・外部のフォントやスクリプトを使っていません。ページを置いているホスティング事業者が、一般的なアクセスログ（IP アドレスなど）を記録することがあります。
+販売ページは、Cookie・アクセス解析・外部のフォントを使っていません。外部のスクリプトを読み込むのは、下の購入のページだけです。ページを置いているホスティング事業者が、一般的なアクセスログ（IP アドレスなど）を記録することがあります。
+
+購入のページ（「購入する」で開くページ）は、購入画面を開くために、販売サービス（Paddle）のスクリプトを読み込みます。購入画面で入力する情報と、Paddle のスクリプトと購入画面が扱う情報（Cookie を含む）は、Paddle の[プライバシーポリシー](https://www.paddle.com/legal/privacy)に従って扱われます。
 
 ページの言語の案内（「This page is also available in English」など）を閉じると、閉じたことだけをブラウザの localStorage に記録し、次からは出しません。この記録はお使いのブラウザの中にだけあり、送信しません。
 
@@ -172,7 +174,9 @@ Purchase records are kept for the period the law requires and then deleted. To s
 
 ### 8. Website
 
-The website uses no cookies, analytics, or external fonts or scripts. The hosting provider may keep standard access logs, such as IP addresses.
+The website uses no cookies, analytics, or external fonts. The only page that loads an external script is the purchase page below. The hosting provider may keep standard access logs, such as IP addresses.
+
+The purchase page (the page that opens when you choose Buy) loads a script from the store (Paddle) to open the checkout. Information you enter in the checkout, and information handled by Paddle's script and checkout (including cookies), is handled under Paddle's [privacy policy](https://www.paddle.com/legal/privacy).
 
 If you close the language suggestion (such as “日本語のページもあります”), the site remembers only that you closed it, in your browser's localStorage, so it doesn't show again. This stays in your browser and is never sent anywhere.
 

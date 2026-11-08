@@ -13,6 +13,7 @@
 | `/`・`/en/` | 販売ページ（日本語・英語） | `site/index.html`・`site/en/index.html` | GitHub Actions の site（手で実行） |
 | `/privacy.html`・`/guide.html`・`/terms.html`（`/en/` の下も）・`/tokushoho.html`（日本語だけ） | プライバシーポリシー・使い方・利用規約・特定商取引法に基づく表記 | `site/` | 同上 |
 | `/thanks.html`・`/en/thanks.html` | ダウンロードのページ。販売ページの「ダウンロード」「無料で試す」がここを指し、ここが `/download` を開く（Mac でだけ。JavaScript が無ければ `noscript` の meta refresh）。`noindex` | `site/` | 同上 |
+| `/buy.html`・`/en/buy.html` | 購入のページ。販売ページとアプリの「購入する」がここを開き、Paddle.js で購入画面を開く。外のスクリプトを読むのはこの2つだけで、CSP も `_headers` でこの2つだけ広げる（docs/release.md 3.6）。`noindex` | `site/` | 同上 |
 | `/robots.txt`・`/sitemap.xml` | 検索エンジン向け。`/download` と `/updates/` はクロールさせない。ページを足したら sitemap.xml にも足す（`scripts/check-site.sh` が確かめる） | `site/` | 同上 |
 | `/images/og-ja.png`・`/images/og-en.png`・`/apple-touch-icon.png` | 共有の画像（1200×630）とホーム画面のアイコン（180×180） | `site/`（`python3 -I scripts/make-site-images.py` で作る） | 同上 |
 | 無いページ | `site/404.html`（`/en/` の下は `site/en/404.html`）を 404 で | `site/` | 同上 |
@@ -26,6 +27,7 @@
 - appcast: `https://nonet.astlog.dev/updates/appcast.xml`（`Config/Nonet.xcconfig` の `NONET_APPCAST_URL`）
 - プライバシーポリシー: `https://nonet.astlog.dev/privacy.html`（`NONET_PRIVACY_URL`）
 - 使い方: `https://nonet.astlog.dev/guide.html`（`NONET_SUPPORT_URL`）
+- 購入: `https://nonet.astlog.dev/buy.html`（`NONET_PURCHASE_URL`。Paddle の Default payment link も）
 - ダウンロード: `https://nonet.astlog.dev/download`（ページのボタンは `thanks.html` を指し、そこからこの URL を開く）
 
 `.html` を付けない URL（`/privacy`・`/guide`）は 404 になる。リンクには必ず `.html` を付ける。
