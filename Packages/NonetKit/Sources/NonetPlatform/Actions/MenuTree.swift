@@ -193,13 +193,18 @@ enum MenuToggleTitles {
 
 /// メニューの木から、ショートカットで項目を探す（今のキー配列で打てないショートカットを、メニューを押して代わりに行うため）
 enum MenuShortcutSearch {
-    /// shortcut と同じショートカットの、使える項目（子の無いもの）のパス。最初に見つかったもの。無ければ nil
+    /// shortcut と同じショートカットの項目（子の無いもの）のパス。使える項目を先に探し、無ければ使えない項目
+    /// （押すと「今は使えません」と知らせる。Finder の「戻る」は戻る先が無いと使えない）。どれも無ければ nil
     static func path(for shortcut: KeySequence, in nodes: [MenuItemNode]) -> [String]? {
+        path(for: shortcut, in: nodes, enabledOnly: true) ?? path(for: shortcut, in: nodes, enabledOnly: false)
+    }
+
+    private static func path(for shortcut: KeySequence, in nodes: [MenuItemNode], enabledOnly: Bool) -> [String]? {
         for node in nodes {
-            if node.children.isEmpty, node.isEnabled, node.keyEquivalent == shortcut {
+            if node.children.isEmpty, !enabledOnly || node.isEnabled, node.keyEquivalent == shortcut {
                 return node.path
             }
-            if let path = path(for: shortcut, in: node.children) {
+            if let path = path(for: shortcut, in: node.children, enabledOnly: enabledOnly) {
                 return path
             }
         }

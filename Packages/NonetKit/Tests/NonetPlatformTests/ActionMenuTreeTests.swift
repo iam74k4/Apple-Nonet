@@ -276,5 +276,10 @@ struct ActionRunningAppsTests {
         #expect(MenuShortcutSearch.path(for: back, in: nodes) == ["履歴", "戻る"])
         #expect(MenuShortcutSearch.path(for: .key("]", .command), in: nodes) == ["履歴", "進む"])
         #expect(MenuShortcutSearch.path(for: .key("[", [.shift, .command]), in: nodes) == nil)
+        // 使えない項目しか無ければ、その項目（押すと「今は使えません」と知らせる。打てないとだけ言うより分かる）
+        let disabledOnly = [MenuItemNode(title: "移動", path: ["移動"], children: [
+            MenuItemNode(title: "戻る", path: ["移動", "戻る"], keyEquivalent: back, isEnabled: false),
+        ])]
+        #expect(MenuShortcutSearch.path(for: back, in: disabledOnly) == ["移動", "戻る"])
     }
 }

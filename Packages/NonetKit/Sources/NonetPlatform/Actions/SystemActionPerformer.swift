@@ -146,8 +146,8 @@ public final class SystemActionPerformer: ActionPerforming {
     // MARK: - メニュー項目
 
     /// 今のキー配列で打てない1打のショートカット（ドイツ語・フランス語の配列の ⌘[ など）は、前面のアプリのメニューに
-    /// 同じショートカットの項目があれば、それを押す。押したら true。打てる・項目が無い・許可が無ければ false（キーを送る。
-    /// 打てなければ、これまでどおり「今のキー配列では入力できません」になる）
+    /// 同じショートカットの項目があれば、それを押す（使えない項目なら「今は使えません」と知らせる）。押したら true。
+    /// 打てる・項目が無い・許可が無ければ false（キーを送る。打てなければ、これまでどおり「今のキー配列では入力できません」になる）
     private func pressMenuItemForUntypableShortcut(_ keys: KeySequence, frontmost: RunningAppInfo?) async throws -> Bool {
         guard keys.chords.count == 1, let frontmost, AXIsProcessTrusted(),
               (try? keySender.strokes(for: keys, keyboardType: KeyboardLayoutResolver.currentKeyboardType())) == nil else { return false }
