@@ -172,6 +172,28 @@ import Testing
         #expect(times.count <= 20)
     }
 
+    /// 長く止まって上限を超えても、離したフレームと最初のフレームは残し、途中の位置から捨てる
+    @Test func overflowDropsIntermediatePositionsFirst() {
+        var coalescer = TouchFrameCoalescer(capacity: 32)
+        for i in 0...200 {
+            let time = Double(i) * 0.01
+            if i == 30 {
+                coalescer.push(frame(time, []))
+            } else if i == 31 {
+                coalescer.push(TouchFrame(timestamp: time, points: [], isSynthesizedLift: true))
+            } else {
+                coalescer.push(frame(time, i < 30 ? [1] : [2]))
+            }
+            #expect(coalescer.count <= 32)
+        }
+        let frames = coalescer.drain()
+        #expect(frames.first?.timestamp == 0)
+        #expect(frames.last?.timestamp == 2.0)
+        #expect(frames.contains { $0.timestamp == 0.3 && $0.touchingIDs.isEmpty })
+        #expect(frames.contains { $0.isSynthesizedLift })
+        #expect(frames.contains { $0.timestamp == 0.32 && $0.touchingIDs == [2] })
+    }
+
     /// 上の縁から 0.2 秒で滑らせたあと、メインスレッドが 0.65 秒まで止まっていても、まとめたフレームで9マスが開く
     @Test func aSlideDuringALongStallStillOpens() {
         var coalescer = TouchFrameCoalescer(capacity: 32)

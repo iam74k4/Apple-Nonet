@@ -219,6 +219,8 @@ final class SettingsModel {
     @ObservationIgnored private var installedAppsLoaded = false
     /// 種類を切り替える前の中身（マスの id ごと）。戻したときに失わないように
     @ObservationIgnored private var rememberedActions: [UUID: [ActionKind: Action]] = [:]
+    /// 「開く」のマスを別の種類にしたときの、アプリか URL か。一覧で「開く」に戻したら、そちらにする
+    @ObservationIgnored private var lastOpenKinds: [UUID: ActionKind] = [:]
     @ObservationIgnored private var testTask: Task<Void, Never>?
     /// 確定を待っている入力欄（種類やタブを変える前に確定させる）
     @ObservationIgnored let pendingEdits = SettingsPendingEdits()
@@ -882,7 +884,8 @@ final class SettingsModel {
     /// 種類の一覧で選んだとき。一覧では URL のマスも「開く」なので、「開く」を選び直しても URL のまま（アプリの空のマスにしない）
     func chooseKind(ofCell id: UUID, _ kind: ActionKind) {
         guard let cell = cell(id: id), SettingsActionKinds.menuKind(of: cell.action) != kind else { return }
-        changeKind(ofCell: id, to: kind)
+        // 一覧の「開く」はアプリと URL の両方。前に「開く」で使っていた方に戻す（URL のマスを別の種類にして戻しても URL のまま）
+        changeKind(ofCell: id, to: kind == .launchApp ? lastOpenKinds[id] ?? .launchApp : kind)
     }
 
     func changeKind(ofCell id: UUID, to kind: ActionKind) {
@@ -893,6 +896,9 @@ final class SettingsModel {
             cancelRecording()
         }
         rememberedActions[id, default: [:]][cell.action.kind] = cell.action
+        if SettingsActionKinds.menuKind(of: cell.action) == .launchApp {
+            lastOpenKinds[id] = cell.action.kind
+        }
         let remembered = rememberedActions[id]?[kind]
         updateCell(id: id) { cell in
             let wasTrash = FileAction.content(of: cell.action)?.operation == .trash
@@ -1480,7 +1486,7 @@ final class SettingsModel {
             shortcutList.loadIfNeeded()
         }
         if rightPanel == .menus {
-            menuBrowser.resume(preferredBundleID: selectedProfile.app?.bundleID)
+            menuBrowser.resume(preferredBundleID: selectedProfile.app?.bundleID, accessibilityGranted: services.permissions.isAccessibilityGranted)
         }
     }
 

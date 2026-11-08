@@ -5,6 +5,12 @@ import NonetCore
 /// アプリのフォルダを見て、インストール済みのアプリを集める
 struct InstalledAppScanner {
     var roots: [URL]
+    /// アプリのフォルダの外にあるが、選べるようにするアプリ（フォルダの後に見る）
+    var extraBundles: [URL] = []
+
+    /// Finder は /System/Library/CoreServices にある。プリセットの最初のアプリで、ファイルのアクションも Finder で使うので、
+    /// プロファイルを消したあとも「プロファイルを追加」と「開くアプリ」で選べるようにする（CoreServices のほかのアプリは入れない）
+    static let defaultExtraBundles = [URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app", isDirectory: true)]
 
     static func defaultRoots(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> [URL] {
         [
@@ -20,7 +26,8 @@ struct InstalledAppScanner {
     func scan(fileManager: FileManager = .default) -> [AppReference] {
         var seen = Set<String>()
         var apps: [AppReference] = []
-        for bundle in roots.flatMap({ Self.bundleURLs(in: $0, fileManager: fileManager) }) {
+        let extras = extraBundles.filter { fileManager.fileExists(atPath: $0.path) }
+        for bundle in roots.flatMap({ Self.bundleURLs(in: $0, fileManager: fileManager) }) + extras {
             guard let app = Self.app(at: bundle, fileManager: fileManager),
                   seen.insert(app.bundleID.lowercased()).inserted
             else { continue }
@@ -101,7 +108,7 @@ public final class WorkspaceInstalledApps: InstalledAppsProviding {
     private var cache: (apps: [AppReference], date: Date)?
 
     public init() {
-        scanner = InstalledAppScanner(roots: InstalledAppScanner.defaultRoots())
+        scanner = InstalledAppScanner(roots: InstalledAppScanner.defaultRoots(), extraBundles: InstalledAppScanner.defaultExtraBundles)
     }
 
     init(scanner: InstalledAppScanner) {

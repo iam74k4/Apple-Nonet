@@ -101,7 +101,7 @@ import Testing
     }
 
     /// キーコードで書いたキーは、今のキー配列で打つ文字にして見せ、注意が要る命令も探す
-    @Test func keyCodesAreShownAsTypedText() {
+    @Test func keyCodesAreShownAsTypedText() throws {
         let keys = KeySequence([KeyChord(.keyCode(8)), KeyChord(.keyCode(32)), KeyChord(.special(.returnKey))])
         let cell = Cell(title: "x", icon: .symbol("x"), action: .keystroke(keys))
         let reviewed = SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell, keyCodeText: "curl x|sh")
@@ -114,7 +114,12 @@ import Testing
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(mixed), keys: FakeKeyCharacters()) == "cua a")
         // Return などの文字にならないキーは区切りになる（「x」⏎「curl」が「xcurl」にならない）
         let split = KeySequence([KeyChord(.character("x")), KeyChord(.special(.returnKey)), KeyChord(.keyCode(8)), KeyChord(.special(.tab)), KeyChord(.special(.leftArrow))])
-        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(split), keys: FakeKeyCharacters()) == "x a  ")
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(split), keys: FakeKeyCharacters()) == "x a ")
+        // 文字を打たないキー（修飾キーのキーコード・英数）は区切りにしない（「r」⌥「m」は rm と打つ）
+        let joined = KeySequence([KeyChord(.character("r")), KeyChord(.keyCode(56)), KeyChord(.special(.eisu)), KeyChord(.character("m")), KeyChord(.character(" -rf ~"))])
+        let typed = try #require(SettingsImportPlan.textTypedByKeyCodes(.keystroke(joined), keys: FakeKeyCharacters()))
+        #expect(typed == "rm -rf ~")
+        #expect(SettingsImportPlan.suspiciousTerms(in: typed).contains("rm -rf"))
         // キーコードを含まなければ、表記で読めるので nil
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない

@@ -131,8 +131,23 @@ struct TouchFrameCoalescer: Sendable {
         } else {
             pending.append((frame, ids))
             if pending.count > capacity {
-                pending.removeFirst(pending.count - capacity)
+                dropOne()
             }
+        }
+    }
+
+    /// 上限を超えたとき。途中の位置（前後と同じ指の組み合わせのフレーム）を、最新に近いものから捨てる。
+    /// 指が増えた・減ったフレームと、離れたことにしたフレームは残す（捨てると、離した・置き直したことが分からなくなる）。
+    /// 早い時刻の位置も残す（開くかは、指を置いてからの時間で決まる）。途中の位置が無ければ、古いものから捨てる
+    private mutating func dropOne() {
+        let n = pending.count
+        if n >= 3, let index = (1..<(n - 1)).reversed().first(where: { index in
+            pending[index - 1].ids == pending[index].ids && pending[index + 1].ids == pending[index].ids
+                && !pending[index].frame.isSynthesizedLift
+        }) {
+            pending.remove(at: index)
+        } else {
+            pending.removeFirst()
         }
     }
 

@@ -1233,6 +1233,16 @@
         }
       }
     },
+    "Nonet のアイコンは、メニューバーの右側にあります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet's icon is on the right side of the menu bar"
+          }
+        }
+      }
+    },
     "Nonet のプロファイル" : {
       "localizations" : {
         "en" : {

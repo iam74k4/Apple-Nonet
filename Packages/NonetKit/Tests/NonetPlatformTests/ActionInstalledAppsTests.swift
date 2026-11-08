@@ -72,6 +72,20 @@ struct ActionInstalledAppsTests {
         #expect(apps.map(\.name) == ["Notes", "Safari"])
     }
 
+    @Test("フォルダの外のアプリ（Finder）も、あれば加える。無ければ何もしない")
+    func addsExtraBundles() throws {
+        let directory = try ActionTemporaryDirectory()
+        let root = try directory.subdirectory("Applications")
+        let coreServices = try directory.subdirectory("CoreServices")
+        try makeApp("Notes", in: root, bundleID: "com.apple.Notes")
+        let finder = try makeApp("Finder", in: coreServices, bundleID: "com.apple.finder")
+        let apps = InstalledAppScanner(roots: [root], extraBundles: [finder, coreServices.appendingPathComponent("Missing.app")]).scan()
+        #expect(apps.map(\.bundleID) == ["com.apple.finder", "com.apple.Notes"])
+        // 本物の Mac の Finder
+        #expect(InstalledAppScanner.defaultExtraBundles.map(\.lastPathComponent) == ["Finder.app"])
+        #expect(InstalledAppScanner(roots: [], extraBundles: InstalledAppScanner.defaultExtraBundles).scan().map(\.bundleID) == ["com.apple.finder"])
+    }
+
     @Test("iPhone / iPad 用のアプリは WrappedBundle の Info.plist を読む")
     func wrappedBundles() throws {
         let directory = try ActionTemporaryDirectory()

@@ -569,6 +569,7 @@ private final class FakeTrash: SettingsTrashing {
         let controller = TrialEndedWindowController(license: license, purchaseURL: purchase, defaults: defaults, onRegister: onRegister)
         var presented = 0
         controller.present = { _ in presented += 1 }
+        controller.handBack = {}
         controller.now = now
         controller.calendar = calendar
         return (controller, { presented })
@@ -646,6 +647,42 @@ private final class FakeTrash: SettingsTrashing {
         #expect(registered == 1)
         #expect(controller.window == nil)
         #expect(presented() == 2)
+    }
+
+    /// 「あとで」は閉じて前のアプリに戻す。購入・登録では戻さない（ブラウザや設定の画面が前に出る）
+    @Test func laterHandsBackToThePreviousApp() {
+        let (license, _) = expiredLicense()
+        let (controller, _) = makeController(license: license, now: { today })
+        var handedBack = 0
+        controller.handBack = { handedBack += 1 }
+        controller.showIfDue()
+        controller.later()
+        #expect(controller.window == nil)
+        #expect(handedBack == 1)
+        controller.later()
+        #expect(handedBack == 1)
+        controller.now = { today.addingTimeInterval(86_400) }
+        controller.showIfDue()
+        controller.register()
+        #expect(handedBack == 1)
+    }
+
+    /// 「この Mac から登録を消す」で期限切れに戻ったときは出さない（次に起動したときは出す）
+    @Test func notShownAfterRemovingTheLicense() throws {
+        let signed = try SignedLicense()
+        let (license, _) = expiredLicense(verifier: signed.verifier)
+        try license.activate(licenseKey: signed.key)
+        let (controller, presented) = makeController(license: license, now: { today })
+        controller.start()
+        #expect(presented() == 0)
+        license.deactivate()
+        controller.entitlementDidChange(license.entitlement)
+        #expect(license.entitlement == .expired)
+        #expect(presented() == 0)
+        let (relaunched, presentedAfterRelaunch) = makeController(license: license, now: { today })
+        relaunched.start()
+        #expect(presentedAfterRelaunch() == 1)
+        relaunched.close()
     }
 
     /// ほかの所で登録したら閉じる

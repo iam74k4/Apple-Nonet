@@ -541,6 +541,21 @@ struct ActionClipboardTests {
             }
         }
 
+        /// 貼り付けた中身を相手がまだ読んでいない間は、結果を書かずに待つ（先に書くと、相手はこちらの結果を貼り付ける）
+        @Test func resultWritesWaitUntilAPasteIsRead() async throws {
+            try await withPrivatePasteboard { pasteboard in
+                put("before", on: pasteboard)
+                let timing = ClipboardPaste.Timing(settle: 0.05, minimumDelay: 0.1, fallback: 3)
+                _ = try await ClipboardPaste.paste("pasted", to: pasteboard, timing: timing) {}
+                let writer = Task { @MainActor in await PasteboardWriter.writeAfterOtherOperations("result", to: pasteboard) }
+                // 相手のアプリが少し遅れて読む。そのときに届くのは、貼り付けたもの（書き終えた結果ではない）
+                try await Task.sleep(for: .milliseconds(200))
+                #expect(pasteboard.string(forType: .string) == "pasted")
+                _ = await writer.value
+                #expect(pasteboard.string(forType: .string) == "result")
+            }
+        }
+
         @Test("読まれないままでも、しばらくしたら元に戻す")
         func restoresWithoutReader() async throws {
             try await withPrivatePasteboard { pasteboard in
@@ -619,6 +634,8 @@ struct ActionClipboardTests {
             #expect(ClipboardPaste.isTimeToRestore(now: at(0.6), pastedAt: pasted, requestedAt: at(0.05), timing: timing))
             #expect(!ClipboardPaste.isTimeToRestore(now: at(1.0), pastedAt: pasted, requestedAt: at(0.9), timing: timing))
             #expect(ClipboardPaste.isTimeToRestore(now: at(1.1), pastedAt: pasted, requestedAt: at(0.9), timing: timing))
+            // 時計が戻ったら、戻した分を待たない
+            #expect(ClipboardPaste.isTimeToRestore(now: at(-600), pastedAt: pasted, requestedAt: nil, timing: timing))
         }
     }
 
@@ -690,21 +707,6 @@ struct ActionBlockingCallTests {
             release?.resume()
             _ = await writer.value
             await holder.value
-            #expect(pasteboard.string(forType: .string) == "result")
-        }
-    }
-
-    /// 貼り付けた中身を相手がまだ読んでいない間は、結果を書かずに待つ（先に書くと、相手はこちらの結果を貼り付ける）
-    @MainActor @Test func resultWritesWaitUntilAPasteIsRead() async throws {
-        try await withPrivatePasteboard { pasteboard in
-            put("before", on: pasteboard)
-            let timing = ClipboardPaste.Timing(settle: 0.05, minimumDelay: 0.1, fallback: 3)
-            _ = try await ClipboardPaste.paste("pasted", to: pasteboard, timing: timing) {}
-            let writer = Task { @MainActor in await PasteboardWriter.writeAfterOtherOperations("result", to: pasteboard) }
-            // 相手のアプリが少し遅れて読む。そのときに届くのは、貼り付けたもの（書き終えた結果ではない）
-            try await Task.sleep(for: .milliseconds(200))
-            #expect(pasteboard.string(forType: .string) == "pasted")
-            _ = await writer.value
             #expect(pasteboard.string(forType: .string) == "result")
         }
     }

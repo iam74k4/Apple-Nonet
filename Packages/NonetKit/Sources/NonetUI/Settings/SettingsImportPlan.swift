@@ -169,9 +169,17 @@ struct SettingsImportPlan: Identifiable, Equatable {
         let text = sequence.chords.compactMap { chord -> String? in
             guard chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
             if let typed = translator.characters(for: chord) { return typed }
-            if case .character(let character) = chord.key { return character }
-            // Space・Return・Tab など文字にならないキーも区切りとして残す（落とすと、前後の文字がつながって注意が要る命令を見逃す）
-            return " "
+            switch chord.key {
+            case .character(let character):
+                return character
+            // Space・Return・Tab は語の区切りとして残す（落とすと、前後の文字がつながって注意が要る命令を見逃す）
+            case .special(.space), .special(.returnKey), .special(.tab):
+                return " "
+            // 文字を打たないキー（修飾キー・消音・英数・かな・矢印など）は落とす。区切りにすると、
+            // 「r」修飾キー「m」が「r m」に見えて、実際に打つ「rm」を見逃す
+            case .special, .keyCode:
+                return nil
+            }
         }.joined()
         return text.isEmpty ? nil : text
     }

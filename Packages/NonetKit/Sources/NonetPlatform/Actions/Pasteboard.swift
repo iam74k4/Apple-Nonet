@@ -438,8 +438,10 @@ enum PasteboardWriter {
         return await session.exclusive { _ in
             // 貼り付けの順番は ⌘V を送った時点で空くが、相手のアプリが中身を読むのはその後。読み終えて戻すまで待つ
             // （先に書くと、相手はこちらの結果を貼り付ける）。読まれないままなら、貼り付けが戻すのと同じ時間でやめる
-            let deadline = Date().addingTimeInterval(ClipboardPaste.Timing.standard.fallback + 0.5)
-            while session.isPastingContent(pasteboard.changeCount), Date() < deadline {
+            // 時計を合わせ直しても長く待たないよう、壁の時計ではなく経過時間で測る
+            let clock = ContinuousClock()
+            let deadline = clock.now + .seconds(ClipboardPaste.Timing.standard.fallback + 0.5)
+            while session.isPastingContent(pasteboard.changeCount), clock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(50))
             }
             return write(text, to: pasteboard)
@@ -712,7 +714,8 @@ enum ClipboardPaste {
     /// 読まれたら少し待ってから（ただし ⌘V から minimumDelay は待つ）、読まれないままなら fallback で戻す
     static func isTimeToRestore(now: Date, pastedAt: Date, requestedAt: Date?, timing: Timing) -> Bool {
         let sincePaste = now.timeIntervalSince(pastedAt)
-        if sincePaste >= timing.fallback { return true }
+        // 時計が戻った（手で合わせた・スリープ明けに合わせ直した）ときは、戻した分を待たずにすぐ戻す
+        if sincePaste >= timing.fallback || sincePaste < 0 { return true }
         guard let requestedAt else { return false }
         return sincePaste >= timing.minimumDelay && now.timeIntervalSince(requestedAt) >= timing.settle
     }

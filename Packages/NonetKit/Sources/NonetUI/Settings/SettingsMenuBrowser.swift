@@ -99,6 +99,11 @@ final class SettingsMenuBrowser {
         case loaded([SettingsMenuSection])
         /// needsPermission はアクセシビリティの許可が無くて読めなかった
         case failed(message: String, needsPermission: Bool)
+
+        var needsPermission: Bool {
+            if case .failed(_, true) = self { return true }
+            return false
+        }
     }
 
     private(set) var runningApps: [RunningAppInfo] = []
@@ -129,12 +134,12 @@ final class SettingsMenuBrowser {
         select(preferred)
     }
 
-    /// ウィンドウに戻ったとき。起動中のアプリを読み直し、閉じるときに止めた読み込みをやり直す
-    func resume(preferredBundleID: String?) {
+    /// ウィンドウに戻ったとき。起動中のアプリを読み直し、閉じるときに止めた読み込みをやり直す。
+    /// 許可が無くて読めなかったあとに、システム設定で許可して戻ってきたら、読み直す（「許可が要る」のままにしない）
+    func resume(preferredBundleID: String?, accessibilityGranted: Bool = false) {
         refreshApps(preferredBundleID: preferredBundleID)
-        if state == .idle, selectedApp != nil {
-            reload()
-        }
+        guard selectedApp != nil, state == .idle || (accessibilityGranted && state.needsPermission) else { return }
+        reload()
     }
 
     func select(_ app: RunningAppInfo?) {

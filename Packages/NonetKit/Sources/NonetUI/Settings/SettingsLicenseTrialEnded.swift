@@ -44,6 +44,8 @@ public final class TrialEndedWindowController {
     var now: () -> Date = { Date() }
     var calendar = Calendar.current
     var openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// 「あとで」で閉じたあと、ほかに Nonet のウィンドウが無ければ前のアプリに戻す（タイトルバーの閉じるボタンと同じ）
+    var handBack: () -> Void = { ShellActivation.handBackAfterClosingWindow() }
     /// ウィンドウを出す。ほかのアプリで打っている最中に出ることがあるので、Nonet を前面にしない
     var present: (NSWindow) -> Void = { window in
         window.center()
@@ -57,6 +59,8 @@ public final class TrialEndedWindowController {
     private var observer: ShellObserver<Entitlement>?
     private let windowDelegate = TrialEndedWindowDelegate()
     private(set) var window: NSWindow?
+    /// 前に受け取った状態。登録を消して期限切れに戻ったときは出さない
+    private var lastEntitlement: Entitlement?
 
     /// purchaseURL: 「購入する」で開く（nil ならボタンを出さない）。
     /// defaults: 出した日を覚える場所（nil ならメモリだけ）。onRegister: 「ライセンスキーを登録…」（設定のライセンスのタブを開く）
@@ -88,8 +92,13 @@ public final class TrialEndedWindowController {
     }
 
     func entitlementDidChange(_ entitlement: Entitlement) {
+        let previous = lastEntitlement
+        lastEntitlement = entitlement
         switch entitlement {
         case .expired:
+            // 出すのは起動したときと、使っている間に試用期間が終わったとき。「この Mac から登録を消す」で
+            // 期限切れに戻ったときは出さない（自分で消したところで、「試用期間が終了しました」は合わない）
+            if case .licensed = previous { return }
             showIfDue()
         case .licensed:
             // ほかの所（購入のメールのリンクなど）で登録したら、もう要らない
@@ -110,6 +119,13 @@ public final class TrialEndedWindowController {
     func register() {
         close()
         onRegister()
+    }
+
+    /// 「あとで」（Esc）。閉じて、前のアプリに戻す（購入・登録は、ブラウザや設定の画面が前に出るので戻さない）
+    func later() {
+        guard window != nil else { return }
+        close()
+        handBack()
     }
 
     func close() {
@@ -141,7 +157,7 @@ public final class TrialEndedWindowController {
             showsPurchase: purchaseURL != nil,
             onBuy: { [weak self] in self?.buy() },
             onRegister: { [weak self] in self?.register() },
-            onLater: { [weak self] in self?.close() }
+            onLater: { [weak self] in self?.later() }
         ))
         panel.contentView = hosting
         // 文の長さ（日本語・英語）に合わせた高さにする

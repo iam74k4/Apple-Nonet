@@ -123,6 +123,25 @@ enum SettingsMenuSamples {
         #expect(browser.sections.isEmpty)
     }
 
+    /// 許可が無くて読めなかったあと、システム設定で許可して戻ってきたら読み直す。許可がまだ無ければ読み直さない
+    @Test func resumingAfterGrantingAccessibilityReloads() async {
+        let menus = SettingsFakeMenus()
+        menus.apps = [SettingsMenuSamples.figma]
+        menus.items = SettingsMenuSamples.figmaMenus
+        menus.error = .permissionDenied("アクセシビリティ")
+        let browser = SettingsMenuBrowser(menus: menus)
+        browser.select(SettingsMenuSamples.figma)
+        await browser.waitUntilLoaded()
+        #expect(browser.state.needsPermission)
+        menus.error = nil
+        browser.resume(preferredBundleID: nil, accessibilityGranted: false)
+        await browser.waitUntilLoaded()
+        #expect(browser.state.needsPermission)
+        browser.resume(preferredBundleID: nil, accessibilityGranted: true)
+        await browser.waitUntilLoaded()
+        #expect(!browser.sections.isEmpty)
+    }
+
     @Test func searchFiltersVisibleSectionsAndResetsOnAppChange() async {
         let menus = SettingsFakeMenus()
         menus.items = SettingsMenuSamples.figmaMenus

@@ -349,6 +349,9 @@ import Testing
         // ほかの種類は今までどおり切り替わる
         h.model.chooseKind(ofCell: id, .script)
         #expect(h.model.cell(id: id)?.action.kind == .script)
+        // 別の種類から「開く」に戻すと、前に使っていた URL に戻る
+        h.model.chooseKind(ofCell: id, .launchApp)
+        #expect(h.model.cell(id: id)?.action == url)
     }
 
     /// 記録中にライセンスのタブへ移って ⌘V を押しても、記録には入らない
@@ -1562,6 +1565,9 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
             character
         case .keyCode(0x2E):
             "\r"
+        // 修飾キー（Shift など）は文字を打たない
+        case .keyCode(56):
+            nil
         case .keyCode:
             "a"
         case .special:

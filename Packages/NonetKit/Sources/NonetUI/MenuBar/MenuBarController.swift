@@ -144,9 +144,9 @@ public final class MenuBarController {
     /// 初回の案内を終えたときに、メニューバーのアイコンを数回光らせ、その下に短い吹き出しを出す
     public func pointAtStatusItem() {
         guard let button = statusItem.button, isStatusItemVisible else { return }
-        let text = String(localized: "Nonet はここにいます", bundle: .module)
-        callout.show(text: text, below: button)
-        HUDAccessibility.announce(text)
+        callout.show(text: String(localized: "Nonet はここにいます", bundle: .module), below: button)
+        // 吹き出しは VoiceOver から見えないので、「ここ」ではなく場所を言う
+        HUDAccessibility.announce(Self.statusItemLocationAnnouncement)
     }
 
     private func applyIcon(_ state: MenuBarState) {
@@ -159,8 +159,15 @@ public final class MenuBarController {
         button.setAccessibilityLabel(description)
     }
 
+    /// 初回の案内を終えたときに VoiceOver で読む文
+    static var statusItemLocationAnnouncement: String {
+        String(localized: "Nonet のアイコンは、メニューバーの右側にあります", bundle: .module)
+    }
+
     /// メニューを開く直前に呼ばれる
     private func rebuildMenu() {
+        // 吹き出しの光らせ方が、開いたメニューのアイコンの強調を消さないよう、吹き出しはしまう
+        callout.hide()
         // 日付が変わっていれば試用の残り日数を更新する
         license.refresh()
         let state = currentState()
