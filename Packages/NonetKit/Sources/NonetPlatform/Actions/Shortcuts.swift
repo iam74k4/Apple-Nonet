@@ -55,6 +55,9 @@ enum ShortcutRunner {
             ))
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as NonetError {
+            // 始める前に断った理由（名前に NUL が入っているなど）は、そのまま知らせる
+            throw error
         } catch {
             ActionLog.logger.error("shortcuts を起動できませんでした: \(error.localizedDescription)")
             throw NonetError.actionFailed(String(localized: "ショートカットを実行できませんでした", bundle: .nonetActions))

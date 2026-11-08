@@ -40,7 +40,9 @@ struct Osascript: OsascriptRunning {
             environment: nil,
             currentDirectory: nil,
             timeout: timeout,
-            outputLimit: 256 * 1024
+            // Finder の選択（最大 501 個の file:// の URL）を JSON で読む。日本語は1文字 9 バイト（%E3%81%82）になり、
+            // 深い場所のファイルでは1つ数 KB になる。足りないと JSON の先頭が切れて、選択をまったく読めない
+            outputLimit: 8 * 1024 * 1024
         ))
     }
 }
@@ -223,7 +225,7 @@ enum FileScripts {
         static let noTrash = 1004
     }
 
-    private static let handlers = """
+    static let handlers = """
     on aliasList(paths)
         set items_ to {}
         repeat with p in paths
@@ -236,7 +238,10 @@ enum FileScripts {
     end aliasList
 
     on samePath(a, b)
-        return (my normalizedPath(a)) is (my normalizedPath(b))
+        -- 大文字と小文字も区別する（大文字小文字を区別するディスクで、Build を指す build のリンクを同じとしない）
+        considering case
+            return (my normalizedPath(a)) is (my normalizedPath(b))
+        end considering
     end samePath
 
     on normalizedPath(t)

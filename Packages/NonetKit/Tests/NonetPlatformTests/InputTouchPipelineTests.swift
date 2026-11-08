@@ -146,13 +146,43 @@ import Testing
 
     @Test func keepsTheFirstAndLatestFrameOfARun() {
         var coalescer = TouchFrameCoalescer(capacity: 16)
-        for i in 0..<10 {
-            coalescer.push(frame(Double(i), [1], x: Double(i) / 10))
+        for i in 0..<5 {
+            coalescer.push(frame(Double(i) * 0.01, [1], x: Double(i) / 10))
         }
         let frames = coalescer.drain()
-        #expect(frames.map(\.timestamp) == [0, 9])
-        #expect(frames.last?.points.first?.x == 0.9)
+        #expect(frames.map(\.timestamp) == [0, 0.04])
+        #expect(frames.last?.points.first?.x == 0.4)
         #expect(coalescer.drain().isEmpty)
+    }
+
+    /// メインスレッドが長く止まっても、途中の位置を keepInterval ごとに残す（指を置いて 0.2 秒で滑らせたことが分かる）
+    @Test func keepsIntermediatePositionsDuringALongStall() {
+        var coalescer = TouchFrameCoalescer(capacity: 32)
+        for i in 0...65 {
+            coalescer.push(frame(Double(i) * 0.01, [1], x: Double(i) / 100))
+        }
+        let times = coalescer.drain().map(\.timestamp)
+        #expect(times.first == 0)
+        #expect(times.last == 0.65)
+        // 隣どうしの間は keepInterval より少し短いか同じくらい（遅れても、続けて残すのは keepInterval に1つ）
+        for (earlier, later) in zip(times, times.dropFirst()) {
+            #expect(later - earlier <= TouchFrameCoalescer.keepInterval + 1e-9)
+        }
+        #expect(times.contains { abs($0 - 0.2) <= TouchFrameCoalescer.keepInterval })
+        #expect(times.count <= 20)
+    }
+
+    /// 上の縁から 0.2 秒で滑らせたあと、メインスレッドが 0.65 秒まで止まっていても、まとめたフレームで9マスが開く
+    @Test func aSlideDuringALongStallStillOpens() {
+        var coalescer = TouchFrameCoalescer(capacity: 32)
+        for i in 0...65 {
+            let time = Double(i) * 0.01
+            let y = 0.97 - 0.07 * min(time, 0.2) / 0.2
+            coalescer.push(TouchFrame(timestamp: time, points: [TouchPoint(id: 1, x: 0.5, y: y)]))
+        }
+        var recognizer = EdgeSlideRecognizer()
+        let events = coalescer.drain().map { recognizer.apply($0, isSessionActive: false) }
+        #expect(events.contains(.slid))
     }
 
     @Test func keepsEveryChangeInTheTouchingFingers() {

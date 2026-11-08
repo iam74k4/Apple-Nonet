@@ -94,6 +94,9 @@ enum ScriptRunner {
             ))
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as NonetError {
+            // 始める前に断った理由（NUL の入ったスクリプトなど）は、そのまま知らせる
+            throw error
         } catch {
             ActionLog.logger.error("スクリプトを起動できませんでした: \(error.localizedDescription)")
             throw NonetError.actionFailed(String(localized: "スクリプトを実行できませんでした", bundle: .nonetActions))

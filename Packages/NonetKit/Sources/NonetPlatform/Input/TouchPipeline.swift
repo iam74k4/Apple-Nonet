@@ -105,9 +105,13 @@ struct TouchDeviceSelector: Sendable {
 }
 
 /// メインスレッドが遅れたときにフレームをまとめる。触れている指の組み合わせが同じ間は、
-/// その最初のフレームと最新のフレームだけを残す（指を置いた時刻と今の位置は失わない）。
+/// その最初のフレームと最新のフレームと、途中の位置を keepInterval ごとに1つ残す（指を置いた時刻と今の位置は失わない）。
 /// 指が増えた・減ったフレームは残すので、短いタップも取りこぼさない。上限を超えたら古いものから捨てる
 struct TouchFrameCoalescer: Sendable {
+    /// 途中の位置を残す間隔。9マスを開くかは、指を置いてから決まった時間のうちに滑らせたかで決まる。
+    /// 最新のフレームだけにすると、メインスレッドが長く止まったとき、間に合った滑りも遅すぎたように見えて開かない
+    static let keepInterval: TimeInterval = 0.05
+
     let capacity: Int
     private var pending: [(frame: TouchFrame, ids: [Int])] = []
 
@@ -121,7 +125,8 @@ struct TouchFrameCoalescer: Sendable {
         let ids = frame.touchingIDs
         let n = pending.count
         // 離れたことにしたフレームは、後のフレームで置き換えない（開いていたら、何も実行せずに閉じる印なので）
-        if n >= 2, pending[n - 1].ids == ids, pending[n - 2].ids == ids, !pending[n - 1].frame.isSynthesizedLift {
+        if n >= 2, pending[n - 1].ids == ids, pending[n - 2].ids == ids, !pending[n - 1].frame.isSynthesizedLift,
+           frame.timestamp - pending[n - 2].frame.timestamp < Self.keepInterval {
             pending[n - 1] = (frame, ids)
         } else {
             pending.append((frame, ids))

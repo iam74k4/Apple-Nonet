@@ -330,6 +330,25 @@ struct ActionFileTests {
         }
     }
 
+    @Test("リンクの確かめ（samePath）は、大文字と小文字を区別し、末尾の / と /private と、日本語の濁点の書き方（NFC・NFD）の違いは同じとする")
+    func samePathConsidersCase() async throws {
+        let source = FileScripts.handlers + """
+        on run argv
+            return my samePath(item 1 of argv, item 2 of argv) as text
+        end run
+        """
+        func same(_ a: String, _ b: String) async throws -> String {
+            let output = try await Osascript().run(.appleScript, source: source, arguments: [a, b], timeout: 20)
+            #expect(output.succeeded, Comment(rawValue: output.stderr))
+            return output.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        #expect(try await same("/Volumes/Dev/proj/Build/", "/Volumes/Dev/proj/build") == "false")
+        #expect(try await same("/Volumes/Dev/proj/Build/", "/Volumes/Dev/proj/Build") == "true")
+        #expect(try await same("/private/tmp/a", "/tmp/a") == "true")
+        let name = "が行"
+        #expect(try await same("/tmp/" + name.decomposedStringWithCanonicalMapping, "/tmp/" + name.precomposedStringWithCanonicalMapping) == "true")
+    }
+
     @Test("本物の osascript に、\"-\" で始まる引数や引用符・日本語を、そのまま引数として渡せる（Finder は使わない）")
     func realOsascriptPassesArgumentsUntouched() async throws {
         let source = """

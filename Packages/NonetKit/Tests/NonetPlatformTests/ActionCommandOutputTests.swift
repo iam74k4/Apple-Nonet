@@ -184,6 +184,16 @@ struct ActionCommandOutputTests {
         #expect(!message.contains(ScriptRunner.outputMarker))
     }
 
+    @Test("NUL の入ったスクリプトは、始める前に断った理由をそのまま知らせる（「実行できませんでした」にまとめない）")
+    func nulInScriptKeepsTheReason() async throws {
+        let directory = try ActionTemporaryDirectory()
+        let error = await #expect(throws: NonetError.self) {
+            try await ScriptRunner.runInBackground(source: "echo a\u{0}b", environment: directory.isolatedEnvironment, workingDirectory: directory.url, timeout: 20)
+        }
+        guard case .actionFailed(let message)? = error else { Issue.record("\(String(describing: error))"); return }
+        #expect(message.contains("NUL"))
+    }
+
     @Test("標準出力が上限を超えたかを返す")
     func reportsTruncation() async throws {
         let directory = try ActionTemporaryDirectory()
