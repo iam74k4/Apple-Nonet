@@ -572,6 +572,7 @@ public final class NonetController {
             prepareFirstHUD()
             guard let session else { return }
             pointerSelection = ControllerPointerSelection()
+            services.windowPlacer.resetPreview()
             lastHUDState = state
             hudMapFrame = hud.show(hudModel(session, state: state))
             isHUDVisible = true

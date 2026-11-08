@@ -20,6 +20,10 @@ public final class AXWindowPlacer: WindowPlacing {
     private var previewCache: (pid: pid_t, at: TimeInterval, visible: CGRect)?
     static let previewCacheLifetime: TimeInterval = 2
 
+    public func resetPreview() {
+        previewCache = nil
+    }
+
     public func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect? {
         let pid = app?.processID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier
         let now = ProcessInfo.processInfo.systemUptime

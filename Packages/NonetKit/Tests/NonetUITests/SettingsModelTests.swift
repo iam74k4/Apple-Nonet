@@ -1262,6 +1262,21 @@ import Testing
         ])
     }
 
+    /// 書き出したファイルより桁違いに大きいファイルは、読む前に断る（設定は変えない）
+    @Test func aHugeImportFileIsRefused() throws {
+        let h = try SettingsHarness()
+        let url = h.temporaryFile("huge.nonetprofile")
+        FileManager.default.createFile(atPath: url.path(percentEncoded: false), contents: Data())
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: UInt64(SettingsModel.maxImportFileSize + 1))
+        try handle.close()
+        let before = h.controller.configuration
+        h.model.importProfiles(from: url)
+        #expect(h.model.fileMessage?.isError == true)
+        #expect(h.model.confirmation == nil)
+        #expect(h.controller.configuration == before)
+    }
+
     /// 中身を見せるマスの数に上限は無い（7つ目に隠せない）。スクリプトの長い行も切らない
     @Test func everyReviewedCellIsShownInFull() throws {
         let h = try SettingsHarness()
@@ -1630,6 +1645,57 @@ final class FakeKeyCharacters: SettingsKeyCharacterTranslating {
         // やめたら、何も実行しない
         h.model.confirmation = nil
         #expect(h.model.testRun(for: id) == nil)
+    }
+
+    /// 確かめて「実行」を選べば、そのファイルの操作を1回だけ実行して結果を出す
+    @Test func confirmingAFileTestRunRunsIt() async throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .file, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.chooseFileOperation(.trash, forCell: id)
+        h.model.startTestRun(cellID: id)
+        let confirmation = try #require(h.model.confirmation)
+        h.model.confirm(confirmation)
+        #expect(h.model.confirmation == nil)
+        for _ in 0..<400 where h.model.testRun(for: id)?.record == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(h.model.testRun(for: id)?.record != nil)
+        #expect(h.performer.performed.filter { $0 == .file(FileAction(operation: .trash)) }.count == 1)
+    }
+
+    /// 「画面に置く」の場所を選ぶと、アクションの場所が変わり、自動の名前は場所に合わせる（自分で付けた名前は残す）。ほかの種類のマスは変えない
+    @Test func choosingAPlacementRegion() throws {
+        let h = try SettingsHarness()
+        h.model.createCell(kind: .placeWindow, at: 1)
+        let id = try #require(h.model.selectedCell?.id)
+        h.model.choosePlaceWindowRegion(.right, forCell: id)
+        let cell = try #require(h.model.cell(id: id))
+        #expect(cell.action == .placeWindow(PlaceWindowAction(region: .right)))
+        #expect(cell.title == SettingsCellEditing.automaticTitle(for: cell.action))
+        h.model.updateCell(id: id) { $0.title = "右へ" }
+        h.model.choosePlaceWindowRegion(.left, forCell: id)
+        #expect(h.model.cell(id: id)?.action == .placeWindow(PlaceWindowAction(region: .left)))
+        #expect(h.model.cell(id: id)?.title == "右へ")
+        let safari = try #require(h.model.selectedProfile.pages[0].cells[0])
+        h.model.choosePlaceWindowRegion(.right, forCell: safari.id)
+        #expect(h.model.cell(id: safari.id) == safari)
+    }
+
+    /// マスをページの見出しへ落とすと、そのページの最初の空きマスへ移る。同じページ・いっぱいのページ・ほかのプロファイルには移さない
+    @Test func droppingACellOnAPageHeader() throws {
+        let h = try SettingsHarness()
+        let profile = h.model.selectedProfile
+        h.controller.update { _ = $0.addPage(profileID: profile.id) }
+        let source = CellAddress(page: 0, index: 0)
+        let moved = try #require(SettingsGrid.cell(at: source, in: h.model.selectedProfile))
+        #expect(!h.model.handleDrop(.cell(profileID: profile.id, address: source), ontoPage: 0))
+        #expect(!h.model.handleDrop(.cell(profileID: UUID(), address: source), ontoPage: 1))
+        #expect(h.model.handleDrop(.cell(profileID: profile.id, address: source), ontoPage: 1))
+        let pages = h.model.selectedProfile.pages
+        #expect(pages[0].cells[0] == nil)
+        #expect(pages[1].cells.contains(moved))
+        #expect(h.model.pageIndex == 1)
     }
 
     @Test func testRunningAnotherKindDoesNotAsk() throws {

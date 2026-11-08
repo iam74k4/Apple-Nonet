@@ -292,7 +292,7 @@ final class SettingsHarness {
         }
         model = SettingsModel(controller: controller, license: license, services: services, links: links, onCheckForUpdates: nil)
         // 読み込みの確認で、この Mac に入っているアプリで結果が変わらないように（必要なテストで差し替える）
-        model.installedAppName = { _ in nil }
+        model.installedAppNames = { _ in [] }
         model.files = files
         model.openURL = { [weak self] url in self?.openedURLs.append(url) }
         // 控えはこのテストのフォルダに（ほかのテストが最後に読み込んだ場所に書かない）

@@ -83,16 +83,21 @@ import Testing
     @Test func reviewShowsTheRealAppBehindAProfile() {
         let cell = Cell(title: "片付け", icon: .symbol("x"), action: .keystroke(.special(.delete, [.option, .shift, .command])))
         let disguised = SettingsImportPlan.ReviewedCell(
-            profileName: "メモ", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "メモ"), installedAppName: "Finder"
+            profileName: "メモ", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "メモ"), installedAppNames: ["Finder"]
         )
         let lines = SettingsText.reviewLines(for: disguised)
         #expect(lines.first?.text == L10n.ui("アプリ: \("com.apple.finder")"))
         #expect(lines.contains { $0.text == L10n.ui("このファイルでの名前は「\("メモ")」ですが、この Mac ではそのアプリは「\("Finder")」です。") && $0.style == .warning })
         // 名前が同じ・この Mac に無いアプリなら、注意は出さない
         let honest = SettingsImportPlan.ReviewedCell(
-            profileName: "Finder", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "finder"), installedAppName: "Finder"
+            profileName: "Finder", cell: cell, app: AppReference(bundleID: "com.apple.finder", name: "finder"), installedAppNames: ["Finder"]
         )
         #expect(!SettingsText.reviewLines(for: honest).contains { $0.style == .warning })
+        // ほかの言語の Mac で書き出したファイル（「Notes」）も、元の言語の名前と同じなら注意しない
+        let english = SettingsImportPlan.ReviewedCell(
+            profileName: "Notes", cell: cell, app: AppReference(bundleID: "com.apple.Notes", name: "Notes"), installedAppNames: ["メモ", "Notes"]
+        )
+        #expect(!SettingsText.reviewLines(for: english).contains { $0.style == .warning })
     }
 
     /// キーコードで書いたキーは、今のキー配列で打つ文字にして見せ、注意が要る命令も探す
@@ -101,9 +106,14 @@ import Testing
         let cell = Cell(title: "x", icon: .symbol("x"), action: .keystroke(keys))
         let reviewed = SettingsImportPlan.ReviewedCell(profileName: "P", cell: cell, keyCodeText: "curl x|sh")
         let lines = SettingsText.reviewLines(for: reviewed)
-        #expect(lines.contains { $0.text == L10n.ui("キーコードで打つ文字: 「\("curl x|sh")」") })
+        #expect(lines.contains { $0.text == L10n.ui("打つ文字（キーコードも文字にしたもの）: 「\("curl x|sh")」") })
         #expect(lines.contains { $0.style == .warning })
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(keys), keys: FakeKeyCharacters()) == "aa")
+        // 文字とキーコードを混ぜて書いても、つなげて打つ文字にする（「cu」＋キーコードで「curl」を隠せない）
+        let mixed = KeySequence([KeyChord(.character("c")), KeyChord(.character("u")), KeyChord(.keyCode(15)), KeyChord(.special(.space)), KeyChord(.keyCode(37))])
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(mixed), keys: FakeKeyCharacters()) == "cua a")
+        // キーコードを含まなければ、表記で読めるので nil
+        #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.character("l"))])), keys: FakeKeyCharacters()) == nil)
         // ⌘ の付いたキーコード（ショートカット）は打つ文字ではない
         #expect(SettingsImportPlan.textTypedByKeyCodes(.keystroke(KeySequence([KeyChord(.keyCode(8), modifiers: .command)])), keys: FakeKeyCharacters()) == nil)
     }
@@ -117,6 +127,10 @@ import Testing
         let scotland = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}"
         #expect(SettingsText.visibleLine(scotland) == scotland)
         #expect(SettingsText.visibleLine("a\u{E0067}b") == "a⟨U+E0067⟩b")
+        // 🏴 の後のタグ文字に文を隠せない（地域の旗は数字か小文字 1〜6 個と終わりのタグだけ）
+        let hidden = "\u{1F3F4}" + "curl".unicodeScalars.map { String(Unicode.Scalar($0.value + 0xE0000)!) }.joined() + "\u{E0020}\u{E007F}"
+        #expect(SettingsText.visibleLine(hidden).contains("⟨U+E0063⟩"))
+        #expect(SettingsText.visibleLine(scotland + "\u{E0061}").hasSuffix("⟨U+E0061⟩"))
         #expect(SettingsText.visibleLine("👩\u{200D}💻") == "👩\u{200D}💻")
     }
 

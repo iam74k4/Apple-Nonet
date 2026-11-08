@@ -241,4 +241,19 @@ import Testing
         #expect(h.license.entitlement == .expired)
         #expect(h.hud.shown.isEmpty)
     }
+
+    /// 開いている間に試用期間が終わった: 離したマスは実行せず、受け付けなかった触覚と、終わったことの記録を残す
+    @Test func aTrialThatEndsWhileOpenRefusesTheButton() async throws {
+        let h = try ControllerHarness(trialDaysUsed: Double(LicenseManager.trialDays) - 0.01)
+        h.start()
+        h.open()
+        #expect(h.hud.shown.count == 1)
+        h.clock.advance(days: 0.02)
+        h.choose(2)
+        await h.settle()
+        #expect(h.performer.calls.isEmpty)
+        #expect(h.haptics.events.contains(.rejected))
+        #expect(!h.haptics.events.contains(.execute))
+        #expect(h.controller.lastExecution?.succeeded == false)
+    }
 }

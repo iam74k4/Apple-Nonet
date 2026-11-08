@@ -13,10 +13,11 @@ struct SettingsImportPlan: Identifiable, Equatable {
         var pressesSubmitKey = false
         /// マスのあるアプリのプロファイルのアプリ（グローバルなら nil）。ファイルの中の名前だけでなく bundle ID も見せる
         var app: AppReference? = nil
-        /// この Mac にある、app の bundle ID のアプリの名前（無ければ nil）。ファイルの中の名前と違えば目立たせる
-        var installedAppName: String? = nil
-        /// キー入力のうち、キーコードで書いた（文字で書いていない）キーが今のキー配列で打つ文字。無ければ nil。
-        /// 「keyCode(8)」のような表記では何を打つか分からず、注意が要る命令も見つけられないので、文字にして見せる
+        /// この Mac にある、app の bundle ID のアプリの名前（表示名・CFBundleDisplayName・CFBundleName の、今の言語と元の言語）。
+        /// 無ければ空。ファイルの中の名前がどれとも違えば目立たせる（最初のものを見せる）
+        var installedAppNames: [String] = []
+        /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーをすべて、順に）。無ければ nil。
+        /// 「keyCode(8)」のような表記では何を打つか分からず、文字と混ぜて書いた命令も見つけられないので、つなげて文字にして見せる
         var keyCodeText: String? = nil
     }
 
@@ -39,7 +40,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
         configuration: NonetConfiguration,
         fileName: String,
         keys: (any SettingsKeyCharacterTranslating)? = nil,
-        installedAppName: (String) -> String? = SettingsImportPlan.lookUpInstalledAppName
+        installedAppNames: (String) -> [String] = SettingsImportPlan.lookUpInstalledAppNames
     ) {
         self.fileName = SettingsText.singleLine(fileName, limit: SettingsText.importFileNameLimit)
         let document = Self.withoutLongMenuShortcuts(document)
@@ -50,8 +51,9 @@ struct SettingsImportPlan: Identifiable, Equatable {
             Self.existingProfile(for: app, in: configuration)?.id
         })
         replacedNames = configuration.profiles.filter { replacedIDs.contains($0.id) }.map(\.name)
-        let sources: [(name: String, app: AppReference?, cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
-            (profile.name, profile.app, profile.pages.flatMap(\.cells))
+        // アプリの名前は、プロファイルごとに1回だけ調べる
+        let sources: [(name: String, app: AppReference?, installed: [String], cells: [Cell?])] = Self.usedProfiles(in: document).map { profile in
+            (profile.name, profile.app, profile.app.map { installedAppNames($0.bundleID) } ?? [], profile.pages.flatMap(\.cells))
         }
         reviewedCells = sources.flatMap { source -> [ReviewedCell] in
             source.cells.compactMap { cell -> ReviewedCell? in
@@ -61,7 +63,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
                     cell: cell,
                     pressesSubmitKey: Self.pressesSubmitKey(cell.action, keys: keys),
                     app: source.app,
-                    installedAppName: source.app.flatMap { installedAppName($0.bundleID) },
+                    installedAppNames: source.installed,
                     keyCodeText: Self.textTypedByKeyCodes(cell.action, keys: keys)
                 )
             }
@@ -126,11 +128,23 @@ struct SettingsImportPlan: Identifiable, Equatable {
         }
     }
 
-    /// この Mac にある、その bundle ID のアプリの名前。無ければ nil
-    static func lookUpInstalledAppName(_ bundleID: String) -> String? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
-        let name = FileManager.default.displayName(atPath: url.path)
-        return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
+    /// この Mac にある、その bundle ID のアプリの名前の候補（表示名、今の言語と元の言語の CFBundleDisplayName・CFBundleName）。
+    /// 無ければ空。プロファイルの名前は前面のアプリの名前や Info.plist の名前から付くので、どれかと同じなら名乗り違いではない
+    static func lookUpInstalledAppNames(_ bundleID: String) -> [String] {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return [] }
+        var names: [String] = []
+        func add(_ name: String?) {
+            guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty, !names.contains(name) else { return }
+            names.append(name)
+        }
+        let display = FileManager.default.displayName(atPath: url.path)
+        add(display.hasSuffix(".app") ? String(display.dropLast(4)) : display)
+        let bundle = Bundle(url: url)
+        for info in [bundle?.localizedInfoDictionary, bundle?.infoDictionary] {
+            add(info?["CFBundleDisplayName"] as? String)
+            add(info?["CFBundleName"] as? String)
+        }
+        return names
     }
 
     /// 確かめずに読み込んでよいスキーム（ウェブのページとメールの宛先）
@@ -147,12 +161,17 @@ struct SettingsImportPlan: Identifiable, Equatable {
         return webSchemes.contains(text[..<colon].lowercased())
     }
 
-    /// キー入力のうち、キーコードで書いた（⌘・⌃ の付かない）キーが今のキー配列で打つ文字をつなげたもの。無ければ nil
+    /// キーコードで書いたキーを含むキー入力が、今のキー配列で打つ文字（⌘・⌃ の付かないキーを、文字で書いたものも含めて順に）。
+    /// キーコードを含まない・文字にならなければ nil
     static func textTypedByKeyCodes(_ action: Action, keys translator: (any SettingsKeyCharacterTranslating)?) -> String? {
-        guard case .keystroke(let sequence) = action, let translator else { return nil }
+        guard case .keystroke(let sequence) = action, let translator,
+              sequence.chords.contains(where: { if case .keyCode = $0.key { true } else { false } }) else { return nil }
         let text = sequence.chords.compactMap { chord -> String? in
-            guard case .keyCode = chord.key, chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
-            return translator.characters(for: chord)
+            guard chord.modifiers.isDisjoint(with: [.command, .control]) else { return nil }
+            if case .special(.space) = chord.key { return " " }
+            if let typed = translator.characters(for: chord) { return typed }
+            if case .character(let character) = chord.key { return character }
+            return nil
         }.joined()
         return text.isEmpty ? nil : text
     }

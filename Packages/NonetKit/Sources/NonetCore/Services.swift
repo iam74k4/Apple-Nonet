@@ -325,6 +325,12 @@ public protocol WindowPlacing: AnyObject {
     func place(_ region: WindowRegion, app: RunningAppInfo?) throws
     /// 置いたときの枠（HUD で光らせている間のプレビュー用）。ウインドウが無ければ nil
     func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect?
+    /// 9マスを開くたびに呼ぶ。下見のために覚えたウインドウの場所を忘れる（閉じている間にウインドウが動いたかもしれない）
+    func resetPreview()
+}
+
+extension WindowPlacing {
+    public func resetPreview() {}
 }
 
 /// ウインドウを置けない実装（テストと見た目の確認）

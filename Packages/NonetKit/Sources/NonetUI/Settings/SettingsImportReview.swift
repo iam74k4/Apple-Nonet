@@ -101,8 +101,9 @@ extension SettingsText {
         // この Mac にあるそのアプリの名前とファイルの名前が違えば目立たせる（別のアプリの名前を付けて、危ないキーを読み違えさせない）
         if let app = reviewed.app {
             lines.append((String(localized: "アプリ: \(visibleLine(app.bundleID))", bundle: .module), .label))
-            if let installed = reviewed.installedAppName,
-               installed.compare(app.name, options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]) != .orderedSame {
+            let names = reviewed.installedAppNames
+            if let installed = names.first,
+               !names.contains(where: { $0.compare(app.name, options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]) == .orderedSame }) {
                 lines.append((String(localized: "このファイルでの名前は「\(visibleLine(app.name))」ですが、この Mac ではそのアプリは「\(installed)」です。", bundle: .module), .warning))
             }
         }
@@ -117,7 +118,7 @@ extension SettingsText {
             // キーコードで書いたキーが打つ文字（表記からは分からない）も見せて、注意が要る命令を探す
             let typed = reviewed.keyCodeText.map(visibleLine)
             if let typed {
-                lines.append((String(localized: "キーコードで打つ文字: 「\(typed)」", bundle: .module), .code(terms: SettingsImportPlan.suspiciousTerms(in: typed))))
+                lines.append((String(localized: "打つ文字（キーコードも文字にしたもの）: 「\(typed)」", bundle: .module), .code(terms: SettingsImportPlan.suspiciousTerms(in: typed))))
             }
             let terms = SettingsImportPlan.suspiciousTerms(in: preview + (typed.map { " " + $0 } ?? ""))
             if !terms.isEmpty {
@@ -173,19 +174,40 @@ extension SettingsText {
     /// 「⟨U+202E⟩」にする（確かめる画面で、見えない文字で中身を隠したり並びを入れ替えたりできないように）
     static func visibleLine(_ text: String) -> String {
         var result = ""
-        var previous: Unicode.Scalar?
-        var inFlagTags = false
-        for scalar in text.unicodeScalars {
-            defer { previous = scalar }
-            // 旗の絵文字（🏴 に続くタグ文字）の中か
-            let isTag = (0xE0020...0xE007F).contains(scalar.value)
-            inFlagTags = isTag && (inFlagTags || previous?.value == 0x1F3F4)
+        let scalars = Array(text.unicodeScalars)
+        let flagTags = flagTagIndices(scalars)
+        for (index, scalar) in scalars.enumerated() {
+            let previous = index > 0 ? scalars[index - 1] : nil
+            // 正しい地域の旗の絵文字（🏴 ＋ タグ文字 1〜6 個 ＋ 終わりのタグ）のタグ文字だけは、見える形にしない
+            let inFlagTags = flagTags.contains(index)
             if scalar == "\t" {
                 result += "    "
-            } else if isHidden(scalar) && !(isTag && inFlagTags) || isInvisibleInReview(scalar, after: previous, inFlagTags: inFlagTags) {
+            } else if isHidden(scalar) && !inFlagTags || isInvisibleInReview(scalar, after: previous, inFlagTags: inFlagTags) {
                 result += String(format: "⟨U+%04X⟩", scalar.value)
             } else {
                 result.unicodeScalars.append(scalar)
+            }
+        }
+        return result
+    }
+
+    /// 地域の旗の絵文字（🏴 ＋ 数字か小文字のタグ文字 1〜6 個 ＋ 終わりのタグ U+E007F）の、タグ文字の位置。
+    /// それ以外のタグ文字（🏴 の後に続けて長い文を隠したもの・終わりの無いもの）は含めない
+    static func flagTagIndices(_ scalars: [Unicode.Scalar]) -> Set<Int> {
+        var result = Set<Int>()
+        var index = 0
+        while index < scalars.count {
+            guard scalars[index].value == 0x1F3F4 else { index += 1; continue }
+            var end = index + 1
+            while end < scalars.count, end - index - 1 < 6,
+                  (0xE0030...0xE0039).contains(scalars[end].value) || (0xE0061...0xE007A).contains(scalars[end].value) {
+                end += 1
+            }
+            if end > index + 1, end < scalars.count, scalars[end].value == 0xE007F {
+                result.formUnion((index + 1)...end)
+                index = end + 1
+            } else {
+                index += 1
             }
         }
         return result

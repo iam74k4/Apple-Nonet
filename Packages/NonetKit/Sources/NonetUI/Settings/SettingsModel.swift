@@ -125,8 +125,8 @@ final class SettingsModel {
     private(set) var importReviewReachedEnd = false
     /// 読み込むキー入力が、今のキー配列で Return と同じ働きをするかを調べる（テストでは偽物）
     @ObservationIgnored var keyCharacters: any SettingsKeyCharacterTranslating = SettingsLayoutKeyTranslator()
-    /// 読み込みの確認で、プロファイルの bundle ID のアプリの、この Mac での名前を調べる（テストで差し替える）
-    @ObservationIgnored var installedAppName: (String) -> String? = SettingsImportPlan.lookUpInstalledAppName
+    /// 読み込みの確認で、プロファイルの bundle ID のアプリの、この Mac での名前の候補を調べる（テストで差し替える）
+    @ObservationIgnored var installedAppNames: (String) -> [String] = SettingsImportPlan.lookUpInstalledAppNames
     private(set) var lastTestRun: TestRun?
     /// グリッドの下に出す短い知らせ（「空いているマスがありません」など）
     var gridMessage: String?
@@ -1202,7 +1202,7 @@ final class SettingsModel {
         }
         let plan = SettingsImportPlan(
             document: document, configuration: configuration, fileName: url.lastPathComponent,
-            keys: keyCharacters, installedAppName: installedAppName
+            keys: keyCharacters, installedAppNames: installedAppNames
         )
         if plan.needsConfirmation {
             importReviewReachedEnd = false

@@ -3966,6 +3966,7 @@
       }
     },
     "キーコードで打つ文字: 「%@」" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7775,6 +7776,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back"
+          }
+        }
+      }
+    },
+    "打つ文字（キーコードも文字にしたもの）: 「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text it types (key codes shown as characters): “%@”"
           }
         }
       }
