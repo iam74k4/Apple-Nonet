@@ -69,7 +69,7 @@ struct ShellHUDTurnTests {
         // 切り替える先が無いときの案内（前面のアプリのページが無い）も読む
         var hinted = Self.model()
         hinted.isFingerInFrame = true
-        hinted.layerHint = "このアプリのページはまだありません"
+        hinted.edgeHint = "このアプリのページはまだありません"
         #expect(HUDAnnouncement.frameLabel(in: hinted) == [L10n.ui("離すとやめる"), "このアプリのページはまだありません"].joined(separator: L10n.ui("、")))
     }
 

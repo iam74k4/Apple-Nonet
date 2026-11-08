@@ -125,14 +125,24 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.announcement(from: ready, to: ready) == nil)
     }
 
-    @Test("読み上げ: 左右の外枠でページを切り替えられるときは「止めると次のページ」も言う。切り替えたらページから読み直す")
+    @Test("読み上げ: 左右の外枠でページを切り替えられるときは「止めると次のページ」も言う。外枠の中で帯に入ったなら、その一言だけ。切り替えたらページから読み直す")
     func edgePagingAnnouncements() {
         var inFrame = Self.model(highlighted: nil, pageCount: 3)
         inFrame.isFingerInFrame = true
         var onRight = inFrame
         onRight.edgePaging = HUDEdgePaging(edge: .right, since: 1, duration: 0.5)
         let separator = L10n.ui("、")
-        #expect(HUDAnnouncement.announcement(from: inFrame, to: onRight) == [L10n.ui("離すとやめる"), L10n.ui("止めると次のページ")].joined(separator: separator))
+        // 外枠の中から帯に入った:「離すとやめる」はもう読んだので、増えた一言だけ。帯を出て外枠に残っただけなら読まない
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: onRight) == L10n.ui("止めると次のページ"))
+        #expect(HUDAnnouncement.announcement(from: onRight, to: inFrame) == nil)
+        // マスから直に帯に入ったら、続けて読む
+        #expect(HUDAnnouncement.announcement(from: Self.model(highlighted: 5, pageCount: 3), to: onRight)
+            == [L10n.ui("離すとやめる"), L10n.ui("止めると次のページ")].joined(separator: separator))
+        // 切り替える先が無いことの案内も同じ: 出たときにその案内だけを読む
+        var hinted = inFrame
+        hinted.edgeHint = "案内"
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: hinted) == "案内")
+        #expect(HUDAnnouncement.announcement(from: hinted, to: inFrame) == nil)
         var onLeft = onRight
         onLeft.edgePaging?.edge = .left
         #expect(HUDAnnouncement.frameLabel(in: onLeft) == [L10n.ui("離すとやめる"), L10n.ui("止めると前のページ")].joined(separator: separator))

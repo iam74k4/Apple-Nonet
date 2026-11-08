@@ -41,8 +41,8 @@ final class DebugPreview {
     /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
     /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
     /// 6. 下の帯で止めてグローバルの層へ移った（押し出し・紺の台・層の名前） 7. 上の帯で止めてアプリの層へ戻った
-    /// （6・7 は前面のアプリにプロファイルがあるときだけ。無ければ 1 と同じ）
-    /// 8. 下の帯で止めたが、層が1つで切り替える先が無い（案内。前面のアプリにプロファイルが無いときだけ。あれば 1 と同じ）
+    /// （6・7 は前面のアプリにプロファイルがあるときだけ。無ければ 2 と同じ）
+    /// 8. 下の帯で止めたが、層が1つで切り替える先が無い（案内。前面のアプリにプロファイルが無いときだけ。あれば 2 と同じ）
     func showHUD(bundleID: String? = nil, backdrop image: URL? = nil) {
         previewBundleID = bundleID
         if let image {
@@ -128,7 +128,7 @@ final class DebugPreview {
             layer: layer,
             lastTurn: lastTurn,
             scale: configuration.settings.hudScale.factor,
-            layerHint: state == 7
+            edgeHint: state == 7
                 ? ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
                 : nil
         )

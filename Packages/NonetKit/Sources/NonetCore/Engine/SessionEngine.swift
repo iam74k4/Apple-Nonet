@@ -216,9 +216,9 @@ public struct SessionHUDState: Equatable, Sendable {
     /// 最後にページか層を切り替えた向き（右・左は次・前のページ、下・上は次・前の層。2本指のスワイプは右・左）。
     /// HUD は、切り替わったときにこの向きへ輪を押し出す。このセッションでまだ切り替えていなければ nil
     public var lastTurn: PageEdge?
-    /// 層が1つ（前面のアプリのページが無く、グローバルのページだけ）なのに、指を上下の帯に edgePageDwell 止めた: その側。
-    /// 切り替える先が無いことを HUD が案内する（HUDModel.layerHint）。帯を出れば nil
-    public var layerHint: PageEdge?
+    /// 切り替える先の無い帯に指を edgePageDwell 止めた: その側。ページが1つの層の左右と、層が1つ（前面のアプリのページが無く、
+    /// グローバルのページだけ）の上下。HUD は、左右なら送るページが無いこと、上下ならアプリのページが無いことを案内する（HUDModel.edgeHint）。帯を出れば nil
+    public var edgeHint: PageEdge?
 
     public init(
         page: Int,
@@ -228,7 +228,7 @@ public struct SessionHUDState: Equatable, Sendable {
         edgePaging: SessionEdgePaging? = nil,
         isOnBoundary: Bool = false,
         lastTurn: PageEdge? = nil,
-        layerHint: PageEdge? = nil
+        edgeHint: PageEdge? = nil
     ) {
         self.page = page
         self.highlightedCell = highlightedCell
@@ -237,7 +237,7 @@ public struct SessionHUDState: Equatable, Sendable {
         self.edgePaging = edgePaging
         self.isOnBoundary = isOnBoundary
         self.lastTurn = lastTurn
-        self.layerHint = layerHint
+        self.edgeHint = edgeHint
     }
 }
 

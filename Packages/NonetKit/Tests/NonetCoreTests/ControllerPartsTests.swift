@@ -108,10 +108,14 @@ import Testing
             == ModelFixtures.text("このアプリはグローバルのページを使います"))
         #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: nil), frontmostBundleID: nil) == nil)
 
-        let hinted = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, layerHint: .down)
-        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: hinted, banner: nil, layerHint: "案内").layerHint == "案内")
+        // 上下はこの案内、左右（ページが1つの層）は送るページが無いこと
+        let below = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .down)
+        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: below, banner: nil, layerHint: "案内").edgeHint == "案内")
+        let beside = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .left)
+        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: beside, banner: nil, layerHint: "案内").edgeHint
+            == ModelFixtures.text("左右に送るページはありません"))
         let plain = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true)
-        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: plain, banner: nil, layerHint: "案内").layerHint == nil)
+        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: plain, banner: nil, layerHint: "案内").edgeHint == nil)
     }
 
     /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ

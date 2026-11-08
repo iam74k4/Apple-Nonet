@@ -384,8 +384,8 @@ struct HUDView: View {
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
             }
-            // 上下の帯に止めても切り替える先が無い（前面のアプリのページが無い）: 真ん中の鍵の下に、そのことを1行で
-            if inFrame, let hint = model.layerHint {
+            // 帯に止めても切り替える先が無い（ページが1つの層の左右・前面のアプリのページが無いときの上下）: 真ん中の鍵の下に、そのことを1行で
+            if inFrame, let hint = model.edgeHint {
                 HUDKeyLabel(text: hint, metrics: metrics)
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
@@ -408,7 +408,7 @@ struct HUDView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: labeledIndex)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsLayerName)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.layerHint)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.edgeHint)
         .task(id: layerName?.serial) {
             showsLayerName = false
             guard layerName != nil else { return }
@@ -904,11 +904,20 @@ enum HUDAnnouncement {
         }
     }
 
-    /// 指が外枠にあるときに読む文。帯で止めるとページか層が変わるなら、そのことも言う。
-    /// 上下の帯に止めても切り替える先が無ければ（HUDModel.layerHint）、その案内を言う
+    /// 指が外枠にあるときに読む文。帯で止めるとページか層が変わるなら、そのことも言う（frameAddition）
     static func frameLabel(in model: HUDModel) -> String {
-        guard let addition = model.edgePaging.map({ edgePagingLabel($0.edge) }) ?? model.layerHint else { return cancelLabel }
+        guard let addition = frameAddition(in: model) else { return cancelLabel }
         return [cancelLabel, addition].joined(separator: String(localized: "、", bundle: .module))
+    }
+
+    /// 外枠の帯に止めているときに「離すとやめる」に続けて言うこと: 止めると切り替わる先か、切り替える先が無いことの案内（HUDModel.edgeHint）
+    static func frameAddition(in model: HUDModel) -> String? {
+        model.edgePaging.map { edgePagingLabel($0.edge) } ?? model.edgeHint
+    }
+
+    /// 外枠にいる（開いた直後のポインタが真ん中から出る前は除く。そのときは外枠扱いでも「離すとやめる」を言わない）
+    private static func isInFrame(_ model: HUDModel) -> Bool {
+        model.isFingerInFrame && !model.isWaitingAtCenter
     }
 
     /// 円の下の帯に出す一言。練習中だけ「練習中」。無ければ nil。
@@ -937,10 +946,11 @@ enum HUDAnnouncement {
     }
 
     /// 前の表示から読み上げる内容が変わったときだけ文を返す（同じ文を何度も読ませない）。
-    /// 外枠に入ったら「離すとやめる」（開いた直後のポインタが真ん中から出る前は、外枠扱いでも言わない）、少し長く止めるマスを止め終えたら「離すと実行」
+    /// 外枠に入ったら「離すとやめる」（開いた直後のポインタが真ん中から出る前は、外枠扱いでも言わない）、外枠の中で帯の案内が変わったらその案内だけ、
+    /// 少し長く止めるマスを止め終えたら「離すと実行」
     static func announcement(from previous: HUDModel?, to model: HUDModel) -> String? {
         let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title
-        let current = model.isFingerInFrame && !model.isWaitingAtCenter ? frameLabel(in: model) : highlighted(in: model)
+        let current = isInFrame(model) ? frameLabel(in: model) : highlighted(in: model)
         if !isNewPage, let hold = model.hold, hold.isReady, previous?.hold?.isReady != true, previous?.highlightedIndex == model.highlightedIndex {
             return holdReady
         }
@@ -950,7 +960,12 @@ enum HUDAnnouncement {
                 : model.title
             return [page, current].compactMap { $0 }.joined(separator: String(localized: "、", bundle: .module))
         }
-        let before = previous.flatMap { $0.isFingerInFrame && !$0.isWaitingAtCenter ? frameLabel(in: $0) : highlighted(in: $0) }
+        if let previous, isInFrame(previous), isInFrame(model) {
+            // 外枠の中で帯の案内だけが変わった: 「離すとやめる」は読み直さず、新しい案内だけを言う（案内が消えただけなら言わない）
+            let addition = frameAddition(in: model)
+            return addition == frameAddition(in: previous) ? nil : addition
+        }
+        let before = previous.flatMap { isInFrame($0) ? frameLabel(in: $0) : highlighted(in: $0) }
         guard before != current else { return nil }
         return current
     }

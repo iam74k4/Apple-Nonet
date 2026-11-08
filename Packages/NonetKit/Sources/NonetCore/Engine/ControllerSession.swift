@@ -13,7 +13,7 @@ struct ControllerSession: Equatable, Sendable {
     var hasShownHUD = false
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
-    /// 層が1つのときに、上下の帯に止めたら出す案内（ControllerPresentation.layerHint）
+    /// 層が1つのときに、上下の帯に止めたら出す案内（ControllerPresentation.layerHint）。左右の帯の案内は前面のアプリによらない
     let layerHint: String?
 
     init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {

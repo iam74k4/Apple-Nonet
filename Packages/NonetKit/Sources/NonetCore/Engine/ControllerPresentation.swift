@@ -4,7 +4,8 @@ import Foundation
 
 /// trialEndedBanner・trialReminderBanner・layerHint だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
 public enum ControllerPresentation {
-    /// page は resolvedPages での位置。範囲外は端に寄せる。HUD のページの番号と数は、いまの層（アプリかグローバル）の中で数える
+    /// page は resolvedPages での位置。範囲外は端に寄せる。HUD のページの番号と数は、いまの層（アプリかグローバル）の中で数える。
+    /// layerHint は上下の帯の案内（layerHint(configuration:pages:frontmostBundleID:)）。左右の帯の案内は sidePageHint
     static func hudModel(
         pages: [ResolvedPage],
         state: SessionHUDState,
@@ -43,8 +44,13 @@ public enum ControllerPresentation {
             lastTurn: state.lastTurn,
             scale: scale,
             isWaitingAtCenter: state.isInFrame && isWaitingAtCenter,
-            layerHint: state.isInFrame && state.layerHint != nil ? layerHint : nil
+            edgeHint: state.isInFrame ? state.edgeHint.flatMap { $0 == .left || $0 == .right ? sidePageHint : layerHint } : nil
         )
+    }
+
+    /// ページが1つの層で、左右の帯に止めたら出す案内
+    static var sidePageHint: String {
+        String(localized: "左右に送るページはありません", bundle: .module)
     }
 
     /// 層が1つ（グローバルのページだけ）のときに、上下の帯に止めたら出す案内。前面のアプリにプロファイルが無ければ「ページはまだありません」、

@@ -7,7 +7,8 @@ import Testing
     static let dwell = SessionConfiguration.defaultEdgePageDwell
     static let repeatDwell = SessionConfiguration.defaultEdgePageRepeat
 
-    /// 右の外枠に止めると、edgePageDwell で次のページ。止めたままなら edgePageRepeat ごとに進み、最後のページの次は最初のページへ回る
+    /// 右の外枠に止めると、edgePageDwell で次のページ。止めたままなら edgePageRepeat ごとに進むが、層のページを一回りしたら
+    /// （止め始めたページの手前で）待たない。帯の中で動かして止め直せば続きから進み、最後のページの次は最初のページへ回る
     @Test func restingOnTheRightFrameTurnsToTheNextPages() {
         var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
@@ -24,23 +25,28 @@ import Testing
         ])
         #expect(first.hapticEvents == [.pageChange])
 
-        // 最後のページへ。層の中で輪になるので、そこからも待ち続け、次は最初のページへ回る
+        // 最後のページへ。これで3ページを一回りしたので、止めたままでも最初のページへは戻らない（行き過ぎない）
         let second = 0.7 + Self.repeatDwell
         let toLast = s.tick(at: second)
         #expect(toLast.hudStates == [
-            SessionHUDState(page: 2, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: second, duration: Self.repeatDwell), lastTurn: .right),
+            SessionHUDState(page: 2, highlightedCell: nil, isInFrame: true, lastTurn: .right),
         ])
         #expect(toLast.hapticEvents == [.pageChange])
-        let third = second + Self.repeatDwell
-        let wrapped = s.tick(at: third)
-        #expect(wrapped.hudStates == [
-            SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: third, duration: Self.repeatDwell), lastTurn: .right),
-        ])
+        #expect(toLast.tickRequests.allSatisfy { $0 > 5 })
+        #expect(s.tick(at: second + Self.repeatDwell * 2).visible.isEmpty)
+        #expect(s.engine.pageIndex == 2)
+
+        // 帯の中で動かして止め直すと、また edgePageDwell から数え、最後のページの次は最初のページへ回る
+        let third = second + 2
+        let moved = s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y + 0.05, at: third)
+        #expect(moved.hudStates.last?.edgePaging == SessionEdgePaging(edge: .right, since: third, duration: Self.dwell))
+        let wrapped = s.tick(at: third + Self.dwell)
+        #expect(wrapped.hudStates.last?.page == 0)
         #expect(wrapped.hapticEvents == [.pageChange])
         #expect(s.engine.pageIndex == 0)
 
         // 外枠で離すのは、ページを変えた後でも、やめる操作
-        let lifted = s.lift(at: third + 0.1)
+        let lifted = s.lift(at: third + Self.dwell + 0.1)
         #expect(lifted.executions.isEmpty)
         #expect(lifted.endReason == .cancelled(.liftedInFrame))
     }
@@ -113,7 +119,7 @@ import Testing
         #expect(below.tickRequests == [0.2 + Self.dwell])
         #expect(s.tick(at: 0.2 + Self.dwell - 0.01).visible.isEmpty)
         let hinted = s.tick(at: 0.2 + Self.dwell)
-        #expect(hinted.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, layerHint: .down)])
+        #expect(hinted.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .down)])
         #expect(hinted.hapticEvents.isEmpty)
         // 案内した後は待たない
         #expect(s.tick(at: 3).visible.isEmpty)
@@ -121,12 +127,40 @@ import Testing
 
         // 帯を出たら消える。上の帯でも同じ
         let back = s.touch(on: 4, at: 3.1)
-        #expect(back.hudStates.last?.layerHint == nil)
+        #expect(back.hudStates.last?.edgeHint == nil)
         s.touch(x: Pad.topFrame.x, y: Pad.topFrame.y, at: 3.2)
         s.tick(at: 3.2 + Self.dwell)
-        #expect(s.engine.hud?.layerHint == .up)
+        #expect(s.engine.hud?.edgeHint == .up)
         s.touch(2, x: 0.5, y: 0.5, at: 4)
-        #expect(s.engine.hud?.layerHint == nil)
+        #expect(s.engine.hud?.edgeHint == nil)
+    }
+
+    /// 案内も、帯の中で edgeRestTravel より動かしている間は止めたと数えない（ページを切り替えるのと同じ）。出した案内は、帯の中で動かしても消さない
+    @Test func movingInsideTheBandRestartsTheHintTimer() {
+        var s = SessionScenario(pageCount: 3)
+        s.slideIn(at: 0)
+        s.touch(on: 4, at: 0.1)
+        s.touch(x: Pad.bottomFrame.x, y: Pad.bottomFrame.y, at: 0.2)
+        let moved = s.touch(x: Pad.bottomFrame.x + 0.05, y: Pad.bottomFrame.y, at: 0.5)
+        #expect(moved.tickRequests == [0.5 + Self.dwell])
+        #expect(s.tick(at: 0.2 + Self.dwell).visible.isEmpty)
+        let hinted = s.tick(at: 0.5 + Self.dwell)
+        #expect(hinted.hudStates.last?.edgeHint == .down)
+        let movedAgain = s.touch(x: Pad.bottomFrame.x - 0.05, y: Pad.bottomFrame.y, at: 1.5)
+        #expect(movedAgain.visible.isEmpty)
+        #expect(s.engine.hud?.edgeHint == .down)
+    }
+
+    /// 開いた直後の指が上の帯にいる間は案内せず、動き出した（openTravel より滑らせた）時刻から数える
+    @Test func theHintCountsFromWhenTheOpeningFingerMoves() {
+        var s = SessionScenario(pageCount: 3)
+        s.slideIn(at: 0)
+        #expect(s.tick(at: 1).visible.isEmpty)
+        s.touch(x: Pad.slid.x, y: Pad.slid.y + 0.025, at: 1)
+        #expect(s.tick(at: 1 + Self.dwell - 0.01).visible.isEmpty)
+        let hinted = s.tick(at: 1 + Self.dwell)
+        #expect(hinted.hudStates.last?.edgeHint == .up)
+        #expect(hinted.hapticEvents.isEmpty)
     }
 
     /// 層が2つなら、上下に止めても案内しない（アプリの層の上・グローバルの層の下）。開いた直後の指（上の外枠にいることにしているだけ）でも案内しない
@@ -136,12 +170,12 @@ import Testing
         layered.touch(on: 4, at: 0.1)
         layered.touch(x: Pad.topFrame.x, y: Pad.topFrame.y, at: 0.2)
         #expect(layered.tick(at: 3).visible.isEmpty)
-        #expect(layered.engine.hud?.layerHint == nil)
+        #expect(layered.engine.hud?.edgeHint == nil)
 
         var justOpened = SessionScenario(pageCount: 3)
         justOpened.slideIn(at: 0)
         #expect(justOpened.tick(at: 3).visible.isEmpty)
-        #expect(justOpened.engine.hud?.layerHint == nil)
+        #expect(justOpened.engine.hud?.edgeHint == nil)
     }
 
     /// 2本目の指を置いたら、端での切り替えは待たない
@@ -204,19 +238,23 @@ import Testing
     }
 
     /// 左右はその層の中で輪になる。アプリの層の最後のページの右はアプリの層の最初のページ（グローバルへは進まない）、
-    /// グローバルの層の最初のページの左はグローバルの層の最後のページ（アプリへは戻らない）
+    /// グローバルの層の最初のページの左はグローバルの層の最後のページ（アプリへは戻らない）。
+    /// 2ページの層では、止めたままなら1回だけ切り替える（一回りしたら待たない）
     @Test func leftAndRightWrapInsideTheLayer() {
         var s = Self.layered()
         s.slideIn(at: 0)
         s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.2)
         s.tick(at: 0.2 + Self.dwell)
         #expect(s.engine.pageIndex == 1)
-        s.tick(at: 0.2 + Self.dwell + Self.repeatDwell)
+        #expect(s.engine.hud?.edgePaging == nil)
+        #expect(s.tick(at: 0.2 + Self.dwell + Self.repeatDwell).visible.isEmpty)
+        s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y + 0.05, at: 1.7)
+        s.tick(at: 1.7 + Self.dwell)
         #expect(s.engine.pageIndex == 0)
         #expect(s.engine.hud?.lastTurn == .right)
 
-        s.touch(x: Pad.bottomFrame.x, y: Pad.bottomFrame.y, at: 2)
-        s.tick(at: 2 + Self.dwell)
+        s.touch(x: Pad.bottomFrame.x, y: Pad.bottomFrame.y, at: 2.5)
+        s.tick(at: 2.5 + Self.dwell)
         #expect(s.engine.pageIndex == 2)
         s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 3)
         #expect(s.engine.hud?.edgePaging?.edge == .left)
@@ -225,7 +263,8 @@ import Testing
         #expect(s.engine.hud?.lastTurn == .left)
     }
 
-    /// ページが1つの層では、左右に止めても何も変わらず、待たない。横のスワイプは受け付けなかった触覚
+    /// ページが1つの層では、左右に止めても何も変わらない。edgePageDwell 止めると、送るページが無いことを案内する（触覚は鳴らさない）。
+    /// 横のスワイプは受け付けなかった触覚
     @Test func aLayerWithOnePageDoesNotTurnLeftOrRight() {
         // アプリの層に 1 ページ（0）、グローバルの層に 2 ページ（1・2）
         var s = SessionScenario(SessionConfiguration(pageCount: 3, layerStart: 1))
@@ -234,6 +273,9 @@ import Testing
         #expect(s.engine.hud?.edgePaging == nil)
         s.touch(x: Pad.leftFrame.x, y: Pad.leftFrame.y, at: 0.3)
         #expect(s.engine.hud?.edgePaging == nil)
+        let hinted = s.tick(at: 0.3 + Self.dwell)
+        #expect(hinted.hudStates == [SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .left)])
+        #expect(hinted.hapticEvents.isEmpty)
         #expect(s.tick(at: 3).visible.isEmpty)
         #expect(s.engine.pageIndex == 0)
         s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 3.1)

@@ -38,22 +38,21 @@ struct SessionState: Sendable {
     private var reselectAnchor: FingerTracker.Finger?
     /// 開いたときの指の位置。ここから openTravel 滑らせるまでは上の外枠にいることにする（開いた瞬間に離せば、必ず何もせずに閉じる）
     private var openAnchor: FingerTracker.Finger?
-    /// 指が止まっている外枠の帯の側（切り替える先があるときだけ）。止め続けるとページか層を切り替える
-    private var pagingEdge: PageEdge?
-    /// pagingEdge に入った時刻か、前に切り替えた時刻。外枠の中で edgeRestTravel より動かしたときも数え直す
+    /// 指がいる外枠の帯の側（GridMapper.pagingEdge。切り替える先が無くても）。切り替える先があれば止め続けると切り替え（pagingEdge）、
+    /// 無ければ案内する（hintEdge）
+    private var bandEdge: PageEdge?
+    /// bandEdge に入った時刻か、前に切り替えた時刻。帯の中で edgeRestTravel より動かしたときと、開いた直後の指が動き出したときも数え直す
     private var edgeSince: TimeInterval
     /// 止めている位置（edgeSince に数え始めたときの指の位置）
     private var edgeAnchor: FingerTracker.Finger?
-    /// pagingEdge に止めたまま切り替えた回数（2回目からは edgePageRepeat ごと）
+    /// bandEdge に止めたまま切り替えた回数（2回目からは edgePageRepeat ごと）
     private var edgeTurns = 0
+    /// hintEdge の案内を出した（帯に入った・ほかの側へ移ったら消す）
+    private var isEdgeHintShown = false
     /// 下でグローバルの層へ移る前にいた、アプリの層のページ（上で戻るときにそこへ戻る）
     private var appPage = 0
     /// 最後にページか層を切り替えた向き（SessionHUDState.lastTurn）
     private var lastTurn: PageEdge?
-    /// 層が1つなのに指がいる上下の帯の側（missingLayerEdge）と、そこに入った時刻。edgePageDwell 止めたら案内を出す（isLayerHintShown）
-    private var missingLayer: PageEdge?
-    private var missingLayerSince: TimeInterval = 0
-    private var isLayerHintShown = false
     /// すべての指が離れた時刻（遅れて届くクリックの判断に使う）
     private var lastLiftAt: TimeInterval?
 
@@ -73,8 +72,8 @@ struct SessionState: Sendable {
             // 開いた瞬間は外枠にいる（開く動きの直後の指が、もう上の段のマスに入っていても選ばない）
             zone = .frame
             openAnchor = finger
-            pagingEdge = availableEdge(at: finger)
-            edgeAnchor = pagingEdge == nil ? nil : finger
+            bandEdge = grid.pagingEdge(x: finger.x, y: finger.y)
+            edgeAnchor = bandEdge == nil ? nil : finger
         }
     }
 
@@ -89,10 +88,10 @@ struct SessionState: Sendable {
             highlightedCell: cell,
             isInFrame: shown == .frame,
             hold: cell.flatMap { isHoldCell($0) ? SessionHold(cell: $0, since: zoneSince, duration: configuration.holdDwell, isReady: isHoldReady) : nil },
-            edgePaging: isMultiFinger ? nil : pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) },
+            edgePaging: pagingEdge.map { SessionEdgePaging(edge: $0, since: edgeSince, duration: edgeDuration) },
             isOnBoundary: cell.map(isOnBoundary) ?? false,
             lastTurn: lastTurn,
-            layerHint: !isMultiFinger && isLayerHintShown ? missingLayer : nil
+            edgeHint: isEdgeHintShown ? hintEdge : nil
         )
     }
 
@@ -115,22 +114,41 @@ struct SessionState: Sendable {
         edgeTurns == 0 ? configuration.edgePageDwell : configuration.edgePageRepeat
     }
 
+    /// 止め続けると切り替える側: 指がいる帯の側（bandEdge）のうち、切り替える先があるもの。
+    /// 左右は、止め続けて層のページを一回りしたら（止め始めたページの手前で）待たない。続けるには帯の中で動かすか、止め直す
+    private var pagingEdge: PageEdge? {
+        guard !isMultiFinger, let edge = availableEdge(bandEdge) else { return nil }
+        if edge == .left || edge == .right, edgeTurns >= layerRange.count - 1 { return nil }
+        return edge
+    }
+
+    /// 指がいる帯の側に切り替える先が無く、そのことを案内する側: ページが1つの層の左右と、層が1つのとき（前面のアプリのページが無い）の上下。
+    /// 層が2つでもう一方の層へ移った後の同じ向き（アプリの層の上・グローバルの層の下）は案内しない。
+    /// 開いた直後（openAnchor）も除く: 指が上の外枠にいることにしているだけで、上へ動かしたのではない
+    private var hintEdge: PageEdge? {
+        guard !isMultiFinger, openAnchor == nil, let edge = bandEdge, availableEdge(edge) == nil else { return nil }
+        switch edge {
+        case .left, .right: return edge
+        case .up, .down: return configuration.layerStart == nil ? edge : nil
+        }
+    }
+
     /// 外枠の帯に止めた指で、ページか層を切り替える時刻。止めていなければ nil
     private var edgeDeadline: TimeInterval? {
-        guard !isMultiFinger, pagingEdge != nil else { return nil }
+        guard pagingEdge != nil else { return nil }
         return edgeSince + edgeDuration
     }
 
-    /// 層が1つなのに上下の帯に止めた指で、切り替える先が無いと案内する時刻。案内した・帯にいなければ nil
-    private var layerHintDeadline: TimeInterval? {
-        guard !isMultiFinger, missingLayer != nil, !isLayerHintShown else { return nil }
-        return missingLayerSince + configuration.edgePageDwell
+    /// 切り替える先の無い帯に止めた指で、そのことを案内する時刻（ページを切り替えるのと同じ edgePageDwell）。案内した・案内する帯にいなければ nil
+    private var edgeHintDeadline: TimeInterval? {
+        guard hintEdge != nil, !isEdgeHintShown else { return nil }
+        return edgeSince + configuration.edgePageDwell
     }
 
     /// 次に tick がほしい時刻
     var nextDeadline: TimeInterval? {
         guard endReason == nil else { return nil }
-        return [holdDeadline, edgeDeadline, layerHintDeadline, timeoutAt].compactMap { $0 }.min()
+        return [holdDeadline, edgeDeadline, edgeHintDeadline, timeoutAt].compactMap { $0 }.min()
     }
 
     // MARK: 開く・時間
@@ -178,20 +196,18 @@ struct SessionState: Sendable {
         if let deadline = edgeDeadline, now >= deadline {
             turnPageAtEdge(now: now, effects: &effects)
         }
-        if let deadline = layerHintDeadline, now >= deadline {
+        if let deadline = edgeHintDeadline, now >= deadline {
             // 止めても切り替える先が無い: 触覚は鳴らさず、HUD で案内する
-            isLayerHintShown = true
+            isEdgeHintShown = true
             refreshHUD(effects: &effects)
         }
     }
 
-    /// 外枠の帯に止め続けた: その側へ切り替える（turn）。その先にページや層が無くなったら、それ以上は待たない
+    /// 外枠の帯に止め続けた: その側へ切り替える（turn）。その先にページや層が無くなった・左右で層を一回りしたら、それ以上は待たない（pagingEdge）
     private mutating func turnPageAtEdge(now: TimeInterval, effects: inout [SessionEffect]) {
         guard let edge = pagingEdge, let haptic = turn(edge) else { return }
         edgeTurns += 1
         edgeSince = now
-        pagingEdge = availableEdge(edge)
-        if pagingEdge == nil { edgeAnchor = nil }
         refreshHUD(effects: &effects)
         effects.append(.haptic(haptic))
     }
@@ -232,20 +248,6 @@ struct SessionState: Sendable {
         case .up?: return configuration.layerStart.map { page >= $0 } == true ? .up : nil
         case nil: return nil
         }
-    }
-
-    /// finger が外枠の帯（左右はページ、上下は層）にあり、その側に切り替える先があればその側
-    private func availableEdge(at finger: FingerTracker.Finger) -> PageEdge? {
-        guard zone == .frame else { return nil }
-        return availableEdge(grid.pagingEdge(x: finger.x, y: finger.y))
-    }
-
-    /// finger が上下の帯にあるのに、層が1つ（前面のアプリのページが無い）で切り替える先が無ければその側。
-    /// 開いた直後（openAnchor）は除く: 指が上の外枠にいることにしているだけで、上へ動かしたのではない
-    private func missingLayerEdge(at finger: FingerTracker.Finger) -> PageEdge? {
-        guard zone == .frame, openAnchor == nil, configuration.layerStart == nil else { return nil }
-        let edge = grid.pagingEdge(x: finger.x, y: finger.y)
-        return edge == .up || edge == .down ? edge : nil
     }
 
     /// HUD を閉じ、ポインタの抑止をやめて終える
@@ -291,10 +293,9 @@ struct SessionState: Sendable {
         if !isMultiFinger {
             isMultiFinger = true
             hasTurnedPage = false
-            pagingEdge = nil
+            bandEdge = nil
             edgeAnchor = nil
-            missingLayer = nil
-            isLayerHintShown = false
+            isEdgeHintShown = false
             refreshHUD(effects: &effects)
         }
         guard tracker.count == 2 else {
@@ -343,11 +344,13 @@ struct SessionState: Sendable {
         }
         lastPosition = finger
         var next = grid.zone(x: finger.x, y: finger.y, current: isNewFinger ? nil : zone)
+        var hasStartedMoving = false
         if let anchor = openAnchor {
             if !isNewFinger, hypot(finger.x - anchor.x, finger.y - anchor.y) <= SessionConfiguration.openTravel {
                 next = .frame
             } else {
                 openAnchor = nil
+                hasStartedMoving = true
             }
         }
         if next != zone || isNewFinger {
@@ -361,25 +364,19 @@ struct SessionState: Sendable {
             zoneSince = now
             isHoldReady = false
         }
-        // 外枠の帯のある側に入った・出た・ほかの側へ移った、または帯の中で動かした: 切り替えるまでの時間を最初から数える
-        let edge = availableEdge(at: finger)
-        if edge != pagingEdge {
-            pagingEdge = edge
+        // 外枠の帯のある側に入った・出た・ほかの側へ移った: 切り替える（案内する）までの時間を最初から数え、案内を消す。
+        // 帯の中で動かした・開いた直後の指が動き出した: 時間だけ数え直す（出した案内はそのまま）
+        let edge = zone == .frame ? grid.pagingEdge(x: finger.x, y: finger.y) : nil
+        if edge != bandEdge {
+            bandEdge = edge
             edgeSince = now
             edgeTurns = 0
             edgeAnchor = edge == nil ? nil : finger
-        } else if edge != nil, let anchor = edgeAnchor,
-                  hypot(finger.x - anchor.x, finger.y - anchor.y) > SessionConfiguration.edgeRestTravel {
+            isEdgeHintShown = false
+        } else if edge != nil, hasStartedMoving || edgeAnchor.map({ hypot(finger.x - $0.x, finger.y - $0.y) > SessionConfiguration.edgeRestTravel }) == true {
             edgeSince = now
             edgeTurns = 0
             edgeAnchor = finger
-        }
-        // 層が1つなのに上下の帯に入った・出た: 案内するまでの時間を最初から数える（出たら案内を消す）
-        let missing = missingLayerEdge(at: finger)
-        if missing != missingLayer {
-            missingLayer = missing
-            missingLayerSince = now
-            isLayerHintShown = false
         }
         guard refreshHUD(effects: &effects) else { return }
         // 仕様: マスとマス・マスと外枠の境目をまたぐたびに。指を置き直した・2本指から戻っただけでは鳴らさない

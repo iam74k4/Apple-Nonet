@@ -2471,6 +2471,16 @@
         }
       }
     },
+    "左右に送るページはありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pages to the left or right"
+          }
+        }
+      }
+    },
     "左右の外枠で止めるとページを切り替え" : {
       "extractionState" : "stale",
       "localizations" : {
