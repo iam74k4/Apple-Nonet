@@ -22,3 +22,6 @@ secrets/
 cloudflare/node_modules/
 .wrangler/
 cloudflare/.wrangler/
+
+# Python のキャッシュ（scripts/ の .py を読み込んだときにできる）
+__pycache__/
