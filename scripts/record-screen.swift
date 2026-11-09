@@ -107,7 +107,8 @@ struct RecordScreen {
         try? FileManager.default.removeItem(at: url)
         do {
             let content = try await SCShareableContent.current
-            guard let display = content.displays.first else {
+            // 主の画面（メニューバーのある画面）を撮る。Nonet の --demo も、背景をこの画面に敷く
+            guard let display = content.displays.first(where: { $0.displayID == CGMainDisplayID() }) ?? content.displays.first else {
                 // 画面がスリープ・ロック中は、画面の一覧が空になる（画面の収録の許可が無いときは、ここまで来ずに SCShareableContent が失敗する）
                 FileHandle.standardError.write(Data("画面が見つかりません。Mac のロックを解除して、画面を点けてから、もう一度実行してください\n".utf8))
                 exit(1)

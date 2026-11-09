@@ -189,6 +189,9 @@ import Testing
         let controlDelete = Action.keystroke(KeySequence([KeyChord(.character("rmx")), KeyChord(.keyCode(0x33), modifiers: .control), KeyChord(.character(" -rf ~"))]))
         #expect(SettingsImportPlan.textsTyped(controlDelete, keys: ControlCharacterKeys())?.contains("rm -rf ~") == true)
         #expect(SettingsImportPlan.editsTypedText(controlDelete, keys: ControlCharacterKeys()))
+        // ⌃Space・⌃⏎ が何も打たないアプリ（ターミナルの ⌃Space は NUL）で、前後がつながって rm になるものも探す
+        #expect(warnsRm([KeyChord(.character("r")), KeyChord(.special(.space), modifiers: .control), KeyChord(.character("m -rf ~")), enter]))
+        #expect(warnsRm([KeyChord(.character("r")), KeyChord(.special(.returnKey), modifiers: .control), KeyChord(.character("m -rf ~")), enter]))
         // 大文字の RM も rm を動かす（大文字小文字を区別しないディスク）
         #expect(warnsRm([KeyChord(.character("RM -rf ~")), enter]))
         // 文字を打たない再生の操作（Space ←）や、F キー（制御文字 0x10 になる）では、消す・動かすキーの注意を出さない

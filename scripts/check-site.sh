@@ -544,7 +544,7 @@ if [[ -n "$todos" ]]; then
 fi
 
 # 試すために入れた Paddle のテスト用（sandbox）のトークン。公開したページに残ると、本当の購入ができない（docs/release.md 3.6.1）
-sandbox="$(grep -rnIE 'data-paddle-token="test_' "$SITE" | sed "s|^$SITE/||" || true)"
+sandbox="$(grep -rnIE "data-paddle-token[[:space:]]*=[[:space:]]*[\"']test_" "$SITE" | sed "s|^$SITE/||" || true)"
 if [[ -n "$sandbox" ]]; then
   if [[ "$STRICT" == 1 ]]; then
     while IFS= read -r line; do
@@ -557,12 +557,14 @@ fi
 
 # Paddle のトークンと価格の ID の形（site/buy.js と同じ決まり）。形が違うと、公開したページは「準備中」のまま購入を開けない。
 # 仮の値（TODO）は上で知らせるので、ここでは埋めた値だけを見る
+# 属性は " でも ' でも、= の前後に空白があっても読む（buy.js は dataset で読むので、どの書き方でも効く）
 while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   location="${line%%:data-paddle-*}"
   attribute="${line#"$location":}"
-  value="${attribute#*=\"}"
-  value="${value%\"}"
+  value="${attribute#*=}"
+  value="${value#"${value%%[!\ ]*}"}"
+  value="${value:1:${#value}-2}"
   [[ "$value" == *TODO* ]] && continue
   case "$attribute" in
     data-paddle-token=*) pattern='^(live|test)_[A-Za-z0-9]{27}$' label="クライアント用トークン（live_ と 27 文字）" ;;
@@ -575,7 +577,7 @@ while IFS= read -r line; do
       info "Paddle の${label}の形ではありません（--strict で失敗にする）: ${location#"$SITE/"}: $value"
     fi
   fi
-done < <(grep -rnIoE 'data-paddle-(token|price)="[^"]*"' "$SITE" || true)
+done < <(grep -rnIoE "data-paddle-(token|price)[[:space:]]*=[[:space:]]*(\"[^\"]*\"|'[^']*')" "$SITE" || true)
 
 # リリースのたびに、実物で確かめて埋めるところ（data-placeholder。確認済みの macOS の版など）。
 # 価格・販売サービス・問い合わせ先のように一度埋めれば済むものではないので、--strict でも止めずに知らせる（docs/release.md）

@@ -202,7 +202,10 @@ struct SettingsImportPlan: Identifiable, Equatable {
                         typed.pressControl(letter)
                         continue
                     }
-                    // ⌃ の付いた英字以外のキー（⌃⏎・⌃⌫・⌃←）は、⌃ の無いキーと同じに働くことが多い。キーコードなら、⌃ を外して打つ制御文字で
+                    // ⌃ の付いた英字以外のキー（⌃⏎・⌃⌫・⌃←）は、⌃ の無いキーと同じに働くことが多い。キーコードなら、⌃ を外して打つ制御文字で。
+                    // ただし何も打たないアプリもある（ターミナルの ⌃Space は NUL で、何も入らない）。消すキーを効かせない写し方では
+                    // 何もしないことにして、前後の文字がつながったもの（「r」⌃Space「m」で rm）も探す
+                    guard rule.appliesEdits else { continue }
                     if case .special(let key) = chord.key {
                         typed.press(key, byWord: false)
                     } else if case .keyCode = chord.key, let characters = translator?.characters(for: withoutControl(chord)) {

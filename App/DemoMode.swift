@@ -288,7 +288,9 @@ final class DemoSession {
     /// 背景（--demo-backdrop）は必ず敷く。敷かずに撮ると、ユーザーの画面（壁紙・ほかのウインドウ）が写る。
     /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（暗いグラデーションとメニューバー）にそろえる
     func present() {
-        guard let screen = NSScreen.main else { return }
+        // 主の画面（メニューバーのある画面。左上が撮る範囲の原点）に敷く。scripts/record-screen.swift も主の画面を撮る。
+        // NSScreen.main（いま使っている画面）にすると、外付けの画面から始めたときに、背景の無い主の画面を撮ってしまう
+        guard let screen = NSScreen.screens.first else { return }
         let region = CGRect(x: 0, y: 0, width: screen.frame.width, height: (screen.frame.width / Self.aspect).rounded())
         guard let image = Self.backdropImage(options.demoBackdrop, fitting: screen.frame.size) else {
             exit(2)

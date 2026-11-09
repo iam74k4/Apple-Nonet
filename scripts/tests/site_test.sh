@@ -307,6 +307,13 @@ test_strict_mode_fails_on_a_malformed_paddle_value() {
   printf '<div id="checkout" data-paddle-token="live_0123456789abcdefghijklmnopq" data-paddle-price="pri_0123456789abcdefghijklmnop"></div>\n' >>"$SITE/index.html"
   check_fixture --strict
   assert_not_contains "$OUT" "の形ではありません"
+  # ' で囲んだ値・= の前後に空白がある書き方も読む（buy.js はどれでも読む）
+  write_fixture_site
+  printf "<div id=\"checkout\" data-paddle-token='live_short' data-paddle-price = \"pri_x\"></div>\n" >>"$SITE/index.html"
+  check_fixture --strict
+  assert_status 1
+  assert_contains "$OUT" "トークン（live_ と 27 文字）の形ではありません"
+  assert_contains "$OUT" "価格の ID（pri_ と 26 文字）の形ではありません"
 }
 
 # 検索に出すページは、自分の URL の canonical と、日英の組の hreflang（ja・en・x-default。どれも絶対の URL）を持つ

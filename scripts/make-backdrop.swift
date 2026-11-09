@@ -25,7 +25,8 @@ if args.count == 3 {
     guard let w = Int(args[1]), let h = Int(args[2]), w > 0, h > 0 else { FileHandle.standardError.write(Data(usage.utf8)); exit(2) }
     size = (w, h)
 } else {
-    guard let screen = NSScreen.main else { FileHandle.standardError.write(Data("画面が見つかりません。幅と高さを指定してください\n".utf8)); exit(2) }
+    // 主の画面（デモの背景を敷き、収録する画面）の大きさ
+    guard let screen = NSScreen.screens.first else { FileHandle.standardError.write(Data("画面が見つかりません。幅と高さを指定してください\n".utf8)); exit(2) }
     size = (Int(screen.frame.width * screen.backingScaleFactor), Int(screen.frame.height * screen.backingScaleFactor))
 }
 

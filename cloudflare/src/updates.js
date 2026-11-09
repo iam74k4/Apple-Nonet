@@ -38,7 +38,13 @@ export async function handleUpdates(request, env, pathname) {
   if (contentType === null) {
     return notFound();
   }
-  return serveObject(request, env.UPDATES, name, contentType);
+  try {
+    return await serveObject(request, env.UPDATES, name, contentType);
+  } catch (error) {
+    // R2 が一時的に失敗した。例外のページ（1101）ではなく、少し後でやり直すよう 503 で返す（ログに理由を残す）
+    console.error(`/updates/${name}: R2 から読めません: ${error.message}`);
+    return textResponse(503, "Service Unavailable", { "retry-after": "5" });
+  }
 }
 
 // head で大きさと ETag を知ってから、条件つきの要求（304）と範囲（206・416）を決め、

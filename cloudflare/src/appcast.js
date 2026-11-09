@@ -250,7 +250,12 @@ function parseXml(xml) {
       continue;
     }
     if (openName === undefined) {
-      continue; // コメント・CDATA・処理命令
+      // CDATA の中身は、そのままの文字として要素に足す（<sparkle:version><![CDATA[44]]></sparkle:version> も 44 と読む。
+      // 読まないと、その項目を黙って飛ばし、/download が古い版へ送ってしまう）。コメントと処理命令は読まない
+      if (token.startsWith("<![CDATA[")) {
+        stack.at(-1).text += token.slice("<![CDATA[".length, -"]]>".length);
+      }
+      continue;
     }
     const element = { name: openName, attributes: readAttributes(attributeText), children: [], text: "" };
     const parent = stack.at(-1);

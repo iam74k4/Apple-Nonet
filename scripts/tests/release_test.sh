@@ -742,6 +742,29 @@ test_local_appcast_ahead_but_changed_in_a_shared_build_stops() {
   assert_not_called "xcodebuild archive"
 }
 
+# 署名した appcast（generate_appcast が最後に署名の印のコメントを付け、空の enclosure を <enclosure …></enclosure> と書く）でも、
+# 手元の方がビルドが多いだけなら続ける（署名の印は項目を足すたびに変わる）
+test_local_appcast_ahead_of_a_signed_published_one_continues() {
+  prepare_release
+  local head='<?xml version="1.0" encoding="utf-8"?>\n<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n'
+  mkdir -p "$RELEASES"
+  {
+    printf "$head"
+    printf '<item><sparkle:version>42</sparkle:version><enclosure url="https://x/Nonet-1.2.0.dmg" length="2"/></item>\n'
+    printf '<item><sparkle:version>41</sparkle:version><enclosure url="https://x/Nonet-1.1.0.dmg" length="1"/></item>\n'
+    printf '</channel>\n</rss>\n<!-- sparkle-signatures:\nedSignature: bG9jYWw=\nlength: 900\n-->\n'
+  } >"$RELEASES/appcast.xml"
+  {
+    printf "$head"
+    printf '<item><sparkle:version>41</sparkle:version><enclosure url="https://x/Nonet-1.1.0.dmg" length="1"></enclosure></item>\n'
+    printf '</channel>\n</rss>\n<!-- sparkle-signatures:\nedSignature: cHVibGlzaGVk\nlength: 500\n-->\n'
+  } >"$TEST_TMP/published.xml"
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  run "$REPO/scripts/release.sh" 1.2.1 43
+  assert_status 0
+  assert_contains "$OUT" "手元の appcast には、公開中のものに無いビルド 42 があります。手元のものを使います"
+}
+
 test_whitespace_changes_by_the_host_are_ignored() {
   prepare_release
   write_appcast "$RELEASES/appcast.xml" 41

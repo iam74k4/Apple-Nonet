@@ -47,7 +47,12 @@ public final class AXWindowPlacer: WindowPlacing {
 
     /// 置く枠と、その画面の使える範囲（どちらも AppKit の座標）
     private func placement(for region: WindowRegion, app: RunningAppInfo?, timeout: Float) -> (target: CGRect, visible: CGRect)? {
-        guard let window = focusedWindow(of: app, timeout: timeout), let frame = frame(of: window) else { return nil }
+        guard let window = focusedWindow(of: app, timeout: timeout) else { return nil }
+        return placement(for: region, window: window)
+    }
+
+    private func placement(for region: WindowRegion, window: AXUIElement) -> (target: CGRect, visible: CGRect)? {
+        guard let frame = frame(of: window) else { return nil }
         let screens = NSScreen.screens
         let primaryHeight = screens.first?.frame.height ?? 0
         let appKitFrame = WindowPlacementMath.flipped(frame, primaryHeight: primaryHeight)
@@ -62,15 +67,17 @@ public final class AXWindowPlacer: WindowPlacing {
         guard let window = focusedWindow(of: app, timeout: Self.placeTimeout) else {
             throw NonetError.actionFailed(String(localized: "前面のウインドウが見つかりません", bundle: .nonetActions))
         }
-        guard let placement = placement(for: region, app: app, timeout: Self.placeTimeout) else {
+        // 見つけたウインドウで置く枠を決める（もう一度探すと、固まりかけたアプリでは、その分だけ待つ）
+        guard let placement = placement(for: region, window: window) else {
             throw NonetError.actionFailed(String(localized: "ウインドウの場所を読めませんでした", bundle: .nonetActions))
         }
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
         var axTarget = WindowPlacementMath.flipped(placement.target, primaryHeight: primaryHeight)
-        // 大きさに下限のあるアプリでも位置が合うよう、大きさ → 位置 → 大きさ の順に入れる
-        try set(window, size: axTarget.size)
+        // 大きさに下限のあるアプリでも位置が合うよう、大きさ → 位置 → 大きさ の順に入れる。
+        // 大きさの決まったウインドウは、大きさを入れられなくても位置だけは合わせる（置けたかは位置で決める）
+        try setSizeIfResizable(window, size: axTarget.size)
         try set(window, position: axTarget.origin)
-        try set(window, size: axTarget.size)
+        try setSizeIfResizable(window, size: axTarget.size)
         // 下限で置く枠より大きくなった（右半分に置いたのに幅が画面の半分より広い など）: 使える範囲からはみ出さない所までずらす
         // （右や下に置くなら、その端にそろう）
         if let placed = frame(of: window) {
@@ -99,10 +106,12 @@ public final class AXWindowPlacer: WindowPlacing {
         }
         for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
             var value: CFTypeRef?
-            if AXUIElementCopyAttributeValue(application, attribute as CFString, &value) == .success,
-               let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+            let error = AXUIElementCopyAttributeValue(application, attribute as CFString, &value)
+            if error == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
                 return limited(value as! AXUIElement)
             }
+            // 固まったアプリは、どの属性も timeout まで待ってから失敗する。続けて聞くと、その数だけメインスレッドが止まる
+            if error == .cannotComplete { return nil }
         }
         var windows: CFTypeRef?
         if AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &windows) == .success,
@@ -134,10 +143,14 @@ public final class AXWindowPlacer: WindowPlacing {
         try check(AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value))
     }
 
-    private func set(_ window: AXUIElement, size: CGSize) throws {
+    /// 大きさを入れる。許可が無ければ投げる。ほかの失敗（大きさの決まったウインドウなど）は、何もしない
+    private func setSizeIfResizable(_ window: AXUIElement, size: CGSize) throws {
         var size = size
-        guard let value = AXValueCreate(.cgSize, &size) else { throw NonetError.actionFailed("AXValue") }
-        try check(AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value))
+        guard let value = AXValueCreate(.cgSize, &size) else { return }
+        let error = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
+        if error == .apiDisabled {
+            throw NonetError.permissionDenied(ActionText.accessibility)
+        }
     }
 
     private func check(_ error: AXError) throws {

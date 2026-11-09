@@ -154,3 +154,27 @@ describe("こちらの誤りは 503（ほかの場所へは飛ばさない）", 
     assert.equal(ownDiskImageName(null), null);
   });
 });
+
+describe("R2 が一時的に失敗したとき", () => {
+  test("/download は例外のページではなく 503 と Retry-After で返し、理由をログに残す", async () => {
+    const env = envWith(fixture("appcast.xml"));
+    env.UPDATES.get = async () => {
+      throw new Error("R2 internal error");
+    };
+    const response = await call(env, "/download");
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("retry-after"), "300");
+    assert.ok(errors.some((line) => line.includes("R2 internal error")));
+  });
+
+  test("/updates/* も 503 と Retry-After で返す", async () => {
+    const env = envWith(fixture("appcast.xml"));
+    env.UPDATES.head = async () => {
+      throw new Error("R2 internal error");
+    };
+    const response = await call(env, "/updates/Nonet-1.2.0.dmg");
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("retry-after"), "5");
+    assert.ok(errors.some((line) => line.includes("R2 internal error")));
+  });
+});

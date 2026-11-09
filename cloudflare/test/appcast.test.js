@@ -80,6 +80,19 @@ describe("generate_appcast が書く appcast", () => {
     assert.equal(newestDefaultItem(items).version, "10");
   });
 
+  test("CDATA で書いた版も読む（黙って飛ばして、古い版へ送らない）", () => {
+    const cdata = [
+      "<item>",
+      "<sparkle:version><![CDATA[44]]></sparkle:version>",
+      "<sparkle:shortVersionString><![CDATA[1.4.0]]></sparkle:shortVersionString>",
+      '<enclosure url="https://nonet.astlog.dev/updates/Nonet-1.4.0.dmg" length="10" type="application/octet-stream" sparkle:edSignature="c2ln"/>',
+      "</item>",
+    ].join("\n");
+    const items = parseAppcast(appcast(item({ version: "43" }), cdata));
+    assert.equal(newestDefaultItem(items).version, "44");
+    assert.equal(newestDefaultItem(items).shortVersion, "1.4.0");
+  });
+
   test("項目が無い・既定のチャンネルの項目が無いときは null", () => {
     assert.equal(newestDefaultItem(parseAppcast(appcast())), null);
     assert.equal(newestDefaultItem(parseAppcast(appcast(item({ version: "5", channel: "beta" })))), null);

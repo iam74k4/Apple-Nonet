@@ -225,7 +225,6 @@ existing_dmg_problem() {
   printf '%s がすでにあります。公開済みの DMG を上書きしないよう止めました。新しい版の番号で出すか、公開していない DMG なら消してください（docs/release.md 2.9）\n' "$dmg"
 }
 
-# 空白・改行の違いを除けば同じか（ホスティングが空白を書き換えることがある）
 # appcast から、ビルド番号が builds（空白区切り）の項目（<item>…</item>）を除いたもの。標準出力に書く
 appcast_without_builds() {
   awk -v drop=" $2 " '
@@ -247,8 +246,19 @@ appcast_without_builds() {
   ' "$1"
 }
 
+# 空白・改行の違いを除けば同じか（ホスティングが空白を書き換えることがある）
 same_ignoring_whitespace() {
   cmp -s <(tr -d '[:space:]' <"$1") <(tr -d '[:space:]' <"$2")
+}
+
+# 項目の中身が同じか。空白・改行に加えて、generate_appcast が appcast 全体に付ける署名の印（最後のコメント。
+# 項目を足すたびに変わる）と、空の enclosure の書き方（<enclosure …></enclosure> と <enclosure …/>）の違いを除く
+same_items_ignoring_signature() {
+  cmp -s <(normalized_appcast_items "$1") <(normalized_appcast_items "$2")
+}
+
+normalized_appcast_items() {
+  perl -0pe 's/<!--\s*sparkle-sign(?:-warning|atures):.*?-->//gs; s#(<enclosure\b[^>]*?)\s*>\s*</enclosure>#$1/>#g; s/\s+//g' "$1"
 }
 
 # URL の最後の名前（? と # から後ろは除く）。例: https://x/updates/nonet.xml?v=1 → nonet.xml
@@ -590,7 +600,7 @@ fetch_published_appcast() {
         elif [[ -n "$extra" ]]; then
           # 手元にしか無いビルドを除けば、公開中のものと同じはず。共通のビルドの中身が違えば、手元のものでは上書きしない
           appcast_without_builds "$dest" "$extra" >"$download.shared"
-          if ! same_ignoring_whitespace "$download" "$download.shared"; then
+          if ! same_items_ignoring_signature "$download" "$download.shared"; then
             rm -f "$download.shared"
             die "手元の appcast と公開中のものは、どちらにもあるビルドの項目の中身が違います: $dest
     取ってきた公開中の appcast: $download

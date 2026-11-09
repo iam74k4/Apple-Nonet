@@ -20,7 +20,13 @@ export async function handleDownload(request, env) {
   if (!isReadMethod(request.method)) {
     return methodNotAllowed();
   }
-  const appcast = await env.UPDATES.get(APPCAST_KEY);
+  // R2 が一時的に失敗したら、例外のページ（1101）ではなく、少し後でやり直すよう 503 で返す
+  let appcast;
+  try {
+    appcast = await env.UPDATES.get(APPCAST_KEY);
+  } catch (error) {
+    return unavailable(`R2 から appcast.xml を読めません: ${error.message}`);
+  }
   if (appcast === null) {
     return notReleasedYet(request, env);
   }
@@ -42,7 +48,13 @@ export async function handleDownload(request, env) {
   if (name === null) {
     return unavailable(`最新の項目（sparkle:version ${newest.version}）の URL が ${UPDATES_PREFIX} の DMG ではありません: ${newest.url}`);
   }
-  if ((await env.UPDATES.head(name)) === null) {
+  let head;
+  try {
+    head = await env.UPDATES.head(name);
+  } catch (error) {
+    return unavailable(`R2 で ${name} を確かめられません: ${error.message}`);
+  }
+  if (head === null) {
     return unavailable(`最新の項目（sparkle:version ${newest.version}）の ${name} が R2 にありません`);
   }
   return new Response(null, {
