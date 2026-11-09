@@ -87,7 +87,13 @@ class Converter:
                     "節を足したり消したりしたら、IDS も同じ位置で直してください"
                 )
             self.headings.append((level, ident, text))
-            self.slugs[github_slug(text)] = ident
+            # 同じ名前の見出しは、GitHub と同じく最初のものがそのまま、2つ目から -1・-2 を付けたアンカーになる
+            slug = github_slug(text)
+            candidate, count = slug, 0
+            while candidate in self.slugs:
+                count += 1
+                candidate = f"{slug}-{count}"
+            self.slugs[candidate] = ident
         if len(found) != len(IDS):
             raise GuideError(f"{source}: 見出しが {len(found)} 個ですが、IDS は {len(IDS)} 個です")
 

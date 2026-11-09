@@ -203,13 +203,14 @@ site.yml の中でも、トークンは wrangler を呼ぶ step の env にだ�
 | `NONET_RELEASES_DIR` | `build/releases` | release.sh が DMG・デルタ・appcast.xml を置いたフォルダ（release.sh と同じ） |
 | `CLOUDFLARE_API_TOKEN` | なし（`wrangler login` のログインを使う） | 2.3 の R2 のトークンで動かすとき |
 
-オプション: `--dry-run`（何も上げない）、`--help`。
+オプション: `--dry-run`（何も上げない）、`--allow-removing-builds`（公開中の appcast にあって手元に無いビルドを外して上げる。出してしまった版を取り下げるときだけ。`scripts/release.sh --force-local-appcast` と一緒に使う）、`--help`。
 
 | 止まったところ | すること |
 |---|---|
 | 「固定した wrangler … がありません」 | `cd cloudflare && npm ci` |
 | 「… のアップロードに失敗しました」 | 表示された wrangler のエラーを見る。認証（`npx wrangler login`・トークン）とバケット `nonet-updates` を確かめ、同じコマンドでやり直す（上がったデルタは飛ばされる） |
 | 「公開中の appcast にはビルド … まであり、手元より新しい」 | 別の Mac から出した。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`scripts/release.sh` からやり直す |
+| 「公開中の appcast のビルド … が、手元の appcast.xml にありません」 | 手元の appcast が古い（別の Mac から出した・控えから戻した）。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`scripts/release.sh` からやり直す。その版を取り下げるつもりなら `--allow-removing-builds` |
 | 「ビルド … はもう公開されていて、R2 の … は中身が違います」 | 公開した版を作り直した。新しいビルド番号で `scripts/release.sh` からやり直す |
 | 「… に届きません」「公開中の appcast を確かめられません」 | ネットワーク・Worker を出したか（2.5）・バケットがあるか |
 | 「上げ終わりましたが、公開された中身が合いません」 | 「4. 確かめる」の curl で見る。直らなければ「5. 戻す」 |

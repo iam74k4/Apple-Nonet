@@ -38,6 +38,10 @@ package struct LicenseToolIO {
     package var replaceFile: (_ path: String, _ contents: String) throws -> Void
     /// ファイルの権限（下位 9 ビット）。分からなければ nil（既定。.live だけが本物のファイルを調べる）
     package var filePermissions: (String) -> UInt16? = { _ in nil }
+    /// 無効にした行に添える日付の時間帯（返金の記録と同じ日付にする）。テストでは決める
+    package var timeZone: TimeZone = .current
+    /// シンボリックリンクを解いたパス（既定はそのまま。.live だけが本物のファイルで解く）
+    package var resolvingSymlinks: (String) -> String = { $0 }
     package var standardOutput: (String) -> Void
     package var standardError: (String) -> Void
     package var now: () -> Date
@@ -87,6 +91,7 @@ package struct LicenseToolIO {
         io.filePermissions = { path in
             (try? FileManager.default.attributesOfItem(atPath: path)[.posixPermissions] as? NSNumber).map { UInt16(truncating: $0) & 0o777 }
         }
+        io.resolvingSymlinks = { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path }
         return io
     }
 }
@@ -340,11 +345,13 @@ package enum LicenseTool {
         }
 
         let privateKeyFile = absolutePath(privateKeyPath, io: io)
-        // keygen は本人だけが読める権限で、リポジトリの外に作る。控えから戻したときなどに広がっていれば知らせる
-        if let permissions = io.filePermissions(privateKeyFile), permissions & 0o077 != 0 {
-            io.standardError("注意: 秘密鍵のファイルを本人以外も読めます（権限 \(String(permissions, radix: 8))）。chmod 600 \(privateKeyFile) にしてください\n")
+        // keygen は本人だけが読める権限で、リポジトリの外に作る。控えから戻したときなどに広がっていれば知らせる。
+        // シンボリックリンクなら、リンクそのものではなく指す先のファイルを見る
+        let realKeyFile = io.resolvingSymlinks(privateKeyFile)
+        if let permissions = io.filePermissions(realKeyFile), permissions & 0o077 != 0 {
+            io.standardError("注意: 秘密鍵のファイルを本人以外も読めます（権限 \(String(permissions, radix: 8))）。chmod 600 \(realKeyFile) にしてください\n")
         }
-        if let repository = enclosingRepository(of: (privateKeyFile as NSString).deletingLastPathComponent, io: io) {
+        if let repository = enclosingRepository(of: (realKeyFile as NSString).deletingLastPathComponent, io: io) {
             io.standardError("注意: 秘密鍵が git の作業ツリー（\(repository)）の中にあります。コミットしないよう、リポジトリの外へ移してください\n")
         }
         let signer: LicenseSigner
@@ -448,7 +455,7 @@ package enum LicenseTool {
             return exitSuccess
         }
         // 返金の記録と同じ日付にする（ISO8601FormatStyle の既定は UTC で、日本の朝は前の日になる）
-        let date = io.now().formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+        let date = io.now().formatted(Date.ISO8601FormatStyle(timeZone: io.timeZone).year().month().day())
         var updated = text
         if !updated.isEmpty, !updated.hasSuffix("\n") {
             updated += "\n"

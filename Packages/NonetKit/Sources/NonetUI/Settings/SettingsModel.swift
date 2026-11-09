@@ -405,7 +405,8 @@ final class SettingsModel {
             selectedProfileID = nil
             selectProfile(next?.id)
         }
-        undoNotice = SettingsUndoNotice(
+        // 元に戻す（複製を戻す）ときの削除は、知らせない。そのときの「元に戻す」は、この削除ではなく前の操作を戻してしまう
+        undoNotice = undoManager.isUndoing ? nil : SettingsUndoNotice(
             text: String(localized: "「\(removed.name)」のプロファイルを削除しました", bundle: .module),
             actionName: actionName
         )

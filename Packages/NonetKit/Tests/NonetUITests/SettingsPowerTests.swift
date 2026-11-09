@@ -227,6 +227,19 @@ private func pasteboard() -> NSPasteboard {
         #expect(h.model.duplicatingProfileID == nil)
     }
 
+    /// 複製を ⌘Z で戻しても「削除しました［元に戻す］」は出さない（押すと、前に複製した別のプロファイルを消してしまう）
+    @Test func undoingADuplicateShowsNoDeleteNotice() throws {
+        let h = try harness()
+        let xcode = try #require(h.xcodeProfile)
+        h.model.duplicateProfile(xcode.id, for: SettingsFixtures.figma)
+        h.model.duplicateProfile(xcode.id, for: SettingsFixtures.notes)
+        let count = h.model.configuration.profiles.count
+        h.model.undoManager.undo()
+        #expect(h.model.configuration.profiles.count == count - 1)
+        #expect(h.model.undoNotice == nil)
+        #expect(h.model.configuration.profiles.contains { $0.app?.bundleID == SettingsFixtures.figma.bundleID })
+    }
+
     @Test func resettingToThePreset() throws {
         let h = try harness()
         let xcode = try #require(h.xcodeProfile)

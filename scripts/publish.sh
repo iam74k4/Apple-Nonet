@@ -52,15 +52,19 @@ scripts/release.sh が NONET_RELEASES_DIR に作ったリリースを https://no
     length が DMG の大きさと同じで、既定のチャンネルで最新であること（/download の行き先になる）
   - 項目にあるデルタが手元にあり、大きさが合うこと
   - Config/Nonet.xcconfig の NONET_APPCAST_URL が https://nonet.astlog.dev/updates/appcast.xml であること
-  - 公開中の appcast が手元のものより新しくないこと。公開中の版のファイルを別の中身で差し替えないこと
+  - 公開中の appcast が手元のものより新しくないこと。公開中の appcast のビルドがすべて手元のものにもあること
+    （無ければ、上げるとその版の項目が消える。外すつもりのときだけ --allow-removing-builds）。
+    公開中の版のファイルを別の中身で差し替えないこと
 上げた後に確かめること:
   - 公開中の appcast（写しを使わずに取る）にその版があること
   - DMG の URL が 200 で、Content-Length が DMG の大きさと同じこと
   - /download がその DMG へリダイレクトすること
 
 オプション:
-  --dry-run   確かめて、上げるものとコマンドを表示するだけ。何も上げない
-  -h, --help  この説明を表示する
+  --dry-run                確かめて、上げるものとコマンドを表示するだけ。何も上げない
+  --allow-removing-builds  公開中の appcast にあって手元の appcast.xml に無いビルドを、外して上げる
+                           （出してしまった版を取り下げるときだけ。release.sh の --force-local-appcast と一緒に使う）
+  -h, --help               この説明を表示する
 
 環境変数:
   NONET_RELEASES_DIR    release.sh が DMG・デルタ・appcast.xml を置いたフォルダ（既定: build/releases）
@@ -84,6 +88,7 @@ is_valid_version() {
 
 parse_args() {
   DRY_RUN=0
+  ALLOW_REMOVING_BUILDS=0
   VERSION=""
   local positional=() arg
   while [[ $# -gt 0 ]]; do
@@ -93,6 +98,7 @@ parse_args() {
         exit 0
         ;;
       --dry-run) DRY_RUN=1 ;;
+      --allow-removing-builds) ALLOW_REMOVING_BUILDS=1 ;;
       --)
         shift
         for arg in "$@"; do positional+=("$arg"); done
@@ -125,7 +131,7 @@ file_md5() {
 rows() {
   local summary="$1" kind="$2" column="${3:-0}" value="${4:-}"
   awk -F'\t' -v kind="$kind" -v column="$column" -v value="$value" \
-    '$1 == kind && (column == 0 || $column == value)' "$summary"
+    '$1 == kind && (column == 0 || ($column "") == (value ""))' "$summary"
 }
 
 # 1 行目の、ある列の値
@@ -343,6 +349,21 @@ check_published() {
         die "公開中の appcast にはビルド $published_max まであり、手元の appcast.xml（ビルド $local_max まで）より新しいです。
     このまま上げると、公開中の新しい版の項目が消えます。別の Mac から公開したなら、公開中の appcast を
     $RELEASES_DIR/appcast.xml に置いてから scripts/release.sh をやり直してください"
+      fi
+      # 公開中のビルドが手元の appcast から抜けていれば、上げるとその版の項目が消える（最大のビルドだけでは分からない）
+      local removed="" build
+      while IFS= read -r build; do
+        [[ -n "$build" && -z "$(rows "$WORK/local.tsv" item 2 "$build")" ]] || continue
+        removed+="${removed:+ }$build"
+      done < <(rows "$WORK/published.tsv" item | cut -f 2)
+      if [[ -n "$removed" ]]; then
+        if [[ "$ALLOW_REMOVING_BUILDS" == 1 ]]; then
+          warn "公開中の appcast のビルド $removed は、手元の appcast.xml に無いので外します（--allow-removing-builds）"
+        else
+          die "公開中の appcast のビルド $removed が、手元の appcast.xml にありません。このまま上げると、その版の項目が消えます。
+    別の Mac から公開したなら、公開中の appcast を $RELEASES_DIR/appcast.xml に置いてから scripts/release.sh をやり直してください。
+    出してしまった版を取り下げるつもりのときだけ --allow-removing-builds を付けてください"
+        fi
       fi
       LIVE=0
       [[ -z "$(rows "$WORK/published.tsv" item 2 "$BUILD")" ]] || LIVE=1

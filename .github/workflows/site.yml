@@ -1,8 +1,8 @@
 # 販売ページ（site/）とアップデートの配布（cloudflare/ の Worker）を確かめ、手で本番（nonet.astlog.dev）へ出す。
 # 書き方は astlog.dev（Web-AstLog の check.yml・deploy.yml）にそろえてある。全体は docs/hosting.md。
 #
-#   check   site/・cloudflare/・scripts/check-site.sh・scripts/publish.sh を変えた push とプルリクエストで動く。
-#           サイトの確認・Worker のテスト・束ねられるか（wrangler deploy --dry-run）
+#   check   site/・cloudflare/・利用ガイド（docs/user-guide*.md・scripts/build-guide.py）・scripts/check-site.sh・scripts/publish.sh を
+#           変えた push とプルリクエストで動く。サイトの確認・利用ガイドが作り直してあるか・Worker のテスト・束ねられるか（wrangler deploy --dry-run）
 #   deploy  Actions の画面から手で実行したときだけ（workflow_dispatch）。main から、check が通ってから、
 #           environment production の承認のあとに wrangler deploy
 #
@@ -14,6 +14,8 @@ on:
     paths:
       - "site/**"
       - "cloudflare/**"
+      - "docs/user-guide*.md"
+      - "scripts/build-guide.py"
       - "scripts/check-site.sh"
       - "scripts/publish.sh"
       - ".github/workflows/site.yml"
@@ -21,6 +23,8 @@ on:
     paths:
       - "site/**"
       - "cloudflare/**"
+      - "docs/user-guide*.md"
+      - "scripts/build-guide.py"
       - "scripts/check-site.sh"
       - "scripts/publish.sh"
       - ".github/workflows/site.yml"
@@ -55,6 +59,11 @@ jobs:
       # HTML の基本・リンク切れ・外部の読み込みが無いこと。TODO（仮の値）はここでは数えるだけ
       - name: 販売ページ
         run: scripts/check-site.sh
+
+      # 利用ガイドのページ（site/guide.html・en/guide.html）が docs/user-guide*.md から作ったものと同じこと。
+      # ガイドを直して作り直し忘れたまま出さない（deploy はこの job が通ってから）
+      - name: 利用ガイド
+        run: python3 -I scripts/build-guide.py --check
 
       # secret は使わない。check の job は install スクリプトを止める理由が無いので、ふつうの npm ci
       - name: 依存（固定した wrangler）

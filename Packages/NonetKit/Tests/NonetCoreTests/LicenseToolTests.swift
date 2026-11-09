@@ -234,6 +234,12 @@ private final class FakeToolEnvironment {
         environment.errorOutput = ""
         #expect(LicenseTool.run(["issue", "--key", keys.privatePath, "--name", "A"], io: io) == LicenseTool.exitSuccess)
         #expect(!environment.errorOutput.contains("chmod 600"))
+        // シンボリックリンクなら、リンク（755）ではなく指す先のファイル（600）を見る
+        io.resolvingSymlinks = { $0 == keys.privatePath ? "/vault/nonet-license.private-key" : $0 }
+        io.filePermissions = { $0 == "/vault/nonet-license.private-key" ? 0o600 : 0o755 }
+        environment.errorOutput = ""
+        #expect(LicenseTool.run(["issue", "--key", keys.privatePath, "--name", "A"], io: io) == LicenseTool.exitSuccess)
+        #expect(!environment.errorOutput.contains("chmod 600"))
     }
 
     @Test func issueUsesGivenIDAndEdition() throws {

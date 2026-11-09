@@ -295,6 +295,20 @@ test_strict_mode_fails_on_a_sandbox_paddle_token() {
   assert_contains "$OUT" "Paddle のテスト用のトークン（test_）が残っています"
 }
 
+# 埋めた Paddle の値が buy.js の決まった形でなければ、--strict で止める（公開したページが「準備中」のまま購入を開けない）
+test_strict_mode_fails_on_a_malformed_paddle_value() {
+  write_fixture_site
+  printf '<div id="checkout" data-paddle-token="live_tooShort" data-paddle-price="pri_0123456789abcdefghijklmnop"></div>\n' >>"$SITE/index.html"
+  check_fixture --strict
+  assert_status 1
+  assert_contains "$OUT" "Paddle のクライアント用トークン（live_ と 27 文字）の形ではありません"
+  assert_not_contains "$OUT" "価格の ID（pri_ と 26 文字）の形ではありません"
+  write_fixture_site
+  printf '<div id="checkout" data-paddle-token="live_0123456789abcdefghijklmnopq" data-paddle-price="pri_0123456789abcdefghijklmnop"></div>\n' >>"$SITE/index.html"
+  check_fixture --strict
+  assert_not_contains "$OUT" "の形ではありません"
+}
+
 # 検索に出すページは、自分の URL の canonical と、日英の組の hreflang（ja・en・x-default。どれも絶対の URL）を持つ
 test_head_needs_canonical_and_hreflang() {
   write_fixture_site
@@ -745,6 +759,17 @@ test_app_purchase_link_must_point_to_a_page_of_the_site() {
   write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://store.nonet.test/buy
   check_app_links_fixture
   assert_status 0
+}
+
+# アプリの設定（xcconfig）が無ければ、アプリが開く URL を確かめられないので、公開前（--strict）は止める
+test_strict_mode_fails_without_the_app_config() {
+  write_fixture_site
+  run "$ROOT/scripts/check-site.sh" --config "$TEST_TMP/missing.xcconfig" "$SITE"
+  assert_status 0
+  assert_contains "$OUT" "アプリの設定（$TEST_TMP/missing.xcconfig）が無いので"
+  run "$ROOT/scripts/check-site.sh" --strict --config "$TEST_TMP/missing.xcconfig" "$SITE"
+  assert_status 1
+  assert_contains "$OUT" "アプリの設定（$TEST_TMP/missing.xcconfig）がありません"
 }
 
 check_app_links_fixture() {

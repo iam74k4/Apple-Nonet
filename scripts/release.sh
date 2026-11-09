@@ -226,6 +226,27 @@ existing_dmg_problem() {
 }
 
 # 空白・改行の違いを除けば同じか（ホスティングが空白を書き換えることがある）
+# appcast から、ビルド番号が builds（空白区切り）の項目（<item>…</item>）を除いたもの。標準出力に書く
+appcast_without_builds() {
+  awk -v drop=" $2 " '
+    inside == 0 && /<item[ >]/ { inside = 1; buffer = "" }
+    inside == 1 {
+      buffer = buffer $0 "\n"
+      if ($0 ~ /<\/item>/) {
+        inside = 0
+        build = ""
+        if (match(buffer, /<sparkle:version>[0-9]+<\/sparkle:version>|sparkle:version="[0-9]+"/)) {
+          build = substr(buffer, RSTART, RLENGTH)
+          gsub(/[^0-9]/, "", build)
+        }
+        if (index(drop, " " build " ") == 0) printf "%s", buffer
+      }
+      next
+    }
+    { print }
+  ' "$1"
+}
+
 same_ignoring_whitespace() {
   cmp -s <(tr -d '[:space:]' <"$1") <(tr -d '[:space:]' <"$2")
 }
@@ -567,6 +588,16 @@ fetch_published_appcast() {
     取ってきた公開中の appcast: $download
     手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
         elif [[ -n "$extra" ]]; then
+          # 手元にしか無いビルドを除けば、公開中のものと同じはず。共通のビルドの中身が違えば、手元のものでは上書きしない
+          appcast_without_builds "$dest" "$extra" >"$download.shared"
+          if ! same_ignoring_whitespace "$download" "$download.shared"; then
+            rm -f "$download.shared"
+            die "手元の appcast と公開中のものは、どちらにもあるビルドの項目の中身が違います: $dest
+    取ってきた公開中の appcast: $download
+    公開中のものをサーバーで直したなら、手元の appcast.xml を消すと公開中のものを取ってきます（手元にしか無いビルド $extra の項目は、入れ直してください）。
+    手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
+          fi
+          rm -f "$download.shared"
           warn "手元の appcast には、公開中のものに無いビルド $extra があります。手元のものを使います（$url）
     前のリリースの appcast.xml をまだアップロードしていないなら、今回のものと一緒に、そのビルドの DMG もアップロードしてください。
     アップロードしたばかりなら、CDN などが前の appcast をまだ返しているだけです"
@@ -700,6 +731,11 @@ verify_app() {
   # アプリ本体の実行ファイルは、上で .app として確かめた
   main_executable="$(plist_value "$plist" CFBundleExecutable)"
   main_executable="$app/Contents/MacOS/${main_executable:-Nonet}"
+  # 無いフォルダを find に渡すと終了コードが 1 になり、set -E の ERR トラップが「予期しないエラー」を出す（止まらないのに）。あるものだけを渡す
+  local folders=() folder
+  for folder in MacOS Frameworks XPCServices PlugIns Helpers Library; do
+    [[ ! -d "$app/Contents/$folder" ]] || folders+=("$app/Contents/$folder")
+  done
   while IFS= read -r -d '' file; do
     [[ "$file" != "$main_executable" ]] || continue
     kind="$(file -b "$file")"
@@ -709,8 +745,7 @@ verify_app() {
       runtime=1
     fi
     problems+="$(signature_problems "$file" "" "$runtime")"$'\n'
-  done < <(find "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/XPCServices" "$app/Contents/PlugIns" \
-    "$app/Contents/Helpers" "$app/Contents/Library" -type f -perm -100 -print0 2>/dev/null)
+  done < <([[ ${#folders[@]} -eq 0 ]] || find "${folders[@]}" -type f -perm -100 -print0 2>/dev/null)
 
   for key in CFBundleShortVersionString:"$VERSION" CFBundleVersion:"$BUILD" \
     SUFeedURL:"$APPCAST_URL" SUPublicEDKey:"$SPARKLE_PUBLIC_KEY" \

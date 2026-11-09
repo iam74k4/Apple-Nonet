@@ -255,7 +255,15 @@ english_path() {
 # canonical が無いと確かめられないので、--strict では問題にする（ふだんは知らせるだけ）
 check_app_links() {
   local host key url rest url_host path en_path
-  [[ -f "$CONFIG" ]] || return 0
+  if [[ ! -f "$CONFIG" ]]; then
+    # アプリに入れる URL を確かめられない。公開前（--strict）は止める
+    if [[ "$STRICT" == 1 ]]; then
+      problem "アプリの設定（$CONFIG）がありません。アプリが開く URL を確かめられません（--config で指定してください）"
+    else
+      info "アプリの設定（$CONFIG）が無いので、アプリが開く URL は確かめていません"
+    fi
+    return 0
+  fi
   host="$(canonical_host "$SITE/index.html")"
   for key in NONET_SUPPORT_URL NONET_PRIVACY_URL NONET_PURCHASE_URL; do
     url="$(xcconfig_value "$CONFIG" "$key")"
@@ -546,6 +554,28 @@ if [[ -n "$sandbox" ]]; then
     info "Paddle のテスト用のトークン（test_）が入っています（--strict で失敗にする）: $(printf '%s\n' "$sandbox" | wc -l | tr -d ' ') か所"
   fi
 fi
+
+# Paddle のトークンと価格の ID の形（site/buy.js と同じ決まり）。形が違うと、公開したページは「準備中」のまま購入を開けない。
+# 仮の値（TODO）は上で知らせるので、ここでは埋めた値だけを見る
+while IFS= read -r line; do
+  [[ -n "$line" ]] || continue
+  location="${line%%:data-paddle-*}"
+  attribute="${line#"$location":}"
+  value="${attribute#*=\"}"
+  value="${value%\"}"
+  [[ "$value" == *TODO* ]] && continue
+  case "$attribute" in
+    data-paddle-token=*) pattern='^(live|test)_[A-Za-z0-9]{27}$' label="クライアント用トークン（live_ と 27 文字）" ;;
+    *) pattern='^pri_[a-z0-9]{26}$' label="価格の ID（pri_ と 26 文字）" ;;
+  esac
+  if ! [[ "$value" =~ $pattern ]]; then
+    if [[ "$STRICT" == 1 ]]; then
+      problem "Paddle の${label}の形ではありません（buy.js が購入を開きません）: ${location#"$SITE/"}: $value"
+    else
+      info "Paddle の${label}の形ではありません（--strict で失敗にする）: ${location#"$SITE/"}: $value"
+    fi
+  fi
+done < <(grep -rnIoE 'data-paddle-(token|price)="[^"]*"' "$SITE" || true)
 
 # リリースのたびに、実物で確かめて埋めるところ（data-placeholder。確認済みの macOS の版など）。
 # 価格・販売サービス・問い合わせ先のように一度埋めれば済むものではないので、--strict でも止めずに知らせる（docs/release.md）

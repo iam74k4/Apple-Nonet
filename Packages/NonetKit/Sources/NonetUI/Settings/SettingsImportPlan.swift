@@ -197,8 +197,19 @@ struct SettingsImportPlan: Identifiable, Equatable {
             var typed = TypedText(rules: rule)
             for chord in sequence.chords where !chord.modifiers.contains(.command) {
                 if chord.modifiers.contains(.control) {
-                    // シェルと標準の入力欄の ⌃ の編集キー（⌃A で行の頭へ、⌃H で1文字消す など）。ほかの ⌃ のキーは文字を打たない
-                    if let letter = controlLetter(chord, keys: translator) { typed.pressControl(letter) }
+                    // シェルと標準の入力欄の ⌃ の編集キー（⌃A で行の頭へ、⌃H で1文字消す など）。ほかの ⌃ の英字は文字を打たない
+                    if let letter = controlLetter(chord, keys: translator) {
+                        typed.pressControl(letter)
+                        continue
+                    }
+                    // ⌃ の付いた英字以外のキー（⌃⏎・⌃⌫・⌃←）は、⌃ の無いキーと同じに働くことが多い。キーコードなら、⌃ を外して打つ制御文字で
+                    if case .special(let key) = chord.key {
+                        typed.press(key, byWord: false)
+                    } else if case .keyCode = chord.key, let characters = translator?.characters(for: withoutControl(chord)) {
+                        for character in characters where character.unicodeScalars.allSatisfy({ $0.value < 0x20 || $0.value == 0x7F }) {
+                            typed.type(character, byWord: false)
+                        }
+                    }
                     continue
                 }
                 let byWord = chord.modifiers.contains(.option)
@@ -228,7 +239,14 @@ struct SettingsImportPlan: Identifiable, Equatable {
         var edits = false
         for chord in sequence.chords where !chord.modifiers.contains(.command) {
             if chord.modifiers.contains(.control) {
-                if let letter = controlLetter(chord, keys: translator), TypedText.controlEditLetters.contains(letter) { edits = true }
+                if let letter = controlLetter(chord, keys: translator) {
+                    if TypedText.controlEditLetters.contains(letter) { edits = true }
+                } else if case .special(let key) = chord.key, editKeys.contains(key) {
+                    edits = true
+                } else if case .keyCode = chord.key, let characters = translator?.characters(for: withoutControl(chord)),
+                          characters.unicodeScalars.contains(where: { isEditCharacter($0) }) {
+                    edits = true
+                }
                 continue
             }
             let text: String?
@@ -241,15 +259,11 @@ struct SettingsImportPlan: Identifiable, Equatable {
             }
             if let text {
                 for scalar in text.unicodeScalars {
-                    switch scalar.value {
-                    // ⌃A・⌃D（End）・⌫・Tab・Page Up/Down・Esc・矢印・⌦ の文字。F キーなどほかの制御文字は数えない
-                    case 0x01, 0x04, 0x08, 0x09, 0x0B, 0x0C, 0x1B, 0x1C...0x1F, 0x7F:
+                    if isEditCharacter(scalar) {
                         edits = true
-                    case 0x00..<0x20:
-                        break
-                    default:
-                        // 空白だけでは文字を打ったことにしない（Space ← のような再生の操作）
-                        if !scalar.properties.isWhitespace { typesText = true }
+                    } else if scalar.value >= 0x20, scalar.value != 0x7F, !scalar.properties.isWhitespace {
+                        // 空白だけでは文字を打ったことにしない（Space ← のような再生の操作）。F キーなどほかの制御文字も数えない
+                        typesText = true
                     }
                 }
             } else if case .special(let key) = chord.key, editKeys.contains(key) {
@@ -259,10 +273,24 @@ struct SettingsImportPlan: Identifiable, Equatable {
         return typesText && edits
     }
 
-    /// ⌃ の付いたキーの文字（小文字の a〜z）。⌃ を外したキーが英字でなければ nil
-    static func controlLetter(_ chord: KeyChord, keys translator: (any SettingsKeyCharacterTranslating)?) -> Character? {
+    /// 打つ文字を消す・動かすキーの制御文字（Home・End・⌫・Tab・Page Up/Down・Esc・矢印・⌦）
+    static func isEditCharacter(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x01, 0x04, 0x08, 0x09, 0x0B, 0x0C, 0x1B, 0x1C...0x1F, 0x7F: true
+        default: false
+        }
+    }
+
+    /// ⌃ を外したキー
+    static func withoutControl(_ chord: KeyChord) -> KeyChord {
         var plain = chord
         plain.modifiers.remove(.control)
+        return plain
+    }
+
+    /// ⌃ の付いたキーの文字（小文字の a〜z）。⌃ を外したキーが英字でなければ nil
+    static func controlLetter(_ chord: KeyChord, keys translator: (any SettingsKeyCharacterTranslating)?) -> Character? {
+        var plain = withoutControl(chord)
         plain.modifiers.remove(.shift)
         let text: String?
         if case .character(let character) = chord.key {
@@ -364,7 +392,8 @@ struct SettingsImportPlan: Identifiable, Equatable {
         }
 
         /// 文字を消す・打つ場所を動かす ⌃ のキー（zsh・bash と標準の入力欄の決まり）
-        static let controlEditLetters: Set<Character> = ["a", "b", "d", "e", "f", "h", "k", "t", "u", "w", "y"]
+        /// ⌃I（Tab・補完）・⌃N・⌃P（履歴の次・前）も、打つ文字を変える
+        static let controlEditLetters: Set<Character> = ["a", "b", "d", "e", "f", "h", "i", "k", "n", "p", "t", "u", "w", "y"]
 
         /// ⌃ と英字。⌃A・⌃E は行の頭・終わり（Home・End と違い、どのアプリでも動く）、⌃B・⌃F は ←→、⌃H・⌃D は ⌫・⌦、
         /// ⌃K は打つ場所から後ろを、⌃U は前を、⌃W は前の語を消す。⌃M・⌃J は Return。ほかは何もしない
@@ -386,6 +415,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
                 line.removeSubrange(start..<cursor)
                 cursor = start
             case "m", "j": press(.returnKey, byWord: false)
+            case "i": press(.tab, byWord: false)
             default: break
             }
         }

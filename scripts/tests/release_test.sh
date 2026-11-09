@@ -615,6 +615,8 @@ test_release_runs_the_whole_pipeline_in_order() {
   prepare_release
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 0
+  # 最後まで通ったリリースで、止まったように見えるエラーを出さない（無いフォルダを find に渡したときなど）
+  assert_not_contains "$OUT" "予期しないエラー"
   local work="$REPO/build/release/1.2.0"
   assert_called_in_order \
     "xcodegen generate --spec $REPO/project.yml" \
@@ -722,6 +724,22 @@ test_local_appcast_ahead_of_the_published_one_continues() {
   assert_contains "$OUT" "手元の appcast には、公開中のものに無いビルド 42 があります。手元のものを使います"
   assert_contains "$OUT" "CDN などが前の appcast をまだ返している"
   assert_eq "3" "$(grep -c '<item>' "$RELEASES/appcast.xml")" "41・42・43"
+}
+
+# 手元の方がビルドが多くても、どちらにもあるビルドの項目の中身が違えば止める（公開中のものをサーバーで直した など）
+test_local_appcast_ahead_but_changed_in_a_shared_build_stops() {
+  prepare_release
+  write_appcast "$RELEASES/appcast.xml" 41 42
+  {
+    printf '<?xml version="1.0" encoding="utf-8"?>\n<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n'
+    printf '<item><title>fixed</title><sparkle:version>41</sparkle:version></item>\n'
+    printf '</channel>\n</rss>\n'
+  } >"$TEST_TMP/published.xml"
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  run "$REPO/scripts/release.sh" 1.2.1 43
+  assert_failed
+  assert_contains "$OUT" "どちらにもあるビルドの項目の中身が違います"
+  assert_not_called "xcodebuild archive"
 }
 
 test_whitespace_changes_by_the_host_are_ignored() {

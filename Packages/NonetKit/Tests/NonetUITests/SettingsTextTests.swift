@@ -181,6 +181,14 @@ import Testing
         #expect(warnsRm([KeyChord(.character("m -rf ~")), KeyChord(.character("a"), modifiers: .control), KeyChord(.character("r")), enter]))
         #expect(warnsRm([KeyChord(.character("rx")), KeyChord(.character("h"), modifiers: .control), KeyChord(.character("m -rf ~")), enter]))
         #expect(warnsEdits([KeyChord(.character("m -rf ~")), KeyChord(.character("a"), modifiers: .control), KeyChord(.character("r")), enter]))
+        // ⌃ の付いた英字以外のキー（⌃⏎ は Return、⌃⌫ は ⌫）も、⌃ の無いキーと同じに写す
+        #expect(warnsRm([KeyChord(.character("echo x")), KeyChord(.special(.returnKey), modifiers: .control), KeyChord(.character("m -rf ~")), KeyChord(.character("a"), modifiers: .control), KeyChord(.character("r")), enter]))
+        #expect(warnsEdits([KeyChord(.character("rmx")), KeyChord(.special(.delete), modifiers: .control), KeyChord(.character(" -rf ~")), enter]))
+        #expect(warnsRm([KeyChord(.character("rmx")), KeyChord(.special(.delete), modifiers: .control), KeyChord(.character(" -rf ~")), enter]))
+        // キーコードで書いた ⌃⌫ も、⌃ を外したキーの制御文字（⌫）として写す
+        let controlDelete = Action.keystroke(KeySequence([KeyChord(.character("rmx")), KeyChord(.keyCode(0x33), modifiers: .control), KeyChord(.character(" -rf ~"))]))
+        #expect(SettingsImportPlan.textsTyped(controlDelete, keys: ControlCharacterKeys())?.contains("rm -rf ~") == true)
+        #expect(SettingsImportPlan.editsTypedText(controlDelete, keys: ControlCharacterKeys()))
         // 大文字の RM も rm を動かす（大文字小文字を区別しないディスク）
         #expect(warnsRm([KeyChord(.character("RM -rf ~")), enter]))
         // 文字を打たない再生の操作（Space ←）や、F キー（制御文字 0x10 になる）では、消す・動かすキーの注意を出さない

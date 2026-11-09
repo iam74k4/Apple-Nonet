@@ -197,6 +197,20 @@ test_publish_first_release_when_nothing_is_published() {
   assert_called_in_order "nonet-updates/Nonet-1.2.0.dmg" "nonet-updates/Nonet42-41.delta" "nonet-updates/appcast.xml"
 }
 
+# 版の番号は文字として比べる（1.10 を、公開済みの 1.1 と同じ版としない）
+test_publish_compares_versions_as_text() {
+  prepare_publish
+  printf 'dmg 1.1\n' >"$RELEASES/Nonet-1.1.dmg"
+  printf 'dmg 1.10, build 42\n' >"$RELEASES/Nonet-1.10.dmg"
+  cp "$RELEASES/Nonet-1.1.dmg" "$R2/"
+  write_release_appcast "$RELEASES/appcast.xml" "$(release_item 42 1.10)" "$(release_item 40 1.1)"
+  write_release_appcast "$R2/appcast.xml" "$(release_item 40 1.1)"
+  export FAKE_DOWNLOAD_LOCATION="${PUBLISH_PREFIX}Nonet-1.10.dmg"
+  publish --dry-run 1.10
+  assert_not_contains "$OUT" "もう公開されています"
+  assert_status 0
+}
+
 test_publish_dry_run_prints_the_plan_and_uploads_nothing() {
   prepare_publish
   cp "$R2/appcast.xml" "$TEST_TMP/published-before.xml"
@@ -479,6 +493,17 @@ test_publish_refuses_when_the_published_state_is_unexpected() {
   write_release_appcast "$R2/appcast.xml" "$(release_item 43 1.3.0)" "$(release_item 41 1.1.1)"
   publish 1.2.0
   assert_refused "公開中の appcast にはビルド 43 まであり、手元の appcast.xml（ビルド 42 まで）より新しいです"
+
+  # 公開中のビルドが手元の appcast から抜けている（最大のビルドは手元の方が新しい）。上げるとその版の項目が消える
+  prepare_publish
+  printf 'dmg 1.1.0\n' >"$RELEASES/Nonet-1.1.0.dmg"
+  write_release_appcast "$R2/appcast.xml" "$(release_item 41 1.1.1)" "$(release_item 40 1.1.0)"
+  publish 1.2.0
+  assert_refused "公開中の appcast のビルド 40 が、手元の appcast.xml にありません"
+  # 取り下げるつもりなら外して上げられる
+  publish --dry-run --allow-removing-builds 1.2.0
+  assert_status 0
+  assert_contains "$OUT" "公開中の appcast のビルド 40 は、手元の appcast.xml に無いので外します"
 
   # 公開中の版の DMG を、別の中身で差し替えようとしている
   prepare_publish

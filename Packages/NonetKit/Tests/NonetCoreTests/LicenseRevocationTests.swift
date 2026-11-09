@@ -21,7 +21,7 @@ private final class RevokeToolEnvironment {
     static let listPath = "/work/repo/" + LicenseTool.revocationListPath
 
     var io: LicenseToolIO {
-        LicenseToolIO(
+        var io = LicenseToolIO(
             currentDirectory: { self.currentDirectory },
             fileExists: { self.files[$0] != nil },
             readFile: { path in
@@ -40,6 +40,9 @@ private final class RevokeToolEnvironment {
                 self.files[path] = contents
             }
         )
+        // 2026-10-31T12:00:00Z を、どの Mac でも 2026-10-31 として書く
+        io.timeZone = TimeZone(identifier: "UTC")!
+        return io
     }
 
     func run(_ arguments: [String]) -> Int32 {

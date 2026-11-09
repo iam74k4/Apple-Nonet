@@ -105,8 +105,12 @@ function testPagesShareTheStoreSettings() {
 // 仮の値のまま（TODO）なら、Paddle.js を呼ばずに「準備中」と出す。形の違う値も同じ
 function testPlaceholdersDoNotOpenTheCheckout() {
   for (const page of pages) {
+    // ページの値は、まだ仮の値（TODO）のときだけ確かめる（本物の値を入れたら開いてよい。形は check-site.sh --strict が確かめる）
+    const pageValues = page.dataset.paddleToken.includes("TODO") || page.dataset.paddlePrice.includes("TODO")
+      ? [[page.dataset.paddleToken, page.dataset.paddlePrice]]
+      : [];
     for (const [token, price] of [
-      [page.dataset.paddleToken, page.dataset.paddlePrice],
+      ...pageValues,
       [LIVE_TOKEN, "pri_short"],
       ["sk_live_secret", PRICE],
       [`live_${"a".repeat(26)}!`, PRICE],
