@@ -199,7 +199,8 @@ struct PointerSuppressor {
     private var dropped: [Int64: DroppedButton] = [:]
     /// 抑止中に始まったスクロールの続き（慣性を含む）を捨てている
     private(set) var isDroppingScrollTail = false
-    /// タップが無効にされていた間に、離すイベントを取りこぼしたかもしれない捨てたボタン
+    /// タップが無効にされていた間に、離すイベントを取りこぼしたかもしれない捨てたボタン。
+    /// その間に離して押し直していれば、押し直しはアプリに渡っているので、次の離すも渡す（decide）
     private(set) var buttonsWithPossiblyMissedUp: Set<Int64> = []
     /// 前回の sweep から、スクロールのイベントが届いた
     private var sawScrollSinceSweep = false
@@ -236,9 +237,12 @@ struct PointerSuppressor {
     mutating func decide(_ event: PointerEventInfo, suppressing: Bool, dropsMoves: Bool, now: TimeInterval) -> Decision {
         let type = event.type
         if let button = PointerEventKind.upButton(type, buttonNumber: event.buttonNumber) {
-            buttonsWithPossiblyMissedUp.remove(button)
-            // 押すイベントを渡したボタンの離すは、抑止中でも渡す（アプリのドラッグが終わらなくならないように）
-            return dropped.removeValue(forKey: button) == nil ? .pass : .drop
+            let mayHaveBeenPressedAgain = buttonsWithPossiblyMissedUp.remove(button) != nil
+            let wasDropped = dropped.removeValue(forKey: button) != nil
+            // 押すイベントを渡したボタンの離すは、抑止中でも渡す（アプリのドラッグが終わらなくならないように）。
+            // タップが無効だった間に離して押し直したかもしれないボタンも渡す: 押し直しはアプリに渡っている。
+            // 押し直していなければ余分な離すになるが、アプリは対になる押すの無い離すを気にしない。捨てると押されたままになる
+            return wasDropped && !mayHaveBeenPressedAgain ? .drop : .pass
         }
         if let button = PointerEventKind.downButton(type, buttonNumber: event.buttonNumber) {
             buttonsWithPossiblyMissedUp.remove(button)
@@ -279,8 +283,8 @@ struct PointerSuppressor {
         for button in buttonsWithPossiblyMissedUp where !isPhysicallyPressed(button) {
             dropped.removeValue(forKey: button)
         }
-        // まだ押されているボタンの離すは、有効なタップに届く
-        buttonsWithPossiblyMissedUp = []
+        // まだ押されているボタンの離すは、有効なタップに届く。押し直したものかもしれないので、印は残して渡す
+        buttonsWithPossiblyMissedUp = buttonsWithPossiblyMissedUp.filter(isPhysicallyPressed)
         for (button, entry) in dropped {
             guard !isPhysicallyPressed(button) else {
                 dropped[button]?.releasedSweeps = 0

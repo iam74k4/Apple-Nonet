@@ -390,7 +390,8 @@ final class SystemCursorControl: CursorControlling {
 
     func warp(to point: CGPoint) {
         CGWarpMouseCursorPosition(point)
-        // ワープの直後はしばらく移動が止まる。結び付け直すと止まらない（automatic でしかワープしないので、切り離しは使っていない）
+        // ワープの直後はしばらく移動が止まる。結び付け直すと止まらない（ワープするのは、開いたときに HUD の中心へ動かす（movePointer）のと、
+        // none 以外の方式の戻し。切り離す decouple の方式では、これで結び付きが戻ってしまうが、その方式は使っていない）
         CGAssociateMouseAndMouseCursorPosition(1)
     }
 

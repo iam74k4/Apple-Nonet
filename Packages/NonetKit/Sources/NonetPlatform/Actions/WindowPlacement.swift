@@ -10,10 +10,10 @@ import NonetCore
 public final class AXWindowPlacer: WindowPlacing {
     public nonisolated init() {}
 
-    /// AX の呼び出しを待つ上限（秒）。メインスレッドで呼ぶので、前面のアプリが固まっていても、9マスの HUD やポインタを長く止めない。
-    /// 置く枠の下見（HUD の表示のたびに読む）は短く、実際に置くときは少し長く待つ
+    /// AX の呼び出しを待つ上限（秒）。置く枠の下見（HUD の表示のたびに読む）はメインスレッドで呼ぶので、前面のアプリが固まっていても、
+    /// 9マスの HUD やポインタを長く止めないよう短く待つ。実際に置くときはメインスレッドの外で、少し長く待つ
     static let previewTimeout: Float = 0.25
-    static let placeTimeout: Float = 1
+    nonisolated static let placeTimeout: Float = 1
 
     /// 下見で読んだ、前面のウインドウのある画面の使える範囲（読んだプロセスと時刻）。9マスを開いている間はウインドウが動かないので、
     /// 「画面に置く」のマスを向くたびに AX で読み直さない（固まりかけたアプリでは、1回の読み取りが previewTimeout まで待つ）
@@ -47,31 +47,43 @@ public final class AXWindowPlacer: WindowPlacing {
 
     /// 置く枠と、その画面の使える範囲（どちらも AppKit の座標）
     private func placement(for region: WindowRegion, app: RunningAppInfo?, timeout: Float) -> (target: CGRect, visible: CGRect)? {
-        guard let window = focusedWindow(of: app, timeout: timeout) else { return nil }
-        return placement(for: region, window: window)
+        guard let window = Self.focusedWindow(of: Self.processID(of: app), timeout: timeout) else { return nil }
+        return Self.placement(for: region, window: window, screens: .current)
     }
 
-    private func placement(for region: WindowRegion, window: AXUIElement) -> (target: CGRect, visible: CGRect)? {
+    private nonisolated static func placement(for region: WindowRegion, window: AXUIElement, screens: ScreenLayout) -> (target: CGRect, visible: CGRect)? {
         guard let frame = frame(of: window) else { return nil }
-        let screens = NSScreen.screens
-        let primaryHeight = screens.first?.frame.height ?? 0
-        let appKitFrame = WindowPlacementMath.flipped(frame, primaryHeight: primaryHeight)
-        let visible = WindowPlacementMath.screenIndex(containing: appKitFrame, in: screens.map(\.frame)).map { screens[$0].visibleFrame }
-            ?? NSScreen.main?.visibleFrame
+        let appKitFrame = WindowPlacementMath.flipped(frame, primaryHeight: screens.primaryHeight)
+        let visible = WindowPlacementMath.screenIndex(containing: appKitFrame, in: screens.frames).map { screens.visibleFrames[$0] }
+            ?? screens.mainVisibleFrame
         guard let visible else { return nil }
         return (region.frame(in: visible), visible)
     }
 
-    public func place(_ region: WindowRegion, app: RunningAppInfo?) throws {
+    private static func processID(of app: RunningAppInfo?) -> pid_t? {
+        app?.processID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier
+    }
+
+    /// AX の呼び出しはメインスレッドの外で待つ。9マスを閉じた直後はポインタのタップがまだ動いている（遅れて届くクリックを捨てる間）ので、
+    /// メインスレッドで待つと、その間ポインタが止まり、待った後に届いたクリックは捨てる間を過ぎて通ってしまう
+    public func place(_ region: WindowRegion, app: RunningAppInfo?) async throws {
         guard AXIsProcessTrusted() else { throw NonetError.permissionDenied(ActionText.accessibility) }
-        guard let window = focusedWindow(of: app, timeout: Self.placeTimeout) else {
+        let pid = Self.processID(of: app)
+        let screens = ScreenLayout.current
+        try await Task.detached(priority: .userInitiated) {
+            try Self.place(region, pid: pid, screens: screens)
+        }.value
+    }
+
+    private nonisolated static func place(_ region: WindowRegion, pid: pid_t?, screens: ScreenLayout) throws {
+        guard let window = focusedWindow(of: pid, timeout: placeTimeout) else {
             throw NonetError.actionFailed(String(localized: "前面のウインドウが見つかりません", bundle: .nonetActions))
         }
         // 見つけたウインドウで置く枠を決める（もう一度探すと、固まりかけたアプリでは、その分だけ待つ）
-        guard let placement = placement(for: region, window: window) else {
+        guard let placement = placement(for: region, window: window, screens: screens) else {
             throw NonetError.actionFailed(String(localized: "ウインドウの場所を読めませんでした", bundle: .nonetActions))
         }
-        let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+        let primaryHeight = screens.primaryHeight
         var axTarget = WindowPlacementMath.flipped(placement.target, primaryHeight: primaryHeight)
         // 大きさに下限のあるアプリでも位置が合うよう、大きさ → 位置 → 大きさ の順に入れる。
         // 大きさの決まったウインドウは、大きさを入れられなくても位置だけは合わせる（置けたかは位置で決める）
@@ -95,10 +107,10 @@ public final class AXWindowPlacer: WindowPlacing {
 
     // MARK: AX
 
-    /// app（nil なら今の前面のアプリ）の、キーのウインドウ。無ければメインのウインドウ、それも無ければ最初のウインドウ。
+    /// pid のアプリの、キーのウインドウ。無ければメインのウインドウ、それも無ければ最初のウインドウ。
     /// アプリにもウインドウにも、待つ上限（timeout 秒）を付ける（ウインドウの位置や大きさを読む・入れるときも、それ以上は待たない）
-    private func focusedWindow(of app: RunningAppInfo?, timeout: Float) -> AXUIElement? {
-        guard let pid = app?.processID ?? NSWorkspace.shared.frontmostApplication?.processIdentifier else { return nil }
+    private nonisolated static func focusedWindow(of pid: pid_t?, timeout: Float) -> AXUIElement? {
+        guard let pid else { return nil }
         let application = AXRead.application(pid: pid, timeout: timeout)
         func limited(_ window: AXUIElement) -> AXUIElement {
             AXUIElementSetMessagingTimeout(window, timeout)
@@ -122,7 +134,7 @@ public final class AXWindowPlacer: WindowPlacing {
     }
 
     /// AX の座標（主画面の左上が原点、y は下向き）
-    private func frame(of window: AXUIElement) -> CGRect? {
+    private nonisolated static func frame(of window: AXUIElement) -> CGRect? {
         var position = CGPoint.zero
         var size = CGSize.zero
         guard read(window, kAXPositionAttribute, .cgPoint, into: &position), read(window, kAXSizeAttribute, .cgSize, into: &size) else { return nil }
@@ -130,14 +142,14 @@ public final class AXWindowPlacer: WindowPlacing {
     }
 
     /// AXValue の中身（CGPoint・CGSize）を result に写す。参照を含まない値だけに限る（生のバイトで書き込むので）
-    private func read<T: BitwiseCopyable>(_ window: AXUIElement, _ attribute: String, _ type: AXValueType, into result: inout T) -> Bool {
+    private nonisolated static func read<T: BitwiseCopyable>(_ window: AXUIElement, _ attribute: String, _ type: AXValueType, into result: inout T) -> Bool {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(window, attribute as CFString, &value) == .success,
               let value, CFGetTypeID(value) == AXValueGetTypeID() else { return false }
         return AXValueGetValue(value as! AXValue, type, &result)
     }
 
-    private func set(_ window: AXUIElement, position: CGPoint) throws {
+    private nonisolated static func set(_ window: AXUIElement, position: CGPoint) throws {
         var point = position
         guard let value = AXValueCreate(.cgPoint, &point) else { throw NonetError.actionFailed("AXValue") }
         try check(AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value))
@@ -145,7 +157,7 @@ public final class AXWindowPlacer: WindowPlacing {
 
     /// 大きさを入れる。大きさの決まったウインドウ（大きさを入れられないと答えるもの）は何もせず、位置だけ合わせる。
     /// 入れられるはずなのに失敗した（時間切れなど）ときは知らせる（位置だけ動いて、はみ出しを戻した結果、置けたように見えるので）
-    private func setSizeIfResizable(_ window: AXUIElement, size: CGSize) throws {
+    private nonisolated static func setSizeIfResizable(_ window: AXUIElement, size: CGSize) throws {
         var settable: DarwinBoolean = false
         if AXUIElementIsAttributeSettable(window, kAXSizeAttribute as CFString, &settable) == .success, !settable.boolValue {
             return
@@ -155,7 +167,7 @@ public final class AXWindowPlacer: WindowPlacing {
         try check(AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value))
     }
 
-    private func check(_ error: AXError) throws {
+    private nonisolated static func check(_ error: AXError) throws {
         switch error {
         case .success:
             return
@@ -164,6 +176,22 @@ public final class AXWindowPlacer: WindowPlacing {
         default:
             throw NonetError.actionFailed(String(localized: "このウインドウは動かせませんでした（フルスクリーンや、大きさの決まったウインドウかもしれません）", bundle: .nonetActions))
         }
+    }
+}
+
+/// 画面の枠と使える範囲（AppKit の座標）。NSScreen はメインスレッドで読み、AX の呼び出しはメインスレッドの外で待つので、値にして渡す
+struct ScreenLayout: Sendable {
+    var frames: [CGRect]
+    var visibleFrames: [CGRect]
+    var mainVisibleFrame: CGRect?
+
+    /// 主画面（AX の座標の原点がある画面）の高さ
+    var primaryHeight: CGFloat { frames.first?.height ?? 0 }
+
+    @MainActor
+    static var current: ScreenLayout {
+        let screens = NSScreen.screens
+        return ScreenLayout(frames: screens.map(\.frame), visibleFrames: screens.map(\.visibleFrame), mainVisibleFrame: NSScreen.main?.visibleFrame)
     }
 }
 

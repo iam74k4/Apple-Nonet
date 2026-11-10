@@ -33,13 +33,13 @@ struct ActionWindowPlacementLiveTests {
         let screen = try #require(NSScreen.main)
         #expect(leftTarget == WindowRegion.left.frame(in: screen.visibleFrame))
 
-        try placer.place(.left, app: app)
+        try await placer.place(.left, app: app)
         try await Task.sleep(for: .milliseconds(300))
         let afterLeft = try #require(placer.targetFrame(for: .maximize, app: app))
         #expect(afterLeft == screen.visibleFrame)
-        try placer.place(.maximize, app: app)
+        try await placer.place(.maximize, app: app)
         try await Task.sleep(for: .milliseconds(300))
-        try placer.place(.bottomRight, app: app)
+        try await placer.place(.bottomRight, app: app)
         try await Task.sleep(for: .milliseconds(300))
         print("live: placed Dictionary left → maximize → bottomRight on \(screen.visibleFrame)")
     }

@@ -330,8 +330,9 @@ extension HUDPresenting {
 /// 「画面に置く」。前面のアプリのウインドウを、画面の場所に置く。座標は AppKit のグローバル座標（主画面の左下が原点、y は上向き）
 @MainActor
 public protocol WindowPlacing: AnyObject {
-    /// app の最前面のウインドウを region に置く。ウインドウが無い・動かせないときは NonetError
-    func place(_ region: WindowRegion, app: RunningAppInfo?) throws
+    /// app の最前面のウインドウを region に置く。ウインドウが無い・動かせないときは NonetError。
+    /// 本物はアクセシビリティの呼び出しをメインスレッドの外で待つ（固まりかけたアプリでも、ポインタやほかの入力を止めない）
+    func place(_ region: WindowRegion, app: RunningAppInfo?) async throws
     /// 置いたときの枠（HUD で光らせている間のプレビュー用）。ウインドウが無ければ nil
     func targetFrame(for region: WindowRegion, app: RunningAppInfo?) -> CGRect?
     /// 9マスを開くたびに呼ぶ。下見のために覚えたウインドウの場所を忘れる（閉じている間にウインドウが動いたかもしれない）

@@ -574,11 +574,33 @@ final class FakeCursor: CursorControlling {
         #expect(monitor.isPointerTapEnabled)
         monitor.sweepPointerState()
         #expect(monitor.isPointerTapEnabled)
-        // 右の離すは届くので、いつもどおり捨てて、タップを止める
+        // 右の離すは届く。無効だった間に離して押し直したのかもしれない（押し直しはアプリに渡っている）ので渡し、タップを止める
         physical.pressedButtons = []
-        #expect(!send(.rightMouseUp, try mouse(.rightMouseUp, button: .right)))
+        #expect(send(.rightMouseUp, try mouse(.rightMouseUp, button: .right)))
         #expect(!monitor.isPointerTapEnabled)
         #expect(send(.leftMouseUp, try mouse(.leftMouseUp)))
+    }
+
+    /// 捨てた押下の後でタップが無効にされ、その間に離して押し直した（離すと押し直しはアプリに直接届いた）。
+    /// 有効に戻ってから届く離すを捨てると、アプリではボタンが押されたままになる
+    @Test func anUpAfterAReleaseAndPressWhileTheTapWasDisabledReachesTheApp() throws {
+        open()
+        physical.pressedButtons = [0]
+        #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
+        let disabled = try #require(CGEvent(source: nil))
+        #expect(monitor.handle(type: .tapDisabledByTimeout, event: disabled, from: .pointer))
+        // 無効だった間の離すと押し直しは届かない。有効に戻った後の離すは渡す
+        #expect(send(.leftMouseUp, try mouse(.leftMouseUp)))
+
+        // 閉じて片付けが先に動いても（まだ押している）、離すは渡す
+        #expect(!send(.leftMouseDown, try mouse(.leftMouseDown)))
+        #expect(monitor.handle(type: .tapDisabledByTimeout, event: disabled, from: .pointer))
+        close()
+        passClickGrace()
+        monitor.sweepPointerState()
+        physical.pressedButtons = []
+        #expect(send(.leftMouseUp, try mouse(.leftMouseUp)))
+        #expect(!monitor.isPointerTapEnabled)
     }
 
     @Test func sweepKeepsARecentlyDroppedClickWhenNoEventsCanHaveBeenLost() throws {

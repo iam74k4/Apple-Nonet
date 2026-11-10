@@ -66,7 +66,7 @@ public final class SystemActionPerformer: ActionPerforming {
         case .ai(let ai):
             return try await runAI(ai, frontmost: frontmost, didReadContext: didReadContext)
         case .placeWindow(let place):
-            try windowPlacer.place(place.region, app: frontmost)
+            try await windowPlacer.place(place.region, app: frontmost)
         case .file(let file):
             try await fileRunner.run(file, didReadSelection: didReadContext)
         }

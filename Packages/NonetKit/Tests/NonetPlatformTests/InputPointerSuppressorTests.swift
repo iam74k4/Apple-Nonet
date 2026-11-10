@@ -246,19 +246,25 @@ private extension PointerSuppressor {
         _ = suppressor.decide(event(Kind.rightMouseDown), suppressing: true, dropsMoves: true)
         suppressor.sweep(isPhysicallyPressed: { $0 == 3 })
         #expect(suppressor.droppedButtons == [1, 3])
+        // まだ押しているボタンは、無効だった間に離して押し直したのかもしれない（押し直しはアプリに渡っている）。印を残す
+        #expect(suppressor.buttonsWithPossiblyMissedUp == [3])
+        suppressor.sweep(isPhysicallyPressed: { $0 == 3 })
+        #expect(suppressor.buttonsWithPossiblyMissedUp == [3])
+        // その離すは渡す（押されたままにしない）。無効にされた後で押したボタンの離すは、いつもどおり捨てる
+        #expect(suppressor.decide(event(Kind.otherMouseUp, button: 3), suppressing: false, dropsMoves: false) == .pass)
+        #expect(suppressor.decide(event(Kind.rightMouseUp, button: 1), suppressing: false, dropsMoves: false) == .drop)
+        #expect(suppressor.droppedButtons.isEmpty)
         #expect(suppressor.buttonsWithPossiblyMissedUp.isEmpty)
-        // まだ押していたボタンの離すは、あとで届けばいつもどおり捨てる
-        suppressor.sweep(isPhysicallyPressed: { _ in false })
-        #expect(suppressor.droppedButtons == [1, 3])
-        #expect(suppressor.decide(event(Kind.otherMouseUp, button: 3), suppressing: false, dropsMoves: false) == .drop)
     }
 
     @Test func anUpOrDownClearsThePossiblyMissedMark() {
         var suppressor = PointerSuppressor()
         _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
         suppressor.eventsMayHaveBeenMissed()
-        #expect(suppressor.decide(event(Kind.leftMouseUp), suppressing: true, dropsMoves: true) == .drop)
+        // 無効だった間に離して押し直していれば、押し直しはアプリに渡っている。その離すは、抑止中でも渡す
+        #expect(suppressor.decide(event(Kind.leftMouseUp), suppressing: true, dropsMoves: true) == .pass)
         #expect(suppressor.buttonsWithPossiblyMissedUp.isEmpty)
+        #expect(suppressor.droppedButtons.isEmpty)
         _ = suppressor.decide(event(Kind.leftMouseDown), suppressing: true, dropsMoves: true)
         suppressor.sweep(isPhysicallyPressed: { _ in false })
         #expect(suppressor.droppedButtons == [0])

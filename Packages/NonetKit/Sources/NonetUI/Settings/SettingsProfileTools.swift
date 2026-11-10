@@ -98,6 +98,8 @@ extension SettingsModel {
     private func replacePages(ofProfile id: UUID, actionName: String, _ change: (inout NonetConfiguration) -> Void) {
         guard let before = configuration.profile(id: id)?.pages else { return }
         controller.update(change)
+        // 前の操作の「元に戻す」の知らせは閉じる（この変更が上に積まれるので、知らせからは戻せなくなる）
+        undoNotice = nil
         guard let after = configuration.profile(id: id)?.pages, after != before else { return }
         undoManager.beginUndoGrouping()
         undoManager.registerUndo(withTarget: undoTarget(for: id)) { [weak self] _ in
@@ -197,6 +199,8 @@ extension SettingsModel {
         guard before != name else { return }
         closeEditGroup()
         controller.update { $0.renamePage(at: index, profileID: profileID, to: name) }
+        // 前の操作の「元に戻す」の知らせは閉じる（この変更が上に積まれるので、知らせからは戻せなくなる）
+        undoNotice = nil
         undoManager.beginUndoGrouping()
         undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
             self?.setPageName(before, at: index, profileID: profileID)
