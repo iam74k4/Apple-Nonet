@@ -385,11 +385,18 @@ extension NonetConfiguration {
     /// グローバルのプロファイルはグローバルのページを置き換える。同じアプリやグローバルが2つ以上あれば最初のものだけ使う
     @discardableResult
     public mutating func importProfiles(_ imported: [Profile]) -> ImportResult {
+        var applied = Set<Int>()
+        return importProfiles(imported, applied: &applied)
+    }
+
+    /// applied に、反映したもの（imported での位置）を入れる
+    mutating func importProfiles(_ imported: [Profile], applied: inout Set<Int>) -> ImportResult {
         var result = ImportResult()
         var seenBundleIDs = Set<String>()
         var importedGlobal = false
 
-        for var profile in imported {
+        for (position, original) in imported.enumerated() {
+            var profile = original
             profile.normalizePages()
             switch profile.kind {
             case .global:
@@ -404,6 +411,7 @@ extension NonetConfiguration {
                     profiles.insert(Profile(kind: .global, pages: profile.pages), at: 0)
                 }
                 result.replacedGlobal = true
+                applied.insert(position)
             case .app(let app):
                 let key = Self.bundleIDKey(app.bundleID)
                 guard !key.isEmpty, seenBundleIDs.insert(key).inserted else {
@@ -414,12 +422,14 @@ extension NonetConfiguration {
                     profile.id = profiles[index].id
                     profiles[index] = profile
                     result.replaced += 1
+                    applied.insert(position)
                 } else {
                     if profiles.contains(where: { $0.id == profile.id }) {
                         profile.id = UUID()
                     }
                     profiles.append(profile)
                     result.added += 1
+                    applied.insert(position)
                 }
             }
         }
@@ -432,9 +442,11 @@ extension NonetConfiguration {
     /// 読めなかったプロファイルも skipped に数える
     @discardableResult
     public mutating func importProfiles(_ document: ConfigurationStore.ImportedProfiles) -> ImportResult {
-        var result = importProfiles(document.profiles)
+        var applied = Set<Int>()
+        var result = importProfiles(document.profiles, applied: &applied)
         result.skipped += max(document.unreadableCount, 0)
-        result.incomplete = min(max(document.incompleteCount, 0), result.appliedCount)
+        // 中身を落としたもののうち、反映したものだけを数える（重なって使わなかったもの・新しいものだけ加えたときの既存のものは数えない）
+        result.incomplete = applied.intersection(document.incompleteIndices).count
         return result
     }
 }

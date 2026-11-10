@@ -281,6 +281,21 @@ struct StoreFileTests {
             #expect(try ConfigurationStore(directory: directory).load()?.settings.isEnabled == changed.settings.isEnabled)
             try FileManager.default.removeItem(at: target)
             #expect(throws: ConfigurationStoreError.self) { try store.load() }
+            // 指す先が無い間に保存しても、リンクを普通のファイルで置き換えない
+            #expect(throws: ConfigurationStoreError.self) { try store.save(ModelFixtures.configuration()) }
+            #expect(ConfigurationStore.isSymbolicLink(store.fileURL))
+        }
+    }
+
+    @Test("設定のフォルダがシンボリックリンクで指す先が無ければ、読めないもの（初回の設定で置き換えない）。保存もしない")
+    func danglingLinkedFolder() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let linked = directory.appending(path: "Nonet", directoryHint: .isDirectory)
+            try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: directory.appending(path: "external/Nonet", directoryHint: .isDirectory))
+            let store = ConfigurationStore(directory: linked)
+            #expect(throws: ConfigurationStoreError.self) { try store.load() }
+            #expect(throws: ConfigurationStoreError.self) { try store.save(ModelFixtures.configuration()) }
+            #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "external").path(percentEncoded: false)))
         }
     }
 
@@ -661,6 +676,33 @@ struct StoreProfileDocumentTests {
         let importedCellIDs = Set(imported.flatMap { $0.pages.flatMap { $0.cells.compactMap { $0?.id } } })
         #expect(importedCellIDs.isDisjoint(with: Set(configuration.modelCellIDs)))
         #expect(importedCellIDs.count == configuration.modelCellIDs.count)
+    }
+
+    @Test("中身を落としたプロファイルは、反映したものだけを数える（重なって使わなかったものは数えない）")
+    func incompleteCountsOnlyAppliedProfiles() throws {
+        let figma = Profile(kind: .app(ModelFixtures.figma), pages: [.empty])
+        let duplicate = Profile(kind: .app(ModelFixtures.figma), pages: [.empty])
+        var configuration = ModelFixtures.configuration()
+        let first = configuration.importProfiles(ConfigurationStore.ImportedProfiles(profiles: [figma, duplicate], incompleteIndices: [0]))
+        #expect(first.incomplete == 1)
+        var other = ModelFixtures.configuration()
+        let second = other.importProfiles(ConfigurationStore.ImportedProfiles(profiles: [figma, duplicate], incompleteIndices: [1]))
+        #expect(second.incomplete == 0)
+    }
+
+    @Test("前の版の、もう読まない値（スクリプトの output）だけが違う書き出しは、中身を落としたとしない")
+    func retiredOutputKeyIsNotIncomplete() throws {
+        var profile = Profile(kind: .global, pages: [.empty])
+        profile.pages[0].cells[0] = Cell(title: "ビルド", icon: .symbol("hammer"), action: .script(ScriptAction(source: "make")))
+        let exported = try ConfigurationStore.exportData(profiles: [profile])
+        // 前の版は、スクリプトのアクションに output（結果の出し方）を書いていた
+        let text = try #require(String(data: exported, encoding: .utf8))
+        let old = text.replacingOccurrences(of: #""type" : "script""#, with: #""output" : "clipboard", "type" : "script""#)
+        #expect(old != text)
+        #expect(try ConfigurationStore.importDocument(from: Data(old.utf8)).incompleteCount == 0)
+        // 知らない値は、中身を落としたものとして数える
+        let unknown = text.replacingOccurrences(of: #""type" : "script""#, with: #""hologram" : 1, "type" : "script""#)
+        #expect(try ConfigurationStore.importDocument(from: Data(unknown.utf8)).incompleteCount == 1)
     }
 
     @Test("書き出したものを読み込むと、中身を落としたプロファイルは無い")

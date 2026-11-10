@@ -75,7 +75,7 @@ import Testing
         let notice = try #require(h.controller.notice)
         // readFailed の説明は理由を含まないので、知らせの文全体を比べられる
         let reason = try #require(ConfigurationStoreError.readFailed(reason: "").errorDescription)
-        #expect(notice == ModelFixtures.text("\(reason)。Nonet を終了するまで、設定の変更は保存されません。"))
+        #expect(notice == ModelFixtures.text("\(reason)。設定の変更は保存されません。「以前の設定に戻す…」で控えに戻すと、また保存します。"))
         // 初期の設定のまま動く
         #expect(h.controller.status == .running)
         #expect(h.controller.configuration.settings == GlobalSettings())
@@ -88,6 +88,28 @@ import Testing
         var isDirectory: ObjCBool = false
         #expect(FileManager.default.fileExists(atPath: h.store.fileURL.path(percentEncoded: false), isDirectory: &isDirectory))
         #expect(isDirectory.boolValue)
+    }
+
+    /// 新しい版の Nonet で書いた、この版では読めないファイル: 写しを残し、保存しない。控えに戻すと（resumeSaving）、また保存する
+    @Test func aNewerVersionFileStopsSavingUntilABackupIsRestored() throws {
+        let h = try ControllerHarness(configuration: nil)
+        let future = #"{"version": 9, "profiles": "新しい形"}"#
+        try FileManager.default.createDirectory(at: h.store.directory, withIntermediateDirectories: true)
+        try Data(future.utf8).write(to: h.store.fileURL)
+        h.start()
+        #expect(!h.controller.isFirstLaunch)
+        #expect(!h.controller.isSavingConfiguration)
+        #expect(try String(contentsOf: h.store.fileURL, encoding: .utf8) == future)
+        #expect(try fileNames(h).contains("configuration.v9.json"))
+
+        h.controller.update { $0.settings.haptics = .off }
+        h.controller.resumeSaving()
+        #expect(h.controller.isSavingConfiguration)
+        #expect(h.controller.notice == nil)
+        #expect(try h.savedConfiguration()?.settings.haptics == .off)
+        // 元のファイルは写しに残っている
+        #expect(try String(contentsOf: h.store.directory.appending(path: "configuration.v9.json"), encoding: .utf8) == future)
+        h.controller.stop()
     }
 
     @Test func changesBeforeStartAreNotSaved() throws {

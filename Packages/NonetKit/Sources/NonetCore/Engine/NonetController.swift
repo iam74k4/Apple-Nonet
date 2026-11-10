@@ -270,12 +270,25 @@ public final class NonetController {
 
     /// 設定を保存しているか（設定ファイルを読めなかった・アンインストールした後は false）
     public var isSavingConfiguration: Bool { saver.isEnabled }
+    /// アンインストールで止めた（この起動の間は、もう保存を始めない）
+    private var savingStoppedForGood = false
 
     /// 待っている保存を書いてから、この後の変更を書かない（アンインストールで設定のフォルダをゴミ箱に入れた後に、
     /// メニューで「有効にする」などを変えても、フォルダを作り直さない）。変更はこの起動の間だけ効く
     public func stopSaving() {
         saver.flush()
         saver.isEnabled = false
+        savingStoppedForGood = true
+    }
+
+    /// 設定ファイルを読めずに保存をやめていたとき、利用者が控えに戻したら、また保存する（今の設定を書く）。
+    /// 読めないファイルは save() が上書きしない（書けなければ知らせて書き直す）。新しい版のファイルは写しを残してあるので上書きしてよい。
+    /// アンインストールの後は始めない
+    public func resumeSaving() {
+        guard !saver.isEnabled, !savingStoppedForGood else { return }
+        saver.isEnabled = true
+        notice = nil
+        saver.saveNow(configuration)
     }
 
     // MARK: - 設定
@@ -1075,7 +1088,8 @@ public final class NonetController {
             // 読めないファイルを上書きしないよう、この起動の間は保存しない
             controllerLogger.error("設定ファイルを読めないので、保存せずに初期の設定で動かします: \(error.localizedDescription, privacy: .public)")
             saver.isEnabled = false
-            notice = String(localized: "\(error.localizedDescription)。Nonet を終了するまで、設定の変更は保存されません。", bundle: .module)
+            // 次の起動でも同じになる（ファイルはそのまま）ので、「終了するまで」とは言わない。控えに戻せば、また保存する
+            notice = String(localized: "\(error.localizedDescription)。設定の変更は保存されません。「以前の設定に戻す…」で控えに戻すと、また保存します。", bundle: .module)
         }
     }
 

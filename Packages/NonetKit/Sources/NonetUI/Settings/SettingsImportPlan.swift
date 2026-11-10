@@ -91,11 +91,14 @@ struct SettingsImportPlan: Identifiable, Equatable {
 
     /// 置き換えるものを除いた中身（新しいアプリのプロファイルだけ加えるとき）。設定はその時点のもので決める
     func newProfilesOnly(in configuration: NonetConfiguration) -> ConfigurationStore.ImportedProfiles {
-        let profiles = document.profiles.filter { profile in
-            guard let app = profile.app else { return false }
-            return Self.existingProfile(for: app, in: configuration) == nil
+        var profiles: [Profile] = []
+        var incomplete = Set<Int>()
+        for (index, profile) in document.profiles.enumerated() {
+            guard let app = profile.app, Self.existingProfile(for: app, in: configuration) == nil else { continue }
+            if document.incompleteIndices.contains(index) { incomplete.insert(profiles.count) }
+            profiles.append(profile)
         }
-        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount, incompleteCount: document.incompleteCount)
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount, incompleteIndices: incomplete)
     }
 
     /// 読み込みで実際に使われるプロファイルが、スクリプトのマスを含む（読み込んだ後の知らせ）

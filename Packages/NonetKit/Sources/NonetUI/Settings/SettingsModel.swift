@@ -264,13 +264,14 @@ final class SettingsModel {
 
     /// 控えの読み書き先。決めていなければ、NonetController が読み込んだ設定の場所（ConfigurationStore.lastLoadedDirectory）。
     /// どちらも無ければ控えは使わない（テストで本物の場所に書かないように）
-    /// 設定を保存していない間（設定ファイルを読めなかった・アンインストールした後）は使わない。今の設定は代わりの初期の設定で、
-    /// その控えを残すと、数を減らすときに本当の控え（読めない設定を戻せる唯一の写し）から消してしまう
+    /// 控えを書く先。設定を保存していない間（設定ファイルを読めなかった・アンインストールした後）は nil。今の設定は代わりの
+    /// 初期の設定で、その控えを残すと、数を減らすときに本当の控え（読めない設定を戻せる写し）から消してしまう。一覧と戻すのは backupStore
+    var writableBackupStore: ConfigurationStore? {
+        controller.isSavingConfiguration ? backupStore : nil
+    }
+
     var backupStore: ConfigurationStore? {
-        get {
-            guard controller.isSavingConfiguration else { return nil }
-            return explicitBackupStore ?? ConfigurationStore.lastLoadedDirectory.map { ConfigurationStore(directory: $0) }
-        }
+        get { explicitBackupStore ?? ConfigurationStore.lastLoadedDirectory.map { ConfigurationStore(directory: $0) } }
         set { explicitBackupStore = newValue }
     }
 
@@ -394,7 +395,7 @@ final class SettingsModel {
         let actionName = actionName ?? String(localized: "プロファイルの削除", bundle: .module)
         closeEditGroup()
         if makesBackup {
-            backupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
+            writableBackupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
         }
         let wasSelected = selectedProfile.id == id
         controller.update { $0.removeProfile(id: id) }
@@ -556,7 +557,7 @@ final class SettingsModel {
         let actionName = String(localized: "ページの削除", bundle: .module)
         closeEditGroup()
         if makesBackup, removed.cells.contains(where: { $0 != nil }) {
-            backupStore?.makeBackup(of: configuration, reason: .beforeDeletingPage)
+            writableBackupStore?.makeBackup(of: configuration, reason: .beforeDeletingPage)
         }
         controller.update { $0.removePage(at: index, profileID: profileID) }
         undoManager.beginUndoGrouping()
@@ -1259,7 +1260,7 @@ final class SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         closeEditGroup()
-        backupStore?.makeBackup(of: configuration, reason: .beforeImport)
+        writableBackupStore?.makeBackup(of: configuration, reason: .beforeImport)
         let before = configuration.profiles
         var result = NonetConfiguration.ImportResult()
         controller.update { result = $0.importProfiles(document) }

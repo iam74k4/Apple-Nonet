@@ -57,30 +57,47 @@ struct ProfileDocument: Encodable {
         if unreadable > 0 {
             modelLogger.warning("読み込んだプロファイルのうち \(unreadable) 個を読めなかった")
         }
-        let incomplete = incompleteCount(in: data, decoded: body.profiles.map(\.value))
-        if incomplete > 0 {
-            modelLogger.warning("読み込んだプロファイルのうち \(incomplete) 個は、中身の一部を読めなかった")
+        let incomplete = incompleteIndices(in: data, decoded: body.profiles.map(\.value))
+        if !incomplete.isEmpty {
+            modelLogger.warning("読み込んだプロファイルのうち \(incomplete.count) 個は、中身の一部を読めなかった")
         }
         guard profiles.contains(where: isUsable) else { throw ConfigurationStoreError.noProfiles }
-        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable, incompleteCount: incomplete)
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable, incompleteIndices: incomplete)
     }
 
     /// 読めたプロファイルのうち、ファイルにあった値をこの版では残せないもの（知らない種類のマスが空きマスになる・
-    /// 多すぎるページやマスを落とす など）の数。書き出したときと同じ形にして、元の値がすべて残るかで決める
-    private static func incompleteCount(in data: Data, decoded: [Profile?]) -> Int {
+    /// 多すぎるページやマスを落とす など）の、読めたプロファイルの中での位置。書き出したときと同じ形にして、元の値がすべて残るかで決める。
+    /// 前の版が書いた、もう使わない値（スクリプトとショートカットの output）は数えない
+    private static func incompleteIndices(in data: Data, decoded: [Profile?]) -> Set<Int> {
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let raw = root["profiles"] as? [Any], raw.count == decoded.count else { return 0 }
-        var count = 0
+              let raw = root["profiles"] as? [Any], raw.count == decoded.count else { return [] }
+        var indices = Set<Int>()
+        var readable = 0
         for (original, profile) in zip(raw, decoded) {
             guard let profile else { continue }
+            defer { readable += 1 }
             guard let saved = try? ModelJSON.makeEncoder().encode(profile.normalizedForStorage()),
                   let savedObject = try? JSONSerialization.jsonObject(with: saved),
-                  JSONContent.isPreserved(original, in: savedObject) else {
-                count += 1
+                  JSONContent.isPreserved(removingRetiredKeys(from: original), in: savedObject) else {
+                indices.insert(readable)
                 continue
             }
         }
-        return count
+        return indices
+    }
+
+    /// 前の版の、もう読まない値を除いたもの（スクリプトとショートカットの output。Action.swift の決まりと同じ）
+    static func removingRetiredKeys(from object: Any) -> Any {
+        if var dictionary = object as? [String: Any] {
+            if let type = dictionary["type"] as? String, type == "script" || type == "shortcut" {
+                dictionary["output"] = nil
+            }
+            return dictionary.mapValues(removingRetiredKeys(from:))
+        }
+        if let array = object as? [Any] {
+            return array.map(removingRetiredKeys(from:))
+        }
+        return object
     }
 
     /// 設定に加えられるプロファイル（グローバルか、bundleID のあるアプリ）

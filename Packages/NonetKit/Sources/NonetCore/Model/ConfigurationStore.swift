@@ -30,7 +30,17 @@ public struct ConfigurationStore: Sendable {
     }
 
     static func isSymbolicLink(_ url: URL) -> Bool {
-        (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path(percentEncoded: false))) != nil
+        (try? FileManager.default.destinationOfSymbolicLink(atPath: Self.pathWithoutTrailingSlash(url))) != nil
+    }
+
+    /// 設定のフォルダがシンボリックリンクで、指す先が無い（外付けのディスクがまだつながっていないなど）
+    var isDanglingLinkedDirectory: Bool {
+        Self.isSymbolicLink(directory) && !FileManager.default.fileExists(atPath: directory.path(percentEncoded: false))
+    }
+
+    private static func pathWithoutTrailingSlash(_ url: URL) -> String {
+        let path = url.path(percentEncoded: false)
+        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
     }
 
     /// save() の直前に保存されていた版
@@ -81,6 +91,9 @@ public struct ConfigurationStore: Sendable {
         }
 
         let fileManager = FileManager.default
+        if isDanglingLinkedDirectory {
+            throw ConfigurationStoreError.writeFailed(reason: "symbolic link target is missing")
+        }
         do {
             try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
@@ -91,6 +104,11 @@ public struct ConfigurationStore: Sendable {
         do {
             current = try Data(contentsOf: fileURL)
         } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
+            // 指す先の無いシンボリックリンク（動いている間に外付けのディスクを外した など）に書くと、リンクが普通のファイルに
+            // 置き換わり、指す先と食い違う。書かずに知らせる（つながれば書き直しで書ける）
+            if Self.isSymbolicLink(fileURL) {
+                throw ConfigurationStoreError.writeFailed(reason: "symbolic link target is missing")
+            }
             current = nil
         } catch {
             // 読めないファイルを上書きすると、バックアップも残せずに元の設定を失う
@@ -142,13 +160,15 @@ public struct ConfigurationStore: Sendable {
         public var profiles: [Profile]
         /// 読めなかったプロファイル（新しい版の Nonet の種類など）の数
         public var unreadableCount: Int
-        /// 読めたが、この版では読めない中身（新しい版の種類のマス・多すぎるページなど）を落としたプロファイルの数
-        public var incompleteCount: Int
+        /// 読めたが、この版では読めない中身（新しい版の種類のマス・多すぎるページなど）を落としたプロファイルの、profiles での位置
+        public var incompleteIndices: Set<Int>
 
-        public init(profiles: [Profile], unreadableCount: Int = 0, incompleteCount: Int = 0) {
+        public var incompleteCount: Int { incompleteIndices.count }
+
+        public init(profiles: [Profile], unreadableCount: Int = 0, incompleteIndices: Set<Int> = []) {
             self.profiles = profiles
             self.unreadableCount = unreadableCount
-            self.incompleteCount = incompleteCount
+            self.incompleteIndices = incompleteIndices
         }
     }
 }
@@ -367,8 +387,8 @@ extension ConfigurationStore {
         } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
             // 指す先の無いシンボリックリンク（外付けのディスクがまだつながっていないなど）は、初めての起動ではない。
             // 初回の設定で置き換えないよう、読めないものとして扱う
-            if Self.isSymbolicLink(fileURL) {
-                modelLogger.error("設定ファイルのシンボリックリンクの指す先がない")
+            if Self.isSymbolicLink(fileURL) || isDanglingLinkedDirectory {
+                modelLogger.error("設定ファイル（かフォルダ）のシンボリックリンクの指す先がない")
                 throw ConfigurationStoreError.readFailed(reason: "symbolic link target is missing")
             }
             return nil

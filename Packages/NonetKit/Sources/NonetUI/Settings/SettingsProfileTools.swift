@@ -88,7 +88,7 @@ extension SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         closeEditGroup()
-        backupStore?.makeBackup(of: configuration, reason: .beforeResettingProfile)
+        writableBackupStore?.makeBackup(of: configuration, reason: .beforeResettingProfile)
         replacePages(ofProfile: id, actionName: String(localized: "プリセットに戻す", bundle: .module)) {
             $0.resetProfile(id: id, to: preset)
         }
@@ -298,8 +298,10 @@ extension SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         editGroup = nil
-        // 戻す前の設定を控えに残せなければ、戻さない（残したと言って、今の設定を失わないように）
-        guard store.makeBackup(of: configuration, reason: .beforeRestoring, alsoKeeping: backup) != nil else {
+        // 戻す前の設定を控えに残せなければ、戻さない（残したと言って、今の設定を失わないように）。
+        // 設定ファイルを読めずに保存をやめている間は、今の設定は代わりの初期の設定なので残さず、戻したらまた保存する
+        let isSaving = controller.isSavingConfiguration
+        guard !isSaving || store.makeBackup(of: configuration, reason: .beforeRestoring, alsoKeeping: backup) != nil else {
             fileMessage = SettingsMessage(
                 text: String(localized: "今の設定を控えに残せなかったので、戻しませんでした。ディスクの空きと、設定のフォルダに書き込めるかを確かめてください。", bundle: .module),
                 isError: true
@@ -307,12 +309,17 @@ extension SettingsModel {
             return
         }
         controller.replaceConfiguration(restored)
+        if !isSaving {
+            controller.resumeSaving()
+        }
         undoManager.removeAllActions()
         isShowingBackups = false
         undoNotice = nil
         resetSelection()
         fileMessage = SettingsMessage(
-            text: String(localized: "\(SettingsText.backupDate(backup.date))の設定に戻しました。戻す前の設定も「以前の設定に戻す」に残しています。", bundle: .module),
+            text: isSaving
+                ? String(localized: "\(SettingsText.backupDate(backup.date))の設定に戻しました。戻す前の設定も「以前の設定に戻す」に残しています。", bundle: .module)
+                : String(localized: "\(SettingsText.backupDate(backup.date))の設定に戻しました。設定の変更をまた保存します。", bundle: .module),
             isError: false
         )
     }

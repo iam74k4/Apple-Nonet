@@ -268,6 +268,16 @@
         }
       }
     },
+    "%@の設定に戻しました。設定の変更をまた保存します。" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored the settings from %@. Changes to the settings will be saved again."
+          }
+        }
+      }
+    },
     "%@の設定に戻しますか？" : {
       "localizations" : {
         "en" : {
@@ -461,7 +471,7 @@
         }
       }
     },
-    "%lld個のプロファイルには、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その分を空きマスにして読み込みました。" : {
+    "%lld個のプロファイルは、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その部分を読み込めませんでした。" : {
       "localizations": {
         "en": {
           "variations": {
@@ -469,13 +479,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld profile had content this version of Nonet can't read (such as button types added in a newer version), so those parts were imported as empty buttons."
+                  "value": "%lld profile had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts were imported as empty buttons."
+                  "value": "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
                 }
               }
             }

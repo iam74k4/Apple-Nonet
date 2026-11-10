@@ -74,23 +74,12 @@
         }
       }
     },
-    "%@。Nonet を終了するまで、設定の変更は保存されません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Changes you make before you quit Nonet won't be saved."
-          }
-        }
-      }
-    },
-    "%@。Nonet を終了するまで、設定の変更は保存されません。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Changes you make before you quit Nonet won't be saved."
+    "%@。設定の変更は保存されません。「以前の設定に戻す…」で控えに戻すと、また保存します。" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Changes to the settings won't be saved. Use “Restore an Earlier Version…” to go back to a backup and start saving again."
           }
         }
       }
@@ -2607,11 +2596,11 @@
       }
     },
     "新しい版の Nonet で保存した設定のため、読み込めませんでした。Nonet をアップデートしてください" : {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The settings were saved by a newer version of Nonet and couldn't be read. Please update Nonet"
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The settings were saved by a newer version of Nonet and couldn't be read. Please update Nonet."
           }
         }
       }
@@ -3417,11 +3406,11 @@
       }
     },
     "設定ファイルに、この版の Nonet では使えない中身がありました。元のファイルは「%@」として残しています。" : {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The settings file had content this version of Nonet can't use. The original file is kept as “%@”."
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The settings file had content this version of Nonet can't use. The original file is kept as “%@”."
           }
         }
       }
