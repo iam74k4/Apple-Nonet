@@ -25,7 +25,6 @@ public enum ShellInstallLocation: Equatable, Sendable {
         return .installed
     }
 
-    /// bundleURL のアプリの場所（自分のものも、ほかに動いている Nonet のものも）
     /// 動いている Nonet の場所
     public static var current: ShellInstallLocation { of(bundleURL: Bundle.main.bundleURL) }
 
@@ -34,6 +33,7 @@ public enum ShellInstallLocation: Equatable, Sendable {
         String(localized: "ディスクイメージから開いた Nonet は、ログイン時に起動できません。アプリケーションフォルダに移してから選んでください", bundle: .module)
     }
 
+    /// bundleURL のアプリの場所（自分のものも、ほかに動いている Nonet のものも）
     public static func of(bundleURL: URL) -> ShellInstallLocation {
         let readOnly = (try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
         return classify(bundlePath: bundleURL.path, isTranslocated: isTranslocated(bundleURL), isReadOnlyVolume: readOnly)
@@ -232,7 +232,8 @@ public enum ShellMoveToApplications {
         [
             "-c",
             "while /bin/kill -0 \(processID) >/dev/null 2>&1; do /bin/sleep 0.1; done; "
-                + "app=\"$1\"; shift; if [ $# -gt 0 ]; then /usr/bin/open -a \"$app\" \"$@\"; else /usr/bin/open \"$app\"; fi",
+                // open は、渡したファイルが1つでも無いと、アプリも開かずに失敗する（尋ねている間にファイルが消えた など）。そのときはアプリだけでも開く
+                + "app=\"$1\"; shift; if [ $# -gt 0 ]; then /usr/bin/open -a \"$app\" \"$@\" || /usr/bin/open \"$app\"; else /usr/bin/open \"$app\"; fi",
             "nonet-relaunch",
             appPath,
         ] + items

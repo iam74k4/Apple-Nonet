@@ -483,7 +483,20 @@ struct ShellInstallTests {
             return String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
         }
         #expect(try await run([]) == "/Applications/Nonet.app\n")
-        #expect(try await run(["nonet://register?key=a b", "/tmp/x y.nonetlicense"]) == "-a /Applications/Nonet.app nonet://register?key=a b /tmp/x y.nonetlicense\n")
+        #expect(try await run(["nonet://register?key=a b", "/tmp/x y.nonetlicense"]).hasPrefix("-a /Applications/Nonet.app nonet://register?key=a b /tmp/x y.nonetlicense\n"))
+        // 渡したファイルが消えていて open -a が失敗しても、アプリだけは開く
+        var arguments = ShellMoveToApplications.relaunchArguments(processID: 999_999, appPath: "/Applications/Nonet.app", items: ["/tmp/gone.nonetlicense"])
+        arguments[1] = arguments[1]
+            .replacingOccurrences(of: "/usr/bin/open -a \"$app\" \"$@\"", with: "false")
+            .replacingOccurrences(of: "/usr/bin/open", with: "echo")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        process.waitUntilExit()
+        #expect(String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self) == "/Applications/Nonet.app\n")
     }
 
     @Test("版の表記は Info.plist から")

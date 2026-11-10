@@ -27,7 +27,8 @@ struct SettingsRootView: View {
     var body: some View {
         VStack(spacing: 0) {
             SettingsBannerStack(model: model)
-            Group {
+            // Group ではなく ZStack にする（Group に付けた .alert は、中のタブの画面に付き、タブが替わると消えてしまう）
+            ZStack {
                 switch model.tab {
                 case .profiles: SettingsProfilesView(model: model)
                 case .general: SettingsGeneralView(model: model)
