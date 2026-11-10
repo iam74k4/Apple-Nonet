@@ -258,7 +258,8 @@ same_items_ignoring_signature() {
 }
 
 normalized_appcast_items() {
-  perl -0pe 's/<!--\s*sparkle-sign(?:-warning|atures):.*?-->//gs; s#(<enclosure\b[^>]*?)\s*>\s*</enclosure>#$1/>#g; s/\s+//g' "$1"
+  # 署名の印のコメントの中には < が無い。< をまたいで消さない（リリースノートに同じ文字があっても、そこから最後の印まで消さない）
+  perl -0pe 's/<!--\s*sparkle-sign(?:-warning|atures):[^<]*?-->//gs; s#(<enclosure\b[^>]*?)\s*>\s*</enclosure>#$1/>#g; s/\s+//g' "$1"
 }
 
 # URL の最後の名前（? と # から後ろは除く）。例: https://x/updates/nonet.xml?v=1 → nonet.xml

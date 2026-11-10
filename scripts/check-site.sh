@@ -562,12 +562,13 @@ while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   location="${line%%:data-paddle-*}"
   attribute="${line#"$location":}"
-  value="${attribute#*=}"
-  value="${value#"${value%%[!\ ]*}"}"
+  # 属性の名前（= の前の空白は除く）と、引用符を外した値（= の後の空白・タブも除く）
+  name="${attribute%%[[:space:]=]*}"
+  value="$(trim "${attribute#*=}")"
   value="${value:1:${#value}-2}"
   [[ "$value" == *TODO* ]] && continue
-  case "$attribute" in
-    data-paddle-token=*) pattern='^(live|test)_[A-Za-z0-9]{27}$' label="クライアント用トークン（live_ と 27 文字）" ;;
+  case "$name" in
+    data-paddle-token) pattern='^(live|test)_[A-Za-z0-9]{27}$' label="クライアント用トークン（live_ と 27 文字）" ;;
     *) pattern='^pri_[a-z0-9]{26}$' label="価格の ID（pri_ と 26 文字）" ;;
   esac
   if ! [[ "$value" =~ $pattern ]]; then

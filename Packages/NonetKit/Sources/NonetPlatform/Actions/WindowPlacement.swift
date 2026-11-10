@@ -143,14 +143,16 @@ public final class AXWindowPlacer: WindowPlacing {
         try check(AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, value))
     }
 
-    /// 大きさを入れる。許可が無ければ投げる。ほかの失敗（大きさの決まったウインドウなど）は、何もしない
+    /// 大きさを入れる。大きさの決まったウインドウ（大きさを入れられないと答えるもの）は何もせず、位置だけ合わせる。
+    /// 入れられるはずなのに失敗した（時間切れなど）ときは知らせる（位置だけ動いて、はみ出しを戻した結果、置けたように見えるので）
     private func setSizeIfResizable(_ window: AXUIElement, size: CGSize) throws {
-        var size = size
-        guard let value = AXValueCreate(.cgSize, &size) else { return }
-        let error = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value)
-        if error == .apiDisabled {
-            throw NonetError.permissionDenied(ActionText.accessibility)
+        var settable: DarwinBoolean = false
+        if AXUIElementIsAttributeSettable(window, kAXSizeAttribute as CFString, &settable) == .success, !settable.boolValue {
+            return
         }
+        var size = size
+        guard let value = AXValueCreate(.cgSize, &size) else { throw NonetError.actionFailed("AXValue") }
+        try check(AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value))
     }
 
     private func check(_ error: AXError) throws {

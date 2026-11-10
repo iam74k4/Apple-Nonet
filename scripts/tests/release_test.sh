@@ -765,6 +765,31 @@ test_local_appcast_ahead_of_a_signed_published_one_continues() {
   assert_contains "$OUT" "手元の appcast には、公開中のものに無いビルド 42 があります。手元のものを使います"
 }
 
+# リリースノートに署名の印と同じ文字があっても、そこから最後の印までの項目を消して比べない（サーバーで直した項目を見逃さない）
+test_signature_text_in_release_notes_does_not_hide_a_changed_item() {
+  prepare_release
+  local head='<?xml version="1.0" encoding="utf-8"?>\n<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n<channel>\n'
+  local notes='<description><![CDATA[<p>&lt;!-- sparkle-signatures: の説明</p>]]></description>'
+  mkdir -p "$RELEASES"
+  {
+    printf "$head"
+    printf '<item><sparkle:version>42</sparkle:version></item>\n'
+    printf '<item><sparkle:version>41</sparkle:version>%s</item>\n' "${notes//&lt;/<}"
+    printf '<item><sparkle:version>40</sparkle:version><enclosure url="https://x/Nonet-1.0.dmg" length="1"/></item>\n'
+    printf '</channel>\n</rss>\n<!-- sparkle-signatures:\nedSignature: bG9jYWw=\nlength: 900\n-->\n'
+  } >"$RELEASES/appcast.xml"
+  {
+    printf "$head"
+    printf '<item><sparkle:version>41</sparkle:version>%s</item>\n' "${notes//&lt;/<}"
+    printf '<item><sparkle:version>40</sparkle:version><enclosure url="https://x/Nonet-1.0.dmg" length="2"/></item>\n'
+    printf '</channel>\n</rss>\n<!-- sparkle-signatures:\nedSignature: cHVibGlzaGVk\nlength: 500\n-->\n'
+  } >"$TEST_TMP/published.xml"
+  export FAKE_CURL_BODY="$TEST_TMP/published.xml"
+  run "$REPO/scripts/release.sh" 1.2.1 43
+  assert_failed
+  assert_contains "$OUT" "どちらにもあるビルドの項目の中身が違います"
+}
+
 test_whitespace_changes_by_the_host_are_ignored() {
   prepare_release
   write_appcast "$RELEASES/appcast.xml" 41
