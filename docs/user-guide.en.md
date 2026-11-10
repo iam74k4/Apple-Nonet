@@ -7,7 +7,7 @@
 Slide a finger down from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
 
 - Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it
-- The trackpad is split into a 3×3 grid, and the **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
+- The **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
 - If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
 - The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
 
@@ -60,7 +60,7 @@ When you close the guide with **Done**, **Skip** or the window's close button, t
 
 Your settings start with a profile for every app on your Mac that has a preset, a ready-made set of nine buttons (Finder, Safari, Chrome, Arc, Mail, Outlook, Zoom, Teams, Slack, Excel, Word, PowerPoint, Keynote, Pages, Numbers, Notion, Notes, Obsidian, Figma, Photoshop, Final Cut Pro, Xcode, Visual Studio Code, Cursor and Terminal). Delete the profiles you don't want on the Profiles tab of Settings. On a Mac that can't use Apple Intelligence, the presets leave out the AI buttons, and on a Mac without the `claude` command they leave out the Claude Code button. In place of the AI button, another button takes the center and a different button fills the slot it leaves, so the page still has nine. The Claude Code button's slot is left empty (no preset puts Claude Code in the center).
 
-The Global profile starts with a launcher of popular apps from your Mac (see [Global profile and launcher](#global-profile-and-launcher) under Basics).
+The Global profile also has a launcher of popular apps from your Mac (see [Global profile and launcher](#global-profile-and-launcher) under Basics).
 
 To see the welcome guide again, choose **Show Welcome Guide** from the Nonet menu.
 
@@ -75,7 +75,7 @@ The nine buttons open as the HUD: nine icons around the pointer, eight on a ring
 
 - They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
 - Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
-- Speed isn't checked. If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
+- The speed of your finger isn't checked (it opens if your finger moves about 5 mm down within 0.6 seconds of touching). If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
 - They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
 - They don't open while a Nonet window, such as Settings or the welcome guide, is in front (except for practice in the welcome guide), because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
 - The HUD appears on the display with the pointer. When there is no room for the ring at the edge of the screen, the ring is moved to where it fits and the pointer is moved to its center instead
@@ -89,7 +89,7 @@ The icon on the white disc runs, and the HUD closes.
 
 - A button runs only if your finger stays on it for a moment (0.1 seconds) before you lift. That's short enough to slide to a button and lift right away. Lifting while still sliding, or on a button you were only passing over, runs nothing, so a finger that was only meant to move the pointer doesn't run a button
 - Buttons are chosen by the **direction** of the pointer from the center. The eight directions (up, up-right, right, down-right, down, down-left, left, up-left) are the eight outer buttons of the 3×3 grid in Settings, and the center is the center button. Between two icons, the current one sticks a little, so a shaky finger on the border doesn't switch
-- The HUD shows no text: only the icons, without the profile name or the keys a button presses (like ⌘B). Empty buttons are small dots. Only in practice mode, "Practice" appears under the ring
+- The HUD normally shows no text: only the icons, without the profile name or the keys a button presses (like ⌘B). Empty buttons are small dots. Text appears only for the name of the button you rest on, page-switching hints, trial notices, and "Practice" under the ring in practice mode
 - Each icon is drawn in white on its own dark round plate, so it reads the same on light windows, dark windows and photos
 
 ### Canceling
@@ -192,7 +192,7 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 The middle column shows the pages and the 3×3 grid of the selected profile.
 
 - Click **Page 1**, **Page 2** and so on (⌘1–⌘3) to switch pages. Click **+** (Add page) to add one (up to three pages). To delete the selected page, click **…** (Page Actions) next to the pages and choose **Delete This Page…**, or Control-click the page and choose **Delete This Page…**. Nonet asks first if the page has buttons. The **…** menu also has **Add Page** and **Rename…**
-- Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Xcode · Debug", and briefly under the center icon when you switch between the app's pages and the Global pages. Leave it empty to go back to "Page 1" and so on
+- Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Buttons for Xcode · Debug", and briefly under the center icon when you switch between the app's pages and the Global pages. Leave it empty to go back to "Page 1" and so on
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page. The selected button is filled: in your accent color when keys (Delete, the arrow keys and so on) go to the grid, and gray when they go somewhere else, such as the profile list or a text field
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
 - Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. The item acts on the button you Control-clicked and selects it first (after clearing, the notice names the button, as in “Cleared “Build”.”). On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
@@ -251,7 +251,7 @@ While the field is recording (it shows **Type Shortcut…**):
 
 Some keys never reach the field because macOS uses them first, such as ⌘Tab, ⌘Space and the ⇧⌘4 screenshot shortcut. For those, type the keys in the field below the recorder (**Type keys as text**) and click **Apply**. Nonet reads symbols like `⇧⌘4` as well as words like `cmd+shift+4`. Separate the keystrokes of a sequence with `→` or `,`.
 
-Shortcuts like `⌘[` work correctly on JIS keyboards too.
+Shortcuts like `⌘[` work correctly on JIS keyboards too. If the current keyboard layout can't type a shortcut (such as `⌘[` on a German layout), Nonet clicks the front app's menu item with the same shortcut, if there is one.
 
 Right before sending, Nonet checks that the front app is still the one that was in front when you opened the buttons. If it changed (for example, an app opened by the previous button came to the front), Nonet doesn't send the keys, so they can't reach the wrong app, and shows "The front app changed, so the keys weren't sent."
 
@@ -266,7 +266,7 @@ Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 
 ### Place on Screen
 
-Puts the front app's window in a fixed part of the screen. Under **Position**, choose one of nine: Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half or Bottom Right. They divide the usable area of the screen (not counting the menu bar and the Dock) in a 3×3 grid: Top Half and Left Half are half of the usable area, and Maximize fills it.
+Puts the front app's window in a fixed part of the screen. Under **Where to place**, choose one of nine: Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half or Bottom Right. They divide the usable area of the screen (not counting the menu bar and the Dock) in a 3×3 grid: Top Half and Left Half are half of the usable area, and Maximize fills it.
 
 - While this button is highlighted in the HUD, the target area is outlined in light blue on the screen with the note "Lift to place it here". Lift on the button, and the window moves there. Move outside the ring and the outline disappears
 - It moves the frontmost window of the app that was in front when you opened the buttons (VoiceOver adds what will move, such as "Safari window", to the HUD's name)
@@ -304,7 +304,7 @@ Visual Studio Code and Cursor don't tell macOS where the open document is (their
 
 Nonet finds the project folder like this:
 
-- If the document is a `.xcodeproj`, `.xcworkspace` or `.swiftpm`, the folder that contains it
+- If the document is a `.xcodeproj`, `.xcworkspace` or `.playground`, or a `.swiftpm` inside a package, the folder that contains it. For a Swift Playgrounds `Name.swiftpm`, that folder itself
 - For any other file, the nearest folder above it that contains `.git` or `Package.swift`. If there isn't one, the folder that contains the file
   - Inside your home folder, Nonet looks at every folder up to, but not including, your home folder, however deep the document is, so deep Maven, Gradle and Android projects work
   - Outside your home folder (for example `/Volumes/SSD`), Nonet looks at no more than 32 folders above the document, and never at `/` or a top-level folder such as `/Volumes`
@@ -464,7 +464,7 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down from near the far edge does open them, however slowly you start (see [Opening the buttons](#opening-the-buttons) under Basics)
+- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down right after touching near the far edge does open them, even at ordinary pointer speed (see [Opening the buttons](#opening-the-buttons) under Basics)
 - While a Nonet window such as Settings is in front, sliding down from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing
