@@ -187,7 +187,12 @@ import Testing
             privacy: URL(string: "\(Self.site)/privacy.html")
         )
         let english = links.localized(language: "en")
+        // 販売サービスのページ（ほかのホスト）はそのまま
         #expect(english.purchase == links.purchase)
+        // 同じサイトの購入ページは、英語のページにする（日本語のページは円の税込の価格）
+        let ownBuyPage = AppLinks(purchase: URL(string: "\(Self.site)/buy.html"), support: URL(string: "\(Self.site)/guide.html"))
+        #expect(ownBuyPage.localized(language: "en").purchase == URL(string: "\(Self.site)/en/buy.html"))
+        #expect(ownBuyPage.localized(language: "ja").purchase == URL(string: "\(Self.site)/buy.html"))
         #expect(english.support == URL(string: "\(Self.site)/en/guide.html"))
         #expect(english.privacy == URL(string: "\(Self.site)/en/privacy.html"))
         #expect(links.localized(language: "ja") == links)

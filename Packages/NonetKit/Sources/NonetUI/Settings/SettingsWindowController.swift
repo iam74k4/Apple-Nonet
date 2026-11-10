@@ -29,11 +29,18 @@ public struct AppLinks: Equatable, Sendable {
     }
 
     /// 利用ガイドとプライバシーポリシーを、アプリの画面の言語（language。Bundle.main.preferredLocalizations.first）のページにする。
-    /// サイトは日本語のページが /、英語のページが /en/ の下にある（guide.html ↔ en/guide.html）。購入ページはそのまま
+    /// サイトは日本語のページが /、英語のページが /en/ の下にある（guide.html ↔ en/guide.html）。
+    /// 購入ページも、利用ガイドかプライバシーポリシーと同じサイトのページなら英語のページにする（日本語のページは円の税込の価格で、
+    /// 英語で使っている人はドルで払う）。ほかの場所（販売サービスのページ）はそのまま（en/ を入れると別の URL になる）
     public func localized(language: String?) -> AppLinks {
         var links = self
         links.support = support.map { Self.page($0, language: language) }
         links.privacy = privacy.map { Self.page($0, language: language) }
+        let siteHosts = Set([support, privacy].compactMap { $0?.host()?.lowercased() })
+        links.purchase = purchase.map { url in
+            guard let host = url.host()?.lowercased(), siteHosts.contains(host) else { return url }
+            return Self.page(url, language: language)
+        }
         return links
     }
 

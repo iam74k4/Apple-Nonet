@@ -757,12 +757,16 @@ write_app_links_config() {
   } | sed 's|://|:/$()/|' >"$1"
 }
 
-# アプリの「購入する」がこのサイトを指すなら、そのページがある。アプリの言語にかかわらずそのまま開くので、英語のページは要らない
+# アプリの「購入する」がこのサイトを指すなら、そのページと、英語で動くアプリが開く en/ のページがある
 test_app_purchase_link_must_point_to_a_page_of_the_site() {
   local config="$TEST_TMP/Nonet.xcconfig"
   write_fixture_site
   fixture_page buy.html noindex
   write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://nonet.test/buy.html
+  check_app_links_fixture
+  assert_status 1
+  assert_contains "$OUT" "NONET_PURCHASE_URL（https://nonet.test/buy.html）の英語のページ"
+  fixture_page en/buy.html noindex
   check_app_links_fixture
   assert_status 0
   write_app_links_config "$config" https://nonet.test/guide.html https://nonet.test/privacy.html https://nonet.test/purchase.html

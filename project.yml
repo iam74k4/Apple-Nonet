@@ -53,7 +53,7 @@ targets:
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: "© 2026 Takanari Okazaki"
-        NSAppleEventsUsageDescription: "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを読んで動かします。"
+        NSAppleEventsUsageDescription: "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。"
         SUFeedURL: $(NONET_APPCAST_URL)
         SUPublicEDKey: $(NONET_SPARKLE_PUBLIC_KEY)
         SUEnableAutomaticChecks: true

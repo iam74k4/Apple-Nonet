@@ -232,7 +232,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defaults = nil
         }
         #endif
-        let window = TrialEndedWindowController(license: license, purchaseURL: AppInfo.purchaseURL, defaults: defaults) { [weak self] in
+        // 設定やメニューと同じく、画面の言語の購入ページ（links は英語なら en/ のページ）
+        let window = TrialEndedWindowController(license: license, purchaseURL: links.purchase, defaults: defaults) { [weak self] in
             self?.settingsWindow?.showLicenseKeyEntry()
         }
         trialEndedWindow = window

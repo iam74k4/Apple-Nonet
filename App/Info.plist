@@ -58,7 +58,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを読んで動かします。</string>
+	<string>スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Takanari Okazaki</string>
 	<key>NonetLicensePublicKey</key>

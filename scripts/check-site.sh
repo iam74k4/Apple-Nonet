@@ -251,7 +251,7 @@ english_path() {
 }
 
 # アプリの「利用ガイド」「プライバシー」「購入する」のボタンが開く URL（xcconfig）が、このサイトのページを指しているなら、
-# そのページと、英語で動くアプリが開く en/ のページが site/ にあるか（購入のページは、アプリの言語にかかわらずそのまま開くので、en/ は見ない）。ホストは site/index.html の canonical で決める。
+# そのページと、英語で動くアプリが開く en/ のページが site/ にあるか（購入のページも、このサイトのものなら en/ を開く）。ホストは site/index.html の canonical で決める。
 # canonical が無いと確かめられないので、--strict では問題にする（ふだんは知らせるだけ）
 check_app_links() {
   local host key url rest url_host path en_path
@@ -292,8 +292,8 @@ check_app_links() {
       fi
       continue
     fi
-    # アプリは英語で動いているとき、最後の要素の前に en/ を入れたページを開く（…/guide.html → …/en/guide.html）。購入のページはそのまま開く
-    [[ "$key" != NONET_PURCHASE_URL ]] || continue
+    # アプリは英語で動いているとき、最後の要素の前に en/ を入れたページを開く（…/guide.html → …/en/guide.html）。
+    # 購入のページも、このサイトのものなら同じ（AppLinks.localized）
     en_path="$(english_path "$path")"
     if ! site_page_exists "$en_path"; then
       problem "$(basename "$CONFIG") の $key（$url）の英語のページ（${url%%://*}://${rest%%[/?#]*}/$en_path。英語で動くアプリが開く）が $(basename "$SITE")/ にありません"
