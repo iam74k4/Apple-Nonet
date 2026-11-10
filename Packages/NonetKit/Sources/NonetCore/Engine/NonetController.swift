@@ -1030,7 +1030,7 @@ public final class NonetController {
             return
         }
         // この版では残せない値のある設定だった（新しい版の Nonet で書いた・知らない種類のマス など）。原本の場所を知らせる
-        if let kept = ConfigurationStore.takeLastPreservedOriginal() {
+        if let kept = store.takeLastPreservedOriginal() {
             notice = String(localized: "設定ファイルに、この版の Nonet では使えない中身がありました。元のファイルは「\(kept.lastPathComponent)」として残しています。", bundle: .module)
         }
         if let loaded {

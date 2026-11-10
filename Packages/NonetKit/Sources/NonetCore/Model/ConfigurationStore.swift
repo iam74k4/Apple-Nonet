@@ -56,16 +56,15 @@ public struct ConfigurationStore: Sendable {
 
     private static let loadedDirectory = OSAllocatedUnfairLock<URL?>(initialState: nil)
 
-    /// 最後の load() で、この版では残せない値のある原本（新しい版の Nonet で書いたもの・失う値のあるもの）を新しく残した場所。
-    /// 取ると消える（起動のたびに同じことを知らせない）。古い版からのふつうの移行では残すが、ここには入れない
-    public static func takeLastPreservedOriginal() -> URL? {
-        preservedOriginal.withLock { url in
-            defer { url = nil }
-            return url
-        }
+    /// この置き場所の load() で、この版では残せない値のある原本（新しい版の Nonet で書いたもの・失う値のあるもの）を新しく残した場所。
+    /// 取ると消える（起動のたびに同じことを知らせない）。古い版からのふつうの移行では残すが、ここには入れない。
+    /// 置き場所ごとに覚える（ほかの置き場所の読み込みで上書きしない）
+    public func takeLastPreservedOriginal() -> URL? {
+        let key = directory.standardizedFileURL.path
+        return Self.preservedOriginals.withLock { $0.removeValue(forKey: key) }
     }
 
-    private static let preservedOriginal = OSAllocatedUnfairLock<URL?>(initialState: nil)
+    private static let preservedOriginals = OSAllocatedUnfairLock<[String: URL]>(initialState: [:])
 
     public func save(_ configuration: NonetConfiguration) throws {
         try save(configuration, now: Date())
@@ -408,8 +407,9 @@ extension ConfigurationStore {
         } else if Self.losesContent(data, whenSaving: configuration) {
             kept = preserveOriginal(data, family: "configuration.lossy", preferPlainName: false, isNew: &wroteNew)
         }
+        let key = directory.standardizedFileURL.path
         let notice = wroteNew ? kept : nil
-        Self.preservedOriginal.withLock { $0 = notice }
+        Self.preservedOriginals.withLock { $0[key] = notice }
         return configuration
     }
 

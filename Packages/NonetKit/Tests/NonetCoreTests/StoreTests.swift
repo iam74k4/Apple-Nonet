@@ -253,15 +253,14 @@ struct StoreFileTests {
     func preservedOriginalIsReportedOnce() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
             let store = ConfigurationStore(directory: directory)
-            _ = ConfigurationStore.takeLastPreservedOriginal()
             let future = #"{"version": 2, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": []}]}]}"#
             try Data(future.utf8).write(to: store.fileURL)
             _ = try store.load()
-            #expect(ConfigurationStore.takeLastPreservedOriginal()?.lastPathComponent == "configuration.v2.json")
-            #expect(ConfigurationStore.takeLastPreservedOriginal() == nil)
+            #expect(store.takeLastPreservedOriginal()?.lastPathComponent == "configuration.v2.json")
+            #expect(store.takeLastPreservedOriginal() == nil)
             // 同じファイルを読み直しても（写しはもうある）知らせない
             _ = try store.load()
-            #expect(ConfigurationStore.takeLastPreservedOriginal() == nil)
+            #expect(store.takeLastPreservedOriginal() == nil)
         }
     }
 
