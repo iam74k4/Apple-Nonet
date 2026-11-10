@@ -236,6 +236,55 @@ struct StoreFileTests {
         }
     }
 
+    @Test("この版では読めない新しい版のファイルは、壊れたものとせず、手を付けずに写しを残して writtenByNewerVersion")
+    func newerVersionThatDoesNotDecode() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let future = #"{"version": 3, "profiles": "新しい形"}"#
+            try Data(future.utf8).write(to: store.fileURL)
+            #expect(throws: ConfigurationStoreError.writtenByNewerVersion(3)) { try store.load() }
+            #expect(try String(contentsOf: store.fileURL, encoding: .utf8) == future)
+            #expect(try String(contentsOf: directory.appending(path: "configuration.v3.json"), encoding: .utf8) == future)
+            #expect(try !ModelFixtures.fileNames(in: directory).contains { $0.hasPrefix("configuration.corrupt") })
+        }
+    }
+
+    @Test("新しい版のファイルや失う値のあるファイルの原本を新しく残したときだけ、その場所を一度だけ知らせる")
+    func preservedOriginalIsReportedOnce() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            _ = ConfigurationStore.takeLastPreservedOriginal()
+            let future = #"{"version": 2, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": []}]}]}"#
+            try Data(future.utf8).write(to: store.fileURL)
+            _ = try store.load()
+            #expect(ConfigurationStore.takeLastPreservedOriginal()?.lastPathComponent == "configuration.v2.json")
+            #expect(ConfigurationStore.takeLastPreservedOriginal() == nil)
+            // 同じファイルを読み直しても（写しはもうある）知らせない
+            _ = try store.load()
+            #expect(ConfigurationStore.takeLastPreservedOriginal() == nil)
+        }
+    }
+
+    @Test("configuration.json がシンボリックリンクなら、指す先に書く。指す先が無ければ読めないもの（初回の設定で置き換えない）")
+    func symbolicLinkedFile() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let elsewhere = directory.appending(path: "dotfiles", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+            let target = elsewhere.appending(path: "nonet.json")
+            try store.save(ModelFixtures.configuration(), now: Date())
+            try FileManager.default.moveItem(at: store.fileURL, to: target)
+            try FileManager.default.createSymbolicLink(at: store.fileURL, withDestinationURL: target)
+            var changed = try #require(try store.load())
+            changed.settings.isEnabled.toggle()
+            try store.save(changed)
+            #expect(ConfigurationStore.isSymbolicLink(store.fileURL))
+            #expect(try ConfigurationStore(directory: directory).load()?.settings.isEnabled == changed.settings.isEnabled)
+            try FileManager.default.removeItem(at: target)
+            #expect(throws: ConfigurationStoreError.self) { try store.load() }
+        }
+    }
+
     @Test("2度目のダウングレードでは新しい中身を別の名前で残し、前の原本も消さない")
     func repeatedDowngrade() throws {
         try ModelFixtures.withTemporaryDirectory { directory throws in
@@ -615,6 +664,13 @@ struct StoreProfileDocumentTests {
         #expect(importedCellIDs.count == configuration.modelCellIDs.count)
     }
 
+    @Test("書き出したものを読み込むと、中身を落としたプロファイルは無い")
+    func faithfulExportIsComplete() throws {
+        let profiles = ModelFixtures.configuration().validated().profiles
+        let document = try ConfigurationStore.importDocument(from: try ConfigurationStore.exportData(profiles: profiles))
+        #expect(document.incompleteCount == 0)
+    }
+
     @Test("書き出しの書式: format・version・exportedAt・profiles")
     func exportFormat() throws {
         let data = try ConfigurationStore.exportData(profiles: [ModelFixtures.profile(ModelFixtures.safari)])
@@ -675,6 +731,8 @@ struct StoreProfileDocumentTests {
     func importFixture() throws {
         let document = try ConfigurationStore.importDocument(from: Data(Self.document.utf8))
         #expect(document.unreadableCount == 1)
+        // 読めないマスを空きにしたプロファイルは、中身を落としたものとして数える
+        #expect(document.incompleteCount == 1)
         let profiles = document.profiles
         #expect(profiles.map(\.kind) == [
             .app(ModelFixtures.figma),
@@ -699,7 +757,8 @@ struct StoreProfileDocumentTests {
     func importFixtureIntoConfiguration() throws {
         var configuration = ModelFixtures.configuration()
         let result = configuration.importProfiles(try ConfigurationStore.importDocument(from: Data(Self.document.utf8)))
-        #expect(result == NonetConfiguration.ImportResult(added: 1, replaced: 0, replacedGlobal: true, skipped: 4))
+        // 読めないマスを空きにした Figma のプロファイルは、中身を落としたものとして数える
+        #expect(result == NonetConfiguration.ImportResult(added: 1, replaced: 0, replacedGlobal: true, skipped: 4, incomplete: 1))
         #expect(configuration.profiles.map(\.name) == [ModelFixtures.globalName, "Safari", "Xcode", "Figma"])
         #expect(configuration.globalProfile.pages.count == 2)
         #expect(ConfigurationValidationTests.satisfiesInvariants(configuration))

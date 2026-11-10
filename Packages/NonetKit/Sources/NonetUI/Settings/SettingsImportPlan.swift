@@ -95,7 +95,7 @@ struct SettingsImportPlan: Identifiable, Equatable {
             guard let app = profile.app else { return false }
             return Self.existingProfile(for: app, in: configuration) == nil
         }
-        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount)
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: document.unreadableCount, incompleteCount: document.incompleteCount)
     }
 
     /// 読み込みで実際に使われるプロファイルが、スクリプトのマスを含む（読み込んだ後の知らせ）

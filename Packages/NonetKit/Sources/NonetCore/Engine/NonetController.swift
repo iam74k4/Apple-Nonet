@@ -268,6 +268,9 @@ public final class NonetController {
         status = .stopped
     }
 
+    /// 設定を保存しているか（設定ファイルを読めなかった・アンインストールした後は false）
+    public var isSavingConfiguration: Bool { saver.isEnabled }
+
     /// 待っている保存を書いてから、この後の変更を書かない（アンインストールで設定のフォルダをゴミ箱に入れた後に、
     /// メニューで「有効にする」などを変えても、フォルダを作り直さない）。変更はこの起動の間だけ効く
     public func stopSaving() {
@@ -1025,6 +1028,10 @@ public final class NonetController {
         } catch {
             startFromInitialConfiguration(after: error)
             return
+        }
+        // この版では残せない値のある設定だった（新しい版の Nonet で書いた・知らない種類のマス など）。原本の場所を知らせる
+        if let kept = ConfigurationStore.takeLastPreservedOriginal() {
+            notice = String(localized: "設定ファイルに、この版の Nonet では使えない中身がありました。元のファイルは「\(kept.lastPathComponent)」として残しています。", bundle: .module)
         }
         if let loaded {
             configuration = loaded

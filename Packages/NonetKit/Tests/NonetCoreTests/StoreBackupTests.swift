@@ -174,4 +174,67 @@ struct StoreBackupTests {
             #expect(store.backups().count == ConfigurationStore.maxBackups)
         }
     }
+
+    /// 時計を進めていた間の控えが1つあっても、時計を戻した後の保存のたびに控えを残さず、本当の控えを消さない
+    @Test("時計を進めていた間の控えがあっても、本当の控えの履歴を消さない")
+    func aFutureBackupDoesNotWipeTheHistory() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            try store.save(configuration(profileName: "start"), now: Self.start)
+            for hour in 1...5 {
+                try store.save(configuration(profileName: "h\(hour)"), now: Self.start + Double(hour) * 3600 + 10)
+            }
+            #expect(store.backups().count == 5)
+            // 時計を1年進めて1回変えた
+            try store.save(configuration(profileName: "future"), now: Self.start + 365 * 86_400)
+            // 時計を戻してから、続けて変えた（1時間たっていない）
+            for edit in 1...9 {
+                try store.save(configuration(profileName: "e\(edit)"), now: Self.start + 6 * 3600 + Double(edit))
+            }
+            let real = store.backups().filter { $0.date <= Self.start + 6 * 3600 + 9 }
+            #expect(real.count == 5)
+        }
+    }
+
+    @Test("数を減らすときは、日時が今より後の控えから消す")
+    func pruningDropsFutureBackupsFirst() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            for index in 0..<(ConfigurationStore.maxBackups - 1) {
+                _ = store.makeBackup(of: configuration(profileName: "real \(index)"), reason: .automatic, now: Self.start + Double(index))
+            }
+            let future = try #require(store.makeBackup(of: configuration(profileName: "future"), reason: .automatic, now: Self.start + 365 * 86_400))
+            _ = store.makeBackup(of: configuration(profileName: "real later"), reason: .beforeImport, now: Self.start + 100)
+            #expect(!store.backups().contains(future))
+            #expect(store.backups().count == ConfigurationStore.maxBackups)
+        }
+    }
+
+    @Test("戻す前の控えを残すときに、戻す控え（いちばん古いもの）を消さない")
+    func restoringKeepsTheRestoredBackup() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            for index in 0..<ConfigurationStore.maxBackups {
+                _ = store.makeBackup(of: configuration(profileName: "b\(index)"), reason: .automatic, now: Self.start + Double(index))
+            }
+            let oldest = try #require(store.backups().last)
+            _ = store.makeBackup(of: configuration(profileName: "before restore"), reason: .beforeRestoring, now: Self.start + 100, alsoKeeping: oldest)
+            #expect(store.backups().contains(oldest))
+            #expect(store.backups().count == ConfigurationStore.maxBackups)
+        }
+    }
+
+    @Test("戻すときに、この版では失う値のある控えなら、原本を設定のフォルダに残す（一覧を読むだけでは残さない）")
+    func restoringALossyBackupKeepsItsOriginal() throws {
+        try ModelFixtures.withTemporaryDirectory { directory throws in
+            let store = ConfigurationStore(directory: directory)
+            let backup = try #require(store.makeBackup(of: configuration(), reason: .automatic, now: Self.start))
+            let lossy = #"{"version": 1, "settings": {"newThing": 1}, "profiles": [{"kind": {"type": "global"}, "pages": [{"cells": [{"title": "未来", "action": {"type": "hologram"}}]}]}]}"#
+            try Data(lossy.utf8).write(to: backup.url)
+            _ = try store.loadBackup(backup)
+            #expect(try !ModelFixtures.fileNames(in: directory).contains { $0.hasPrefix("configuration.lossy") })
+            _ = try store.loadBackup(backup, preservingOriginal: true)
+            #expect(try ModelFixtures.fileNames(in: directory).contains { $0.hasPrefix("configuration.lossy") })
+        }
+    }
 }

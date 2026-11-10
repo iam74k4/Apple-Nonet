@@ -264,8 +264,13 @@ final class SettingsModel {
 
     /// 控えの読み書き先。決めていなければ、NonetController が読み込んだ設定の場所（ConfigurationStore.lastLoadedDirectory）。
     /// どちらも無ければ控えは使わない（テストで本物の場所に書かないように）
+    /// 設定を保存していない間（設定ファイルを読めなかった・アンインストールした後）は使わない。今の設定は代わりの初期の設定で、
+    /// その控えを残すと、数を減らすときに本当の控え（読めない設定を戻せる唯一の写し）から消してしまう
     var backupStore: ConfigurationStore? {
-        get { explicitBackupStore ?? ConfigurationStore.lastLoadedDirectory.map { ConfigurationStore(directory: $0) } }
+        get {
+            guard controller.isSavingConfiguration else { return nil }
+            return explicitBackupStore ?? ConfigurationStore.lastLoadedDirectory.map { ConfigurationStore(directory: $0) }
+        }
         set { explicitBackupStore = newValue }
     }
 

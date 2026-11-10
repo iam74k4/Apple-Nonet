@@ -289,7 +289,7 @@ extension SettingsModel {
         guard let store = backupStore else { return }
         let restored: NonetConfiguration
         do {
-            restored = try store.loadBackup(backup)
+            restored = try store.loadBackup(backup, preservingOriginal: true)
         } catch {
             settingsLog.error("控えを読めませんでした: \(error.localizedDescription, privacy: .public)")
             fileMessage = SettingsMessage(text: SettingsText.fileError(error, reading: true), isError: true)
@@ -299,7 +299,7 @@ extension SettingsModel {
         finishRecording()
         editGroup = nil
         // 戻す前の設定を控えに残せなければ、戻さない（残したと言って、今の設定を失わないように）
-        guard store.makeBackup(of: configuration, reason: .beforeRestoring) != nil else {
+        guard store.makeBackup(of: configuration, reason: .beforeRestoring, alsoKeeping: backup) != nil else {
             fileMessage = SettingsMessage(
                 text: String(localized: "今の設定を控えに残せなかったので、戻しませんでした。ディスクの空きと、設定のフォルダに書き込めるかを確かめてください。", bundle: .module),
                 isError: true

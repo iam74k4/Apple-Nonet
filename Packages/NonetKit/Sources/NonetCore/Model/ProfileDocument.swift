@@ -57,8 +57,30 @@ struct ProfileDocument: Encodable {
         if unreadable > 0 {
             modelLogger.warning("読み込んだプロファイルのうち \(unreadable) 個を読めなかった")
         }
+        let incomplete = incompleteCount(in: data, decoded: body.profiles.map(\.value))
+        if incomplete > 0 {
+            modelLogger.warning("読み込んだプロファイルのうち \(incomplete) 個は、中身の一部を読めなかった")
+        }
         guard profiles.contains(where: isUsable) else { throw ConfigurationStoreError.noProfiles }
-        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable)
+        return ConfigurationStore.ImportedProfiles(profiles: profiles, unreadableCount: unreadable, incompleteCount: incomplete)
+    }
+
+    /// 読めたプロファイルのうち、ファイルにあった値をこの版では残せないもの（知らない種類のマスが空きマスになる・
+    /// 多すぎるページやマスを落とす など）の数。書き出したときと同じ形にして、元の値がすべて残るかで決める
+    private static func incompleteCount(in data: Data, decoded: [Profile?]) -> Int {
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let raw = root["profiles"] as? [Any], raw.count == decoded.count else { return 0 }
+        var count = 0
+        for (original, profile) in zip(raw, decoded) {
+            guard let profile else { continue }
+            guard let saved = try? ModelJSON.makeEncoder().encode(profile.normalizedForStorage()),
+                  let savedObject = try? JSONSerialization.jsonObject(with: saved),
+                  JSONContent.isPreserved(original, in: savedObject) else {
+                count += 1
+                continue
+            }
+        }
+        return count
     }
 
     /// 設定に加えられるプロファイル（グローバルか、bundleID のあるアプリ）

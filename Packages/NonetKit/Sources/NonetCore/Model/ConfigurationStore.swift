@@ -23,6 +23,16 @@ public struct ConfigurationStore: Sendable {
         directory.appending(path: "configuration.json", directoryHint: .notDirectory)
     }
 
+    /// 書く先。configuration.json がシンボリックリンクなら、その指す先（アトミックに書くとリンクそのものが普通のファイルに置き換わり、
+    /// 指す先が古いまま残る）
+    var writeURL: URL {
+        Self.isSymbolicLink(fileURL) ? fileURL.resolvingSymlinksInPath() : fileURL
+    }
+
+    static func isSymbolicLink(_ url: URL) -> Bool {
+        (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path(percentEncoded: false))) != nil
+    }
+
     /// save() の直前に保存されていた版
     var backupFileURL: URL {
         directory.appending(path: "configuration.backup.json", directoryHint: .notDirectory)
@@ -45,6 +55,17 @@ public struct ConfigurationStore: Sendable {
     }
 
     private static let loadedDirectory = OSAllocatedUnfairLock<URL?>(initialState: nil)
+
+    /// 最後の load() で、この版では残せない値のある原本（新しい版の Nonet で書いたもの・失う値のあるもの）を新しく残した場所。
+    /// 取ると消える（起動のたびに同じことを知らせない）。古い版からのふつうの移行では残すが、ここには入れない
+    public static func takeLastPreservedOriginal() -> URL? {
+        preservedOriginal.withLock { url in
+            defer { url = nil }
+            return url
+        }
+    }
+
+    private static let preservedOriginal = OSAllocatedUnfairLock<URL?>(initialState: nil)
 
     public func save(_ configuration: NonetConfiguration) throws {
         try save(configuration, now: Date())
@@ -92,7 +113,7 @@ public struct ConfigurationStore: Sendable {
         }
 
         do {
-            try data.write(to: fileURL, options: .atomic)
+            try data.write(to: writeURL, options: .atomic)
         } catch {
             modelLogger.error("設定を保存できない: \(error.localizedDescription, privacy: .public)")
             throw ConfigurationStoreError.writeFailed(reason: error.localizedDescription)
@@ -122,10 +143,13 @@ public struct ConfigurationStore: Sendable {
         public var profiles: [Profile]
         /// 読めなかったプロファイル（新しい版の Nonet の種類など）の数
         public var unreadableCount: Int
+        /// 読めたが、この版では読めない中身（新しい版の種類のマス・多すぎるページなど）を落としたプロファイルの数
+        public var incompleteCount: Int
 
-        public init(profiles: [Profile], unreadableCount: Int = 0) {
+        public init(profiles: [Profile], unreadableCount: Int = 0, incompleteCount: Int = 0) {
             self.profiles = profiles
             self.unreadableCount = unreadableCount
+            self.incompleteCount = incompleteCount
         }
     }
 }
@@ -192,46 +216,61 @@ extension ConfigurationStore {
 
     /// 設定を控えに残す（削除や読み込みの前など）。いちばん新しい控えと同じ中身なら、新しく書かずにそれを返す。
     /// 書けなければ nil（控えが作れなくても、続く操作は止めない）
+    /// alsoKeeping の控え（戻すときの、戻す控え）は、数を減らすときに消さない
     @discardableResult
-    public func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason) -> ConfigurationBackup? {
-        makeBackup(of: configuration, reason: reason, now: Date())
+    public func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason, alsoKeeping kept: ConfigurationBackup? = nil) -> ConfigurationBackup? {
+        makeBackup(of: configuration, reason: reason, now: Date(), alsoKeeping: kept)
     }
 
     @discardableResult
-    func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason, now: Date) -> ConfigurationBackup? {
+    func makeBackup(of configuration: NonetConfiguration, reason: ConfigurationBackup.Reason, now: Date, alsoKeeping kept: ConfigurationBackup? = nil) -> ConfigurationBackup? {
         guard let data = try? ModelJSON.makeEncoder().encode(configuration.validated()) else {
             modelLogger.error("控えに残す設定を JSON にできない")
             return nil
         }
-        return writeBackup(data, reason: reason, now: now)
+        return writeBackup(data, reason: reason, now: now, alsoKeeping: kept?.url)
     }
 
-    /// 控えの設定。古い版のものは移行し、validated() してから返す
-    public func loadBackup(_ backup: ConfigurationBackup) throws -> NonetConfiguration {
+    /// 控えの設定。古い版のものは移行し、validated() してから返す。
+    /// preservingOriginal なら（戻すとき）、版の違う控えや、この版では失う値のある控えの原本を、設定のフォルダに残す
+    /// （load() と同じ。戻した後の保存と控えの整理で、原本が消えないように）
+    public func loadBackup(_ backup: ConfigurationBackup, preservingOriginal: Bool = false) throws -> NonetConfiguration {
         let data: Data
         do {
             data = try Data(contentsOf: backup.url)
         } catch {
             throw ConfigurationStoreError.readFailed(reason: error.localizedDescription)
         }
+        let decoded: (configuration: NonetConfiguration, fileVersion: Int)
         do {
-            return try Self.decodeConfiguration(from: data).configuration.validated()
+            decoded = try Self.decodeConfiguration(from: data)
         } catch {
             throw ConfigurationStoreError.corrupted(movedTo: nil, reason: Self.describe(error))
         }
+        let configuration = decoded.configuration.validated()
+        if preservingOriginal {
+            if decoded.fileVersion != NonetConfiguration.currentVersion {
+                preserveOriginal(data, family: "configuration.v\(decoded.fileVersion)", preferPlainName: true)
+            } else if Self.losesContent(data, whenSaving: configuration) {
+                preserveOriginal(data, family: "configuration.lossy", preferPlainName: false)
+            }
+        }
+        return configuration
     }
 
     /// save() で今のファイル（変える前の設定）を控えに残す。いちばん新しい控えから automaticBackupInterval 経っていなければ残さない
     /// （時計が戻っていたら残す）
+    /// 日時が now より後の控え（時計を進めていた間のもの）は数えない。数えると、時計を戻した後は保存のたびに控えを残し、
+    /// 数を減らすときに本当の控えから消していく
     func makeAutomaticBackupIfDue(_ current: Data, now: Date) {
-        if let newest = backups().first, now >= newest.date, now.timeIntervalSince(newest.date) < Self.automaticBackupInterval {
+        if let newest = backups().first(where: { $0.date <= now }), now.timeIntervalSince(newest.date) < Self.automaticBackupInterval {
             return
         }
         writeBackup(current, reason: .automatic, now: now)
     }
 
     @discardableResult
-    private func writeBackup(_ data: Data, reason: ConfigurationBackup.Reason, now: Date) -> ConfigurationBackup? {
+    private func writeBackup(_ data: Data, reason: ConfigurationBackup.Reason, now: Date, alsoKeeping kept: URL? = nil) -> ConfigurationBackup? {
         let existing = backups()
         if let newest = existing.first, (try? Data(contentsOf: newest.url)) == data {
             return newest
@@ -253,7 +292,7 @@ extension ConfigurationStore {
             }
             try data.write(to: url, options: .atomic)
             modelLogger.info("設定の控えを残した: \(url.lastPathComponent, privacy: .public)")
-            pruneBackups(keeping: url)
+            pruneBackups(keeping: [url] + (kept.map { [$0] } ?? []), now: now)
             return ConfigurationBackup(url: url, date: Self.parseBackupName(url.lastPathComponent)?.date ?? now, reason: reason)
         } catch {
             modelLogger.error("設定の控えを残せない: \(error.localizedDescription, privacy: .public)")
@@ -261,12 +300,14 @@ extension ConfigurationStore {
         }
     }
 
-    /// 古い控えを消し、maxBackups 個にする。いま書いた控えは消さない（時計が進んでいた間の控えがあると、
-    /// 日時で並べたときにいま書いた控えが古い方に回り、書いたそばから消してしまうため）
-    private func pruneBackups(keeping kept: URL) {
-        let keptPath = kept.standardizedFileURL.path
-        let others = backups().filter { $0.url.standardizedFileURL.path != keptPath }
-        for old in others.dropFirst(Self.maxBackups - 1) {
+    /// 古い控えを消し、maxBackups 個にする。kept（いま書いた控えと、戻す控え）は消さない（時計が進んでいた間の控えがあると、
+    /// 日時で並べたときにいま書いた控えが古い方に回り、書いたそばから消してしまうため）。
+    /// 日時が now より後の控えは、本当の控えより先に消す（時計を戻した後に、本当の履歴から消していかないように）
+    private func pruneBackups(keeping kept: [URL], now: Date) {
+        let keptPaths = Set(kept.map(\.standardizedFileURL.path))
+        let others = backups().filter { !keptPaths.contains($0.url.standardizedFileURL.path) }
+        let ordered = others.filter { $0.date <= now } + others.filter { $0.date > now }
+        for old in ordered.dropFirst(max(0, Self.maxBackups - keptPaths.count)) {
             do {
                 try FileManager.default.removeItem(at: old.url)
             } catch {
@@ -325,6 +366,12 @@ extension ConfigurationStore {
         do {
             data = try Data(contentsOf: fileURL)
         } catch CocoaError.fileReadNoSuchFile, CocoaError.fileNoSuchFile {
+            // 指す先の無いシンボリックリンク（外付けのディスクがまだつながっていないなど）は、初めての起動ではない。
+            // 初回の設定で置き換えないよう、読めないものとして扱う
+            if Self.isSymbolicLink(fileURL) {
+                modelLogger.error("設定ファイルのシンボリックリンクの指す先がない")
+                throw ConfigurationStoreError.readFailed(reason: "symbolic link target is missing")
+            }
             return nil
         } catch {
             modelLogger.error("設定ファイルを読めない: \(error.localizedDescription, privacy: .public)")
@@ -335,6 +382,13 @@ extension ConfigurationStore {
         do {
             decoded = try Self.decodeConfiguration(from: data, currentVersion: currentVersion, steps: steps)
         } catch {
+            // 新しい版の Nonet で書いたファイルは、壊れているのではない。その版に戻したときに使えるよう残し、
+            // この版では保存しない（初期の設定で置き換えない）
+            if let version = try? ConfigurationMigration.version(of: data), version > currentVersion {
+                preserveOriginal(data, family: "configuration.v\(version)", preferPlainName: true)
+                modelLogger.error("新しい版（\(version)）の設定ファイルで、この版では読めない")
+                throw ConfigurationStoreError.writtenByNewerVersion(version)
+            }
             let reason = Self.describe(error)
             let movedTo = moveCorruptFileAside()
             modelLogger.error("設定ファイルが壊れている（\(reason, privacy: .public)）。退避先: \(movedTo?.lastPathComponent ?? "なし", privacy: .public)")
@@ -344,12 +398,18 @@ extension ConfigurationStore {
         let configuration = decoded.configuration.validated()
         // 次の save() で原本は configuration.backup.json に移り、その次の save() で消える。
         // 原本にしか無い値が消えないよう、ここで別の名前で残す
+        var kept: URL?
+        var wroteNew = false
         if decoded.fileVersion != currentVersion {
             // 版の違う Nonet で書いたファイル。その版に戻したときに使えるように
-            preserveOriginal(data, family: "configuration.v\(decoded.fileVersion)", preferPlainName: true)
+            kept = preserveOriginal(data, family: "configuration.v\(decoded.fileVersion)", preferPlainName: true, isNew: &wroteNew)
+            // 古い版からの移行は、ふつうのこと。新しい版のもの（この版では残せない値があるかもしれない）だけ知らせる
+            if decoded.fileVersion < currentVersion { kept = nil }
         } else if Self.losesContent(data, whenSaving: configuration) {
-            preserveOriginal(data, family: "configuration.lossy", preferPlainName: false)
+            kept = preserveOriginal(data, family: "configuration.lossy", preferPlainName: false, isNew: &wroteNew)
         }
+        let notice = wroteNew ? kept : nil
+        Self.preservedOriginal.withLock { $0 = notice }
         return configuration
     }
 
@@ -401,6 +461,14 @@ extension ConfigurationStore {
     /// 残したファイル（すでにあったものを含む）。残せなければ nil
     @discardableResult
     func preserveOriginal(_ data: Data, family: String, preferPlainName: Bool) -> URL? {
+        var isNew = false
+        return preserveOriginal(data, family: family, preferPlainName: preferPlainName, isNew: &isNew)
+    }
+
+    /// isNew は、新しく書いたら true（同じ中身の写しがすでにあれば false）
+    @discardableResult
+    func preserveOriginal(_ data: Data, family: String, preferPlainName: Bool, isNew: inout Bool) -> URL? {
+        isNew = false
         if let existing = existingCopy(of: data, family: family) {
             return existing
         }
@@ -411,6 +479,7 @@ extension ConfigurationStore {
         do {
             try data.write(to: destination, options: .atomic)
             modelLogger.notice("設定ファイルの原本を \(destination.lastPathComponent, privacy: .public) に残した")
+            isNew = true
             return destination
         } catch {
             modelLogger.error("設定ファイルの原本を残せない: \(error.localizedDescription, privacy: .public)")
@@ -463,6 +532,8 @@ public enum ConfigurationStoreError: Error, Equatable, LocalizedError, Sendable 
     case readFailed(reason: String)
     /// 設定ファイルが壊れていた。上書きしないよう movedTo に移した（移せなかったら nil）
     case corrupted(movedTo: URL?, reason: String)
+    /// 新しい版の Nonet で書いた設定ファイルで、この版では読めない。ファイルには手を付けず、写しも残した
+    case writtenByNewerVersion(Int)
     /// 設定を保存できなかった
     case writeFailed(reason: String)
     /// 書き出せなかった
@@ -484,6 +555,8 @@ public enum ConfigurationStoreError: Error, Equatable, LocalizedError, Sendable 
             String(localized: "設定ファイルが壊れていたため読み込めませんでした。元のファイルは「\(movedTo.lastPathComponent)」として残しています。", bundle: .module)
         case .corrupted(nil, _):
             String(localized: "設定ファイルが壊れていたため読み込めませんでした", bundle: .module)
+        case .writtenByNewerVersion:
+            String(localized: "新しい版の Nonet で保存した設定のため、読み込めませんでした。Nonet をアップデートしてください", bundle: .module)
         case .writeFailed:
             String(localized: "設定を保存できませんでした", bundle: .module)
         case .exportFailed:

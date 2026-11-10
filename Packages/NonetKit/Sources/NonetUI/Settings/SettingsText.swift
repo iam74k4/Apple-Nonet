@@ -178,6 +178,9 @@ enum SettingsText {
         if result.skipped > 0 {
             lines.append(String(localized: "\(result.skipped)個は重なっていたか読めなかったため、読み込みませんでした。", bundle: .module, locale: .nonetUI))
         }
+        if result.incomplete > 0 {
+            lines.append(String(localized: "\(result.incomplete)個のプロファイルには、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その分を空きマスにして読み込みました。", bundle: .module, locale: .nonetUI))
+        }
         if containsScripts, result.appliedCount > 0 {
             lines.append(String(localized: "スクリプトを含むマスがあります。実行する前に中身を確かめてください。", bundle: .module))
         }

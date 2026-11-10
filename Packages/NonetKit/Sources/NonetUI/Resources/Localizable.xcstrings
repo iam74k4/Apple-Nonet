@@ -461,6 +461,28 @@
         }
       }
     },
+    "%lld個のプロファイルには、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その分を空きマスにして読み込みました。" : {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld profile had content this version of Nonet can't read (such as button types added in a newer version), so those parts were imported as empty buttons."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts were imported as empty buttons."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld個のプロファイルを「%@」に書き出しました。" : {
       "localizations" : {
         "en" : {

@@ -364,12 +364,15 @@ extension NonetConfiguration {
         public var replacedGlobal: Bool
         /// 同じアプリの重複・bundleID の無いアプリ・読めなかったプロファイルなどで使わなかった数
         public var skipped: Int
+        /// 読み込んだが、この版では読めない中身を落とした（知らない種類のマスを空きマスにした など）プロファイルの数
+        public var incomplete: Int
 
-        public init(added: Int = 0, replaced: Int = 0, replacedGlobal: Bool = false, skipped: Int = 0) {
+        public init(added: Int = 0, replaced: Int = 0, replacedGlobal: Bool = false, skipped: Int = 0, incomplete: Int = 0) {
             self.added = added
             self.replaced = replaced
             self.replacedGlobal = replacedGlobal
             self.skipped = skipped
+            self.incomplete = incomplete
         }
 
         /// 設定に反映したプロファイルの数
@@ -431,6 +434,7 @@ extension NonetConfiguration {
     public mutating func importProfiles(_ document: ConfigurationStore.ImportedProfiles) -> ImportResult {
         var result = importProfiles(document.profiles)
         result.skipped += max(document.unreadableCount, 0)
+        result.incomplete = min(max(document.incompleteCount, 0), result.appliedCount)
         return result
     }
 }

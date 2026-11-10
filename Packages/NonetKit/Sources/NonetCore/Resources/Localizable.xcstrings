@@ -2606,6 +2606,16 @@
         }
       }
     },
+    "新しい版の Nonet で保存した設定のため、読み込めませんでした。Nonet をアップデートしてください" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The settings were saved by a newer version of Nonet and couldn't be read. Please update Nonet"
+          }
+        }
+      }
+    },
     "新しい版の Nonet で書き出されたファイルです。Nonet をアップデートしてください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3402,6 +3412,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't load the settings file because it was damaged. The original file was kept as “%@”."
+          }
+        }
+      }
+    },
+    "設定ファイルに、この版の Nonet では使えない中身がありました。元のファイルは「%@」として残しています。" : {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The settings file had content this version of Nonet can't use. The original file is kept as “%@”."
           }
         }
       }
