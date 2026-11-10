@@ -27,6 +27,13 @@ final class FrameWriter: NSObject, SCStreamOutput {
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
                 AVVideoMaxKeyFrameIntervalKey: 60,
             ],
+            // 色: 画面を sRGB で受け取り（下の colorSpaceName）、動画にも「伝達関数は sRGB」と書く。既定のままだと、
+            // 暗い色が持ち上がって色みも抜け（#222226 の背景が #2B2B2B に見える）、同じ背景の静止画と色がそろわない
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ],
         ])
         input.expectsMediaDataInRealTime = true
         writer.add(input)
@@ -119,6 +126,7 @@ struct RecordScreen {
             configuration.height = outHeight
             configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
             configuration.pixelFormat = kCVPixelFormatType_32BGRA
+            configuration.colorSpaceName = CGColorSpace.sRGB
             configuration.showsCursor = false
             let output = try FrameWriter(url: url, width: outWidth, height: outHeight, bitrate: bitrate, skip: skip)
             let stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: configuration, delegate: nil)
