@@ -100,6 +100,32 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
     }
 
+    @Test("練習の画面のまま開いていても、メニューの「アクセシビリティを許可…」では許可の画面に戻す")
+    func reopeningForPermissionGoesBackToTheFirstStep() {
+        let (model, harness) = Self.make(granted: false)
+        model.next()
+        #expect(model.step == .practice)
+        model.reopen(for: .guide)
+        #expect(model.step == .practice)
+        model.reopen(for: .permission(remindsAtLaunch: false))
+        #expect(model.step == .welcome)
+        #expect(model.purpose == .permission(remindsAtLaunch: false))
+
+        // 起動したときの案内（「今後表示しない」を出す）として開いていたら、それは消さない
+        let (reminding, _) = Self.make(granted: false)
+        reminding.purpose = .permission(remindsAtLaunch: true)
+        reminding.next()
+        reminding.reopen(for: .permission(remindsAtLaunch: false))
+        #expect(reminding.step == .welcome)
+        #expect(reminding.purpose == .permission(remindsAtLaunch: true))
+
+        // もう許可されていれば、練習の画面のまま
+        model.next()
+        harness.permissions.isAccessibilityGranted = true
+        model.reopen(for: .permission(remindsAtLaunch: false))
+        #expect(model.step == .practice)
+    }
+
     @Test("最初から許可されていれば待たずに次へ進める（自動では進まない）")
     func alreadyGranted() {
         let (model, _) = Self.make(granted: true)

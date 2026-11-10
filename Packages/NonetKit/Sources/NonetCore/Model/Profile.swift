@@ -30,6 +30,14 @@ public struct Cell: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+extension Cell {
+    /// HUD・トースト・結果のパネル・最近の実行に出す名前。表示名が空（空白だけを含む）なら、アクションの説明
+    /// （利用ガイドの「表示名が空のときは、中身から自動で付けた名前を使います」。設定画面は SettingsGrid.displayTitle）
+    public var displayTitle: String {
+        title.trimmedNonEmpty == nil ? action.summary : title
+    }
+}
+
 /// 3×3 の1ページ。cells は常に9個で、左上から右へ、上の行から並ぶ。nil は空きマス
 public struct Page: Codable, Equatable, Sendable {
     public static let cellCount = 9

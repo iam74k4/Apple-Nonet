@@ -140,6 +140,8 @@ public final class NonetController {
     @ObservationIgnored private var isHUDVisible = false
     /// 開いている間の、HUD の枠（円を囲む正方形。主画面の左上が原点、y が下向き。HUDPresenting.show が返す）。ポインタの位置をこの枠の中心からの向きと距離でマスに写す
     @ObservationIgnored private var hudMapFrame: CGRect?
+    /// HUD を出した（ポインタを円の中心へ動かした）時刻。これより前に受け取ったフレームのポインタは、円の中心にいたことにする
+    @ObservationIgnored private var hudShownAt: TimeInterval?
     /// ポインタの位置をマスに写す（ヒステリシスのために直前の場所を持つ）。開くたびに作り直す
     @ObservationIgnored private var pointerSelection = ControllerPointerSelection()
     /// 最後に HUD に渡したエンジンの状態。ポインタが中央から出た（HUDModel.isWaitingAtCenter が変わる）のに
@@ -414,6 +416,18 @@ public final class NonetController {
 
     // MARK: - 開く
 
+    /// 開いている間に、フレームの指の位置にするポインタの位置。トラックパッドのスレッドで受け取ったときの位置（TouchFrame.pointer）を使う:
+    /// メインスレッドが止まってまとめて届いたとき、届いたときの位置を古いフレームにも使うと、ポインタがマスにいなかった間も
+    /// そこで止めていたことになり、少し長く止めるマスまで止めずに実行してしまう。
+    /// HUD を出す（ポインタを円の中心へ動かす）より前に受け取ったフレームは、円の中心（開いた直後と同じ）。位置が無ければ今の位置
+    private func sessionPointer(for frame: TouchFrame, map: CGRect) -> CGPoint? {
+        guard let captured = frame.pointer else { return services.keyboard.pointerLocation }
+        if let shownAt = hudShownAt, frame.timestamp < shownAt {
+            return ControllerPointerSelection.startPoint(in: map)
+        }
+        return captured
+    }
+
     /// トラックパッドのフレーム。エンジンに渡してから、開く動きを見る（開いたとき、エンジンはこのフレームの指で選び始める）
     private func receiveTouches(_ frame: TouchFrame) {
         let touching = !frame.touching.isEmpty
@@ -429,7 +443,7 @@ public final class NonetController {
             send(.interrupted(at: frame.timestamp))
         }
         // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
-        let pointer = hudMapFrame != nil && engine.isInSession ? services.keyboard.pointerLocation : nil
+        let pointer = engine.isInSession ? hudMapFrame.flatMap { sessionPointer(for: frame, map: $0) } : nil
         let wasWaitingAtCenter = pointerSelection.isWaitingAtCenter
         send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
         // 中央から出たのにエンジンの状態が変わらなかった（外枠のまま）ときも、HUD の「開いた直後」の見た目を解く
@@ -598,6 +612,7 @@ public final class NonetController {
             services.windowPlacer.resetPreview()
             lastHUDState = state
             hudMapFrame = hud.show(hudModel(session, state: state))
+            hudShownAt = services.scheduler.now
             isHUDVisible = true
             // 開いたときのポインタは HUD の円の中心。画面の端で枠を寄せてそこに来ていなければ、一度だけそこへ動かす
             if let map = hudMapFrame, let pointer = services.keyboard.pointerLocation {
@@ -702,6 +717,7 @@ public final class NonetController {
             wasHiddenBeforeMoving = pointerSelection.isWaitingAtCenter
         }
         hudMapFrame = nil
+        hudShownAt = nil
         lastHUDState = nil
         pointerSelection = ControllerPointerSelection()
         guard isHUDVisible else { return }
@@ -866,7 +882,7 @@ public final class NonetController {
     @discardableResult
     private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, output: String? = nil, isPractice: Bool = false) -> ExecutionRecord {
         let record = ExecutionRecord(
-            cellTitle: target.cell.title,
+            cellTitle: target.cell.displayTitle,
             profileName: target.profileName,
             address: target.address,
             succeeded: succeeded,

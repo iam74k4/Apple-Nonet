@@ -104,7 +104,10 @@ public enum ControllerPresentation {
     }
 
     static func hudCell(_ cell: Cell) -> HUDCell {
-        HUDCell(title: cell.title, icon: cell.icon, detail: detail(for: cell.action), requiresHold: cell.requiresHold)
+        let title = cell.displayTitle
+        // 表示名が空のキー入力のマスは、名前が送るキーそのもの（「⌘B」）。VoiceOver で同じものを2回読ませない
+        let keys = detail(for: cell.action).flatMap { $0 == title ? nil : $0 }
+        return HUDCell(title: title, icon: cell.icon, detail: keys, requiresHold: cell.requiresHold)
     }
 
     /// キー入力のマスだけ「⌘B」のように送るキーを添える
@@ -145,7 +148,7 @@ public enum ControllerPresentation {
     }
 
     static func successToast(_ cell: Cell) -> ToastModel {
-        ToastModel(title: cell.title, icon: cell.icon, style: .success)
+        ToastModel(title: cell.displayTitle, icon: cell.icon, style: .success)
     }
 
     /// 何を実行しようとしたか（どのプロファイルのどのマスか）と、なぜ失敗したか（message）
@@ -156,7 +159,7 @@ public enum ControllerPresentation {
     /// 「Safari › 新しいタブ」。プロファイルのページが複数なら「Safari › 再読み込み（2ページ目）」
     static func failureTitle(_ target: ControllerTarget) -> String {
         let profile = target.profileName
-        let cell = target.cell.title
+        let cell = target.cell.displayTitle
         guard !profile.isEmpty else { return cell }
         guard target.profilePageCount > 1 else {
             return String(localized: "\(profile) › \(cell)", bundle: .module)
@@ -166,11 +169,11 @@ public enum ControllerPresentation {
 
     /// 長く掛かるマスを実行している間のトースト
     static func runningToast(_ cell: Cell) -> ToastModel {
-        ToastModel(title: String(localized: "「\(cell.title)」を実行中…", bundle: .module), icon: cell.icon, style: .running)
+        ToastModel(title: String(localized: "「\(cell.displayTitle)」を実行中…", bundle: .module), icon: cell.icon, style: .running)
     }
 
     static func result(_ cell: Cell, output: String) -> ResultModel {
-        ResultModel(title: cell.title, text: output, icon: cell.icon)
+        ResultModel(title: cell.displayTitle, text: output, icon: cell.icon)
     }
 
     /// NonetCore の文言に実際に使われている言語に、今の地域を合わせたロケール。数の入る文の単数・複数を、文言の言語の規則で選ぶ

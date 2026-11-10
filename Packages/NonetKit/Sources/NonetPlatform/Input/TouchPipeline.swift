@@ -204,7 +204,7 @@ final class TouchPipeline: @unchecked Sendable {
     }
 
     /// どのスレッドから呼んでもよい
-    func receive(deviceID: UInt64, points: [TouchPoint], timestamp: TimeInterval) {
+    func receive(deviceID: UInt64, points: [TouchPoint], timestamp: TimeInterval, pointer: CGPoint? = nil) {
         let touchingCount = points.reduce(0) { $0 + ($1.isTouching ? 1 : 0) }
         let shouldSchedule = state.withLock { state -> Bool in
             let decision = state.selector.accept(device: deviceID, touchingCount: touchingCount, at: timestamp)
@@ -212,7 +212,7 @@ final class TouchPipeline: @unchecked Sendable {
             if decision.liftPrevious {
                 state.coalescer.push(TouchFrame(timestamp: timestamp, points: [], isSynthesizedLift: true))
             }
-            state.coalescer.push(TouchFrame(timestamp: timestamp, points: points))
+            state.coalescer.push(TouchFrame(timestamp: timestamp, points: points, pointer: pointer))
             state.lastDevice = deviceID
             guard !state.drainScheduled else { return false }
             state.drainScheduled = true

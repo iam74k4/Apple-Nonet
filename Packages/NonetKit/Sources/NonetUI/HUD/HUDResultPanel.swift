@@ -247,6 +247,8 @@ final class HUDResultPanelController {
         store.model = result
         store.didCopy = false
         let panel = self.panel ?? makePanel()
+        // 題名は描かない（titleVisibility = .hidden）が、VoiceOver がウィンドウの名前として読む
+        panel.title = result.title
         let size = HUDResultLayout.panelSize(textHeight: HUDResultLayout.textHeight(of: result.text), screen: screen)
         let frame: CGRect
         if panel.isVisible {
@@ -265,9 +267,15 @@ final class HUDResultPanelController {
     func close() {
         copiedResetTimer?.invalidate()
         copiedResetTimer = nil
+        let wasVisible = isVisible
         panel?.orderOut(nil)
         store.model = nil
         store.didCopy = false
+        // このパネルは開いているウィンドウに数える（ShellActivation）ので、出ている間に設定を閉じても前面は返らない。
+        // 最後のウィンドウとして閉じたら、ここで前に使っていたアプリに返す（Nonet が前面でなければ何もしない）
+        if wasVisible {
+            ShellActivation.handBackAfterClosingWindow()
+        }
     }
 
     func copyAll() {

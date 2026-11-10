@@ -48,6 +48,29 @@ import Testing
         #expect(ControllerPresentation.hudCell(F.newTab) == HUDCell(title: F.newTab.title, icon: F.newTab.icon, detail: ControllerPresentation.detail(for: F.newTab.action)))
     }
 
+    /// 表示名の無いマス（「画面に置く」「ファイル」は作ったとき空のまま。消すこともできる）は、HUD・トースト・結果のパネルで
+    /// アクションの説明を名前にする（利用ガイドの「表示名」。「」・「、中央」と出さない）
+    @Test(arguments: ["", "  "])
+    func cellsWithoutANameUseTheActionSummary(title: String) {
+        let place = Cell(title: title, icon: .symbol("macwindow"), action: .placeWindow(PlaceWindowAction(region: .maximize)))
+        let name = WindowRegion.maximize.title
+        #expect(place.displayTitle == name)
+        #expect(ControllerPresentation.hudCell(place).title == name)
+        #expect(ControllerPresentation.successToast(place).title == name)
+        #expect(ControllerPresentation.runningToast(place).title.contains(name))
+        #expect(ControllerPresentation.result(place, output: "x").title == name)
+        let target = ControllerTarget(cell: place, profileName: "Safari", address: CellAddress(page: 0, index: 4))
+        #expect(ControllerPresentation.failureTitle(target).hasSuffix(name))
+
+        // キー入力のマスは名前が送るキーそのものになるので、VoiceOver 用のキーは重ねない
+        let keys = KeySequence.sequence(.key("b", [.command]))
+        let bold = Cell(title: title, icon: .symbol("bold"), action: .keystroke(keys))
+        #expect(ControllerPresentation.hudCell(bold) == HUDCell(title: keys.displayString, icon: .symbol("bold"), detail: nil))
+
+        // 名前があればそのまま
+        #expect(Cell(title: "全画面", icon: .symbol("macwindow"), action: place.action).displayTitle == "全画面")
+    }
+
     /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
     @Test func trialTexts() {
         let ended = ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます。")

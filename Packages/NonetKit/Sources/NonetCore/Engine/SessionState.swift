@@ -55,6 +55,11 @@ struct SessionState: Sendable {
     private var lastTurn: PageEdge?
     /// すべての指が離れた時刻（遅れて届くクリックの判断に使う）
     private var lastLiftAt: TimeInterval?
+    /// 開いている間に、指を置き足した・一部の指を離した最後の時刻（遅れて届くクリックの判断に使う。
+    /// その指のタップ（2本指なら副ボタンのクリック）が、抑止をやめた後に届くことがある）
+    private var lastFingerChangeAt: TimeInterval?
+    /// 直前のフレームで触れていた指の数（指が減ったことを見る）
+    private var fingerCount: Int
 
     /// configuration は sanitized 済みのもの。触れている指が無ければ nil（開けない）
     init?(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker) {
@@ -66,6 +71,7 @@ struct SessionState: Sendable {
         zoneSince = start
         edgeSince = start
         isMultiFinger = tracker.count >= 2
+        fingerCount = tracker.count
         if !isMultiFinger, let finger = tracker.lastPlaced {
             fingerID = finger.id
             lastPosition = finger
@@ -266,6 +272,7 @@ struct SessionState: Sendable {
         let window = SessionEngine.lateClickWindow
         if lastLiftAt == nil, now - touchStart < window { return true }
         if let lastLiftAt, now - lastLiftAt < window { return true }
+        if let lastFingerChangeAt, now - lastFingerChangeAt < window { return true }
         return false
     }
 
@@ -281,6 +288,10 @@ struct SessionState: Sendable {
             // 離すと同時に置いた指（restarted）は、セッションの外の新しいタッチになる
             lift(now: now, effects: &effects)
         case .moved:
+            if tracker.count < fingerCount || !tracker.placedInLastFrame.isEmpty {
+                lastFingerChangeAt = now
+            }
+            fingerCount = tracker.count
             if tracker.count >= 2 {
                 followSeveralFingers(tracker, effects: &effects)
             } else if let finger = tracker.lastPlaced {

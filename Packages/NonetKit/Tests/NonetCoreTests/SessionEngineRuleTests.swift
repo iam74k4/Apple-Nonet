@@ -365,6 +365,28 @@ import Testing
         #expect(s.interrupt(at: 0.3).contains(.endPointerSuppression(dropsLateClicks: true)))
     }
 
+    /// 開いている間に置き足した指・一部だけ離した指も、0.5 秒のうちならタップになりうる（2本指のタップは副ボタンのクリック）
+    @Test func closingSoonAfterAnotherFingerTouchedOrLiftedDropsLateClicks() {
+        var placed = SessionScenario()
+        placed.slideIn(at: 0)
+        placed.touch(on: 4, at: 0.1)
+        placed.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 1.0)
+        #expect(placed.interrupt(at: 1.2).contains(.endPointerSuppression(dropsLateClicks: true)))
+
+        var lifted = SessionScenario()
+        lifted.slideIn(at: 0)
+        lifted.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.1)
+        lifted.setFingers([(1, 0.5, 0.5)], at: 1.0)
+        #expect(lifted.interrupt(at: 1.3).contains(.endPointerSuppression(dropsLateClicks: true)))
+
+        // しばらく前なら捨てない
+        var settled = SessionScenario()
+        settled.slideIn(at: 0)
+        settled.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.1)
+        settled.setFingers([(1, 0.5, 0.5)], at: 0.2)
+        #expect(settled.interrupt(at: 1.0).contains(.endPointerSuppression(dropsLateClicks: false)))
+    }
+
     /// maxDuration（20 秒）を超えたら閉じる（指が離れたフレームを取りこぼしたときの安全装置）
     @Test func aSessionTimesOut() {
         var s = SessionScenario()

@@ -393,6 +393,18 @@ final class OnboardingModel {
         reminder?.isHidden = hides
     }
 
+    /// 開いている案内を、メニューの「アクセシビリティを許可…」でもう一度前に出す。まだ許可が無ければ、許可を求める最初の画面に戻す
+    /// （練習の画面のまま出さない）。初回の案内として開いていたら、見出しも許可を求めるものにする
+    func reopen(for purpose: OnboardingPurpose) {
+        guard case .permission = purpose else { return }
+        if case .guide = self.purpose {
+            self.purpose = purpose
+        }
+        if !permissions.isAccessibilityGranted {
+            go(to: .welcome)
+        }
+    }
+
     // MARK: - 進む・戻る
 
     /// 練習の画面が最後（「完了」「スキップ」はウィンドウが閉じる）

@@ -60,6 +60,12 @@ public final class OnboardingWindowController {
         model.onOpenSettings = { [weak self] tab in self?.onOpenSettings?(tab) }
     }
 
+    /// もう開いている案内を、別の目的で前に出し直す（メニューの「アクセシビリティを許可…」なら許可の画面に戻す）
+    public func show(for purpose: OnboardingPurpose) {
+        model.reopen(for: purpose)
+        show()
+    }
+
     public func show() {
         let window = self.window ?? makeWindow()
         if self.window == nil {

@@ -330,11 +330,14 @@ private let multitouchFrameHandler: CMTFrameHandler = { context, deviceID, touch
     // 時刻は Scheduler と同じ時計（systemUptime）にそろえる。MultitouchSupport の timestamp の時計は確かめていない
     let now = ProcessInfo.processInfo.systemUptime
     var points: [TouchPoint] = []
+    var pointer: CGPoint?
     if let touches, count > 0 {
         let buffer = UnsafeBufferPointer(start: touches, count: min(Int(count), MultitouchContact.maxPerFrame))
         points = TouchPoint.points(from: buffer.lazy.map(MultitouchContact.init))
+        // 開いている間はポインタの位置でマスを選ぶ。届けたとき（メインスレッド）に読むと、まとめて届いた古いフレームまで今の位置になる
+        pointer = CGEvent(source: nil)?.location
     }
-    pipeline.receive(deviceID: deviceID, points: points, timestamp: now)
+    pipeline.receive(deviceID: deviceID, points: points, timestamp: now, pointer: pointer)
 }
 
 // MARK: - 抜き差しの監視

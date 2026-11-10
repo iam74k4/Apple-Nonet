@@ -279,7 +279,7 @@ public enum SessionEffect: Equatable, Sendable {
 /// - すべての指が離れたら終える。光っているマスに liftDwell（少し長く止めるマスは holdDwell）以上留まって1本指で離せば、
 ///   そのマスを実行する。外枠・境界の帯・空きマスで離した・留まる時間が足りない・2本以上で離したなら、何もせずに rejected の触覚
 public struct SessionEngine: Sendable {
-    /// セッションの終わりの前のこの秒数のうちに指が離れたか、この秒数より新しい指がまだ触れていれば、
+    /// セッションの終わりの前のこの秒数のうちに指が離れた（一部の指を含む）か、この秒数より新しい指がまだ触れていれば、
     /// その指の「タップでクリック」が抑止の後に届きうるとみなす（endPointerSuppression の dropsLateClicks）
     public static let lateClickWindow: TimeInterval = 0.5
 

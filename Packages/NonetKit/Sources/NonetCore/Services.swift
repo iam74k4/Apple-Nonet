@@ -31,11 +31,16 @@ public struct TouchFrame: Equatable, Sendable {
     /// 指が離れたフレームではなく、トラックパッドから続きが来なくなったので（切断・スリープ明け・別のトラックパッドに替わった）、
     /// 離れたことにしたフレーム。開いていれば何も実行せずに閉じる（光っていたマスで離したことにしない）
     public var isSynthesizedLift: Bool
+    /// このフレームを受け取ったときのポインタの位置（主画面の左上が原点）。トラックパッドのスレッドで読む。
+    /// メインスレッドが止まってフレームがまとめて届いても、それぞれのフレームの時刻のポインタでマスを選べるように。
+    /// nil なら、届けたときの位置を使う（読めなかった・合成したフレーム・テスト）
+    public var pointer: CGPoint?
 
-    public init(timestamp: TimeInterval, points: [TouchPoint], isSynthesizedLift: Bool = false) {
+    public init(timestamp: TimeInterval, points: [TouchPoint], isSynthesizedLift: Bool = false, pointer: CGPoint? = nil) {
         self.timestamp = timestamp
         self.points = points
         self.isSynthesizedLift = isSynthesizedLift
+        self.pointer = pointer
     }
 
     public var touching: [TouchPoint] { points.filter(\.isTouching) }

@@ -190,6 +190,66 @@ import Testing
         h.keyboard.pressKey()
     }
 
+    /// メインスレッドが止まっている間にトラックパッドのスレッドで受け取ったフレームを、まとめて届ける。
+    /// ポインタは at 秒（開いてから）まで中心の近くにいて、そこから target にいる
+    static func sendBatch(_ h: ControllerHarness, from t0: TimeInterval, arrivesAt target: CGPoint, at arrival: TimeInterval, liftAt lift: TimeInterval) {
+        var stamp = t0 + 0.01
+        while stamp < t0 + lift {
+            let pointer = stamp < t0 + arrival ? Self.pointer(4, 0) : target
+            h.touchSource.send(TouchFrame(timestamp: stamp, points: [TouchPoint(id: 1, x: 0.5, y: 0.5)], pointer: pointer))
+            stamp += 0.02
+        }
+        h.touchSource.send(TouchFrame(timestamp: t0 + lift, points: []))
+    }
+
+    @Test("フレームがまとめて届いても、それぞれを受け取ったときのポインタで選ぶ（ポインタがマスにいなかった間を、止めていたことにしない）")
+    func batchedFramesUseThePointerOfTheirOwnTime() async throws {
+        // 右上の鍵（2）は少し長く止めるマス。止まっている間にそこへ動かし、着いてすぐ離した
+        let h = try ControllerHarness(configuration: ControllerHoldTests.configuration())
+        h.start()
+        h.hud.mapFrame = Self.map
+        h.keyboard.pointerLocation = Self.center
+        h.open()
+        var t0 = h.scheduler.now
+        h.advance(0.6)
+        // 届けるときのポインタは、もう鍵の上
+        h.keyboard.pointerLocation = Self.pointer(76, -76)
+        Self.sendBatch(h, from: t0, arrivesAt: Self.pointer(76, -76), at: 0.48, liftAt: 0.5)
+        await h.settle()
+        #expect(h.performer.actions.isEmpty)
+        #expect(h.controller.lastCancellation != nil)
+
+        // 鍵の上で長く止めていたなら、まとめて届いても実行する
+        h.keyboard.pointerLocation = Self.center
+        h.advance(1)
+        h.open()
+        t0 = h.scheduler.now
+        h.advance(0.8)
+        h.keyboard.pointerLocation = Self.pointer(76, -76)
+        Self.sendBatch(h, from: t0, arrivesAt: Self.pointer(76, -76), at: 0.05, liftAt: 0.7)
+        await h.settle()
+        #expect(h.performer.actions == [ControllerFixtures.closeTab.action])
+    }
+
+    @Test("HUD を出す（ポインタを円の中心へ動かす）より前に受け取ったフレームは、円の中心にいたことにする")
+    func framesFromBeforeTheHUDAppearedCountAsTheCenter() throws {
+        let h = try ControllerHarness()
+        h.start()
+        h.hud.mapFrame = Self.map
+        h.keyboard.pointerLocation = Self.center
+        h.open()
+        let t0 = h.scheduler.now
+        // 開く前の位置（画面の端で枠を寄せる前など）。鍵の上に見えても、選ばない
+        h.touchSource.send(TouchFrame(timestamp: t0 - 0.01, points: [TouchPoint(id: 1, x: 0.5, y: 0.5)], pointer: Self.pointer(76, -76)))
+        #expect(h.hud.current?.isFingerInFrame == true)
+        #expect(h.hud.current?.highlightedIndex == nil)
+        // 出した後に受け取ったフレームは、その位置で選ぶ
+        h.advance(0.02)
+        h.touchSource.send(TouchFrame(timestamp: h.scheduler.now, points: [TouchPoint(id: 1, x: 0.5, y: 0.5)], pointer: Self.pointer(76, -76)))
+        #expect(h.hud.current?.highlightedIndex == 2)
+        h.keyboard.pressKey()
+    }
+
     @Test("ポインタで選ぶとき、開いてすぐ（真ん中から出さずに）離したやめ方は、そうと分かるように記録する（初回の案内の「外枠で離す」に数えない）")
     func liftingBeforeMovingIsRecorded() throws {
         let h = try ControllerHarness()

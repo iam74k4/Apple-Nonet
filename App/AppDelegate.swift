@@ -270,7 +270,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showOnboarding(purpose: OnboardingPurpose = .guide) {
         if let onboardingWindow {
-            onboardingWindow.show()
+            onboardingWindow.show(for: purpose)
             return
         }
         guard let controller, let services else { return }
