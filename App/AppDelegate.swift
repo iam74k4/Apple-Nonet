@@ -121,8 +121,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyDebugOptions()
         #endif
         // Finder などから開くと Nonet が前面になる。ウィンドウを出さない起動なら、前に使っていたアプリに返す
-        // （前面のままだと、打鍵が Nonet に届き、キー入力のマスも止まる）。案内などを出したなら、それを閉じたときに返す
-        if demo == nil {
+        // （前面のままだと、打鍵が Nonet に届き、キー入力のマスも止まる）。案内などを出したなら、それを閉じたときに返す。
+        // Debug の見本（デモ・HUD・トースト・結果のパネル・撮影）はキーにならない窓なので、隠さないよう返さない
+        #if DEBUG
+        let showsPreview = demo != nil || options.previewHUD || options.previewToast || options.previewResult || options.snapshotDirectory != nil
+        #else
+        let showsPreview = false
+        #endif
+        if !showsPreview {
             ShellActivation.handBackAfterClosingWindow()
         }
     }

@@ -3,7 +3,8 @@
 #   1. scripts/ とサイト・ドキュメントのテスト（scripts/tests/run.sh）と、販売ページの Worker のテスト（cloudflare/ の node --test。依存は要らない）
 #   2. NonetKit の swift build と swift test
 #   3. コードの文言がすべて String Catalog にあり、英語の訳があるか（scripts/sync-strings.sh --check。カタログは書き換えない）
-#   4. アプリのビルド（署名なし、Apple シリコンと Intel の両方。DerivedData は build/TestDerivedData）
+#   4. アプリのビルド（署名なし、Apple シリコンと Intel の両方。DerivedData は build/TestDerivedData）。Release の設定でも作る
+#      （#if DEBUG の中にしか無いものを使っていると、リリースの直前まで気づかない）
 #   5. ビルドしたアプリの自己診断（--self-check: 画面を出さずに、プリセット・設定の保存・MultitouchSupport を確かめる）
 set -euo pipefail
 
@@ -46,6 +47,17 @@ xcodebuild build \
   -project "$ROOT/Nonet.xcodeproj" \
   -scheme Nonet \
   -configuration Debug \
+  -destination 'generic/platform=macOS' \
+  -derivedDataPath "$ROOT/build/TestDerivedData" \
+  -quiet \
+  CODE_SIGNING_ALLOWED=NO
+
+# リリースの設定でもコンパイルできるか。scripts/release.sh を動かすまで Release でビルドすることが無いので、ここで確かめる
+step "アプリのビルド（Release の設定、署名なし）"
+xcodebuild build \
+  -project "$ROOT/Nonet.xcodeproj" \
+  -scheme Nonet \
+  -configuration Release \
   -destination 'generic/platform=macOS' \
   -derivedDataPath "$ROOT/build/TestDerivedData" \
   -quiet \
