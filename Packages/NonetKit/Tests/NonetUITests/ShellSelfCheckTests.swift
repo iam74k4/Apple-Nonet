@@ -251,6 +251,7 @@ struct ShellSelfCheckTests {
             "--show-onboarding", "--preview-hud", "--preview-app", "com.apple.dt.Xcode",
             "--preview-backdrop", "/tmp/backdrop.png", "--preview-toast", "--preview-result",
             "--demo-script", "--demo-app", "us.zoom.xos", "--demo-backdrop", "/tmp/demo.png", "--demo-start-file", "/tmp/go",
+            "--demo-script-file", "/tmp/demo script.json",
             "--simulate-expired-trial", "--self-check", "--snapshot", "/tmp/shots",
         ])
         #expect(options.configDirectory?.path == "/tmp/nonet config")
@@ -264,6 +265,7 @@ struct ShellSelfCheckTests {
         #expect(options.demoBundleID == "us.zoom.xos")
         #expect(options.demoBackdrop?.path == "/tmp/demo.png")
         #expect(options.demoStartFile?.path == "/tmp/go")
+        #expect(options.demoScriptFile?.path == "/tmp/demo script.json")
         #expect(options.previewToast)
         #expect(options.previewResult)
         #expect(options.simulateExpiredTrial)
@@ -290,6 +292,24 @@ struct ShellSelfCheckTests {
         #expect(missing.onboardingStep == nil)
         #expect(!missing.showOnboarding)
         #expect(missing.previewHUD)
+    }
+
+    @Test("起動引数: --demo-script-file は台本のファイルを受け取る（--demo と --demo-script も兼ねる）。値が無ければ使わない。~ は展開する")
+    func demoScriptFile() {
+        let options = ShellLaunchOptions.parse(["Nonet", "--demo-script-file", "~/nonet-demo/zoom.json"])
+        #expect(options.demoScriptFile?.path == (NSHomeDirectory() as NSString).appendingPathComponent("nonet-demo/zoom.json"))
+        #expect(options.demo)
+        #expect(options.demoScript)
+        // 内蔵の台本（--demo-script だけ）のときは、ファイルは無い
+        let builtIn = ShellLaunchOptions.parse(["Nonet", "--demo-script"])
+        #expect(builtIn.demoScript)
+        #expect(builtIn.demoScriptFile == nil)
+        #expect(ShellLaunchOptions.parse(["Nonet", "--demo-script-file"]) == ShellLaunchOptions())
+        let missing = ShellLaunchOptions.parse(["Nonet", "--demo-script-file", "--demo-app", "us.zoom.xos"])
+        #expect(missing.demoScriptFile == nil)
+        #expect(!missing.demo)
+        #expect(!missing.demoScript)
+        #expect(missing.demoBundleID == "us.zoom.xos")
     }
 
     @Test("起動引数: --config-dir の値が無ければ使わない。~ は展開する")

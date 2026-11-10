@@ -1,6 +1,6 @@
 // 画面の一部を H.264 の MP4 に収録する（販売ページ・ポートフォリオのデモ動画用。macOS 14 以降）。
 // screencapture -v は、ここの環境では録画を始められなかったので、ScreenCaptureKit で書く。ポインタは写さない。
-// コンパイル: swiftc -O scripts/record-screen.swift -o build/record-screen
+// コンパイル: swiftc -O -parse-as-library scripts/record-screen.swift -o build/record-screen（@main があるので -parse-as-library が要る）
 // 使い方: build/record-screen <出力の .mp4> <最長の秒> <x> <y> <幅> <高さ> <出力の幅> <出力の高さ> [ビットレート bps（既定 3000000）] [最初に捨てる秒（既定 0）]
 //   x・y・幅・高さは、画面の左上を原点にした pt。最初に捨てる秒は、デモのアプリが背景を敷く前の画面を残さないため。
 //   最長の秒より前に SIGINT（kill -INT）を送ると、そこで止めて書き終える（呼ぶ側が、写したい場面の終わりに止める）
