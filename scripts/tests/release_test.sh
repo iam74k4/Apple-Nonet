@@ -213,7 +213,7 @@ test_release_needs_an_sdk_with_foundation_models() {
   run "$REPO/scripts/release.sh" --dry-run 1.2.0 42
   assert_status 1
   assert_contains "$OUT" "リリースの準備が足りません"
-  assert_contains "$OUT" "macOS SDK 15.5 に FoundationModels がありません。Xcode 26 以降を選んでください"
+  assert_contains "$OUT" "macOS SDK 15.5 に FoundationModels がありません。Xcode 27 以降を選んでください"
   assert_not_called "xcodegen"
   assert_not_called "xcodebuild"
 }

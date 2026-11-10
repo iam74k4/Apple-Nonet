@@ -63,7 +63,8 @@ scripts/release.sh が NONET_RELEASES_DIR に作ったリリースを https://no
 オプション:
   --dry-run                確かめて、上げるものとコマンドを表示するだけ。何も上げない
   --allow-removing-builds  公開中の appcast にあって手元の appcast.xml に無いビルドを、外して上げる
-                           （出してしまった版を取り下げるときだけ。release.sh の --force-local-appcast と一緒に使う）
+                           （出してしまった版を取り下げるときだけ。先にその版の DMG とデルタを NONET_RELEASES_DIR の
+                           直下から出し（残すと release.sh がまた項目に入れる）、release.sh の --force-local-appcast と一緒に使う）
   -h, --help               この説明を表示する
 
 環境変数:

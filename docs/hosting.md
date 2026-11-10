@@ -160,7 +160,7 @@ npx wrangler deploy                     # 2.2 の wrangler login のまま
 2. Deployment protection rules の **Required reviewers** は、このリポジトリ（非公開）の今のプランでは使えない。代わりに、deploy は手動の実行（workflow_dispatch）でしか始まらないので、Run workflow を押す人がその場で承認したことになる（Actions を実行できるのは書き込み権限のある人だけ）。公開リポジトリにするか、Required reviewers を使えるプランにしたら、自分を付ける
 3. **Deployment branches and tags** を「Selected branches and tags」にし、`main` だけを足す（設定済み）。site.yml の「main から実行しているか」は、実行したブランチの YAML に書いてあるのでそのブランチで消せる。守りはこちら
 4. 2.3 のトークンを、この environment の **Environment secrets** に `CLOUDFLARE_API_TOKEN` として置く。Repository secrets には置かない（environment を外した workflow をどのブランチにでも書けば、ブランチの制限を通らずに読める）
-5. （任意）Settings › Branches で `main` を保護し、CI と site の check を必須にする
+5. （任意）Settings › Branches で `main` を保護し、CI の `Build and test` を必須にする。site の `check` は必須にしない（site.yml は site/・cloudflare/ などを変えたときにしか動かないので、必須にすると Swift だけを変えたプルリクエストが待ったままマージできない）
 
 site.yml の中でも、トークンは wrangler を呼ぶ step の env にだけ渡し（`npm ci` や action からは読めない。deploy の `npm ci` は `--ignore-scripts`）、`permissions: contents: read`、action は commit の SHA で固定してある（Web-AstLog と同じ SHA。上げるときは `git ls-remote --tags https://github.com/actions/<名前>` で引き直し、行末のタグ名も直す）。続けて2回実行しても、デプロイは並んで走らない（後のほうが待つ）。
 
@@ -203,14 +203,14 @@ site.yml の中でも、トークンは wrangler を呼ぶ step の env にだ�
 | `NONET_RELEASES_DIR` | `build/releases` | release.sh が DMG・デルタ・appcast.xml を置いたフォルダ（release.sh と同じ） |
 | `CLOUDFLARE_API_TOKEN` | なし（`wrangler login` のログインを使う） | 2.3 の R2 のトークンで動かすとき |
 
-オプション: `--dry-run`（何も上げない）、`--allow-removing-builds`（公開中の appcast にあって手元に無いビルドを外して上げる。出してしまった版を取り下げるときだけ。`scripts/release.sh --force-local-appcast` と一緒に使う）、`--help`。
+オプション: `--dry-run`（何も上げない）、`--allow-removing-builds`（公開中の appcast にあって手元に無いビルドを外して上げる。出してしまった版を取り下げるときだけ。先に取り下げる版の DMG とデルタ（`Nonet-<版>.dmg`・`Nonet<ビルド>-*.delta`）を `NONET_RELEASES_DIR` の直下から出す（例: `withdrawn/` の中へ。残すと release.sh の generate_appcast がまた項目に入れ、上げると取り下げた版が戻る。5.2）、`scripts/release.sh --force-local-appcast` と一緒に使う）、`--help`。
 
 | 止まったところ | すること |
 |---|---|
 | 「固定した wrangler … がありません」 | `cd cloudflare && npm ci` |
 | 「… のアップロードに失敗しました」 | 表示された wrangler のエラーを見る。認証（`npx wrangler login`・トークン）とバケット `nonet-updates` を確かめ、同じコマンドでやり直す（上がったデルタは飛ばされる） |
-| 「公開中の appcast にはビルド … まであり、手元より新しい」 | 別の Mac から出した。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`scripts/release.sh` からやり直す |
-| 「公開中の appcast のビルド … が、手元の appcast.xml にありません」 | 手元の appcast が古い（別の Mac から出した・控えから戻した）。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`scripts/release.sh` からやり直す。その版を取り下げるつもりなら `--allow-removing-builds` |
+| 「公開中の appcast にはビルド … まであり、手元の appcast.xml（ビルド … まで）より新しいです」 | 別の Mac から出した。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、今回作ったその版の DMG・デルタ・リリースノートを `NONET_RELEASES_DIR` から消してから、公開中の最大より大きいビルド番号（と新しい版）で `scripts/release.sh` からやり直す（DMG が残っていると「… がすでにあります」で、番号が小さいと「ビルド番号 … より大きくしてください」で止まる） |
+| 「公開中の appcast のビルド … が、手元の appcast.xml にありません」 | 手元の appcast が古い（別の Mac から出した・控えから戻した）。公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`scripts/release.sh` からやり直す。その版を取り下げるつもりなら、取り下げる版の DMG とデルタ（`Nonet-<版>.dmg`・`Nonet<ビルド>-*.delta`）を `NONET_RELEASES_DIR` の直下から出す（例: `withdrawn/` の中へ。残すと release.sh の generate_appcast がまた項目に入れ、上げると取り下げた版が戻る。5.2）から `--allow-removing-builds` |
 | 「ビルド … はもう公開されていて、R2 の … は中身が違います」 | 公開した版を作り直した。新しいビルド番号で `scripts/release.sh` からやり直す |
 | 「… に届きません」「公開中の appcast を確かめられません」 | ネットワーク・Worker を出したか（2.5）・バケットがあるか |
 | 「上げ終わりましたが、公開された中身が合いません」 | 「4. 確かめる」の curl で見る。直らなければ「5. 戻す」 |

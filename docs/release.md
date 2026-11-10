@@ -218,7 +218,7 @@ NONET_NOTARY_PROFILE=nonet-notary scripts/release.sh --first-release --notes not
 
 スクリプトがすること:
 
-1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・ブランチが `main` か・コミットしていない変更。`--notes` のファイルは除く。公開用のフォルダにすでに `Nonet-<バージョン>.dmg` があるか・手元の appcast.xml にすでに同じ版の項目があるか）。足りないものをまとめて表示して止まる（dry run でも、ブランチと変更以外は同じ）
+1. 準備の確認（コマンド・Developer ID 証明書・macOS SDK に FoundationModels があるか・`Config/Nonet.xcconfig` の値・notarytool のプロファイル・ブランチが `main` か・コミットしていない変更。`--notes` のファイルは除く。公開用のフォルダにすでに `Nonet-<バージョン>.dmg` があるか・手元の appcast.xml にすでに同じ版の項目があるか）。足りないものをまとめて表示して止まる（dry run でも、ブランチと変更と notarytool のプロファイル以外は同じ。dry run が通っても、公証の設定ができているとは限らない）
 2. XcodeGen でプロジェクトを作り、パッケージを解決する（Sparkle は `project.yml` で固定した版。1.9）
 3. キーチェーンの Sparkle の鍵が `NONET_SPARKLE_PUBLIC_KEY` と一致するか、ビルド番号が appcast の最大より大きいかを確かめる。appcast は毎回、公開中のもの（`NONET_APPCAST_URL`）を作業用フォルダ（`build/release/<バージョン>/published-appcast.xml`）に取ってきて、手元の appcast.xml とビルド番号（`sparkle:version`）で比べる
    - 手元に無ければ、公開中のものを使う
@@ -267,14 +267,14 @@ scripts/publish.sh 1.2.0
 2. appcast のその版の項目にあるデルタ（`*.delta`）のうち、まだ同じ中身が上がっていないもの
 3. 最後に `appcast.xml`（`old_updates/` は上げない）
 
-上げる前に、DMG と appcast が合っているか（URL・大きさ・最新か）と、公開中の appcast が手元より新しくないかを確かめ、公開中の appcast を `NONET_RELEASES_DIR/appcast-history/` に控える。DMG そのものも確かめる（`codesign --verify`・`xcrun stapler validate`・`spctl -a -t open --context context:primary-signature`）。公証の前の DMG（dry run で作ったもの）や署名の壊れた DMG は上げない。appcast の項目（DMG とデルタ）に `sparkle:edSignature` が無いときも上げない（署名の無い更新を Sparkle は受け付けない）。上げたあとに、公開中の appcast にその版があること、DMG の URL が 200 で大きさが合うこと、`/download` がその DMG へ飛ぶことを確かめる。販売ページは書き換えなくてよい。詳しくは [hosting.md](hosting.md) の「3. リリースごとの手順」。
+上げる前に、DMG と appcast が合っているか（URL・大きさ・最新か）と、公開中の appcast が手元より新しくないかを確かめ、公開中の appcast を `NONET_RELEASES_DIR/appcast-history/` に控える。DMG そのものも確かめる（`codesign --verify`・`xcrun stapler validate`・`spctl -a -t open --context context:primary-signature`）。公証の前の DMG（dry run で作ったもの）や署名の壊れた DMG は上げない。appcast の項目（DMG とデルタ）に `sparkle:edSignature` が無いときも上げない（署名の無い更新を Sparkle は受け付けない）。上げたあとに、公開中の appcast にその版があること、DMG の URL が 200 で大きさが合うこと、`/download` がその DMG へ飛ぶことを確かめる。販売ページはリリースのたびに書き換えなくてよい（確認済みの macOS を書き換えたときは 2.7 のとおりデプロイする）。詳しくは [hosting.md](hosting.md) の「3. リリースごとの手順」。
 
 ### 2.7 確かめる
 
 - 公開した URL から DMG をダウンロードし、別のユーザーか別の Mac で開く。Gatekeeper の警告が出ずに起動すること
 - 一つ前の版を起動し、メニューの「アップデートを確認」で新しい版が見つかり、入れ替わること
 - `curl -I <appcast の URL>` が 200 を返すこと
-- **確認済みの macOS**: 試した macOS の版（例: `macOS 14.7・15.6・26.1`）を、販売ページのよくある質問「macOS のアップデートで使えなくなることはありますか？」（`site/index.html`・`site/en/index.html` の `data-placeholder="tested-macos"`）に書き、`data-placeholder` と `class="todo"` を外す。実際に試した版だけを書く。新しい macOS のベータが出たら、ベータのうちに試して直す（ページでそう約束している）。直せないまま使えない状態が続くなら、購入からの日数にかかわらず返金する（利用規約の 6）
+- **確認済みの macOS**: 試した macOS の版（例: `macOS 14.7・15.6・26.1`）を、販売ページのよくある質問「macOS のアップデートで使えなくなることはありますか？」（`site/index.html`・`site/en/index.html` の `data-placeholder="tested-macos"`）に書き、`data-placeholder` と `class="todo"` を外す。実際に試した版だけを書く。新しい macOS のベータが出たら、ベータのうちに試して直す（ページでそう約束している）。直せないまま使えない状態が続くなら、購入からの日数にかかわらず返金する（利用規約の 6）。書き換えたら main に入れ、GitHub の Actions › site › Run workflow でサイトに出す（publish.sh はページを上げない。[hosting.md](hosting.md) の「3. リリースごとの手順」の「ページだけを変えたとき」）
 
 ### 2.8 タグを付ける
 
@@ -289,7 +289,7 @@ git push origin v1.2.0
 |---|---|
 | 公証が `Invalid` | スクリプトが出すログを見る。よくあるのは、署名の無い実行ファイル・タイムスタンプが無い・hardened runtime が無い。`xcrun notarytool log <ID> --keychain-profile "$NONET_NOTARY_PROFILE"` でもう一度見られる |
 | `spctl` が `rejected` | 公証とステープルが済んでいるか（`xcrun stapler validate`）。dry run では rejected が正常 |
-| 「ビルド番号は…より大きく」 | 公開済みより大きい番号にする。公開していない試しの項目なら appcast.xml から消す |
+| 「ビルド番号 … は、appcast に載っている最大の … より大きくしてください」 | 公開済みより大きい番号にする。公開していない試しの項目なら appcast.xml から消す |
 | 「…には、すでに版 … の項目があります」・「すでに同じ DMG の URL（…）の項目があります」 | 公開した版を出し直そうとしている（版を上げ忘れて、ビルド番号だけ上げたなど）。**版（バージョン）を上げて**出す（例: `1.2.0` を直すなら `1.2.1` とビルド番号 43）。公開した DMG と appcast の項目はそのまま残す（利用者の手元の版との差分に要る）。その版をまだどこにも公開しておらず、作り直したいときだけ: 公開中の appcast にその版が無いことを `curl -s <appcast の URL>` で確かめてから、手元の appcast.xml からその版の `<item>` を消し、`NONET_RELEASES_DIR` の `Nonet-<バージョン>.dmg`・同じ名前のリリースノート・その版の `*.delta` を消してやり直す |
 | 「…/Nonet-<バージョン>.dmg がすでにあります」 | 公開済みの DMG は上書きしない。版を上げて出す。前の本番が DMG を入れた後（appcast の更新）で失敗し、appcast にその版の項目が無く、どこにも上げていないなら、その DMG を消してやり直す |
 | 同じ版を2回出してしまった（appcast に同じ URL を指す項目が2つ。`publish.sh` が「… を指す項目が 2 個」で止まる） | 古いスクリプトで出したときだけ起こる。上げずに直す: `NONET_RELEASES_DIR/appcast-history/` かサーバーの公開中の appcast.xml を手元の appcast.xml に戻し（公開中のものをそのまま使う）、上書きされた `Nonet-<バージョン>.dmg` は公開中のもの（`curl -o <DMG の URL>`）で戻す。新しく作った方の `*.delta` も消す。そのあと版を上げて出し直す |
@@ -298,10 +298,11 @@ git push origin v1.2.0
 | 「公開中の appcast を取得できませんでした（HTTP 403 など）」 | ホスティングのアクセス制限（ボット対策・権限）や一時的な障害。`curl -I <appcast の URL>` で確かめる。直せなければ、公開中の appcast を `NONET_RELEASES_DIR/appcast.xml` に置き、`--force-local-appcast` を付けてやり直す |
 | 「手元の appcast に、公開中のビルド … がありません」 | 手元のものが古い（別の Mac・バックアップ）。手元の appcast.xml を消してやり直す（公開中のものを取ってくる）。手元が正しいと分かっているときだけ `--force-local-appcast` |
 | 「同じビルドの項目の中身が違います」 | 公開中の appcast をサーバーで直したなら、手元の appcast.xml を消してやり直す。どちらが正しいかは、作業用フォルダの `published-appcast.xml` と `diff` で比べる |
+| 「どちらにもあるビルドの項目の中身が違います」 | 手元の方がビルドが多く（まだ上げていない版がある）、そのうえ公開中の appcast をサーバーで直した。手元の appcast.xml を消して公開中のものを取ってきてから、手元にしか無かったビルドの項目を入れ直す（その版の DMG があれば、次の release.sh の generate_appcast が入れる）。どちらが正しいかは `published-appcast.xml` と `diff` で比べる |
 | 「公開中のものに無いビルド … があります」（警告） | 前のリリースの appcast.xml をまだアップロードしていないなら、今回の appcast と一緒に、そのビルドの DMG もアップロードする。アップロードしたばかりなら CDN のキャッシュが古いだけ |
 | 「App/ が試用の記録をキーチェーンに置いていません」 | プライバシーポリシーは製品版がキーチェーンの項目を作ると書いている。`App/AppDelegate.swift` で `UserDefaultsLicenseStorage(keychain: SystemTrialRecordKeychain(), marker: SystemTrialRecordKeychain.machineMarker(), evidence: FileTrialUsageEvidence.standard())` を使う（3.3）。キーチェーンを使わないことにしたなら、プライバシーポリシー（3つとも）からキーチェーンの項目を消す |
 | 「--public の公開鍵が、アプリに入れる公開鍵（…）と違うため、発行しません」 | xcconfig の `NONET_LICENSE_PUBLIC_KEY` と `--public` の鍵が keygen で作った同じ組か確かめる。前の鍵の組の古い版のアプリ向けに発行するときだけ `--skip-app-key-check` |
-| 「macOS SDK … に FoundationModels がありません」 | `xcode-select -p` が古い Xcode を指している。`sudo xcode-select -s /Applications/Xcode.app` で Xcode 26 以降を選ぶ |
+| 「macOS SDK … に FoundationModels がありません」 | `xcode-select -p` が古い Xcode を指している。`sudo xcode-select -s /Applications/Xcode.app` で Xcode 27 以降（1.1）を選ぶ |
 | 「… が「//」の所で切れています」 | 公開鍵の `//` を `/$()/` と書く（1.4・1.6） |
 | 「中身が appcast（RSS）ではありません」 | 無いファイルにも 200 でページを返す設定になっていないか（1.7） |
 | 「コミットしていない変更があります」 | `git status` で確かめる。`--notes` のファイルと、`.claude/` の中の未追跡のファイルは数えない。コミットしてから出す。変更ごと出すと決めているときだけ `--allow-dirty` |

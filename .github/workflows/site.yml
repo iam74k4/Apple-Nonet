@@ -4,7 +4,7 @@
 #   check   site/・cloudflare/・利用ガイド（docs/user-guide*.md・scripts/build-guide.py）・scripts/check-site.sh・scripts/publish.sh を
 #           変えた push とプルリクエストで動く。サイトの確認・利用ガイドが作り直してあるか・Worker のテスト・束ねられるか（wrangler deploy --dry-run）
 #   deploy  Actions の画面から手で実行したときだけ（workflow_dispatch）。main から、check が通ってから、
-#           environment production の承認のあとに wrangler deploy
+#           environment production の中で wrangler deploy（Required reviewers は今のプランでは使えないので、Run workflow を押すことが承認になる。docs/hosting.md 2.6）
 #
 # DMG と appcast（R2）はここでは上げない。リリースのたびに手元で scripts/publish.sh を使う（docs/hosting.md）。
 name: site
@@ -35,7 +35,7 @@ permissions:
   contents: read
 
 # action は commit の SHA で固定する（タグは付け替えられる。付け替えられた action は、
-# 承認のあとの本番の job の中で動く）。SHA は Web-AstLog と同じもので、
+# 本番の deploy の job の中で動く）。SHA は Web-AstLog と同じもので、
 # `git ls-remote --tags https://github.com/actions/<名前>` で引いたもの。上げるときは
 # 同じ手で引き直し、行末のタグ名も一緒に直す
 jobs:
@@ -82,7 +82,7 @@ jobs:
   # Actions の画面ではどのブランチからでも実行できる。本番に出すのは main だけ。
   # ただしこの if は**実行したブランチの** site.yml に書いてあるので、そのブランチで消せる——
   # 守りとしては数えない（承認を頼む前に、分かりやすく止めるための1段）。守りは GitHub の側にある:
-  # environment の production の Deployment branches を main だけにし、承認者を付け、
+  # environment の production の Deployment branches を main だけにし（承認者は今のプランでは付けられない。Run workflow を押すことが承認）、
   # CLOUDFLARE_API_TOKEN はその environment の secret にだけ置く（docs/hosting.md「GitHub の設定」）
   guard:
     if: github.event_name == 'workflow_dispatch'
@@ -99,7 +99,7 @@ jobs:
     needs: [guard, check]
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 承認者と「main だけ」は Settings → Environments → production で付ける（docs/hosting.md）。
+    # 「main だけ」は Settings → Environments → production で付ける（承認者は今のプランでは付けられない。docs/hosting.md 2.6）。
     # トークンはその environment の secret にだけ置く——リポジトリの secret に置くと、
     # environment を外した workflow（どのブランチにでも書ける）から承認なしで読める
     environment: production

@@ -148,7 +148,7 @@ foundation_models_problem() {
   if [[ -z "$sdk" ]]; then
     printf 'macOS の SDK が見つかりません（xcode-select -p で、選ばれている Xcode を確かめてください）\n'
   elif [[ ! -d "$sdk/System/Library/Frameworks/FoundationModels.framework" ]]; then
-    printf 'macOS SDK %s に FoundationModels がありません。Xcode 26 以降を選んでください（sudo xcode-select -s /Applications/Xcode.app）。古い SDK でビルドすると、AI のアクションが動かないアプリになります\n' \
+    printf 'macOS SDK %s に FoundationModels がありません。Xcode 27 以降を選んでください（sudo xcode-select -s /Applications/Xcode.app）。古い SDK でビルドすると、AI のアクションが動かないアプリになります\n' \
       "${version:-（版が不明）}"
   fi
 }
