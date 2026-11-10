@@ -89,6 +89,62 @@ struct ShellOnboardingFinishTests {
         #expect(!harness.loginItem.isEnabled)
     }
 
+    /// ディスクイメージなどから動いている Nonet では勧めず、選んでも登録しない（取り出すとログイン時に何も起動しない）
+    @Test("一時的な場所から動いているときは「ログイン時に起動」を勧めず、選んでも移すように伝える")
+    func aTemporaryCopyIsNotRegisteredAsALoginItem() {
+        let (_, harness) = Base.make()
+        let model = OnboardingModel(controller: harness.controller, permissions: harness.permissions, loginItem: harness.loginItem, isTemporaryCopy: { true })
+        #expect(!model.opensAtLogin)
+        Base.enterPractice(model)
+        #expect(model.finish())
+        model.opensAtLogin = true
+        #expect(!model.finish())
+        #expect(!harness.loginItem.isEnabled)
+        #expect(model.loginItemMessage == ShellInstallLocation.temporaryCopyLoginItemMessage)
+    }
+
+    /// 練習の画面のまま終了した（⌘Q・アップデートの再起動）: ウィンドウは閉じないが、勧めていた「ログイン時に起動」は反映する
+    @Test("案内を開いたまま終了しても、「ログイン時に起動」の選択を反映する")
+    func quittingDuringOnboardingAppliesTheLoginItem() {
+        let harness = ShellControllerHarness(installed: Base.installed)
+        harness.controller.start()
+        let window = OnboardingWindowController(controller: harness.controller, services: harness.services) {}
+        window.handBackActivation = {}
+        Base.enterPractice(window.model)
+        #expect(window.model.opensAtLogin)
+        window.applyChoicesBeforeQuitting()
+        #expect(harness.loginItem.isEnabled)
+        #expect(!harness.controller.isPracticeMode)
+        harness.controller.stop()
+    }
+
+    /// 許可待ち（登録したがシステム設定で許可していない）のまま外したら、登録も外す（後で許可されて、ログイン時に開かないように）
+    @Test("許可待ちのログイン項目は、外したときに登録も外す")
+    func untickingRemovesAPendingLoginItem() {
+        let (_, harness) = Base.make()
+        let pending = PendingLoginItem()
+        let model = OnboardingModel(controller: harness.controller, permissions: harness.permissions, loginItem: pending)
+        Base.enterPractice(model)
+        model.opensAtLogin = false
+        #expect(model.finish())
+        #expect(pending.unregistered == 1)
+        #expect(!pending.isRegistered)
+    }
+
+    private final class PendingLoginItem: LoginItemControlling {
+        var isEnabled = false
+        private var isPending = true
+        private(set) var unregistered = 0
+        var isRegistered: Bool { isEnabled || isPending }
+        func setEnabled(_ enabled: Bool) throws {
+            if !enabled {
+                unregistered += 1
+                isPending = false
+            }
+            isEnabled = enabled
+        }
+    }
+
     @Test("初回起動でも、同じ起動の中で開き直した案内では「ログイン時に起動」を勧めない。触らずに閉じれば変えない")
     func reopenedGuideDoesNotRecommendTheLoginItemAgain() {
         let (first, harness) = Base.make()

@@ -227,6 +227,8 @@ final class OnboardingModel {
     private var hasChosenLoginItem = false
     /// 初回起動で「ログイン時に起動」を勧めている（選んだ状態で始める）。同じ起動で開き直した案内では勧めない
     private let recommendsLoginItem: Bool
+    /// ディスクイメージなどの一時的な場所から動いているか（テストでは決める）
+    private let isTemporaryCopy: () -> Bool
     /// ログイン時に起動を変えられなかった（システム設定での許可待ちを含む）ときの知らせ
     private(set) var loginItemMessage: String?
     /// メニューバーのアイコンが見えている（練習の画面に入ったときに確かめる）。見えなければ、見つけ方を文で伝える
@@ -277,8 +279,10 @@ final class OnboardingModel {
         frontmostApp: (any FrontmostAppObserving)? = nil,
         touchSource: (any TouchSource)? = nil,
         loginItem: (any LoginItemControlling)? = nil,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        isTemporaryCopy: @escaping () -> Bool = { ShellInstallLocation.current == .temporary }
     ) {
+        self.isTemporaryCopy = isTemporaryCopy
         self.controller = controller
         self.license = license
         self.permissions = permissions
@@ -289,8 +293,10 @@ final class OnboardingModel {
         isAccessibilityGranted = permissions.isAccessibilityGranted
         // 初回起動では勧める（選んだままにしておく）。もう一度見るときは、いまの状態から（設定の「一般」で外したものを戻さない）。
         // 勧めるのは起動して最初の案内だけ（同じ起動の中で開き直した案内で、外したものをまた選ばない）
-        recommendsLoginItem = controller.takeLoginItemRecommendation()
-        opensAtLogin = recommendsLoginItem || (loginItem?.isEnabled ?? true)
+        // ディスクイメージなどから動いているときは勧めない（そこを指すログイン項目は、取り出すと動かない）
+        let recommended = controller.takeLoginItemRecommendation()
+        recommendsLoginItem = recommended && !isTemporaryCopy()
+        opensAtLogin = recommendsLoginItem || (loginItem?.isEnabled ?? !isTemporaryCopy())
         refreshTrackpad()
     }
 
@@ -447,11 +453,18 @@ final class OnboardingModel {
         guard hasChosenLoginItem || recommendsLoginItem else { return true }
         if let loginAttempt, loginAttempt == opensAtLogin { return true }
         loginAttempt = nil
-        guard loginItem.isEnabled != opensAtLogin else {
+        // 外すときは、許可待ち（登録したが、システム設定でまだ許可していない）も外す。isEnabled だけを見ると、
+        // 許可待ちのまま残り、後でシステム設定で許可したときにログイン時に開いてしまう
+        let current = opensAtLogin ? loginItem.isEnabled : loginItem.isRegistered
+        guard current != opensAtLogin else {
             loginItemMessage = nil
             return true
         }
         let enabled = opensAtLogin
+        if enabled, isTemporaryCopy() {
+            loginItemMessage = ShellInstallLocation.temporaryCopyLoginItemMessage
+            return false
+        }
         do {
             try loginItem.setEnabled(enabled)
             loginItemMessage = nil

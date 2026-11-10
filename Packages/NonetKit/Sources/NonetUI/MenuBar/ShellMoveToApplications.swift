@@ -26,6 +26,14 @@ public enum ShellInstallLocation: Equatable, Sendable {
     }
 
     /// bundleURL のアプリの場所（自分のものも、ほかに動いている Nonet のものも）
+    /// 動いている Nonet の場所
+    public static var current: ShellInstallLocation { of(bundleURL: Bundle.main.bundleURL) }
+
+    /// ディスクイメージなどから動いている Nonet は、ログイン時に起動できない（取り出すと無くなる・App Translocation の場所は毎回変わる）
+    static var temporaryCopyLoginItemMessage: String {
+        String(localized: "ディスクイメージから開いた Nonet は、ログイン時に起動できません。アプリケーションフォルダに移してから選んでください", bundle: .module)
+    }
+
     public static func of(bundleURL: URL) -> ShellInstallLocation {
         let readOnly = (try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
         return classify(bundlePath: bundleURL.path, isTranslocated: isTranslocated(bundleURL), isReadOnlyVolume: readOnly)
@@ -64,8 +72,10 @@ public enum ShellMoveToApplications {
 
     static let applicationsDirectory = URL(fileURLWithPath: "/Applications", isDirectory: true)
 
-    /// 移して開き直すことにしたら true。呼んだ側はそのまま終わる（開き直した方は、このプロセスが終わるのを待ってから起動する）
-    public static func offerIfNeeded(bundle: Bundle = .main) -> Bool {
+    /// 移して開き直すことにしたら true。呼んだ側はそのまま終わる（開き直した方は、このプロセスが終わるのを待ってから起動する）。
+    /// openedItems は、開き直すときに渡すもの（購入のメールの nonet://register のリンクや .nonetlicense のファイルで開かれたとき。
+    /// 尋ねている間に届いたものも含め、開き直す直前に読む）。渡さないと、登録の確認が出ないまま消える
+    public static func offerIfNeeded(bundle: Bundle = .main, openedItems: () -> [URL] = { [] }) -> Bool {
         let source = bundle.bundleURL
         guard ShellInstallLocation.of(bundleURL: source) == .temporary else { return false }
         logger.notice("一時的な場所から開かれています: \(source.path, privacy: .private)")
@@ -108,7 +118,7 @@ public enum ShellMoveToApplications {
                 try FileManager.default.trashItem(at: existing, resultingItemURL: &trashed)
                 return trashed as URL?
             }
-            try relaunch(destination)
+            try relaunch(destination, opening: openedItems())
             logger.info("アプリケーションフォルダに移したので開き直す")
             return true
         } catch {
@@ -216,14 +226,21 @@ public enum ShellMoveToApplications {
         }
     }
 
-    /// このプロセスが終わるのを待ってから開く（先に開くと、同じ Nonet が動いているとみなされる）
-    static func relaunchArguments(processID: Int32, appPath: String) -> [String] {
+    /// このプロセスが終わるのを待ってから開く（先に開くと、同じ Nonet が動いているとみなされる）。
+    /// items（リンクやファイル）があれば、開き直した Nonet でそれを開く（open -a）。どれも引数で渡す（文に埋め込まない）
+    static func relaunchArguments(processID: Int32, appPath: String, items: [String] = []) -> [String] {
         [
             "-c",
-            "while /bin/kill -0 \(processID) >/dev/null 2>&1; do /bin/sleep 0.1; done; /usr/bin/open \"$1\"",
+            "while /bin/kill -0 \(processID) >/dev/null 2>&1; do /bin/sleep 0.1; done; "
+                + "app=\"$1\"; shift; if [ $# -gt 0 ]; then /usr/bin/open -a \"$app\" \"$@\"; else /usr/bin/open \"$app\"; fi",
             "nonet-relaunch",
             appPath,
-        ]
+        ] + items
+    }
+
+    /// open に渡す形（ファイルはパス、リンクは URL のまま）
+    static func openArgument(for url: URL) -> String {
+        url.isFileURL ? url.path : url.absoluteString
     }
 
     static func versionText(of bundleURL: URL) -> String {
@@ -235,10 +252,14 @@ public enum ShellMoveToApplications {
 
     // MARK: - 画面
 
-    private static func relaunch(_ app: URL) throws {
+    private static func relaunch(_ app: URL, opening items: [URL]) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = relaunchArguments(processID: ProcessInfo.processInfo.processIdentifier, appPath: app.path)
+        process.arguments = relaunchArguments(
+            processID: ProcessInfo.processInfo.processIdentifier,
+            appPath: app.path,
+            items: items.map(openArgument(for:))
+        )
         try process.run()
     }
 

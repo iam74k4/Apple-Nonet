@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // ディスクイメージなどから開かれたら、アプリケーションフォルダに移して開き直す
-        if ShellMoveToApplications.offerIfNeeded() {
+        // 尋ねている間に届いたリンク（購入のメールの nonet://register など）も、開き直した Nonet に渡す
+        if ShellMoveToApplications.offerIfNeeded(openedItems: { [weak self] in self?.pendingLicenseLinks ?? [] }) {
             NSApplication.shared.terminate(nil)
             return
         }
@@ -149,6 +150,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // 終わりきる前にもう一度開かれたら、そちらはこれが終わるのを待ってから起動する（印が無ければ、すぐにこちらへ任せる）
         ShellQuitMarker.mark(processID: ProcessInfo.processInfo.processIdentifier)
+        // 初回の案内を開いたまま終えた: 「ログイン時に起動」の選択を反映する
+        onboardingWindow?.applyChoicesBeforeQuitting()
         for (center, observer) in licenseRefreshObservers {
             center.removeObserver(observer)
         }

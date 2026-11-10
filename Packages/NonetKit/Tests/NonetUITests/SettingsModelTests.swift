@@ -843,6 +843,18 @@ import Testing
         #expect(!h.model.loginItemEnabled)
     }
 
+    @Test func aTemporaryCopyCannotTurnOnLaunchAtLogin() throws {
+        let h = try SettingsHarness()
+        h.model.isTemporaryCopy = { true }
+        h.model.setLoginItemEnabled(true)
+        #expect(!h.model.loginItemEnabled)
+        #expect(!h.loginItem.isEnabled)
+        #expect(h.model.loginItemError == ShellInstallLocation.temporaryCopyLoginItemMessage)
+        // 止めるのはできる
+        h.model.setLoginItemEnabled(false)
+        #expect(h.model.loginItemError == nil)
+    }
+
     /// システム設定の「ログイン項目」での許可待ちは、失敗ではなく許可を求める知らせにする。許可されて戻ってきたら消す
     @Test func aLoginItemWaitingForApprovalIsClearedOnceAllowed() throws {
         let h = try SettingsHarness()

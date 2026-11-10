@@ -35,6 +35,28 @@ struct SettingsRootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // 購入のメールのリンクなどで登録するかを尋ねる。どのタブにいても出したままにする（Nonet のタブに付けると、
+            // メニューの「◯◯のマスを編集…」や案内の「設定を開く」でタブが替わったときに、尋ねたまま消えてしまう）
+            .alert(
+                String(localized: "このライセンスキーを登録しますか？", bundle: .module),
+                isPresented: Binding(get: { model.pendingLicense != nil }, set: { if !$0 { model.cancelPendingLicense() } }),
+                presenting: model.pendingLicense
+            ) { _ in
+                Button {
+                    model.confirmPendingLicense()
+                } label: {
+                    Text("登録", bundle: .module)
+                }
+                .keyboardShortcut(.defaultAction)
+                Button(role: .cancel) {
+                    model.cancelPendingLicense()
+                } label: {
+                    Text("キャンセル", bundle: .module)
+                }
+            } message: { pending in
+                // 署名を確かめたキーの中身なので、そのまま見せてよい（長すぎる名前だけ切る）
+                Text(SettingsText.singleLine(SettingsText.licenseeLine(pending.info), limit: SettingsText.importContentLimit))
+            }
         }
         .frame(minWidth: 860, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))

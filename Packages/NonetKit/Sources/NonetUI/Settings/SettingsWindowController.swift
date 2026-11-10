@@ -293,6 +293,12 @@ final class SettingsWindowCoordinator: NSObject, NSToolbarDelegate, NSWindowDele
         owner?.handBackActivation()
     }
 
+    /// しまった（黄色のボタン・⌘M）ときも、ほかに Nonet のウィンドウが無ければ前のアプリに返す。前面のままだと、
+    /// 打鍵が Nonet に届き、キー入力のマスも「前面のアプリが変わった」で止まる
+    func windowDidMiniaturize(_ notification: Notification) {
+        owner?.handBackActivation()
+    }
+
     /// 編集 › 取り消す（⌘Z）がマスの変更も元に戻せるよう、設定の undoManager を使う
     func windowWillReturnUndoManager(_ window: NSWindow) -> UndoManager? {
         owner?.model.undoManager

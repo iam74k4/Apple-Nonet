@@ -269,11 +269,11 @@
       }
     },
     "%@の設定に戻しました。設定の変更をまた保存します。" : {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restored the settings from %@. Changes to the settings will be saved again."
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored the settings from %@. Changes to the settings will be saved again."
           }
         }
       }
@@ -472,20 +472,20 @@
       }
     },
     "%lld個のプロファイルは、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その部分を読み込めませんでした。" : {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld profile had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld profile had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
                 }
               }
             }
@@ -4651,6 +4651,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A test run acts on the files selected in Finder right now. Check what is selected before you run it."
+          }
+        }
+      }
+    },
+    "ディスクイメージから開いた Nonet は、ログイン時に起動できません。アプリケーションフォルダに移してから選んでください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet opened from a disk image can't open at login. Move it to the Applications folder first, then turn this on."
           }
         }
       }

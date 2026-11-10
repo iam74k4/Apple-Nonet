@@ -455,8 +455,35 @@ struct ShellInstallTests {
         #expect(arguments.count == 4)
         #expect(arguments[0] == "-c")
         #expect(arguments[1].contains("/bin/kill -0 1234"))
-        #expect(arguments[1].hasSuffix("/usr/bin/open \"$1\""))
+        #expect(arguments[1].contains("/usr/bin/open \"$app\""))
         #expect(arguments[3] == "/Applications/Nonet \"β\".app")
+        // リンクやファイルで開かれていたら、開き直した Nonet でそれを開く（引数で渡す）
+        let link = URL(string: "nonet://register?key=abc")!
+        let file = URL(fileURLWithPath: "/Users/a/Downloads/My License.nonetlicense")
+        let withItems = ShellMoveToApplications.relaunchArguments(
+            processID: 1234, appPath: "/Applications/Nonet.app",
+            items: [link, file].map(ShellMoveToApplications.openArgument(for:))
+        )
+        #expect(withItems.suffix(2) == ["nonet://register?key=abc", "/Users/a/Downloads/My License.nonetlicense"])
+        #expect(withItems[1].contains("/usr/bin/open -a \"$app\" \"$@\""))
+    }
+
+    @Test("開き直しのコマンドは、渡したリンクとファイルを open -a に渡し、無ければアプリだけを開く（本物の sh で、open の代わりに echo）")
+    func relaunchScriptPassesItems() async throws {
+        func run(_ items: [String]) async throws -> String {
+            var arguments = ShellMoveToApplications.relaunchArguments(processID: 999_999, appPath: "/Applications/Nonet.app", items: items)
+            arguments[1] = arguments[1].replacingOccurrences(of: "/usr/bin/open", with: "echo")
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = arguments
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            try process.run()
+            process.waitUntilExit()
+            return String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        }
+        #expect(try await run([]) == "/Applications/Nonet.app\n")
+        #expect(try await run(["nonet://register?key=a b", "/tmp/x y.nonetlicense"]) == "-a /Applications/Nonet.app nonet://register?key=a b /tmp/x y.nonetlicense\n")
     }
 
     @Test("版の表記は Info.plist から")

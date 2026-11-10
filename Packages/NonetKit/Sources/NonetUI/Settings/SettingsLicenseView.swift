@@ -114,26 +114,6 @@ struct SettingsLicenseView: View {
             focusKeyFieldIfWanted()
         }
         .onChange(of: model.wantsLicenseKeyFocus) { _, _ in focusKeyFieldIfWanted() }
-        .alert(
-            String(localized: "このライセンスキーを登録しますか？", bundle: .module),
-            isPresented: Binding(get: { model.pendingLicense != nil }, set: { if !$0 { model.cancelPendingLicense() } }),
-            presenting: model.pendingLicense
-        ) { _ in
-            Button {
-                model.confirmPendingLicense()
-            } label: {
-                Text("登録", bundle: .module)
-            }
-            .keyboardShortcut(.defaultAction)
-            Button(role: .cancel) {
-                model.cancelPendingLicense()
-            } label: {
-                Text("キャンセル", bundle: .module)
-            }
-        } message: { pending in
-            // 署名を確かめたキーの中身なので、そのまま見せてよい（長すぎる名前だけ切る）
-            Text(SettingsText.singleLine(SettingsText.licenseeLine(pending.info), limit: SettingsText.importContentLimit))
-        }
     }
 
     // MARK: - 状態

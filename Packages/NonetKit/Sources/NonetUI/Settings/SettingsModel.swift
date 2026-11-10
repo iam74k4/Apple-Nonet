@@ -195,6 +195,8 @@ final class SettingsModel {
     var wantsLicenseKeyFocus = false
     /// コピーする（テストでは偽物にする）
     @ObservationIgnored var copyToPasteboard: (String) -> Void = SettingsModel.copyConcealed
+    /// ディスクイメージなどの一時的な場所から動いているか（ログイン時に起動は選べない。テストでは決める）
+    @ObservationIgnored var isTemporaryCopy: () -> Bool = { ShellInstallLocation.current == .temporary }
 
     // MARK: 情報
     /// お問い合わせのメールの宛先（Info.plist の NonetSupportEmail）。nil なら「お問い合わせ…」を出さない
@@ -1115,6 +1117,12 @@ final class SettingsModel {
     }
 
     func setLoginItemEnabled(_ enabled: Bool) {
+        if enabled, isTemporaryCopy() {
+            loginItemError = ShellInstallLocation.temporaryCopyLoginItemMessage
+            loginItemWanted = nil
+            loginItemEnabled = services.loginItem.isEnabled
+            return
+        }
         do {
             try services.loginItem.setEnabled(enabled)
             loginItemError = nil

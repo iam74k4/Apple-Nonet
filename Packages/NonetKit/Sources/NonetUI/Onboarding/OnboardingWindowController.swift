@@ -143,6 +143,13 @@ public final class OnboardingWindowController {
         open?(.profiles)
     }
 
+    /// アプリを終えるとき（⌘Q・アップデートの再起動など。終了ではウィンドウが閉じないので windowDidClose は来ない）。
+    /// 練習の画面で見せていた「ログイン時に起動」の選択を反映する（初回の勧めのチェックが、終了で黙って消えないように）
+    public func applyChoicesBeforeQuitting() {
+        _ = model.finish()
+        model.close()
+    }
+
     /// 「完了」「スキップ」。「ログイン時に起動」を反映して閉じる（アイコンの場所は windowDidClose で見せる）
     func complete() {
         guard model.finish() else { return }
