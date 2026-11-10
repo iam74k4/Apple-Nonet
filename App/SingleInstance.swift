@@ -64,15 +64,12 @@ enum SingleInstance {
                 waitBriefly()
             case .handOff(let other):
                 // 起動の途中のもの（同時に開かれた）は、こちらが終わるのを待って起動するので、頼まずに終わる
-                if other.isFinishedLaunching {
-                    showSettings(of: other)
-                }
-                exit(0)
+                // （こちらが起動を終えたように見えると、相手もこちらへ任せて、両方とも終わってしまう）
+                guard other.isFinishedLaunching else { exit(0) }
+                forwardOpenRequestsAndExit(to: other, explainsFirst: false)
             case .explainAndHandOff(let other):
                 // ディスクイメージなどから開いたこちらは、動いている方より新しくない。黙って終わらずに伝えてから任せる
-                ShellMoveToApplications.explainAlreadyRunning(runningAt: other.bundleURL)
-                showSettings(of: other)
-                exit(0)
+                forwardOpenRequestsAndExit(to: other, explainsFirst: true)
             }
         }
     }
@@ -93,8 +90,21 @@ enum SingleInstance {
         kill(processID, 0) == 0 || errno == EPERM
     }
 
+    /// 動いている方に任せて終わる。購入のメールの nonet://register のリンクや .nonetlicense のファイルで開かれていたら、
+    /// それを動いている方で開く（開かれたことは NSApplication を動かしてから届くので、少しだけ受け取ってから終わる）。
+    /// 何も届かなければ、動いている方に設定を開かせる
+    private static func forwardOpenRequestsAndExit(to other: ShellRunningInstance, explainsFirst: Bool) -> Never {
+        let forwarder = HandOffForwarder(target: other, explainsFirst: explainsFirst)
+        let app = NSApplication.shared
+        // Dock に出さない（本体と同じ。.prohibited だと、新しくないことを伝える画面を出せない）
+        app.setActivationPolicy(.accessory)
+        app.delegate = forwarder
+        app.run()
+        exit(0)
+    }
+
     /// 動いている方を開き直すと、そちらの applicationShouldHandleReopen が設定を開く
-    private static func showSettings(of other: ShellRunningInstance) {
+    static func showSettings(of other: ShellRunningInstance) {
         guard let url = other.bundleURL else {
             NSRunningApplication(processIdentifier: other.processID)?.activate()
             return
@@ -110,6 +120,55 @@ enum SingleInstance {
         while !done.isSet, Date() < deadline {
             RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
+    }
+}
+
+/// 任せて終わる前に、このプロセスで開かれたリンクとファイルを受け取り、動いている Nonet で開く
+@MainActor
+private final class HandOffForwarder: NSObject, NSApplicationDelegate {
+    /// 起動してから、開かれたものが届くのを待つ時間
+    static let collectionDelay: TimeInterval = 0.5
+
+    private let target: ShellRunningInstance
+    private let explainsFirst: Bool
+    private var items: [URL] = []
+
+    init(target: ShellRunningInstance, explainsFirst: Bool) {
+        self.target = target
+        self.explainsFirst = explainsFirst
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if explainsFirst {
+            // 尋ねている間に届いたものも、application(_:open:) で受け取る
+            ShellMoveToApplications.explainAlreadyRunning(runningAt: target.bundleURL)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.collectionDelay) { [self] in
+            MainActor.assumeIsolated { finish() }
+        }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        items += urls
+    }
+
+    private func finish() {
+        if !items.isEmpty, let url = target.bundleURL {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            let done = DoneFlag()
+            NSWorkspace.shared.open(items, withApplicationAt: url, configuration: configuration) { _, _ in
+                done.set()
+            }
+            // 頼んだことが届く前に終わらないよう、少しだけ待つ
+            let deadline = Date().addingTimeInterval(5)
+            while !done.isSet, Date() < deadline {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+            }
+        } else {
+            SingleInstance.showSettings(of: target)
+        }
+        exit(0)
     }
 }
 
