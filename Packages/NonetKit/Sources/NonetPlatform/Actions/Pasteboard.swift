@@ -410,6 +410,22 @@ final class ClipboardSession {
     }
 }
 
+/// Nonet の画面（NonetUI の結果のパネル・設定）がクリップボードに書いたことを、操作の見張りに伝える
+public enum NonetClipboard {
+    /// 一般のクリップボードに書いた直後に呼ぶ。⌘C の見張りは、遅れて届いた ⌘C の結果と取り違えて元に戻さない
+    @MainActor
+    public static func noteWriteByNonet() {
+        noteWriteByNonet(on: .general)
+    }
+
+    @MainActor
+    static func noteWriteByNonet(on pasteboard: NSPasteboard) {
+        let session = ClipboardSession.of(pasteboard)
+        session.begin()
+        session.didWrite(pasteboard.changeCount)
+    }
+}
+
 enum PasteboardWriter {
     /// クリップボード履歴のアプリに残さないための印（nspasteboard.org の取り決め）
     static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
@@ -553,6 +569,8 @@ enum ClipboardCopy {
                 interval = min(interval * 2, timing.maxPoll)
                 let count = pasteboard.changeCount
                 guard count != before else { continue }
+                // 待っている間に Nonet の画面（結果のパネルのコピーなど）が書いた: それを選択したテキストとせず、戻さない（消さない）
+                guard session.generation == generation else { return .nothing }
                 written = count
                 let timeout = readTimeout(access: access, remaining: seconds(deadline - clock.now), limits: limits)
                 // 前の読み取りが続いている（.busy）・時間切れなら、次の確認でもう一度

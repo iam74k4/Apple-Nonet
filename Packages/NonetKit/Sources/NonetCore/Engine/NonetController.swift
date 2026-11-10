@@ -268,6 +268,13 @@ public final class NonetController {
         status = .stopped
     }
 
+    /// 待っている保存を書いてから、この後の変更を書かない（アンインストールで設定のフォルダをゴミ箱に入れた後に、
+    /// メニューで「有効にする」などを変えても、フォルダを作り直さない）。変更はこの起動の間だけ効く
+    public func stopSaving() {
+        saver.flush()
+        saver.isEnabled = false
+    }
+
     // MARK: - 設定
 
     /// 設定を変えて保存し、すぐに反映する

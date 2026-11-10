@@ -90,6 +90,7 @@ final class HUDResultPanel: NSPanel {
         case "c":
             if let textView, textView.selectedRange().length > 0 {
                 textView.copy(nil)
+                ShellClipboard.didWrite()
             } else {
                 onCopyAll?()
             }
@@ -235,6 +236,7 @@ final class HUDResultPanelController {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        ShellClipboard.didWrite()
     }
 
     var isVisible: Bool { panel?.isVisible == true }

@@ -5,7 +5,7 @@ import AppKit
 /// Nonet は Dock に出ないので、閉じた後も前面のままだと、キーのウィンドウが無いまま打鍵が Nonet に届き続ける
 /// （キー入力のマスを実行しても、前に使っていたアプリではなく Nonet に打ってしまう）
 @MainActor
-enum ShellActivation {
+public enum ShellActivation {
     struct WindowState: Equatable {
         var isVisible: Bool
         var canBecomeKey: Bool
@@ -23,13 +23,13 @@ enum ShellActivation {
 
     /// ウィンドウが閉じるときに呼ぶ。閉じた直後に別のウィンドウを開くことがある（案内の「設定を開く」）ので、
     /// 今の処理が終わってから確かめる
-    static func handBackAfterClosingWindow() {
-        DispatchQueue.main.async {
+    public static func handBackAfterClosingWindow(delay: TimeInterval = 0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0, delay)) {
             MainActor.assumeIsolated { handBackIfNoWindowIsOpen() }
         }
     }
 
-    static func handBackIfNoWindowIsOpen() {
+    public static func handBackIfNoWindowIsOpen() {
         let app = NSApplication.shared
         guard shouldHandBack(isActive: app.isActive, windows: app.windows.map(state(of:))) else { return }
         // 次のアプリ（ふつうは前に使っていたアプリ）が前面になる。メニューバーのアイコンは残り、

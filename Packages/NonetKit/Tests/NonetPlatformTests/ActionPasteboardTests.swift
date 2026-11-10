@@ -458,6 +458,36 @@ struct ActionClipboardTests {
             }
         }
 
+        @Test("見張りの間に Nonet の画面（結果のパネルの「コピー」）が書いたものは、戻さない")
+        func nonetUICopyCancelsWatch() async throws {
+            try await withPrivatePasteboard { pasteboard in
+                put("元のクリップボード", on: pasteboard)
+                let timing = ClipboardCopy.Timing(copyTimeout: 0.2, minimumCopyWait: 0.1, lateWriteWatch: 2)
+                #expect(await ClipboardCopy.copySelection(from: pasteboard, timing: timing) {} == .nothing)
+                put("前の結果", on: pasteboard)
+                NonetClipboard.noteWriteByNonet(on: pasteboard)
+                try await Task.sleep(for: .milliseconds(300))
+                #expect(pasteboard.string(forType: .string) == "前の結果")
+            }
+        }
+
+        @Test("⌘C の結果を待つ間に Nonet の画面が書いたものは、選択したテキストとせず、戻さない")
+        func nonetUICopyDuringTheWaitIsNotTheSelection() async {
+            await withPrivatePasteboard { pasteboard in
+                put("元のクリップボード", on: pasteboard)
+                let timing = ClipboardCopy.Timing(copyTimeout: 0.5, minimumCopyWait: 0.3)
+                let outcome = await ClipboardCopy.copySelection(from: pasteboard, timing: timing) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(50))
+                        put("前の結果", on: pasteboard)
+                        NonetClipboard.noteWriteByNonet(on: pasteboard)
+                    }
+                }
+                #expect(outcome == .nothing)
+                #expect(pasteboard.string(forType: .string) == "前の結果")
+            }
+        }
+
         @Test("⌘C を送ったアプリが前面でなくなっていたら、遅れて書かれたものは戻さない（利用者のコピーかもしれない）")
         func lateWriteInAnotherApp() async throws {
             try await withPrivatePasteboard { pasteboard in

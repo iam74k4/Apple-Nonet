@@ -72,15 +72,16 @@ enum SettingsUninstallStep: Equatable {
     case confirm
     /// ゴミ箱に入れた。最後にすること（アクセシビリティの許可を外す）を伝え、閉じたら終了する
     case finished(SettingsUninstallResult)
-    /// アプリをゴミ箱に入れられなかった（ほかには何も変えていない）
-    case failed
+    /// アプリをゴミ箱に入れられなかった（ほかには何も変えていない）。loginItemRestored が false なら、
+    /// 先に止めたログイン時の起動を戻せなかった（システム設定で戻してもらう）
+    case failed(loginItemRestored: Bool)
 }
 
 enum SettingsUninstallError: Error, Equatable {
     /// アプリではないところから動いている（swift test など）
     case notAnApp
-    /// アプリをゴミ箱に入れられなかった。ほかには何も変えていない
-    case appNotTrashed
+    /// アプリをゴミ箱に入れられなかった。ほかには何も変えていない（loginItemRestored が false なら、ログイン時の起動だけは戻せなかった）
+    case appNotTrashed(loginItemRestored: Bool)
 }
 
 @MainActor
@@ -114,10 +115,18 @@ struct SettingsUninstaller {
             try trash.moveToTrash(targets.app)
         } catch {
             uninstallLog.error("アプリをゴミ箱に入れられませんでした: \(error.localizedDescription, privacy: .public)")
+            // 先に止めたログイン時の起動を戻す。戻せない（許可待ちになったも含む）なら、「何も変えていません」とは言わない
+            var restored = true
             if wasLoginItemEnabled, !result.loginItemFailed {
-                try? loginItem.setEnabled(true)
+                do {
+                    try loginItem.setEnabled(true)
+                    restored = loginItem.isEnabled
+                } catch {
+                    uninstallLog.error("ログイン時の起動を戻せませんでした: \(error.localizedDescription, privacy: .public)")
+                    restored = false
+                }
             }
-            throw SettingsUninstallError.appNotTrashed
+            throw SettingsUninstallError.appNotTrashed(loginItemRestored: restored)
         }
         if waitsForApproval {
             do {

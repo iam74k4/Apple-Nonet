@@ -1407,6 +1407,7 @@ final class SettingsModel {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         pasteboard.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
+        ShellClipboard.didWrite()
     }
 
     // MARK: - お問い合わせ
@@ -1440,11 +1441,15 @@ final class SettingsModel {
             // 設定のフォルダをゴミ箱に入れる前に、試用の記録を書くのもやめる（終了までに数え直して、写しでフォルダを作り直さない）
             let result = try uninstaller.run(loginItem: services.loginItem) {
                 controller.stop()
+                // ゴミ箱に入れた後に、メニューで設定を変えても、設定のフォルダを作り直さない
+                controller.stopSaving()
                 license.stopRecordingTrial()
             }
             uninstallStep = .finished(result)
+        } catch SettingsUninstallError.appNotTrashed(let restored) {
+            uninstallStep = .failed(loginItemRestored: restored)
         } catch {
-            uninstallStep = .failed
+            uninstallStep = .failed(loginItemRestored: true)
         }
     }
 

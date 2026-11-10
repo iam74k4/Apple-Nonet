@@ -6297,6 +6297,16 @@
         }
       }
     },
+    "ログイン時に開く設定だけは、元に戻せませんでした（システム設定の「一般」›「ログイン項目」で Nonet をオンにしてください）。ほかは何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the setting to open at login couldn't be restored (turn Nonet on in System Settings › General › Login Items). Nothing else was changed. Quit Nonet, then move it from the Applications folder to the Trash in Finder."
+          }
+        }
+      }
+    },
     "ログイン時の起動を止められませんでした。システム設定 › 一般 › ログイン項目 で Nonet を外してください。" : {
       "localizations" : {
         "en" : {

@@ -1,4 +1,5 @@
 import AppKit
+import NonetUI
 import Sparkle
 
 /// Sparkle によるアップデート。配信先が未設定なら何もしない。
@@ -52,6 +53,11 @@ extension UpdaterController: SPUStandardUserDriverDelegate {
     }
 
     nonisolated func standardUserDriverWillFinishUpdateSession() {
-        MainActor.assumeIsolated { onUpdateAvailableChange?(false) }
+        MainActor.assumeIsolated {
+            onUpdateAvailableChange?(false)
+            // Sparkle の画面のために前面にした。閉じた後も前面のままだと、打鍵が Nonet に届き、キー入力のマスも
+            // 「前面のアプリが変わった」で止まる。画面が閉じきってから、ほかに Nonet のウィンドウが無ければ前のアプリに返す
+            ShellActivation.handBackAfterClosingWindow(delay: 0.5)
+        }
     }
 }

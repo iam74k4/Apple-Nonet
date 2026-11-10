@@ -153,16 +153,27 @@ struct SettingsAboutView: View {
         }
         .alert(
             String(localized: "Nonet をゴミ箱に入れられませんでした", bundle: .module),
-            isPresented: Binding(get: { model.uninstallStep == .failed }, set: { if !$0, model.uninstallStep == .failed { model.uninstallStep = nil } })
-        ) {
+            isPresented: Binding(get: { failedUninstall != nil }, set: { if !$0, failedUninstall != nil { model.uninstallStep = nil } }),
+            presenting: failedUninstall
+        ) { _ in
             Button(role: .cancel) {
                 model.uninstallStep = nil
             } label: {
                 Text("閉じる", bundle: .module)
             }
-        } message: {
-            Text("何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。", bundle: .module)
+        } message: { loginItemRestored in
+            if loginItemRestored {
+                Text("何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。", bundle: .module)
+            } else {
+                Text("ログイン時に開く設定だけは、元に戻せませんでした（システム設定の「一般」›「ログイン項目」で Nonet をオンにしてください）。ほかは何も変えていません。Nonet を終了してから、Finder でアプリケーションフォルダの Nonet をゴミ箱に入れてください。", bundle: .module)
+            }
         }
+    }
+
+    /// ゴミ箱に入れられなかったとき、ログイン時の起動を戻せたか
+    private var failedUninstall: Bool? {
+        if case .failed(let restored) = model.uninstallStep { return restored }
+        return nil
     }
 
     private var finishedResult: SettingsUninstallResult? {

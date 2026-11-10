@@ -98,6 +98,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onCheckForUpdates: checkForUpdates
         )
 
+        // 結果のパネルや設定のコピーを、アクションの ⌘C の見張りに伝える（遅れて届いた ⌘C の結果と取り違えて戻さない）
+        ShellClipboard.didWrite = { NonetClipboard.noteWriteByNonet() }
         setUpLicenseSupport(license: license)
         observeLicenseRefreshTriggers()
         controller.start()
@@ -118,6 +120,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         applyDebugOptions()
         #endif
+        // Finder などから開くと Nonet が前面になる。ウィンドウを出さない起動なら、前に使っていたアプリに返す
+        // （前面のままだと、打鍵が Nonet に届き、キー入力のマスも止まる）。案内などを出したなら、それを閉じたときに返す
+        if demo == nil {
+            ShellActivation.handBackAfterClosingWindow()
+        }
     }
 
     /// 本物のサービス一式。DEBUG ビルドの --demo では、デモ用の差し替え（App/DemoMode.swift）を入れる

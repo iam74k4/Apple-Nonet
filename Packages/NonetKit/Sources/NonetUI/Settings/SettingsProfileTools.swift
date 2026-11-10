@@ -120,7 +120,9 @@ extension SettingsModel {
     func copyCell(at index: Int, to pasteboard: NSPasteboard = .general) -> Bool {
         guard let data = cellData(at: index) else { return false }
         pasteboard.clearContents()
-        return pasteboard.setData(data, forType: .nonetCell)
+        let written = pasteboard.setData(data, forType: .nonetCell)
+        if pasteboard == .general { ShellClipboard.didWrite() }
+        return written
     }
 
     /// onCopyCommand に渡すもの（SwiftUI がペーストボードに書く）

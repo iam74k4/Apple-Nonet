@@ -457,7 +457,7 @@ private final class FakeTrash: SettingsTrashing {
         trash.failing = [targets.app]
         let loginItem = SettingsFakeLoginItem()
         loginItem.isWaitingForApproval = true
-        #expect(throws: SettingsUninstallError.appNotTrashed) {
+        #expect(throws: SettingsUninstallError.appNotTrashed(loginItemRestored: true)) {
             try SettingsUninstaller(trash: trash, targets: targets).run(loginItem: loginItem) {}
         }
         #expect(loginItem.isWaitingForApproval)
@@ -468,12 +468,33 @@ private final class FakeTrash: SettingsTrashing {
         trash.failing = [targets.app]
         let loginItem = SettingsFakeLoginItem()
         loginItem.isEnabled = true
-        #expect(throws: SettingsUninstallError.appNotTrashed) {
+        #expect(throws: SettingsUninstallError.appNotTrashed(loginItemRestored: true)) {
             try SettingsUninstaller(trash: trash, targets: targets).run(loginItem: loginItem) { trash.record("stop") }
         }
         #expect(loginItem.isEnabled)
         #expect(trash.events.isEmpty)
         #expect(trash.existing.contains(targets.settingsFolder))
+    }
+
+    /// アプリを入れられずに戻すとき、ログイン時の起動を戻せなければ、そのことを返す（「何も変えていません」と言わない）
+    @Test func reportsALoginItemThatCouldNotBeRestored() throws {
+        let trash = FakeTrash(existing: [targets.app])
+        trash.failing = [targets.app]
+        let loginItem = RestoreFailingLoginItem()
+        loginItem.isEnabled = true
+        #expect(throws: SettingsUninstallError.appNotTrashed(loginItemRestored: false)) {
+            try SettingsUninstaller(trash: trash, targets: targets).run(loginItem: loginItem) {}
+        }
+        #expect(!loginItem.isEnabled)
+    }
+
+    /// 止めるのはできるが、入れ直すと失敗するログイン項目
+    private final class RestoreFailingLoginItem: LoginItemControlling {
+        var isEnabled = false
+        func setEnabled(_ enabled: Bool) throws {
+            if enabled { throw CocoaError(.featureUnsupported) }
+            isEnabled = false
+        }
     }
 
     @Test func reportsWhatCouldNotBeRemoved() throws {
@@ -518,6 +539,10 @@ private final class FakeTrash: SettingsTrashing {
         #expect(h.licenseStorage.licenseKey == signed.key)
         #expect(h.licenseStorage.trialStartDate == trialStart)
         #expect(terminated == 0)
+        // ゴミ箱に入れた後に、メニューで設定を変えても書かない（設定のフォルダを作り直さない）
+        let saved = try h.saved()
+        h.controller.update { $0.settings.isEnabled.toggle() }
+        #expect(try h.saved() == saved)
 
         h.model.finishUninstall()
         #expect(h.permissions.openCount == 1)
@@ -534,7 +559,7 @@ private final class FakeTrash: SettingsTrashing {
         h.model.terminate = { terminated += 1 }
         let status = h.controller.status
         h.model.uninstall()
-        #expect(h.model.uninstallStep == .failed)
+        #expect(h.model.uninstallStep == .failed(loginItemRestored: true))
         #expect(h.controller.status == status)
         #expect(terminated == 0)
     }
