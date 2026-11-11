@@ -2,7 +2,7 @@
 # Nonet のデモ動画を1本、共通の背景の上で収録する（手順の全体は docs/portfolio.md の「デモ動画」）。
 # 使い方: scripts/demo/record.sh <名前> <bundle ID> <台本の JSON> <見本の設定のフォルダ>
 #   例: scripts/demo/record.sh xcode com.apple.dt.Xcode scripts/demo/xcode.json ~/Desktop/nonet-demo
-# build/demo/<名前>-raw.mp4（1440×900・H.264）に書き、その場所を標準出力に出す。
+# build/demo/<名前>-raw.mp4（2880×1800・H.264。仕上げの vidtool concat --size 1440 900 で縮める。寄せても粗くならないように）に書き、その場所を標準出力に出す。
 # 実行するところだったアクションは build/demo/<名前>-demo.log の「demo: perform …」で分かる（デモは何も実行しない）。
 # 先に scripts/build.sh で Debug のアプリを作っておく。収録の道具（build/record-screen・build/demo-pointer）と背景はここで作る。
 # 流している間、主の画面の全体が背景で覆われる。画面が点いていて、ロックされていないこと。
@@ -121,7 +121,7 @@ info "撮る範囲: $region"
 sleep 1.5
 
 step "収録する"
-"$RECORDER" "$RAW" "$MAX_SECONDS" "$region_x" "$region_y" "$region_width" "$region_height" 1440 900 3000000 >"$RECORD_LOG" 2>&1 &
+"$RECORDER" "$RAW" "$MAX_SECONDS" "$region_x" "$region_y" "$region_width" "$region_height" 2880 1800 8000000 >"$RECORD_LOG" 2>&1 &
 recorder_pid=$!
 if ! wait_for_line "$RECORD_LOG" "収録を始めました" 15 "$recorder_pid"; then
   cat "$RECORD_LOG" >&2

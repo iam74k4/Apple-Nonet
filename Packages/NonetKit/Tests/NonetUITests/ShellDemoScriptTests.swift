@@ -100,7 +100,7 @@ struct ShellDemoScriptTests {
 
     // MARK: - 内蔵の台本
 
-    @Test("内蔵の台本は4回開く: 上のマスを実行・グローバルの層へ移って左のマスを実行・もう一度移り次のページの右上のマスを実行・輪の下の外ですぐ離してやめる")
+    @Test("内蔵の台本は4回開く: 上のマスを実行・グローバルの層へ移って左のマスを実行・もう一度移り次のページの右上のマスを実行・輪の上の外で止めて離し、やめる")
     func theBuiltInScriptShowsTheFourSessions() {
         let result = Self.replay(.builtIn)
         #expect(result.openedAt.count == 4)
@@ -151,7 +151,7 @@ struct ShellDemoScriptTests {
         let xcode = Self.replay(try Self.recorded("xcode"))
         #expect(xcode.executions == ["0:1"])
         #expect(xcode.ends == [.released])
-        // Zoom: 真ん中（ミュート）・グローバルの左（左半分）・次のページの右上・輪の下の外ですぐ離してやめる
+        // Zoom: 真ん中（ミュート）・グローバルの左（左半分）・次のページの右上・輪の上の外で止めて離し、やめる
         let zoom = Self.replay(try Self.recorded("zoom"))
         #expect(zoom.executions == ["0:4", "1:3", "2:2"])
         #expect(zoom.haptics.filter { $0 == .layerChange }.count == 2)
