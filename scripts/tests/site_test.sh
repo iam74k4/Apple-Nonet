@@ -453,7 +453,7 @@ test_pages_and_assets_exist() {
   local file
   for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html terms.html en/terms.html \
     tokushoho.html thanks.html en/thanks.html buy.html en/buy.html buy.js 404.html en/404.html style.css script.js favicon.svg robots.txt sitemap.xml \
-    apple-touch-icon.png images/og-ja.png images/og-en.png images/demo.mp4 images/demo-poster.jpg \
+    apple-touch-icon.png images/og-ja.png images/og-en.png images/demo.mp4 images/demo-poster.jpg images/demo-en.mp4 images/demo-en-poster.jpg \
     images/hud-xcode.webp images/hud-cancel.webp images/hud-zoom.webp images/hud-place.webp; do
     assert_file "$ROOT/site/$file"
   done
@@ -628,15 +628,16 @@ PY2
   done
 }
 
-# ヒーローは実物の収録（デモ動画）。JavaScript が無いときは controls で自分で再生でき、勝手には動かない（autoplay を付けない。
+# ヒーローは実物の収録（デモ動画）。英語のページは、アプリを英語で動かして撮った動画（demo-en.mp4。名前の札とメニューバーの日付が英語）。
+# JavaScript が無いときは controls で自分で再生でき、勝手には動かない（autoplay を付けない。
 # 動かすのは script.js で、止めるボタンを出し、動きを減らす設定のときは止めたまま）。使い方と機能の絵は、同じ収録から
-# 名前の札が出る前のコマを切り出した静止画（日本語・英語のどちらのページにも使える）。CSP は同じオリジンの動画を許す
+# 名前の札が出る前のコマを切り出した静止画（文字が無いので、日本語・英語のどちらのページにも使える）。CSP は同じオリジンの動画を許す
 test_pages_show_the_real_app() {
-  local page html prefix image
+  local page html prefix image video
   for page in index.html en/index.html; do
     html="$(cat "$ROOT/site/$page")"
-    case "$page" in en/*) prefix="../" ;; *) prefix="" ;; esac
-    assert_contains "$html" "<video src=\"${prefix}images/demo.mp4\" poster=\"${prefix}images/demo-poster.jpg\" width=\"1440\" height=\"900\" muted loop playsinline controls preload=\"metadata\"></video>" "$page の動画"
+    case "$page" in en/*) prefix="../" video="demo-en" ;; *) prefix="" video="demo" ;; esac
+    assert_contains "$html" "<video src=\"${prefix}images/${video}.mp4\" poster=\"${prefix}images/${video}-poster.jpg\" width=\"1440\" height=\"900\" muted loop playsinline controls preload=\"metadata\"></video>" "$page の動画"
     assert_not_contains "$html" "autoplay" "$page"
     assert_contains "$html" "data-video-toggle hidden" "$page の止めるボタン（JavaScript が出す）"
     assert_contains "$html" 'aria-describedby="demo-description"' "$page の動画の説明"
@@ -647,6 +648,7 @@ test_pages_show_the_real_app() {
   done
   assert_contains "$(cat "$ROOT/site/index.html")" "指の動きは台本どおりに入れたもの" "index.html の動画の説明"
   assert_contains "$(cat "$ROOT/site/en/index.html")" "The finger follows a script" "en/index.html の動画の説明"
+  assert_not_contains "$(cat "$ROOT/site/en/index.html")" "running in Japanese" "en/index.html の動画の説明（英語で撮った動画）"
   assert_contains "$(grep -E '^  Content-Security-Policy: ' "$ROOT/site/_headers" | head -n 1)" "media-src 'self'" "_headers の CSP"
 }
 

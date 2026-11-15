@@ -10,7 +10,7 @@
 #     style-src-elem と style-src-attr を分けられるブラウザでは <style> を許さず、属性だけを許す。
 #     分けられない古いブラウザは style-src を見るので、そちらにも 'unsafe-inline' を置く（属性が要るため）
 #   - img-src 'self': favicon.svg・apple-touch-icon.png・images/（共有の画像・ページの静止画・動画の poster）。どれも同じオリジン
-#   - media-src 'self': ヒーローの動画（images/demo.mp4。poster の画像は img-src）。default-src 'none' のままでは止まる
+#   - media-src 'self': ヒーローの動画（images/demo.mp4・英語のページは images/demo-en.mp4。poster の画像は img-src）。default-src 'none' のままでは止まる
 #   - base-uri 'self': 404.html が <base href="/"> を使う（どの深さの URL で出ても、相対のリンクを効かせるため）
 #   - form-action 'none'・frame-ancestors 'none': フォームは無く、ほかのサイトの枠には入れさせない
 # 外のものを読むようにしたら（動画・決済のウィジェットなど）、ここも一緒に直す。

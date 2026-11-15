@@ -16,7 +16,7 @@
 | `/buy.html`・`/en/buy.html` | 購入のページ。販売ページとアプリの「購入する」がここを開き、Paddle.js で購入画面を開く。外のスクリプトを読むのはこの2つだけで、CSP も `_headers` でこの2つだけ広げる（docs/release.md 3.6）。`noindex` | `site/` | 同上 |
 | `/robots.txt`・`/sitemap.xml` | 検索エンジン向け。`/download` と `/updates/` はクロールさせない。ページを足したら sitemap.xml にも足す（`scripts/check-site.sh` が確かめる） | `site/` | 同上 |
 | `/images/og-ja.png`・`/images/og-en.png`・`/apple-touch-icon.png` | 共有の画像（1200×630）とホーム画面のアイコン（180×180） | `site/`（`python3 -I scripts/make-site-images.py` で作る） | 同上 |
-| `/images/demo.mp4`・`/images/demo-poster.jpg`・`/images/hud-*.webp` | 販売ページのヒーローの動画（実物の収録。[portfolio.md](portfolio.md) のデモ動画と同じもの）と、その表紙・使い方と機能の静止画（同じ収録から、名前の札が出る前のコマを切り出したもの。日英のページで共通）。CSP は `media-src 'self'`（`_headers`） | `site/` | 同上 |
+| `/images/demo.mp4`・`/images/demo-poster.jpg`・`/images/demo-en.mp4`・`/images/demo-en-poster.jpg`・`/images/hud-*.webp` | 販売ページのヒーローの動画（実物の収録。日本語は [portfolio.md](portfolio.md) のデモ動画と同じもの、英語のページの `demo-en` はアプリを英語で動かして同じ台本で撮ったもの）と、その表紙・使い方と機能の静止画（同じ収録から、名前の札が出る前のコマを切り出したもの。文字が無いので日英のページで共通）。CSP は `media-src 'self'`（`_headers`） | `site/` | 同上 |
 | 無いページ | `site/404.html`（`/en/` の下は `site/en/404.html`）を 404 で | `site/` | 同上 |
 | `/updates/appcast.xml` | Sparkle のフィード | R2 の `nonet-updates/appcast.xml` | `scripts/publish.sh` |
 | `/updates/Nonet-<版>.dmg` | 配る DMG | R2 | `scripts/publish.sh` |
