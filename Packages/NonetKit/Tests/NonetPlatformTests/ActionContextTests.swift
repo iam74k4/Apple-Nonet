@@ -186,9 +186,11 @@ struct ActionContextGatheringTests {
             calls.append(call)
         }
 
-        /// prefix で始まる呼び出しを待つ（最大 2 秒）。並べて動いていなければ来ないので、時間切れを記録して先へ進む
+        /// prefix で始まる呼び出しを待つ（最大 10 秒）。並べて動いていなければ来ないので、時間切れを記録して先へ進む。
+        /// 回数ではなく時刻で区切る（遅い Mac（CI）では 10 ミリ秒の眠りが延び、相手が始まる前に回数を使いきることがある）
         func waitFor(_ prefix: String) async {
-            for _ in 0 ..< 200 {
+            let deadline = ContinuousClock.now + .seconds(10)
+            while ContinuousClock.now < deadline {
                 if calls.contains(where: { $0.hasPrefix(prefix) }) { return }
                 try? await Task.sleep(for: .milliseconds(10))
             }

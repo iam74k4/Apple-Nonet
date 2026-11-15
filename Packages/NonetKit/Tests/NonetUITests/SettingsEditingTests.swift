@@ -164,8 +164,10 @@ import Testing
         #expect(committed == [Self.script])
     }
 
-    /// 比べるための確認: 同じ欄で置き換えを有効に戻すと、同じ打ち方で “ と — になる（上のテストが空振りしていない）
-    @Test func theSameEditorWithSubstitutionsOnWouldReplaceQuotes() async throws {
+    /// 比べるための確認: 同じ欄で置き換えを有効に戻すと、同じ打ち方で “ と — になる（上のテストが空振りしていない）。
+    /// CI（GitHub Actions の Mac）ではテキストの自動置き換えそのものが働かないので、手元でだけ確かめる
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CI"] == nil, "CI の Mac ではテキストの自動置き換えが働かない"))
+    func theSameEditorWithSubstitutionsOnWouldReplaceQuotes() async throws {
         let host = Host(
             SettingsCommitTextEditor(value: "", code: true, minHeight: 120, accessibilityLabel: "スクリプト") { _ in },
             size: CGSize(width: 300, height: 140)

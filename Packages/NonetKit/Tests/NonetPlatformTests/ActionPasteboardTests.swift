@@ -165,9 +165,9 @@ struct ActionClipboardTests {
         @Test("中身を渡すのが遅いアプリでも、メインスレッドを止めずに時間切れであきらめる")
         func slowProviderDoesNotBlockMainThread() async {
             await withPrivatePasteboard { pasteboard in
-                // 渡すのに 3 秒かかるアプリ。0.5 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
-                // 待ちきった場合（3 秒）とはっきり分かれる
-                let provider = SlowProvider(delay: 3)
+                // 渡すのに 4 秒かかるアプリ。1 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
+                // 待ちきった場合（4 秒）とはっきり分かれる
+                let provider = SlowProvider(delay: 4)
                 putLazy("表のテキスト", types: [custom], provider: provider, on: pasteboard)
 
                 // 写している間もメインスレッドが動いているか（イベントタップと同じスレッド）
@@ -180,13 +180,13 @@ struct ActionClipboardTests {
                 }
                 var result: Result<PasteboardSnapshot, PasteboardSnapshot.Failure>?
                 let elapsed = await actionElapsedSeconds {
-                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 0.5))
+                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 1))
                 }
                 ticker.cancel()
                 #expect(result?.failure == .tooSlow, "\(String(describing: result))")
-                #expect(elapsed < 2.5, "\(elapsed) 秒待った")
-                // 20 ミリ秒ごとに数える（0.5 秒でおよそ 25 回）。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
-                // 遅い Mac（CI）では 20 ミリ秒の眠りが延びるので、回数は少なめに見る
+                #expect(elapsed < 3, "\(elapsed) 秒待った")
+                // 20 ミリ秒ごとに数える（1 秒でおよそ 50 回）。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
+                // 遅い Mac（CI）では 20 ミリ秒の眠りが 150 ミリ秒ほどに延びた（0.5 秒で 3 回）ので、回数は少なめに見る
                 #expect(ticks.value >= 4, "メインスレッドが止まっていた（\(ticks.value) 回）")
                 // 裏で続いている読み取りが終わってからクリップボードを片付ける
                 _ = await waitUntil { provider.isDone }
