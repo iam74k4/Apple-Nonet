@@ -421,25 +421,17 @@ test_release_placeholders_are_reported_but_not_strict() {
   assert_contains "$OUT" "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: index.html tested-macos"
 }
 
-# 公開前の --strict が止まるのは、購入のページの Paddle のトークンと価格の ID の仮の値だけ（2つのページに2つずつ）。
-# 価格（¥1,480・$9.99）・問い合わせ先（support@astlog.dev）・特商法の電話番号の表記は埋めたので、仮の値として残っていれば失敗
-test_strict_mode_on_the_real_site_stops_only_on_the_store_values() {
-  local line others="" store=0
+# 公開する値はすべて埋めた（価格・問い合わせ先・特商法の電話番号の表記は 2026-11-15 まで、Paddle の本番のトークンと価格の ID は
+# 2026-11-15）。本物のサイトは --strict で通り、残るのは実物で確かめて埋める「確認済みの macOS」の知らせだけ
+test_strict_mode_passes_on_the_real_site() {
   run "$ROOT/scripts/check-site.sh" --strict
-  assert_status 1
-  while IFS= read -r line; do
-    case "$line" in
-      *"仮の値が残っています: "*) ;;
-      *) others+="$line"$'\n' && continue ;;
-    esac
-    if [[ "$line" == *'data-paddle-token="TODO: '* || "$line" == *'data-paddle-price="TODO: '* ]]; then
-      store=$((store + 1))
-    else
-      others+="$line"$'\n'
-    fi
-  done < <(grep -E '^ +- ' <<<"$OUT")
-  [[ -z "$others" ]] || fail "--strict が Paddle のトークンと価格の ID のほかでも止まります" "$others"
-  [[ "$store" -eq 4 ]] || fail "Paddle の仮の値が4つではありません（${store}）"
+  assert_status 0
+  assert_contains "$OUT" "サイトに問題はありません"
+  local page
+  for page in buy.html en/buy.html; do
+    assert_contains "$(cat "$ROOT/site/$page")" 'data-paddle-token="live_' "$page の Paddle のトークン（本番）"
+    assert_contains "$(cat "$ROOT/site/$page")" 'data-paddle-price="pri_' "$page の Paddle の価格の ID"
+  done
 }
 
 # 価格（¥1,480 税込・$9.99）は、価格の表示・head の JSON-LD の offers・特商法の表記でそろっている

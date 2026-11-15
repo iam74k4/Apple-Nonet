@@ -135,12 +135,12 @@ Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONE
 
 ### 1.8 販売ページの仮の値を埋める
 
-`site/` に残っている仮の値（`TODO`）は、購入のページの Paddle のトークンと価格の ID だけ（価格・販売サービスの名前・購入のページは 2026-11-08 に、問い合わせ先と特商法の電話番号の表記は 2026-11-15 に埋めた）。どれも同じ書き方なので、検索して置き換える:
+`site/` の仮の値はすべて埋めた（価格・販売サービスの名前・購入のページは 2026-11-08、問い合わせ先と特商法の電話番号の表記と Paddle の本番のトークン・価格の ID は 2026-11-15）。埋めた値を変えるときも、下の表の場所をそろえる。
 
 | 仮の値 | 場所 | 埋めるもの |
 |---|---|---|
 | 価格（2026-11-08 に決めて埋めた） | `index.html`・`en/index.html` の価格と head の JSON-LD の `offers`、`tokushoho.html` の販売価格 | ¥1,480（税込）・$9.99（税は別）。変えるときは全部をそろえる（`scripts/tests/site_test.sh` の `test_price_is_the_same_everywhere` が確かめる） |
-| 販売サービス: `data-paddle-token="TODO: …"`・`data-paddle-price="TODO: …"` | 購入のページ（`buy.html`・`en/buy.html`。同じ値） | Paddle のクライアント用トークン（`live_…`）と価格の ID（`pri_…`）は 3.6 で作る。特商法の電話番号の表記は 2026-11-15 に埋めた（3.4）。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地・購入のボタン（`buy.html`）は 2026-11-08 に埋めた |
+| 販売サービス（2026-11-15 に埋めた）: `data-paddle-token`（`live_…`）・`data-paddle-price`（`pri_…`） | 購入のページ（`buy.html`・`en/buy.html`。同じ値） | Paddle のクライアント用トークンと価格の ID（3.6）。作り直したら両方のページを直す |
 | 問い合わせ先（2026-11-15 に `support@astlog.dev` で埋めた） | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー・`NONET_SUPPORT_EMAIL` | 変えるときは全部をそろえる（利用ガイドのフッターは `scripts/build-guide.py` で直す）。Cloudflare の Email Routing で Gmail に転送する |
 
 ```bash
