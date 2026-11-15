@@ -195,7 +195,7 @@ appcast_builds_missing() {
 appcast_has_version() {
   local file="$1" escaped="${2//./\\.}"
   [[ -f "$file" ]] || return 1
-  grep -qE "<sparkle:shortVersionString>[[:space:]]*$escaped[[:space:]]*</sparkle:shortVersionString>|sparkle:shortVersionString=\"$escaped\"" "$file"
+  grep -qE "<sparkle:shortVersionString>[[:space:]]*${escaped}[[:space:]]*</sparkle:shortVersionString>|sparkle:shortVersionString=\"$escaped\"" "$file"
 }
 
 # appcast に url を指す項目（enclosure）があるか

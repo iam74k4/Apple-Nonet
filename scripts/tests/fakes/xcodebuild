@@ -18,7 +18,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     archive | build) action="$1" ;;
     -resolvePackageDependencies) action=resolve ;;
-    -exportArchive) action=export ;;
+    -exportArchive) action="export" ;;
     -version)
       printf 'Xcode 27.1\nBuild version 27A0000\n'
       exit 0
