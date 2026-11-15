@@ -165,7 +165,9 @@ struct ActionClipboardTests {
         @Test("中身を渡すのが遅いアプリでも、メインスレッドを止めずに時間切れであきらめる")
         func slowProviderDoesNotBlockMainThread() async {
             await withPrivatePasteboard { pasteboard in
-                let provider = SlowProvider(delay: 1.5)
+                // 渡すのに 3 秒かかるアプリ。0.5 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
+                // 待ちきった場合（3 秒）とはっきり分かれる
+                let provider = SlowProvider(delay: 3)
                 putLazy("表のテキスト", types: [custom], provider: provider, on: pasteboard)
 
                 // 写している間もメインスレッドが動いているか（イベントタップと同じスレッド）
@@ -178,14 +180,14 @@ struct ActionClipboardTests {
                 }
                 var result: Result<PasteboardSnapshot, PasteboardSnapshot.Failure>?
                 let elapsed = await actionElapsedSeconds {
-                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 0.2))
+                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 0.5))
                 }
                 ticker.cancel()
                 #expect(result?.failure == .tooSlow, "\(String(describing: result))")
-                #expect(elapsed < 1, "\(elapsed) 秒待った")
-                // 20 ミリ秒ごとに数える。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
+                #expect(elapsed < 2.5, "\(elapsed) 秒待った")
+                // 20 ミリ秒ごとに数える（0.5 秒でおよそ 25 回）。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
                 // 遅い Mac（CI）では 20 ミリ秒の眠りが延びるので、回数は少なめに見る
-                #expect(ticks.value >= 3, "メインスレッドが止まっていた（\(ticks.value) 回）")
+                #expect(ticks.value >= 4, "メインスレッドが止まっていた（\(ticks.value) 回）")
                 // 裏で続いている読み取りが終わってからクリップボードを片付ける
                 _ = await waitUntil { provider.isDone }
             }
@@ -702,14 +704,16 @@ struct ActionBlockingCallTests {
     @Test("制限時間を過ぎたら、終わりを待たずに代わりの値を返す")
     func timesOut() async {
         var value = ""
+        // 呼び出しは 3 秒止まる。遅い Mac（CI）では、時間切れの後にこのテストの再開が 1 秒ほど遅れることがあるので、
+        // 待ちきった場合（3 秒）と分かれる 2 秒で見る
         let elapsed = await actionElapsedSeconds {
             value = await BlockingCall.run(timeout: 0.1, fallback: "代わり") {
-                Thread.sleep(forTimeInterval: 1)
+                Thread.sleep(forTimeInterval: 3)
                 return "遅い"
             }
         }
         #expect(value == "代わり")
-        #expect(elapsed < 0.8)
+        #expect(elapsed < 2, "\(elapsed) 秒待った")
     }
 
     @Test("間に合えばその値")
