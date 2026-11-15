@@ -2,13 +2,13 @@
 import NonetCore
 
 /// メニューバーと初回起動で使う文言。
-/// 呼び方: 9マスの一覧は、画面で最初に出すときだけ「HUD（9マスの一覧）」、後は「HUD」。
-/// 9つのセルは「マス」（「9つのボタン」はようこその一行だけ）。9マスの外側の枠は「外枠」。
+/// 呼び方: 9つのアイコンの一覧は、画面で最初に出すときだけ「9つのアイコン（HUD）」、後は「HUD」。
+/// 1つのセルは「マス」（「9つのボタン」はようこそと情報の一行だけ）。アイコンの輪の外側は「輪の外」（1つの文の中で「外枠」と混ぜない）。
 /// 開き方は「上の縁から指を（下へ）滑らせる」（トラックパッドでは「押す」「長押し」と言わない。押すとクリックになる）
 enum ShellText {
-    /// ようこその説明
-    static var welcomeSubtitle: String {
-        String(localized: "トラックパッドの上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンになります", bundle: .module)
+    /// ようこその説明。設定の「Nonet」のタブの情報（SettingsAboutView）も同じ一行を使う
+    static var tagline: String {
+        String(localized: "トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます", bundle: .module)
     }
 
     // MARK: - 練習
@@ -18,9 +18,9 @@ enum ShellText {
     /// 文をつなげずに、組み合わせごとに1つの文言にする（つなげると、英語で文と文の間の空白が抜ける）
     static func practiceRunInstruction(_ target: OnboardingPracticeTarget) -> String {
         guard target.requiresHold else {
-            return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。", bundle: .module)
+            return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。", bundle: .module)
         }
-        return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
+        return String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「\(target.title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。", bundle: .module)
     }
 
     /// 1つ目の課題の下に出す、開かないときの手がかり
@@ -29,10 +29,10 @@ enum ShellText {
     }
 
     /// 開いて離したが、何も実行されなかった（reason 別に、どうすればよいかを知らせる）。
-    /// whileCancelling は、やめる課題の途中（外枠で離す以外は、やめたことにならない）
+    /// whileCancelling は、やめる課題の途中（輪の外で離す以外は、やめたことにならない）
     static func practiceNotRun(_ reason: SessionCancellation, target: OnboardingPracticeTarget?, whileCancelling: Bool) -> String {
         if whileCancelling {
-            return String(localized: "まだ外枠で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。", bundle: .module)
+            return String(localized: "まだ輪の外で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。", bundle: .module)
         }
         let title = target?.title ?? ""
         switch reason {
@@ -49,7 +49,7 @@ enum ShellText {
         }
     }
 
-    /// 2つ目の課題: 外枠（アイコンの輪の外）で離してやめる
+    /// 2つ目の課題: アイコンの輪の外で離してやめる
     static var practiceCancelInstruction: String {
         String(localized: "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。", bundle: .module)
     }

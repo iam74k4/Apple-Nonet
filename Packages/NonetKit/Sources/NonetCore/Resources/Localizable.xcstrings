@@ -63,23 +63,12 @@
         }
       }
     },
-    "%@ へ移動" : {
-      "extractionState" : "stale",
+    "%@。設定の変更は保存されません。「以前の設定に戻す…」で控えに戻すと、また保存します。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Move to %@"
-          }
-        }
-      }
-    },
-    "%@。設定の変更は保存されません。「以前の設定に戻す…」で控えに戻すと、また保存します。" : {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Changes to the settings won't be saved. Use “Restore an Earlier Version…” to go back to a backup and start saving again."
+            "value" : "%@ Changes to the settings won't be saved. Use “Restore an Earlier Version…” to go back to a backup and start saving again."
           }
         }
       }
@@ -90,28 +79,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ permission required."
-          }
-        }
-      }
-    },
-    "%@を離して実行" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Release %@ to run"
-          }
-        }
-      }
-    },
-    "2本指のスワイプでページを切り替え" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Swipe with two fingers to change pages"
           }
         }
       }
@@ -264,8 +231,7 @@
         }
       }
     },
-    "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます" : {
-      "extractionState" : "stale",
+    "Nonet のウインドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -275,17 +241,7 @@
         }
       }
     },
-    "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Didn't run because a Nonet window is in front. In Settings, use “Test This Button” to try it."
-          }
-        }
-      }
-    },
-    "Nonet のウィンドウが前面のときは、9マスは開きません" : {
+    "Nonet のウインドウが前面のときは、9マスは開きません" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -352,6 +308,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Running “%@”…"
+          }
+        }
+      }
+    },
+    "「%@」を止めました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped “%@”"
           }
         }
       }
@@ -437,13 +403,12 @@
         }
       }
     },
-    "やめるときは指を置いたまま左の⇧を押す" : {
-      "extractionState" : "stale",
+    "アクセシビリティの許可が必要です" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To cancel, keep your finger down and press left ⇧"
+            "value" : "Accessibility permission required"
           }
         }
       }
@@ -458,23 +423,22 @@
         }
       }
     },
+    "アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."
+          }
+        }
+      }
+    },
     "アーカイブ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archive"
-          }
-        }
-      }
-    },
-    "ウインドウを撮影" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capture Window"
           }
         }
       }
@@ -841,6 +805,16 @@
         }
       }
     },
+    "システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility."
+          }
+        }
+      }
+    },
     "シミュレータ" : {
       "localizations" : {
         "en" : {
@@ -918,17 +892,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duplicate Slide"
-          }
-        }
-      }
-    },
-    "スライドショー" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slideshow"
           }
         }
       }
@@ -1043,28 +1006,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Title"
-          }
-        }
-      }
-    },
-    "タップか %@を離して実行" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap, or release %@ to run"
-          }
-        }
-      }
-    },
-    "タップか、%@を離して実行" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap, or release %@ to run"
           }
         }
       }
@@ -1347,6 +1288,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Highlight"
+          }
+        }
+      }
+    },
+    "パスワードの入力中は開きません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doesn't open while you're entering a password"
+          }
+        }
+      }
+    },
+    "パスワード欄から離れるか、ターミナルの「セキュアキーボード入力」をオフにすると開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave the password field, or turn off Secure Keyboard Entry in Terminal."
           }
         }
       }
@@ -1651,17 +1612,6 @@
         }
       }
     },
-    "マスで指を離すと実行" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lift on a button to run"
-          }
-        }
-      }
-    },
     "マスで離すと実行" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1757,12 +1707,32 @@
         }
       }
     },
+    "メニューバーの Nonet から止められます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can stop it from the Nonet menu in the menu bar."
+          }
+        }
+      }
+    },
     "メニューバーの Nonet から購入・登録できます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buy Nonet or register a license key from its menu bar icon."
+          }
+        }
+      }
+    },
+    "メニューバーの Nonet の「アクセシビリティを許可…」か、システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Allow Accessibility Access… from the Nonet menu in the menu bar, or turn on Nonet in System Settings › Privacy & Security › Accessibility."
           }
         }
       }
@@ -2028,17 +1998,6 @@
         }
       }
     },
-    "先に指を離してから%@を離すとやめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To cancel, lift your finger before releasing %@"
-          }
-        }
-      }
-    },
     "先頭から再生" : {
       "localizations" : {
         "en" : {
@@ -2095,17 +2054,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Full Screen"
-          }
-        }
-      }
-    },
-    "全画面を撮影" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capture Screen"
           }
         }
       }
@@ -2264,56 +2212,12 @@
         }
       }
     },
-    "収録を止める" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop Recording"
-          }
-        }
-      }
-    },
     "受信" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Get Mail"
-          }
-        }
-      }
-    },
-    "右⇧" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⇧"
-          }
-        }
-      }
-    },
-    "右⌘" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⌘"
-          }
-        }
-      }
-    },
-    "右⌥" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⌥"
           }
         }
       }
@@ -2388,28 +2292,6 @@
         }
       }
     },
-    "外枠で指を離すとやめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lift in the frame to cancel"
-          }
-        }
-      }
-    },
-    "外枠で離すとやめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lift in the frame to cancel"
-          }
-        }
-      }
-    },
     "定義へ移動" : {
       "localizations" : {
         "en" : {
@@ -2470,34 +2352,22 @@
         }
       }
     },
-    "左右の外枠で止めるとページを切り替え" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold in the left or right frame to change pages"
-          }
-        }
-      }
-    },
-    "左右の外枠で止めるとページ切り替え" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold in the side frame to change pages"
-          }
-        }
-      }
-    },
     "形式を選んで貼付" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste Special"
+          }
+        }
+      }
+    },
+    "思わず開いてしまうときは" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening by accident?"
           }
         }
       }
@@ -2522,17 +2392,6 @@
         }
       }
     },
-    "指を滑らせて選ぶ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slide to choose"
-          }
-        }
-      }
-    },
     "指を離して実行" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2550,17 +2409,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raise Hand"
-          }
-        }
-      }
-    },
-    "撮影・収録" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Capture Options"
           }
         }
       }
@@ -2692,29 +2540,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Folder"
-          }
-        }
-      }
-    },
-    "新規フォルダ、クイックルック、AirDrop など%lld個" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld button, including New Folder, Quick Look and AirDrop"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld buttons, including New Folder, Quick Look and AirDrop"
-                }
-              }
-            }
           }
         }
       }
@@ -3055,13 +2880,12 @@
         }
       }
     },
-    "滑らせずに離すとやめる" : {
-      "extractionState" : "stale",
+    "止めました" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lift without sliding to cancel"
+            "value" : "Stopped"
           }
         }
       }
@@ -3143,17 +2967,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Capture Area"
-          }
-        }
-      }
-    },
-    "練習中 · %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Practice · %@"
           }
         }
       }
@@ -3364,6 +3177,16 @@
         }
       }
     },
+    "設定の「一般」›「開きやすさ」を「控えめ」にすると開きにくくなります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Open sensitivity to Low in Settings › General to make it harder to open."
+          }
+        }
+      }
+    },
     "設定を保存できませんでした" : {
       "localizations" : {
         "en" : {
@@ -3435,6 +3258,16 @@
         }
       }
     },
+    "試用期間が終了しました。アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your trial has ended. Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."
+          }
+        }
+      }
+    },
     "試用期間が終了しました。メニューバーの Nonet から購入・登録できます" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3452,17 +3285,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your trial has ended. Buy Nonet or register a license key from its menu bar icon."
-          }
-        }
-      }
-    },
-    "試用期間が終了しました。ライセンスを入力してください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your trial has ended. Enter a license key."
           }
         }
       }

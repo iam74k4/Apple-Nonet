@@ -115,7 +115,7 @@ enum OnboardingPracticeBlocker: Equatable {
         case .licenseRequired:
             String(localized: "試用期間が終了しているため、試せません。ライセンスキーを登録すると試せます。", bundle: .module)
         case .notAttended:
-            String(localized: "このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。", bundle: .module)
+            String(localized: "このウインドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。", bundle: .module)
         }
     }
 
@@ -488,9 +488,10 @@ final class OnboardingModel {
         } catch {
             logger.error("ログイン時に起動を変えられませんでした: \(error.localizedDescription, privacy: .public)")
             let reason = error.localizedDescription
+            // 設定の一般と同じ文言（どこで確かめればよいかも言う）
             loginItemMessage = enabled
-                ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）", bundle: .module)
-                : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）", bundle: .module)
+                ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。", bundle: .module)
+                : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。", bundle: .module)
         }
         loginAttempt = enabled
         if let loginItemMessage {

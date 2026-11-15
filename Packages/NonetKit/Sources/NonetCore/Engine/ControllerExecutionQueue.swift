@@ -117,6 +117,16 @@ enum ControllerExecutionPolicy {
         }
     }
 
+    /// メニューの「実行中の「◯◯」を止める」で止められる（取り消すと、制限時間を過ぎたときと同じくプロセスを止める）。
+    /// ファイルの複製は Finder が続けるので、止められることにしない
+    static func canStop(_ action: Action) -> Bool {
+        switch action {
+        case .script(let script): script.runMode == .background
+        case .shortcut, .ai: true
+        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
+        }
+    }
+
     /// action を始めてから、後の実行を待たせる最長の時間
     static func hold(for action: Action) -> TimeInterval {
         isLongRunning(action) ? longRunningHold : holdLimit

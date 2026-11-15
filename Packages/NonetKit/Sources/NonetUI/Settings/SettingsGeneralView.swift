@@ -11,7 +11,8 @@ struct SettingsGeneralView: View {
             Section {
                 Toggle(isOn: binding(\.isEnabled)) {
                     Text("Nonet を有効にする", bundle: .module)
-                    Text("オフにすると、トラックパッドの上の縁から指を滑らせても9マスが開きません", bundle: .module)
+                    // この画面で最初に出す呼び方は「9つのアイコン（HUD）」、次からは「HUD」
+                    Text("オフにすると、トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）が開きません", bundle: .module)
                 }
                 LabeledContent {
                     SettingsOpenGestureFigure()
@@ -19,6 +20,15 @@ struct SettingsGeneralView: View {
                 } label: {
                     Text(SettingsText.openGestureTitle)
                     Text(SettingsText.openGestureDetail)
+                    // くわしい使い方（Nonet のウインドウが前面では開かないことなど）は利用ガイドに任せる
+                    if let guide = model.links.support {
+                        Button {
+                            model.openURL(guide)
+                        } label: {
+                            Text("くわしくは利用ガイドへ", bundle: .module)
+                        }
+                        .buttonStyle(.link)
+                    }
                 }
                 Picker(selection: binding(\.openSensitivity)) {
                     ForEach(OpenSensitivity.allCases, id: \.self) { sensitivity in
@@ -41,6 +51,25 @@ struct SettingsGeneralView: View {
                 }
             } header: {
                 Text("開き方と HUD", bundle: .module)
+            }
+
+            // iTerm2 が入っているときだけ出す（選べるのがターミナルだけなら、選ぶものが無い）。
+            // 選んだ後に iTerm2 を消したときは、選んだまま見せる（実行はターミナルで開く）
+            let terminals = SettingsText.terminalChoices(current: model.settings.terminalApp) { model.services.installedApps.isInstalled(bundleID: $0) }
+            if terminals.count > 1 {
+                Section {
+                    Picker(selection: binding(\.terminalApp)) {
+                        ForEach(terminals, id: \.self) { app in
+                            Text(SettingsText.name(app)).tag(app)
+                        }
+                    } label: {
+                        Text(SettingsText.terminalAppTitle)
+                        Text(SettingsText.terminalAppDetail)
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("スクリプト", bundle: .module)
+                }
             }
 
             Section {
@@ -70,9 +99,9 @@ struct SettingsOpenGestureFigure: View {
         GeometryReader { geometry in
             let size = geometry.size
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.07))
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius, style: .continuous)
                     .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
                 // 上の縁から下へ滑らせる
                 Path { path in

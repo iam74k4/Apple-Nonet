@@ -94,9 +94,14 @@ struct SettingsBackupsSheet: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
-            Text(SettingsText.backupSummary(entry))
-                .font(.system(size: 11))
-                .foregroundStyle(entry.appProfileCount == nil ? Color.orange : Color.secondary)
+            if entry.appProfileCount == nil {
+                // 読めない控え。橙は記号だけにして、文字は読める色で
+                SettingsNote(text: SettingsText.backupSummary(entry), symbol: "exclamationmark.triangle", isWarning: true)
+            } else {
+                Text(SettingsText.backupSummary(entry))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)

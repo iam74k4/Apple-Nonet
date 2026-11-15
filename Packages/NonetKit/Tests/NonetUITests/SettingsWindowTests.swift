@@ -151,6 +151,69 @@ import Testing
     }
 }
 
+/// ⌘, と「Nonet について」と、Finder で開いた .nonetprofile（ウインドウは画面に出さない）
+@Suite @MainActor struct SettingsWindowMainMenuTests {
+    /// もう開いていれば、⌘, はタブを替えずに前に出すだけ。閉じていれば一般のタブで開く
+    @Test func settingsKeepsTheCurrentTabWhenOpen() {
+        for tab in SettingsTab.allCases {
+            #expect(SettingsWindowController.mainMenuSettingsTab(isOpen: true, current: tab) == tab)
+            #expect(SettingsWindowController.mainMenuSettingsTab(isOpen: false, current: tab) == .general)
+        }
+    }
+
+    /// 「Nonet について」は「Nonet」のタブの、情報の欄まで送る
+    @Test func aboutOpensTheAboutSection() throws {
+        let h = try SettingsHarness()
+        #expect(!h.model.wantsAboutScroll)
+        h.model.showAbout()
+        #expect(h.model.tab == .license)
+        #expect(h.model.wantsAboutScroll)
+    }
+
+    @Test func onlyProfileDocumentsAreImported() {
+        #expect(SettingsWindowController.isProfileDocument(URL(fileURLWithPath: "/tmp/Xcode.nonetprofile")))
+        #expect(SettingsWindowController.isProfileDocument(URL(fileURLWithPath: "/tmp/Xcode.NonetProfile")))
+        #expect(!SettingsWindowController.isProfileDocument(URL(fileURLWithPath: "/tmp/key.nonetlicense")))
+        #expect(!SettingsWindowController.isProfileDocument(URL(string: "nonet://register?key=x")!))
+        #expect(!SettingsWindowController.isProfileDocument(URL(string: "https://example.com/a.nonetprofile")!))
+    }
+
+    private func exportXcode(_ h: SettingsHarness) throws -> URL {
+        let xcode = try #require(h.model.appProfiles.first { $0.app?.bundleID == SettingsFixtures.xcode.bundleID })
+        let url = h.directory.appending(path: "Xcode.\(ConfigurationStore.profileDocumentExtension)")
+        try ConfigurationStore.exportData(profiles: [xcode]).write(to: url)
+        return url
+    }
+
+    /// .nonetprofile は「読み込む…」と同じ道で読み込む（同じアプリのプロファイルが置き換わるので、先に確かめる）
+    @Test func openingAProfileDocumentImportsIt() throws {
+        let h = try SettingsHarness()
+        let url = try exportXcode(h)
+        h.model.openProfileDocument(url)
+        guard case .importProfiles(let plan)? = h.model.confirmation else {
+            Issue.record("読み込みを確かめていない: \(String(describing: h.model.confirmation))")
+            return
+        }
+        #expect(plan.fileName == url.lastPathComponent)
+        #expect(plan.replacesExisting)
+    }
+
+    /// シートが開いていれば閉じてから、少し待って確かめる（シートは1つずつしか出せない）
+    @Test func openingAProfileDocumentClosesOtherSheetsFirst() throws {
+        let h = try SettingsHarness()
+        let url = try exportXcode(h)
+        h.model.isCleaningUpProfiles = true
+        h.model.openProfileDocument(url)
+        #expect(!h.model.isCleaningUpProfiles)
+        #expect(h.model.confirmation == nil)
+        h.scheduler.advance(by: SettingsModel.sheetHandOverDelay)
+        guard case .importProfiles? = h.model.confirmation else {
+            Issue.record("読み込みを確かめていない")
+            return
+        }
+    }
+}
+
 /// 利用ガイドとプライバシーポリシーは、画面が英語ならサイトの en/ の下のページを開く
 @Suite struct SettingsLinksTests {
     static let site = "https://nonet.astlog.dev"
@@ -176,8 +239,24 @@ import Testing
     @Test func otherLanguagesKeepThePage() {
         let guide = "\(Self.site)/guide.html"
         #expect(Self.page(guide, language: "ja") == guide)
+        #expect(Self.page(guide, language: "ja-JP") == guide)
         #expect(Self.page(guide, language: nil) == guide)
+        #expect(Self.page(guide, language: "") == guide)
         #expect(Self.page(guide, language: "en-GB") == "\(Self.site)/en/guide.html")
+        // 日本語でなければ英語のページ（サイトに日本語と英語のページしか無い）
+        #expect(Self.page(guide, language: "de") == "\(Self.site)/en/guide.html")
+    }
+
+    /// 英語の画面では、購入ページ・プライバシーポリシーも英語のページ（Config/Nonet.xcconfig の値）
+    @Test func theShippedPagesOpenInEnglish() {
+        let links = AppLinks(
+            purchase: URL(string: "\(Self.site)/buy.html"),
+            support: URL(string: "\(Self.site)/guide.html"),
+            privacy: URL(string: "\(Self.site)/privacy.html")
+        ).localized(language: "en")
+        #expect(links.purchase?.absoluteString == "\(Self.site)/en/buy.html")
+        #expect(links.privacy?.absoluteString == "\(Self.site)/en/privacy.html")
+        #expect(links.support?.absoluteString == "\(Self.site)/en/guide.html")
     }
 
     @Test func onlyTheGuideAndPrivacyPolicyChange() throws {

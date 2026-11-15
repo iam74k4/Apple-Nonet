@@ -52,6 +52,25 @@ enum SettingsPalette {
     }
 }
 
+/// 角の丸みと、小さな記号だけのボタンの大きさ。丸みはこの4つだけを使う（欄・チップは small、ボタンの面は medium、
+/// マス・カードは large、グリッドの台のようにマスを囲むものは container）
+enum SettingsMetrics {
+    static let smallRadius: CGFloat = 6
+    static let mediumRadius: CGFloat = 8
+    static let largeRadius: CGFloat = 12
+    static let containerRadius: CGFloat = 16
+    /// 記号だけの枠なしのボタン（×・?）の押せる範囲。記号は小さくても、ここまでは押せる
+    static let iconButtonSize: CGFloat = 22
+}
+
+extension View {
+    /// 記号だけの枠なしのボタンの押せる範囲を SettingsMetrics.iconButtonSize 四方に広げる
+    func settingsIconButtonFrame() -> some View {
+        frame(width: SettingsMetrics.iconButtonSize, height: SettingsMetrics.iconButtonSize)
+            .contentShape(Rectangle())
+    }
+}
+
 /// インスペクタの見出し付きの欄
 struct SettingsField<Content: View>: View {
     let title: String
@@ -123,6 +142,7 @@ struct SettingsBanner<Buttons: View>: View {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .semibold))
+                        .settingsIconButtonFrame()
                 }
                 .buttonStyle(.borderless)
                 .help(String(localized: "閉じる", bundle: .module))
@@ -148,6 +168,7 @@ struct SettingsHelpButton<Content: View>: View {
             isShown.toggle()
         } label: {
             Image(systemName: "questionmark.circle")
+                .settingsIconButtonFrame()
         }
         .buttonStyle(.borderless)
         .help(label)

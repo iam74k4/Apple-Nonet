@@ -308,13 +308,39 @@ struct ShellHUDTests {
         #expect(HUDAnnouncement.highlighted(in: short) == L10n.ui("空きマス、\(L10n.ui("左"))"))
     }
 
-    @Test("トーストの表示時間: 成功と案内は一瞬、実行中は時間では消さない", arguments: [
+    @Test("トーストの表示時間: 成功は一瞬、実行中は時間では消さない", arguments: [
         (ToastModel.Style.success, 0.8 as Double?),
-        (.info, 0.8),
         (.running, nil),
     ])
     func toastDuration(style: ToastModel.Style, seconds: Double?) {
         #expect(HUDToastLayout.duration(for: ToastModel(title: "ビルド", detail: String(repeating: "あ", count: 200), style: style)) == seconds)
+    }
+
+    /// 案内は、説明が無ければ一瞬、説明があれば失敗と同じく読めるだけ（文字数で 3〜8秒）出す。説明は2行まで
+    @Test("説明のある案内のトーストは、読めるだけ出す")
+    func infoToastWithADetailStaysLongEnoughToRead() {
+        #expect(HUDToastLayout.duration(for: ToastModel(title: "ビルド", style: .info)) == HUDToastLayout.briefDuration)
+        #expect(HUDToastLayout.duration(for: ToastModel(title: "ビルド", detail: "", style: .info)) == HUDToastLayout.briefDuration)
+        let detail = String(repeating: "あ", count: 40)
+        let info = HUDToastLayout.duration(for: ToastModel(title: "ビルド", detail: detail, style: .info))
+        #expect(info == HUDToastLayout.duration(for: ToastModel(title: "ビルド", detail: detail, style: .failure)))
+        #expect((info ?? 0) >= 3)
+        #expect(HUDToastLayout.duration(for: ToastModel(title: "A", detail: String(repeating: "b", count: 500), style: .info)) == 8)
+        #expect(HUDToastLayout.detailLineLimit(for: .info) == 2)
+        #expect(HUDToastLayout.detailLineLimit(for: .failure) == 4)
+        #expect(HUDToastLayout.detailLineLimit(for: .success) == 1)
+    }
+
+    /// 結果のパネルを開いたときの読み上げは、名前と結果の始めだけ（長い出力をすべて読ませない）
+    @Test("結果のパネルの読み上げは、名前と始めの200文字まで")
+    func resultAnnouncementIsShort() {
+        #expect(HUDAccessibility.resultAnnouncement(title: "要約", text: " 短い結果 \n") == HUDAccessibility.toastAnnouncement(title: "要約", detail: "短い結果"))
+        #expect(HUDAccessibility.resultAnnouncement(title: "要約", text: "") == "要約")
+        let long = String(repeating: "あ", count: 5000)
+        let spoken = HUDAccessibility.resultAnnouncement(title: "要約", text: long)
+        let excerpt = String(repeating: "あ", count: HUDAccessibility.resultExcerptLimit)
+        #expect(spoken == L10n.ui("\("要約")、\(excerpt)…（続きは結果のパネルで読めます）"))
+        #expect(spoken.count < 300)
     }
 
     /// 失敗は文字数で決める: 1.5秒＋1文字 0.06秒を、3〜8秒に収める（見出しと説明の文字を数える）

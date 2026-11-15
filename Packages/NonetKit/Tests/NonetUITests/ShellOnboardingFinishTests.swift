@@ -218,7 +218,7 @@ struct ShellOnboardingFinishTests {
         failingHarness.loginItem.failure = NonetError.actionFailed("だめ")
         #expect(!failing.finish())
         let reason = NonetError.actionFailed("だめ").localizedDescription
-        #expect(failing.loginItemMessage == L10n.ui("ログイン時に起動するように設定できませんでした（\(reason)）"))
+        #expect(failing.loginItemMessage == L10n.ui("ログイン時に起動するように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。"))
         // 選び直したら、もう一度試す
         failingHarness.loginItem.failure = nil
         failing.opensAtLogin = false

@@ -453,7 +453,8 @@ test_pages_and_assets_exist() {
   local file
   for file in index.html en/index.html privacy.html en/privacy.html guide.html en/guide.html terms.html en/terms.html \
     tokushoho.html thanks.html en/thanks.html buy.html en/buy.html buy.js 404.html en/404.html style.css script.js favicon.svg robots.txt sitemap.xml \
-    apple-touch-icon.png images/og-ja.png images/og-en.png; do
+    apple-touch-icon.png images/og-ja.png images/og-en.png images/demo.mp4 images/demo-poster.jpg \
+    images/hud-xcode.webp images/hud-cancel.webp images/hud-zoom.webp images/hud-place.webp; do
     assert_file "$ROOT/site/$file"
   done
 }
@@ -485,8 +486,8 @@ test_headlines_tell_the_same_story_without_a_trademark() {
   assert_not_contains "$en" "Nothing to set up"
   assert_contains "$ja" "カードもメールアドレスも不要"
   assert_contains "$en" "No card or email needed"
-  assert_contains "$ja" "9つのアイコン（HUD）"
-  assert_contains "$en" "nine icons open around the pointer: the HUD"
+  assert_contains "$ja" "ポインタの周りに9つのアイコンが開く"
+  assert_contains "$en" "nine icons open around the pointer"
   assert_contains "$ja" "14日間"
   assert_contains "$ja" "macOS 14"
 }
@@ -500,14 +501,13 @@ test_pages_state_the_sales_terms() {
   en_terms="$(cat "$ROOT/site/en/terms.html")"
   legal="$(cat "$ROOT/site/tokushoho.html")"
   for text in "購入から30日以内なら、理由を問わず全額返金" "1つのライセンスで、あなたが使うすべての Mac に" "バージョン 1.x のアップデートはすべて無料" \
-    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "ポインタをアイコンの輪の外まで動かして離します" \
-    "通り過ぎながら離しても実行しません" "guide.html#uninstall" "感圧タッチ（Force Touch）" "Takanari Okazaki が1人で作っている" "https://astlog.dev"; do
+    "ベータ版のうちから確かめ" "購入からの日数にかかわらず返金" "家族や同僚が使うときは、1人に1つずつ必要" "輪の外で離せば、やめる" \
+    'href="guide.html"' "Takanari Okazaki が1人で作っています" "https://astlog.dev"; do
     assert_contains "$ja" "$text" "index.html"
   done
   for text in "Full refund within 30 days, no questions asked" "One license covers every Mac you use" "All 1.x updates are free" \
     "tested from the first beta" "you get a refund no matter when you bought it" "Each person needs their own license" \
-    "Move the pointer outside the ring of icons and lift" "Lifting while you slide past doesn't run it" "guide.html#uninstall" "On Force Touch trackpads" \
-    "Recorded shortcuts work the same on JIS, US and other layouts" "an independent Mac developer" "https://astlog.dev"; do
+    "Lift outside the ring to cancel" 'href="guide.html"' "an independent Mac developer" "https://astlog.dev"; do
     assert_contains "$en" "$text" "en/index.html"
   done
   assert_not_contains "$en" "any keyboard layout"
@@ -608,81 +608,46 @@ test_page_script_behaves() {
   assert_status 0
 }
 
-test_demo_markup_matches_the_script() {
-  local page attr name
-  # script.js の HUD のデモ（setUpDemo）が読む data-* を、両方のページが持っていること
-  local attrs demo
-  demo="$(awk '/const setUpDemo = /, /^  \/\/ MARK: 言語の案内/' "$ROOT/site/script.js")"
-  [[ -n "$demo" ]] || fail "script.js に setUpDemo がありません"
-  attrs="$(
-    {
-      grep -oE 'dataset\.[a-zA-Z]+' <<<"$demo" | sed -E 's/^dataset\.//; s/([A-Z])/-\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^/data-/'
-      grep -oE '\[data-[a-z-]+\]' <<<"$demo" | tr -d '[]'
-    } | sort -u
-  )"
-  [[ -n "$attrs" ]] || fail "script.js から data-* を読めません"
+# 販売ページは絵で見せ、文は短くする（2026-11-15 に持ち主が「情報が多い」と言って減らした）。
+# 本文（動画の説明・よくある質問の答えを除く、見えている文字）と、よくある質問の数が増えすぎていないか
+test_top_pages_stay_short() {
+  local page count chars limit
   for page in index.html en/index.html; do
-    for attr in $attrs; do
-      # data-label は data-label-pause などの一部にもなるので、属性として探す
-      name="$attr"
-      if [[ "$attr" == data-label ]]; then
-        name='data-label="'
-      fi
-      grep -q -- "$name" "$ROOT/site/$page" || fail "$page に $attr がありません（script.js が使う）"
-    done
-    assert_eq 9 "$(grep -c 'data-cell ' "$ROOT/site/$page")" "$page のマスの数"
-    assert_eq 1 "$(grep -c 'class="cell slot-[0-7c] on"' "$ROOT/site/$page")" "$page の静止画で光らせるマス"
-    # 9つのアイコンは輪の上の位置（slot-0〜7。上から時計回り）と真ん中（slot-c）に 1 つずつ
-    for name in 0 1 2 3 4 5 6 7 c; do
-      assert_eq 1 "$(grep -c "class=\"cell slot-$name\( on\)\?\" " "$ROOT/site/$page")" "$page の slot-$name"
-    done
-    # setUpDemo が探すクラス（.finger など）の要素もある
-    for name in $(grep -oE 'querySelector\("\.[a-z-]+"\)' <<<"$demo" | sed -E 's/.*"\.([a-z-]+)".*/\1/' | sort -u); do
-      grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません（script.js が使う）"
-    done
-    # ポインタの周りの輪（HUD）とポインタ、トラックパッドの上の縁の帯を描く。皿・外枠の帯・「離すとやめる」の文字・キーの絵はもう無い
-    for name in hud pointer trackpad-edge; do
-      grep -q -- "class=\"$name\"" "$ROOT/site/$page" || fail "$page に .$name がありません"
-    done
-    for name in hud-pad hud-cancel hud-grid trackpad-cells trackpad-label; do
-      if grep -q -- "class=\"$name\"" "$ROOT/site/$page"; then
-        fail "$page に 3×3 の HUD のころの .$name が残っています"
-      fi
-    done
-    if grep -q 'class="key"' "$ROOT/site/$page"; then
-      fail "$page にキーの絵が残っています"
-    fi
+    count="$(grep -c '<details id="faq-' "$ROOT/site/$page")"
+    [[ "$count" -le 6 ]] || fail "$page: よくある質問が $count 個あります（6 個まで。ほかは利用ガイドへ）"
+    chars="$(python3 -I - "$ROOT/site/$page" <<'PY2'
+import html, re, sys
+s = open(sys.argv[1], encoding="utf-8").read()
+s = s[s.index("<main"):s.index("</main>")]
+s = re.sub(r'<p class="visually-hidden"[^>]*>.*?</p>|<div class="answer">.*?</div>|<svg.*?</svg>|<!--.*?-->', "", s, flags=re.S)
+print(len(re.sub(r"\s+", "", html.unescape(re.sub(r"<[^>]+>", " ", s)))))
+PY2
+)"
+    case "$page" in en/*) limit=1400 ;; *) limit=800 ;; esac
+    [[ "$chars" -le "$limit" ]] || fail "$page: 本文が $chars 字あります（$limit 字まで。説明は絵と利用ガイドに任せる）"
   done
-  if grep -qE 'key-down|captionTap|captionHud' <<<"$demo"; then
-    fail "script.js のデモに、キーを使っていたころの状態が残っています"
-  fi
 }
 
-# デモの HUD の輪の半径（style.css の --ring・--ring-diagonal と script.js の RING・DIAGONAL）は、
-# アプリの輪（RadialLayout: 鍵の円 keyRadius / 外枠 outerRadius）と同じ割合（HUD の正方形の %。斜めは × cos 45°）
-test_demo_ring_matches_the_app() {
-  local layout="$ROOT/Packages/NonetKit/Sources/NonetCore/Engine/RadialMapper.swift" key outer ring diagonal
-  key="$(sed -nE 's/.*static let keyRadius: Double = ([0-9.]+).*/\1/p' "$layout")"
-  outer="$(sed -nE 's/.*static let outerRadius: Double = ([0-9.]+).*/\1/p' "$layout")"
-  [[ -n "$key" && -n "$outer" ]] || fail "RadialMapper.swift から keyRadius・outerRadius を読めません"
-  ring="$(awk -v k="$key" -v o="$outer" 'BEGIN { printf "%.1f", k / o * 50 }')"
-  diagonal="$(awk -v r="$ring" 'BEGIN { printf "%.1f", r / sqrt(2) }')"
-  assert_contains "$(grep -E '^ *--ring: ' "$ROOT/site/style.css")" "--ring: $ring%;" "style.css の --ring"
-  assert_contains "$(grep -E '^ *--ring-diagonal: ' "$ROOT/site/style.css")" "--ring-diagonal: $diagonal%;" "style.css の --ring-diagonal"
-  assert_contains "$(grep -E 'const RING = ' "$ROOT/site/script.js")" "const RING = $ring;" "script.js の RING"
-  assert_contains "$(grep -E 'const DIAGONAL = ' "$ROOT/site/script.js")" "const DIAGONAL = $diagonal;" "script.js の DIAGONAL"
-}
-
-# HUD のデモの動き（偽の DOM と時計で script.js を動かす）。node が無ければ飛ばす
-test_demo_script_behaves_in_both_languages() {
-  if ! command -v node >/dev/null 2>&1; then
-    printf 'node が無いので飛ばしました\n'
-    return 0
-  fi
-  local page
+# ヒーローは実物の収録（デモ動画）。JavaScript が無いときは controls で自分で再生でき、勝手には動かない（autoplay を付けない。
+# 動かすのは script.js で、止めるボタンを出し、動きを減らす設定のときは止めたまま）。使い方と機能の絵は、同じ収録から
+# 名前の札が出る前のコマを切り出した静止画（日本語・英語のどちらのページにも使える）。CSP は同じオリジンの動画を許す
+test_pages_show_the_real_app() {
+  local page html prefix image
   for page in index.html en/index.html; do
-    node "$ROOT/scripts/tests/demo_harness.js" "$ROOT/site/$page" "$ROOT/site/script.js"
+    html="$(cat "$ROOT/site/$page")"
+    case "$page" in en/*) prefix="../" ;; *) prefix="" ;; esac
+    assert_contains "$html" "<video src=\"${prefix}images/demo.mp4\" poster=\"${prefix}images/demo-poster.jpg\" width=\"1440\" height=\"900\" muted loop playsinline controls preload=\"metadata\"></video>" "$page の動画"
+    assert_not_contains "$html" "autoplay" "$page"
+    assert_contains "$html" "data-video-toggle hidden" "$page の止めるボタン（JavaScript が出す）"
+    assert_contains "$html" 'aria-describedby="demo-description"' "$page の動画の説明"
+    for image in hud-xcode.webp hud-cancel.webp hud-zoom.webp hud-place.webp; do
+      grep -qE "<img src=\"${prefix}images/${image}\" width=\"[0-9]+\" height=\"[0-9]+\" loading=\"lazy\" alt=\"[^\"]+\">" "$ROOT/site/$page" ||
+        fail "$page: images/${image} を、大きさと代替テキストを付けて載せていません"
+    done
   done
+  assert_contains "$(cat "$ROOT/site/index.html")" "指の動きは台本どおりに入れたもの" "index.html の動画の説明"
+  assert_contains "$(cat "$ROOT/site/en/index.html")" "The finger follows a script" "en/index.html の動画の説明"
+  assert_contains "$(grep -E '^  Content-Security-Policy: ' "$ROOT/site/_headers" | head -n 1)" "media-src 'self'" "_headers の CSP"
 }
 
 test_languages_link_to_each_other() {

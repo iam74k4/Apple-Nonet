@@ -311,8 +311,8 @@ struct SettingsImportReviewSheet: View {
         }
         .frame(minHeight: 220, idealHeight: 380, maxHeight: 460)
         .background(Color(nsColor: .textBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+        .clipShape(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius))
+        .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(Color(nsColor: .separatorColor)))
     }
 
     private func entryView(_ entry: SettingsImportReviewEntry) -> some View {
@@ -347,20 +347,14 @@ struct SettingsImportReviewSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
                 if !terms.isEmpty {
-                    Label(SettingsText.suspiciousNote(terms), systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                    SettingsImportWarning(text: SettingsText.suspiciousNote(terms), font: .system(size: 11))
                 }
             }
             .padding(.horizontal, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(terms.isEmpty ? Color.clear : Color.orange.opacity(0.15))
         case .warning:
-            Label(line.text, systemImage: "exclamationmark.triangle.fill")
-                .font(.callout)
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
+            SettingsImportWarning(text: line.text, font: .callout)
         }
     }
 
@@ -388,6 +382,25 @@ struct SettingsImportReviewSheet: View {
             }
             .disabled(!model.canConfirmImport(plan))
         }
+    }
+}
+
+/// 確認の欄の注意（危ないかもしれない中身・読み込めない部分）。橙は記号だけにして、文字はふつうの色で読めるようにする
+private struct SettingsImportWarning: View {
+    let text: String
+    let font: Font
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(verbatim: text)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(font)
+        .accessibilityElement(children: .combine)
     }
 }
 

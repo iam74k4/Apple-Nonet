@@ -8,7 +8,7 @@
 
 ## 日本語
 
-最終更新: 2026年11月11日
+最終更新: 2026年11月15日
 
 Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち」）が提供する macOS 用のアプリです。本アプリは、あなたの情報を集めないように作っています。
 
@@ -78,13 +78,15 @@ AI のアクションは、Apple の Foundation Models フレームワークを�
 
 購入の手続きと支払いは販売サービスが行い、カード番号などの支払いの情報を私たちが受け取ることはありません。私たちは、ライセンスキーの発行とサポートのために、販売サービスから購入者の名前・メールアドレス・注文の情報を受け取ります。これらは、ライセンスキーの発行と再発行、問い合わせへの対応、法令で求められる記録のためだけに使い、第三者に売ったり広告に使ったりしません。
 
+ライセンスキーは、販売ページのサーバー（Cloudflare Workers）が自動で作って届けます。購入が済むと、サーバーは販売サービス（Paddle）から注文の情報（注文の番号と、買った商品）と購入者の名前・メールアドレスを受け取り、ライセンスキーを作ります。ライセンスキーには、名前（無いときはメールアドレス）・メールアドレス・注文の番号（ライセンス ID）が入ります。キーは、メールの送信サービス（Resend）を通して購入者のメールアドレスに送り、購入のページにも表示します。Resend には宛先のメールアドレスとメールの本文（ライセンスキーを含む）が渡り、Resend のプライバシーポリシーに従って扱われます。サーバーはこれらの情報を保存しません（障害を調べるための記録には、注文の番号が残ります。「8. 販売ページ」）。返金やチャージバックがあったときは、そのライセンスを無効にするために、サーバーが注文の番号を私たちにメールで知らせます。
+
 購入の記録は、法令で求められる期間保存し、その後消します。ご自身の情報の開示・訂正・削除を求めるときは、お問い合わせ先までご連絡ください。販売サービスが持つ情報は、販売サービス（Paddle）の[プライバシーポリシー](https://www.paddle.com/legal/privacy)に従って扱われます。
 
 ### 8. 販売ページ
 
-販売ページは、Cookie・アクセス解析・外部のフォントを使っていません。外部のスクリプトを読み込むのは、下の購入のページだけです。販売ページとアップデートの配布には Cloudflare を使っています。トップページ・アップデートの配布・ダウンロードへの要求は、障害を調べるために、日時・URL・IP アドレス・User-Agent・おおよその地域などを含む記録を最長7日間残し（Cloudflare Workers Logs）、その目的にだけ使います。このほか、Cloudflare が一般的なアクセスログを記録することがあります。
+販売ページは、Cookie・アクセス解析・外部のフォントを使っていません。外部のスクリプトを読み込むのは、下の購入のページだけです。販売ページとアップデートの配布には Cloudflare を使っています。トップページ・アップデートの配布・ダウンロード・ライセンスキーの受け取り（購入のページと販売サービスの通知）への要求は、障害を調べるために、日時・URL・IP アドレス・User-Agent・おおよその地域などを含む記録を最長7日間残し（Cloudflare Workers Logs）、その目的にだけ使います。このほか、Cloudflare が一般的なアクセスログを記録することがあります。
 
-購入のページ（「購入する」で開くページ）は、購入画面を開くために、販売サービス（Paddle）のスクリプトを読み込みます。購入画面で入力する情報と、Paddle のスクリプトと購入画面が扱う情報（Cookie を含む）は、Paddle の[プライバシーポリシー](https://www.paddle.com/legal/privacy)に従って扱われます。
+購入のページ（「購入する」で開くページ）は、購入画面を開くために、販売サービス（Paddle）のスクリプトを読み込みます。購入画面で入力する情報と、Paddle のスクリプトと購入画面が扱う情報（Cookie を含む）は、Paddle の[プライバシーポリシー](https://www.paddle.com/legal/privacy)に従って扱われます。購入が済むと、購入のページは注文の番号でこのサイトのサーバーに問い合わせ、ライセンスキーを表示します（「7. 購入のときの情報」）。
 
 ページの言語の案内（「This page is also available in English」など）を閉じると、閉じたことだけをブラウザの localStorage に記録し、次からは出しません。この記録はお使いのブラウザの中にだけあり、送信しません。
 
@@ -100,7 +102,7 @@ Takanari Okazaki（問い合わせ先: support@astlog.dev）
 
 ## English
 
-Last updated: November 11, 2026
+Last updated: November 15, 2026
 
 Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.
 
@@ -170,13 +172,15 @@ License keys are verified on your Mac without using the network. Refunded licens
 
 The store handles checkout and payment; we never receive your card details. To issue license keys and provide support, we receive the buyer's name, email address and order details from the store. We use them only to issue and reissue license keys, answer your questions and keep records required by law. We never sell them or use them for advertising.
 
+License keys are created and delivered automatically by the website's server (Cloudflare Workers). When a purchase completes, the server receives the order details (the order number and the product bought) and the buyer's name and email address from the store (Paddle), and creates the license key. The key contains the name (or the email address when there is no name), the email address and the order number (the license ID). The key is sent to the buyer's email address through an email delivery service (Resend) and is also shown on the purchase page. Resend receives the recipient's email address and the body of the email (including the license key), and handles them under its privacy policy. The server does not store this information (the troubleshooting logs include the order number; see “8. Website”). When a purchase is refunded or charged back, the server emails us the order number so that we can deactivate the license.
+
 Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the [privacy policy](https://www.paddle.com/legal/privacy) of the store (Paddle).
 
 ### 8. Website
 
-The website uses no cookies, analytics, or external fonts. The only page that loads an external script is the purchase page below. The website and the app's updates are served by Cloudflare. Requests for the home page, updates and downloads are logged, with the time, URL, IP address, User-Agent and approximate location, and kept for up to 7 days (Cloudflare Workers Logs), only to troubleshoot problems. Cloudflare may also keep standard access logs.
+The website uses no cookies, analytics, or external fonts. The only page that loads an external script is the purchase page below. The website and the app's updates are served by Cloudflare. Requests for the home page, updates, downloads and license keys (from the purchase page and the store's notifications) are logged, with the time, URL, IP address, User-Agent and approximate location, and kept for up to 7 days (Cloudflare Workers Logs), only to troubleshoot problems. Cloudflare may also keep standard access logs.
 
-The purchase page (the page that opens when you choose Buy) loads a script from the store (Paddle) to open the checkout. Information you enter in the checkout, and information handled by Paddle's script and checkout (including cookies), is handled under Paddle's [privacy policy](https://www.paddle.com/legal/privacy).
+The purchase page (the page that opens when you choose Buy) loads a script from the store (Paddle) to open the checkout. Information you enter in the checkout, and information handled by Paddle's script and checkout (including cookies), is handled under Paddle's [privacy policy](https://www.paddle.com/legal/privacy). After the purchase, the purchase page asks this website's server for the license key using the order number, and shows it (see “7. Purchase information”).
 
 If you close the language suggestion (such as “日本語のページもあります”), the site remembers only that you closed it, in your browser's localStorage, so it doesn't show again. This stays in your browser and is never sent anywhere.
 

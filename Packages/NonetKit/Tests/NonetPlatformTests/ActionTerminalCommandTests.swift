@@ -1,4 +1,5 @@
 import Foundation
+import NonetCore
 @testable import NonetPlatform
 import Testing
 
@@ -41,6 +42,26 @@ struct ActionTerminalCommandTests {
         #expect(exportIndex < cdIndex)
         #expect(cdIndex < sourceIndex)
         #expect(text.hasSuffix("claude\n"))
+        #expect(!text.contains(TerminalCommandFile.keepSessionLine))
+    }
+
+    @Test("iTerm2 で開くときは、スクリプトの後にシェルを続ける（終わってもウィンドウを閉じさせない）")
+    func iTerm2KeepsTheSession() {
+        let text = TerminalCommandFile.contents(source: "echo a \\", variables: [:], workingDirectory: "/p", keepsSession: true)
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let sourceIndex = lines.firstIndex(of: "echo a \\") ?? 0
+        // 最後の行が続きの行でも、シェルを続ける行がスクリプトの引数にならないよう、空行をはさむ
+        #expect(lines[sourceIndex + 1] == "")
+        #expect(lines[sourceIndex + 2] == TerminalCommandFile.keepSessionLine)
+        #expect(text.hasSuffix(TerminalCommandFile.keepSessionLine + "\n"))
+    }
+
+    @Test("選んだアプリが無ければターミナルで開く")
+    func missingAppFallsBackToTerminal() {
+        #expect(TerminalCommandFile.resolvedApp(.iTerm2) { $0 == TerminalApp.iTerm2.bundleID } == .iTerm2)
+        #expect(TerminalCommandFile.resolvedApp(.iTerm2) { _ in false } == .terminal)
+        #expect(TerminalCommandFile.resolvedApp(.terminal) { _ in false } == .terminal)
+        #expect(TerminalCommandFile.terminalBundleID == "com.apple.Terminal")
     }
 
     @Test("実際に動かすと、変数の値はそのまま届き、作業フォルダへ移り、ファイルは消える")

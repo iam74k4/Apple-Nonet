@@ -36,9 +36,10 @@ struct ShellCheatSheetTests {
             #expect(sheet.cellTitle(at: index) == profile.pages[0].cells[index].map(SettingsGrid.displayTitle(for:)))
             // ヘルプは、押すと実行ではなく設定で開くことを言う
             if let title = sheet.cellTitle(at: index) {
-                #expect(sheet.cellTooltip(at: index) == L10n.ui("クリックすると、設定で「\(title)」を開いて編集します"))
+                // ⌥クリックで実行できることも言う
+                #expect(sheet.cellTooltip(at: index) == L10n.ui("クリックすると、設定で「\(title)」を開いて編集します。⌥クリックで、前面のアプリに向けて実行します"))
             } else {
-                #expect(sheet.cellTooltip(at: index) == L10n.ui("クリックすると、設定でこの空きマスを開きます"))
+                #expect(sheet.cellTooltip(at: index) == L10n.ui("空きマスです。クリックすると、設定でアクションを入れられます"))
             }
         }
         #expect(sheet.location(ofCell: 4) == MenuBarCellLocation(profileID: profile.id, address: CellAddress(page: 0, index: 4)))
@@ -138,7 +139,9 @@ struct ShellCheatSheetTests {
         for index in 0..<Page.cellCount {
             #expect(sheet.accessibilityLabel(ofCell: index) == SettingsGrid.accessibilityLabel(index: index, cell: profile.pages[0].cells[index]))
         }
-        #expect(MenuBarCheatSheet.cellHint == L10n.ui("設定で開きます"))
+        #expect(MenuBarCheatSheet.cellHint == L10n.ui("設定で開きます。操作の一覧の「前面のアプリで実行」で実行できます"))
+        #expect(MenuBarCheatSheet.emptyCellHint == L10n.ui("設定で開きます"))
+        #expect(MenuBarCheatSheet.runActionName == L10n.ui("前面のアプリで実行"))
         #expect(MenuBarCheatSheet.previousPageTitle == L10n.ui("前のページ"))
         #expect(MenuBarCheatSheet.nextPageTitle == L10n.ui("次のページ"))
     }
@@ -378,6 +381,38 @@ struct ShellCheatSheetTests {
         view.store.hovered = .cell(4)
         view.resetPointerState()
         #expect(view.store.hovered == nil)
+
+        // ⌥クリックは、中身のあるマスなら設定で開かずに実行する（空きマスはふつうのクリックと同じく設定で開く）
+        var ran: [MenuBarCellLocation] = []
+        view.onRun = { ran.append($0) }
+        func optionUp(_ index: Int) throws -> NSEvent {
+            let point = CGPoint(x: layout.cellFrame(index).midX, y: layout.cellFrame(index).midY)
+            return try #require(NSEvent.mouseEvent(
+                with: .leftMouseUp, location: view.convert(point, to: nil), modifierFlags: [.option],
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+            ))
+        }
+        button.mouseUp(with: try optionUp(2))
+        #expect(ran == [MenuBarCellLocation(profileID: profile.id, address: CellAddress(page: 0, index: 2))])
+        #expect(opened.count == 1)
+        if let empty = (0..<Page.cellCount).first(where: { view.store.sheet.cell(at: $0) == nil }) {
+            view.cellButtons[empty].mouseUp(with: try optionUp(empty))
+            #expect(ran.count == 1)
+            #expect(opened.last == MenuBarCellLocation(profileID: profile.id, address: CellAddress(page: 0, index: empty)))
+        }
+        // VoiceOver の「前面のアプリで実行」も同じ
+        let action = try #require(button.accessibilityCustomActions()?.first)
+        #expect(action.handler?() == true)
+        #expect(ran.count == 2)
+    }
+
+    @Test("⌥だけを押したクリックが実行。ほかの修飾キーと一緒ならふつうのクリック")
+    func alternateClick() {
+        #expect(MenuBarCheatSheetButton.isAlternateClick([.option]))
+        #expect(MenuBarCheatSheetButton.isAlternateClick([.option, .capsLock]))
+        #expect(!MenuBarCheatSheetButton.isAlternateClick([]))
+        #expect(!MenuBarCheatSheetButton.isAlternateClick([.option, .command]))
+        #expect(!MenuBarCheatSheetButton.isAlternateClick([.option, .shift]))
     }
 
     @Test("VoiceOver: ‹・何ページ目か・›・9マスの順に読み、描くだけの SwiftUI は読まない")
@@ -393,7 +428,10 @@ struct ShellCheatSheetTests {
         for (index, button) in view.cellButtons.enumerated() {
             #expect(button.accessibilityRole() == .button)
             #expect(button.accessibilityLabel() == multi.accessibilityLabel(ofCell: index))
-            #expect(button.accessibilityHelp() == MenuBarCheatSheet.cellHint)
+            // 中身のあるマスには「前面のアプリで実行」の操作がある（⌥クリックと同じ）
+            let hasCell = multi.cell(at: index) != nil
+            #expect(button.accessibilityHelp() == (hasCell ? MenuBarCheatSheet.cellHint : MenuBarCheatSheet.emptyCellHint))
+            #expect((button.accessibilityCustomActions() ?? []).map(\.name) == (hasCell ? [MenuBarCheatSheet.runActionName] : []))
         }
         #expect(view.previousButton.accessibilityLabel() == MenuBarCheatSheet.previousPageTitle)
         #expect(view.nextButton.accessibilityLabel() == MenuBarCheatSheet.nextPageTitle)

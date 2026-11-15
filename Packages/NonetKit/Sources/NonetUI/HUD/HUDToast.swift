@@ -10,24 +10,43 @@ enum HUDToastLayout {
     static let maxWidth: CGFloat = 520
     static let minWidth: CGFloat = 120
     static let shadowMargin: CGFloat = 16
-    /// 成功と案内を出しておく秒数
+    /// 成功と、説明の無い案内を出しておく秒数
     static let briefDuration: TimeInterval = 0.8
-    /// 失敗の表示時間: 基本の秒数に、1文字ごとの秒数を足し、最短と最長で止める（3行のエラー出力も読めるように）
+    /// 失敗（と説明のある案内）の表示時間: 基本の秒数に、1文字ごとの秒数を足し、最短と最長で止める（3行のエラー出力も読めるように）
     static let failureBaseDuration: TimeInterval = 1.5
     static let failureDurationPerCharacter: TimeInterval = 0.06
     static let failureDurationRange: ClosedRange<TimeInterval> = 3...8
+    /// 案内の説明の行数の上限（失敗は4行）
+    static let infoDetailLineLimit = 2
 
-    /// 成功と案内は一瞬、失敗は読めるだけの時間（見出しと説明の文字数で決める）。実行中は時間では消さない（nil）
+    /// 成功と説明の無い案内は一瞬、失敗と説明のある案内は読めるだけの時間（見出しと説明の文字数で決める）。実行中は時間では消さない（nil）
     static func duration(for toast: ToastModel) -> TimeInterval? {
         switch toast.style {
-        case .info, .success:
+        case .success:
             return briefDuration
+        case .info:
+            guard let detail = toast.detail, !detail.isEmpty else { return briefDuration }
+            return readingDuration(for: toast)
         case .failure:
-            let characters = toast.title.count + (toast.detail?.count ?? 0)
-            let duration = failureBaseDuration + failureDurationPerCharacter * Double(characters)
-            return min(max(duration, failureDurationRange.lowerBound), failureDurationRange.upperBound)
+            return readingDuration(for: toast)
         case .running:
             return nil
+        }
+    }
+
+    /// 見出しと説明を読めるだけの時間
+    private static func readingDuration(for toast: ToastModel) -> TimeInterval {
+        let characters = toast.title.count + (toast.detail?.count ?? 0)
+        let duration = failureBaseDuration + failureDurationPerCharacter * Double(characters)
+        return min(max(duration, failureDurationRange.lowerBound), failureDurationRange.upperBound)
+    }
+
+    /// 説明の行数の上限。失敗はエラー出力の数行、案内は2行、ほかは1行
+    static func detailLineLimit(for style: ToastModel.Style) -> Int {
+        switch style {
+        case .failure: 4
+        case .info: infoDetailLineLimit
+        case .success, .running: 1
         }
     }
 
@@ -129,7 +148,7 @@ struct HUDToastView: View {
                     Text(detail)
                         .font(.system(size: 12 * scale))
                         .foregroundStyle(theme.secondaryText)
-                        .lineLimit(toast.style == .failure ? 4 : 1)
+                        .lineLimit(HUDToastLayout.detailLineLimit(for: toast.style))
                         .truncationMode(.tail)
                         .fixedSize(horizontal: false, vertical: true)
                 }

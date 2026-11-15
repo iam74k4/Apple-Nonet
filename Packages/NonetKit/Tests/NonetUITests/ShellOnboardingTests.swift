@@ -268,7 +268,7 @@ struct ShellOnboardingTests {
 
     @Test("ようこその説明は、上の縁から指を滑らせることを言う")
     func welcomeSubtitleSaysHowToOpen() {
-        #expect(ShellText.welcomeSubtitle == L10n.ui("トラックパッドの上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンになります"))
+        #expect(ShellText.tagline == L10n.ui("トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます"))
     }
 
     @Test("許可せずに先へ進める")
@@ -559,7 +559,7 @@ struct ShellOnboardingTests {
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
+            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
         // 文をつなげて作らない（英語で文と文の間の空白が抜けないように。1つの文言の中で区切る）
         #expect(!ShellText.practiceRunInstruction(page.runTarget).contains(".If"))
         #expect(ShellText.practiceCancelInstruction
@@ -787,7 +787,7 @@ struct ShellOnboardingTests {
         #expect(model.practiceBlocker == nil)
         model.setWindowKey(false)
         #expect(model.practiceBlocker == .notAttended)
-        #expect(model.practiceBlocker?.message == L10n.ui("このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。"))
+        #expect(model.practiceBlocker?.message == L10n.ui("このウインドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。"))
         #expect(model.practiceBlocker?.remedy == nil)
         model.setWindowKey(true)
         #expect(model.practiceBlocker == nil)

@@ -15,7 +15,13 @@ import Testing
     /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
     @Test func theOpenGestureIsExplained() {
         #expect(SettingsText.openGestureTitle == L10n.ui("開き方とやめ方"))
-        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。"))
+        #expect(SettingsText.openGestureDetail == L10n.ui("上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。"))
+    }
+
+    /// アクセシビリティの帯は、オンなのに動かないとき（アップデートの後など）の直し方も言う
+    @Test func theAccessibilityBannerSaysHowToAddNonetAgain() throws {
+        let banner = try #require(SettingsStatusBanner(status: .needsAccessibility))
+        #expect(banner.message == L10n.ui("システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。もうオンなのに動かないときは、一覧の Nonet を「−」で外し、「＋」で追加し直してください。許可されると自動で動き出します。"))
     }
 
     @Test func tabTitles() {

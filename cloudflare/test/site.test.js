@@ -199,11 +199,26 @@ describe("site/_headers", () => {
     }
   });
 
-  test("script.js と buy.js は eval や外への通信を使わない（script-src に 'unsafe-eval' も connect-src も無い）", () => {
+  test("script.js と buy.js は eval や外への通信を使わない（script-src に 'unsafe-eval' が無く、connect-src は購入のページの 'self' だけ）", () => {
     for (const name of ["script.js", "buy.js"]) {
       const script = readFileSync(join(SITE_DIR, name), "utf8");
-      assert.doesNotMatch(script, /\beval\(|new Function\(|\bfetch\(|XMLHttpRequest|WebSocket|EventSource/, name);
+      assert.doesNotMatch(script, /\beval\(|new Function\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon/, name);
       assert.doesNotMatch(script, /setAttribute\(\s*["']style["']/, name);
+    }
+    assert.doesNotMatch(readFileSync(join(SITE_DIR, "script.js"), "utf8"), /\bfetch\(/, "script.js");
+    // buy.js が通信するのは1か所だけ: 購入が済んだあと、HTML の data-license-endpoint（同じサイトのパス）にキーを聞く
+    const buy = readFileSync(join(SITE_DIR, "buy.js"), "utf8");
+    assert.equal([...buy.matchAll(/\bfetch\(/g)].length, 1, "buy.js の fetch は1か所だけ");
+    assert.match(buy, /\.fetch\(`\$\{endpoint\}\?transaction_id=\$\{transactionId\}`/);
+    assert.match(buy, /const endpoint = box\.dataset\.licenseEndpoint \|\| "";/);
+    for (const page of PURCHASE_PAGES) {
+      const endpoint = /data-license-endpoint="([^"]*)"/.exec(readFileSync(join(SITE_DIR, page), "utf8"))?.[1];
+      assert.match(endpoint ?? "", /^\/(?!\/)/, `${page}: data-license-endpoint は同じサイトのパス`);
+    }
+    for (const file of siteFiles(".html")) {
+      const page = relative(SITE_DIR, file);
+      const connect = policyFor(page).get("connect-src");
+      assert.deepEqual(connect, PURCHASE_PAGES.includes(page) ? ["'self'"] : undefined, page);
     }
   });
 
@@ -235,7 +250,8 @@ describe("site/_headers", () => {
     assert.deepEqual(policy.get("frame-src"), ["https://buy.paddle.com", "https://sandbox-buy.paddle.com", "https://cdn.paddle.com", "https://sandbox-cdn.paddle.com"]);
     assert.deepEqual(policy.get("style-src-elem"), ["'self'", "'unsafe-inline'", "https://cdn.paddle.com", "https://sandbox-cdn.paddle.com"]);
     assert.deepEqual(policy.get("img-src"), ["'self'"]);
-    assert.equal(policy.has("connect-src"), false, "connect-src は要らない（購入画面の通信は枠の中のページが行う）");
+    // 購入画面の通信は枠の中のページが行う。ページが通信するのは、buy.js がキーを聞く同じサイトの /api/license だけ
+    assert.deepEqual(policy.get("connect-src"), ["'self'"]);
     // ほかは /* と同じ
     for (const name of ["style-src-attr", "font-src", "manifest-src", "base-uri", "form-action", "frame-ancestors"]) {
       assert.deepEqual(policy.get(name), pagePolicy.get(name), name);

@@ -38,7 +38,7 @@ struct SettingsGridView: View {
         .padding(12)
         .aspectRatio(1.6, contentMode: .fit)
         .frame(maxWidth: 640)
-        .background(RoundedRectangle(cornerRadius: 16).fill(SettingsPalette.gridBackground))
+        .background(RoundedRectangle(cornerRadius: SettingsMetrics.containerRadius).fill(SettingsPalette.gridBackground))
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -125,8 +125,8 @@ struct SettingsGridCell: View {
             .background {
                 // マスの面の上に、選んでいるマスの塗りを重ねる（面の下に置くと隠れる）
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground)
-                    RoundedRectangle(cornerRadius: 12).fill(selectionFill).opacity(isSelected ? 1 : 0)
+                    RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).fill(cell == nil ? Color.clear : SettingsPalette.cellBackground)
+                    RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).fill(selectionFill).opacity(isSelected ? 1 : 0)
                 }
             }
             .overlay(border)
@@ -134,12 +134,12 @@ struct SettingsGridCell: View {
             .overlay(
                 // ドロップ先: 選んでいるマスより強い塗りと、太いアクセント色の実線（キーが届く選んでいる空きマスの破線と見分ける）
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.24))
-                    RoundedRectangle(cornerRadius: 12).strokeBorder(Color.accentColor, lineWidth: 3.5)
+                    RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).fill(Color.accentColor.opacity(0.24))
+                    RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).strokeBorder(Color.accentColor, lineWidth: 3.5)
                 }
                 .opacity(isDropTarget ? 1 : 0)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius))
             .onTapGesture(perform: onSelect)
             .modifier(SettingsDraggableIfFilled(item: cell == nil ? nil : dragItem, preview: cell))
             .dropDestination(for: SettingsDragItem.self) { items, _ in
@@ -175,15 +175,20 @@ struct SettingsGridCell: View {
     private var content: some View {
         if let cell {
             // 窓が小さくてマスが低いときは、説明・名前の順に省く
+            // 名前は2行まで折り返す。入らなければ説明を省き、それでも入らなければ1行にして少し縮めてから省く（名前は消さない）
             ViewThatFits(in: .vertical) {
                 VStack(spacing: 4) {
                     icon(cell, size: 19)
-                    title(cell)
+                    title(cell, lines: 2)
                     subtitle(cell)
                 }
                 VStack(spacing: 3) {
                     icon(cell, size: 16)
-                    title(cell)
+                    title(cell, lines: 2)
+                }
+                VStack(spacing: 3) {
+                    icon(cell, size: 16)
+                    title(cell, lines: 1)
                 }
                 icon(cell, size: 16)
             }
@@ -201,11 +206,14 @@ struct SettingsGridCell: View {
             .foregroundStyle(Color.primary)
     }
 
-    /// 長い名前は縮めずに省く（縮めると隣のマスと文字の大きさがそろわない）
-    private func title(_ cell: Cell) -> some View {
+    /// 長い名前は2行に折り返し、それでも入らなければ少しだけ縮めてから省く（大きく縮めると隣のマスと文字の大きさがそろわない）。
+    /// 省いた名前はヘルプ（SettingsGrid.tooltip）で全部読める
+    private func title(_ cell: Cell, lines: Int) -> some View {
         Text(SettingsGrid.displayTitle(for: cell))
             .font(.system(size: 13, weight: .medium))
-            .lineLimit(1)
+            .lineLimit(lines)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(lines == 1 ? 0.85 : 1)
             .truncationMode(.tail)
     }
 
@@ -243,13 +251,13 @@ struct SettingsGridCell: View {
         let increased = contrast == .increased
         let selectedWidth: CGFloat = increased ? 3 : 2.5
         if cell == nil {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius)
                 .strokeBorder(
                     isSelected ? selectionColor : SettingsPalette.emptyBorder,
                     style: StrokeStyle(lineWidth: isSelected ? selectedWidth : (increased ? 1.8 : 1.2), dash: [5, 4])
                 )
         } else {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius)
                 .strokeBorder(isSelected ? selectionColor : SettingsPalette.cellBorder, lineWidth: isSelected ? selectedWidth : (increased ? 1.5 : 1))
         }
     }
@@ -307,8 +315,8 @@ private struct SettingsDraggableIfFilled: ViewModifier {
                 }
                 .padding(10)
                 .frame(width: 120, height: 72)
-                .background(RoundedRectangle(cornerRadius: 12).fill(SettingsPalette.cellBackground))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary, lineWidth: 2))
+                .background(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).fill(SettingsPalette.cellBackground))
+                .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius).strokeBorder(Color.primary, lineWidth: 2))
             }
         } else {
             content

@@ -13,17 +13,26 @@ struct SettingsLicenseView: View {
         !model.licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// 「Nonet について」で移る、情報の欄の印
+    static let aboutAnchor = "settings.about"
+
     var body: some View {
+        ScrollViewReader { proxy in
+            form
+                .onAppear { scrollToAboutIfWanted(proxy) }
+                .onChange(of: model.wantsAboutScroll) { _, _ in scrollToAboutIfWanted(proxy) }
+        }
+    }
+
+    private var form: some View {
         let entitlement = model.license.entitlement
-        Form {
+        return Form {
             Section {
                 statusCard(SettingsText.summary(entitlement, trialEnd: model.license.trialEndDate))
                 // 登録してあったキーを無効にした（返金など）。黙って試用に戻さず、理由を言う
                 if let revoked = model.license.revokedLicense {
-                    Label(SettingsText.revokedLicenseNotice(revoked), systemImage: "exclamationmark.triangle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // 橙は記号だけ（小さな橙の文字は読みにくい）
+                    SettingsNote(text: SettingsText.revokedLicenseNotice(revoked), symbol: "exclamationmark.triangle", isWarning: true)
                 }
                 if case .licensed(let info) = entitlement {
                     LabeledContent {
@@ -106,6 +115,7 @@ struct SettingsLicenseView: View {
 
             Section {
                 SettingsAboutView(model: model)
+                    .id(Self.aboutAnchor)
             }
         }
         .formStyle(.grouped)
@@ -152,7 +162,7 @@ struct SettingsLicenseView: View {
         } label: {
             Text("買い切りのライセンス", bundle: .module)
             // 買う前に知りたいこと（台数・返金）もここで言う
-            Text("購入すると、ライセンスキーがメールで届きます。1つのライセンスで、あなたが使うすべての Mac に使えます。30日以内なら全額を返金します。", bundle: .module)
+            Text("購入すると、ライセンスキーがメールで届きます（遅くとも24時間以内）。1つのライセンスで、あなたが使うすべての Mac に使えます。30日以内なら全額を返金します。", bundle: .module)
         }
     }
 
@@ -193,8 +203,8 @@ struct SettingsLicenseView: View {
                 }
             }
             .frame(height: 76)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).fill(Color(nsColor: .textBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(Color(nsColor: .separatorColor)))
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 messageNote
                 Spacer(minLength: 8)
@@ -271,6 +281,15 @@ struct SettingsLicenseView: View {
                 }
                 .fixedSize()
             }
+        }
+    }
+
+    /// メインメニューの「Nonet について」。タブを開いた直後は欄がまだ並んでいないので、次の回で移る
+    private func scrollToAboutIfWanted(_ proxy: ScrollViewProxy) {
+        guard model.wantsAboutScroll else { return }
+        model.wantsAboutScroll = false
+        DispatchQueue.main.async {
+            proxy.scrollTo(Self.aboutAnchor, anchor: .top)
         }
     }
 

@@ -20,6 +20,7 @@ struct SettingsMenuPanel: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .semibold))
+                        .settingsIconButtonFrame()
                 }
                 .buttonStyle(.borderless)
                 .help(String(localized: "インスペクタに戻る", bundle: .module))
@@ -205,7 +206,7 @@ struct SettingsMenuRow: View {
                     .lineLimit(1)
                 if !entry.location.isEmpty {
                     Text(entry.location)
-                        .font(.system(size: 10))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }

@@ -77,9 +77,9 @@ struct MenuBarCheatSheet: Equatable {
     /// マスにポインタを重ねたときのヘルプ。押すと実行ではなく、設定で開くことを伝える
     func cellTooltip(at index: Int) -> String {
         guard let title = cellTitle(at: index) else {
-            return String(localized: "クリックすると、設定でこの空きマスを開きます", bundle: .module)
+            return String(localized: "空きマスです。クリックすると、設定でアクションを入れられます", bundle: .module)
         }
-        return String(localized: "クリックすると、設定で「\(title)」を開いて編集します", bundle: .module)
+        return String(localized: "クリックすると、設定で「\(title)」を開いて編集します。⌥クリックで、前面のアプリに向けて実行します", bundle: .module)
     }
 
     /// マスの VoiceOver の名前。位置とマスの名前（設定のグリッドと同じ読み方）
@@ -89,7 +89,17 @@ struct MenuBarCheatSheet: Equatable {
 
     /// マスの VoiceOver のヒント
     static var cellHint: String {
+        String(localized: "設定で開きます。操作の一覧の「前面のアプリで実行」で実行できます", bundle: .module)
+    }
+
+    /// 空きマスの VoiceOver のヒント
+    static var emptyCellHint: String {
         String(localized: "設定で開きます", bundle: .module)
+    }
+
+    /// マスの VoiceOver の操作（⌥クリックと同じ）
+    static var runActionName: String {
+        String(localized: "前面のアプリで実行", bundle: .module)
     }
 
     static var previousPageTitle: String {

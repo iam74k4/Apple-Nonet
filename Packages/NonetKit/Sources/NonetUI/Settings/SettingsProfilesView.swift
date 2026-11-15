@@ -27,6 +27,9 @@ struct SettingsProfilesView: View {
         .sheet(isPresented: $model.isAddingProfile) {
             SettingsAddProfileSheet(model: model)
         }
+        .sheet(isPresented: $model.isCleaningUpProfiles) {
+            SettingsProfileCleanupSheet(model: model)
+        }
     }
 }
 
@@ -83,6 +86,19 @@ struct SettingsSidebar: View {
                     }
                 }
                 .buttonStyle(.borderless)
+                // 初めて開いたときはプリセットのプロファイルがたくさん入る。1つずつ消さなくてよいように
+                if model.appProfiles.count >= 2 {
+                    Button {
+                        model.isCleaningUpProfiles = true
+                    } label: {
+                        Label {
+                            Text("プロファイルを整理…", bundle: .module)
+                        } icon: {
+                            Image(systemName: "checklist")
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
                 Toggle(isOn: Binding(get: { model.settings.isEnabled }, set: { model.setSetting(\.isEnabled, $0) })) {
                     Text("Nonet を有効にする", bundle: .module)
                         .font(.system(size: 12))
@@ -120,6 +136,7 @@ struct SettingsSidebar: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
+                        .settingsIconButtonFrame()
                 }
                 .buttonStyle(.borderless)
                 .help(String(localized: "絞り込みをやめる", bundle: .module))
@@ -127,10 +144,20 @@ struct SettingsSidebar: View {
             }
         }
         .font(.system(size: 12))
-        .padding(.horizontal, 7)
-        .padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+        .padding(.leading, 7)
+        .padding(.trailing, model.profileQuery.isEmpty ? 7 : 1)
+        .frame(minHeight: 26)
+        .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).fill(Color(nsColor: .textBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(Color(nsColor: .separatorColor)))
+        // 枠を自分で描いているので、キーが入っていることも自分で見せる（macOS の文字の欄と同じ色の輪）
+        .overlay {
+            if isFilterFocused {
+                RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius + 1.5)
+                    .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                    .padding(-1.5)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     private var profileList: some View {
@@ -229,6 +256,13 @@ struct SettingsProfileContextMenu: View {
             } label: {
                 Text("削除…", bundle: .module)
             }
+            if model.appProfiles.count >= 2 {
+                Button {
+                    model.isCleaningUpProfiles = true
+                } label: {
+                    Text("プロファイルを整理…", bundle: .module)
+                }
+            }
         }
     }
 }
@@ -252,7 +286,7 @@ struct SettingsProfileRow: View {
             Spacer(minLength: 4)
             if isInUse {
                 Text("使用中", bundle: .module)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
                     .fixedSize()
                     .foregroundStyle(Color.accentColor)
@@ -263,14 +297,7 @@ struct SettingsProfileRow: View {
                     .accessibilityHidden(true)
             }
             if let badge = Self.badge(profile.mode) {
-                Text(badge)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-                    .fixedSize()
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .overlay(Capsule(style: .circular).strokeBorder(Color.secondary.opacity(0.5)))
+                SettingsBadge(text: badge)
                     .accessibilityHidden(true)
             }
         }
@@ -376,15 +403,21 @@ struct SettingsEditorCenter: View {
                     header(profile, showsModeLabel: true)
                     header(profile, showsModeLabel: false)
                 }
-                Text(SettingsText.profileDescription(profile))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    // 使っていないプロファイルは、グリッドを薄くせずに印で伝える（薄くすると灰色の文字が読めない。マスはそのまま直せる）
+                    if !profile.isGlobal, let badge = SettingsProfileRow.badge(profile.mode) {
+                        SettingsBadge(text: badge)
+                            .accessibilityHidden(true)
+                    }
+                    Text(SettingsText.profileDescription(profile))
+                        .font(.system(size: 12))
+                        .foregroundStyle(profile.mode == .profile ? Color.secondary : Color.primary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             SettingsPageBar(model: model)
             SettingsGridView(model: model)
-                .opacity(profile.mode == .profile ? 1 : 0.55)
             footer
             Spacer(minLength: 0)
         }

@@ -1,6 +1,5 @@
-// site/script.js のうち HUD のデモ以外（言語の案内・Mac 以外の端末の案内・ダウンロードの開始・共有のボタン・メニュー）を、
+// site/script.js（ヒーローの動画・言語の案内・Mac 以外の端末の案内・ダウンロードの開始・共有のボタン・メニュー）を、
 // 偽の DOM と時計で動かして確かめる。文言・リンク・data-* はページの HTML から読むので、印の名前を変えたらここでも気づく。
-// HUD のデモは demo_harness.js。
 // 使い方: node scripts/tests/page_script_harness.js <script.js>（ページは script.js と同じフォルダの site/ から読む）
 "use strict";
 
@@ -51,6 +50,12 @@ function readPage(name) {
     };
   }
   page.menu = /<details class="menu" data-menu>/.test(html);
+  const video = /<figure class="hero-media" data-video [^>]*data-label-pause="([^"]+)" data-label-play="([^"]+)">/.exec(html);
+  if (video) {
+    assert.ok(/<video [^>]*\bcontrols\b[^>]*><\/video>/.test(html), `${name}: 動画は、JavaScript が無いときのために controls を付けておく`);
+    assert.ok(/data-video-toggle hidden/.test(html), `${name}: 動画を止めるボタンは、JavaScript が出すまで隠す`);
+    page.video = { labelPause: video[1], labelPlay: video[2] };
+  }
   return page;
 }
 
@@ -69,6 +74,16 @@ class FakeElement {
     this.children = [];
     this.listeners = {};
     this.selectors = {};
+    this.attributes = {};
+  }
+  setAttribute(name, value) {
+    this.attributes[name] = String(value);
+  }
+  getAttribute(name) {
+    return name in this.attributes ? this.attributes[name] : null;
+  }
+  removeAttribute(name) {
+    delete this.attributes[name];
   }
   add(selector, child) {
     const list = this.selectors[selector] || [];
@@ -146,7 +161,10 @@ function makeStorage(mode, initial = {}) {
 }
 
 // ページの印だけを持つ偽の document を作り、script.js を動かす
-function load(page, { agent = "mac", languages = ["en-US"], hint, maxTouchPoints = 0, storage, hash = "", share, clipboard } = {}) {
+function load(
+  page,
+  { agent = "mac", languages = ["en-US"], hint, maxTouchPoints = 0, storage, hash = "", share, clipboard, reducedMotion = false, autoplay = true } = {},
+) {
   const clock = makeClock();
   const document = new FakeElement();
   document.documentElement = new FakeElement({ lang: page.lang });
@@ -186,6 +204,28 @@ function load(page, { agent = "mac", languages = ["en-US"], hint, maxTouchPoints
     parts.menuLinks = [menu.add("a", new FakeElement()), menu.add("a", new FakeElement())];
   }
 
+  const observers = [];
+  if (page.video) {
+    const figure = document.add("[data-video]", new FakeElement({ dataset: { ...page.video } }));
+    const video = figure.add("video", new FakeElement());
+    video.controls = true;
+    video.setAttribute("controls", "");
+    video.playing = false;
+    video.play = () => {
+      if (!autoplay) return Promise.reject(new Error("NotAllowedError"));
+      video.playing = true;
+      return Promise.resolve();
+    };
+    video.pause = () => {
+      video.playing = false;
+    };
+    const toggle = figure.add("[data-video-toggle]", new FakeElement({ hidden: true }));
+    parts.video = video;
+    parts.videoToggle = toggle;
+    parts.videoIcon = toggle.add("use", new FakeElement());
+    parts.videoIcon.setAttribute("href", "#i-pause");
+  }
+
   const assigned = [];
   const navigator = { userAgent: AGENTS[agent] || agent, languages, language: languages[0], maxTouchPoints };
   if (hint !== undefined) navigator.userAgentData = { platform: hint };
@@ -201,13 +241,24 @@ function load(page, { agent = "mac", languages = ["en-US"], hint, maxTouchPoints
     location: { hash, assign: (url) => assigned.push(url) },
     setTimeout: clock.setTimeout,
     clearTimeout: clock.clearTimeout,
-    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    matchMedia: (query) => ({ matches: reducedMotion && query === "(prefers-reduced-motion: reduce)", addEventListener() {} }),
+    IntersectionObserver: class {
+      constructor(callback) {
+        this.callback = callback;
+        observers.push(this);
+      }
+      observe(target) {
+        this.target = target;
+      }
+    },
     Promise,
   };
   context.window = context;
   vm.createContext(context);
   vm.runInContext(source, context, { filename: scriptPath });
-  return { clock, document, parts, assigned, shared, copied };
+  // 見えている・いないを、IntersectionObserver の知らせとして送る
+  const setVisible = (visible) => observers.forEach((o) => o.callback([{ target: o.target, isIntersecting: visible }]));
+  return { clock, document, parts, assigned, shared, copied, setVisible };
 }
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -333,6 +384,60 @@ function testMenuCloses() {
   assert.strictEqual(d.parts.menu.open, false, "外を押したら閉じる");
 }
 
+// ヒーローの動画: controls を外して自動で動かし、左下のボタン（名前はページの data-label-*）で止めて、また動かせる
+function testVideoPlaysWithAPauseButton() {
+  for (const name of ["index.html", "en/index.html"]) {
+    const page = byName(name);
+    assert.ok(page.video, `${name}: ヒーローの動画（data-video）がありません`);
+    const { parts } = load(page);
+    const { video, videoToggle: toggle, videoIcon: icon } = parts;
+    assert.strictEqual(video.controls, false, `${name}: controls を外す`);
+    assert.strictEqual(video.getAttribute("controls"), null, `${name}: controls の属性も外す`);
+    assert.strictEqual(toggle.hidden, false, `${name}: 止めるボタンを出す`);
+    assert.strictEqual(video.playing, true, `${name}: 自動で動かす`);
+    assert.strictEqual(toggle.getAttribute("aria-label"), page.video.labelPause, `${name}: 動いている間は「止める」`);
+    assert.strictEqual(icon.getAttribute("href"), "#i-pause");
+    toggle.dispatch("click");
+    assert.strictEqual(video.playing, false, `${name}: 押すと止まる`);
+    assert.strictEqual(toggle.getAttribute("aria-label"), page.video.labelPlay, `${name}: 止めている間は「再生」`);
+    assert.strictEqual(icon.getAttribute("href"), "#i-play");
+    toggle.dispatch("click");
+    assert.strictEqual(video.playing, true, `${name}: もう一度押すと動く`);
+  }
+}
+
+// 動きを減らす設定では、止めたまま始める（ボタンは「再生」）
+function testVideoRespectsReducedMotion() {
+  const page = byName("index.html");
+  const { parts } = load(page, { reducedMotion: true });
+  assert.strictEqual(parts.video.playing, false, "動きを減らす設定では動かさない");
+  assert.strictEqual(parts.videoToggle.hidden, false);
+  assert.strictEqual(parts.videoToggle.getAttribute("aria-label"), page.video.labelPlay);
+}
+
+// 画面の外では止め、戻ったら動かす。見る人が止めたら、戻っても動かさない
+function testVideoPausesOffscreen() {
+  const { parts, setVisible } = load(byName("index.html"));
+  setVisible(false);
+  assert.strictEqual(parts.video.playing, false, "画面の外では止める");
+  setVisible(true);
+  assert.strictEqual(parts.video.playing, true, "戻ったら動かす");
+  parts.videoToggle.dispatch("click");
+  setVisible(false);
+  setVisible(true);
+  assert.strictEqual(parts.video.playing, false, "止めたものは、戻っても止めたまま");
+}
+
+// 自動再生を止めるブラウザ（省電力など）では、「再生」のボタンを見せて待つ
+async function testVideoWaitsWhenAutoplayIsBlocked() {
+  const page = byName("en/index.html");
+  const { parts } = load(page, { autoplay: false });
+  await flush();
+  assert.strictEqual(parts.video.playing, false);
+  assert.strictEqual(parts.videoToggle.getAttribute("aria-label"), page.video.labelPlay, "再生できなければ「再生」を見せる");
+  assert.strictEqual(parts.videoIcon.getAttribute("href"), "#i-play");
+}
+
 function testPagesWithoutHooksAreUntouched() {
   assert.doesNotThrow(() => load({ name: "empty", lang: "ja", notMac: 0, menu: false }, { languages: [] }));
 }
@@ -346,6 +451,10 @@ function testPagesWithoutHooksAreUntouched() {
     testDownloadPageStartsOnMacOnly,
     testShareButton,
     testMenuCloses,
+    testVideoPlaysWithAPauseButton,
+    testVideoRespectsReducedMotion,
+    testVideoPausesOffscreen,
+    testVideoWaitsWhenAutoplayIsBlocked,
     testPagesWithoutHooksAreUntouched,
   ];
   for (const test of tests) {

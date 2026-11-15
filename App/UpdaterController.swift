@@ -5,11 +5,14 @@ import Sparkle
 /// Sparkle によるアップデート。配信先が未設定なら何もしない。
 /// Nonet はメニューバーに常駐して前面にならないので、定期の確認で見つかったアップデートは
 /// Sparkle の画面（ほかのアプリの後ろに隠れてしまう）ではなく、メニューバーのアイコンの印と
-/// メニューの「アップデートがあります…」で控えめに知らせる（Sparkle がそのまま前に出せるのは、起動の直後だけ）
+/// メニューの「アップデートがあります…」で控えめに知らせる（Sparkle がそのまま前に出せるのは、起動の直後だけ）。
+/// メニューバーのアイコンが見えない（ノッチの陰など）ときは、印に気づけないので、Sparkle のふつうの知らせの画面を出す
 @MainActor
 final class UpdaterController: NSObject {
     /// 控えめな知らせを出す・消す（アイコンの印と、メニューの「アップデートがあります…」）
     var onUpdateAvailableChange: ((Bool) -> Void)?
+    /// メニューバーのアイコンがいま見えているか（App が MenuBarController から入れる）
+    var isStatusItemVisible: () -> Bool = { true }
 
     private var controller: SPUStandardUpdaterController?
 
@@ -33,9 +36,10 @@ final class UpdaterController: NSObject {
 extension UpdaterController: SPUStandardUserDriverDelegate {
     nonisolated var supportsGentleScheduledUpdateReminders: Bool { true }
 
-    /// 起動の直後など、Sparkle がそのまま前に出せるときだけ任せる。ほかはメニューで知らせる
+    /// 起動の直後など、Sparkle がそのまま前に出せるときと、メニューバーのアイコンが見えないとき（印に気づけない）は任せる。
+    /// ほかはメニューで知らせる
     nonisolated func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem, andInImmediateFocus immediateFocus: Bool) -> Bool {
-        immediateFocus
+        immediateFocus || !MainActor.assumeIsolated { isStatusItemVisible() }
     }
 
     nonisolated func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {

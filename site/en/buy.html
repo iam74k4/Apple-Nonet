@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light dark">
 <!-- The purchase page. The Buy buttons on the English site open it. See ../buy.html for how it works.
-     The token and price ID are the same as in ../buy.html -->
+     The token and price ID are the same as in ../buy.html. After a purchase, buy.js asks /api/license for the key (see ../buy.html) -->
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="stylesheet" href="../style.css">
@@ -36,15 +36,31 @@
     <div class="thanks-head" data-checkout
          data-paddle-token="live_7a8afb13d7cade5a8ac64e3f590"
          data-paddle-price="pri_01m7eed1e4msh3ebqy6qavp81p"
+         data-license-endpoint="/api/license"
+         data-license-link="nonet://register?key="
+         data-text-delivered="Thank you for your purchase. Your license key is below. The same key is also sent to the email address you used at checkout, within 24 hours at the latest (Paddle sends your receipt)."
+         data-text-copied="Copied."
+         data-text-copy-failed="Couldn't copy. Select the key and copy it."
          data-text-unavailable="Purchases are not open yet. Please try again later."
          data-text-blocked="The checkout (Paddle) could not be loaded. Pause any ad or tracker blocking extension, or try another browser."
          data-text-closed="You closed the checkout. To buy, open it again with the button below."
-         data-text-error="The checkout could not be opened. Wait a moment and try again with the button below. If it keeps happening, contact us."
-         data-text-completed="Thank you for your purchase. Paddle sends your receipt, and the developer sends your license key, to the email address you used at checkout.">
+         data-text-error="The checkout could not be opened. Purchases may be temporarily unavailable; your 14-day trial keeps working in the meantime. Try again later with the button below, or contact support@astlog.dev."
+         data-text-completed="Thank you for your purchase. Paddle sends your receipt. Your license key will be sent to the email address you used at checkout, within 24 hours at the latest.">
       <h1>Buy Nonet</h1>
       <p data-checkout-status role="status">Opening the checkout (Paddle).</p>
       <noscript><p>To open the checkout, turn on JavaScript.</p></noscript>
       <p><button class="btn" type="button" data-checkout-open hidden>Open the checkout</button></p>
+      <div class="license-delivery" data-license hidden>
+        <h2>Your license key</h2>
+        <p><code class="license-key" data-license-key></code></p>
+        <p class="cta">
+          <a class="btn" data-license-open>Register in Nonet</a>
+          <button class="btn btn-secondary" type="button" data-license-copy>Copy key</button>
+        </p>
+        <p class="fine" data-license-copy-status role="status"></p>
+        <p class="fine">Open “Register in Nonet” on a Mac with Nonet installed. If it doesn't open, choose “Enter License Key…” from the Nonet icon in the menu bar, paste the key, and click “Register”. One license covers every Mac you use. The key is verified on your Mac only and is never sent over the network.</p>
+        <p class="fine">License ID: <span data-license-id></span> (mention it when you contact us; it can't be used to register)</p>
+      </div>
     </div>
 
     <div class="thanks-after">

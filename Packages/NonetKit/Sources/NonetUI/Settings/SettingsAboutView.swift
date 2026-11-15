@@ -33,7 +33,8 @@ struct SettingsAboutView: View {
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
-                    Text("上の縁から指を滑らせると、トラックパッドが9マスになる", bundle: .module)
+                    // ようこその画面と同じ一行
+                    Text(ShellText.tagline)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -102,7 +103,7 @@ struct SettingsAboutView: View {
                                         .textSelection(.enabled)
                                 }
                                 Text(verbatim: notice.license)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 11, design: .monospaced))
                                     .foregroundStyle(.secondary)
                                     .textSelection(.enabled)
                                     .fixedSize(horizontal: false, vertical: true)

@@ -69,6 +69,8 @@ struct MenuBarState: Equatable {
     var hasGuide: Bool
     /// 最近実行したボタン（新しい順。メニューの「最近の実行」）
     var recentRuns: [ExecutionRecord] = []
+    /// 実行中の、止められるボタン（始めた順。メニューの「実行中の「◯◯」を止める」）
+    var runningActions: [RunningAction] = []
     /// メニューの先頭の早見表（前面のアプリで9マスを開いたときに出るマス）。nil なら出さない
     var cheatSheet: MenuBarCheatSheet?
 
@@ -112,6 +114,7 @@ struct MenuBarState: Equatable {
         let active = controller.activeProfileName
         defer {
             recentRuns = controller.recentExecutions
+            runningActions = controller.runningActions
             // 許可が無い・無効にしているときも出す（何が入っているかを見るだけなので）
             cheatSheet = MenuBarCheatSheet(frontApp: frontApp, configuration: controller.configuration)
         }
@@ -166,6 +169,8 @@ enum MenuBarEntry: Equatable {
     case notice(String)
     case dismissNotice
     case requestAccessibility
+    /// 実行中のボタン（裏で実行するスクリプト・ショートカット・AI）を止める
+    case stopRunning(RunningAction)
     case separator
     case toggleEnabled(isOn: Bool)
     case openSettings
@@ -199,6 +204,8 @@ enum MenuBarEntry: Equatable {
         case .notice(let text): text
         case .dismissNotice: String(localized: "この知らせを消す", bundle: .module)
         case .requestAccessibility: String(localized: "アクセシビリティを許可…", bundle: .module)
+        case .stopRunning(let running):
+            String(localized: "実行中の「\(SettingsText.singleLine(running.cellTitle, limit: MenuBarModel.runningTitleLimit))」を止める", bundle: .module)
         case .separator: ""
         case .toggleEnabled: String(localized: "Nonet を有効にする", bundle: .module)
         case .openSettings: String(localized: "設定…", bundle: .module)
@@ -220,14 +227,20 @@ enum MenuBarEntry: Equatable {
 
 /// メニューバーの状態の文言・アイコン・メニューの並び。AppKit に触れない
 enum MenuBarModel {
-    /// 「最近の実行」の1行。「✓ Xcode › ビルド」。失敗なら理由の1行目を添える
+    /// 「最近の実行」の1行の文字数の上限（長い理由やボタンの名前で、メニューを画面の幅まで広げない）
+    static let recentRunTitleLimit = 80
+    /// 「実行中の「◯◯」を止める」の◯◯の文字数の上限
+    static let runningTitleLimit = 40
+
+    /// 「最近の実行」の1行。「✓ Xcode › ビルド」。失敗なら「✗」と理由の1行目、止めたものは「■」と「止めました」を添える。
+    /// 1行にまとめ、recentRunTitleLimit 文字で切る（理由の全文は、選ぶと結果のパネルに出る）
     static func recentRunTitle(_ record: ExecutionRecord, in configuration: NonetConfiguration? = nil) -> String {
-        let mark = record.succeeded ? "✓" : "✗"
+        let mark = record.succeeded ? "✓" : record.wasStopped ? "■" : "✗"
         let base = String(localized: "\(mark) \(record.profileName) › \(cellTitle(of: record, in: configuration))", bundle: .module)
         guard !record.succeeded,
               let reason = record.message?.split(separator: "\n").first.map(String.init),
-              !reason.isEmpty else { return base }
-        return String(localized: "\(base) — \(reason)", bundle: .module)
+              !reason.isEmpty else { return SettingsText.singleLine(base, limit: recentRunTitleLimit) }
+        return SettingsText.singleLine(String(localized: "\(base) — \(reason)", bundle: .module), limit: recentRunTitleLimit)
     }
 
     /// 試用期間の残りがこの日数以下なら、アイコンに印を付けて状態の行で知らせる
@@ -301,6 +314,9 @@ enum MenuBarModel {
     /// 最近の実行の項目の VoiceOver の読み上げ。✓・✗ の記号ではなく、成功・失敗を言葉で言う（記号の名前を読ませない）
     static func recentRunAccessibilityLabel(_ record: ExecutionRecord, in configuration: NonetConfiguration? = nil) -> String {
         let title = cellTitle(of: record, in: configuration)
+        if record.wasStopped {
+            return String(localized: "止めました: \(record.profileName) › \(title)", bundle: .module)
+        }
         let base = record.succeeded
             ? String(localized: "成功: \(record.profileName) › \(title)", bundle: .module)
             : String(localized: "失敗: \(record.profileName) › \(title)", bundle: .module)
@@ -356,6 +372,8 @@ enum MenuBarModel {
         if let notice = state.notice, !notice.isEmpty {
             entries += [.notice(notice), .dismissNotice]
         }
+        // 実行中のボタンを止める項目は、状態の行のすぐ下（長く掛かっているときに、すぐ見つかるように）
+        entries += state.runningActions.map(MenuBarEntry.stopRunning)
         // 早見表は状態の行（と、その下の許可・知らせ）のすぐ下。直すことのある行を押し下げない
         if let sheet = state.cheatSheet {
             entries += [.separator, .cheatSheet(sheet)]

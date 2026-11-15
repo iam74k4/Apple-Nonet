@@ -115,7 +115,8 @@ package enum LicenseTool {
           Ed25519 の鍵を作る。<フォルダ>/\(privateKeyFileName)（パーミッション 600）と
           <フォルダ>/\(publicKeyFileName) を書き、公開鍵を表示する。既存のファイルは上書きしない
       nonet-license issue --key <秘密鍵のファイル> --name <購入者> [--email <メール>] [--edition <エディション>] [--id <ライセンス ID>] [--public <公開鍵の base64 かファイル>] [--skip-app-key-check]
-          ライセンスキーを発行して表示する。エディションの既定は standard、ID の既定は新しい UUID。
+          ライセンスキーを発行して表示する。エディションの既定は standard、ID の既定は新しい UUID
+          （Paddle で売ったものは、--id に取引の ID の txn_… を渡す。返金のときは同じ ID で revoke する）。
           発行したキーを、アプリに入れる公開鍵（今いるフォルダから上にたどって見つけた \(configPath) の
           \(configKeyName)）と、秘密鍵と同じフォルダの \(publicKeyFileName) で検証し、どちらかと合わなければ発行しない。
           --public を付けたときは、その公開鍵で検証する。それがアプリに入れる公開鍵と違うときも発行しない。
@@ -496,11 +497,17 @@ package enum LicenseTool {
         guard !trimmed.contains(where: \.isNewline) else {
             throw LicenseToolFailure(message: "ライセンス ID に改行が入っています")
         }
-        // issue が作る ID は UUID。注文番号などを書くと、どのキーにも効かない（--id で決めた ID なら、このままでよい）
-        if UUID(uuidString: trimmed) == nil {
-            io.standardError("注意: 「\(trimmed)」は UUID の形ではありません。注文番号ではなく、ライセンス ID かキー全体を指定してください（issue の --id で決めた ID なら、このままで構いません）\n")
+        // ライセンス ID は Paddle の取引の ID（txn_…。Worker も手動の issue --id も、これを使う。docs/release.md 3.1・3.2）か、
+        // issue の既定の UUID。ほかの形（注文の番号など）を書くと、どのキーにも効かないことがあるので知らせる（--id で決めた ID なら、このままでよい）
+        if UUID(uuidString: trimmed) == nil, !isPaddleLicenseID(trimmed) {
+            io.standardError("注意: 「\(trimmed)」は Paddle の取引の ID（txn_…）でも UUID の形でもありません。ライセンス ID かキー全体を指定してください（issue の --id で決めた ID なら、このままで構いません）\n")
         }
         return trimmed
+    }
+
+    /// Paddle の取引の ID（txn_ と小文字の英数字 26 文字）。キーが漏れて発行し直したものは、後ろに -r2 のような番号を付ける（docs/release.md 3.5）
+    package static func isPaddleLicenseID(_ text: String) -> Bool {
+        text.wholeMatch(of: #/txn_[a-z0-9]{26}(-r[0-9]+)?/#) != nil
     }
 
     // MARK: - 補助

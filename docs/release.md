@@ -149,7 +149,7 @@ scripts/check-site.sh --strict   # 上の仮の値が1つでも残っていれ�
 
 `--strict` でも止めないものが1つある。よくある質問の「確認済みの macOS」（`data-placeholder="tested-macos"`）で、リリースのたびに実物で確かめた版を書く（「2.7 確かめる」）。`scripts/check-site.sh` は、残っていれば知らせる。
 
-見出し（`index.html` の h1）や HUD のデモを変えたら、共有の画像を作り直す（Google Chrome と sips を使う）:
+見出し（`index.html` の h1）や HUD の静止画（`site/images/hud-xcode.webp`）を変えたら、共有の画像を作り直す（Google Chrome と sips を使う）:
 
 ```bash
 python3 -I scripts/make-site-images.py   # site/images/og-ja.png・og-en.png（1200×630）と site/apple-touch-icon.png（180×180）
@@ -274,7 +274,7 @@ scripts/publish.sh 1.2.0
 - 公開した URL から DMG をダウンロードし、別のユーザーか別の Mac で開く。Gatekeeper の警告が出ずに起動すること
 - 一つ前の版を起動し、メニューの「アップデートを確認」で新しい版が見つかり、入れ替わること
 - `curl -I <appcast の URL>` が 200 を返すこと
-- **確認済みの macOS**: 試した macOS の版（例: `macOS 14.7・15.6・26.1`）を、販売ページのよくある質問「macOS のアップデートで使えなくなることはありますか？」（`site/index.html`・`site/en/index.html` の `data-placeholder="tested-macos"`）に書き、`data-placeholder` と `class="todo"` を外す。実際に試した版だけを書く。新しい macOS のベータが出たら、ベータのうちに試して直す（ページでそう約束している）。直せないまま使えない状態が続くなら、購入からの日数にかかわらず返金する（利用規約の 6）。書き換えたら main に入れ、GitHub の Actions › site › Run workflow でサイトに出す（publish.sh はページを上げない。[hosting.md](hosting.md) の「3. リリースごとの手順」の「ページだけを変えたとき」）
+- **確認済みの macOS**: 試した macOS の版（例: `macOS 14.7・15.6・26.1`）を、販売ページのよくある質問「macOS のアップデートで使えなくなることはありますか？」（`site/index.html`・`site/en/index.html` の `data-placeholder="tested-macos"`）に書き、`data-placeholder` と `class="todo"` と、その段落の `hidden` を外す（埋めるまでは `hidden` で買う人には見せない）。実際に試した版だけを書く。新しい macOS のベータが出たら、ベータのうちに試して直す（ページでそう約束している）。直せないまま使えない状態が続くなら、購入からの日数にかかわらず返金する（利用規約の 6）。書き換えたら main に入れ、GitHub の Actions › site › Run workflow でサイトに出す（publish.sh はページを上げない。[hosting.md](hosting.md) の「3. リリースごとの手順」の「ページだけを変えたとき」）
 
 ### 2.8 タグを付ける
 
@@ -319,7 +319,9 @@ git push origin v1.2.0
 
 ## 3. 販売とライセンスの届け方
 
-アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。販売サービスは **Paddle（Paddle Billing。販売代理店 = Merchant of Record）** に決めた（2026-11-08）。キーは Paddle のライセンスキーの機能ではなく自前で発行し、発売直後は手動で（3.1）、数が増えたら Webhook で（3.2）届ける。
+アプリはキーをオフラインで確かめるので、販売の仕組みは「支払いを受けて、`nonet-license issue` と同じ形のキーを購入者に届ける」だけでよい。販売サービスは **Paddle（Paddle Billing。販売代理店 = Merchant of Record）** に決めた（2026-11-08）。キーは Paddle のライセンスキーの機能ではなく自前で発行し、nonet.astlog.dev の Worker が Paddle の通知を受けて自動で届ける（3.2。2026-11-15 に決めた）。キーはこれまでどおり Mac の中だけで確かめ、オンラインの認証（アクティベーション）はしない。Worker を設定するまでと、自動で届かなかったときは手動で届ける（3.1）。
+
+ライセンス ID は **Paddle の取引の ID（`txn_…`）** にする。自動でも手動でも同じ ID になり、返金のときはその ID で無効にする（3.5）ので、発行の台帳は持たない。
 
 Paddle にした理由（2026-11-08 に各社の公式ページで比べた。手数料と規約は申し込む前にもう一度確かめる）:
 
@@ -343,12 +345,17 @@ Paddle で決まっていること（公式のヘルプと開発者向けの資�
 | 売主 | 日本の購入者には Paddle.com Market Limited（30 Old Bailey, London, United Kingdom, EC4M 7AU）。Paddle Buyer Terms の「Rest of world」 |
 | 消費税 | 日本の消費税 10% を事業者向け・個人向けとも Paddle が集めて納める。Paddle から受け取るお金の、自分の側の扱いは税理士に確かめる |
 
-### 3.1 手動で届ける
+### 3.1 手動で届ける（Worker を設定するまで・自動で届かなかったとき）
 
 ```bash
 cd Packages/NonetKit
-swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> --name "購入者の名前" --email buyer@example.com
+swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> --name "購入者の名前" --email buyer@example.com --id txn_…
 ```
+
+- `--id` には Paddle の取引の ID（Paddle › Transactions の `txn_…`。Paddle からの販売のメールにもある）を渡す。Worker が届けるキーと同じライセンス ID になり、返金のときはこの ID で無効にする（3.5）
+- `--name` は Paddle の顧客（Customers）の名前。名前が無ければ（Paddle の購入画面は名前を聞かないことが多い）メールアドレスを入れる（Worker と同じ）
+- 手で発行したキーは、Worker が同じ取引から作るキーと署名の部分が違う（`nonet-license` の CryptoKit は署名に毎回乱数を混ぜる）。どちらも有効で、ライセンス ID も同じ
+- Worker を設定してあれば、発行する代わりに `curl -s 'https://nonet.astlog.dev/api/license?transaction_id=txn_…'` で、自動で届けたものと同じキーを取り出せる（3.2）
 
 送る文面の例（`<キー>` は発行したキー。キーは base64url と `.` だけなので、URL にそのまま入れられる）:
 
@@ -370,25 +377,86 @@ swift run nonet-license issue --key ~/Nonet-secrets/<秘密鍵のファイル> -
 - キーを書いたテキストファイルを `<名前>.nonetlicense` として添えてもよい（UTF-8、64 KiB まで。「License key:」などの前後の文があってもキーだけを読む）。開くとリンクと同じように尋ねる
 - ライセンス ID を貼り付けられたときは、アプリが「これはライセンス ID です」と知らせる。キーと ID は別の行に書く
 
-発行したキー・名前・メールアドレス・注文番号は、再発行に備えて記録しておく（[privacy.md](privacy.md) の「購入のときの情報」の範囲で）。
+support@astlog.dev は受け取るだけ（Cloudflare Email Routing）なので、手動のメールは開発者のメールから送り、返信先を support@astlog.dev にする。発行の記録は要らない（取引の ID・名前・メールアドレスは Paddle に残り、キーはそこから作り直せる）。
 
-### 3.2 自動で届ける（決めること）
+### 3.2 自動で届ける（Worker）
 
-販売サービスの Webhook を受ける小さなサーバーレスの関数（Cloudflare Workers・Vercel Functions・AWS Lambda など）が要る。関数がすること:
+nonet.astlog.dev の Worker（`cloudflare/src/licensing.js`）が、Paddle の通知を受けてキーを作り、購入者にメールで送る。購入のページにも、購入が済んだその場でキーを出す。キーは何も保存しない。
 
-1. Webhook の署名を確かめる（偽の通知でキーを出さない）
-2. 注文から名前とメールアドレスを取り、`LicenseInfo` を作る
-3. 秘密鍵で署名し、`base64url(JSON).base64url(署名)` の形のキーを作る。JSON の項目名と日付の書き方は `nonet-license` と完全に同じにする（`nonet-license verify` で検証できることをテストで確かめる）
-4. 購入者にメールで送り、記録を残す
+**仕組み**
 
-Paddle では:
+| URL | 呼ぶもの | すること |
+|---|---|---|
+| `POST /api/paddle/webhook` | Paddle（通知） | `transaction.completed` で、キーを作って購入者にメールで送る。承認された返金・チャージバックで、開発者に知らせる |
+| `GET /api/license?transaction_id=txn_…` | 購入のページ（`site/buy.js`） | 済んだ取引なら、そのキーを JSON（`license_key`・`license_id`）で返す |
 
-- 購入が済んだ知らせは `transaction.completed`（状態が `completed` になったとき）
-- 署名は `Paddle-Signature: ts=<UNIX 時刻>;h1=<16進>`。`ts + ":" + 受け取ったままの本文` を、通知先ごとの秘密（`pdl_ntfset_` で始まる。Paddle › Events › Notifications）で HMAC-SHA256 したものと、時間のかからない比べ方で比べる。本文は解釈し直さずにそのまま使う。時刻のずれの許容は既定で5秒
-- 通知に購入者の名前とメールアドレスは入らない（`customer_id` だけ）。Paddle の API で顧客を引くので、API キーも秘密の変数に置く
-- 秘密鍵・通知の秘密・API キーは、nonet.astlog.dev の Worker の秘密の変数（`wrangler secret`）に置く案がいちばん手軽
+1. 購入が済むと、Paddle が `transaction.completed` の通知を送る
+2. Worker が `Paddle-Signature: ts=<UNIX 時刻>;h1=<16進>` を確かめる。`ts + ":" + 受け取ったままの本文` を通知先の秘密（`pdl_ntfset_…`）で HMAC-SHA256 したものと、かかる時間が中身によらない比べ方（`crypto.subtle.verify`）で比べる。時刻のずれは前後5秒まで（Paddle の既定と同じ）。秘密を入れ替えている間に `h1` が2つ来ても、どちらかが合えば通す。合わなければ 401 で何もしない
+3. Nonet の価格（`PADDLE_PRICE_ID`）を含む取引だけを受け持つ。ほかの商品・ほかの種類の通知には 200 を返して何もしない（2xx でないと Paddle が送り直し続ける）
+4. Paddle の API で取引を読み直し（`GET /transactions/{id}?include=customer`。顧客が含まれていなければ `GET /customers/{id}`）、状態が `completed` で Nonet の価格があることを確かめる。通知には購入者の名前とメールアドレスが入らないので、顧客はここで読む
+5. `LicenseInfo` を作る: `licenseID` は取引の ID、`licensee` は顧客の名前（`null` か空ならメールアドレス。制御文字は空白にする）、`email` は顧客のメールアドレス、`edition` は `standard`、`issuedAt` は取引の `billed_at`（無ければ `created_at`）を秒まで。JSON は `nonet-license` と1バイトも違わない（`scripts/tests/license_test.sh` が、Worker のキーを `nonet-license verify` で確かめ、`issue` のキーと JSON の部分を比べる）
+6. 秘密鍵で Ed25519 の署名をし（WebCrypto。`nonet-license` の 32 バイトの秘密鍵を PKCS#8 にして読む）、アプリの公開鍵（`LICENSE_PUBLIC_KEY`）で確かめてから、購入者にメールで送る（Resend。差出人 `Nonet <support@astlog.dev>`、返信先 `support@astlog.dev`。文面は 3.1 と同じで、日本語のあとに英語。HTML のメールでは「Nonet に登録する」がリンク）
+7. 送れたら 200。Paddle の API やメールが失敗したら 502 などを返すので、Paddle が時間をおいて送り直す（Resend の DNS を直すのが遅れても、送り直しで届く）
 
-決めることは、秘密鍵をクラウドの秘密の変数に置くことを受け入れるか（置けば漏れる経路が増える）と、購入者宛てのメールをどこから送るか。決まるまでは手動で届ける（Paddle からの販売の通知を見て 3.1 の手順で発行する）。
+- **同じ取引からは、何度作っても同じキーになる**（WebCrypto の Ed25519 の署名は RFC 8032 のとおり決まった値。中身は取引と顧客だけで決まる）。だから保存しなくてよく、ページと通知で同じキーになる。顧客のメールアドレスや名前を Paddle で変えると、その後に作るキーは中身が変わる（ライセンス ID は同じで、どちらも有効）
+- **メールが二重に届くことがある**: 同じ取引のメールは Resend の `Idempotency-Key`（`nonet-license/<取引の ID>`）で 24 時間のうちは1通にまとめる。それでも、200 が Paddle に届かずに 24 時間より後に送り直されたときや、Paddle の画面から送り直したときは、同じキーのメールがもう1通届く（受け入れる）
+- **購入のページ**: Paddle.js の `checkout.completed` で、`buy.js` が取引の ID で `/api/license` に聞き、キー・「キーをコピー」・「Nonet に登録する」（`nonet://register?key=…`）を出す。Worker は API で取引を確かめ、`completed` で Nonet の価格なら返す。支払いの直後でまだ `completed` でなければ 409 を返し、`buy.js` は 1・2・3・5・8 秒あとに聞き直す。聞けない（設定していない・失敗した）ときは「遅くとも24時間以内にメールで届く」という案内のまま。CSP はこの2つのページだけ `connect-src 'self'` を足した（`site/_headers`）
+- **取引の ID を知っている人は、その購入者のキーを取り出せる**。取引の ID は推測できない（`txn_` と 26 文字）が、知っているのは購入者・Paddle・開発者だけにしておく（取引の画面のスクリーンショットを共有しない）。Workers Logs には、要求の URL（取引の ID を含む）が3日残る（[hosting.md](hosting.md)「6. 上限と費用」）。返金した取引でも、キーは返し続ける（アプリは無効にした一覧で止める。3.5）
+- **返金・チャージバック**: `adjustment.created`・`adjustment.updated` で、承認された（`approved`）`refund` か `chargeback` が Nonet の取引のものなら、support@astlog.dev に「`nonet-license revoke txn_…`」の知らせを送る。無効にするのは手で行う（3.5）。一部だけの返金（`partial`）も知らせるので、キーを使い続けてもらうかを決める
+- **キーをなくした人に送り直す**: `curl -s 'https://nonet.astlog.dev/api/license?transaction_id=txn_…'` で同じキーを取り出して送るか、Paddle › Developer tools › Notifications の通知のログから、その取引の `transaction.completed` を送り直す
+- **設定が1つでも欠けていれば**、`/api/*` は 503 を返すだけで何もしない（ページとアップデートの配布は変わらない。購入のページはメールで届くという案内のまま）。足りない名前は Workers Logs（ダッシュボードの Workers & Pages › nonet › Logs）に出る。秘密の値はログに出さない
+- Workers の無料プランの CPU（1回 10ms）: 署名と HMAC は 1ms ほど。API とメールを待つ時間は数えない
+
+**設定**
+
+| 名前 | 置き場所 | 中身 |
+|---|---|---|
+| `PADDLE_API_KEY` | 秘密（`wrangler secret put`） | Paddle の API キー。`pdl_live_apikey_…` なら本番、`pdl_sdbx_apikey_…` なら sandbox の API を使う。権限は `transaction.read` と `customer.read` だけ |
+| `PADDLE_NOTIFICATION_SECRET` | 秘密 | 通知先の秘密（`pdl_ntfset_…`） |
+| `LICENSE_PRIVATE_KEY` | 秘密 | `nonet-license keygen` の秘密鍵（`nonet-license.private-key` の中身。base64 の1行） |
+| `RESEND_API_KEY` | 秘密 | Resend の API キー（送信だけ・astlog.dev だけ） |
+| `LICENSE_PUBLIC_KEY` | `cloudflare/wrangler.toml` の `[vars]` | アプリの公開鍵。`NONET_LICENSE_PUBLIC_KEY`（1.6）と同じ値にする（`cloudflare/test/licensing.test.js` が確かめる）。鍵を作り直したら、ここも直す |
+| `PADDLE_PRICE_ID` | `wrangler.toml` の `[vars]` | Nonet の価格の ID。`buy.html` の `data-paddle-price` と同じ（同上） |
+
+**持ち主がすること**（sandbox で通してから本番に入れる）
+
+1. **メールの送り元（Resend）**: https://resend.com でアカウントを作る。Domains で `astlog.dev` を足し（地域は Tokyo でよい）、表示された DNS のレコード（DKIM の TXT と、送信用のサブドメインの MX・SPF の TXT）を Cloudflare の astlog.dev の DNS に足して、Verified になるのを待つ。受信の Cloudflare Email Routing の MX・SPF は astlog.dev そのものにあり、Resend のものはサブドメインに置くのでぶつからない。API Keys で、権限を Sending access、ドメインを astlog.dev だけにしたキーを作る。無料のプランの1日・1か月の通数の上限を確かめておく
+2. **sandbox で試す**（手元の Worker で。本番の Worker には何も置かない）
+   1. sandbox の Paddle（3.6 の 1）の Developer tools › Authentication で、API キーを作る（権限は Transactions の Read と Customers の Read だけ）
+   2. 手元の Worker に外から届く URL を作る（例: `brew install cloudflared` のあと `cloudflared tunnel --url http://localhost:8787`。表示される `https://….trycloudflare.com`）
+   3. sandbox の Paddle の Developer tools › Notifications で通知先を足す。URL は `<2 の URL>/api/paddle/webhook`、イベントは `transaction.completed`・`adjustment.created`・`adjustment.updated` の3つ。表示される秘密（`pdl_ntfset_…`）を控える
+   4. `cloudflare/.dev.vars`（`.gitignore` が無視する。コミットしない）に sandbox の値を書く。`PADDLE_PRICE_ID` は sandbox の価格で、`wrangler.toml` の値を上書きする:
+      ```
+      PADDLE_API_KEY=pdl_sdbx_apikey_…
+      PADDLE_NOTIFICATION_SECRET=pdl_ntfset_…
+      LICENSE_PRIVATE_KEY=<~/Nonet-secrets/nonet-license.private-key の中身>
+      RESEND_API_KEY=re_…
+      PADDLE_PRICE_ID=pri_…
+      ```
+   5. `buy.html` の `data-paddle-token`・`data-paddle-price` を一時的に sandbox の値にし（3.6 の 1 と同じ。コミットしない）、`cd cloudflare && npx wrangler dev --local` で立てる（http://localhost:8787）
+   6. http://localhost:8787/buy.html でテスト用のカードで買う。ページにキーが出ること、購入のときのメールアドレスにキーのメールが届くこと、そのキーを Nonet に登録できることを確かめる。sandbox の Paddle でその取引を返金し、support@astlog.dev に知らせが届くことも見る
+   7. 終わったら `buy.html` を戻し、`.dev.vars` を消し、sandbox の通知先を消す（止める）
+3. **本番に入れる**
+   1. 本番の Paddle の Developer tools › Authentication で、API キー（`pdl_live_apikey_…`。Transactions の Read と Customers の Read だけ）を作る
+   2. Developer tools › Notifications で通知先を足す。URL は `https://nonet.astlog.dev/api/paddle/webhook`、イベントは 2 の 3 と同じ3つ。秘密を控える
+   3. 秘密を Worker に置く（値は聞かれたときに貼り付ける。コマンドの引数やリポジトリのファイルに書かない。`secret put` はその場で新しい版として効き、後のデプロイでも消えない）:
+      ```bash
+      cd cloudflare
+      npx wrangler secret put PADDLE_API_KEY
+      npx wrangler secret put PADDLE_NOTIFICATION_SECRET
+      npx wrangler secret put RESEND_API_KEY
+      npx wrangler secret put LICENSE_PRIVATE_KEY < ~/Nonet-secrets/nonet-license.private-key
+      ```
+   4. この変更を入れた Worker を出す（[hosting.md](hosting.md) の 2.5 か GitHub Actions）。`wrangler.toml` の `[vars]` の2つは、テストがアプリと購入のページの値と比べている
+   5. 確かめる: `curl -s 'https://nonet.astlog.dev/api/license?transaction_id=txn_01aaaaaaaaaaaaaaaaaaaaaaaa'` が `{"error":"not_found"}` なら設定は揃っている（`{"error":"unavailable"}` なら足りないものがあり、Workers Logs に名前が出る）。本番で一度自分で買い、ページとメールにキーが出て登録できること、返金して知らせが届き、`nonet-license revoke` できることを見る（3.6 の 7）
+4. Paddle からの販売のメールは受け取ったままにしておく。届いていないという問い合わせには、上の「送り直す」か 3.1 で応える
+
+**気をつけること**
+
+- **秘密鍵が Cloudflare に置かれる**（2026-11-15 に受け入れた）。秘密の値はダッシュボードでも読めないが、Worker のコードからは読めるので、Cloudflare のアカウントか、Worker を出せる API トークン（`CLOUDFLARE_API_TOKEN`。[hosting.md](hosting.md) 2.3）を取られると、好きなキーを作られうる。アカウントの2段階認証とトークンの置き場所を守る。漏れたら 1.5 のとおり鍵を作り直す（それまでのキーはすべて再発行になる）
+- Paddle の API キーは読むだけ（`transaction.read`・`customer.read`）。漏れても、取引と顧客を読まれるだけで、返金や変更はできない。通知の秘密が漏れると偽の通知を送れるが、Worker は API で取引を読み直すので、本物の取引の購入者にしかキーは届かない
+- 購入者の名前とメールアドレスは、Paddle から Worker を通って Resend に渡る（[privacy.md](privacy.md) の「7. 購入のときの情報」）。Worker は保存しない
+- `/api/license` は、形の合う取引の ID が来るたびに Paddle の API を1回呼ぶ（回数の制限は付けていない）。でたらめな ID を大量に送られると、Workers の1日の回数（[hosting.md](hosting.md)「6. 上限と費用」）や Paddle の API の回数の上限を使われうる。気になったら、Cloudflare の WAF の Rate limiting rules（無料のプランでも1つ作れる）で `/api/license` を IP ごとに絞る
 
 ### 3.3 試用の記録（方針）
 
@@ -425,9 +493,7 @@ Paddle では:
 - 販売: Paddle（販売代理店 = Merchant of Record）。売主は Paddle なので、`tokushoho.html` は「販売事業者は Paddle.com Market Limited」と書き、所在地と同社の購入者向け規約（Paddle Buyer Terms）へのリンク、開発者の問い合わせ先を載せる。Paddle には日本の特定商取引法に基づく表記のページが無く、規約にも電話番号が無いので、電話番号は「請求があった場合は、遅滞なく電子メールで開示します」と書いた（2026-11-15 に決めた）
 - 利用規約（`terms.html`・`en/terms.html`）: 1人に1つのライセンス・返金・保証の否認と責任の範囲（軽過失は支払った金額まで）・準拠法は日本法
 
-まだ埋めていないもの（1.8 の仮の値）:
-
-- 購入のページの Paddle のクライアント用トークンと価格の ID（`site/buy.html`・`site/en/buy.html` の TODO。3.6）
+1.8 の仮の値は、2026-11-15 にすべて埋めた（購入のページの Paddle のクライアント用トークンと価格の ID も。3.6）。
 
 ### 3.5 ライセンスを無効にする（返金・キーの流出）
 
@@ -435,14 +501,16 @@ Paddle では:
 
 ```bash
 cd Packages/NonetKit
-swift run nonet-license revoke <ライセンス ID かライセンスキー>
+swift run nonet-license revoke <ライセンス ID（取引の ID の txn_…）かライセンスキー>
 ```
 
-- 一覧に `<ライセンス ID の SHA-256>  # <日付（この Mac の日付）>` の行が足される。UUID の形の ID は大文字小文字を区別しない（小文字で書いても効く）。注文番号など UUID の形でないものを書くと注意が出る（`issue --id` で決めた ID なら、そのままでよい）。ID そのものは書かない（一覧はリポジトリとアプリに入るため）。すでにあれば何もしない。キーを渡したときは、署名は確かめずに中のライセンス ID を使い、キーの中身を表示する。リポジトリの外で動かすときは `--list <一覧のファイル>` で一覧を指定する
+- 返金では、ライセンス ID は返金した取引の ID（Paddle › Transactions の `txn_…`）。Worker が届けたキーも 3.1 で手で発行したキーも同じ ID なので、1行で両方に効く。承認された返金・チャージバックは、Worker が support@astlog.dev に取引の ID を添えて知らせる（3.2）
+- 一覧に `<ライセンス ID の SHA-256>  # <日付（この Mac の日付）>` の行が足される。取引の ID（`txn_` と小文字の英数字 26 文字。発行し直した `-r2` などの付いたものも）と UUID の形の ID には注意を出さない。取引の ID は大文字小文字を区別する（Paddle の ID は小文字なので、そのまま貼る）。前に手で発行した UUID の形の ID は区別しない（小文字で書いても効く）。どちらでもない形を書くと注意が出る（`issue --id` で決めた ID なら、そのままでよい）。ID そのものは書かない（一覧はリポジトリとアプリに入るため）。すでにあれば何もしない。キーを渡したときは、署名は確かめずに中のライセンス ID を使い、キーの中身を表示する。リポジトリの外で動かすときは `--list <一覧のファイル>` で一覧を指定する
 - 一覧をコミットして、次のリリース（2.5）に入れる。アプリが受け付けなくなるのはその版からで、それまでの版では使えるまま
 - 新しい版では、そのキーは登録できない（「このライセンスキーは無効になっています（返金したライセンスや、公開されてしまったキーは使えません）。心当たりがないときは、お問い合わせください。」）。登録していた Mac では、登録していないものとして扱い、残っている試用の記録で数え直す（試用期間が終わっていれば期限切れ）。ライセンスのタブには「登録してあったライセンスキー（ライセンス ID: …）は無効になっているため、使えません。…」と理由が出る。キーは消さない
 - 間違えて足したときは、その行を消してコミットし、次の版を出せば元に戻る
-- 返金の記録（注文番号・ライセンス ID・日付）は、発行の記録（3.1）と一緒に残す
+- 返金の記録は Paddle に残り、ライセンス ID が取引の ID なので、別の台帳は要らない（一覧の行の日付が無効にした日）
+- 公開されてしまったキーを無効にして、本人に新しいキーを渡すときは、同じ ID では新しいキーも止まるので、`--id txn_…-r2` のように後ろに番号を付けて 3.1 で発行する。購入のページと `/api/license` は、その取引の元のキー（無効にしたもの）を返し続ける
 - `nonet-license verify` は一覧を見ない（署名と製品だけを確かめる）
 
 ---
@@ -452,10 +520,10 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 サイトとアプリの側はできている（2026-11-08）:
 
 - 販売ページの「購入する」とアプリの「購入する」（`NONET_PURCHASE_URL`）は、購入のページ `buy.html`（英語は `en/buy.html`）を開く。ページは Paddle.js を読み、`site/buy.js` がすぐに購入画面（オーバーレイ）を開く。購入画面の言語はブラウザの言語
-- 閉じたら「購入画面を開く」で開き直せる。開けなかったとき・Paddle.js を読めなかったとき（拡張機能で止められたなど）・購入が済んだときは、そう知らせる（購入が済んだら「領収書は Paddle から、ライセンスキーは開発者からメールで届く」）
+- 閉じたら「購入画面を開く」で開き直せる。開けなかったとき・Paddle.js を読めなかったとき（拡張機能で止められたなど）・購入が済んだときは、そう知らせる。購入が済んだら、Worker からキーを受け取ってページに出す（3.2）。受け取れなければ「領収書は Paddle から届き、ライセンスキーは遅くとも24時間以内にメールで届く」。開けなかったときの文は、購入を一時的に受け付けられないことがあること・14日間の試用はそのまま使えること・問い合わせ先を書く
 - トークンと価格の ID は、2つのページの `data-paddle-token`・`data-paddle-price`（同じ値。`scripts/tests/buy_script_harness.js` が確かめる）。`test_` で始まるトークンなら sandbox で開く。仮の値のままなら購入画面を開かずに「準備中」と出す（`scripts/check-site.sh --strict` は止まる）
 - `?_ptxn=…` を付けて開かれたら、その取引の購入画面は Paddle.js が開く（Paddle の Default payment link をこのページにするため）
-- 外のスクリプト（Paddle.js）を読むのはこの2つのページだけ。`site/_headers` でこの2つの CSP だけを Paddle の分だけ広げる（中身と理由は `_headers` のコメント）。Paddle.js が本番で足す Paddle Retain（解約を減らすための追跡。買い切りには要らない）は CSP で止める。プライバシーポリシーの「8. 販売ページ」に、購入のページだけが Paddle のスクリプトを読むことを書いた
+- 外のスクリプト（Paddle.js）を読むのはこの2つのページだけ。`site/_headers` でこの2つの CSP だけを Paddle の分（と、キーを受け取る同じサイトへの `connect-src 'self'`）だけ広げる（中身と理由は `_headers` のコメント）。Paddle.js が本番で足す Paddle Retain（解約を減らすための追跡。買い切りには要らない）は CSP で止める。プライバシーポリシーの「8. 販売ページ」に、購入のページだけが Paddle のスクリプトを読むことを書いた
 
 持ち主がすること（アカウントの作成・本人確認・入金先の登録は、本人にしかできない）:
 
@@ -466,8 +534,9 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 4. **トークン**: Developer tools › Authentication でクライアント用トークン（`live_…`）を作る。トークンと価格の ID（`pri_…`）を `buy.html`・`en/buy.html` に入れる（クライアント用のトークンはページに載せるためのもので、公開してよい。API キー（`pdl_…`）は載せない）
 5. **公開**: 問い合わせ先のメールアドレスと特商法の電話番号の表記も埋め（1.8）、`scripts/check-site.sh --strict` を通して nonet.astlog.dev を公開する（[hosting.md](hosting.md)）
 6. **ドメインの承認**: Paddle の設定の Website approval で `nonet.astlog.dev` を申請する（販売ページに価格・利用規約・返金の方針・プライバシーポリシーがあることを見られる）。承認されるまで、本番の購入画面は開かない。Default payment link に `https://nonet.astlog.dev/buy.html` を入れる
+   - 2026-11-15 に承認された（Checkout approved・Apple Pay approved）。それでも、本人確認（Paddle から届くメールのリンクで、Sumsub に身分証・住所の証明・動画の自撮りを出す）が済むまでは、購入画面は「Something went wrong」になる（コンソールに `transaction_checkout_not_enabled`）。購入のページは「購入画面を開けませんでした」と出す
 7. **確かめる**: 承認されたら、本番の購入のページを開き、購入画面が日本語・円で出ること、ブラウザのコンソールに Paddle Retain（`public.profitwell.com`）のほかの CSP の違反が無いことを見る。自分で一度買い、返金まで通しておく
-8. **キーの届け方**を決める（手動は 3.1、自動は 3.2）。Paddle › Notifications で、販売のメールを受け取るようにしておく
+8. **キーを自動で届ける**設定をする（3.2。済むまでは 3.1 の手動）。Paddle › Notifications で、販売のメールを受け取るようにしておく
 
 ## 4. 公開前のチェックリスト
 
@@ -511,7 +580,8 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 **販売**
 - [ ] 販売サービスの商品・価格・税の設定をした（Paddle。日本の合計がちょうど ¥1,480 になることを sandbox で確かめた。3.6）
 - [ ] Paddle のドメインの承認（`nonet.astlog.dev`）と Default payment link（`https://nonet.astlog.dev/buy.html`）が済み、本番の購入のページで購入画面が開く
-- [ ] テスト購入 → キーが届く → アプリで登録できる、を通した
+- [ ] キーを自動で届ける Worker の秘密4つ（`PADDLE_API_KEY`・`PADDLE_NOTIFICATION_SECRET`・`LICENSE_PRIVATE_KEY`・`RESEND_API_KEY`）を置き、Paddle の通知先と Resend のドメインを設定した。sandbox で通した（3.2）
+- [ ] テスト購入 → 購入のページにキーが出る・メールでキーが届く → アプリで登録できる → 返金で support@astlog.dev に知らせが届く、を通した
 - [ ] 返金やキーの流出で無効にしたライセンスがあれば、`RevokedLicenses.txt` の変更をコミットした（3.5。この版に入る）
 - [ ] `scripts/check-site.sh --strict` が通る（価格・URL・問い合わせ先が埋まっている）
 - [ ] 利用ガイド（`site/guide.html`・`site/en/guide.html`）を公開し、`NONET_SUPPORT_URL` が `…/guide.html` を指している

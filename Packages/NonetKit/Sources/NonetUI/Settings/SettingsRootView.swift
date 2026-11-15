@@ -75,10 +75,25 @@ struct SettingsRootView: View {
             isPresented: Binding(get: { model.confirmation != nil && importPlan == nil }, set: { if !$0 { model.confirmation = nil } }),
             presenting: model.confirmation
         ) { confirmation in
-            Button(role: confirmationRole(confirmation)) {
-                model.confirm(confirmation)
-            } label: {
-                Text(confirmationButton(confirmation))
+            if case .deactivateLicense = confirmation {
+                // 消す前にキーを手元に残せるように、コピーしてから消すのを既定にする（メールを探さなくても登録し直せる）
+                Button {
+                    model.confirmDeactivateLicense(copyingKey: true)
+                } label: {
+                    Text("キーをコピーして消す", bundle: .module)
+                }
+                .keyboardShortcut(.defaultAction)
+                Button(role: .destructive) {
+                    model.confirmDeactivateLicense(copyingKey: false)
+                } label: {
+                    Text(String(localized: "settings.license.removeWithoutCopying", defaultValue: "消す", bundle: .module))
+                }
+            } else {
+                Button(role: confirmationRole(confirmation)) {
+                    model.confirm(confirmation)
+                } label: {
+                    Text(confirmationButton(confirmation))
+                }
             }
             Button(role: .cancel) {
                 model.confirmation = nil
@@ -130,7 +145,7 @@ struct SettingsRootView: View {
         case .resetProfile:
             String(localized: "今のマスはすべて、プリセットの中身に置き換わります。⌘Z で元に戻せます。", bundle: .module)
         case .deactivateLicense:
-            String(localized: "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。", bundle: .module)
+            String(localized: "この Mac からライセンスキーを消します。コピーしておくと、あとで登録し直すときに貼り付けられます（キーは購入時のメールにもあります）。", bundle: .module)
         case .importProfiles(let plan):
             SettingsText.importConfirmation(plan)
         case .testRunFile:

@@ -118,6 +118,8 @@ final class SettingsModel {
     }
     /// プロファイルを追加するシートで、このプロファイルのページを写す（「複製して別のアプリに使う…」）。nil なら普通の追加
     var duplicatingProfileID: UUID?
+    /// 「プロファイルを整理…」のシート（アプリのプロファイルをまとめて消す）
+    var isCleaningUpProfiles = false
     /// 名前を変えているページ（ページの見出しのダブルクリック）
     var renamingPage: Int?
     var confirmation: Confirmation?
@@ -163,6 +165,8 @@ final class SettingsModel {
     @ObservationIgnored let undoManager = UndoManager()
     /// 元に戻す操作の受け手（プロファイルの id ごと）。undoManager は受け手を強く持たないので、ここで持っておく
     @ObservationIgnored private var undoTargets: [UUID: SettingsUndoTarget] = [:]
+    /// プロファイルをまとめて消したときの取り消しの受け手（1つのプロファイルの分として忘れない。読み込みで1つ置き換えても、ほかを戻せるように）
+    @ObservationIgnored private let profileListUndoTarget = SettingsUndoTarget()
     /// グリッドの下の「元に戻す」。マスを空にしたとき・中身のあるマスを置き換えたとき・プロファイルやページを消したときなどに出す
     var undoNotice: SettingsUndoNotice?
     /// インスペクタでの変更のまとまり（選んでいるマスを変えている間）。別のマスを選ぶ・ほかの操作を元に戻せるようにする・元に戻すと閉じる
@@ -193,6 +197,8 @@ final class SettingsModel {
     var pendingLicense: VerifiedLicense?
     /// ライセンスキーの欄に入力できるようにしてほしい（帯の「ライセンスキーを入力…」など。欄が受け取ったら false に戻す）
     var wantsLicenseKeyFocus = false
+    /// 「Nonet」のタブの下の情報の欄（バージョン・利用ガイドなど）まで送ってほしい（メインメニューの「Nonet について」。送ったら false に戻す）
+    var wantsAboutScroll = false
     /// コピーする（テストでは偽物にする）
     @ObservationIgnored var copyToPasteboard: (String) -> Void = SettingsModel.copyConcealed
     /// ディスクイメージなどの一時的な場所から動いているか（ログイン時に起動は選べない。テストでは決める）
@@ -439,6 +445,86 @@ final class SettingsModel {
             selectTab(.profiles)
         }
         selectProfile(profile.id)
+    }
+
+    /// 「プロファイルを整理…」で選んだアプリのプロファイルをまとめて消す。控えは1つだけ残し（控えの数には上限がある）、
+    /// 取り消しも1つにする（⌘Z で、消したものがすべて元の位置に戻る）。1つだけなら deleteProfile と同じ
+    func deleteProfiles(_ ids: Set<UUID>, makesBackup: Bool = true) {
+        pendingEdits.flushAll()
+        finishRecording()
+        let before = appProfiles
+        let removed = before.enumerated().filter { ids.contains($0.element.id) }.map { (profile: $0.element, position: $0.offset) }
+        guard !removed.isEmpty else { return }
+        if removed.count == 1, let only = removed.first {
+            deleteProfile(only.profile.id, makesBackup: makesBackup)
+            return
+        }
+        let actionName = String(localized: "プロファイルの削除", bundle: .module)
+        closeEditGroup()
+        if makesBackup {
+            writableBackupStore?.makeBackup(of: configuration, reason: .beforeDeletingProfile)
+        }
+        let wasSelected = ids.contains(selectedProfile.id)
+        controller.update { configuration in
+            for item in removed {
+                configuration.removeProfile(id: item.profile.id)
+            }
+        }
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: profileListUndoTarget) { [weak self] _ in
+            self?.restoreProfiles(removed, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
+        if wasSelected {
+            // 消したものの最初の位置にあるプロファイル（無ければ最後のもの）を選ぶ
+            let remaining = appProfiles
+            let position = removed[0].position
+            let next = remaining.isEmpty ? nil : remaining[min(position, remaining.count - 1)]
+            selectedProfileID = nil
+            selectProfile(next?.id)
+        }
+        undoNotice = undoManager.isUndoing ? nil : SettingsUndoNotice(
+            text: String(localized: "\(removed.count)個のプロファイルを削除しました", bundle: .module, locale: .nonetUI),
+            actionName: actionName
+        )
+    }
+
+    /// まとめて消したプロファイルを元の位置に戻す（元に戻す）。前から順に入れ直すと、元の並びになる。
+    /// その後に同じアプリのプロファイルを作っていたものは戻さずに知らせる
+    private func restoreProfiles(_ removed: [(profile: Profile, position: Int)], actionName: String) {
+        pendingEdits.flushAll()
+        finishRecording()
+        undoNotice = nil
+        var restored: [UUID] = []
+        controller.update { configuration in
+            for item in removed.sorted(by: { $0.position < $1.position }) where configuration.restoreAppProfile(item.profile, at: item.position) {
+                restored.append(item.profile.id)
+            }
+        }
+        let skipped = removed.filter { !restored.contains($0.profile.id) }
+        let message: String? = skipped.first.map { first in
+            skipped.count == 1
+                ? String(localized: "「\(first.profile.name)」のプロファイルがすでにあるため、元に戻せませんでした", bundle: .module)
+                : String(localized: "\(skipped.count)個のプロファイルは、同じアプリのものがすでにあるため、元に戻せませんでした", bundle: .module, locale: .nonetUI)
+        }
+        if !restored.isEmpty {
+            let restoredIDs = Set(restored)
+            undoManager.registerUndo(withTarget: profileListUndoTarget) { [weak self] _ in
+                self?.deleteProfiles(restoredIDs, makesBackup: false)
+            }
+            undoManager.setActionName(actionName)
+            if tab != .profiles {
+                selectTab(.profiles)
+            }
+            if let first = restored.first {
+                selectProfile(first)
+            }
+        }
+        // プロファイルを選ぶと知らせが消えるので、選んでから出す
+        if let message {
+            gridMessage = message
+        }
     }
 
     /// 前面にあるときの使い方（このプロファイル・グローバルを使う・このアプリでは Nonet を使わない）
@@ -1135,9 +1221,10 @@ final class SettingsModel {
         } catch {
             settingsLog.error("ログイン時に起動を変えられませんでした: \(error.localizedDescription, privacy: .public)")
             let reason = error.localizedDescription
+            // 何が起きたかだけでなく、どこで確かめればよいかも言う
             loginItemError = enabled
-                ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）", bundle: .module)
-                : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）", bundle: .module)
+                ? String(localized: "ログイン時に起動するように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。", bundle: .module)
+                : String(localized: "ログイン時に起動しないように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。", bundle: .module)
             loginItemWanted = enabled
         }
         loginItemEnabled = services.loginItem.isEnabled
@@ -1245,6 +1332,26 @@ final class SettingsModel {
         }
     }
 
+    /// シートを閉じてから読み込みの確認を出すまでの間（秒）。閉じ終わる前に次のシートを出すと、macOS が出さない
+    static let sheetHandOverDelay: TimeInterval = 0.35
+
+    /// Finder で開いた .nonetprofile（SettingsWindowController.openProfileDocument）。開いているシート（追加・整理・以前の設定）は閉じ、
+    /// 「読み込む…」と同じ道（importProfiles(from:)）で読み込む。確かめている途中のもの（削除の確認など）は取りやめる
+    func openProfileDocument(_ url: URL) {
+        let hadSheet = isAddingProfile || isCleaningUpProfiles || isShowingBackups || confirmation != nil
+        isAddingProfile = false
+        isCleaningUpProfiles = false
+        isShowingBackups = false
+        confirmation = nil
+        guard hadSheet else {
+            importProfiles(from: url)
+            return
+        }
+        services.scheduler.schedule(after: Self.sheetHandOverDelay) { [weak self] in
+            self?.importProfiles(from: url)
+        }
+    }
+
     /// 読み込む前の確認で、読み込んでよいか。何かを実行するマスがあれば、その中身を最後まで見てから
     func canConfirmImport(_ plan: SettingsImportPlan) -> Bool {
         !plan.hasReviewedCells || importReviewReachedEnd
@@ -1346,6 +1453,22 @@ final class SettingsModel {
         licenseMessage = SettingsMessage(text: String(localized: "この Mac から登録を消しました", bundle: .module), isError: false)
     }
 
+    /// 「この Mac から登録を消しますか？」の答え。copyingKey なら、消す前にキーをクリップボードにコピーする
+    func confirmDeactivateLicense(copyingKey: Bool) {
+        confirmation = nil
+        let key = copyingKey ? license.registeredLicenseKey : nil
+        if let key {
+            copyToPasteboard(key)
+        }
+        deactivateLicense()
+        if key != nil {
+            licenseMessage = SettingsMessage(
+                text: String(localized: "ライセンスキーをクリップボードにコピーして、この Mac から登録を消しました", bundle: .module),
+                isError: false
+            )
+        }
+    }
+
     /// 登録済みのキーをコピーする（同じキーを、自分のほかの Mac にも登録できる）
     func copyLicenseKey() {
         guard let key = license.registeredLicenseKey else { return }
@@ -1359,6 +1482,12 @@ final class SettingsModel {
         licenseKeyInput = ""
         licenseMessage = nil
         wantsLicenseKeyFocus = entering
+    }
+
+    /// メインメニューの「Nonet について」。「Nonet」のタブの、バージョンと利用ガイドの欄を見せる
+    func showAbout() {
+        selectTab(.license)
+        wantsAboutScroll = true
     }
 
     /// ライセンスのタブに移り、ライセンスキーの欄に入力できるようにする

@@ -119,9 +119,16 @@ public enum ControllerPresentation {
 
 
 
-    /// 試用期間が終わった後の帯と、実行しなかったときのトーストの説明。HUD は押せないので、次にする場所を言う
+    /// HUD の上の帯（1行で、幅が狭い）。次にすることは、開かなかったときのトースト（trialEndedToast）が言う
     public static var trialEndedBanner: String {
-        NonetError.licenseRequired.localizedDescription
+        String(localized: "試用期間が終了しました", bundle: .module)
+    }
+
+    /// 試用期間が終わっていて実行しなかったときのトーストの説明と、その記録の理由。HUD は押せないので、次にする場所を言う。
+    /// メニューバーのアイコンが見えない（ノッチの陰など）ときは、アプリケーションフォルダから開き直す（設定が開く）ことを言う
+    static func licenseRequiredMessage(isMenuBarIconVisible: Bool) -> String {
+        guard !isMenuBarIconVisible else { return NonetError.licenseRequired.localizedDescription }
+        return String(localized: "試用期間が終了しました。アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます。", bundle: .module)
     }
 
     /// 試用期間の残りが少ないときの帯（注意ではなく知らせ）
@@ -132,18 +139,51 @@ public enum ControllerPresentation {
     /// 設定や案内のウィンドウが前面のときに、上の縁から指を滑らせたとき（9マスは開かない。起動してから1回だけ知らせる）
     static var ownWindowToast: ToastModel {
         ToastModel(
-            title: String(localized: "Nonet のウィンドウが前面のときは、9マスは開きません", bundle: .module),
+            title: String(localized: "Nonet のウインドウが前面のときは、9マスは開きません", bundle: .module),
             detail: String(localized: "ほかのアプリの上で試してください", bundle: .module),
             style: .info
         )
     }
 
-    /// 試用期間が終わった後に、上の縁から指を滑らせたとき（9マスは開かない）
-    static var trialEndedToast: ToastModel {
+    /// 試用期間が終わった後に、上の縁から指を滑らせたとき（9マスは開かない）。
+    /// メニューバーのアイコンが見えないときは、アプリケーションフォルダから開き直すことを言う
+    static func trialEndedToast(isMenuBarIconVisible: Bool = true) -> ToastModel {
         ToastModel(
             title: String(localized: "試用期間が終了しました", bundle: .module),
-            detail: String(localized: "メニューバーの Nonet から購入・登録できます", bundle: .module),
+            detail: isMenuBarIconVisible
+                ? String(localized: "メニューバーの Nonet から購入・登録できます", bundle: .module)
+                : String(localized: "アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます", bundle: .module),
             style: .failure
+        )
+    }
+
+    /// アクセシビリティの許可が無いときに、上の縁から指を滑らせたとき（9マスは開かない）。どこでオンにするかを言う
+    static func accessibilityNeededToast(isMenuBarIconVisible: Bool = true) -> ToastModel {
+        ToastModel(
+            title: String(localized: "アクセシビリティの許可が必要です", bundle: .module),
+            detail: isMenuBarIconVisible
+                ? String(localized: "メニューバーの Nonet の「アクセシビリティを許可…」か、システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください", bundle: .module)
+                : String(localized: "システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください", bundle: .module),
+            style: .failure
+        )
+    }
+
+    /// パスワードの入力中（セキュア入力）に、上の縁から指を滑らせたとき（9マスは開かない）。
+    /// どのアプリがセキュア入力にしているかは、macOS から分からないので言わない
+    static var secureInputToast: ToastModel {
+        ToastModel(
+            title: String(localized: "パスワードの入力中は開きません", bundle: .module),
+            detail: String(localized: "パスワード欄から離れるか、ターミナルの「セキュアキーボード入力」をオフにすると開きます", bundle: .module),
+            style: .failure
+        )
+    }
+
+    /// 開いてすぐ指を離して閉じることが続いたとき（AccidentalOpenTracker）に、1回だけ出す案内
+    static var sensitivityHintToast: ToastModel {
+        ToastModel(
+            title: String(localized: "思わず開いてしまうときは", bundle: .module),
+            detail: String(localized: "設定の「一般」›「開きやすさ」を「控えめ」にすると開きにくくなります", bundle: .module),
+            style: .info
         )
     }
 
@@ -167,9 +207,32 @@ public enum ControllerPresentation {
         return String(localized: "\(profile) › \(cell)（\(target.address.page + 1)ページ目）", bundle: .module, locale: textLocale)
     }
 
-    /// 長く掛かるマスを実行している間のトースト
-    static func runningToast(_ cell: Cell) -> ToastModel {
-        ToastModel(title: String(localized: "「\(cell.displayTitle)」を実行中…", bundle: .module), icon: cell.icon, style: .running)
+    /// 長く掛かるマスを実行している間のトースト。止められるマスで、メニューバーのアイコンが見えていれば、そこで止められることを添える
+    static func runningToast(_ cell: Cell, stopHint: Bool = false) -> ToastModel {
+        ToastModel(
+            title: String(localized: "「\(cell.displayTitle)」を実行中…", bundle: .module),
+            detail: stopHint ? String(localized: "メニューバーの Nonet から止められます", bundle: .module) : nil,
+            icon: cell.icon,
+            style: .running
+        )
+    }
+
+    /// メニューの「実行中の「◯◯」を止める」で止めたとき
+    static func stoppedToast(_ cell: Cell) -> ToastModel {
+        ToastModel(title: String(localized: "「\(cell.displayTitle)」を止めました", bundle: .module), icon: cell.icon, style: .info)
+    }
+
+    /// 止めた実行の記録の理由（最近の実行・設定のテスト実行に出す）
+    static var stoppedMessage: String {
+        String(localized: "止めました", bundle: .module)
+    }
+
+    /// 最近の実行で選んだ、失敗した実行の理由の全文（結果のパネルに出す。選んでコピーできる）
+    static func failureResult(_ record: ExecutionRecord, message: String) -> ResultModel {
+        let title = record.profileName.isEmpty
+            ? record.cellTitle
+            : String(localized: "\(record.profileName) › \(record.cellTitle)", bundle: .module)
+        return ResultModel(title: title, text: message, icon: .symbol("exclamationmark.triangle"))
     }
 
     static func result(_ cell: Cell, output: String) -> ResultModel {
