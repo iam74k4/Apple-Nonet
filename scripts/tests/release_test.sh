@@ -1139,7 +1139,15 @@ test_app_level_helpers_need_hardened_runtime() {
 Authority=Developer ID Application: Test Developer ($TEST_TEAM)
 Timestamp=Oct 30, 2026 at 10:00:00"
   mkdir -p "$app/Contents/MacOS" "$app/Contents/XPCServices/Helper.xpc/Contents/MacOS"
-  cp /usr/bin/true "$app/Contents/MacOS/Nonet"
+  # アプリ本体は verify_app が --self-check で実際に動かすので、Mach-O をコピーしない。Apple の署名つきの
+  # /usr/bin/true を .app の中に置いて動かすと、署名とバンドルが合わず、macOS が「“Nonet”は壊れているため
+  # 開けません」のダイアログを出す（テストを流すたびに画面に出る）。本体は Mach-O の確認から外れるので、
+  # 自己診断の ok を返すだけのスクリプトでよい。中の実行ファイル（下の2つ）は動かさない
+  cat >"$app/Contents/MacOS/Nonet" <<'APP'
+#!/bin/sh
+printf '%s\n' '{"ok":true,"failures":[]}'
+APP
+  chmod +x "$app/Contents/MacOS/Nonet"
   cp /usr/bin/true "$app/Contents/MacOS/nonet-helper"
   cp /usr/bin/true "$app/Contents/XPCServices/Helper.xpc/Contents/MacOS/Helper"
   load_release

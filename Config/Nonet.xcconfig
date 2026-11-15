@@ -12,4 +12,4 @@ NONET_PRIVACY_URL = https:/$()/nonet.astlog.dev/privacy.html
 // ライセンスキー検証用の Ed25519 公開鍵（nonet-license keygen の出力）
 NONET_LICENSE_PUBLIC_KEY = VI0XbQQ0Ur8hUQ6fxf49+YaFdZtP/ZnG8Tn1ZIqEoz8=
 // お問い合わせのメールアドレス（設定の「情報」とライセンスのエラーの横の「お問い合わせ…」）。空ならボタンを出さない
-NONET_SUPPORT_EMAIL =
+NONET_SUPPORT_EMAIL = support@astlog.dev

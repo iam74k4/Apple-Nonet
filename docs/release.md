@@ -135,13 +135,13 @@ Debug ビルド（開発用。`scripts/build.sh`・Xcode の実行）は、`NONE
 
 ### 1.8 販売ページの仮の値を埋める
 
-`site/` には、まだ埋められない仮の値（`TODO` と `TODO.invalid`）が残っている（価格・販売サービスの名前・購入のページは埋めた）。どれも同じ書き方なので、検索して置き換える:
+`site/` に残っている仮の値（`TODO`）は、購入のページの Paddle のトークンと価格の ID だけ（価格・販売サービスの名前・購入のページは 2026-11-08 に、問い合わせ先と特商法の電話番号の表記は 2026-11-15 に埋めた）。どれも同じ書き方なので、検索して置き換える:
 
 | 仮の値 | 場所 | 埋めるもの |
 |---|---|---|
 | 価格（2026-11-08 に決めて埋めた） | `index.html`・`en/index.html` の価格と head の JSON-LD の `offers`、`tokushoho.html` の販売価格 | ¥1,480（税込）・$9.99（税は別）。変えるときは全部をそろえる（`scripts/tests/site_test.sh` の `test_price_is_the_same_everywhere` が確かめる） |
-| 販売サービス: `data-paddle-token="TODO: …"`・`data-paddle-price="TODO: …"`・`TODO: 販売事業者の電話番号の表記` | 購入のページ（`buy.html`・`en/buy.html`。同じ値）・`tokushoho.html` の電話番号 | Paddle のクライアント用トークン（`live_…`）と価格の ID（`pri_…`）は 3.6 で作る。電話番号は 3.4 のとおり決める。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地・購入のボタン（`buy.html`）は 2026-11-08 に埋めた |
-| 問い合わせ先: `support@TODO.invalid` | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー | サポートのメールアドレス（利用ガイドのフッターは `scripts/build-guide.py` で直す） |
+| 販売サービス: `data-paddle-token="TODO: …"`・`data-paddle-price="TODO: …"` | 購入のページ（`buy.html`・`en/buy.html`。同じ値） | Paddle のクライアント用トークン（`live_…`）と価格の ID（`pri_…`）は 3.6 で作る。特商法の電話番号の表記は 2026-11-15 に埋めた（3.4）。販売サービスの名前（Paddle）・同社のプライバシーポリシーと購入者向け規約の URL・所在地・購入のボタン（`buy.html`）は 2026-11-08 に埋めた |
+| 問い合わせ先（2026-11-15 に `support@astlog.dev` で埋めた） | 各ページのフッター・よくある質問・利用規約・特商法の表記・プライバシーポリシー・`NONET_SUPPORT_EMAIL` | 変えるときは全部をそろえる（利用ガイドのフッターは `scripts/build-guide.py` で直す）。Cloudflare の Email Routing で Gmail に転送する |
 
 ```bash
 scripts/check-site.sh --strict   # 上の仮の値が1つでも残っていれば失敗
@@ -422,14 +422,12 @@ Paddle では:
 - 返金: 購入から30日以内なら、理由を問わず全額。macOS のアップデートで動かなくなり直せないときは、購入からの日数にかかわらず返金
 - ライセンス: 1人に1つ。その人が使うすべての Mac で使える（キーは Mac の中で確かめるので、台数の登録や解除は無い）
 - アップデート: 1.x はすべて無料
-- 販売: Paddle（販売代理店 = Merchant of Record）。売主は Paddle なので、`tokushoho.html` は「販売事業者は Paddle.com Market Limited」と書き、所在地と同社の購入者向け規約（Paddle Buyer Terms）へのリンク、開発者の問い合わせ先を載せる。Paddle には日本の特定商取引法に基づく表記のページが無く、規約にも電話番号が無いので、販売事業者の電話番号の表記（`TODO: 販売事業者の電話番号の表記`）は公開前に決める（Paddle に問い合わせる・専門家に確かめる）
+- 販売: Paddle（販売代理店 = Merchant of Record）。売主は Paddle なので、`tokushoho.html` は「販売事業者は Paddle.com Market Limited」と書き、所在地と同社の購入者向け規約（Paddle Buyer Terms）へのリンク、開発者の問い合わせ先を載せる。Paddle には日本の特定商取引法に基づく表記のページが無く、規約にも電話番号が無いので、電話番号は「請求があった場合は、遅滞なく電子メールで開示します」と書いた（2026-11-15 に決めた）
 - 利用規約（`terms.html`・`en/terms.html`）: 1人に1つのライセンス・返金・保証の否認と責任の範囲（軽過失は支払った金額まで）・準拠法は日本法
 
 まだ埋めていないもの（1.8 の仮の値）:
 
 - 購入のページの Paddle のクライアント用トークンと価格の ID（`site/buy.html`・`site/en/buy.html` の TODO。3.6）
-- 問い合わせ先のメールアドレス
-- 特定商取引法に基づく表記の、販売事業者（Paddle）の電話番号の表記（上の「販売」）
 
 ### 3.5 ライセンスを無効にする（返金・キーの流出）
 

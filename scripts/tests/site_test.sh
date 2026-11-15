@@ -421,11 +421,10 @@ test_release_placeholders_are_reported_but_not_strict() {
   assert_contains "$OUT" "リリースの前に実物で確かめて埋めるところ（--strict でも止めない）: index.html tested-macos"
 }
 
-# 公開前の --strict が止まるのは、販売サービス（購入のページの Paddle のトークンと価格の ID、電話番号の表記）・問い合わせ先の仮の値だけ。
-# どれも1つは残っている。
-# 価格は決めた（¥1,480・$9.99）ので、仮の値として残っていれば失敗
-test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
-  local line others="" store=0 contact=0
+# 公開前の --strict が止まるのは、購入のページの Paddle のトークンと価格の ID の仮の値だけ（2つのページに2つずつ）。
+# 価格（¥1,480・$9.99）・問い合わせ先（support@astlog.dev）・特商法の電話番号の表記は埋めたので、仮の値として残っていれば失敗
+test_strict_mode_on_the_real_site_stops_only_on_the_store_values() {
+  local line others="" store=0
   run "$ROOT/scripts/check-site.sh" --strict
   assert_status 1
   while IFS= read -r line; do
@@ -433,16 +432,14 @@ test_strict_mode_on_the_real_site_stops_only_on_store_and_contact() {
       *"仮の値が残っています: "*) ;;
       *) others+="$line"$'\n' && continue ;;
     esac
-    if [[ "$line" == *'data-paddle-token="TODO: '* || "$line" == *'data-paddle-price="TODO: '* || "$line" == *"TODO: 販売事業者の電話番号の表記"* ]]; then
+    if [[ "$line" == *'data-paddle-token="TODO: '* || "$line" == *'data-paddle-price="TODO: '* ]]; then
       store=$((store + 1))
-    elif [[ "$line" == *"support@TODO.invalid"* || "$line" == *"TODO: 問い合わせ先のメールアドレス"* || "$line" == *"TODO: support email address"* ]]; then
-      contact=$((contact + 1))
     else
       others+="$line"$'\n'
     fi
   done < <(grep -E '^ +- ' <<<"$OUT")
-  [[ -z "$others" ]] || fail "--strict が販売サービス・問い合わせ先のほかでも止まります" "$others"
-  [[ "$store" -ge 5 && "$contact" -ge 2 ]] || fail "仮の値が見つかりません（販売サービス $store・問い合わせ先 $contact）"
+  [[ -z "$others" ]] || fail "--strict が Paddle のトークンと価格の ID のほかでも止まります" "$others"
+  [[ "$store" -eq 4 ]] || fail "Paddle の仮の値が4つではありません（$store）"
 }
 
 # 価格（¥1,480 税込・$9.99）は、価格の表示・head の JSON-LD の offers・特商法の表記でそろっている
@@ -531,13 +528,15 @@ test_pages_state_the_sales_terms() {
     assert_contains "$en_terms" "$text" "en/terms.html"
   done
   # 売主（Merchant of Record）は Paddle。日本の表記のページが無いので、名前・所在地・購入者向け規約へのリンクを載せる。
-  # 電話番号の表記は公開前に決める仮の値として1つだけ残す（docs/release.md §3.4）
+  # Paddle は電話番号を公開していないので、電話番号は請求があれば開示すると書く（2026-11-15 に決めた。docs/release.md §3.4）
   for text in "販売事業者" "販売代理店（Merchant of Record）" "Paddle.com Market Limited" "30 Old Bailey, London" \
     "https://www.paddle.com/legal/buyer-terms" "terms.html#refunds" "適格請求書" "Takanari Okazaki" "購入から30日以内"; do
     assert_contains "$legal" "$text" "tokushoho.html"
   done
   assert_not_contains "$legal" "TODO: 販売サービス名"
-  assert_eq 1 "$(grep -c 'TODO: 販売事業者の電話番号の表記' "$ROOT/site/tokushoho.html")" "tokushoho.html の電話番号の仮の値"
+  assert_contains "$legal" "電話番号: 請求があった場合は、遅滞なく電子メールで開示します" "tokushoho.html の電話番号"
+  assert_contains "$legal" "support@astlog.dev" "tokushoho.html の問い合わせ先"
+  assert_not_contains "$legal" "TODO" "tokushoho.html"
 }
 
 # 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。

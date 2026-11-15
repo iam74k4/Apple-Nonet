@@ -94,7 +94,7 @@ AI のアクションは、Apple の Foundation Models フレームワークを�
 
 ### 10. お問い合わせ
 
-Takanari Okazaki（問い合わせ先: TODO: サポートのメールアドレス）
+Takanari Okazaki（問い合わせ先: support@astlog.dev）
 
 ---
 
@@ -186,4 +186,4 @@ When this policy changes, we update this page and its "Last updated" date.
 
 ### 10. Contact
 
-Takanari Okazaki (contact: TODO: support email address)
+Takanari Okazaki (contact: support@astlog.dev)
