@@ -460,8 +460,9 @@ swift run nonet-license revoke <ライセンス ID かライセンスキー>
 持ち主がすること（アカウントの作成・本人確認・入金先の登録は、本人にしかできない）:
 
 1. **sandbox で試す**: https://sandbox-vendors.paddle.com/signup でテスト用のアカウントを作り、下の 3 と同じ商品と価格、Developer tools › Authentication のクライアント用トークン（`test_…`）を作る。Checkout › Checkout settings の Default payment link には `https://nonet.astlog.dev/buy.html` を入れる。トークンと価格の ID を `buy.html` に一時的に入れて（コミットしない。残したまま公開しようとしても、`check-site.sh --strict` が `test_` のトークンで止める）、`cd site && python3 -m http.server 8000` で http://localhost:8000/buy.html を開き、Paddle のテスト用のカードで買えることと、国を日本にしたときの合計がちょうど ¥1,480（税込み。上乗せされない）で、米国では $9.99 に税が足されることを確かめる
+   - 2026-11-15 に sandbox で済ませた。税の扱いを「Automatic based on location」にした価格で、合計は日本 ¥1,480（消費税 ¥135 込み。上乗せなし）・米国 $9.99 ＋ 州の売上税（ニューヨーク $10.88、オレゴン $9.99）・ドイツと英国 $9.99（VAT 込み）。テスト用のカードで買えて、`buy.js` の購入後の案内が出て、領収書（[TEST]）が届いた（sandbox の領収書は買い手ではなく販売者のアカウントのメールに届く）
 2. **本番のアカウント**: https://vendors.paddle.com/signup でアカウントを作り、本人と事業の確認を済ませ、入金先（銀行か Payoneer）を登録する。$10 未満の商品なので、手数料（5% + 50¢）の相談もこのときにする
-3. **商品と価格**: Catalog › Products で商品「Nonet」（税のカテゴリは Standard digital goods）を作り、価格を1つ足す: 1回払い・USD 9.99、国ごとの価格で日本（JP）を JPY 1,480。税の扱いは、1 で日本の合計がちょうど ¥1,480 になったもの（候補は「場所による（Location）」: 日本は税込み・米国は税抜き。1つの価格で決まらなければ、日本向けの税込みの価格を別に作り、相談する）
+3. **商品と価格**: Catalog › Products で商品「Nonet」（税のカテゴリは Standard digital goods）を作り、価格を1つ足す: 1回払い・USD 9.99、国ごとの価格で日本（JP）を JPY 1,480。税の扱い（Sales tax）は「Automatic based on location」（日本・EU・英国は税込み、米国は税抜き。1 の sandbox で確かめた）
 4. **トークン**: Developer tools › Authentication でクライアント用トークン（`live_…`）を作る。トークンと価格の ID（`pri_…`）を `buy.html`・`en/buy.html` に入れる（クライアント用のトークンはページに載せるためのもので、公開してよい。API キー（`pdl_…`）は載せない）
 5. **公開**: 問い合わせ先のメールアドレスと特商法の電話番号の表記も埋め（1.8）、`scripts/check-site.sh --strict` を通して nonet.astlog.dev を公開する（[hosting.md](hosting.md)）
 6. **ドメインの承認**: Paddle の設定の Website approval で `nonet.astlog.dev` を申請する（販売ページに価格・利用規約・返金の方針・プライバシーポリシーがあることを見られる）。承認されるまで、本番の購入画面は開かない。Default payment link に `https://nonet.astlog.dev/buy.html` を入れる
