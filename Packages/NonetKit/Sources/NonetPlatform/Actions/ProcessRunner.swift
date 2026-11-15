@@ -165,7 +165,7 @@ private final class ProcessRun: @unchecked Sendable {
             stop(timedOut: false)
             return
         }
-        DispatchQueue.global().asyncAfter(deadline: .now() + request.timeout) { [weak self] in
+        ActionDeadline.queue.asyncAfter(deadline: .now() + request.timeout) { [weak self] in
             self?.stop(timedOut: true)
         }
     }
@@ -211,7 +211,7 @@ private final class ProcessRun: @unchecked Sendable {
         if ready {
             finish()
         } else {
-            DispatchQueue.global().asyncAfter(deadline: .now() + request.drainGracePeriod) { [self] in
+            ActionDeadline.queue.asyncAfter(deadline: .now() + request.drainGracePeriod) { [self] in
                 finish()
             }
         }
@@ -228,7 +228,7 @@ private final class ProcessRun: @unchecked Sendable {
         }
         guard let target else { return }
         Self.signal(target, SIGTERM)
-        DispatchQueue.global().asyncAfter(deadline: .now() + request.killGracePeriod) { [self] in
+        ActionDeadline.queue.asyncAfter(deadline: .now() + request.killGracePeriod) { [self] in
             let shellRunning = locked { termination == nil }
             Self.kill(group: target, orProcess: shellRunning)
         }

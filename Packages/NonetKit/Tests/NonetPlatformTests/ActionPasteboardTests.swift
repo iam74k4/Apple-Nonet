@@ -183,7 +183,9 @@ struct ActionClipboardTests {
                 ticker.cancel()
                 #expect(result?.failure == .tooSlow, "\(String(describing: result))")
                 #expect(elapsed < 1, "\(elapsed) 秒待った")
-                #expect(ticks.value >= 5, "メインスレッドが止まっていた（\(ticks.value) 回）")
+                // 20 ミリ秒ごとに数える。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
+                // 遅い Mac（CI）では 20 ミリ秒の眠りが延びるので、回数は少なめに見る
+                #expect(ticks.value >= 3, "メインスレッドが止まっていた（\(ticks.value) 回）")
                 // 裏で続いている読み取りが終わってからクリップボードを片付ける
                 _ = await waitUntil { provider.isDone }
             }

@@ -14,6 +14,14 @@ enum ActionLog {
     static let logger = Logger(subsystem: "com.iam74k4.Nonet", category: "platform-actions")
 }
 
+/// 制限時間の知らせ（時間切れの再開・SIGTERM の後の SIGKILL など）だけを動かす直列のキュー。
+/// 共有の並列キュー（DispatchQueue.global）は、止まった呼び出しでスレッドが埋まると、後から積んだものが順番待ちになり、
+/// 0.1 秒の制限時間が 1 秒を超えて待つことがある（CI の遅い Mac で起きた）。自前の直列のキューは、共有のスレッドが埋まっていても
+/// 新しいスレッドで動く。ここに積むのは短い処理だけにする
+enum ActionDeadline {
+    static let queue = DispatchQueue(label: "com.iam74k4.Nonet.action-deadlines", qos: .userInitiated)
+}
+
 /// 止まるかもしれない呼び出し（クリップボードの中身を渡すのが遅いアプリ・眠ったネットワークの場所）をメインスレッドの外で行う。
 /// メインスレッドではイベントタップも動いているので、そこで待つと Mac 全体のキー入力が止まる
 enum BlockingCall {
@@ -30,7 +38,7 @@ enum BlockingCall {
             queue.async {
                 gate.resume(with: body())
             }
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + max(0, timeout)) {
+            ActionDeadline.queue.asyncAfter(deadline: .now() + max(0, timeout)) {
                 gate.resume(with: fallback)
             }
         }
