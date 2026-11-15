@@ -40,7 +40,8 @@ not_found_handling = "404-page"
 #   /updates/*   R2 のリリースのファイル（appcast.xml・DMG・デルタ）
 #   /download    appcast の最新の DMG へリダイレクト
 #   /api/*       ライセンスキーを届ける（Paddle の通知 /api/paddle/webhook と、購入のページの /api/license。src/licensing.js）
-run_worker_first = ["/", "/en", "/en/", "/updates", "/updates/*", "/download", "/api/*"]
+#   /images/*.mp4  ページの動画。アセットは Range に答えないので、Worker が範囲を切り出して 206 で返す（src/media.js）
+run_worker_first = ["/", "/en", "/en/", "/updates", "/updates/*", "/download", "/api/*", "/images/*.mp4"]
 
 # リリースのファイル。中身は scripts/publish.sh が上げる（docs/hosting.md「リリースごとの手順」）。
 # バケットは公開しない（r2.dev の URL も独自ドメインも付けない）。外からは Worker の /updates/* だけで読む

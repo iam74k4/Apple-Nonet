@@ -91,6 +91,9 @@ const CONTENT_TYPES = {
   ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+  ".mp4": "video/mp4",
   ".txt": "text/plain; charset=utf-8",
   ".xml": "application/xml",
 };
@@ -144,6 +147,7 @@ export class FakeAssets {
       "content-type": CONTENT_TYPES[extname(file)] ?? "application/octet-stream",
       "cache-control": "public, max-age=0, must-revalidate",
       etag,
+      "content-length": String(body.length),
       // site/_headers の代わり（本物はアセットの側で付く）
       "x-content-type-options": "nosniff",
     });
