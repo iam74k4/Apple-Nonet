@@ -4,6 +4,8 @@
 #   例: scripts/demo/record.sh xcode com.apple.dt.Xcode scripts/demo/xcode.json ~/Desktop/nonet-demo
 # build/demo/<名前>-raw.mp4（2880×1800・H.264。仕上げの vidtool concat --size 1440 900 で縮める。寄せても粗くならないように）に書き、その場所を標準出力に出す。
 # 実行するところだったアクションは build/demo/<名前>-demo.log の「demo: perform …」で分かる（デモは何も実行しない）。
+# 英語の画面で撮るときは NONET_DEMO_LANGUAGE=en を付ける（アプリを -AppleLanguages (en) で動かし、背景の日付も英語で描く）。
+#   見本の設定のマスの名前は設定に書いてある文字なので、英語の名前の見本の設定を渡す（docs/portfolio.md の「英語の動画」）。
 # 先に scripts/build.sh で Debug のアプリを作っておく。収録の道具（build/record-screen・build/demo-pointer）と背景はここで作る。
 # 流している間、主の画面の全体が背景で覆われる。画面が点いていて、ロックされていないこと。
 set -euo pipefail
@@ -38,6 +40,17 @@ RECORD_LOG="$OUT/$NAME-rec.log"
 GO="$OUT/$NAME-go"
 # 収録の最長の秒。台本より長くしておく（台本が終わったら、ここで止める）
 MAX_SECONDS=60
+# アプリの言語と、背景の日付（bash 3.2 の set -u では空の配列を "${a[@]}" で展開できないので、${a[@]+…} で渡す）
+DEMO_LANGUAGE="${NONET_DEMO_LANGUAGE:-}"
+app_language_args=()
+backdrop_args=()
+if [[ -n "$DEMO_LANGUAGE" ]]; then
+  [[ "$DEMO_LANGUAGE" =~ ^[a-z]{2}(-[A-Za-z]+)?$ ]] || die "NONET_DEMO_LANGUAGE は en・ja のような言語のコードにします: $DEMO_LANGUAGE"
+  app_language_args=(-AppleLanguages "($DEMO_LANGUAGE)")
+  case "$DEMO_LANGUAGE" in
+    en*) backdrop_args=(--clock "Sat Nov 7 9:41 AM") ;;
+  esac
+fi
 
 require_commands swift swiftc
 [[ -x "$APP" ]] || die "Debug のアプリがありません: $APP（先に scripts/build.sh）"
@@ -103,11 +116,11 @@ step "収録の道具と背景を作る"
 compile_tool "$ROOT/scripts/record-screen.swift" "$RECORDER" -parse-as-library
 compile_tool "$SCRIPT_DIR/pointer.swift" "$POINTER"
 # 背景は、いまの主の画面と同じ大きさで毎回作る（画面が替わっていると、アプリが縦横比の違いで始めずに終える）
-swift "$ROOT/scripts/make-backdrop.swift" "$BACKDROP" >&2
+swift "$ROOT/scripts/make-backdrop.swift" "$BACKDROP" ${backdrop_args[@]+"${backdrop_args[@]}"} >&2
 
 step "背景を敷く（$BUNDLE_ID・$(basename "$SCRIPT_FILE")）"
 "$APP" --config-dir "$CONFIG_DIR" --demo-script-file "$SCRIPT_FILE" --demo-start-file "$GO" \
-  --demo-app "$BUNDLE_ID" --demo-backdrop "$BACKDROP" >/dev/null 2>"$DEMO_LOG" &
+  --demo-app "$BUNDLE_ID" --demo-backdrop "$BACKDROP" ${app_language_args[@]+"${app_language_args[@]}"} >/dev/null 2>"$DEMO_LOG" &
 app_pid=$!
 # 背景が出ると、アプリが撮る範囲を書く。背景や台本を読めないときは、理由（demo: error: …）を書いて終わる
 if ! wait_for_line "$DEMO_LOG" "capture-region=" 15 "$app_pid"; then

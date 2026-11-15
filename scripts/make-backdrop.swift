@@ -9,7 +9,8 @@
 // （その前は #1F1F21 → #0E0E0F の灰のグラデーション。AstLog の夜明けの空に寄せた試作は退けた）。メニューバーの寸法と並びは前のまま。
 //
 // 寸法は 1440×900 の絵を基準にし、幅に合わせて拡大する（上端にそろえる。16:10 より縦長の画面では、下も同じ墨）。
-// 使い方: swift scripts/make-backdrop.swift <out.png> [<幅 px> <高さ px>] [--no-status-icon]
+// 使い方: swift scripts/make-backdrop.swift <out.png> [<幅 px> <高さ px>] [--no-status-icon] [--clock <日付の文字>]
+//   --clock: メニューバーの右端の日付（既定「11月7日(土) 9:41」）。英語の画面の動画では「Sat Nov 7 9:41 AM」。位置・字・色は同じ
 //   幅と高さを省くと、いまのメインの画面の大きさ（ピクセル）。デモ動画にはこれを使う。画像の合成（1440×900 の @2x）には 2880 1800
 import AppKit
 import CoreText
@@ -17,10 +18,16 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-let usage = "使い方: swift scripts/make-backdrop.swift <out.png> [<幅 px> <高さ px>] [--no-status-icon]\n"
+let usage = "使い方: swift scripts/make-backdrop.swift <out.png> [<幅 px> <高さ px>] [--no-status-icon] [--clock <日付の文字>]\n"
 var args = Array(CommandLine.arguments.dropFirst())
 let statusIcon = !args.contains("--no-status-icon")
 args.removeAll { $0 == "--no-status-icon" }
+var clock = "11月7日(土) 9:41"
+if let index = args.firstIndex(of: "--clock") {
+    guard index + 1 < args.count, !args[index + 1].isEmpty else { FileHandle.standardError.write(Data(usage.utf8)); exit(2) }
+    clock = args[index + 1]
+    args.removeSubrange(index...(index + 1))
+}
 guard args.count == 1 || args.count == 3 else {
     FileHandle.standardError.write(Data(usage.utf8)); exit(2)
 }
@@ -74,7 +81,7 @@ func drawSymbol(_ name: String, center: CGPoint, size points: CGFloat, weight: N
 
 // メニューバーの右側（右から: 日付・コントロールセンター・Wi-Fi・電池・アプリのアイコン）
 let barY = H - 17
-text("11月7日(土) 9:41", font: CTFontCreateUIFontForLanguage(.system, 13, nil)!, color: rgb(0xF2F2F2), rightEdge: 1416, baseline: barY - 5)
+text(clock, font: CTFontCreateUIFontForLanguage(.system, 13, nil)!, color: rgb(0xF2F2F2), rightEdge: 1416, baseline: barY - 5)
 drawSymbol("switch.2", center: CGPoint(x: 1222, y: barY), size: 13)
 drawSymbol("wifi", center: CGPoint(x: 1172, y: barY), size: 13)
 drawSymbol("battery.100percent", center: CGPoint(x: 1116, y: barY), size: 15, weight: .regular)

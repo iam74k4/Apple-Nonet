@@ -43,6 +43,17 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
   - **最初の区間は、HUD が開いたところから始める。** AstLog の作品のページは、動画の 0.1 秒目を表紙（再生の前に出る絵）にする。頭に上の縁から滑らせるところを入れると、表紙が何も無い暗い画面になる。上の縁から開く動きは、2つ目からの場面で見える
   - **真ん中を2倍に寄せる（`--zoom 2`）。** HUD は画面の幅の 14% しかなく、ページの大きさ（幅 1280 の画面で動画が半分になる）では、マスの名前の札（「実行」「メール」）が潰れて読めなかった。寄せても粗くならないよう、`record.sh` は 2880×1800 で撮り、`--size 1440 900` で縮める。メニューバーと右下の図は寄せない（どのアプリの動画でも同じ位置と大きさ）
   - macOS は収録中、メニューバーの右（描いた日付のすぐ左）に紫の印を出し、これが収録に写る。WindowServer が描く印なので、ScreenCaptureKit の `excludingApplications`（コントロールセンター・SystemUIServer）では消えなかった。メニューバーの帯は背景と同じはずなので、`vidtool concat`（1本だけなら `vidtool patch`）がコマごとに背景の PNG で塗り直して消す
+  - **英語の動画**（販売ページの英語のページの `site/images/demo-en.mp4`。2026-11-15 に撮った）: 同じ台本を、アプリを英語で動かして撮る。`NONET_DEMO_LANGUAGE=en` を付けると、`record.sh` がアプリを `-AppleLanguages (en)` で動かし、背景の日付を「Sat Nov 7 9:41 AM」で描く（`make-backdrop.swift --clock`。位置・字・色は同じ）。マスの名前は設定に書いてある文字なので、見本の設定の日本語の文字を、カタログの英語の訳（NonetCore を先に、無ければ NonetUI。「iPhoneミラーリング」は「iPhone Mirroring」）に置き換えた写し（`build/demo-config-en`）を渡す。仕上げの背景も `swift scripts/make-backdrop.swift build/en/backdrop-store.png 2880 1800 --clock "Sat Nov 7 9:41 AM"` にする。区間は日本語の収録の区間に、撮った2本のずれ（真ん中と図の明るさを比べて合わせた。2026-11-15 は Xcode +0.20 秒・Zoom +0.06 秒）を足したもの:
+
+    ```bash
+    NONET_DEMO_LANGUAGE=en scripts/demo/record.sh xcode-en com.apple.dt.Xcode scripts/demo/xcode.json build/demo-config-en
+    NONET_DEMO_LANGUAGE=en scripts/demo/record.sh zoom-en us.zoom.xos scripts/demo/zoom.json build/demo-config-en
+    X=build/demo/xcode-en-raw.mp4; Z=build/demo/zoom-en-raw.mp4
+    build/vidtool concat build/en/demo-en.mp4 build/en/backdrop-store.png 36 --size 1440 900 --zoom 2 --keep 1078,648,330,223 \
+      $X 2.40 4.45  $Z 1.48 4.46  $Z 5.08 9.54  $Z 10.16 15.54  $Z 16.16 19.08
+    ```
+
+    表紙（`demo-en-poster.jpg`）は、日本語と同じく 0.1 秒目のコマ。使い方と機能の静止画（`hud-*.webp`）は文字が無いので、日英で共通のまま
   - 内蔵の台本（`--demo-script`）は、同じ流れを1つのアプリ（`--demo-app`。既定は Xcode）で通して見せる。確かめるだけなら、録画せずに流して標準エラーを見る: `swift scripts/make-backdrop.swift build/backdrop.png` のあと `"$(scripts/build.sh)/Contents/MacOS/Nonet" --config-dir "$demo" --demo-script --demo-backdrop build/backdrop.png`（20 秒あまり、主の画面の全体が背景で覆われる。終わると自分で終わる）
 
   撮ったあとは、メニューバーの左側に画面が写っていないかを、0.5 秒ごとのフレームの明るさで確かめてから中身を見る（背景が消えると、ユーザーの画面が写る。`--demo-start-file` は、録画が止まって開始のファイルを消すまで背景を出したままにする）。AstLog の動画は H.264 の MP4・10MB まで・HEVC は不可。代替テキストには「指の動きは台本どおりに入れたもの」と、2回の収録をつないだことを書く。
