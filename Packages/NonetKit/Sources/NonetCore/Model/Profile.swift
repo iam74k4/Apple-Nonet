@@ -123,6 +123,11 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
         return nil
     }
 
+    /// どこかのページにマスが1つでもある（空きマスだけのアプリのプロファイルは、9マスでも早見表でも無いものとして扱う）
+    public var hasButtons: Bool {
+        pages.contains { page in page.cells.contains { $0 != nil } }
+    }
+
     /// 表示名。グローバルは「グローバル」（ローカライズ済み）、アプリはアプリ名
     public var name: String {
         switch kind {

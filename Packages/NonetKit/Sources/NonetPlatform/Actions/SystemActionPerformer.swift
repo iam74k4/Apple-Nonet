@@ -34,7 +34,12 @@ public final class SystemActionPerformer: ActionPerforming {
     /// 呼び出し側が結果を表示できるときはこちらを使う
     public func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
         do {
-            return try await run(action, frontmost: context.frontmostApp ?? Self.currentFrontmostApp(), didReadContext: context.didReadContext ?? {})
+            return try await run(
+                action,
+                frontmost: context.frontmostApp ?? Self.currentFrontmostApp(),
+                didReadContext: context.didReadContext ?? {},
+                terminalApp: context.terminalApp
+            )
         } catch let error as NonetError {
             ActionLog.logger.error("アクション \(action.kind.rawValue, privacy: .public) に失敗しました: \(error.localizedDescription)")
             throw error
@@ -46,8 +51,9 @@ public final class SystemActionPerformer: ActionPerforming {
         }
     }
 
-    /// didReadContext: 長く掛かるアクションが前面アプリの文脈を読み終えたら呼ぶ（後の実行に順番を譲る）
-    private func run(_ action: Action, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
+    /// didReadContext: 長く掛かるアクションが前面アプリの文脈を読み終えたら呼ぶ（後の実行に順番を譲る）。
+    /// terminalApp: 「ターミナルで実行」のスクリプトを開くアプリ
+    private func run(_ action: Action, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void, terminalApp: TerminalApp) async throws -> String? {
         switch action {
         case .keystroke(let keys):
             try KeyTarget.check(expected: frontmost, frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
@@ -58,7 +64,7 @@ public final class SystemActionPerformer: ActionPerforming {
         case .openURL(let url):
             try await URLNormalizer.open(url.url)
         case .script(let script):
-            return try await runScript(script, frontmost: frontmost, didReadContext: didReadContext)
+            return try await runScript(script, frontmost: frontmost, didReadContext: didReadContext, terminalApp: terminalApp)
         case .shortcut(let shortcut):
             return try await runShortcut(shortcut, frontmost: frontmost, didReadContext: didReadContext)
         case .menuItem(let menuItem):
@@ -80,7 +86,12 @@ public final class SystemActionPerformer: ActionPerforming {
 
     // MARK: - スクリプト
 
-    private func runScript(_ script: ScriptAction, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws -> String? {
+    private func runScript(
+        _ script: ScriptAction,
+        frontmost: RunningAppInfo?,
+        didReadContext: @MainActor () -> Void,
+        terminalApp: TerminalApp
+    ) async throws -> String? {
         try ScriptRunner.validate(source: script.source)
         let reading = await contextReader.read(.forScript(source: script.source), app: frontmost)
         didReadContext()
@@ -106,8 +117,8 @@ public final class SystemActionPerformer: ActionPerforming {
             // 出力があれば結果のパネルに出す（空なら何も出さない）
             return CommandOutput.text(from: output)
         case .terminal:
-            // 出力はターミナルのウインドウに出る
-            try await TerminalCommandFile.open(source: script.source, variables: variables, workingDirectory: workingDirectory.path)
+            // 出力はターミナル（設定で選んだアプリ）のウインドウに出る
+            try await TerminalCommandFile.open(source: script.source, variables: variables, workingDirectory: workingDirectory.path, app: terminalApp)
             return nil
         }
     }
@@ -230,6 +241,8 @@ public final class SystemActionPerformer: ActionPerforming {
             throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
         }
         let result = try await OnDeviceAI.respond(instruction: ai.prompt, text: text)
+        // メニューの「止める」で止めた後に返ってきた結果は、貼り付けもコピーもしない
+        try Task.checkCancellation()
         return try await deliver(result, to: ai.output, selection: reading.selectionSource, frontmost: frontmost)
     }
 

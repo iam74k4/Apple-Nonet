@@ -232,9 +232,10 @@ struct ScriptLocation: Equatable, Sendable {
 
 /// ターミナルで実行するための一時的な .command ファイル。
 /// 利用者ごとの一時フォルダ（$TMPDIR）の中の、本人だけが入れるフォルダに、本人だけが読み書き・実行できるファイルとして書く。
-/// 実行が始まると自分を消す。開かれずに残ったものは、次のターミナルでの実行・次の起動・一定時間の後に消す
+/// 実行が始まると自分を消す。開かれずに残ったものは、次のターミナルでの実行・次の起動・一定時間の後に消す。
+/// 開くアプリは設定で選ぶ（ターミナルか iTerm2。どちらも、開いた .command を新しいウィンドウでそのまま実行する）
 enum TerminalCommandFile {
-    static let terminalBundleID = "com.apple.Terminal"
+    static let terminalBundleID = TerminalApp.terminal.bundleID
     static let filePrefix = "nonet-"
     static let fileExtension = "command"
     /// 開かれずに残ったファイルを消すまでの時間。ターミナルのシェルの起動（.zshrc）が遅くても、これより早く消さない
@@ -271,8 +272,13 @@ enum TerminalCommandFile {
     /// ZDOTDIR を変えている人は、そこにある .zshrc
     static let zshrcLine = #"[[ -r "${ZDOTDIR:-$HOME}/.zshrc" ]] && source "${ZDOTDIR:-$HOME}/.zshrc""#
 
-    /// 実行が始まったら自分を消し、~/.zshrc を読み、変数を export し、作業フォルダへ移ってからスクリプトを実行する
-    static func contents(source: String, variables: [String: String], workingDirectory: String) -> String {
+    /// iTerm2 は、開いたファイルの実行が終わるとセッションを閉じる（既定のプロファイル）ので、出力が読めるよう、
+    /// 終わった後に対話シェルを続ける行（ターミナルは終わってもウィンドウを残すので付けない）
+    static let keepSessionLine = #"exec "${SHELL:-/bin/zsh}" -l"#
+
+    /// 実行が始まったら自分を消し、~/.zshrc を読み、変数を export し、作業フォルダへ移ってからスクリプトを実行する。
+    /// keepsSession なら、スクリプトが終わった後もウィンドウにシェルを残す（keepSessionLine）
+    static func contents(source: String, variables: [String: String], workingDirectory: String, keepsSession: Bool = false) -> String {
         var lines = [
             "#!/bin/zsh -l",
             "# Nonet がターミナルで実行するために作った一時ファイル（実行が始まると消える）",
@@ -285,6 +291,11 @@ enum TerminalCommandFile {
         }
         lines.append("cd -- \(shellQuoted(workingDirectory)) || exit 1")
         lines.append(source)
+        if keepsSession {
+            // スクリプトの最後の行が \ で終わっていても、シェルを続ける行をスクリプトの続きとして読ませない
+            lines.append("")
+            lines.append(keepSessionLine)
+        }
         return lines.joined(separator: "\n") + "\n"
     }
 
@@ -333,29 +344,39 @@ enum TerminalCommandFile {
     }
 
     /// 前に残った古いファイルを消してから、ターミナルに渡すファイルを書く
-    static func prepare(source: String, variables: [String: String], workingDirectory: String) throws -> URL {
+    static func prepare(source: String, variables: [String: String], workingDirectory: String, keepsSession: Bool = false) throws -> URL {
         let directory = directory
         removeStaleFiles(in: directory, olderThan: staleAge)
-        return try write(contents(source: source, variables: variables, workingDirectory: workingDirectory), in: directory)
+        return try write(
+            contents(source: source, variables: variables, workingDirectory: workingDirectory, keepsSession: keepsSession),
+            in: directory
+        )
     }
 
-    /// ターミナルの新しいウィンドウで実行する
+    /// 開くアプリ。選んだアプリが無ければ（iTerm2 を消した など）ターミナル
+    static func resolvedApp(_ app: TerminalApp, isInstalled: (String) -> Bool) -> TerminalApp {
+        app == .terminal || isInstalled(app.bundleID) ? app : .terminal
+    }
+
+    /// 選んだアプリ（ターミナルか iTerm2）の新しいウィンドウで実行する
     @MainActor
-    static func open(source: String, variables: [String: String], workingDirectory: String) async throws {
+    static func open(source: String, variables: [String: String], workingDirectory: String, app: TerminalApp = .terminal) async throws {
         try ScriptRunner.validate(source: source)
+        let workspace = NSWorkspace.shared
+        let app = resolvedApp(app) { workspace.urlForApplication(withBundleIdentifier: $0) != nil }
         let file: URL
         do {
-            file = try prepare(source: source, variables: variables, workingDirectory: workingDirectory)
+            file = try prepare(source: source, variables: variables, workingDirectory: workingDirectory, keepsSession: app == .iTerm2)
         } catch {
             ActionLog.logger.error("一時ファイルを書けませんでした: \(error.localizedDescription)")
             throw NonetError.actionFailed(String(localized: "ターミナル用のファイルを作れませんでした", bundle: .nonetActions))
         }
-        let terminal = NSWorkspace.shared.urlForApplication(withBundleIdentifier: terminalBundleID)
+        let terminal = workspace.urlForApplication(withBundleIdentifier: app.bundleID)
             ?? URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app", isDirectory: true)
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true
         do {
-            _ = try await NSWorkspace.shared.open([file], withApplicationAt: terminal, configuration: configuration)
+            _ = try await workspace.open([file], withApplicationAt: terminal, configuration: configuration)
         } catch {
             try? FileManager.default.removeItem(at: file)
             ActionLog.logger.error("ターミナルを開けませんでした: \(error.localizedDescription)")

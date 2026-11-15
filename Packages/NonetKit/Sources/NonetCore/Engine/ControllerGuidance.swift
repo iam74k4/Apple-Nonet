@@ -1,18 +1,21 @@
 // 担当: engine
-// 試用期間の残り日数の知らせを、いつ出すか
+// 試用期間の残り日数の知らせと、開きやすさの案内を、いつ出すか
 import Foundation
 
-/// 試用期間の知らせをいつ出したかの記録。アプリでは UserDefaults に置き、テストでは差し替える
+/// 試用期間の知らせと開きやすさの案内をいつ出したかの記録。アプリでは UserDefaults に置き、テストでは差し替える
 @MainActor
 public protocol HUDGuidanceStoring: AnyObject {
     /// 試用期間の残り日数の帯を最後に出した時刻
     var lastTrialReminder: Date? { get set }
+    /// 開きやすさを「控えめ」にする案内（AccidentalOpenTracker）を出した（出すのは1回だけ）
+    var hasShownSensitivityHint: Bool { get set }
 }
 
 /// UserDefaults に置く記録（アプリ本体）
 @MainActor
 public final class UserDefaultsHUDGuidanceStore: HUDGuidanceStoring {
     static let lastTrialReminderKey = "com.iam74k4.Nonet.guidance.lastTrialReminder"
+    static let sensitivityHintKey = "com.iam74k4.Nonet.guidance.sensitivityHintShown"
 
     private let defaults: UserDefaults
 
@@ -24,15 +27,42 @@ public final class UserDefaultsHUDGuidanceStore: HUDGuidanceStoring {
         get { defaults.object(forKey: Self.lastTrialReminderKey) as? Date }
         set { defaults.set(newValue, forKey: Self.lastTrialReminderKey) }
     }
+
+    public var hasShownSensitivityHint: Bool {
+        get { defaults.bool(forKey: Self.sensitivityHintKey) }
+        set { defaults.set(newValue, forKey: Self.sensitivityHintKey) }
+    }
 }
 
 /// メモリだけに置く記録（Debug の --config-dir・自己診断・テスト）
 @MainActor
 public final class MemoryHUDGuidanceStore: HUDGuidanceStoring {
     public var lastTrialReminder: Date?
+    public var hasShownSensitivityHint: Bool
 
-    public init(lastTrialReminder: Date? = nil) {
+    public init(lastTrialReminder: Date? = nil, hasShownSensitivityHint: Bool = false) {
         self.lastTrialReminder = lastTrialReminder
+        self.hasShownSensitivityHint = hasShownSensitivityHint
+    }
+}
+
+/// 開くつもりがないのに開いたらしい回数を数える。開いてすぐ、ポインタを真ん中から出さずに指を離して閉じた
+/// （CancellationRecord.liftedBeforeMoving）のが、window の間に threshold 回になったら、開きやすさを下げる案内を出す
+struct AccidentalOpenTracker {
+    static let threshold = 3
+    static let window: TimeInterval = 10 * 60
+
+    /// 数えている閉じ方の時刻（Scheduler.now。古い順）
+    private(set) var times: [TimeInterval] = []
+
+    /// 開いてすぐ離して閉じた。window の中で threshold 回目になったら true（数え直す）
+    mutating func record(at now: TimeInterval) -> Bool {
+        // 時計が戻ったときの値（now より後）も捨てる
+        times = times.filter { $0 <= now && now - $0 < Self.window }
+        times.append(now)
+        guard times.count >= Self.threshold else { return false }
+        times.removeAll()
+        return true
     }
 }
 

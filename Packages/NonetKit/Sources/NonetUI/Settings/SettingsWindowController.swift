@@ -29,7 +29,8 @@ public struct AppLinks: Equatable, Sendable {
     }
 
     /// 利用ガイドとプライバシーポリシーを、アプリの画面の言語（language。Bundle.main.preferredLocalizations.first）のページにする。
-    /// サイトは日本語のページが /、英語のページが /en/ の下にある（guide.html ↔ en/guide.html）。
+    /// サイトは日本語のページが /、英語のページが /en/ の下にある（guide.html ↔ en/guide.html）。日本語でなければ英語のページ
+    /// （アプリも、日本語でも英語でもない言語の利用者には英語を出す）。
     /// 購入ページも、利用ガイドかプライバシーポリシーと同じサイトのページなら英語のページにする（日本語のページは円の税込の価格で、
     /// 英語で使っている人はドルで払う）。ほかの場所（販売サービスのページ）はそのまま（en/ を入れると別の URL になる）
     public func localized(language: String?) -> AppLinks {
@@ -44,11 +45,11 @@ public struct AppLinks: Equatable, Sendable {
         return links
     }
 
-    /// 英語なら、パスの最後の部品の前に en/ を入れる（https://nonet.astlog.dev/guide.html → https://nonet.astlog.dev/en/guide.html、
+    /// 日本語でなければ、パスの最後の部品の前に en/ を入れる（https://nonet.astlog.dev/guide.html → https://nonet.astlog.dev/en/guide.html、
     /// /guide/ → /en/guide/、/ → /en/）。クエリとフラグメントはそのまま。
-    /// 英語でないとき、すでに en の下のページ、http(s) でない URL は変えない
+    /// 日本語のとき、言語が分からないとき、すでに en の下のページ、http(s) でない URL は変えない
     static func page(_ url: URL, language: String?) -> URL {
-        guard let language, Locale.Language(identifier: language).languageCode == .english,
+        guard let language, !language.isEmpty, Locale.Language(identifier: language).languageCode != .japanese,
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let scheme = components.scheme?.lowercased(), scheme == "http" || scheme == "https"
         else { return url }
@@ -111,6 +112,41 @@ public final class SettingsWindowController {
         NSApp.activate()
         // ほかのアプリを使っている最中などで前に出せなかったときも、ウィンドウは見えるようにする
         window.orderFrontRegardless()
+    }
+
+    /// メインメニューの「設定…」（⌘,）。もう開いていれば、今のタブのまま前に出す（タブを替えない）。開いていなければ一般のタブで開く
+    public func showFromMainMenu() {
+        let isOpen = window.map { $0.isVisible || $0.isMiniaturized } ?? false
+        if isOpen {
+            window?.deminiaturize(nil)
+        }
+        show(tab: Self.mainMenuSettingsTab(isOpen: isOpen, current: model.tab))
+    }
+
+    /// ⌘, で見せるタブ（showFromMainMenu の、ウインドウを出さない部分）
+    static func mainMenuSettingsTab(isOpen: Bool, current: SettingsTab) -> SettingsTab {
+        isOpen ? current : .general
+    }
+
+    /// メインメニューの「Nonet について」。「Nonet」のタブを開き、下のバージョンと利用ガイドの欄まで送る
+    public func showAbout() {
+        show(tab: .license)
+        model.showAbout()
+    }
+
+    /// Finder でダブルクリックした .nonetprofile。「読み込む…」と同じく、置き換わるものや何かを実行するマスがあれば確かめてから読み込む。
+    /// .nonetprofile でなければ false を返し、何もしない
+    @discardableResult
+    public func openProfileDocument(_ url: URL) -> Bool {
+        guard Self.isProfileDocument(url) else { return false }
+        show(tab: .profiles)
+        model.openProfileDocument(url)
+        return true
+    }
+
+    /// 書き出したプロファイルのファイル（.nonetprofile）か
+    static func isProfileDocument(_ url: URL) -> Bool {
+        url.isFileURL && url.pathExtension.lowercased() == ConfigurationStore.profileDocumentExtension.lowercased()
     }
 
     /// アプリを終える前に、打ちかけの欄と記録中のキーを確定させる（AppDelegate.applicationWillTerminate で、controller.stop() より先に呼ぶ）

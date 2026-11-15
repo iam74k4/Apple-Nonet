@@ -29,8 +29,9 @@ enum SettingsText {
         String(localized: "開き方とやめ方", bundle: .module)
     }
 
+    /// 横の小さな図と並ぶので、要るところだけ（開く・実行する・やめる・ページを変える）。くわしくは利用ガイド
     static var openGestureDetail: String {
-        String(localized: "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。", bundle: .module)
+        String(localized: "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。", bundle: .module)
     }
 
     static func name(_ sensitivity: OpenSensitivity) -> String {
@@ -67,6 +68,28 @@ enum SettingsText {
 
     static var hapticsDetail: String {
         String(localized: "開いたとき・隣のアイコンに移ったとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）", bundle: .module)
+    }
+
+    /// 「ターミナルで実行」のスクリプトを開くアプリ（GlobalSettings.terminalApp）
+    static var terminalAppTitle: String {
+        String(localized: "「ターミナルで実行」のアプリ", bundle: .module)
+    }
+
+    static var terminalAppDetail: String {
+        String(localized: "「ターミナルで実行」にしたスクリプトを、このアプリの新しいウインドウで実行します。iTerm2 では、スクリプトが終わった後もウインドウにシェルが残ります", bundle: .module)
+    }
+
+    static func name(_ app: TerminalApp) -> String {
+        switch app {
+        case .terminal: String(localized: "ターミナル", bundle: .module)
+        // 製品の名前なので訳さない
+        case .iTerm2: "iTerm2"
+        }
+    }
+
+    /// 選べるアプリ。ターミナルはいつも、ほかは入っているときと、いま選んでいるときだけ
+    static func terminalChoices(current: TerminalApp, isInstalled: (String) -> Bool) -> [TerminalApp] {
+        TerminalApp.allCases.filter { $0 == .terminal || $0 == current || isInstalled($0.bundleID) }
     }
 
     // MARK: 日付と数の書き方
@@ -412,13 +435,14 @@ enum SettingsText {
         String(localized: "登録してあったライセンスキー（ライセンス ID: \(singleLine(info.licenseID, limit: importNameLimit))）は無効になっているため、使えません。新しいキーを登録するか、心当たりがないときはお問い合わせください。", bundle: .module)
     }
 
-    /// ライセンス ID（「NONET-2026-000123」。発行ツールの既定は UUID）を貼り付けたらしいか。
-    /// 設定に出ているライセンス ID を、キーと思って貼り付けることがある。キーの一部（eyJ…）を含む長い文は数えない
+    /// ライセンス ID（Paddle の取引の ID の「txn_…」。発行ツールの既定は UUID。古い形は「NONET-2026-000123」）を貼り付けたらしいか。
+    /// 設定や購入のメールに出ているライセンス ID を、キーと思って貼り付けることがある。キーの一部（eyJ…）を含む長い文は数えない
     static func looksLikeLicenseID(_ input: String) -> Bool {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, text.count <= 100, !text.contains("eyJ") else { return false }
         return text.contains(#/(?i)NONET-[0-9]{4}-[0-9]{3,}/#)
             || text.contains(#/[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/#)
+            || text.contains(#/txn_[a-z0-9]{26}/#)
     }
 
     // MARK: 情報
@@ -514,7 +538,8 @@ struct SettingsStatusBanner: Equatable {
         case .needsAccessibility:
             symbol = "lock.shield"
             title = String(localized: "アクセシビリティの許可が必要です", bundle: .module)
-            message = String(localized: "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。許可されると自動で動き出します。", bundle: .module)
+            // アップデートの後などは、一覧ではオンのまま許可が外れていることがある。外して入れ直すしか直し方が無いので、ここでも言う
+            message = String(localized: "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。もうオンなのに動かないときは、一覧の Nonet を「−」で外し、「＋」で追加し直してください。許可されると自動で動き出します。", bundle: .module)
             // ほぼ同じことをするボタンを2つ並べない（「許可を求める」はダイアログとシステム設定が重なって出ていた）
             buttons = [Button(action: .openAccessibilitySettings, title: String(localized: "システム設定を開く", bundle: .module))]
         case .noTrackpad:
@@ -530,7 +555,7 @@ struct SettingsStatusBanner: Equatable {
         case .disabled:
             symbol = "pause.circle"
             title = String(localized: "Nonet は無効になっています", bundle: .module)
-            message = String(localized: "トラックパッドの上の縁から指を滑らせても、9マスは開きません", bundle: .module)
+            message = String(localized: "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません", bundle: .module)
             buttons = [Button(action: .enable, title: String(localized: "有効にする", bundle: .module))]
         }
     }

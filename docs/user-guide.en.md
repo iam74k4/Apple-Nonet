@@ -43,7 +43,7 @@ The first time you open Nonet, the Welcome to Nonet window (the welcome guide) o
 
 **What Nonet doesn't collect**: Nonet never records or sends what you type. Your settings are stored only on your Mac (in `~/Library/Application Support/Nonet/`), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the [privacy policy](privacy.md).
 
-You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
+You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). If you slide down from the top edge before allowing it, the nine buttons don't open, and "Accessibility permission required" appears at the bottom of the screen with where to turn it on (you feel two light taps). If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
 
 The first time you use a File action, or a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
 
@@ -145,7 +145,7 @@ The Global profile's first page starts as the nine Place on Screen buttons (Top 
 
 ### Haptic feedback
 
-When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, twice when the page changes, and once more strongly when you switch between the app's pages and the Global pages. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a left or right swipe when there is only one page and so on), and when they don't open because the trial has ended, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
+When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, twice when the page changes, and once more strongly when you switch between the app's pages and the Global pages. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a left or right swipe when there is only one page and so on), and when they don't open because the trial has ended, Accessibility permission is missing or you're entering a password, it gives two light taps. You can turn it off with the **Haptic feedback** setting (you can feel it only on a Force Touch trackpad).
 
 ## Menu bar
 
@@ -156,22 +156,23 @@ Click the Nonet icon (the ring of dots) in the menu bar to open the Nonet menu.
 | Status (the top line) | While Nonet is running, it shows the profile used for the front app, like "Xcode profile" or "Global profile" ("Not used in this app" for an app where you chose **Turn Off in This App**). If something is wrong, it shows the problem, such as "Accessibility permission required", "Can't find a trackpad", "Unavailable while entering a password" or "Nonet is disabled". When the trial has ended it reads "Your trial has ended", and with 3 days or fewer left it reads, for example, "3 days left in your trial" |
 | Allow Accessibility Access… | Appears only when Nonet doesn't have permission. Opens the permission step of the welcome guide |
 | Dismiss Notice | Appears with a notice, for example when Nonet couldn't read its settings file |
-| Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
+| Stop “Build” | Appears just below the status line only while a background script, shortcut or AI button is running. Choose it to stop the button the same way the timeout does; "Stopped “Build”" appears at the bottom of the screen (it isn't counted as a failure, and Recent Runs marks it "■") |
+| Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). Option-click a button to run it in the front app, the same way as **Test This Button** in Settings (with VoiceOver, use the action **Run in Front App**). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
 | Enable Nonet | Uncheck it, and sliding down from the top edge no longer opens the buttons |
 | Settings… | Opens the Settings window on the General tab |
-| Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
+| Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). For an app without a preset the new profile is empty, and until you add a button to it, the Global pages open in that app too. If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
 | Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
-| Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason. Choose one to open that button on the Profiles tab of Settings |
+| Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason, and ones you stopped show "■" (long lines are cut short). Choose one to open that button on the Profiles tab of Settings. For a failed one, the whole reason also appears in the result panel, where you can select and copy it |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | User Guide | Opens this guide |
 | 14 days left in your trial / Registered / Your trial has ended | Your license status. Choose **Registered** to open the Settings window on the Nonet tab. Nonet doesn't repeat what the status line already says |
 | Buy Nonet… / Enter License Key… | Appear during the trial and after it ends. **Buy Nonet…** opens the purchase page, and **Enter License Key…** opens the Nonet tab of Settings |
 | Check for Updates… | Checks for a new version. When an automatic check has already found one, this item changes to **Update Available…**; choose it to see the update |
-| Quit Nonet | Quits Nonet |
+| Quit Nonet | Quits Nonet (without asking) |
 
 The icon also shows the status. It's dimmed while Nonet is disabled. When something needs your attention (no permission, no trackpad found, a password being entered, the trial has ended or has 3 days or fewer left, or a notice), the top-right dot turns into a "!", and the top line of the menu says why. When a new version is available, the top-right dot grows larger.
 
-While the Settings window or the welcome guide is in front, you can also press ⌘? (**Nonet Help**) to open this guide.
+While the Settings window or the welcome guide is in front, you can also press ⌘? (**Nonet Help**) to open this guide. ⌘, brings the Settings window to the front (on the tab you were using if it's open, or on the General tab). ⌘Q asks "Quit Nonet?" first: after you quit, the HUD doesn't open until you open Nonet again (to close just the window, press ⌘W). Check **Don't ask again** to quit right away next time.
 
 ## Editing profiles
 
@@ -183,7 +184,8 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 - App profiles are listed below it, under **Apps**. Drag to reorder them. The profile the front app is using now is marked In Use
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to see the three **When in Front** choices and **Duplicate for Another App…**, **Reset to Preset…** (only for apps with a preset), **Export This Profile…** and **Delete…**. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)
-- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off. In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
+- **Clean Up Profiles…**: appears under the list (and when you Control-click a profile) once you have two or more app profiles. Select the profiles of apps you don't use and delete them all at once (with **Select All**, **Deselect All**, and **Select Missing Apps** when some apps aren't on this Mac). Nonet asks once and keeps one earlier version, and ⌘Z or **Undo** under the grid brings them all back to where they were
+- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
 - With 8 or more app profiles, a **Filter by name, button or keys** field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like `⌘B`). Results look like "Xcode › Build"
 - **Enable Nonet** under the list is the same switch as in the General settings
 
@@ -194,6 +196,7 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 - Click **Page 1**, **Page 2** and so on (⌘1–⌘3) to switch pages. Click **+** (Add page) to add one (up to three pages). To delete the selected page, click **…** (Page Actions) next to the pages and choose **Delete This Page…**, or Control-click the page and choose **Delete This Page…**. Nonet asks first if the page has buttons. The **…** menu also has **Add Page** and **Rename…**
 - Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Buttons for Xcode · Debug", and briefly under the center icon when you switch between the app's pages and the Global pages. Leave it empty to go back to "Page 1" and so on
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page. The selected button is filled: in your accent color when keys (Delete, the arrow keys and so on) go to the grid, and gray when they go somewhere else, such as the profile list or a text field
+- Hold the pointer over a button to see its full name (even if it's cut off) and what it does (the keys it sends, the app it opens and so on)
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
 - Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. The item acts on the button you Control-clicked and selects it first (after clearing, the notice names the button, as in “Cleared “Build”.”). On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
 
@@ -278,8 +281,8 @@ Puts the front app's window in a fixed part of the screen. Under **Where to plac
 Runs the zsh script in the **Script to run (zsh)** field with `/bin/zsh -l -c`. Click **?** above the field to see the environment variables described below.
 
 - **Run**
-  - In Background: waits for the script to finish and stops it after the **Timeout** (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error (or of standard output, if nothing was written to standard error). If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does
-  - In Terminal: runs the script in a new Terminal window. Use it for interactive commands like `claude`
+  - In Background: waits for the script to finish and stops it after the **Timeout** (60 seconds by default, 1–3600 seconds). If the script fails (a non-zero exit code), Nonet shows the last lines of standard error (or of standard output, if nothing was written to standard error). If it hasn't finished after 0.5 seconds, a "Running “…”…" notice stays at the bottom of the screen until it does. While it runs, you can stop it with **Stop “…”** in the Nonet menu
+  - In Terminal: runs the script in a new Terminal window. Use it for interactive commands like `claude`. If iTerm2 is installed, you can switch to it with **Terminal app for scripts** on the General tab of Settings
 - **Output** (In Background only): if the script writes anything to standard output, Nonet shows it, without the final newline, in the result panel (the same panel as an AI action's **Show Result**, where you can select and copy text). To keep it out of the panel, add `> /dev/null`. What the login shell's startup files (`~/.zprofile`, `~/.zlogin` and so on) print, such as ssh-agent's "Agent pid …", isn't included. Output that's empty, only spaces and line breaks, or not text shows nothing. If the output is longer than 64 KB, Nonet shows only the last 64 KB, under the line "(The output is long, so only the last 64 KB is shown.)", and the script still counts as successful
 - **Working directory**: the project folder (see below), or your home folder if there isn't one
 - **Environment**: background scripts run in a login shell (`zsh -l`) with the same `PATH` as Terminal, which Nonet reads (including `~/.zshrc`) when it opens. Aliases and functions from `~/.zshrc` work only with **In Terminal** (a script run in Terminal reads `~/.zshrc`). If you change `~/.zshrc`, quit Nonet and open it again
@@ -379,13 +382,19 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 
 | Setting | Default | What it does |
 |---|---|---|
-| Enable Nonet | On | When off, sliding down from the top edge of the trackpad doesn't open the buttons. You can also switch it in the Nonet menu and under the profile list |
-| How to open and cancel | | Shows how to open and cancel, with a drawing of the trackpad (see [Basics](#basics)) |
+| Enable Nonet | On | When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD). You can also switch it in the Nonet menu and under the profile list |
+| How to open and cancel | | Briefly shows how to open, run, cancel and change pages, with a drawing of the trackpad. **Learn more in the User Guide** opens this guide (see [Basics](#basics)) |
 | Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you move to another icon and when a button runs (Force Touch trackpads only). Two taps when the page changes, one stronger tap when you switch between the app's pages and the Global pages, and two light taps mean they closed without running anything |
 
-Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length.
+Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate) that haven't finished after 0.5 seconds show a notice like "Running “Translate”…" until they finish, and a notice at the bottom of the screen when they do. Except for File buttons that duplicate, the notice adds "You can stop it from the Nonet menu in the menu bar.", and **Stop “Translate”** in the Nonet menu stops it. When a button fails, Nonet shows which button of which profile it was ("Safari › Reload", plus "(page 2)" if the profile has more than one page) and why, for 3 to 8 seconds depending on the length. Information notices with a second line stay up the same way. If a failure notice is gone, choose the failed button in **Recent Runs** in the Nonet menu to read the whole reason in the result panel.
+
+### Scripts
+
+| Setting | Default | What it does |
+|---|---|---|
+| Terminal app for scripts | Terminal | Terminal / iTerm2. Scripts set to run In Terminal run in a new window of this app. It appears only when iTerm2 is installed. In iTerm2, a shell stays open in the window after the script ends, so you can read the output even if iTerm2 closes finished sessions. If you remove iTerm2 after choosing it, scripts run in Terminal |
 
 ### Startup
 
@@ -398,7 +407,7 @@ Slow buttons (background scripts, shortcuts, AI and File buttons that duplicate)
 Under Export & Import on the Nonet tab, you can export profiles to a .nonetprofile file to back them up or to share them with another Mac or another person. Only profiles (the buttons and their actions) are exported. General settings and your license aren't included.
 
 - **Export…**: exports all profiles to one file. To export one profile, Control-click it in the profile list and choose **Export This Profile…**
-- **Import…**: adds the profiles in a file (files over 20 MB can't be imported). In either of these cases, Nonet first asks "Import “file name”?":
+- **Import…**: adds the profiles in a file (files over 20 MB can't be imported). Double-clicking a `.nonetprofile` file in the Finder imports it the same way. In either of these cases, Nonet first asks "Import “file name”?":
   - Importing would replace something you have (the file contains a Global profile, or a profile for an app you already have a profile for). Nonet lists what would be replaced
   - The file has buttons that run something: Script, Keystrokes, Menu Item, AI and Shortcut buttons, File buttons that trash, rename or duplicate the files selected in Finder, URLs that open a file on your Mac, and URLs that start something else (running a shortcut, ssh, a shared folder and so on). Nonet asks even if nothing would be replaced. In a scrolling list, it shows each of these buttons as "Profile › Button" with everything it does, without cutting anything off: every line of the script, all the keys, the menu item and its keyboard shortcut, the AI prompt and output, the shortcut's name, the file operation, or the location the URL opens. Invisible characters are shown in a visible form, like "⟨U+202E⟩"
 - **Restore an Earlier Version…**: goes back to settings saved before deleting, importing and similar changes (see "Undo and earlier versions" under Editing profiles)
@@ -420,23 +429,23 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 
 - You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the Nonet tab of Settings
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
-- When the trial ends, sliding down from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Register License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
-- After you buy Nonet, your license key arrives by email. One license covers every Mac you use. You can get a full refund within 30 days of purchase
+- When the trial ends, sliding down from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps; when the menu bar icon is hidden, the second line reads "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Enter License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
+- After you buy Nonet, your license key arrives by email (within 24 hours at the latest). One license covers every Mac you use. You can get a full refund within 30 days of purchase
 - Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the Nonet tab says why, and Nonet goes back to the trial if any trial time is left
 
 The license section of the Nonet tab of Settings:
 
 - **Status**: "14 days left in your trial (ends November 14)", "Registered" or "Your trial has ended". Once you register, it also shows who it's registered to, the issue date and the license ID
 - **One-time purchase**: **Buy Nonet** opens the purchase page (shown only before you register)
-- **Already Bought Nonet?**: paste the license key from your purchase email into the field and click **Register**. It takes effect right away. If you paste the text around the key too, like "License key:", Nonet reads only the key. Nonet checks the key on this Mac, so you don't need a network connection or an account. If Nonet can't register the key, it says why and what to do next (**Contact Support…** next to the message writes an email to us). If you can't find your key, click **Can't find your license key?**. If you open the registration link in your purchase email, or the attached `.nonetlicense` file, Nonet fills in the key and asks "Register this license key?" (it never registers a key without asking)
+- **Already Bought Nonet?**: paste the license key from your purchase email into the field and click **Register**. It takes effect right away. If you paste the text around the key too, like "License key:", Nonet reads only the key. Nonet checks the key on this Mac, so you don't need a network connection or an account. If Nonet can't register the key, it says why and what to do next (**Contact Support…** next to the message writes an email to us). If you can't find your key, click **Can't find your license key?**. If you click **Register in Nonet** in your purchase email or on the page after checkout, or open a `.nonetlicense` file, Nonet fills in the key and asks "Register this license key?" (it never registers a key without asking)
 - **License Key**: once you register, click **Copy License Key** to copy your key and register it on your other Macs. **Register a Different Key…** lets you switch to another key
-- **Remove License from This Mac**: click **Remove…**, then **Remove** to confirm, and Nonet removes your license key from this Mac. Use this before you sell or give away this Mac. The same key keeps working on your other Macs
+- **Remove License from This Mac**: click **Remove…** and Nonet asks first. **Copy Key and Remove** copies the key to the clipboard and then removes it from this Mac; **Remove** just removes it (with a copy, you can paste the key to register again later). Use this before you sell or give away this Mac. The same key keeps working on your other Macs
 
 ## Updates and About
 
-Nonet checks for new versions automatically. When it finds one, the top-right dot of the menu bar icon grows larger, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
+Nonet checks for new versions automatically. When it finds one, the top-right dot of the menu bar icon grows larger, and the **Check for Updates…** item in the Nonet menu changes to **Update Available…**. Choose it to see the update. If Nonet finds an update right after it opens, or while the menu bar icon is hidden so you can't see the dot, it shows the update right away. To check at any time, choose **Check for Updates…** from the Nonet menu.
 
-The Nonet tab of Settings, below the license section and Export & Import, shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the user guide and the privacy policy open in English.
+The Nonet tab of Settings, below the license section and Export & Import, shows the version and has **Check for Updates…**, **User Guide** (this guide), **Privacy Policy**, **Contact Support…** and **Uninstall Nonet…**, plus the licenses of the third-party software Nonet uses. When Nonet runs in English, the purchase page, the user guide and the privacy policy open in English. While a Settings or welcome window is in front, **About Nonet** in the main menu opens this section.
 
 **Contact Support…** opens an email to us in your email app. It contains only the versions of Nonet and macOS, your Mac model and your keyboard type (never your license key or your settings). You decide whether to send it.
 
@@ -446,13 +455,15 @@ When Nonet can't work, the top line of the Nonet menu and the banner at the top 
 
 ### “Accessibility permission required”
 
+This also appears at the bottom of the screen when you slide down from the top edge without the permission; the nine buttons don't open (the same notice appears at most once every 30 seconds).
+
 - Click **Open System Settings** in the banner at the top of the Settings window (the first click shows the macOS prompt; click again to open System Settings), or choose **Allow Accessibility Access…** from the Nonet menu
 - Turn on Nonet in **System Settings › Privacy & Security › Accessibility**. Nonet starts working once you allow it
-- If Nonet is on but still doesn't work (after an update, for example), select Nonet in the list, click − to remove it, then add it again and turn it on
+- If Nonet is on but still doesn't work (after an update, for example), select Nonet in the list, click − to remove it, then click + to add it again and turn it on (the banner in the Settings window and the permission step of the welcome guide say this too)
 
 ### “Nonet doesn't work while you enter a password”
 
-While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons. Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
+While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons (sliding down from the top edge shows "Doesn't open while you're entering a password" at the bottom of the screen, at most once every 30 seconds). Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
 
 ### “Can't find a multi-touch trackpad”
 
@@ -469,11 +480,11 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 
 ### The menu bar icon is missing
 
-When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder, and the Settings window opens right away.
+When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again from the Applications folder, and the Settings window opens right away. While the icon is hidden, notices that would point to the menu bar (such as the end of the trial) tell you to open Nonet from the Applications folder instead, and when an update is found, Nonet shows it right away instead of marking the icon.
 
 ### The buttons open when you didn't mean to
 
-If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. If it happens often, start pointer moves a little away from the far edge. For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. If it happens often, start pointer moves a little away from the far edge, or set **Open sensitivity** on the General tab of Settings to Low (if you lift right after the buttons open three times within 10 minutes, a notice at the bottom of the screen suggests this once). For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
 
 ### The pointer doesn't move or clicks don't work
 
@@ -493,10 +504,10 @@ If a Keystrokes button says "The front app changed, so the keys weren't sent.", 
 
 ### A script fails
 
-- Read the error on screen (if the script wrote nothing to standard error, it shows the end of standard output). If the exit code is 127 (`command not found`), run `command -v <name>` in Terminal to check that the command is installed. Background scripts use the same `PATH` as Terminal. Nonet reads it when it opens, so if you change `~/.zshrc`, open Nonet again
+- Read the error on screen (if the script wrote nothing to standard error, it shows the end of standard output). If the notice is already gone, choose the failed run ("✗") in **Recent Runs** in the Nonet menu to see the whole reason in the result panel. If the exit code is 127 (`command not found`), run `command -v <name>` in Terminal to check that the command is installed. Background scripts use the same `PATH` as Terminal. Nonet reads it when it opens, so if you change `~/.zshrc`, open Nonet again
 - To test under similar conditions, run `zsh -lic '<script>'` in Terminal
 - **Test This Button** in the inspector shows the result right away
-- For long tasks, raise the **Timeout** or choose **In Terminal**
+- For long tasks, raise the **Timeout** or choose **In Terminal**. To stop one that keeps running, choose **Stop “…”** from the Nonet menu
 
 ### macOS asks for Automation permission
 

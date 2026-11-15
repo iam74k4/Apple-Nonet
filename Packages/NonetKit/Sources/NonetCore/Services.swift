@@ -167,10 +167,13 @@ public struct ActionContext: Sendable {
     /// 長く掛かるアクションが、前面アプリの選択テキストや URL を読み終えた（⌘C も戻し終えた）ときに呼ぶ。
     /// そこで後の実行に順番を譲る（読み終える前に後のキー入力（⌘W など）が届かないように）
     public var didReadContext: (@MainActor @Sendable () -> Void)?
+    /// 「ターミナルで実行」のスクリプトを開くアプリ（設定の GlobalSettings.terminalApp）
+    public var terminalApp: TerminalApp
 
-    public init(frontmostApp: RunningAppInfo?, didReadContext: (@MainActor @Sendable () -> Void)? = nil) {
+    public init(frontmostApp: RunningAppInfo?, didReadContext: (@MainActor @Sendable () -> Void)? = nil, terminalApp: TerminalApp = .terminal) {
         self.frontmostApp = frontmostApp
         self.didReadContext = didReadContext
+        self.terminalApp = terminalApp
     }
 }
 

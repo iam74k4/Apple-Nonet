@@ -40,6 +40,8 @@ final class MenuBarCheatSheetView: NSView {
     let store: MenuBarCheatSheetStore
     /// マス（空きマスも）を押した。設定でそのマスを開く
     var onOpen: ((MenuBarCellLocation) -> Void)?
+    /// 中身のあるマスを ⌥ を押しながらクリックした（VoiceOver では「前面のアプリで実行」）。前面のアプリに向けて実行する
+    var onRun: ((MenuBarCellLocation) -> Void)?
     /// ページを変えた（メニューの項目の名前を合わせる）
     var onPageChange: (() -> Void)?
 
@@ -70,6 +72,9 @@ final class MenuBarCheatSheetView: NSView {
         for button in [previousButton, nextButton] + cellButtons {
             let control = button.control
             button.onPress = { [weak self] in self?.press(control) }
+            if case .cell(let index) = control {
+                button.onAlternatePress = { [weak self] in self?.run(index) }
+            }
             button.onHoverChange = { [weak self] isInside in self?.setHovered(control, isInside) }
             button.onPressedChange = { [weak self] isPressing in self?.store.pressed = isPressing ? control : nil }
             addSubview(button)
@@ -142,6 +147,15 @@ final class MenuBarCheatSheetView: NSView {
         }
     }
 
+    /// ⌥クリック・VoiceOver の「前面のアプリで実行」。空きマスは実行するものが無いので、ふつうのクリックと同じく設定で開く
+    func run(_ index: Int) {
+        guard store.sheet.cell(at: index) != nil, let location = store.sheet.location(ofCell: index) else {
+            press(.cell(index))
+            return
+        }
+        onRun?(location)
+    }
+
     private func pageDidChange() {
         // 端のページで押せなくなったボタンの上の跡を消す
         if store.hovered == .previousPage, !store.sheet.canShowPreviousPage { store.hovered = nil }
@@ -183,9 +197,16 @@ final class MenuBarCheatSheetView: NSView {
         setAccessibilityLabel(sheet.accessibilityLabel)
         for (index, button) in cellButtons.enumerated() {
             button.setAccessibilityLabel(sheet.accessibilityLabel(ofCell: index))
-            button.setAccessibilityHelp(MenuBarCheatSheet.cellHint)
-            // 名前が長くて切れても読めるように
+            let hasCell = sheet.cell(at: index) != nil
+            button.setAccessibilityHelp(hasCell ? MenuBarCheatSheet.cellHint : MenuBarCheatSheet.emptyCellHint)
+            // 名前が長くて切れても読めるように。⌥クリックで実行できることもここで言う
             button.toolTip = sheet.cellTooltip(at: index)
+            button.setAccessibilityCustomActions(hasCell ? [
+                NSAccessibilityCustomAction(name: MenuBarCheatSheet.runActionName) { [weak self] in
+                    self?.run(index)
+                    return true
+                },
+            ] : [])
         }
         previousButton.setAccessibilityLabel(MenuBarCheatSheet.previousPageTitle)
         previousButton.isEnabled = sheet.canShowPreviousPage
@@ -206,6 +227,8 @@ final class MenuBarCheatSheetView: NSView {
 final class MenuBarCheatSheetButton: NSView {
     let control: MenuBarCheatSheetControl
     var onPress: (() -> Void)?
+    /// ⌥ を押しながら離した（マスなら実行する）。nil なら onPress と同じ
+    var onAlternatePress: (() -> Void)?
     var onHoverChange: ((Bool) -> Void)?
     var onPressedChange: ((Bool) -> Void)?
     var isEnabled = true {
@@ -275,7 +298,16 @@ final class MenuBarCheatSheetButton: NSView {
             onPressedChange?(false)
         }
         guard isEnabled, isInside(event) else { return }
-        onPress?()
+        if Self.isAlternateClick(event.modifierFlags), let onAlternatePress {
+            onAlternatePress()
+        } else {
+            onPress?()
+        }
+    }
+
+    /// ⌥だけを押しながらのクリック（⌘・⌃・⇧と一緒なら、ふつうのクリックとして設定で開く）
+    static func isAlternateClick(_ flags: NSEvent.ModifierFlags) -> Bool {
+        flags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .function, .numericPad]) == .option
     }
 
     override func accessibilityPerformPress() -> Bool {

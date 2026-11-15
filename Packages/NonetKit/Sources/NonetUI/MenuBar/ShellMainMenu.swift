@@ -7,10 +7,16 @@ import AppKit
 @MainActor
 public enum ShellMainMenu {
     /// 起動時に App が NSApp.mainMenu に入れる。onAbout は「Nonet について」、onOpenSettings は「設定…」、
-    /// onHelp は「Nonet ヘルプ」（⌘?。利用ガイドを開く。nil ならヘルプのメニューを出さない）
-    public static func make(onAbout: @escaping () -> Void, onOpenSettings: @escaping () -> Void, onHelp: (() -> Void)? = nil) -> NSMenu {
+    /// onHelp は「Nonet ヘルプ」（⌘?。利用ガイドを開く。nil ならヘルプのメニューを出さない）、
+    /// onQuit は「終了」（⌘Q。ShellQuitConfirmation で確かめてから終える。nil ならすぐ終える）
+    public static func make(
+        onAbout: @escaping () -> Void,
+        onOpenSettings: @escaping () -> Void,
+        onHelp: (() -> Void)? = nil,
+        onQuit: (() -> Void)? = nil
+    ) -> NSMenu {
         let main = NSMenu(title: "Nonet")
-        main.addItem(submenuItem(appMenu(onAbout: onAbout, onOpenSettings: onOpenSettings)))
+        main.addItem(submenuItem(appMenu(onAbout: onAbout, onOpenSettings: onOpenSettings, onQuit: onQuit)))
         main.addItem(submenuItem(editMenu()))
         main.addItem(submenuItem(windowMenu()))
         if let onHelp {
@@ -19,13 +25,18 @@ public enum ShellMainMenu {
         return main
     }
 
-    private static func appMenu(onAbout: @escaping () -> Void, onOpenSettings: @escaping () -> Void) -> NSMenu {
+    private static func appMenu(onAbout: @escaping () -> Void, onOpenSettings: @escaping () -> Void, onQuit: (() -> Void)?) -> NSMenu {
         let menu = NSMenu(title: "Nonet")
         menu.addItem(closureItem(String(localized: "Nonet について", bundle: .module), onAbout))
         menu.addItem(.separator())
         menu.addItem(closureItem(String(localized: "設定…", bundle: .module), keyEquivalent: ",", onOpenSettings))
         menu.addItem(.separator())
-        menu.addItem(item(String(localized: "終了", bundle: .module), #selector(NSApplication.terminate(_:)), "q"))
+        // ⌘Q はウインドウを閉じるつもりで押されやすい。終えるとトラックパッドから開かなくなるので、確かめてから終える
+        if let onQuit {
+            menu.addItem(closureItem(String(localized: "終了", bundle: .module), keyEquivalent: "q", onQuit))
+        } else {
+            menu.addItem(item(String(localized: "終了", bundle: .module), #selector(NSApplication.terminate(_:)), "q"))
+        }
         return menu
     }
 

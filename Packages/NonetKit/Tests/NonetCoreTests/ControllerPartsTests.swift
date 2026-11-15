@@ -71,18 +71,41 @@ import Testing
         #expect(Cell(title: "全画面", icon: .symbol("macwindow"), action: place.action).displayTitle == "全画面")
     }
 
-    /// 試用期間が終わった後の帯は、次にすること（メニューバーの Nonet から購入・登録）まで言う。トーストの説明と同じ文
+    /// 試用期間が終わった後の HUD の帯は短く（1行の帯に収まるように）、次にすること（メニューバーの Nonet から購入・登録）は
+    /// トーストと実行しなかったときの理由が言う。メニューバーのアイコンが見えないときは、アプリケーションフォルダから開き直すことを言う
     @Test func trialTexts() {
         let ended = ModelFixtures.text("試用期間が終了しました。メニューバーの Nonet から購入・登録できます。")
-        #expect(ControllerPresentation.trialEndedBanner == ended)
+        #expect(ControllerPresentation.trialEndedBanner == ModelFixtures.text("試用期間が終了しました"))
         #expect(NonetError.licenseRequired.localizedDescription == ended)
+        #expect(ControllerPresentation.licenseRequiredMessage(isMenuBarIconVisible: true) == ended)
+        #expect(ControllerPresentation.licenseRequiredMessage(isMenuBarIconVisible: false)
+            == ModelFixtures.text("試用期間が終了しました。アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます。"))
         #expect(ControllerPresentation.trialReminderBanner(daysLeft: 3) == String(localized: "試用期間は残り\(3)日です", bundle: .nonetCore, locale: ControllerPresentation.textLocale))
         #expect(ControllerPresentation.trialReminderBanner(daysLeft: 1) == String(localized: "試用期間は残り\(1)日です", bundle: .nonetCore, locale: ControllerPresentation.textLocale))
-        #expect(ControllerPresentation.trialEndedToast == ToastModel(
+        #expect(ControllerPresentation.trialEndedToast() == ToastModel(
             title: ModelFixtures.text("試用期間が終了しました"),
             detail: ModelFixtures.text("メニューバーの Nonet から購入・登録できます"),
             style: .failure
         ))
+        #expect(ControllerPresentation.trialEndedToast(isMenuBarIconVisible: false) == ToastModel(
+            title: ModelFixtures.text("試用期間が終了しました"),
+            detail: ModelFixtures.text("アプリケーションフォルダから Nonet を開くと、設定で購入・登録できます"),
+            style: .failure
+        ))
+    }
+
+    /// 開けない理由のトーストは、どこで直すかを言う。メニューバーのアイコンが見えないときは、システム設定の場所だけ
+    @Test func refusalTexts() {
+        let visible = ControllerPresentation.accessibilityNeededToast(isMenuBarIconVisible: true)
+        #expect(visible.title == ModelFixtures.text("アクセシビリティの許可が必要です"))
+        #expect(visible.detail == ModelFixtures.text("メニューバーの Nonet の「アクセシビリティを許可…」か、システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください"))
+        #expect(visible.style == .failure)
+        let hidden = ControllerPresentation.accessibilityNeededToast(isMenuBarIconVisible: false)
+        #expect(hidden.detail == ModelFixtures.text("システム設定 › プライバシーとセキュリティ › アクセシビリティで Nonet をオンにしてください"))
+        #expect(ControllerPresentation.secureInputToast.title == ModelFixtures.text("パスワードの入力中は開きません"))
+        #expect(ControllerPresentation.secureInputToast.style == .failure)
+        #expect(ControllerPresentation.sensitivityHintToast.style == .info)
+        #expect(ControllerPresentation.sensitivityHintToast.detail?.isEmpty == false)
     }
 
     /// アプリのページとグローバルのページは別の層。HUD のページの番号と数は、いまの層の中で数える
@@ -166,6 +189,13 @@ import Testing
             title: ModelFixtures.text("「\(F.summarize.title)」を実行中…"),
             icon: F.summarize.icon,
             style: .running
+        ))
+        // 止められるマスは、メニューバーで止められることを添える
+        #expect(ControllerPresentation.runningToast(F.summarize, stopHint: true).detail == ModelFixtures.text("メニューバーの Nonet から止められます"))
+        #expect(ControllerPresentation.stoppedToast(F.summarize) == ToastModel(
+            title: ModelFixtures.text("「\(F.summarize.title)」を止めました"),
+            icon: F.summarize.icon,
+            style: .info
         ))
     }
 

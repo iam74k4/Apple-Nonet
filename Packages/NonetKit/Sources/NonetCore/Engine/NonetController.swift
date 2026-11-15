@@ -33,6 +33,8 @@ public struct ExecutionRecord: Equatable, Sendable {
     public var output: String?
     /// マスのあるプロファイル（設定でそのマスを開くため）。分からなければ nil
     public var profileID: UUID?
+    /// メニューの「実行中の「◯◯」を止める」で止めた（succeeded は false。失敗とは分けて見せる）
+    public var wasStopped: Bool
 
     public init(
         cellTitle: String,
@@ -42,7 +44,8 @@ public struct ExecutionRecord: Equatable, Sendable {
         message: String?,
         date: Date,
         output: String? = nil,
-        profileID: UUID? = nil
+        profileID: UUID? = nil,
+        wasStopped: Bool = false
     ) {
         self.cellTitle = cellTitle
         self.profileName = profileName
@@ -52,6 +55,20 @@ public struct ExecutionRecord: Equatable, Sendable {
         self.date = date
         self.output = output
         self.profileID = profileID
+        self.wasStopped = wasStopped
+    }
+}
+
+/// 実行中の、止められるマス（ControllerExecutionPolicy.canStop）。メニューの「実行中の「◯◯」を止める」に出す
+public struct RunningAction: Identifiable, Equatable, Sendable {
+    public var id: Int
+    public var cellTitle: String
+    public var profileName: String
+
+    public init(id: Int, cellTitle: String, profileName: String) {
+        self.id = id
+        self.cellTitle = cellTitle
+        self.profileName = profileName
     }
 }
 
@@ -89,6 +106,8 @@ public final class NonetController {
     public static let recentExecutionLimit = 10
     /// 長く掛かるマス（ControllerExecutionPolicy.isLongRunning）がこの秒数で終わらなければ、「実行中」のトーストを出す
     static let runningToastDelay: TimeInterval = 0.5
+    /// 許可が無い・パスワードの入力中で開かなかったときのトーストを、同じ理由で出し直さない間隔（触覚は毎回）
+    static let refusalToastInterval: TimeInterval = 30
 
     public private(set) var configuration: NonetConfiguration
     public private(set) var status: ControllerStatus = .stopped
@@ -98,6 +117,11 @@ public final class NonetController {
     /// 最近の実行（新しい順、最大 recentExecutionLimit 個）。失敗・試用期間の終了などで実行しなかったものも含む。
     /// 練習モードの記録（実際には実行していない）は含まない。メニューの「最近の実行」などで使う
     public private(set) var recentExecutions: [ExecutionRecord] = []
+    /// 実行中の、止められるマス（始めた順）。メニューの「実行中の「◯◯」を止める」に出す
+    public private(set) var runningActions: [RunningAction] = []
+    /// メニューバーのアイコンがいま見えているか（ノッチの陰などに隠れていないか）。見えなければ、メニューバーを指すトーストの代わりに、
+    /// アプリケーションフォルダから開き直す（設定が開く）よう言う。ui-shell が入れる（既定は見えている）
+    @ObservationIgnored public var isMenuBarIconVisible: @MainActor () -> Bool = { true }
     /// 最後に、9マスを開いて何も実行せずに指を離したとき（外枠で離した など）。練習モードでも記録する
     public private(set) var lastCancellation: CancellationRecord?
     /// true の間はアクションを実行せず、lastExecution に記録だけする（初回起動の練習用）
@@ -184,6 +208,14 @@ public final class NonetController {
     @ObservationIgnored private var shownRunningToasts: Set<Int> = []
     @ObservationIgnored private var visibleRunningToast: Int?
     @ObservationIgnored private var nextRunID = 0
+    /// 止められる実行の取り消し（RunningAction.id ごと）と、止めるよう頼まれた実行
+    @ObservationIgnored private var stoppers: [Int: () -> Void] = [:]
+    @ObservationIgnored private var stopRequests: Set<Int> = []
+    @ObservationIgnored private var nextRunningActionID = 0
+    /// 開けない理由（許可なし・パスワードの入力中）ごとに、最後にトーストで知らせた時刻（Scheduler.now）
+    @ObservationIgnored private var lastRefusalToasts: [ControllerStatus: TimeInterval] = [:]
+    /// 開いてすぐ指を離して閉じた回数（開きやすさの案内を出すため）
+    @ObservationIgnored private var accidentalOpens = AccidentalOpenTracker()
     /// 今の日時（記録の日時と、試用期間の知らせを1日に1回にするため。テストで差し替える）
     @ObservationIgnored var currentDate: () -> Date = { Date() }
 
@@ -369,7 +401,7 @@ public final class NonetController {
             let reason = String(localized: "送り先のアプリがありません。使いたいアプリを一度前面に出してから試してください。", bundle: .module)
             return fail(target, error: NonetError.actionFailed(reason))
         }
-        let context = ActionContext(frontmostApp: services.frontmostApp.current)
+        let context = ActionContext(frontmostApp: services.frontmostApp.current, terminalApp: configuration.settings.terminalApp)
         return await perform(target, context: context, turn: turn, showsSuccessAfterRunning: false)
     }
 
@@ -428,7 +460,8 @@ public final class NonetController {
         return captured
     }
 
-    /// トラックパッドのフレーム。エンジンに渡してから、開く動きを見る（開いたとき、エンジンはこのフレームの指で選び始める）
+    /// トラックパッドのフレーム。エンジンに渡してから、開く動きを見る（開いたとき、エンジンはこのフレームの指で選び始める）。
+    /// アクセシビリティの許可が無い間は、開けないことを知らせるために開く動きだけを見る（エンジンにもポインタにも触れない）
     private func receiveTouches(_ frame: TouchFrame) {
         let touching = !frame.touching.isEmpty
         if touching != isTrackpadTouched {
@@ -438,19 +471,9 @@ public final class NonetController {
                 endLatencyActivity()
             }
         }
-        // トラックパッドの続きが来なくなって離れたことにしたフレーム。光っているマスで離したことにせず、何も実行せずに閉じる
-        if frame.isSynthesizedLift {
-            send(.interrupted(at: frame.timestamp))
-        }
-        // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
-        let pointer = engine.isInSession ? hudMapFrame.flatMap { sessionPointer(for: frame, map: $0) } : nil
-        let wasWaitingAtCenter = pointerSelection.isWaitingAtCenter
-        send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
-        // 中央から出たのにエンジンの状態が変わらなかった（外枠のまま）ときも、HUD の「開いた直後」の見た目を解く
-        if wasWaitingAtCenter, !pointerSelection.isWaitingAtCenter, isHUDVisible, let session, let state = lastHUDState {
-            if let map = hud.update(hudModel(session, state: state)) {
-                hudMapFrame = map
-            }
+        let canOpen = status != .needsAccessibility
+        if canOpen {
+            passTouchesToEngine(frame)
         }
         // 待つ間に2本目の指が触れた・指が離れた・別の指に入れ替わったなら、開かない（2本指のスクロールを始めた・短くなぞっただけ・
         // 滑らせた指を離したフレームで別の指が触れた。その指は縁から滑らせていない）
@@ -467,10 +490,30 @@ public final class NonetController {
             break
         case .touchBeganInBand:
             // 開く動きの間に指を滑らせた分だけポインタが動くので、触れ始めた位置を覚えておき、開いたらそこへ戻す
-            services.keyboard.rememberPointerLocation()
+            if canOpen {
+                services.keyboard.rememberPointerLocation()
+            }
             beginLatencyActivity()
         case .slid:
             scheduleOpen(fingerID: frame.touching.first?.id)
+        }
+    }
+
+    /// フレームをエンジンに渡す。開いている間は、ポインタの位置で選んだマスを指の位置にする
+    private func passTouchesToEngine(_ frame: TouchFrame) {
+        // トラックパッドの続きが来なくなって離れたことにしたフレーム。光っているマスで離したことにせず、何も実行せずに閉じる
+        if frame.isSynthesizedLift {
+            send(.interrupted(at: frame.timestamp))
+        }
+        // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
+        let pointer = engine.isInSession ? hudMapFrame.flatMap { sessionPointer(for: frame, map: $0) } : nil
+        let wasWaitingAtCenter = pointerSelection.isWaitingAtCenter
+        send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
+        // 中央から出たのにエンジンの状態が変わらなかった（外枠のまま）ときも、HUD の「開いた直後」の見た目を解く
+        if wasWaitingAtCenter, !pointerSelection.isWaitingAtCenter, isHUDVisible, let session, let state = lastHUDState {
+            if let map = hud.update(hudModel(session, state: state)) {
+                hudMapFrame = map
+            }
         }
     }
 
@@ -510,14 +553,18 @@ public final class NonetController {
     /// 上の縁からの滑り込みを見分けた。開いてよければセッションを始める。
     /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ など）・始められない状態
     /// （無効・許可なし・セキュア入力・「このアプリでは Nonet を使わない」）・Nonet のウィンドウがキー（練習中を除く）なら、
-    /// 何もしない（ポインタはそのまま動く）。試用期間が終わっていたら開かず、終わったことと次にすることをトースト1つと触覚で知らせる
+    /// 開かない（ポインタはそのまま動く）。許可なしとセキュア入力は、開かない理由をトーストと触覚で知らせる（explainWhyNotOpening）。
+    /// 試用期間が終わっていたら開かず、終わったことと次にすることをトースト1つと触覚で知らせる
     /// （開く動きは1つのタッチで1回なので、トーストも1回）
     private func openFromEdge() {
         guard !services.keyboard.isMouseButtonDown else {
             controllerLogger.debug("ボタンが押されているため、開きません")
             return
         }
-        guard canBeginSession() else { return }
+        guard canBeginSession() else {
+            explainWhyNotOpening()
+            return
+        }
         // Nonet のウィンドウ（設定など）がキーなら開かない。送るキーや読む選択範囲が Nonet のウィンドウのものになり、
         // 設定でマスをドラッグするなど、トラックパッドを使っている最中でもある。初回の案内の練習は、案内のウィンドウの上で試す
         guard isPracticeMode || !services.frontmostApp.isOwnWindowKey else {
@@ -533,7 +580,7 @@ public final class NonetController {
         guard license.canExecuteActions else {
             controllerLogger.notice("試用期間が終わっているため、開きません")
             playHaptic(.rejected, strength: configuration.settings.haptics)
-            showToast(ControllerPresentation.trialEndedToast)
+            showToast(ControllerPresentation.trialEndedToast(isMenuBarIconVisible: isMenuBarIconVisible()))
             // 起動したまま一日の途中で終わったときは、表示用の entitlement がまだ試用中のまま（日付が変わるか、メニューを開くまで）。
             // 数え直して「試用期間が終わりました」のウィンドウや設定の帯をすぐ出す
             if case .trial = license.entitlement {
@@ -561,6 +608,29 @@ public final class NonetController {
         // 試用期間の終了を知らせるトーストと触覚も出さない（仕様: そのアプリでは何もしない）。
         // 初回の案内の練習は別: 案内のウィンドウの上で試すので、その前に使っていたアプリで使わない設定でも開く（グローバルのページ）
         return isPracticeMode || !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID)
+    }
+
+    /// アクセシビリティの許可が無い・パスワードの入力中で開かなかったことを、トーストと rejected の触覚で知らせる
+    /// （反応が無くて壊れていると思わないように。どこで直すかも言う）。同じ理由のトーストは refusalToastInterval に1回まで（触覚は毎回）。
+    /// 止めている・キーの記録中・「このアプリでは Nonet を使わない」アプリでは何もしない（仕様: そのアプリでは何もしない）
+    private func explainWhyNotOpening() {
+        guard isStarted, !isRecordingKeys else { return }
+        guard isPracticeMode || !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID) else { return }
+        let toast: ToastModel
+        switch status {
+        case .needsAccessibility:
+            toast = ControllerPresentation.accessibilityNeededToast(isMenuBarIconVisible: isMenuBarIconVisible())
+        case .secureInputActive:
+            toast = ControllerPresentation.secureInputToast
+        case .stopped, .running, .disabled, .noTrackpad:
+            return
+        }
+        controllerLogger.notice("開けないため、理由を知らせます（\(String(describing: self.status), privacy: .public)）")
+        playHaptic(.rejected, strength: configuration.settings.haptics)
+        let now = services.scheduler.now
+        if let last = lastRefusalToasts[status], last <= now, now - last < Self.refusalToastInterval { return }
+        lastRefusalToasts[status] = now
+        showToast(toast)
     }
 
     /// 表示用の entitlement を新しくする（日付が変わった後の残り日数など）。
@@ -651,6 +721,9 @@ public final class NonetController {
             session = nil
             if case .cancelled(let cancellation) = reason {
                 lastCancellation = CancellationRecord(reason: cancellation, date: currentDate(), liftedBeforeMoving: liftedBeforeMoving)
+                if liftedBeforeMoving {
+                    noteAccidentalOpen()
+                }
             }
             if !isTrackpadTouched {
                 endLatencyActivity()
@@ -659,6 +732,16 @@ public final class NonetController {
             refreshLicenseAfterSession()
             controllerLogger.debug("セッションが終わりました: \(String(describing: reason), privacy: .public)")
         }
+    }
+
+    /// 開いてすぐ、ポインタを真ん中から出さずに離して閉じた。続くようなら（AccidentalOpenTracker）、開きやすさを「控えめ」にする案内を1回だけ出す。
+    /// 練習中（初回の案内で、外枠に出してやめる）・もう「控えめ」・もう案内したなら数えない
+    private func noteAccidentalOpen() {
+        guard !isPracticeMode, !guidance.hasShownSensitivityHint, configuration.settings.openSensitivity != .low else { return }
+        guard accidentalOpens.record(at: services.scheduler.now) else { return }
+        guidance.hasShownSensitivityHint = true
+        controllerLogger.info("開いてすぐ閉じることが続いたので、開きやすさの案内を出します")
+        showToast(ControllerPresentation.sensitivityHintToast)
     }
 
     /// タイマーは常に1つ。新しい依頼は前の依頼を置き換える
@@ -772,7 +855,7 @@ public final class NonetController {
             record(target, succeeded: true, message: nil, isPractice: true)
             return
         }
-        let context = ActionContext(frontmostApp: session.frontmostApp)
+        let context = ActionContext(frontmostApp: session.frontmostApp, terminalApp: session.settings.terminalApp)
         executions.enqueue { [weak self] turn in
             _ = await self?.perform(target, context: context, turn: turn, showsSuccessAfterRunning: true)
         }
@@ -802,8 +885,11 @@ public final class NonetController {
         }
         let run = startRunningToast(for: target)
         do {
-            let output = try await services.performer.performReturningOutput(target.cell.action, context: context)
+            let (output, wasStopped) = try await performAction(target, context: context)
             let didShowRunning = finishRunningToast(run)
+            if wasStopped {
+                return stopped(target)
+            }
             if let output {
                 hideRunningToast(run)
                 hud.showResult(ControllerPresentation.result(target.cell, output: output))
@@ -819,6 +905,57 @@ public final class NonetController {
         }
     }
 
+    /// アクションを実行する。止められるマス（ControllerExecutionPolicy.canStop）は別の Task で動かし、実行の間は runningActions に出す。
+    /// stopRunningAction で止めたら、終わり方（取り消しで投げた・結果を返した）によらず stopped を true にする
+    private func performAction(_ target: ControllerTarget, context: ActionContext) async throws -> (output: String?, stopped: Bool) {
+        let action = target.cell.action
+        let performer = services.performer
+        guard ControllerExecutionPolicy.canStop(action) else {
+            return (try await performer.performReturningOutput(action, context: context), false)
+        }
+        let id = nextRunningActionID
+        nextRunningActionID += 1
+        let work = Task { @MainActor in
+            try await performer.performReturningOutput(action, context: context)
+        }
+        runningActions.append(RunningAction(id: id, cellTitle: target.cell.displayTitle, profileName: target.profileName))
+        stoppers[id] = { work.cancel() }
+        defer {
+            stoppers[id] = nil
+            runningActions.removeAll { $0.id == id }
+        }
+        do {
+            let output = try await work.value
+            return (output, stopRequests.remove(id) != nil)
+        } catch {
+            if stopRequests.remove(id) != nil { return (nil, true) }
+            throw error
+        }
+    }
+
+    /// メニューの「実行中の「◯◯」を止める」。制限時間を過ぎたときと同じく、プロセスを止める（取り消す）。
+    /// 失敗ではなく「止めました」と知らせて記録する。もう終わっていれば何もしない
+    public func stopRunningAction(id: Int) {
+        guard let cancel = stoppers.removeValue(forKey: id) else { return }
+        stopRequests.insert(id)
+        runningActions.removeAll { $0.id == id }
+        controllerLogger.info("実行中のマスを止めます")
+        cancel()
+    }
+
+    /// 止めた実行。「実行中」のトーストを「止めました」に置き換えて記録する
+    private func stopped(_ target: ControllerTarget) -> ExecutionRecord {
+        showToast(ControllerPresentation.stoppedToast(target.cell))
+        return record(target, succeeded: false, message: ControllerPresentation.stoppedMessage, wasStopped: true)
+    }
+
+    /// 失敗した実行の理由を、結果のパネルに全文で出す（メニューの「最近の実行」で選んだとき。トーストは数秒で消え、
+    /// メニューには1行目しか出ないので、ここで選んでコピーできるようにする）。成功・止めた・理由の無いものは何もしない
+    public func showFailureDetails(_ record: ExecutionRecord) {
+        guard !record.succeeded, !record.wasStopped, let message = record.message?.trimmedNonEmpty else { return }
+        hud.showResult(ControllerPresentation.failureResult(record, message: message))
+    }
+
     /// 「実行中」のトーストを出す予定
     private struct RunningToast {
         var id: Int
@@ -832,7 +969,9 @@ public final class NonetController {
         nextRunID += 1
         let task = services.scheduler.schedule(after: Self.runningToastDelay) { [weak self] in
             guard let self else { return }
-            self.showToast(ControllerPresentation.runningToast(target.cell))
+            // 止められるマスは、メニューバーのアイコンが見えていれば、そこで止められることを添える
+            let stopHint = ControllerExecutionPolicy.canStop(target.cell.action) && self.isMenuBarIconVisible()
+            self.showToast(ControllerPresentation.runningToast(target.cell, stopHint: stopHint))
             self.shownRunningToasts.insert(id)
             self.visibleRunningToast = id
         }
@@ -857,7 +996,7 @@ public final class NonetController {
     @discardableResult
     private func refuseWithoutLicense(_ target: ControllerTarget) -> ExecutionRecord {
         controllerLogger.notice("試用期間が終わっているため実行しません")
-        let message = NonetError.licenseRequired.localizedDescription
+        let message = ControllerPresentation.licenseRequiredMessage(isMenuBarIconVisible: isMenuBarIconVisible())
         showToast(ControllerPresentation.failureToast(target, message: message))
         return record(target, succeeded: false, message: message)
     }
@@ -865,7 +1004,7 @@ public final class NonetController {
     /// 設定画面からは「このマスをテスト実行」で試せる（直前のアプリを前面に戻してから実行する）
     private func refuseInOwnWindow(_ target: ControllerTarget) {
         controllerLogger.notice("Nonet のウィンドウがキーなので実行しません（\(target.cell.action.kind.rawValue, privacy: .public)）")
-        let message = String(localized: "Nonet のウィンドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。", bundle: .module)
+        let message = String(localized: "Nonet のウインドウが前面にあるので実行しませんでした。設定では「このマスをテスト実行」で試せます。", bundle: .module)
         showToast(ControllerPresentation.failureToast(target, message: message))
         record(target, succeeded: false, message: message)
     }
@@ -880,7 +1019,14 @@ public final class NonetController {
 
     /// isPractice は練習モードの記録（実際には実行していない）。lastExecution にだけ残し、recentExecutions には入れない
     @discardableResult
-    private func record(_ target: ControllerTarget, succeeded: Bool, message: String?, output: String? = nil, isPractice: Bool = false) -> ExecutionRecord {
+    private func record(
+        _ target: ControllerTarget,
+        succeeded: Bool,
+        message: String?,
+        output: String? = nil,
+        isPractice: Bool = false,
+        wasStopped: Bool = false
+    ) -> ExecutionRecord {
         let record = ExecutionRecord(
             cellTitle: target.cell.displayTitle,
             profileName: target.profileName,
@@ -889,7 +1035,8 @@ public final class NonetController {
             message: message,
             date: currentDate(),
             output: output,
-            profileID: target.profileID
+            profileID: target.profileID,
+            wasStopped: wasStopped
         )
         lastExecution = record
         if !isPractice {
@@ -914,13 +1061,12 @@ public final class NonetController {
         if isEnabled {
             hasPermission = services.permissions.isAccessibilityGranted
             isGranted = hasPermission
-            // 許可が無い間はセッションを始められないので、指の位置も読まない（指が触れるたびにメインスレッドを起こさない）
-            if hasPermission {
-                hasTrackpad = startTouchSource()
-                // トラックパッドが無ければ開くことも無いので、イベントタップは作らない
-                if hasTrackpad {
-                    isGranted = startKeyboard()
-                }
+            // 指の位置は許可が無くても読める。許可が無い間も上の縁からの滑り込みだけは見て、開けない理由を知らせる
+            // （そのとき receiveTouches は開く動きしか見ない）
+            hasTrackpad = startTouchSource()
+            // 許可かトラックパッドが無ければ開くことも無いので、イベントタップは作らない
+            if hasPermission, hasTrackpad {
+                isGranted = startKeyboard()
             }
             isSecureInput = services.permissions.isSecureInputActive
         }
@@ -935,8 +1081,8 @@ public final class NonetController {
             stopKeyboard()
         }
         // 止めるときに触れていた指は離れたことにするので、始め直した後は新しいタッチとして数える。
-        // セキュア入力の間は止めない（入ったり出たりが多く、終わったらすぐに使えるようにするため）
-        if !(isEnabled && hasPermission) {
+        // 許可が無い・セキュア入力の間は止めない（開けない理由を知らせるため。セキュア入力は入ったり出たりが多く、終わったらすぐに使えるようにするため）
+        if !isEnabled {
             stopTouchSource()
         }
         schedulePoll()

@@ -51,6 +51,16 @@ enum SettingsIconLibrary {
         ]
     }
 
+    /// VoiceOver で読む名前。macOS が記号に付けている説明（"folder.badge.plus" なら「新規フォルダ」）があればそれを、
+    /// 無ければ記号の名前の「.」を空白にしたもの（"wand.and.stars" → "wand and stars"）
+    static func accessibilityName(_ symbol: String) -> String {
+        if let description = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.accessibilityDescription?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !description.isEmpty {
+            return description
+        }
+        return symbol.split(separator: ".").joined(separator: " ")
+    }
+
     /// 候補のすべて（重なりなし）
     static var allSymbols: [String] {
         var seen = Set<String>()

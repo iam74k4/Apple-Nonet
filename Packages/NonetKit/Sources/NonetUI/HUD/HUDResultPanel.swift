@@ -261,7 +261,7 @@ final class HUDResultPanelController {
         }
         panel.setFrame(frame, display: true)
         panel.orderFrontRegardless()
-        HUDAccessibility.announce(HUDAccessibility.toastAnnouncement(title: result.title, detail: result.text))
+        HUDAccessibility.announce(HUDAccessibility.resultAnnouncement(title: result.title, text: result.text))
     }
 
     func close() {

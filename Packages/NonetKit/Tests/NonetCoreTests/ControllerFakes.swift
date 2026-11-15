@@ -341,11 +341,15 @@ final class ControllerFakePerformer: ActionPerforming {
         var frontmostApp: RunningAppInfo?
         /// 文脈を読み終えたと知らせる口（ActionContext.didReadContext）を渡されたか
         var canReportContextRead = false
+        /// 「ターミナルで実行」のスクリプトを開くアプリ（ActionContext.terminalApp）
+        var terminalApp: TerminalApp = .terminal
     }
 
     private(set) var calls: [Call] = []
     /// 終わった順
     private(set) var finished: [Action] = []
+    /// 終わったときに、その実行の Task が取り消されていたか（終わった順。メニューの「止める」が実行まで届いたか）
+    private(set) var finishedCancelled: [Bool] = []
     /// 失敗させるアクション
     var failure: ((Action) -> (any Error)?)?
     /// 返す文字列（AI の「結果を表示」）
@@ -375,7 +379,12 @@ final class ControllerFakePerformer: ActionPerforming {
     }
 
     func performReturningOutput(_ action: Action, context: ActionContext) async throws -> String? {
-        calls.append(Call(action: action, frontmostApp: context.frontmostApp, canReportContextRead: context.didReadContext != nil))
+        calls.append(Call(
+            action: action,
+            frontmostApp: context.frontmostApp,
+            canReportContextRead: context.didReadContext != nil,
+            terminalApp: context.terminalApp
+        ))
         recorder.log("perform:\(action.kind.rawValue)")
         running += 1
         maxRunning = max(maxRunning, running)
@@ -386,6 +395,7 @@ final class ControllerFakePerformer: ActionPerforming {
             await withCheckedContinuation { waiting.append((action, $0)) }
         }
         finished.append(action)
+        finishedCancelled.append(Task.isCancelled)
         if let error = failure?(action) { throw error }
         return output?(action)
     }

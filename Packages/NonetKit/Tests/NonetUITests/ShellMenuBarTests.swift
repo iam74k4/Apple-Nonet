@@ -608,7 +608,7 @@ struct ShellMenuBarTests {
 
     @Test("ようこその説明は、上の縁から指を滑らせることを言う")
     func welcomeText() {
-        #expect(ShellText.welcomeSubtitle == L10n.ui("トラックパッドの上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンになります"))
+        #expect(ShellText.tagline == L10n.ui("トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます"))
     }
 
     @Test("メニューバーのアイコンが見えているか: 画面の中で、ノッチのある画面ではノッチの右のメニューバーにあるとき")

@@ -73,39 +73,6 @@
         }
       }
     },
-    "%@ では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet is off in %@. The trigger key and trackpad work as usual."
-          }
-        }
-      }
-    },
-    "%@ では Nonet を使いません。トリガーキーもトラックパッドもいつもどおり働きます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet is off in %@. The trigger key and trackpad work as usual."
-          }
-        }
-      }
-    },
-    "%@ ではグローバルのボタンを使います。このプロファイルのボタンは残しています" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ uses the Global buttons. This profile's buttons are kept."
-          }
-        }
-      }
-    },
     "%@ ではグローバルのマスを使います。このプロファイルのマスは残しています。" : {
       "localizations" : {
         "en" : {
@@ -138,28 +105,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ のページ %2$lld"
-          }
-        }
-      }
-    },
-    "%@ のボタンを作る…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create Buttons for %@…"
-          }
-        }
-      }
-    },
-    "%@ のボタンを編集…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Buttons for %@…"
           }
         }
       }
@@ -220,6 +165,22 @@
         }
       }
     },
+    "%@、%@…（続きは結果のパネルで読めます）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@… (The rest is in the result panel.)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@、%2$@…（続きは結果のパネルで読めます）"
+          }
+        }
+      }
+    },
     "%@、%@、%@" : {
       "localizations" : {
         "en" : {
@@ -232,28 +193,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@、%2$@、%3$@"
-          }
-        }
-      }
-    },
-    "%@の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest one finger in the %@ corner and wait a moment. When the HUD appears, slide to a button and lift your finger to run it."
-          }
-        }
-      }
-    },
-    "%@の角に指を1本置いて、そのまま少し待ちます。HUD が出たら、指を滑らせて選び、離すと実行します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest one finger in the %@ corner and wait a moment. When the HUD appears, slide to a button and lift your finger to run it."
           }
         }
       }
@@ -284,124 +223,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restore the settings from %@?"
-          }
-        }
-      }
-    },
-    "%@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%@」に合わせ、%@を離してください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %1$@ and rest a finger on the trackpad. When the HUD appears, slide to “%2$@” and release %3$@."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%2$@」に合わせ、%3$@を離してください"
-          }
-        }
-      }
-    },
-    "%@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%@」に合わせ、%@を離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %1$@ and rest a finger on the trackpad. When the HUD appears, slide to “%2$@” and release %3$@."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%2$@」に合わせ、%3$@を離してください。"
-          }
-        }
-      }
-    },
-    "%@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%@」に合わせ、指を離してください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %1$@ and rest a finger on the trackpad. When the HUD appears, slide to “%2$@” and lift your finger."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%2$@」に合わせ、指を離してください"
-          }
-        }
-      }
-    },
-    "%@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%@」に合わせ、指を離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %1$@ and rest a finger on the trackpad. When the HUD appears, slide to “%2$@” and lift your finger."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@を押したまま、トラックパッドに指を置いて止めます。HUD が出たら、指を滑らせて「%2$@」に合わせ、指を離してください。"
-          }
-        }
-      }
-    },
-    "%@を押して、%@の「%@」をすぐにタップしてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %1$@ and tap “%3$@” (%2$@) right away."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@を押して、%2$@の「%3$@」をすぐにタップしてください"
-          }
-        }
-      }
-    },
-    "%@を押しながら、トラックパッドの右上をタップ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %@ and tap the top-right corner of the trackpad"
-          }
-        }
-      }
-    },
-    "%@キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンになります" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold %@ and your trackpad turns into nine buttons that change with each app."
-          }
-        }
-      }
-    },
-    "%@秒" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ s"
           }
         }
       }
@@ -448,29 +269,6 @@
         }
       }
     },
-    "%lld個のアプリのプロファイルを追加します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Nonet will add %lld app profile."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Nonet will add %lld app profiles."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld個のプロファイルは、この版の Nonet では読めない中身（新しい版で加わった種類のマスなど）があったため、その部分を読み込めませんでした。" : {
       "localizations" : {
         "en" : {
@@ -486,6 +284,28 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld profiles had content this version of Nonet can't read (such as button types added in a newer version), so those parts weren't imported."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルは、同じアプリのものがすでにあるため、元に戻せませんでした" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Couldn't bring back %lld profile because a profile for the same app already exists."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Couldn't bring back %lld profiles because profiles for the same apps already exist."
                 }
               }
             }
@@ -517,6 +337,50 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld個のプロファイルを「%2$@」に書き出しました。"
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルを削除しました" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Deleted %lld profile."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Deleted %lld profiles."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld個のプロファイルを削除しますか？" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld profile?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld profiles?"
+                }
+              }
+            }
           }
         }
       }
@@ -587,19 +451,24 @@
         }
       }
     },
-    "%lld個中%lld個を選択中" : {
-      "extractionState" : "stale",
+    "%lld個を削除…" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%2$lld of %1$lld selected"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld個中%2$lld個を選択中"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld…"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Delete %lld…"
+                }
+              }
+            }
           }
         }
       }
@@ -631,77 +500,22 @@
         }
       }
     },
-    "1〜2文字（3文字目からは切ります）" : {
-      "extractionState" : "stale",
+    "9つのボタンを開いている間、ポインタの移動とクリックを前面のアプリに渡さない" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1–2 characters. Extra characters are cut off."
+            "value" : "Keep pointer movement and clicks from reaching the front app while the nine buttons are open"
           }
         }
       }
     },
-    "2本指で左右にスワイプ" : {
-      "extractionState" : "stale",
+    "9つのボタンを開いている間だけ、キーが押されたことを知る（押されたら閉じる）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Swipe left or right with two fingers"
-          }
-        }
-      }
-    },
-    "9マスの外側の外枠まで指を滑らせて離すと、何も実行せずに閉じます。キーを押しても閉じます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slide out to the frame around the nine buttons and lift your finger to close without running anything. Pressing a key also closes them."
-          }
-        }
-      }
-    },
-    "9マスを開いたまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "With the buttons open, swipe with two fingers to change pages. Each app can have up to three pages."
-          }
-        }
-      }
-    },
-    "9マスを開いたまま、左右の外枠に指を止めると、そちら側のページに切り替わります。1つのアプリに最大3ページ置けます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "With the nine buttons open, hold your finger in the left or right frame to switch to the page on that side. Each app can have up to three pages."
-          }
-        }
-      }
-    },
-    "9マスを開いている間、ポインタの移動とクリックを前面のアプリに渡さない" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep pointer movement and clicks from reaching the front app while the buttons are open"
-          }
-        }
-      }
-    },
-    "9マスを開いている間だけ、キーが押されたことを知る（押されたら閉じる）" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notice key presses only while the buttons are open (a key press closes them)"
+            "value" : "Notice key presses only while the nine buttons are open (a key press closes them)"
           }
         }
       }
@@ -766,29 +580,7 @@
         }
       }
     },
-    "Finder が前面にあるときだけ、Finder で選んでいるファイルに使えます。初めて使うときに、Nonet が Finder を操作する許可を尋ねます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Works on the files selected in Finder, only while Finder is in front. The first time you use it, macOS asks whether Nonet may control Finder."
-          }
-        }
-      }
-    },
     "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In the Finder, drag Nonet to the Applications folder, then open it from there."
-          }
-        }
-      }
-    },
-    "Finder で Nonet をアプリケーションフォルダにドラッグしてから、そこから開いてください。" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -838,61 +630,6 @@
         }
       }
     },
-    "HUD から実行しました。今度は指を止めずに、すぐにタップしてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That ran from the HUD. This time, tap right away without resting your finger."
-          }
-        }
-      }
-    },
-    "HUD から実行しました。今度は指を止めずに、すぐにタップしてください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That ran from the HUD. This time, tap right away without resting your finger."
-          }
-        }
-      }
-    },
-    "HUD が出るまでの時間" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HUD delay"
-          }
-        }
-      }
-    },
-    "HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That ran before the HUD appeared. This time, keep your finger still until the HUD appears."
-          }
-        }
-      }
-    },
-    "HUD が出る前に実行されました。今度は指を置いたまま、HUD が出るまで止めてください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That ran before the HUD appeared. This time, keep your finger still until the HUD appears."
-          }
-        }
-      }
-    },
     "HUD で選んだときだけ実行" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -900,28 +637,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Runs only when chosen in the HUD"
-          }
-        }
-      }
-    },
-    "HUD で選んだマスを、トリガーキーを離したときに実行します。速押しはどちらでもその場で実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD when you release the trigger key. Quick taps always run right away."
-          }
-        }
-      }
-    },
-    "HUD で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD when you lift your finger. To cancel, keep your finger down and press left ⇧."
           }
         }
       }
@@ -983,45 +698,6 @@
         }
       }
     },
-    "HUD の地図の図" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map of the HUD"
-          }
-        }
-      }
-    },
-    "HUD の地図の図。目標は%@の「%@」です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map of the HUD. The target is “%2$@” at the %1$@."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "HUD の地図の図。目標は%1$@の「%2$@」です。"
-          }
-        }
-      }
-    },
-    "HUD の地図の図。目標は9マスの外側の外枠です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map of the HUD. The target is the frame around the nine buttons."
-          }
-        }
-      }
-    },
     "HUD の大きさ" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1029,127 +705,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HUD size"
-          }
-        }
-      }
-    },
-    "HUD を出さずに実行したとき、実行したマスを画面の下に一瞬表示します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When a button runs without the HUD, Nonet briefly shows it at the bottom of the screen."
-          }
-        }
-      }
-    },
-    "HUD を出さずに実行したときと、時間の掛かるボタンが終わったときに、そのボタンを画面の下に表示します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows the button at the bottom of the screen when it runs without the HUD, and when a slow button finishes."
-          }
-        }
-      }
-    },
-    "HUD を出さずに実行したときと、時間の掛かるマスが終わったときに、画面の下に通知を出します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows a notice at the bottom of the screen when a button runs without the HUD, and when a slow button finishes."
-          }
-        }
-      }
-    },
-    "HUD（9マスの一覧）から選ぶ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose from the HUD (all nine buttons)"
-          }
-        }
-      }
-    },
-    "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD (the overview of all nine buttons) when you release the trigger key. A quick tap runs right away, even with the HUD showing."
-          }
-        }
-      }
-    },
-    "HUD（9マスの一覧）で選んだマスを、トリガーキーを離したときに実行します。すぐにタップすれば、HUD が出ていてもその場で実行します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD (the overview of all nine buttons) when you release the trigger key. A quick tap runs right away, even with the HUD showing."
-          }
-        }
-      }
-    },
-    "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD (the overview of all nine buttons) when you lift your finger. To cancel, keep your finger down and press left ⇧."
-          }
-        }
-      }
-    },
-    "HUD（9マスの一覧）で選んだマスを、指を離したときに実行します。やめるときは指を置いたまま左の⇧を押します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs the button you choose in the HUD (the overview of all nine buttons) when you lift your finger. To cancel, keep your finger down and press left ⇧."
-          }
-        }
-      }
-    },
-    "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "JIS keyboards have no right ⌥. Choose right ⌘, right ⇧ or fn."
-          }
-        }
-      }
-    },
-    "JIS 配列のキーボードには右⌥がありません。右⌘・右⇧・fn のどれかにしてください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "JIS keyboards have no right ⌥. Choose right ⌘, right ⇧ or fn."
-          }
-        }
-      }
-    },
-    "Mac にあるアプリから、9マスを用意しました" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nine buttons for the apps on your Mac"
           }
         }
       }
@@ -1425,23 +980,22 @@
         }
       }
     },
+    "Nonet を終了しますか？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Nonet?"
+          }
+        }
+      }
+    },
     "Nonet を購入…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buy Nonet…"
-          }
-        }
-      }
-    },
-    "Nonet を開き直す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reopen Nonet"
           }
         }
       }
@@ -1605,45 +1159,12 @@
         }
       }
     },
-    "fn（地球儀）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "fn"
-          }
-        }
-      }
-    },
-    "fn（地球儀）を押している間だけ反応します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet responds while you hold fn (Globe)."
-          }
-        }
-      }
-    },
     "macOS では、ほかのアプリを使っている間のキーボードやポインタを扱うのにこの許可が要ります。Nonet は次のことにだけ使います。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:"
-          }
-        }
-      }
-    },
-    "macOS のスクリーンショットのキーボードショートカットを送ります。システム設定で変えていれば、そのキーを使います。保存先は macOS のスクリーンショットの設定に従い、Nonet が画面を読むことはありません（画面収録の許可は要りません）。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sends the macOS screenshot keyboard shortcut (the one you set in System Settings, if you changed it). Where files are saved follows the macOS screenshot settings. Nonet never reads your screen, so it doesn't need Screen Recording permission."
           }
         }
       }
@@ -1682,19 +1203,19 @@
         }
       }
     },
-    "settings.grid.sharedBadge" : {
-      "extractionState" : "stale",
+    "settings.cleanupSheet.title" : {
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Shared"
+            "value" : "Clean Up Profiles"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "共通"
+            "value" : "プロファイルを整理"
           }
         }
       }
@@ -1729,6 +1250,23 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "ライセンスキー"
+          }
+        }
+      }
+    },
+    "settings.license.removeWithoutCopying" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "消す"
           }
         }
       }
@@ -1784,42 +1322,19 @@
         }
       }
     },
-    "sharedButton.accessibilityValue" : {
-      "extractionState" : "stale",
+    "shell.quitConfirmation.quit" : {
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Shared button"
+            "value" : "Quit"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "共通マス"
-          }
-        }
-      }
-    },
-    "…ほか%lld行" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "…and %lld more line"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "…and %lld more lines"
-                }
-              }
-            }
+            "value" : "終了"
           }
         }
       }
@@ -1844,34 +1359,12 @@
         }
       }
     },
-    "「%@」で離したので実行しました。やめるときは、指を外枠まで滑らせてから離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You lifted on “%@”, so it ran. To cancel, slide your finger out to the frame before lifting it."
-          }
-        }
-      }
-    },
     "「%@」で離しました。やめるときは、ポインタをアイコンの輪の外まで動かしてから離してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "You lifted on “%@”. To cancel, move the pointer outside the ring of icons and lift there."
-          }
-        }
-      }
-    },
-    "「%@」で離しました。やめるときは、指を外枠まで滑らせてから離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You lifted on “%@”. To cancel, slide to the frame and lift there."
           }
         }
       }
@@ -1892,45 +1385,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No items match “%@”."
-          }
-        }
-      }
-    },
-    "「%@」に空いているマスがありません。マスを空けるか、ページを追加してください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@” has no empty buttons. Clear a button or add a page."
-          }
-        }
-      }
-    },
-    "「%@」に空いているマスがありません。マスを空けるか、ページを追加してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“%@” has no empty buttons. Clear a button or add a page."
-          }
-        }
-      }
-    },
-    "「%@」の%@にコピーしました" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copied to %2$@ of “%1$@”."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "「%1$@」の%2$@にコピーしました"
           }
         }
       }
@@ -2035,17 +1489,6 @@
         }
       }
     },
-    "「システム設定を開く」を押し、プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click Open System Settings, then turn on Nonet in Privacy & Security › Accessibility."
-          }
-        }
-      }
-    },
     "「システム設定を開く」を押す" : {
       "localizations" : {
         "en" : {
@@ -2056,24 +1499,22 @@
         }
       }
     },
-    "「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ %lld」に戻ります" : {
-      "extractionState" : "stale",
+    "「ターミナルで実行」にしたスクリプトを、このアプリの新しいウインドウで実行します。iTerm2 では、スクリプトが終わった後もウインドウにシェルが残ります" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+            "value" : "Scripts set to run In Terminal run in a new window of this app. In iTerm2, a shell stays open in the window after the script ends"
           }
         }
       }
     },
-    "「デバッグ」「Git」のように、何のページかを付けます。HUD（9マスの一覧）の題名にも出ます。空にすると「ページ %lld」に戻ります。" : {
-      "extractionState" : "stale",
+    "「ターミナルで実行」のアプリ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the HUD title. Leave it empty to go back to “Page %lld”."
+            "value" : "Terminal app for scripts"
           }
         }
       }
@@ -2088,45 +1529,12 @@
         }
       }
     },
-    "「デバッグ」「Git」のように、何のページかを付けます。メニューバーの早見表の題名にも出ます。空にすると「ページ %lld」に戻ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name the page after what it's for, like “Debug” or “Git”. The name also appears in the title of the menu bar's quick reference. Leave it empty to go back to “Page %lld”."
-          }
-        }
-      }
-    },
     "「プロファイルを追加」で、アプリごとの9マスを作れます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click Add Profile to give an app its own nine buttons."
-          }
-        }
-      }
-    },
-    "「画面収録」の許可は、Nonet を開き直すと効きます。それまでは黒いアイコンに白い縁で表示します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Screen Recording permission takes effect after Nonet reopens. Until then, icons are black with a white outline."
-          }
-        }
-      }
-    },
-    "「画面収録」は許可されています" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screen Recording is allowed"
           }
         }
       }
@@ -2141,40 +1549,12 @@
         }
       }
     },
-    "あとで設定する" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set Up Later"
-          }
-        }
-      }
-    },
     "あとで許可する" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not Now"
-          }
-        }
-      }
-    },
-    "いまのは%@の「%@」です。「%@」は%@にあります" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That was “%2$@” (%1$@). “%3$@” is at the %4$@."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "いまのは%1$@の「%2$@」です。「%3$@」は%4$@にあります"
           }
         }
       }
@@ -2195,34 +1575,12 @@
         }
       }
     },
-    "いまのは「%@」のマスです。右上をタップしてみてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That was the %@ button. Try the top‑right corner."
-          }
-        }
-      }
-    },
     "いまの課題" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Current task"
-          }
-        }
-      }
-    },
-    "いま使うページにボタンがありません。設定でボタンを追加すると試せます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The page in use has no buttons. Add a button in Settings to try it out."
           }
         }
       }
@@ -2257,39 +1615,27 @@
         }
       }
     },
-    "ここに置いたマスは、すべてのアプリのすべてのページの同じ位置に出ます" : {
-      "extractionState" : "stale",
+    "くわしくは利用ガイドへ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buttons placed here appear in the same spot on every page of every app"
+            "value" : "Learn more in the User Guide"
           }
         }
       }
     },
-    "この Mac からライセンスキーを消します。キーはあとからいつでも登録し直せます。" : {
+    "この Mac からライセンスキーを消します。コピーしておくと、あとで登録し直すときに貼り付けられます（キーは購入時のメールにもあります）。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet will remove the license key from this Mac. You can register the key again at any time."
+            "value" : "Nonet will remove the license key from this Mac. If you copy it first, you can paste it to register again later (the key is also in your purchase email)."
           }
         }
       }
     },
     "この Mac から登録を消しました" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The license was removed from this Mac."
-          }
-        }
-      }
-    },
-    "この Mac から登録を消しました。" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2319,24 +1665,12 @@
         }
       }
     },
-    "この Mac でのライセンスの登録を外します。ライセンスキーを控えておけば、また登録できます。" : {
-      "extractionState" : "stale",
+    "この Mac で見つからないアプリのプロファイルにチェックを付けます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your license will be removed from this Mac. Keep a copy of your license key so you can register again."
-          }
-        }
-      }
-    },
-    "この Mac での登録を外す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unregister this Mac"
+            "value" : "Selects the profiles of apps that aren't on this Mac"
           }
         }
       }
@@ -2411,7 +1745,7 @@
         }
       }
     },
-    "このウィンドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。" : {
+    "このウインドウをクリックすると練習を始めます。ほかのアプリを使っている間は、マスを本当に実行します。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2447,28 +1781,6 @@
         }
       }
     },
-    "このプロファイルの9マスはすべて消えます。元に戻せません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All buttons in this profile will be deleted. You can't undo this action."
-          }
-        }
-      }
-    },
-    "このプロファイルのボタンもすべて削除します。⌘Z で元に戻せます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All of its buttons are deleted too. You can undo this with ⌘Z."
-          }
-        }
-      }
-    },
     "このプロファイルのマスもすべて削除します。⌘Z で元に戻せます。" : {
       "localizations" : {
         "en" : {
@@ -2479,45 +1791,12 @@
         }
       }
     },
-    "このプロファイルを使う" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this profile"
-          }
-        }
-      }
-    },
     "このプロファイルを書き出す…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export This Profile…"
-          }
-        }
-      }
-    },
-    "このページのボタンもすべて削除します。⌘Z で元に戻せます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All buttons on this page are deleted too. You can undo this with ⌘Z."
-          }
-        }
-      }
-    },
-    "このページのマスはすべて消えます。元に戻せません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All buttons on this page will be deleted. You can't undo this action."
           }
         }
       }
@@ -2570,17 +1849,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "For this button, hold your finger on it until its outline goes all the way around, then lift."
-          }
-        }
-      }
-    },
-    "このマスは共通マスです。共通マスで変えると、すべてのアプリで変わります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This is a shared button. Change it in Shared Buttons and it changes in every app."
           }
         }
       }
@@ -2656,34 +1924,12 @@
         }
       }
     },
-    "このライセンスキーは登録済みです。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This license key is already registered."
-          }
-        }
-      }
-    },
     "このライセンスキーを登録しますか？" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Register this license key?"
-          }
-        }
-      }
-    },
-    "この位置にはもう共通マスがあります。このマスで置き換えると、すべてのアプリで変わります。⌘Z で元に戻せます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "There's already a shared button in this spot. Replacing it with this button changes it in every app. You can undo with ⌘Z."
           }
         }
       }
@@ -2704,28 +1950,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This version can't be read"
-          }
-        }
-      }
-    },
-    "この案内は、メニューバーの 3×3 のアイコン ›「初回の案内をもう一度」でまた見られます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To see this guide again, click the 3×3 icon in the menu bar and choose Show Welcome Guide."
-          }
-        }
-      }
-    },
-    "この案内は、メニューバーの Nonet ›「初回の案内をもう一度」でまた見られます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To see this guide again, click the 3×3 icon in the menu bar and choose Show Welcome Guide."
           }
         }
       }
@@ -2770,101 +1994,12 @@
         }
       }
     },
-    "これより早いタップは、HUD を出さずにその場で実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taps faster than this run right away, without the HUD."
-          }
-        }
-      }
-    },
     "しまう" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Minimize"
-          }
-        }
-      }
-    },
-    "すぐにタップ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap right away"
-          }
-        }
-      }
-    },
-    "すぐにタップすると HUD が出てこのマスが光り、もう一度タップすると実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A quick tap opens the HUD with this button highlighted; tap again to run it"
-          }
-        }
-      }
-    },
-    "すぐにタップすると、その場で実行されます。迷ったら指を置いたまま止めると、9マスの一覧（HUD）が出ます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap right away and the button runs. Not sure? Rest your finger and the HUD shows all nine buttons."
-          }
-        }
-      }
-    },
-    "すぐにタップできました。%@のマスは「%@」です。慣れたら、これがいちばん速い使い方です" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That was a quick tap. The %1$@ button is “%2$@”. Once you know the layout, this is the fastest way."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "すぐにタップできました。%1$@のマスは「%2$@」です。慣れたら、これがいちばん速い使い方です"
-          }
-        }
-      }
-    },
-    "すぐにタップできました。%@のマスは「%@」です。慣れたら、これがいちばん速い使い方です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "That was a quick tap. The %1$@ button is “%2$@.” Once you know the layout, this is the fastest way."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "すぐにタップできました。%1$@のマスは「%2$@」です。慣れたら、これがいちばん速い使い方です。"
-          }
-        }
-      }
-    },
-    "すぐのタップでは実行しない（HUD で選んだときだけ）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Don't run on a quick tap (only when chosen in the HUD)"
           }
         }
       }
@@ -2900,19 +2035,7 @@
         }
       }
     },
-    "すべて外す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deselect All"
-          }
-        }
-      }
-    },
-    "すべて選ぶ" : {
-      "extractionState" : "stale",
+    "すべて選択" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2932,17 +2055,6 @@
         }
       }
     },
-    "ためらったときだけ HUD を出す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show the HUD only when you hesitate"
-          }
-        }
-      }
-    },
     "できました。アイコンで指を離すと実行します。" : {
       "localizations" : {
         "en" : {
@@ -2953,89 +2065,12 @@
         }
       }
     },
-    "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. You opened the HUD without the key. You can change this any time in Settings › General."
-          }
-        }
-      }
-    },
-    "できました。キーを使わずに HUD を出せました。設定 › 一般 でいつでも変えられます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. You opened the HUD without the key. You can change this any time in Settings › General."
-          }
-        }
-      }
-    },
-    "できました。マスで指を離すと実行します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. Lift your finger on a button to run it."
-          }
-        }
-      }
-    },
-    "できました。迷ったときはこのやり方で" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. Use this whenever you're not sure."
-          }
-        }
-      }
-    },
-    "できました。迷ったときはこのやり方で。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. Use this whenever you're not sure."
-          }
-        }
-      }
-    },
     "できました。迷ったらアイコンの輪の外で離せば、何も実行しません。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done. If you change your mind, lift outside the ring of icons and nothing runs."
-          }
-        }
-      }
-    },
-    "できました。迷ったら外枠で離せば、何も実行しません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done. If you change your mind, lift in the frame and nothing runs."
-          }
-        }
-      }
-    },
-    "できました！" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Well done"
           }
         }
       }
@@ -3114,44 +2149,12 @@
         }
       }
     },
-    "ほかのプロファイルにコピー" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy to Profile"
-          }
-        }
-      }
-    },
     "ほかの人から受け取ったプロファイルを読み込むときは、中のスクリプトを必ず確かめてください（スクリプトはあなたの権限で動きます）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "When you import profiles from someone else, always check their scripts. Scripts run with your permissions."
-          }
-        }
-      }
-    },
-    "まだ外枠で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You haven't lifted outside the ring yet. Move the pointer outside the ring of icons and lift there."
-          }
-        }
-      }
-    },
-    "まだ外枠で離していません。指を外枠（9マスの外側）まで滑らせてから離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You haven't lifted in the frame yet. Slide your finger to the frame (outside the nine buttons) and lift there."
           }
         }
       }
@@ -3166,34 +2169,22 @@
         }
       }
     },
+    "まだ輪の外で離していません。ポインタをアイコンの輪の外まで動かしてから離してください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't lifted outside the ring yet. Move the pointer outside the ring of icons and lift there."
+          }
+        }
+      }
+    },
     "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open the HUD from the top edge again. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
-          }
-        }
-      }
-    },
-    "もう一度上の縁から HUD を開き、今度はポインタを外枠（9マスの外側の帯）か地図の外まで動かしてから離してください。何も実行せずに閉じます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open the HUD from the top edge again. This time move the pointer out to the frame (the band around the nine buttons) or outside the map, then lift your finger. The buttons close without running anything."
-          }
-        }
-      }
-    },
-    "もう一度上の縁から HUD を開き、今度は指を外枠（9マスの外側）まで滑らせてから離してください。何も実行せずに閉じます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open the HUD from the top edge again, then slide your finger out to the frame (outside the nine buttons) and lift it. It closes without running anything."
           }
         }
       }
@@ -3265,17 +2256,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
-          }
-        }
-      }
-    },
-    "アイコンの文字" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icon text"
           }
         }
       }
@@ -3461,17 +2441,6 @@
         }
       }
     },
-    "アプリのアイコンは、アプリ起動のマスか、アプリのプロファイルで使えます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App icons are available for Open App buttons and in app profiles."
-          }
-        }
-      }
-    },
     "アプリのプロファイル %lld個" : {
       "localizations" : {
         "en" : {
@@ -3500,28 +2469,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In an app profile, Nonet brings the app to the front, then runs the button."
-          }
-        }
-      }
-    },
-    "アプリのページの後ろにグローバルのページをつなげ、2本指スワイプで行けるようにします" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Global pages follow the app's pages, so you can reach them with a two-finger swipe."
-          }
-        }
-      }
-    },
-    "アプリのページの後ろにグローバルのページをつなげ、ページを切り替えて行けるようにします" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Global pages follow the app's pages, so you can reach them by changing pages."
           }
         }
       }
@@ -3578,23 +2525,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "アプリケーションフォルダにある Nonet（%1$@）をゴミ箱に入れ、この Nonet（%2$@）に置き換えます"
-          }
-        }
-      }
-    },
-    "アプリケーションフォルダにある Nonet（%@）をゴミ箱に入れ、この Nonet（%@）に置き換えます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The copy in the Applications folder (version %1$@) moves to the Trash, and this copy (version %2$@) replaces it."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "アプリケーションフォルダにある Nonet（%1$@）をゴミ箱に入れ、この Nonet（%2$@）に置き換えます。"
           }
         }
       }
@@ -3696,56 +2626,22 @@
         }
       }
     },
-    "オフにすると、いつもグローバルのプロファイルを使います" : {
-      "extractionState" : "stale",
+    "オフにすると、トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）が開きません" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, Nonet always uses the Global profile."
+            "value" : "When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD)"
           }
         }
       }
     },
-    "オフにすると、トラックパッドの上の縁から指を滑らせても9マスが開きません" : {
+    "オンなのに進まないとき（アップデートの後など）は、一覧の Nonet を「−」で外し、「＋」で追加し直してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, sliding down from the top edge of the trackpad doesn't open the buttons"
-          }
-        }
-      }
-    },
-    "オフにすると、トリガーキーそのものを前面のアプリやほかのツールに渡しません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When off, the trigger key itself doesn't reach the front app or other tools."
-          }
-        }
-      }
-    },
-    "オフにするとトリガーキーに反応しません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When off, Nonet ignores the trigger key."
-          }
-        }
-      }
-    },
-    "オフに戻す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turn Off"
+            "value" : "Already on but nothing happens (after an update, for example)? Remove Nonet from the list with −, then add it again with +."
           }
         }
       }
@@ -3756,94 +2652,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cut"
-          }
-        }
-      }
-    },
-    "カーソルとトラックパッドの動きを切り離します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detaches the pointer from trackpad movement."
-          }
-        }
-      }
-    },
-    "カーソルのあるディスプレイに出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appears on the display with the pointer."
-          }
-        }
-      }
-    },
-    "カーソルの固定方法" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pointer lock method"
-          }
-        }
-      }
-    },
-    "カーソルの固定方法（詳細）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pointer lock method (Advanced)"
-          }
-        }
-      }
-    },
-    "カーソルの移動イベントを捨てるだけです" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only discards pointer movement events."
-          }
-        }
-      }
-    },
-    "カーソルの近く" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Near Pointer"
-          }
-        }
-      }
-    },
-    "カーソルは指に合わせて動きます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The pointer moves with your finger."
-          }
-        }
-      }
-    },
-    "カーソルを切り離す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detach Pointer"
           }
         }
       }
@@ -3898,90 +2706,12 @@
         }
       }
     },
-    "キーを使わない方法もあります" : {
-      "extractionState" : "stale",
+    "キーをコピーして消す" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "There's also a no-key way"
-          }
-        }
-      }
-    },
-    "キーを押したまま2本指でスワイプすると、ページが切り替わります。1つのアプリに最大3ページ置けます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold the trigger key and swipe with two fingers to change pages. Each app can have up to three pages."
-          }
-        }
-      }
-    },
-    "キーを押したまま指を置いて止めると、9マスの一覧（HUD）が出ます。慣れたら、すぐにタップするだけで実行できます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold the trigger key and rest your finger to see all nine buttons in the HUD. Once you know the layout, just tap right away to run a button."
-          }
-        }
-      }
-    },
-    "キーを押したまま指を置いて止めると、HUD（9マスの一覧）が出ます。指を滑らせて選び、指を置いたままキーを離すと実行します。慣れたら、すぐにタップするだけで実行できます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold the key and rest your finger to see the HUD with all nine buttons. Slide to a button and release the key while your finger is still down to run it. Once you know the layout, just tap right away."
-          }
-        }
-      }
-    },
-    "キーを押したまま指を置いて止めると、HUD（9マスの一覧）が出ます。指を滑らせて選び、指を離すと実行します。慣れたら、すぐにタップするだけで実行できます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold the key and rest your finger to see the HUD with all nine buttons. Slide to a button and lift your finger to run it. Once you know the layout, just tap right away."
-          }
-        }
-      }
-    },
-    "キーを押している間だけ、トラックパッドが9つのボタンになる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold a key and your trackpad turns into nine buttons"
-          }
-        }
-      }
-    },
-    "キーを押している間だけ、トラックパッドが9マスになる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold a key and your trackpad turns into nine buttons"
-          }
-        }
-      }
-    },
-    "キーを押している間だけ、トラックパッドがアプリごとに変わる9つのボタンになります" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold a key and your trackpad turns into nine buttons that change with each app."
+            "value" : "Copy Key and Remove"
           }
         }
       }
@@ -3992,28 +2722,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type Shortcut…"
-          }
-        }
-      }
-    },
-    "キーを離したとき" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Key Release"
-          }
-        }
-      }
-    },
-    "キーコードで打つ文字: 「%@」" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text typed with key codes: “%@”"
           }
         }
       }
@@ -4059,6 +2767,7 @@
       }
     },
     "クリックすると、設定で「%@」を開いて編集します" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4068,12 +2777,12 @@
         }
       }
     },
-    "クリックすると、設定でこの空きマスを開きます" : {
+    "クリックすると、設定で「%@」を開いて編集します。⌥クリックで、前面のアプリに向けて実行します" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Click to open this empty button in Settings"
+            "value" : "Click to edit “%@” in Settings. Option-click to run it in the front app."
           }
         }
       }
@@ -4088,39 +2797,6 @@
         }
       }
     },
-    "クリップボードにコピー（ファイルは作らない）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy to clipboard (don't save a file)"
-          }
-        }
-      }
-    },
-    "グローバルには、Mac にあるよく使うアプリを並べたランチャーを用意します。アプリのプロファイルは、あとから設定で追加できます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Global profile starts with a launcher of popular apps from your Mac. You can add app profiles later in Settings."
-          }
-        }
-      }
-    },
-    "グローバルには、よく使うアプリを並べたランチャーを用意します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The Global profile starts with a launcher of popular apps."
-          }
-        }
-      }
-    },
     "グローバルのプロファイル" : {
       "localizations" : {
         "en" : {
@@ -4131,34 +2807,12 @@
         }
       }
     },
-    "グローバルのプロファイルから始めましょう" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start with the Global profile"
-          }
-        }
-      }
-    },
     "グローバルのページ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global pages"
-          }
-        }
-      }
-    },
-    "グローバルのページをつなげる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Global pages after app pages"
           }
         }
       }
@@ -4265,12 +2919,12 @@
         }
       }
     },
-    "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。許可されると自動で動き出します。" : {
+    "システム設定 › プライバシーとセキュリティ › アクセシビリティ で Nonet をオンにしてください。もうオンなのに動かないときは、一覧の Nonet を「−」で外し、「＋」で追加し直してください。許可されると自動で動き出します。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. Nonet starts working once you allow it."
+            "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. If it's already on but doesn't work, remove Nonet from the list with −, then add it again with +. Nonet starts working once you allow it."
           }
         }
       }
@@ -4301,17 +2955,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open System Settings"
-          }
-        }
-      }
-    },
-    "システム設定を開く…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open System Settings…"
           }
         }
       }
@@ -4417,17 +3060,6 @@
         }
       }
     },
-    "ショートカットの出力をテキストとして、最後の改行を除いて使います" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uses the shortcut's output as text, without the final newline."
-          }
-        }
-      }
-    },
     "ショートカットの名前" : {
       "localizations" : {
         "en" : {
@@ -4498,17 +3130,6 @@
         }
       }
     },
-    "スクリプトの標準出力を、最後の改行を除いて使います" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uses the script's standard output, without the final newline."
-          }
-        }
-      }
-    },
     "スクリプトを含むマスがあります。実行する前に中身を確かめてください。" : {
       "localizations" : {
         "en" : {
@@ -4572,13 +3193,12 @@
         }
       }
     },
-    "タップを待っています…" : {
-      "extractionState" : "stale",
+    "ターミナル" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Waiting for a tap…"
+            "value" : "Terminal"
           }
         }
       }
@@ -4593,18 +3213,7 @@
         }
       }
     },
-    "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Runs in a new Terminal window. Use it for interactive commands like claude."
-          }
-        }
-      }
-    },
-    "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです。" : {
+    "ターミナルの新しいウインドウで実行します。claude のような対話型のコマンド向けです。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4620,17 +3229,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Double-click to rename"
-          }
-        }
-      }
-    },
-    "ダブルクリックで空いているマスに入れます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Double-click to add it to an empty button."
           }
         }
       }
@@ -4661,28 +3259,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonet opened from a disk image can't open at login. Move it to the Applications folder first, then turn this on."
-          }
-        }
-      }
-    },
-    "ディスクイメージやダウンロードしたままの場所から開いているため、アップデートを入れられません。アプリケーションフォルダに移して開き直します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet is running from a disk image or from where it was downloaded, so it can't install updates. Nonet will move itself to the Applications folder and reopen."
-          }
-        }
-      }
-    },
-    "トラックパッドが見つからないため、試せません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Can't find a trackpad to practice with."
           }
         }
       }
@@ -4718,184 +3294,42 @@
         }
       }
     },
-    "トラックパッドだけで呼び出す" : {
-      "extractionState" : "stale",
+    "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open with the trackpad alone"
+            "value" : "Sliding down from the top edge of the trackpad won't open the nine icons (the HUD)"
           }
         }
       }
     },
-    "トラックパッドの%@の角に指を置いて少し待つと、HUD が出ます。設定 › 一般 で変えられます。" : {
-      "extractionState" : "stale",
+    "トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rest a finger in the %@ corner of the trackpad for a moment to bring up the HUD. You can change this in Settings › General."
+            "value" : "Slide a finger down from the top edge of the trackpad to open nine buttons that change with each app"
           }
         }
       }
     },
-    "トラックパッドの%@の角を押したまま少し待つと、HUD が出ます。設定 › 一般 で変えられます" : {
-      "extractionState" : "stale",
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Press and hold the %@ corner of the trackpad for a moment to bring up the HUD. You can change this in Settings › General."
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
           }
         }
       }
     },
-    "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。" : {
-      "extractionState" : "stale",
+    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger down from the top edge of the trackpad to open the HUD, which shows all nine buttons. Slide to choose, then lift on a button to run it."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁から指を下へ滑らせると、HUD（9マスの一覧）が開きます。指を滑らせて選び、マスで離すと実行します。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slide a finger down from the top edge of the trackpad and the HUD (the overview of all nine buttons) opens. Slide to choose, then lift on a button to run it. It doesn't open while a settings or welcome window is in front, so try it over another app."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁から指を滑らせても、9マスは開きません" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sliding down from the top edge of the trackpad won't open the buttons"
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンになります" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slide a finger down from the top edge and your trackpad becomes nine buttons that change with each app"
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると HUD（9マスの一覧）が開きます。指を「%@」まで滑らせて、そこで離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the HUD, which shows all nine buttons. Slide to “%@” and lift your finger there."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Hold your finger in the left or right frame to change pages."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると9マスが開きます。指を滑らせて選び、マスで離すと実行します。外枠（9マスの外側）まで滑らせて離すか、キーを押すと、何も実行せずに閉じます。左右の外枠に指を止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Slide to choose, then lift on a button to run it. To close without running anything, slide out to the frame around the buttons and lift, or press any key. Hold your finger in the left or right frame to change pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタのすぐ下に HUD（9マスの地図）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (a map of the nine buttons) opens just below the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに HUD（9つのアイコン）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: the HUD (nine icons) opens around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。右か左の外へ出して止めると、ページが切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift, or press any key. Hold the pointer outside the ring to the right or left to change pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
-          }
-        }
-      }
-    },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコンが開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すか、キーを押すと、何も実行せずに閉じます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに切り替わります。設定や案内のウィンドウが前面のときは開かないので、ほかのアプリの上で試してください。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift, or press any key. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages. The buttons don't open while a settings or welcome window is in front, so try it over another app."
+            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
           }
         }
       }
@@ -4911,95 +3345,6 @@
         }
       }
     },
-    "トラックパッドの図。右上のマスが目標です" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trackpad diagram. The target is the top-right button."
-          }
-        }
-      }
-    },
-    "トラックパッドの図。目標は%@の「%@」です" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trackpad diagram. The target is “%2$@” (%1$@)."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "トラックパッドの図。目標は%1$@の「%2$@」です"
-          }
-        }
-      }
-    },
-    "トラックパッドの図。目標は%@の「%@」です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trackpad diagram. The target is “%2$@” (%1$@)."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "トラックパッドの図。目標は%1$@の「%2$@」です。"
-          }
-        }
-      }
-    },
-    "トラックパッドの図。目標は9マスの外側の外枠です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trackpad diagram. The target is the frame around the nine buttons."
-          }
-        }
-      }
-    },
-    "トラックパッドの左上か右上の角に指を置いて少し待つと、HUD が出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest a finger in a top corner of the trackpad for a moment and the HUD appears."
-          }
-        }
-      }
-    },
-    "トラックパッドの左上か右上の角を押したまま少し待つと、HUD が出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Press and hold a top corner of the trackpad for a moment and the HUD appears."
-          }
-        }
-      }
-    },
-    "トリガーと HUD" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trigger & HUD"
-          }
-        }
-      }
-    },
     "トリガーキー" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5007,83 +3352,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trigger key"
-          }
-        }
-      }
-    },
-    "トリガーキー: %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trigger key: %@"
-          }
-        }
-      }
-    },
-    "トリガーキーが押された・離されたことを知る" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detect when you press and release the trigger key"
-          }
-        }
-      }
-    },
-    "トリガーキーを前面のアプリに渡す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pass the trigger key to the front app"
-          }
-        }
-      }
-    },
-    "トリガーキーを押している間、カーソルの移動とクリックを前面のアプリに渡さない" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep pointer movement and clicks from reaching the front app while you hold the trigger key"
-          }
-        }
-      }
-    },
-    "トリガーキーを押している間、ポインタの移動とクリックを前面のアプリに渡さない" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keep pointer movement and clicks from reaching the front app while you hold the trigger key"
-          }
-        }
-      }
-    },
-    "トリガーキーを押しても反応しません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pressing the trigger key does nothing."
-          }
-        }
-      }
-    },
-    "トリガーキーを押しても反応しません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pressing the trigger key does nothing."
           }
         }
       }
@@ -5165,17 +3433,6 @@
         }
       }
     },
-    "パスワード欄から離れるか、ターミナル › セキュアキーボード入力 をオフにしてください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave the password field, or turn off Terminal › Secure Keyboard Entry."
-          }
-        }
-      }
-    },
     "ファイル" : {
       "localizations" : {
         "en" : {
@@ -5216,45 +3473,12 @@
         }
       }
     },
-    "フィードバック" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feedback"
-          }
-        }
-      }
-    },
-    "フォルダを選ぶ…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose Folder…"
-          }
-        }
-      }
-    },
     "ブラウザで表示中のページ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL of the current page in Safari, Google Chrome, Arc, Microsoft Edge or Brave"
-          }
-        }
-      }
-    },
-    "ブラウザの URL を初めて読むときや、ターミナルで初めて実行するときは、macOS が「オートメーション」の許可を求めます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The first time a script reads the browser's URL or runs in Terminal, macOS asks for Automation permission."
           }
         }
       }
@@ -5309,17 +3533,6 @@
         }
       }
     },
-    "プリセットのあるアプリは見つかりませんでした" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "None of your apps has a preset yet"
-          }
-        }
-      }
-    },
     "プロファイル" : {
       "localizations" : {
         "en" : {
@@ -5370,17 +3583,6 @@
         }
       }
     },
-    "プロファイルの無いアプリで使う9マス" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nine buttons used in apps without a profile"
-          }
-        }
-      }
-    },
     "プロファイルの複製" : {
       "localizations" : {
         "en" : {
@@ -5411,23 +3613,22 @@
         }
       }
     },
+    "プロファイルを整理…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean Up Profiles…"
+          }
+        }
+      }
+    },
     "プロファイルを絞り込む" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Filter Profiles"
-          }
-        }
-      }
-    },
-    "プロファイルを編集…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Profiles…"
           }
         }
       }
@@ -5468,17 +3669,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Page %lld"
-          }
-        }
-      }
-    },
-    "ページ %lld を削除しますか？" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete page %lld?"
           }
         }
       }
@@ -5600,83 +3790,6 @@
         }
       }
     },
-    "ボタンの変更" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change Button"
-          }
-        }
-      }
-    },
-    "ボタンの貼り付け" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste Button"
-          }
-        }
-      }
-    },
-    "ボタンを変える" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change a button"
-          }
-        }
-      }
-    },
-    "ポインタとトラックパッドの動きを切り離します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detaches the pointer from trackpad movement."
-          }
-        }
-      }
-    },
-    "ポインタのあるディスプレイに出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appears on the display with the pointer."
-          }
-        }
-      }
-    },
-    "ポインタの固定方法" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pointer lock method"
-          }
-        }
-      }
-    },
-    "ポインタの移動イベントを捨てるだけです" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only discards pointer movement events."
-          }
-        }
-      }
-    },
     "ポインタの近く" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5684,28 +3797,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Near Pointer"
-          }
-        }
-      }
-    },
-    "ポインタは指に合わせて動きます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The pointer moves with your finger."
-          }
-        }
-      }
-    },
-    "ポインタを切り離す" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detach Pointer"
           }
         }
       }
@@ -5766,67 +3857,12 @@
         }
       }
     },
-    "マスの中身を貼り付けたボタンで置き換えました" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replaced the button with the pasted one."
-          }
-        }
-      }
-    },
     "マスの入れ替え" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swap Buttons"
-          }
-        }
-      }
-    },
-    "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The trackpad ticks when your finger crosses into another button, the page changes or a button runs."
-          }
-        }
-      }
-    },
-    "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vibrates when you cross a button border, change pages or run a button. Two light taps mean nothing ran."
-          }
-        }
-      }
-    },
-    "マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行しなかったときは軽く2回振動します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vibrates when you cross a button border, change pages or run a button. Two light taps mean nothing ran."
-          }
-        }
-      }
-    },
-    "マスの境目の線の上で離すと、実行しません。マスの真ん中で離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lifting right on the line between two buttons runs nothing. Lift in the middle of a button."
           }
         }
       }
@@ -5857,28 +3893,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Paste Button"
-          }
-        }
-      }
-    },
-    "マスを変える" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change a button"
-          }
-        }
-      }
-    },
-    "マスを空にしました" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cleared the button."
           }
         }
       }
@@ -5930,17 +3944,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select a button to set it up on the right. Drag or press ⌥⌘ and an arrow key to swap; press Delete to clear."
-          }
-        }
-      }
-    },
-    "マスを選んで右側で設定。ドラッグで入れ替え、Delete で空にする" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select a button to edit it on the right. Drag to swap, or press Delete to clear."
           }
         }
       }
@@ -6076,39 +4079,6 @@
         }
       }
     },
-    "メニューバーの 3×3 のアイコン ›「%@」で、いま使っているアプリのボタンを変えられます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click the 3×3 icon in the menu bar and choose “%@” to change the buttons for the app you're using."
-          }
-        }
-      }
-    },
-    "メニューバーの 3×3 のアイコン ›「（アプリ名）のマスを編集…」で、前面のアプリのマスを変えられます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click the 3×3 icon in the menu bar and choose Edit Buttons for <app>… to change the buttons for the app in front."
-          }
-        }
-      }
-    },
-    "メニューバーの 3×3 のアイコンから、設定を開いたり、Nonet を有効・無効にしたりできます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click the 3×3 icon in the menu bar to open Settings or to enable or disable Nonet."
-          }
-        }
-      }
-    },
     "メニューバーのアイコン" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6177,17 +4147,6 @@
         }
       }
     },
-    "ライセンスの登録を解除しますか？" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unregister this Mac?"
-          }
-        }
-      }
-    },
     "ライセンスキー" : {
       "localizations" : {
         "en" : {
@@ -6228,18 +4187,17 @@
         }
       }
     },
-    "ライセンスキーをコピーしました" : {
+    "ライセンスキーをクリップボードにコピーして、この Mac から登録を消しました" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "License key copied."
+            "value" : "The license key was copied to the clipboard and removed from this Mac."
           }
         }
       }
     },
-    "ライセンスキーをコピーしました。" : {
-      "extractionState" : "stale",
+    "ライセンスキーをコピーしました" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6255,16 +4213,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter License Key…"
-          }
-        }
-      }
-    },
-    "ライセンスキーを登録…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Register License Key…"
           }
         }
       }
@@ -6320,6 +4268,7 @@
       }
     },
     "ログイン時に起動しないように設定できませんでした（%@）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6329,12 +4278,33 @@
         }
       }
     },
+    "ログイン時に起動しないように設定できませんでした（%@）。システム設定 › 一般 › ログイン項目 で確かめてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't stop Nonet from opening at login (%@). Check System Settings › General › Login Items."
+          }
+        }
+      }
+    },
     "ログイン時に起動するように設定できませんでした（%@）" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't set Nonet to open at login (%@)."
+          }
+        }
+      }
+    },
+    "ログイン時に起動するように設定できませんでした（%@）。システム設定 › 一般 › ログイン項目 で確かめてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't set Nonet to open at login (%@). Check System Settings › General › Login Items."
           }
         }
       }
@@ -6405,17 +4375,6 @@
         }
       }
     },
-    "一覧に無いアプリを選ぶ…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose Another App…"
-          }
-        }
-      }
-    },
     "一覧の Nonet をオンにする（パスワードか Touch ID を求められます）" : {
       "localizations" : {
         "en" : {
@@ -6466,23 +4425,12 @@
         }
       }
     },
-    "上の縁から指を滑らせると、トラックパッドが9マスになる" : {
+    "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger down from the top edge and your trackpad turns into nine buttons"
-          }
-        }
-      }
-    },
-    "上の縁から開く" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open from the top edge"
+            "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages."
           }
         }
       }
@@ -6544,17 +4492,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your current profiles and settings are replaced with this version. The current settings are also saved in Restore an Earlier Version, so you can go back."
-          }
-        }
-      }
-    },
-    "今のボタンはすべて、プリセットの中身に置き換わります。⌘Z で元に戻せます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All current buttons are replaced with the preset. You can undo this with ⌘Z."
           }
         }
       }
@@ -6639,56 +4576,12 @@
         }
       }
     },
-    "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。ログインシェル（zsh -l）なので ~/.zprofile は読まれますが、~/.zshrc は読まれません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The working directory is the project folder, or your home folder if there isn't one. Scripts run in a login shell (zsh -l), so ~/.zprofile is read but ~/.zshrc isn't."
-          }
-        }
-      }
-    },
     "作業フォルダはプロジェクトのフォルダ（分からなければホーム）。裏で実行するときはログインシェル（zsh -l）で動き、PATH はターミナルと同じもの（Nonet の起動時に ~/.zshrc まで読んで調べたもの）を使います。~/.zshrc のエイリアスや関数を使えるのは、ターミナルで実行するときだけです。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The working directory is the project folder, or your home folder if there isn't one. Background scripts run in a login shell (zsh -l) with the same PATH as Terminal, which Nonet reads (including ~/.zshrc) when it opens. Aliases and functions from ~/.zshrc work only when the script runs in Terminal."
-          }
-        }
-      }
-    },
-    "使いながら覚えられる、4つのこつ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Four quick tips to learn as you go."
-          }
-        }
-      }
-    },
-    "使いながら覚えられるように、こつを3つだけ。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Three quick tips to learn as you go."
-          }
-        }
-      }
-    },
-    "使いながら覚えられるように、こつを4つだけ。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Four quick tips to learn as you go."
           }
         }
       }
@@ -6704,17 +4597,6 @@
         }
       }
     },
-    "使うものを選ぶだけ。中身はあとから自由に変えられます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Just choose the apps you use. You can change any button later."
-          }
-        }
-      }
-    },
     "使わない" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6722,6 +4604,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Off"
+          }
+        }
+      }
+    },
+    "使わないアプリのプロファイルにチェックを付けて、まとめて削除します。グローバルのマスは残ります。削除した後も ⌘Z で元に戻せます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select the profiles of apps you don't use and delete them all at once. The Global buttons stay. You can undo this with ⌘Z."
           }
         }
       }
@@ -6808,111 +4700,12 @@
         }
       }
     },
-    "共通マスにしました。すべてのアプリの同じ位置に出ます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Made it a shared button. It now appears in the same spot in every app."
-          }
-        }
-      }
-    },
-    "共通マスにする" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Make Shared Button"
-          }
-        }
-      }
-    },
-    "共通マスをやめました。各アプリのマスに戻ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stopped sharing. Each app's own button is back."
-          }
-        }
-      }
-    },
-    "共通マスをやめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop Sharing"
-          }
-        }
-      }
-    },
-    "共通マスを編集" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit Shared Button"
-          }
-        }
-      }
-    },
-    "共通マスを置き換えました。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replaced the shared buttons."
-          }
-        }
-      }
-    },
-    "共通マスを置き換えますか？" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replace the shared button?"
-          }
-        }
-      }
-    },
-    "出力を使わない" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ignore"
-          }
-        }
-      }
-    },
     "初回の案内をもう一度" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show Welcome Guide"
-          }
-        }
-      }
-    },
-    "別の Mac に移すときなどに使います" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this when you move your license to another Mac."
           }
         }
       }
@@ -7027,13 +4820,12 @@
         }
       }
     },
-    "前面のアプリで切り替える" : {
-      "extractionState" : "stale",
+    "前面のアプリで実行" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Switch profiles with the front app"
+            "value" : "Run in Front App"
           }
         }
       }
@@ -7068,7 +4860,7 @@
         }
       }
     },
-    "前面のウィンドウで開いている書類" : {
+    "前面のウインドウで開いている書類" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7118,72 +4910,6 @@
         }
       }
     },
-    "右⇧" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⇧"
-          }
-        }
-      }
-    },
-    "右⇧（Shift）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Right Shift (⇧)"
-          }
-        }
-      }
-    },
-    "右⌘" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⌘"
-          }
-        }
-      }
-    },
-    "右⌘（Command）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Right Command (⌘)"
-          }
-        }
-      }
-    },
-    "右⌥" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "right ⌥"
-          }
-        }
-      }
-    },
-    "右⌥（Option）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Right Option (⌥)"
-          }
-        }
-      }
-    },
     "右と入れ替え" : {
       "localizations" : {
         "en" : {
@@ -7214,78 +4940,12 @@
         }
       }
     },
-    "右上のマスを押せました。実際に使うときは、ここで実行されます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You tapped the top-right button. Normally, it would run now."
-          }
-        }
-      }
-    },
-    "右上の角" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Top-right corner"
-          }
-        }
-      }
-    },
-    "右上の角で長押し" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Touch and hold the top-right corner"
-          }
-        }
-      }
-    },
-    "右上の角に指を置く" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest a finger in the top-right corner"
-          }
-        }
-      }
-    },
     "右下" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "bottom right"
-          }
-        }
-      }
-    },
-    "右側のキーだけに反応します。左の%@はいつもどおり使えます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet responds only to the right-side key. Left %@ works as usual."
-          }
-        }
-      }
-    },
-    "右側のキーだけに反応します。左の⌘や⌥はいつもどおり使えます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet responds only to the right-side key. Left ⌘ and ⌥ work as usual."
           }
         }
       }
@@ -7320,17 +4980,6 @@
         }
       }
     },
-    "名前・ボタン・キーで絞り込み" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filter by name, button or keys"
-          }
-        }
-      }
-    },
     "名前・マス・キーで絞り込み" : {
       "localizations" : {
         "en" : {
@@ -7348,17 +4997,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Off"
-          }
-        }
-      }
-    },
-    "変数は \"$NONET_SELECTED_TEXT\" のように \" で囲んでください。無いかもしれない変数は ${PROJECT_DIR:-$HOME} のように既定値を付けると安全です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Put variables in double quotes, like \"$NONET_SELECTED_TEXT\". If a variable might not be set, give it a default, like ${PROJECT_DIR:-$HOME}."
           }
         }
       }
@@ -7383,17 +5021,6 @@
         }
       }
     },
-    "外枠で離して、やめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel in the frame"
-          }
-        }
-      }
-    },
     "外枠で離す" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7401,28 +5028,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lift in the frame"
-          }
-        }
-      }
-    },
-    "外枠で離すと、何も実行せずに閉じます。「%@」まで滑らせてから離してください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lifting in the frame closes the buttons without running anything. Slide to “%@” and lift there."
-          }
-        }
-      }
-    },
-    "外枠で離すとやめる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lift in the frame to cancel"
           }
         }
       }
@@ -7504,29 +5109,7 @@
         }
       }
     },
-    "実行したことを表示" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show a notice when a button runs"
-          }
-        }
-      }
-    },
     "実行したときの前面のアプリの情報です。値がないものは設定されません。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These describe the front app when the script runs. Variables without a value aren't set."
-          }
-        }
-      }
-    },
-    "実行したときの前面のアプリの情報です。値が無いものは設定されません。" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7616,17 +5199,6 @@
         }
       }
     },
-    "実行のタイミング" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run on"
-          }
-        }
-      }
-    },
     "実行の仕方" : {
       "localizations" : {
         "en" : {
@@ -7637,13 +5209,12 @@
         }
       }
     },
-    "実行を知らせる" : {
-      "extractionState" : "stale",
+    "実行中の「%@」を止める" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show a notice when a button runs"
+            "value" : "Stop “%@”"
           }
         }
       }
@@ -7709,56 +5280,12 @@
         }
       }
     },
-    "左上の角" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Top-left corner"
-          }
-        }
-      }
-    },
-    "左上の角で長押し" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Touch and hold the top-left corner"
-          }
-        }
-      }
-    },
-    "左上の角に指を置く" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest a finger in the top-left corner"
-          }
-        }
-      }
-    },
     "左下" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "bottom left"
-          }
-        }
-      }
-    },
-    "左右の外枠で止めてページを切り替える" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hold in the side frame to change pages"
           }
         }
       }
@@ -7882,39 +5409,6 @@
         }
       }
     },
-    "指を止めてから HUD が出るまでの時間" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HUD delay after resting"
-          }
-        }
-      }
-    },
-    "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest your finger this long to show the HUD. Shorter taps run right away."
-          }
-        }
-      }
-    },
-    "指を置いたままこの時間止めると HUD が出ます。これより短いタップはその場で実行します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest your finger this long to show the HUD. Shorter taps run right away."
-          }
-        }
-      }
-    },
     "指を離したとき" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7942,39 +5436,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Low"
-          }
-        }
-      }
-    },
-    "撮るウインドウを選ぶ画面を出します。クリックしたウインドウを撮ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows the window picker. Captures the window you click."
-          }
-        }
-      }
-    },
-    "撮る範囲を選ぶ画面を出します。選んだ範囲を撮ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows the area picker. Captures the area you select."
-          }
-        }
-      }
-    },
-    "撮影と収録のメニューを出します。画面収録は、ここで範囲を選んで始めます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows the capture and recording toolbar. Start a screen recording from there."
           }
         }
       }
@@ -8007,17 +5468,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add New Profiles Only"
-          }
-        }
-      }
-    },
-    "新しい名前を入力するダイアログを開きます。1つだけ選んでいるときに使えます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens a dialog to enter a new name. Works when exactly one file is selected."
           }
         }
       }
@@ -8059,28 +5509,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens in the default app. App URLs like obsidian:// work too."
-          }
-        }
-      }
-    },
-    "既定のアプリで開きます（ダブルクリックと同じ）。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opens with the default app, like a double-click."
-          }
-        }
-      }
-    },
-    "時間の掛かるマスが終わったときに、画面の下に通知を出します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows a notice at the bottom of the screen when a slow button finishes"
           }
         }
       }
@@ -8165,17 +5593,6 @@
         }
       }
     },
-    "最後までスクロールして中身をすべて確かめると、読み込めます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scroll to the end to check everything before you can import."
-          }
-        }
-      }
-    },
     "最近の実行" : {
       "localizations" : {
         "en" : {
@@ -8202,17 +5619,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not set"
-          }
-        }
-      }
-    },
-    "未選択" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not selected"
           }
         }
       }
@@ -8247,34 +5653,12 @@
         }
       }
     },
-    "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、ファイルを開いたりします。中身を確かめ、信頼できるファイルだけを読み込んでください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "These buttons run scripts, type keys or open files with your permissions. Check what they do, and import only files you trust."
-          }
-        }
-      }
-    },
     "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたり、Finder で選んだファイルを動かしたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The following buttons run scripts, type keys, choose menu items, send selected text to AI, open files or move files selected in Finder, with your permissions. Check everything they do, and import only files you trust."
-          }
-        }
-      }
-    },
-    "次のマスは、あなたの権限でスクリプトを実行したり、キーを入力したり、メニューを選んだり、選択したテキストを AI に渡したり、ファイルを開いたりします。中身をすべて確かめ、信頼できるファイルだけを読み込んでください。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The following buttons run scripts, type keys, choose menu items, send selected text to AI or open files with your permissions. Check everything they do, and import only files you trust."
           }
         }
       }
@@ -8299,23 +5683,28 @@
         }
       }
     },
-    "次へ進んでください" : {
+    "次回から確認しない" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Click Next to continue."
+            "value" : "Don't ask again"
           }
         }
       }
     },
-    "次へ：試してみる" : {
-      "extractionState" : "stale",
+    "止めました: %@ › %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Next: Try It Out"
+            "value" : "Stopped: %1$@ › %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "止めました: %1$@ › %2$@"
           }
         }
       }
@@ -8360,17 +5749,6 @@
         }
       }
     },
-    "決めたフォルダに移します。同じ名前のファイルがあるときは、上書きせずに知らせます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moves them to the folder you choose. If a file with the same name is there, it tells you instead of overwriting it."
-          }
-        }
-      }
-    },
     "決定" : {
       "localizations" : {
         "en" : {
@@ -8401,39 +5779,6 @@
         }
       }
     },
-    "測るには「画面収録」の許可が必要です。許可が無い間は、黒いアイコンに白い縁で表示します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Measuring needs the Screen Recording permission. Until it is allowed, icons are drawn black with a white outline."
-          }
-        }
-      }
-    },
-    "準備ができました" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You're all set"
-          }
-        }
-      }
-    },
-    "無いかもしれない変数は、次のように既定値を付けると安全です。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If a variable might not be set, give it a default, like this:"
-          }
-        }
-      }
-    },
     "無効" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8452,39 +5797,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disable"
-          }
-        }
-      }
-    },
-    "無効になっています。%@ でもグローバルを使います" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This profile is disabled, so %@ uses the Global profile."
-          }
-        }
-      }
-    },
-    "片手で使うときは、角に指を置いて待つ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One-handed? Rest a finger in a top corner"
-          }
-        }
-      }
-    },
-    "片手で使うときは、角を長押し" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One-handed? Press and hold a top corner"
           }
         }
       }
@@ -8551,72 +5863,6 @@
         }
       }
     },
-    "画面の下に出る知らせも同じ大きさになります" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notices at the bottom of the screen use the same size."
-          }
-        }
-      }
-    },
-    "画面の下に出る通知も同じ大きさになります" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notices at the bottom of the screen use the same size."
-          }
-        }
-      }
-    },
-    "画面の中央" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Center of Screen"
-          }
-        }
-      }
-    },
-    "画面の撮影" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Screen Capture"
-          }
-        }
-      }
-    },
-    "画面全体をすぐに撮ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Captures the whole screen right away."
-          }
-        }
-      }
-    },
-    "画面収録を止めます。収録していないときは何も起きません。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stops the screen recording. Does nothing when nothing is recording."
-          }
-        }
-      }
-    },
     "発行日" : {
       "localizations" : {
         "en" : {
@@ -8673,39 +5919,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove…"
-          }
-        }
-      }
-    },
-    "登録を解除" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unregister"
-          }
-        }
-      }
-    },
-    "登録を解除…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unregister…"
-          }
-        }
-      }
-    },
-    "登録を解除しました。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your license was removed from this Mac."
           }
         }
       }
@@ -8767,72 +5980,6 @@
         }
       }
     },
-    "移動を捨て、ずれたら元の位置に戻します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discards movement and moves the pointer back if it drifts."
-          }
-        }
-      }
-    },
-    "移動を捨てる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discard Movement"
-          }
-        }
-      }
-    },
-    "移動先: %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Destination: %@"
-          }
-        }
-      }
-    },
-    "移動先のフォルダ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Destination folder"
-          }
-        }
-      }
-    },
-    "移動先のフォルダを決めてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a destination folder."
-          }
-        }
-      }
-    },
-    "移動先のフォルダを選ぶ" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a Destination Folder"
-          }
-        }
-      }
-    },
     "空いているマスがありません。マスを空けるか、ページを追加してください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8850,28 +5997,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "There are no empty buttons. Clear a button or add a page."
-          }
-        }
-      }
-    },
-    "空いているマスに入れます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adds it to an empty button."
-          }
-        }
-      }
-    },
-    "空いているマスに入れる" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to Empty Button"
           }
         }
       }
@@ -8897,23 +6022,22 @@
         }
       }
     },
+    "空きマスです。クリックすると、設定でアクションを入れられます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty. Click to add an action in Settings."
+          }
+        }
+      }
+    },
     "空きマスでは何も起きません。「%@」まで滑らせてから離してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing happens on an empty button. Slide to “%@” and lift there."
-          }
-        }
-      }
-    },
-    "終わるまで待ち、失敗したらエラーの最後を表示します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waits for the script to finish and shows the last lines of standard error if it fails."
           }
         }
       }
@@ -8934,6 +6058,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quit Nonet"
+          }
+        }
+      }
+    },
+    "終了すると、もう一度 Nonet を開くまで、トラックパッドの上の縁から HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After you quit, the HUD won't open from the top edge of the trackpad until you open Nonet again. To close just the window, press ⌘W."
           }
         }
       }
@@ -9029,17 +6163,6 @@
         }
       }
     },
-    "練習中は、マスを押しても何も実行されません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing runs in practice mode."
-          }
-        }
-      }
-    },
     "練習中は、何も実行されません" : {
       "localizations" : {
         "en" : {
@@ -9090,17 +6213,6 @@
         }
       }
     },
-    "背景に合わせて色を変える" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Match colors to the background"
-          }
-        }
-      }
-    },
     "自動" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9128,17 +6240,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Type keys as text"
-          }
-        }
-      }
-    },
-    "表記で入力（例: ⌘L → ⌘C）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type keys as text, like ⌘L → ⌘C"
           }
         }
       }
@@ -9173,34 +6274,32 @@
         }
       }
     },
+    "見つからない" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Found"
+          }
+        }
+      }
+    },
+    "見つからないアプリを選択" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Missing Apps"
+          }
+        }
+      }
+    },
     "見つかりません" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No results"
-          }
-        }
-      }
-    },
-    "角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest a finger in the corner for a moment to show the nine buttons. Slide to a button and lift your finger to run it."
-          }
-        }
-      }
-    },
-    "角に指を置いて少し待つと9マスが出ます。指を滑らせて選び、離すと実行します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rest a finger in the corner for a moment to show the nine buttons. Slide to a button and lift your finger to run it."
           }
         }
       }
@@ -9266,28 +6365,6 @@
         }
       }
     },
-    "設定 › 一般 の「トラックパッドだけで呼び出す」で角を選ぶと、トラックパッドの角に指を置いて少し待つだけで HUD が出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a corner for Open with the trackpad alone in Settings › General, then rest a finger in that corner for a moment to bring up the HUD."
-          }
-        }
-      }
-    },
-    "設定 › 一般 の「トラックパッドだけで呼び出す」をオンにすると、トラックパッドの角を押したまま少し待つだけで HUD が出ます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turn on Open with the trackpad alone in Settings › General, then press and hold a top corner of the trackpad to bring up the HUD."
-          }
-        }
-      }
-    },
     "設定…" : {
       "localizations" : {
         "en" : {
@@ -9318,6 +6395,16 @@
         }
       }
     },
+    "設定で開きます。操作の一覧の「前面のアプリで実行」で実行できます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens it in Settings. Use the action Run in Front App to run it."
+          }
+        }
+      }
+    },
     "設定はそのまま残っています。ライセンスキーを登録すると、すぐに元どおり使えます。" : {
       "localizations" : {
         "en" : {
@@ -9338,45 +6425,12 @@
         }
       }
     },
-    "設定済み" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Added"
-          }
-        }
-      }
-    },
-    "設定済み（無効）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Added, disabled"
-          }
-        }
-      }
-    },
     "許可されています" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowed"
-          }
-        }
-      }
-    },
-    "許可されています。次へ進んでください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nonet has permission. Click Next to continue."
           }
         }
       }
@@ -9422,29 +6476,7 @@
         }
       }
     },
-    "許可を求める…" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Request Permission…"
-          }
-        }
-      }
-    },
     "試してみましょう" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try it out"
-          }
-        }
-      }
-    },
-    "試してみよう" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9460,29 +6492,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Try It Out"
-          }
-        }
-      }
-    },
-    "試用期間: 残り %lld 日" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld day left in your trial"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld days left in your trial"
-                }
-              }
-            }
           }
         }
       }
@@ -9518,52 +6527,6 @@
         }
       }
     },
-    "試用期間はあと%lld日です。購入はメニューバーからいつでもできます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Your free trial has %lld day left. You can buy Nonet any time from the menu bar."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Your free trial has %lld days left. You can buy Nonet any time from the menu bar."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "試用期間はあと%lld日です。購入はメニューバーからいつでもできます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Your free trial has %lld day left. You can buy Nonet any time from the menu bar."
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Your free trial has %lld days left. You can buy Nonet any time from the menu bar."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "試用期間は残り%lld日です" : {
       "localizations" : {
         "en" : {
@@ -9586,75 +6549,12 @@
         }
       }
     },
-    "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、ずっと使えます。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every feature is available during the trial. Buy Nonet and register a license key to keep using it."
-          }
-        }
-      }
-    },
     "試用期間中はすべての機能を使えます。購入してライセンスキーを登録すると、試用期間のあとも使い続けられます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Every feature works during the trial. Buy Nonet and register your license key to keep using it after the trial."
-          }
-        }
-      }
-    },
-    "試用期間中（残り %lld 日・%@まで）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld day left in your trial (ends %@)"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld days left in your trial (ends %@)"
-                }
-              }
-            }
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "試用期間中（残り %1$lld 日・%2$@まで）"
-          }
-        }
-      }
-    },
-    "試用期間中（残り %lld 日）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld day left in your trial"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld days left in your trial"
-                }
-              }
-            }
           }
         }
       }
@@ -9833,23 +6733,12 @@
         }
       }
     },
-    "購入すると、ライセンスキーがメールで届きます。1つのライセンスで、あなたが使うすべての Mac に使えます。30日以内なら全額を返金します。" : {
+    "購入すると、ライセンスキーがメールで届きます（遅くとも24時間以内）。1つのライセンスで、あなたが使うすべての Mac に使えます。30日以内なら全額を返金します。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your license key arrives by email after purchase. One license covers every Mac you use. Full refund within 30 days."
-          }
-        }
-      }
-    },
-    "購入時のメールにあるライセンスキーを貼り付け" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste the license key from your purchase email"
+            "value" : "Your license key arrives by email after purchase (within 24 hours at the latest). One license covers every Mac you use. Full refund within 30 days."
           }
         }
       }
@@ -9914,34 +6803,12 @@
         }
       }
     },
-    "迷ったら、指を止める" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not sure? Rest your finger"
-          }
-        }
-      }
-    },
     "追加" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add"
-          }
-        }
-      }
-    },
-    "追加するアプリはありません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No apps to add"
           }
         }
       }
@@ -9986,17 +6853,6 @@
         }
       }
     },
-    "選んだアプリに、「%@」のページとボタンをすべて写した新しいプロファイルを作ります。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Creates a new profile for the app you choose, with all the pages and buttons of “%@”."
-          }
-        }
-      }
-    },
     "選んだアプリに、「%@」のページとマスをすべて写した新しいプロファイルを作ります" : {
       "localizations" : {
         "en" : {
@@ -10007,13 +6863,12 @@
         }
       }
     },
-    "選んだアプリのプロファイルを追加します。設定済みのアプリはそのまま残ります。" : {
-      "extractionState" : "stale",
+    "選んだプロファイルのマスもすべて削除します。⌘Z で元に戻せます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nonet adds profiles for the apps you choose. Existing profiles stay as they are."
+            "value" : "All of their buttons are deleted too. You can undo this with ⌘Z."
           }
         }
       }
@@ -10048,6 +6903,16 @@
         }
       }
     },
+    "選択を解除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect All"
+          }
+        }
+      }
+    },
     "選択中" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10075,17 +6940,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sends the selected text and the prompt to the on‑device language model (Apple Intelligence)."
-          }
-        }
-      }
-    },
-    "選択中のテキストを、ショートカットへの入力として渡します" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passes the selected text to the shortcut as input."
           }
         }
       }
@@ -10130,28 +6984,6 @@
         }
       }
     },
-    "開いたとき・マスの境界をまたいだとき・ページが変わったとき・実行したときに振動します。何も実行せずに閉じたときは軽く2回振動します。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taps when the buttons open, when you cross an edge, when the page changes and when a button runs. Two light taps mean they closed without running anything."
-          }
-        }
-      }
-    },
-    "開いたとき・マスの境界をまたいだとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The trackpad taps lightly when the grid opens, when your finger crosses into another button and when a button runs (Force Touch trackpads only)"
-          }
-        }
-      }
-    },
     "開いたとき・隣のアイコンに移ったとき・実行したときに、トラックパッドが軽く振動します（感圧タッチのトラックパッドだけ）" : {
       "localizations" : {
         "en" : {
@@ -10168,17 +7000,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open and lift on a button"
-          }
-        }
-      }
-    },
-    "開いてから 0.4 秒は触覚だけで案内し、それより長く迷ったときに地図を出します。慣れれば、画面を変えずに使えます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "For the first 0.4 seconds after opening, only haptics guide you; the map appears if you take longer. Once you know the layout, nothing on the screen changes"
           }
         }
       }
@@ -10239,28 +7060,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL to open"
-          }
-        }
-      }
-    },
-    "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。macOS の「画面収録」の許可が要り、macOS 15 以降では月に一度ほど確認のダイアログが出ます。画像はその場で捨て、保存も送信もしません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. It needs the macOS Screen Recording permission, and on macOS 15 and later a confirmation dialog appears about once a month. The image is discarded at once; nothing is saved or sent"
-          }
-        }
-      }
-    },
-    "開くたびに HUD の下の画面の明るさを測り、アイコンを白か黒にします。画像はその場で捨て、保存も送信もしません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Each time the HUD opens, Nonet measures the brightness of the screen under it and draws each icon in white or black. The image is discarded at once; nothing is saved or sent"
           }
         }
       }
@@ -10372,17 +7171,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Drag an item onto a button, or double-click to put it in the selected Menu Item button (or an empty button)."
-          }
-        }
-      }
-    },
-    "項目を空いているマスへドラッグするか、ダブルクリックで入れます" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drag an item onto an empty button, or double-click to add it."
           }
         }
       }

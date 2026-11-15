@@ -189,9 +189,37 @@ private final class RevokeToolEnvironment {
         let id = "AA265987-1B55-4C3E-9F00-0123456789AB"
         #expect(environment.run(["revoke", id.lowercased()]) == LicenseTool.exitSuccess)
         #expect(LicenseRevocationList(text: environment.files[RevokeToolEnvironment.listPath] ?? "").isRevoked(id))
-        #expect(!environment.errorOutput.contains("UUID の形ではありません"))
+        #expect(!environment.errorOutput.contains("UUID の形でもありません"))
         #expect(environment.run(["revoke", "NONET-0001"]) == LicenseTool.exitSuccess)
-        #expect(environment.errorOutput.contains("UUID の形ではありません"))
+        #expect(environment.errorOutput.contains("UUID の形でもありません"))
+    }
+
+    /// ライセンス ID は Paddle の取引の ID（txn_…）。注意を出さずに無効にし、ID は大文字小文字を区別する（Paddle の ID は小文字）
+    @Test func revokingAPaddleTransactionIDNeedsNoWarning() {
+        environment.files[RevokeToolEnvironment.listPath] = Self.header
+        let id = "txn_01jc0aaaaaaaaaaaaaaaaaaaaa"
+        #expect(environment.run(["revoke", id]) == LicenseTool.exitSuccess)
+        #expect(!environment.errorOutput.contains("注意"))
+        #expect(environment.errorOutput.contains("無効にしました: ライセンス ID \(id)"))
+        let list = LicenseRevocationList(text: environment.files[RevokeToolEnvironment.listPath] ?? "")
+        #expect(list.isRevoked(id))
+        #expect(!list.isRevoked(id.uppercased()))
+        // キーが漏れて発行し直したもの（-r2）も、そのまま
+        #expect(environment.run(["revoke", "\(id)-r2"]) == LicenseTool.exitSuccess)
+        #expect(!environment.errorOutput.contains("注意"))
+        // 形の違うもの（短い・大文字・余分なもの）は注意する
+        for other in ["txn_01abc", "TXN_01JC0AAAAAAAAAAAAAAAAAAAAA", "\(id)x", "ord_01jc0aaaaaaaaaaaaaaaaaaaaa"] {
+            #expect(environment.run(["revoke", other]) == LicenseTool.exitSuccess)
+            #expect(environment.errorOutput.contains("Paddle の取引の ID（txn_…）でも UUID の形でもありません"), "\(other)")
+        }
+    }
+
+    @Test func recognizesPaddleLicenseIDs() {
+        #expect(LicenseTool.isPaddleLicenseID("txn_01jc0aaaaaaaaaaaaaaaaaaaaa"))
+        #expect(LicenseTool.isPaddleLicenseID("txn_01jc0aaaaaaaaaaaaaaaaaaaaa-r2"))
+        #expect(!LicenseTool.isPaddleLicenseID("txn_01jc0aaaaaaaaaaaaaaaaaaaaa-2"))
+        #expect(!LicenseTool.isPaddleLicenseID(" txn_01jc0aaaaaaaaaaaaaaaaaaaaa"))
+        #expect(!LicenseTool.isPaddleLicenseID("pri_01jc0aaaaaaaaaaaaaaaaaaaaa"))
     }
 
     @Test func revokingAKeyUsesTheIDInsideIt() throws {

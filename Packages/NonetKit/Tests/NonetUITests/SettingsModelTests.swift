@@ -880,7 +880,8 @@ import Testing
         h.loginItem.failure = SettingsFakeLoginError()
         h.model.setLoginItemEnabled(false)
         let reason = try #require(SettingsFakeLoginError().errorDescription)
-        #expect(h.model.loginItemError == L10n.ui("ログイン時に起動しないように設定できませんでした（\(reason)）"))
+        // 次にどこを見ればよいかも言う
+        #expect(h.model.loginItemError == L10n.ui("ログイン時に起動しないように設定できませんでした（\(reason)）。システム設定 › 一般 › ログイン項目 で確かめてください。"))
         // まだオンのまま: 止められなかったという知らせはそのまま
         h.model.windowDidBecomeKey()
         #expect(h.model.loginItemEnabled)
@@ -1521,6 +1522,34 @@ import Testing
         h.model.confirmation = .deactivateLicense
         h.model.confirm(.deactivateLicense)
         #expect(h.license.entitlement == .trial(daysLeft: 14))
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("この Mac から登録を消しました"), isError: false))
+    }
+
+    /// 登録を消すときの既定は、キーをクリップボードにコピーしてから消す（あとで貼り付けて登録し直せる）
+    @Test func removingTheLicenseCanKeepACopyOfTheKey() throws {
+        let (key, verifier) = try signedKey(name: "山田 太郎")
+        let h = try SettingsHarness(verifier: verifier)
+        var copied: [String] = []
+        h.model.copyToPasteboard = { copied.append($0) }
+        h.model.licenseKeyInput = key
+        h.model.activateLicense()
+        #expect(h.model.isLicensed)
+        let registered = try #require(h.license.registeredLicenseKey)
+
+        h.model.confirmation = .deactivateLicense
+        h.model.confirmDeactivateLicense(copyingKey: true)
+        #expect(h.model.confirmation == nil)
+        #expect(copied == [registered])
+        #expect(!h.model.isLicensed)
+        #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("ライセンスキーをクリップボードにコピーして、この Mac から登録を消しました"), isError: false))
+
+        // コピーせずに消す
+        h.model.licenseKeyInput = key
+        h.model.activateLicense()
+        h.model.confirmation = .deactivateLicense
+        h.model.confirmDeactivateLicense(copyingKey: false)
+        #expect(copied.count == 1)
+        #expect(!h.model.isLicensed)
         #expect(h.model.licenseMessage == SettingsMessage(text: L10n.ui("この Mac から登録を消しました"), isError: false))
     }
 

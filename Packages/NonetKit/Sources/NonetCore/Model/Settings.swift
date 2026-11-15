@@ -42,6 +42,21 @@ public enum HUDScale: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// 「ターミナルで実行」のスクリプトを開くアプリ。.command のファイルを開くと、そのまま実行するアプリだけを選べる
+public enum TerminalApp: String, Codable, CaseIterable, Sendable {
+    /// macOS のターミナル
+    case terminal
+    /// iTerm2（入っているときだけ選べる。無くなっていればターミナルで開く）
+    case iTerm2
+
+    public var bundleID: String {
+        switch self {
+        case .terminal: "com.apple.Terminal"
+        case .iTerm2: "com.googlecode.iterm2"
+        }
+    }
+}
+
 public struct GlobalSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
     /// 触覚。設定の画面ではオン（medium）とオフだけを選ぶ（前の版の light・strong はそのまま読む）
@@ -50,17 +65,21 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
+    /// 「ターミナルで実行」のスクリプトを開くアプリ。既定はターミナル
+    public var terminalApp: TerminalApp
 
     public init(
         isEnabled: Bool = true,
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
-        openSensitivity: OpenSensitivity = .standard
+        openSensitivity: OpenSensitivity = .standard,
+        terminalApp: TerminalApp = .terminal
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
+        self.terminalApp = terminalApp
     }
 }
 
@@ -90,7 +109,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, haptics, hudScale, openSensitivity
+        case isEnabled, haptics, hudScale, openSensitivity, terminalApp
     }
 
     public init(from decoder: any Decoder) throws {
@@ -100,7 +119,8 @@ extension GlobalSettings {
             isEnabled: container.decodeLossy(Bool.self, forKey: .isEnabled, default: defaults.isEnabled),
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
-            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity)
+            openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
+            terminalApp: container.decodeLossy(TerminalApp.self, forKey: .terminalApp, default: defaults.terminalApp)
         )
     }
 
@@ -114,6 +134,9 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
+        }
+        if terminalApp != .terminal {
+            try container.encode(terminalApp, forKey: .terminalApp)
         }
     }
 }

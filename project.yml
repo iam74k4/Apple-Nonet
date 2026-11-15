@@ -66,12 +66,17 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.iam74k4.Nonet.register
             CFBundleURLSchemes: [nonet]
-        # 購入のメールに添付するライセンスキーのファイル（.nonetlicense）。リンクと同じく、開くと登録してよいか尋ねる
+        # 購入のメールに添付するライセンスキーのファイル（.nonetlicense）。リンクと同じく、開くと登録してよいか尋ねる。
+        # 書き出したプロファイル（.nonetprofile）は、開くと設定の「読み込む…」と同じ確認を通して読み込む
         CFBundleDocumentTypes:
           - CFBundleTypeName: Nonet License Key
             CFBundleTypeRole: Viewer
             LSHandlerRank: Owner
             LSItemContentTypes: [com.iam74k4.nonet.license]
+          - CFBundleTypeName: Nonet Profile
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes: [com.iam74k4.nonet.profile]
         # 設定画面の中のドラッグ（マスの入れ替えなど）とマスのコピー、プロファイルの書き出しファイルと、ライセンスキーのファイル
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: com.iam74k4.nonet.settings-drag

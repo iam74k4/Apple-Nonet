@@ -81,7 +81,10 @@ private func expiredLicense(verifier: LicenseVerifier? = nil) -> (LicenseManager
 
     @Test func aPastedLicenseIDIsRecognized() {
         let idMessage = L10n.ui("これはライセンス ID です。メールにある長いライセンスキーを貼り付けてください。")
-        for input in ["NONET-2026-000123", "  nonet-2026-000123\n", "License ID: NONET-2026-000123", "3F2504E0-4F89-11D3-9A0C-0305E82C3301"] {
+        for input in [
+            "NONET-2026-000123", "  nonet-2026-000123\n", "License ID: NONET-2026-000123", "3F2504E0-4F89-11D3-9A0C-0305E82C3301",
+            "txn_01jc0aaaaaaaaaaaaaaaaaaaaa", "ライセンス ID: txn_01jc0aaaaaaaaaaaaaaaaaaaaa（問い合わせのときにお知らせください。登録には使えません）",
+        ] {
             #expect(SettingsText.looksLikeLicenseID(input), "\(input)")
             #expect(SettingsText.licenseError(LicenseError.malformed, input: input) == idMessage)
         }

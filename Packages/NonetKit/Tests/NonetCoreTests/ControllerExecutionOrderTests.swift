@@ -58,7 +58,7 @@ import Testing
         #expect(h.performer.finished == [F.newTab.action])
         #expect(h.performer.calls.last?.frontmostApp == F.safariApp)
         // ビルドが終わらないうちは「実行中」のトーストを出したまま（後のマスは HUD から実行したので、成功のトーストは出さない）
-        let running = ControllerPresentation.runningToast(Self.build)
+        let running = ControllerPresentation.runningToast(Self.build, stopHint: true)
         #expect(h.hud.toasts.map(\.title) == [running.title])
         #expect(h.controller.lastExecution?.cellTitle == F.newTab.title)
 
@@ -168,7 +168,7 @@ import Testing
         let message = try #require(NonetError.timedOut.errorDescription)
         let title = ControllerPresentation.failureTitle(ControllerTarget(cell: Self.build, profileName: "Safari", address: CellAddress(page: 0, index: 0)))
         #expect(h.hud.toasts == [
-            ControllerPresentation.runningToast(Self.build),
+            ControllerPresentation.runningToast(Self.build, stopHint: true),
             ToastModel(title: title, detail: message, icon: Self.build.icon, style: .failure),
         ])
         let record = try #require(h.controller.lastExecution)

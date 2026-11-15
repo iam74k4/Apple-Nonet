@@ -72,3 +72,50 @@ import Testing
         #expect(Set(OpenSensitivity.allCases.map(SettingsText.openSensitivityDetail)).count == 3)
     }
 }
+
+/// 「ターミナルで実行」のアプリ（GlobalSettings.terminalApp）。iTerm2 が入っているときだけ選べる
+@Suite(.serialized) @MainActor struct SettingsGeneralTerminalAppTests {
+    static let iTerm2 = AppReference(bundleID: TerminalApp.iTerm2.bundleID, name: "iTerm")
+
+    @Test func iTerm2IsAChoiceOnlyWhenInstalledOrChosen() {
+        #expect(SettingsText.terminalChoices(current: .terminal) { _ in false } == [.terminal])
+        #expect(SettingsText.terminalChoices(current: .terminal) { $0 == TerminalApp.iTerm2.bundleID } == [.terminal, .iTerm2])
+        // 選んだ後に消しても、選んだまま見せる
+        #expect(SettingsText.terminalChoices(current: .iTerm2) { _ in false } == [.terminal, .iTerm2])
+        #expect(TerminalApp.allCases.map(SettingsText.name) == [L10n.ui("ターミナル"), "iTerm2"])
+    }
+
+    @Test func theChoiceIsSavedImmediately() throws {
+        let h = try SettingsHarness()
+        h.model.setSetting(\.terminalApp, .iTerm2)
+        #expect(h.controller.configuration.settings.terminalApp == .iTerm2)
+        #expect(try h.saved()?.settings.terminalApp == .iTerm2)
+    }
+
+    /// iTerm2 が入っていれば、一般のタブに「ターミナル」「iTerm2」の選択が出る
+    @Test func theRowAppearsWhenITerm2IsInstalled() async throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        h.installed.apps.append(Self.iTerm2)
+        let size = CGSize(width: 640, height: 1400)
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        let hosting = NSHostingView(rootView: SettingsGeneralView(model: h.model).frame(width: size.width, height: size.height))
+        hosting.frame = NSRect(origin: .zero, size: size)
+        window.contentView = hosting
+        defer {
+            window.contentView = nil
+            window.close()
+        }
+        hosting.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(80))
+        hosting.layoutSubtreeIfNeeded()
+
+        func walk(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(walk) }
+        let segments = walk(hosting).compactMap { $0 as? NSSegmentedControl }.map { control in
+            (0..<control.segmentCount).map { control.label(forSegment: $0) ?? "" }
+        }
+        #expect(segments.contains(TerminalApp.allCases.map(SettingsText.name)))
+        #expect(!walk(hosting).contains { $0 is NSPopUpButton })
+    }
+}

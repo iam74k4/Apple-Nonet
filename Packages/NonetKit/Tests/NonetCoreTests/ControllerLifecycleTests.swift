@@ -88,12 +88,13 @@ import Testing
         h.start()
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
-        // 指の位置は権限が無くても読めるが、セッションを始められないので読まない（指が触れるたびにメインスレッドを起こさない）
-        #expect(!h.touchSource.isRunning)
+        // 指の位置は権限が無くても読める。開けないことを知らせるために、上の縁からの滑り込みだけは見る
+        #expect(h.touchSource.isRunning)
 
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .needsAccessibility)
-        #expect(h.touchSource.startCount == 0)
+        #expect(h.touchSource.startCount == 1)
+        #expect(h.keyboard.startCount == 0)
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
@@ -101,19 +102,20 @@ import Testing
         #expect(h.touchSource.isRunning)
     }
 
-    @Test func aFingerRestingWhileAccessibilityIsRevokedIsForgotten() async throws {
+    @Test func aFingerRestingWhileAccessibilityIsRevokedIsFollowed() async throws {
         let h = try ControllerHarness()
         h.start()
         h.touch(on: 2)
         h.permissions.isAccessibilityGranted = false
         h.advance(NonetController.pollInterval)
-        #expect(!h.touchSource.isRunning)
-        // 止めている間に離した（フレームは届かない）
+        // 許可が無い間も指は読み続ける（開けないことを知らせるため）
+        #expect(h.touchSource.isRunning)
+        #expect(h.touchSource.stopCount == 0)
         h.lift()
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.touchSource.isRunning)
-        // 止めたときに離れたことにしてあるので、次に置いた指は新しいタッチ（上の縁から開ける）
+        // 離したフレームも届いているので、次に置いた指は新しいタッチ（上の縁から開ける）
         h.open()
         h.choose(2)
         h.closeIfOpen()
@@ -143,7 +145,8 @@ import Testing
 
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
-        #expect(!h.touchSource.isRunning)
+        // 指は読み続ける（次に上の縁から滑らせたとき、開けない理由を知らせる）
+        #expect(h.touchSource.isRunning)
         #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
     }
@@ -248,7 +251,9 @@ import Testing
         await h.settle()
         #expect(h.hud.shown.isEmpty)
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
+        // 開かなかったことは、トーストと rejected の触覚で知らせる（開く動きは1回なので1回）
+        #expect(h.haptics.events == [.rejected])
+        #expect(h.hud.toasts == [ControllerPresentation.secureInputToast])
         #expect(h.controller.lastExecution == nil)
     }
 

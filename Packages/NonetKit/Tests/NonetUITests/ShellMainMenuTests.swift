@@ -67,6 +67,65 @@ struct ShellMainMenuTests {
         #expect(settings == 1)
     }
 
+    @Test("⌘Q は渡した動作（確かめてから終える）を呼ぶ")
+    func quitAsksFirst() throws {
+        _ = NSApplication.shared
+        var quits = 0
+        let menu = ShellMainMenu.make(onAbout: {}, onOpenSettings: {}, onQuit: { quits += 1 })
+        let appMenu = try #require(menu.items.first?.submenu)
+        let quit = try #require(appMenu.items.last)
+        #expect(quit.title == L10n.ui("終了"))
+        #expect(quit.keyEquivalent == "q")
+        #expect(quit.action != #selector(NSApplication.terminate(_:)))
+        appMenu.performActionForItem(at: appMenu.index(of: quit))
+        #expect(quits == 1)
+    }
+
+    @Test("終了の確認: 終了・キャンセル・「次回から確認しない」")
+    func quitConfirmation() {
+        let confirmation = ShellQuitConfirmation(defaults: nil)
+        var asked = 0
+        var terminated = 0
+        var answer = ShellQuitAnswer(quits: false, stopsAsking: true)
+        confirmation.ask = { done in
+            asked += 1
+            done(answer)
+        }
+        confirmation.terminate = { terminated += 1 }
+        // キャンセルなら終えず、チェックも覚えない
+        confirmation.quit()
+        #expect(asked == 1)
+        #expect(terminated == 0)
+        #expect(!confirmation.skipsConfirmation)
+        // 終える
+        answer = ShellQuitAnswer(quits: true, stopsAsking: false)
+        confirmation.quit()
+        #expect(asked == 2)
+        #expect(terminated == 1)
+        // 「次回から確認しない」なら、次からは尋ねずに終える
+        answer = ShellQuitAnswer(quits: true, stopsAsking: true)
+        confirmation.quit()
+        #expect(confirmation.skipsConfirmation)
+        confirmation.quit()
+        #expect(asked == 3)
+        #expect(terminated == 3)
+        #expect(ShellQuitConfirmation.title == L10n.ui("Nonet を終了しますか？"))
+        #expect(ShellQuitConfirmation.message.contains("⌘W"))
+    }
+
+    @Test("「次回から確認しない」は UserDefaults に覚える")
+    func quitConfirmationIsRemembered() throws {
+        let suite = "NonetQuitTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = ShellQuitConfirmation(defaults: defaults)
+        first.ask = { $0(ShellQuitAnswer(quits: true, stopsAsking: true)) }
+        first.terminate = {}
+        first.quit()
+        #expect(defaults.bool(forKey: ShellQuitConfirmation.skipKey))
+        #expect(ShellQuitConfirmation(defaults: defaults).skipsConfirmation)
+    }
+
     @Test("編集のメニューは標準の動作を宛先なしで送る")
     func editMenu() throws {
         let edit = try #require(Self.make().items[1].submenu)

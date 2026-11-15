@@ -17,10 +17,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var licenseRefreshObservers: [(NotificationCenter, NSObjectProtocol)] = []
     /// 試用期間が終わったときの小さなウィンドウ
     private var trialEndedWindow: TrialEndedWindowController?
-    /// 起動の途中に届いた nonet://register と .nonetlicense（設定のウィンドウができてから開く）
+    /// 起動の途中に届いた nonet://register・.nonetlicense・.nonetprofile（設定のウィンドウができてから開く）
     private var pendingLicenseLinks: [URL] = []
     private let updater = UpdaterController()
-    /// 購入ページ・利用ガイド・プライバシーポリシー。利用ガイドとプライバシーポリシーは、画面が英語なら英語のページ（サイトの en/ の下）
+    /// メインメニューの「終了」（⌘Q）を確かめる。メニューバーの「Nonet を終了」はすぐ終わる
+    private lazy var quitConfirmation: ShellQuitConfirmation = {
+        #if DEBUG
+        // 設定の置き場所を分けたときは、「次回から確認しない」を本物（UserDefaults）に書かない
+        if options.configDirectory != nil {
+            return ShellQuitConfirmation(defaults: nil)
+        }
+        #endif
+        return ShellQuitConfirmation(defaults: .standard)
+    }()
+    /// 購入ページ・利用ガイド・プライバシーポリシー。画面が日本語でなければ英語のページ（サイトの en/ の下）
     private let links = AppLinks(purchase: AppInfo.purchaseURL, support: AppInfo.supportURL, privacy: AppInfo.privacyURL)
         .localized(language: Bundle.main.preferredLocalizations.first)
     #if DEBUG
@@ -38,9 +48,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌘? の「Nonet ヘルプ」は利用ガイドを開く
         let guide = links.support
         NSApplication.shared.mainMenu = ShellMainMenu.make(
-            onAbout: { [weak self] in self?.showSettings(tab: .license) },
-            onOpenSettings: { [weak self] in self?.showSettings(tab: .general) },
-            onHelp: guide.map { url in { _ = NSWorkspace.shared.open(url) } }
+            // 「Nonet について」は「Nonet」のタブの下の情報の欄、「設定…」（⌘,）は開いていれば今のタブのまま前に出す
+            onAbout: { [weak self] in self?.settingsWindow?.showAbout() },
+            onOpenSettings: { [weak self] in self?.settingsWindow?.showFromMainMenu() },
+            onHelp: guide.map { url in { _ = NSWorkspace.shared.open(url) } },
+            onQuit: { [weak self] in self?.quitConfirmation.quit() }
         )
     }
 
@@ -90,6 +102,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.frontmostApp = { frontmost.current?.app }
         menuBar.links = links
         updater.onUpdateAvailableChange = { [weak menuBar] available in menuBar?.isUpdateAvailable = available }
+        // アイコンが見えない（ノッチの陰など）ときは、メニューバーを指す知らせとアップデートの印の代わりに、ほかの出し方にする
+        updater.isStatusItemVisible = { [weak menuBar] in menuBar?.isStatusItemVisible ?? true }
+        controller.isMenuBarIconVisible = { [weak menuBar] in menuBar?.isStatusItemVisible ?? true }
         self.menuBar = menuBar
         settingsWindow = SettingsWindowController(
             controller: controller,
@@ -161,7 +176,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller?.stop()
     }
 
-    /// 購入のメールの nonet://register?key=… と、.nonetlicense のファイル。設定のライセンスのタブで、登録してよいか尋ねる
+    /// 購入のメールの nonet://register?key=… と、.nonetlicense のファイル。設定のライセンスのタブで、登録してよいか尋ねる。
+    /// Finder でダブルクリックした .nonetprofile は、設定の「読み込む…」と同じ確認を通して読み込む
     func application(_ application: NSApplication, open urls: [URL]) {
         pendingLicenseLinks += urls
         openPendingLicenseLinks()
@@ -232,7 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defaults = nil
         }
         #endif
-        // 設定やメニューと同じく、画面の言語の購入ページ（links は英語なら en/ のページ）
+        // 設定やメニューと同じく、画面の言語の購入ページ（links は日本語でなければ en/ のページ）
         let window = TrialEndedWindowController(license: license, purchaseURL: links.purchase, defaults: defaults) { [weak self] in
             self?.settingsWindow?.showLicenseKeyEntry()
         }
@@ -245,8 +261,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let settingsWindow else { return }
         let urls = pendingLicenseLinks
         pendingLicenseLinks = []
-        for url in urls {
-            settingsWindow.openLicenseLink(url)
+        for url in urls where !settingsWindow.openLicenseLink(url) {
+            settingsWindow.openProfileDocument(url)
         }
     }
 

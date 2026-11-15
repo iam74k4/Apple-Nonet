@@ -189,9 +189,9 @@ struct SettingsCommitTextEditor: View {
         buffer.registry = pendingEdits
         return editor
             .frame(minHeight: minHeight)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).fill(Color(nsColor: .textBackgroundColor)))
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius)
                     .strokeBorder(isFocused ? Color.accentColor.opacity(0.6) : Color(nsColor: .separatorColor), lineWidth: isFocused ? 2 : 1)
             )
             .onChange(of: value) { _, newValue in buffer.valueChanged(newValue) }

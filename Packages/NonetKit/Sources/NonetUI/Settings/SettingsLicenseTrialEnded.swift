@@ -63,7 +63,7 @@ public final class TrialEndedWindowController {
     private var lastEntitlement: Entitlement?
 
     /// purchaseURL: 「購入する」で開く（nil ならボタンを出さない）。
-    /// defaults: 出した日を覚える場所（nil ならメモリだけ）。onRegister: 「ライセンスキーを登録…」（設定のライセンスのタブを開く）
+    /// defaults: 出した日を覚える場所（nil ならメモリだけ）。onRegister: 「ライセンスキーを入力…」（設定のライセンスのタブを開く）
     public init(license: LicenseManager, purchaseURL: URL?, defaults: UserDefaults?, onRegister: @escaping () -> Void) {
         self.license = license
         self.purchaseURL = purchaseURL
@@ -208,7 +208,7 @@ struct TrialEndedView: View {
                     }
                     .keyboardShortcut(.cancelAction)
                     Button(action: onRegister) {
-                        Text("ライセンスキーを登録…", bundle: .module)
+                        Text("ライセンスキーを入力…", bundle: .module)
                     }
                     .keyboardShortcut(showsPurchase ? nil : .defaultAction)
                     if showsPurchase {

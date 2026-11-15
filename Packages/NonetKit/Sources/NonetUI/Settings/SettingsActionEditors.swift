@@ -112,9 +112,9 @@ struct SettingsKeystrokeEditor: View {
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).fill(Color(nsColor: .textBackgroundColor)))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius)
                     .strokeBorder(isRecording ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: isRecording ? 2 : 1)
             )
             .contentShape(Rectangle())
@@ -327,7 +327,7 @@ struct SettingsAppList: View {
                         Text(entry.app.name.isEmpty ? entry.app.bundleID : entry.app.name)
                             .lineLimit(1)
                         Text(entry.app.bundleID)
-                            .font(.system(size: 10))
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -335,11 +335,11 @@ struct SettingsAppList: View {
                     Spacer(minLength: 4)
                     if showsBadges, entry.hasProfile {
                         Text("追加済み", bundle: .module)
-                            .font(.system(size: 10))
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     } else if showsBadges, entry.hasPreset {
                         Text("プリセットあり", bundle: .module)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 11, weight: .medium))
                             .fixedSize()
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
@@ -435,7 +435,7 @@ struct SettingsScriptEditor: View {
                 .pickerStyle(.segmented)
                 Text(script.runMode == .background
                     ? String(localized: "終わるまで待ちます。出力があれば結果のパネルに出し（出したくないときは > /dev/null）、失敗したらエラーの最後を表示します", bundle: .module)
-                    : String(localized: "ターミナルの新しいウィンドウで実行します。claude のような対話型のコマンド向けです。", bundle: .module))
+                    : String(localized: "ターミナルの新しいウインドウで実行します。claude のような対話型のコマンド向けです。", bundle: .module))
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -484,7 +484,7 @@ struct SettingsScriptHelp: View {
         [
             ("NONET_APP_BUNDLE_ID", String(localized: "前面のアプリの bundle ID", bundle: .module)),
             ("NONET_APP_NAME", String(localized: "前面のアプリの名前", bundle: .module)),
-            ("NONET_DOCUMENT_PATH", String(localized: "前面のウィンドウで開いている書類", bundle: .module)),
+            ("NONET_DOCUMENT_PATH", String(localized: "前面のウインドウで開いている書類", bundle: .module)),
             ("NONET_PROJECT_DIR", String(localized: "書類から決めたプロジェクトのフォルダ", bundle: .module)),
             ("PROJECT_DIR", String(localized: "NONET_PROJECT_DIR と同じ", bundle: .module)),
             ("NONET_BROWSER_URL", String(localized: "ブラウザで表示中のページ（Safari・Google Chrome・Arc・Microsoft Edge・Brave）", bundle: .module)),
@@ -706,7 +706,7 @@ struct SettingsMenuItemEditor: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 8).strokeBorder(SettingsPalette.panelBorder))
+                .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).strokeBorder(SettingsPalette.panelBorder))
             }
             Button {
                 model.showMenus(true)
@@ -734,7 +734,7 @@ struct SettingsAIEditor: View {
             if let reason = model.services.ai.unavailableReason {
                 SettingsNote(text: reason, symbol: "exclamationmark.triangle", isWarning: true)
                     .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).fill(Color.orange.opacity(0.08)))
             }
             SettingsField(title: String(localized: "指示文", bundle: .module)) {
                 SettingsCommitTextEditor(
@@ -837,10 +837,11 @@ struct SettingsPlaceWindowEditor: View {
                     .lineLimit(1)
             }
             .frame(width: 74, height: 52)
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? Color.accentColor : SettingsPalette.cellBackground))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
-            .contentShape(RoundedRectangle(cornerRadius: 8))
+            // アクセント色の上の文字は、macOS が選んだ項目に使う色（アクセント色が明るいときも読める）
+            .foregroundStyle(isSelected ? Color(nsColor: .alternateSelectedControlTextColor) : Color.primary)
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).fill(isSelected ? Color.accentColor : SettingsPalette.cellBackground))
+            .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+            .contentShape(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(region.title)

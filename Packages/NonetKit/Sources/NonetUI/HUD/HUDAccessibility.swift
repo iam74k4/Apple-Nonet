@@ -21,4 +21,15 @@ enum HUDAccessibility {
         guard let detail, !detail.isEmpty else { return title }
         return String(localized: "\(title)、\(detail)", bundle: .module)
     }
+
+    /// 結果のパネルを開いたときに読む文の、結果の文字数の上限（スクリプトや AI の長い出力をすべて読ませない）
+    static let resultExcerptLimit = 200
+
+    /// 結果のパネルを開いたとき。名前と、結果の始めの resultExcerptLimit 文字まで。長ければ、続きはパネルで読めることを添える
+    static func resultAnnouncement(title: String, text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > resultExcerptLimit else { return toastAnnouncement(title: title, detail: trimmed) }
+        let excerpt = String(trimmed.prefix(resultExcerptLimit))
+        return String(localized: "\(title)、\(excerpt)…（続きは結果のパネルで読めます）", bundle: .module)
+    }
 }

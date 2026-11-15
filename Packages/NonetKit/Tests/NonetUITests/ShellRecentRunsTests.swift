@@ -11,7 +11,7 @@ struct ShellRecentRunsTests {
     static let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
     static func record(profile: String, profileID: UUID? = nil, title: String = "ビルド", page: Int = 0, index: Int = 0,
-                       succeeded: Bool = true, message: String? = nil) -> ExecutionRecord {
+                       succeeded: Bool = true, message: String? = nil, wasStopped: Bool = false) -> ExecutionRecord {
         ExecutionRecord(
             cellTitle: title,
             profileName: profile,
@@ -19,7 +19,8 @@ struct ShellRecentRunsTests {
             succeeded: succeeded,
             message: message,
             date: now,
-            profileID: profileID
+            profileID: profileID,
+            wasStopped: wasStopped
         )
     }
 
@@ -45,6 +46,38 @@ struct ShellRecentRunsTests {
         #expect(MenuBarModel.recentRunTitle(failed) == L10n.ui("\(base) — \("終了コード 1")"))
         let failedWithoutReason = Self.record(profile: "Xcode", succeeded: false, message: nil)
         #expect(MenuBarModel.recentRunTitle(failedWithoutReason) == base)
+        // 止めたものは ■ と「止めました」
+        let stopped = Self.record(profile: "Xcode", succeeded: false, message: "止めました", wasStopped: true)
+        #expect(MenuBarModel.recentRunTitle(stopped) == L10n.ui("\(L10n.ui("\("■") \("Xcode") › \("ビルド")")) — \("止めました")"))
+        #expect(MenuBarModel.recentRunAccessibilityLabel(stopped) == L10n.ui("止めました: \("Xcode") › \("ビルド")"))
+    }
+
+    /// 長い理由やボタンの名前でも、メニューを画面の幅まで広げない（全文は選ぶと結果のパネルに出る）
+    @Test("長い行は1行にまとめて切る")
+    func longTitlesAreTruncated() {
+        let reason = String(repeating: "長い理由", count: 100)
+        let failed = Self.record(profile: "Xcode", title: String(repeating: "名", count: 50), succeeded: false, message: reason)
+        let title = MenuBarModel.recentRunTitle(failed)
+        #expect(title.count == MenuBarModel.recentRunTitleLimit)
+        #expect(title.hasSuffix("…"))
+        #expect(!title.contains("\n"))
+        let short = Self.record(profile: "Xcode")
+        #expect(!MenuBarModel.recentRunTitle(short).hasSuffix("…"))
+    }
+
+    /// 実行中の止められるボタンは、状態の行のすぐ下に「実行中の「◯◯」を止める」で出す
+    @Test("実行中のボタンを止める項目")
+    func stopEntries() {
+        var state = ShellMenuState.make()
+        #expect(!MenuBarModel.entries(for: state).contains { if case .stopRunning = $0 { true } else { false } })
+        let running = RunningAction(id: 7, cellTitle: "ビルド", profileName: "Xcode")
+        let long = RunningAction(id: 8, cellTitle: String(repeating: "名", count: 100), profileName: "Xcode")
+        state.runningActions = [running, long]
+        let entries = MenuBarModel.entries(for: state)
+        #expect(Array(entries.prefix(3).dropFirst()) == [.stopRunning(running), .stopRunning(long)])
+        #expect(MenuBarEntry.stopRunning(running).title == L10n.ui("実行中の「\("ビルド")」を止める"))
+        let shortened = SettingsText.singleLine(long.cellTitle, limit: MenuBarModel.runningTitleLimit)
+        #expect(MenuBarEntry.stopRunning(long).title == L10n.ui("実行中の「\(shortened)」を止める"))
     }
 
     @Test("VoiceOver では ✓・✗ の代わりに、成功・失敗を言葉で読む")

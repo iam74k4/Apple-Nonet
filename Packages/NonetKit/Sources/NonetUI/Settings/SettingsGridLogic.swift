@@ -132,10 +132,14 @@ enum SettingsGrid {
         return detailContent(for: cell)
     }
 
-    /// マスのヘルプ（ポインタを重ねたときの説明）。アプリ起動だけ、グリッドに出さない開くアプリの名前を出す
+    /// マスのヘルプ（ポインタを重ねたときの説明）。名前は切れていることがあるので、名前をそのまま1行目に、何をするか
+    /// （送るキー・開くアプリなど。アプリ起動ならグリッドに出さない開くアプリの名前）を2行目に出す。空きマスは nil
     static func tooltip(for cell: Cell?) -> String? {
-        guard let cell, case .launchApp = cell.action, !SettingsCellEditing.isIncomplete(cell.action) else { return nil }
-        return detailContent(for: cell).text
+        guard let cell else { return nil }
+        let title = displayTitle(for: cell).trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = detailContent(for: cell).text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !detail.isEmpty, detail != title else { return title }
+        return title.isEmpty ? detail : "\(title)\n\(detail)"
     }
 
     /// マスの中身の説明（アプリ起動ならアプリの名前）。検索と VoiceOver とヘルプで使う

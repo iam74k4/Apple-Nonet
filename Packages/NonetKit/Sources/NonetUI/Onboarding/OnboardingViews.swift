@@ -20,13 +20,20 @@ struct OnboardingView: View {
                 .padding(.horizontal, OnboardingLayout.horizontalPadding)
                 .padding(.top, 22)
                 .padding(.bottom, 18)
-            Group {
-                switch model.step {
-                case .welcome: OnboardingWelcomeStep(model: model)
-                case .practice: OnboardingPracticeStep(model: model)
+            // 文字を大きくしているときや英語などで入りきらなければ、ステップの中身だけをスクロールする（上の段と下のボタンは動かさない）。
+            // 入るときは、中身をウインドウの高さまで広げる（練習の画面は、下の選択を下に寄せている）
+            GeometryReader { proxy in
+                ScrollView(.vertical) {
+                    Group {
+                        switch model.step {
+                        case .welcome: OnboardingWelcomeStep(model: model)
+                        case .practice: OnboardingPracticeStep(model: model)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .topLeading)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             Divider()
             footer
                 .padding(.horizontal, OnboardingLayout.horizontalPadding)
@@ -58,10 +65,8 @@ struct OnboardingView: View {
                     Text("今後表示しない", bundle: .module)
                 }
                 .toggleStyle(.checkbox)
-            } else if model.isAccessibilityGranted {
-                // 「許可されています」はカードの印に出ているので繰り返さない
-                Text("次へ進んでください", bundle: .module)
-            } else {
+            } else if !model.isAccessibilityGranted {
+                // 許可されたら何も書かない（「許可されています」はカードの印に出ていて、「次へ」も見えている）
                 Text("許可すると、自動で次へ進みます", bundle: .module)
             }
         case .practice:
@@ -78,30 +83,27 @@ struct OnboardingView: View {
         case .welcome:
             if model.isAccessibilityGranted {
                 Button { model.next() } label: { Text("次へ", bundle: .module) }
-                    .buttonStyle(OnboardingPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
+                    .onboardingPrimaryButton()
             } else {
                 Button { model.next() } label: { Text("あとで許可する", bundle: .module) }
-                    .buttonStyle(OnboardingSecondaryButtonStyle())
+                    .onboardingSecondaryButton()
                 Button { model.requestAccessibility() } label: { Text("システム設定を開く", bundle: .module) }
-                    .buttonStyle(OnboardingPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
+                    .onboardingPrimaryButton()
             }
         case .practice:
             // 練習が最後の画面。できたら「完了」、まだなら「スキップ」で閉じる（どちらもメニューバーのアイコンの場所を見せる）
             Button { model.back() } label: { Text("戻る", bundle: .module) }
-                .buttonStyle(OnboardingSecondaryButtonStyle())
+                .onboardingSecondaryButton()
             if let onOpenSettings {
                 Button(action: onOpenSettings) { Text("設定を開く", bundle: .module) }
-                    .buttonStyle(OnboardingSecondaryButtonStyle())
+                    .onboardingSecondaryButton()
             }
             if model.practice == .succeeded {
                 Button(action: onFinish) { Text("完了", bundle: .module) }
-                    .buttonStyle(OnboardingPrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
+                    .onboardingPrimaryButton()
             } else {
                 Button(action: onFinish) { Text("スキップ", bundle: .module) }
-                    .buttonStyle(OnboardingSecondaryButtonStyle())
+                    .onboardingSecondaryButton()
             }
         }
     }
@@ -209,7 +211,7 @@ struct OnboardingWelcomeStep: View {
                     .font(.system(size: 24, weight: .bold))
                     .fixedSize(horizontal: false, vertical: true)
                     .onboardingHeading()
-                    Text(ShellText.welcomeSubtitle)
+                    Text(ShellText.tagline)
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -226,8 +228,9 @@ struct OnboardingWelcomeStep: View {
                     .font(.system(size: 13))
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 6) {
-                    OnboardingBullet(Text("9マスを開いている間、ポインタの移動とクリックを前面のアプリに渡さない", bundle: .module))
-                    OnboardingBullet(Text("9マスを開いている間だけ、キーが押されたことを知る（押されたら閉じる）", bundle: .module))
+                    // 上の一行と同じ呼び方（9つのボタン）にする
+                    OnboardingBullet(Text("9つのボタンを開いている間、ポインタの移動とクリックを前面のアプリに渡さない", bundle: .module))
+                    OnboardingBullet(Text("9つのボタンを開いている間だけ、キーが押されたことを知る（押されたら閉じる）", bundle: .module))
                     OnboardingBullet(Text("設定したキー入力を送る・メニュー項目を押す・選択中のテキストを読む", bundle: .module))
                 }
                 Text("入力した文字の内容は記録も送信もしません。設定は Mac の中だけに保存します。", bundle: .module)
@@ -241,7 +244,7 @@ struct OnboardingWelcomeStep: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius, style: .continuous).strokeBorder(Color.secondary.opacity(0.3)))
             if model.isTrackpadMissing {
                 // 許可より前に分かる。許可しても、トラックパッドが無ければ使えない
                 OnboardingNotice(text: OnboardingModel.noTrackpadMessage) {
@@ -261,6 +264,12 @@ struct OnboardingPermissionSteps: View {
             OnboardingNumberedLine(number: 1, text: Text("「システム設定を開く」を押す", bundle: .module))
             OnboardingNumberedLine(number: 2, text: Text("一覧の Nonet をオンにする（パスワードか Touch ID を求められます）", bundle: .module))
             OnboardingNumberedLine(number: 3, text: Text("この画面に自動で戻ります", bundle: .module))
+            // アップデートの後などは、一覧ではオンのまま許可が外れていることがある（外して入れ直すと直る）
+            Text("オンなのに進まないとき（アップデートの後など）は、一覧の Nonet を「−」で外し、「＋」で追加し直してください。", bundle: .module)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 26)
         }
     }
 }
@@ -367,7 +376,7 @@ struct OnboardingNotice<Actions: View>: View {
         .font(.system(size: 13))
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
+        .background(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
     }
 }
 
@@ -391,29 +400,17 @@ struct OnboardingLogo: View {
     }
 }
 
-/// 黒い角丸のボタン（暗い表示では白）
-struct OnboardingPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(Color(nsColor: .windowBackgroundColor))
-            .padding(.horizontal, 18)
-            .frame(height: 34)
-            .background(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(Color.primary.opacity(configuration.isPressed ? 0.75 : 1))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+extension View {
+    /// いちばん先に押すボタン。標準の目立つボタン（アクセント色）で、Return でも押せる。ポインタを重ねたとき・押せないときの見た目は macOS のまま
+    func onboardingPrimaryButton() -> some View {
+        buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
     }
-}
 
-struct OnboardingSecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13))
-            .foregroundStyle(Color.primary.opacity(configuration.isPressed ? 0.5 : 0.8))
-            .padding(.horizontal, 12)
-            .frame(height: 34)
-            .contentShape(Rectangle())
+    /// ほかのボタン。標準の枠付きのボタン
+    func onboardingSecondaryButton() -> some View {
+        buttonStyle(.bordered)
+            .controlSize(.large)
     }
 }

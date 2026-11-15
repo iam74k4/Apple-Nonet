@@ -283,11 +283,14 @@ extension NonetConfiguration {
 
     /// 前面アプリで使うページの並び。
     /// アプリのプロファイルがあればそのページ、その後ろにグローバルのページ。無ければグローバルのページだけ。使い方が global・off のプロファイルは使わない
-    /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）
+    /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
+    /// マスが1つも無いアプリのプロファイル（「◯◯ のマスを作る…」で作ったばかり など）も無いものとし、グローバルのページを先に出す
+    /// （空きマスだけのページが先に開いて、グローバルのマスが隠れないように）
     public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
         let globalPages = Self.resolve(globalProfile)
         guard let bundleID = frontmostBundleID,
-              let appProfile = appProfile(forBundleID: bundleID) else {
+              let appProfile = appProfile(forBundleID: bundleID),
+              appProfile.hasButtons else {
             return globalPages
         }
         return Self.resolve(appProfile) + globalPages

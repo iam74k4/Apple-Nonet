@@ -224,17 +224,6 @@
         }
       }
     },
-    "macOS のスクリーンショットのキーボードショートカットがオフです。システム設定 › キーボード › キーボードショートカット › スクリーンショット で確かめてください" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The macOS screenshot keyboard shortcut is turned off. Check System Settings › Keyboard › Keyboard Shortcuts › Screenshots."
-          }
-        }
-      }
-    },
     "「%@」は今のキー配列では入力できません" : {
       "localizations" : {
         "en" : {
@@ -619,17 +608,6 @@
         }
       }
     },
-    "ログイン時に起動するよう設定できませんでした" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't set Nonet to open at login."
-          }
-        }
-      }
-    },
     "ログイン時の起動を止められませんでした" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -647,28 +625,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Login Items"
-          }
-        }
-      }
-    },
-    "一度に開けるのは%lld個までです" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can open up to %lld files at once."
-          }
-        }
-      }
-    },
-    "出力が大きすぎるため、使えませんでした（%lld KB まで）" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't use the output because it's larger than %lld KB."
           }
         }
       }
@@ -729,17 +685,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To rename, select just one file."
-          }
-        }
-      }
-    },
-    "移動先のフォルダが見つかりません" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't find the destination folder."
           }
         }
       }

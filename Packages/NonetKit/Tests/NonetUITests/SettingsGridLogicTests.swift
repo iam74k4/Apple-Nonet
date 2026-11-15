@@ -108,8 +108,10 @@ import UniformTypeIdentifiers
         // アプリ起動はいつも種類の名前。開くアプリの名前はヘルプ・検索・VoiceOver に残す
         #expect(SettingsGrid.subtitle(for: renamed) == L10n.ui("開く"))
         #expect(SettingsGrid.detailContent(for: renamed).text == "Safari")
-        #expect(SettingsGrid.tooltip(for: renamed) == "Safari")
-        #expect(SettingsGrid.tooltip(for: shortcut) == nil)
+        // ヘルプは、切れているかもしれない名前と、何をするか
+        #expect(SettingsGrid.tooltip(for: renamed) == "ブラウザ\nSafari")
+        #expect(SettingsGrid.tooltip(for: shortcut) == "マイクを切る\n\(L10n.ui("ショートカット"))")
+        #expect(SettingsGrid.tooltip(for: SettingsFixtures.key("ビルド", .key("b", .command))) == "ビルド\n⌘B")
         #expect(SettingsGrid.tooltip(for: nil) == nil)
         #expect(SettingsGrid.accessibilityLabel(index: 0, cell: renamed).contains("Safari"))
     }

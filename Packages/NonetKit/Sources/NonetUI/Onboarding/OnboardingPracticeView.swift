@@ -119,7 +119,7 @@ struct OnboardingPracticeTasks: View {
                 .font(.system(size: 12))
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
+                .background(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
                 .accessibilityElement(children: .combine)
             }
             if state == .run {

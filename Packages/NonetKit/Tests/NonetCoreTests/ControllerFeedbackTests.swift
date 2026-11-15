@@ -67,7 +67,7 @@ import Testing
         h.advance(NonetController.runningToastDelay - 0.41)
         #expect(h.hud.toasts.isEmpty)
         h.advance(0.01 + 0.4)
-        #expect(h.hud.toasts == [ControllerPresentation.runningToast(Self.build)])
+        #expect(h.hud.toasts == [ControllerPresentation.runningToast(Self.build, stopHint: true)])
         h.advance(30)
         #expect(h.hud.toasts.count == 1)
 
@@ -75,7 +75,7 @@ import Testing
         h.performer.release(Self.build.action)
         await h.settle()
         #expect(h.hud.toasts == [
-            ControllerPresentation.runningToast(Self.build),
+            ControllerPresentation.runningToast(Self.build, stopHint: true),
             ControllerPresentation.successToast(Self.build),
         ])
         #expect(h.hud.toastHides == 0)

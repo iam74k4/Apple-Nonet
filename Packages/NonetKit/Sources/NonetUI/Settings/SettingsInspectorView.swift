@@ -122,9 +122,9 @@ struct SettingsCellEditor: View {
             } label: {
                 Text("このマスを空にする", bundle: .module)
             }
+            // 消すボタンなので赤のまま。小さな赤い字は読みにくいので、ふつうの大きさにする
             .buttonStyle(.borderless)
             .foregroundStyle(.red)
-            .font(.system(size: 12))
         }
     }
 
@@ -221,7 +221,7 @@ struct SettingsTestOutput: View {
                 .padding(8)
         }
         .frame(maxHeight: 160)
-        .background(RoundedRectangle(cornerRadius: 6).strokeBorder(SettingsPalette.panelBorder))
+        .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(SettingsPalette.panelBorder))
         .accessibilityLabel(Text("結果", bundle: .module))
     }
 }
@@ -240,8 +240,8 @@ struct SettingsIconButton: View {
         } label: {
             CellIconView(cell.icon, size: 16)
                 .frame(width: 30, height: 30)
-                .background(RoundedRectangle(cornerRadius: 7).fill(SettingsPalette.cellBackground))
-                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(SettingsPalette.cellBorder))
+                .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).fill(SettingsPalette.cellBackground))
+                .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(SettingsPalette.cellBorder))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -335,13 +335,15 @@ struct SettingsIconPicker: View {
                                     Image(systemName: symbol)
                                         .font(.system(size: 15))
                                         .frame(width: 30, height: 30)
-                                        .background(RoundedRectangle(cornerRadius: 6).fill(isCurrent ? Color.primary.opacity(0.12) : Color.clear))
-                                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(isCurrent ? Color.primary : Color.clear, lineWidth: 1.5))
+                                        .background(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).fill(isCurrent ? Color.primary.opacity(0.12) : Color.clear))
+                                        .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius).strokeBorder(isCurrent ? Color.primary : Color.clear, lineWidth: 1.5))
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                                 .help(symbol)
-                                .accessibilityLabel(symbol)
+                                // 記号の名前（"folder.badge.plus"）ではなく、読める名前と、いま選んでいるか
+                                .accessibilityLabel(SettingsIconLibrary.accessibilityName(symbol))
+                                .accessibilityAddTraits(isCurrent ? [.isButton, .isSelected] : .isButton)
                             }
                         }
                     }

@@ -3,7 +3,8 @@
 NONET_APPCAST_URL = https:/$()/nonet.astlog.dev/updates/appcast.xml
 // Sparkle の EdDSA 公開鍵（generate_keys の出力）
 NONET_SPARKLE_PUBLIC_KEY = be5y71T7N+L1AkrPlczR5Gyw1J8BhlQ/KGLPSqe13f8=
-// 購入ページの URL（Paddle の購入画面を開くページ。アプリの言語にかかわらず、このページを開く）
+// 購入ページの URL（Paddle の購入画面を開くページ）。日本語のページを書く。アプリの画面が日本語でなければ、
+// 同じサイトの en/ の下のページ（en/buy.html）を開く（AppLinks.localized）。利用ガイドとプライバシーポリシーも同じ
 NONET_PURCHASE_URL = https:/$()/nonet.astlog.dev/buy.html
 // 利用ガイド・サポートのページの URL（設定の「情報」から開く）
 NONET_SUPPORT_URL = https:/$()/nonet.astlog.dev/guide.html

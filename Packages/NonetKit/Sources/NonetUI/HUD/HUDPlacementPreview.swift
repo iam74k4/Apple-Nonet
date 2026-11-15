@@ -49,9 +49,10 @@ struct HUDPlacementPreviewView: View {
                 .fill(Color.accentColor.opacity(0.14))
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(0.8), lineWidth: 2)
+            // 文字は選んだ色の上で読める色（強調色が黄色やグラファイトでも白に決めない）
             Text("離すと、ここに置きます", bundle: .module)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Color(nsColor: .alternateSelectedControlTextColor))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.accentColor))

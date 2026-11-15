@@ -11,7 +11,7 @@ public final class MenuBarController {
     public var onRequestAccessibility: (() -> Void)?
     /// 「◯◯のボタンを編集…」で呼ぶ。開くアプリ（グローバルなら nil）を渡す。nil なら設定の「プロファイル」を開く
     public var onEditButtons: ((AppReference?) -> Void)?
-    /// 「最近の実行」で選んだボタンを設定で開く
+    /// 「最近の実行」で選んだボタンを設定で開く（失敗したものは、理由の全文も結果のパネルに出す）
     public var onShowRun: ((ExecutionRecord) -> Void)?
     /// 早見表で押したマスを設定で開く（プロファイルの id と、プロファイル内のページとマス）。nil なら設定の「プロファイル」を開く
     public var onShowCell: ((UUID, CellAddress) -> Void)?
@@ -211,6 +211,10 @@ public final class MenuBarController {
                     self.onOpenOnboarding()
                 }
             }
+        case .stopRunning(let running):
+            let item = actionItem(entry) { [weak self] in self?.controller.stopRunningAction(id: running.id) }
+            item.image = NSImage(systemSymbolName: "stop.circle", accessibilityDescription: nil)
+            return item
         case .toggleEnabled(let isOn):
             let item = actionItem(entry) { [weak self] in
                 self?.controller.update { $0.settings.isEnabled.toggle() }
@@ -250,6 +254,8 @@ public final class MenuBarController {
                     } else {
                         self.onOpenSettings(.profiles)
                     }
+                    // 失敗したものは、トーストで数秒しか出なかった理由の全文を、選んでコピーできる結果のパネルに出す（設定の上に出る）
+                    self.controller.showFailureDetails(record)
                 }
                 submenu.addItem(run)
             }
@@ -311,6 +317,7 @@ public final class MenuBarController {
         item.isEnabled = true
         item.view = view
         view.onOpen = { [weak self] location in self?.openFromCheatSheet(location) }
+        view.onRun = { [weak self] location in self?.runFromCheatSheet(location) }
         // 項目の名前（VoiceOver と文字で選ぶとき）を見ているページに合わせる
         view.onPageChange = { [weak item, weak view] in
             guard let item, let view else { return }
@@ -331,6 +338,20 @@ public final class MenuBarController {
         // メニューが開いている間は動かない（イベントを追う間の run loop の mode では動かない）
         RunLoop.main.perform(inModes: [.default]) { [weak self] in
             MainActor.assumeIsolated { self?.showCell(location) }
+        }
+    }
+
+    /// 早見表のマスを ⌥クリックした。メニューを閉じ、閉じ終わってから、設定の「このマスをテスト実行」と同じく前面のアプリに向けて実行する
+    /// （アプリのプロファイルならそのアプリ、グローバルなら前面のアプリ。失敗は画面の下の知らせに出る）
+    private func runFromCheatSheet(_ location: MenuBarCellLocation) {
+        menu.cancelTracking()
+        RunLoop.main.perform(inModes: [.default]) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self,
+                      let profile = self.controller.configuration.profile(id: location.profileID),
+                      let cell = SettingsGrid.cell(at: location.address, in: profile) else { return }
+                Task { await self.controller.testRun(cell, profileID: profile.id) }
+            }
         }
     }
 
