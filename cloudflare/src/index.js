@@ -4,6 +4,7 @@
 
 import { handleDownload } from "./download.js";
 import { withoutBodyFor } from "./http.js";
+import { handleLicensing, isLicensingPath } from "./licensing.js";
 import { isDirectoryIndex, redirectToDirectory, serveDirectoryIndex } from "./site.js";
 import { handleUpdates } from "./updates.js";
 
@@ -12,6 +13,10 @@ export default {
     const { pathname } = new URL(request.url);
     if (pathname === "/updates" || pathname.startsWith("/updates/")) {
       return withoutBodyFor(request, await handleUpdates(request, env, pathname));
+    }
+    // ライセンスキーを届ける（Paddle の通知と購入のページ）。設定が無ければ 503（src/licensing.js）
+    if (isLicensingPath(pathname)) {
+      return handleLicensing(request, env, pathname);
     }
     if (pathname === "/download") {
       return withoutBodyFor(request, await handleDownload(request, env));

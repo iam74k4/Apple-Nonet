@@ -39,10 +39,21 @@ not_found_handling = "404-page"
 #   /en          /en/ へリダイレクト（none では自動で付かない）
 #   /updates/*   R2 のリリースのファイル（appcast.xml・DMG・デルタ）
 #   /download    appcast の最新の DMG へリダイレクト
-run_worker_first = ["/", "/en", "/en/", "/updates", "/updates/*", "/download"]
+#   /api/*       ライセンスキーを届ける（Paddle の通知 /api/paddle/webhook と、購入のページの /api/license。src/licensing.js）
+run_worker_first = ["/", "/en", "/en/", "/updates", "/updates/*", "/download", "/api/*"]
 
 # リリースのファイル。中身は scripts/publish.sh が上げる（docs/hosting.md「リリースごとの手順」）。
 # バケットは公開しない（r2.dev の URL も独自ドメインも付けない）。外からは Worker の /updates/* だけで読む
 [[r2_buckets]]
 binding = "UPDATES"
 bucket_name = "nonet-updates"
+
+# ライセンスキーを自動で届けるときの、秘密でない値（docs/release.md 3.2）。秘密の4つ（PADDLE_API_KEY・
+# PADDLE_NOTIFICATION_SECRET・LICENSE_PRIVATE_KEY・RESEND_API_KEY）は wrangler secret put で置き、ここには書かない。
+# 秘密が1つでも欠けていれば /api/* は 503 を返すだけで、ページとアップデートの配布には関係しない。
+#   LICENSE_PUBLIC_KEY  アプリに入れる公開鍵。Config/Nonet.xcconfig の NONET_LICENSE_PUBLIC_KEY と同じ（test/licensing.test.js が確かめる）。
+#                       作ったキーをこれで確かめてから送る（秘密鍵を取り違えても、登録できないキーを配らない）
+#   PADDLE_PRICE_ID     Nonet の価格。site/buy.html の data-paddle-price と同じ（同上）。sandbox で試すときは .dev.vars で上書きする
+[vars]
+LICENSE_PUBLIC_KEY = "VI0XbQQ0Ur8hUQ6fxf49+YaFdZtP/ZnG8Tn1ZIqEoz8="
+PADDLE_PRICE_ID = "pri_01m7eed1e4msh3ebqy6qavp81p"

@@ -1,5 +1,5 @@
 // 販売ページのスクリプト。どれも、JavaScript が無くてもページが使える上での上乗せ:
-//   - HUD のデモを動かす（上の縁から開いて実行・外枠で離してやめる。JavaScript が無いとき・動きを減らす設定のときは静止画のまま）
+//   - ヒーローの動画（実物の収録）を自動で動かし、止めるボタンを出す（JavaScript が無いときは動画の controls のまま）
 //   - 言語の案内: 日本語のページを日本語を読まないブラウザで、英語のページを日本語を最初に選んだブラウザで
 //     開いたときだけ、もう一方の言語のページがあることを知らせる（自動では移動しない。閉じたら覚える）
 //   - Mac 以外の端末（iPhone・Android・Windows など）: ダウンロードの代わりに案内を出す
@@ -49,283 +49,58 @@
     },
   };
 
-  // MARK: HUD のデモ
+  // MARK: 収録の動画
 
-  // 上の縁から指を下へ滑らせて開き（ポインタの周りに9つのアイコン）、指を滑らせてポインタを向け、アイコンで離して実行する。
-  // 続けて、もう一度開いてアイコンの輪の外まで動かし、離して何も実行せずに閉じる
-  const setUpDemo = () => {
-    const demo = doc.querySelector("[data-demo]");
-    if (!demo) return;
-
-    const cells = Array.from(demo.querySelectorAll("[data-cell]"));
-    const pointer = demo.querySelector(".pointer");
-    const label = demo.querySelector("[data-hud-label]");
-    const finger = demo.querySelector(".finger");
-    const trail = demo.querySelector(".trail");
-    const ripple = demo.querySelector(".ripple");
-    const toastText = demo.querySelector("[data-toast-text]");
-    const caption = demo.querySelector("[data-demo-caption]");
-    const toggle = demo.querySelector("[data-demo-toggle]");
-    if (cells.length !== 9 || !pointer || !label || !finger || !trail || !ripple || !toastText || !caption || !toggle) return;
-
-    const staticCaption = caption.textContent;
-    const staticLabel = label.textContent;
-    const staticHighlight = cells.findIndex((cell) => cell.classList.contains("on"));
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const states = ["hud-open", "finger-down", "slide-in", "in-frame", "toast-show", "label-show"];
-    // 向けたまま止めてから名前が出るまで（アプリの HUDLayout.labelDelay と同じ）
-    const LABEL_DELAY = 600;
-
-    // HUD の円（正方形の %）。8つのアイコンは中心から RING の円の上に 45° おき、真ん中に 9つ目。
-    // アプリの RadialLayout（鍵の円 108 / 外枠 134）と同じ割合。style.css の --ring・--ring-diagonal と合わせる
-    const RING = 40.3;
-    const DIAGONAL = 28.5; // RING × cos 45°
-    const CENTER = { x: 50, y: 50 };
-    // マスの番号（左上から右へ、上の行から）→ そのアイコンの位置（ポインタを向けるところ）
-    const KEYS = [
-      { x: 50 - DIAGONAL, y: 50 - DIAGONAL }, { x: 50, y: 50 - RING }, { x: 50 + DIAGONAL, y: 50 - DIAGONAL },
-      { x: 50 - RING, y: 50 }, CENTER, { x: 50 + RING, y: 50 },
-      { x: 50 - DIAGONAL, y: 50 + DIAGONAL }, { x: 50, y: 50 + RING }, { x: 50 + DIAGONAL, y: 50 + DIAGONAL },
-    ];
-    const OUTSIDE_BELOW = { x: 50, y: 106 }; // アイコンの輪の外（下。輪の縁は正方形の縁）。越えると全部が薄くなる。画面の中に収まる位置
-
-    // 指の位置（トラックパッドの左上からの %）
-    const EDGE = { x: 50, y: 4 }; // 上の縁に指を置いたところ
-    const OPENED = { x: 50, y: 12 }; // 下へ滑らせて開いたところ。ポインタはここで円の中心に来る
-    // 指の動き（トラックパッドの %）をポインタの動き（HUD の %）にする倍率。トラックパッドは横長なので縦は大きめ
-    const TRAVEL = { x: 1.3, y: 2 };
-    const fingerFor = (point) => ({
-      x: OPENED.x + (point.x - CENTER.x) / TRAVEL.x,
-      y: OPENED.y + (point.y - CENTER.y) / TRAVEL.y,
-    });
-    // トラックパッドの図の大きさ（style.css の .trackpad）。滑らせた跡の長さと向きに使う
-    const PAD = { width: 240, height: 150 };
-
-    const percent = (value) => `${Math.round(value * 100) / 100}%`;
-
-    let timers = [];
-    let pausedByUser = reduceMotion.matches;
-    let onScreen = true;
-    let running = false;
-
-    const later = (ms, action) => {
-      timers.push(window.setTimeout(action, ms));
+  // ヒーローの動画（実物の収録）。JavaScript が無いときは controls のまま（自動では動かない）。
+  // あれば controls を外して自動で動かし、左下のボタンで止められるようにする（動きを減らす設定のときは止めたまま始める）。
+  // 画面の外にある間は止めておく。見る人が止めたら、画面に戻っても動かさない
+  const setUpVideo = () => {
+    const figure = doc.querySelector("[data-video]");
+    if (!figure) return;
+    const video = figure.querySelector("video");
+    const toggle = figure.querySelector("[data-video-toggle]");
+    if (!video || !toggle) return;
+    const reduce =
+      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let wanted = !reduce;
+    let visible = true;
+    const icon = toggle.querySelector("use");
+    const render = () => {
+      toggle.setAttribute("aria-label", (wanted ? figure.dataset.labelPause : figure.dataset.labelPlay) || "");
+      if (icon) icon.setAttribute("href", wanted ? "#i-pause" : "#i-play");
     };
-
-    const clearTimers = () => {
-      timers.forEach((id) => window.clearTimeout(id));
-      timers = [];
+    const apply = () => {
+      if (!(wanted && visible)) {
+        video.pause();
+        return;
+      }
+      const playing = video.play();
+      // 自動再生を止めるブラウザの設定（省電力など）では、再生のボタンを見せて待つ
+      if (playing && typeof playing.catch === "function") {
+        playing.catch(() => {
+          wanted = false;
+          render();
+        });
+      }
     };
-
-    const setState = (name, on) => demo.classList.toggle(name, on);
-
-    // 指を動かし、上の縁に置いたところからの跡を指まで伸ばす。jump のときは滑らせずに、その場に置く
-    const place = ({ x, y }, { jump = false } = {}) => {
-      finger.classList.toggle("jump", jump);
-      trail.classList.toggle("jump", jump);
-      finger.style.left = percent(x);
-      finger.style.top = percent(y);
-      const dx = ((x - EDGE.x) / 100) * PAD.width;
-      const dy = ((y - EDGE.y) / 100) * PAD.height;
-      trail.style.height = `${Math.round(Math.hypot(dx, dy))}px`;
-      trail.style.transform = `translateX(-50%) rotate(${Math.round((-Math.atan2(dx, dy) * 180) / Math.PI)}deg)`;
-    };
-
-    // ポインタを動かす（HUD の正方形の %）。jump は開いたときに円の中心へ置くとき
-    const movePointer = ({ x, y }, { jump = false } = {}) => {
-      pointer.classList.toggle("jump", jump);
-      pointer.style.left = percent(x);
-      pointer.style.top = percent(y);
-    };
-
-    // 指を滑らせてポインタを向ける。指が動いた分だけポインタが動く
-    const pointAt = (point) => {
-      place(fingerFor(point));
-      movePointer(point);
-    };
-
-    const highlight = (index) => {
-      cells.forEach((cell, i) => cell.classList.toggle("on", i === index));
-      // 別のアイコンへ移ったら名前は消える
-      setState("label-show", false);
-    };
-
-    // 向けたまま止めたアイコンの名前を、そのアイコンの下に出す
-    const showLabel = (index) => {
-      const point = KEYS[index];
-      label.textContent = cells[index].dataset.label || "";
-      label.style.left = percent(point.x);
-      label.style.top = `calc(${percent(point.y)} + 22px)`;
-      setState("label-show", true);
-    };
-
-    // 振動（開いたとき・アイコンが替わったとき・実行したとき。何も実行せずに閉じたときは2回）
-    const buzz = () => {
-      ripple.style.left = finger.style.left;
-      ripple.style.top = finger.style.top;
-      ripple.classList.remove("buzz");
-      void ripple.offsetWidth;
-      ripple.classList.add("buzz");
-    };
-
-    const fire = (index) => {
-      const cell = cells[index];
-      cell.classList.remove("fire");
-      void cell.offsetWidth;
-      cell.classList.add("fire");
-    };
-
-    const clearFire = () => cells.forEach((cell) => cell.classList.remove("fire"));
-
-    const showToast = (index) => {
-      toastText.textContent = cells[index].dataset.label || "";
-      setState("toast-show", true);
-    };
-
-    // 上の縁に指を置き、下へ滑らせると開く。開くとポインタは円の中心に来て、アイコンは全部はっきり見える
-    // （まだ何も向けていない。このまま離せば何もしない）
-    const openFromTopEdge = (at) => {
-      later(at, () => {
-        place(EDGE, { jump: true });
-        setState("finger-down", true);
-        setState("slide-in", true);
-      });
-      later(at + 300, () => place(OPENED));
-      later(at + 520, () => {
-        movePointer(CENTER, { jump: true });
-        setState("hud-open", true);
-        buzz();
-      });
-    };
-
-    const resetScene = () => {
-      states.forEach((name) => setState(name, false));
-      highlight(-1);
-      clearFire();
-      place(EDGE, { jump: true });
-      movePointer(CENTER, { jump: true });
-    };
-
-    const scene = () => {
-      clearTimers();
-      resetScene();
-      caption.textContent = demo.dataset.captionRun || staticCaption;
-
-      // 実行する: 上の縁から開く → 指を滑らせて下のアイコン、右下のアイコンへ向ける → そこで離す
-      openFromTopEdge(400);
-      later(1500, () => pointAt(KEYS[7]));
-      later(1660, () => {
-        setState("slide-in", false);
-        highlight(7);
-        buzz();
-      });
-      later(2300, () => pointAt(KEYS[8]));
-      later(2460, () => {
-        highlight(8);
-        buzz();
-      });
-      // 向けたまま止めると、そのアイコンの名前が出る
-      later(2460 + LABEL_DELAY, () => showLabel(8));
-      later(3700, () => {
-        setState("finger-down", false);
-        fire(8);
-        buzz();
-      });
-      later(3900, () => {
-        setState("hud-open", false);
-        setState("label-show", false);
-        showToast(8);
-      });
-      later(4800, () => setState("toast-show", false));
-
-      // やめる: もう一度開く → 下のアイコンを通って輪の外まで動かす（全部が薄くなる）→ 離すと、何も実行せずに閉じる
-      later(5400, () => {
-        caption.textContent = demo.dataset.captionCancel || staticCaption;
-        highlight(-1);
-        clearFire();
-      });
-      openFromTopEdge(5600);
-      later(6800, () => pointAt(KEYS[7]));
-      later(6960, () => {
-        setState("slide-in", false);
-        highlight(7);
-        buzz();
-      });
-      later(7700, () => pointAt(OUTSIDE_BELOW));
-      later(7860, () => {
-        highlight(-1);
-        setState("in-frame", true);
-      });
-      later(9000, () => {
-        setState("finger-down", false);
-        buzz();
-      });
-      later(9180, buzz);
-      later(9300, () => {
-        setState("hud-open", false);
-        setState("in-frame", false);
-      });
-      later(10600, scene);
-    };
-
-    const start = () => {
-      if (running) return;
-      running = true;
-      setState("is-live", true);
-      scene();
-    };
-
-    const stop = () => {
-      running = false;
-      clearTimers();
-      setState("is-live", false);
-      states.forEach((name) => setState(name, false));
-      [finger, trail, pointer, label].forEach((element) => {
-        element.removeAttribute("style");
-        element.classList.remove("jump");
-      });
-      ripple.classList.remove("buzz");
-      clearFire();
-      highlight(staticHighlight);
-      label.textContent = staticLabel;
-      caption.textContent = staticCaption;
-    };
-
-    const update = () => {
-      const shouldRun = !pausedByUser && onScreen && !doc.hidden;
-      if (shouldRun) start();
-      else stop();
-      toggle.textContent = pausedByUser ? demo.dataset.labelPlay : demo.dataset.labelPause;
-    };
-
+    video.controls = false;
+    video.removeAttribute("controls");
     toggle.hidden = false;
     toggle.addEventListener("click", () => {
-      pausedByUser = !pausedByUser;
-      update();
+      wanted = !wanted;
+      render();
+      apply();
     });
-
-    // Safari 13 以前の MediaQueryList には addEventListener が無い（addListener だけ）。ここで止まると、
-    // この後の言語の帯・Mac だけの知らせ・メニューも動かなくなる
-    const onReduceMotion = (event) => {
-      pausedByUser = event.matches;
-      update();
-    };
-    if (typeof reduceMotion.addEventListener === "function") {
-      reduceMotion.addEventListener("change", onReduceMotion);
-    } else if (typeof reduceMotion.addListener === "function") {
-      reduceMotion.addListener(onReduceMotion);
+    if (typeof window.IntersectionObserver === "function") {
+      new window.IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          visible = entry.isIntersecting;
+        });
+        apply();
+      }).observe(video);
     }
-
-    doc.addEventListener("visibilitychange", update);
-
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver((entries) => {
-        onScreen = entries.some((entry) => entry.isIntersecting);
-        update();
-      }).observe(demo);
-    }
-
-    update();
+    render();
+    apply();
   };
 
   // MARK: 言語の案内
@@ -455,7 +230,7 @@
     });
   };
 
-  setUpDemo();
+  setUpVideo();
   setUpLanguageBar();
   setUpPlatform();
   setUpMenus();

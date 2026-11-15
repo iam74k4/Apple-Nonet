@@ -2,13 +2,14 @@
 """販売ページの画像を作る（手で描かず、ページとアプリのアイコンから作る）。
 
   site/images/og-ja.png・site/images/og-en.png
-      SNS で共有したときの画像（1200×630）。各言語の index.html の見出し（h1）と、HUD のデモ（静止画。
-      JavaScript が無いときと同じ絵）を、site/style.css のまま headless の Google Chrome で描く
+      SNS で共有したときの画像（1200×630）。各言語の index.html の見出し（h1）と、実物の HUD の静止画
+      （site/images/hud-xcode.webp。デモ動画から切り出した、名前の札が出る前のコマ）を、site/style.css のまま
+      headless の Google Chrome で描く
   site/apple-touch-icon.png
       ホーム画面のアイコン（180×180）。アプリのアイコン（App/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png）
       の黒い板の部分を、黒の正方形いっぱいに描く（iOS が角を丸める）
 
-見出し・デモ・アプリのアイコンを変えたら作り直す。macOS の sips と Google Chrome が要る。
+見出し・HUD の静止画・アプリのアイコンを変えたら作り直す。macOS の sips と Google Chrome が要る。
 使い方: python3 -I scripts/make-site-images.py [--chrome <Chrome の実行ファイル>]
 """
 
@@ -53,13 +54,11 @@ html, body {{ width: {OG_WIDTH}px; height: {OG_HEIGHT}px; margin: 0; overflow: h
 .og-copy {{ display: flex; flex-direction: column; gap: 24px; }}
 .og .brand {{ font-size: 28px; gap: 12px; }}
 .og .brand .logo {{ width: 36px; height: 36px; }}
-.og .eyebrow {{ font-size: 18px; }}
 .og h1 {{ font-size: 62px; line-height: 1.22; letter-spacing: 0.01em; }}
 /* 日本語の見出しは、1行目（「トラックパッドが、」）が折り返さない大きさにする */
 .og h1:lang(ja) {{ font-size: 52px; }}
 .og .og-tagline {{ font-size: 22px; color: var(--fg-soft); }}
-.og .demo {{ margin: 0; }}
-.og .demo-stage {{ max-width: 460px; }}
+.og .shot {{ width: 460px; margin: 0; }}
 """
 
 
@@ -75,25 +74,13 @@ def first(pattern, text, what):
     return match
 
 
-def element_from(text, start_tag, what):
-    """start_tag で始まる <div> を、対応する </div> まで切り出す"""
-    start = text.find(start_tag)
-    if start < 0:
-        die(f"{what} が見つかりません")
-    depth = 0
-    for match in re.finditer(r"<(/?)div\b[^>]*>", text[start:]):
-        depth += -1 if match.group(1) else 1
-        if depth == 0:
-            return text[start : start + match.end()]
-    die(f"{what} の終わりが見つかりません")
-
-
 def og_page(lang, page):
     source = page.read_text(encoding="utf-8")
     sprite = first(r'<svg width="0" height="0".*?</svg>', source, f"{page} の SVG のシンボル").group(0)
     heading = first(r"<h1>(.*?)</h1>", source, f"{page} の h1").group(1)
-    eyebrow = first(r'<p class="eyebrow"[^>]*>(.*?)</p>', source, f"{page} の eyebrow").group(1)
-    stage = element_from(source, '<div class="demo-stage"', f"{page} のデモ")
+    hud = SITE / "images" / "hud-xcode.webp"
+    if not hud.is_file():
+        die(f"{hud} がありません")
     stylesheet = (SITE / "style.css").as_uri()
     return f"""<!doctype html>
 <html lang="{lang}">
@@ -107,11 +94,10 @@ def og_page(lang, page):
 <div class="og">
   <div class="og-copy">
     <p class="brand"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</p>
-    <p class="eyebrow" lang="en">{eyebrow}</p>
     <h1>{heading}</h1>
     <p class="og-tagline">{html.escape(TAGLINES[lang])}</p>
   </div>
-  <figure class="demo">{stage}</figure>
+  <div class="shot"><img src="{hud.as_uri()}" width="540" height="540" alt=""></div>
 </div>
 </body>
 </html>

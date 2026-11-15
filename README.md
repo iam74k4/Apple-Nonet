@@ -35,7 +35,7 @@ scripts/test.sh                   # テスト一式（CI と同じ）。失敗�
 - `scripts/test.sh` は `scripts/tests/run.sh`（スクリプト・販売ページ・ドキュメントのテスト）→ `swift build` / `swift test` → `scripts/sync-strings.sh --check`（コードの文言がカタログにあり英語の訳があるか）→ 署名なしのアプリのビルド（build/TestDerivedData）→ ビルドしたアプリの自己診断（`--self-check`）の順に動かす
 - 利用ガイドの原本は `docs/user-guide.md`（日本語）と `docs/user-guide.en.md`（英語）。直したら `python3 -I scripts/build-guide.py` で `site/guide.html`・`site/en/guide.html` を作り直す（作り直し忘れは `scripts/tests/site_test.sh` が見つける）
 - パッケージだけなら `cd Packages/NonetKit && swift test`。スクリプトのテストだけなら `scripts/tests/run.sh [名前の一部]`
-- スクリプトのテストは外部のツール（xcodebuild・notarytool・hdiutil など）を `scripts/tests/fakes/` の偽物に差し替えて動くので、証明書もネットワークも要らない。`shellcheck` と `node` があれば、それを使うテスト（シェルの静的解析・販売ページのデモの動き）も動く（無ければ飛ばす）
+- スクリプトのテストは外部のツール（xcodebuild・notarytool・hdiutil など）を `scripts/tests/fakes/` の偽物に差し替えて動くので、証明書もネットワークも要らない。`shellcheck` と `node` があれば、それを使うテスト（シェルの静的解析・販売ページのスクリプトの動き）も動く（無ければ飛ばす）
 - どのスクリプトも、どのフォルダから動かしてもよい
 
 ## リリース

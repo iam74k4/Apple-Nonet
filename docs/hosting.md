@@ -16,11 +16,13 @@
 | `/buy.html`・`/en/buy.html` | 購入のページ。販売ページとアプリの「購入する」がここを開き、Paddle.js で購入画面を開く。外のスクリプトを読むのはこの2つだけで、CSP も `_headers` でこの2つだけ広げる（docs/release.md 3.6）。`noindex` | `site/` | 同上 |
 | `/robots.txt`・`/sitemap.xml` | 検索エンジン向け。`/download` と `/updates/` はクロールさせない。ページを足したら sitemap.xml にも足す（`scripts/check-site.sh` が確かめる） | `site/` | 同上 |
 | `/images/og-ja.png`・`/images/og-en.png`・`/apple-touch-icon.png` | 共有の画像（1200×630）とホーム画面のアイコン（180×180） | `site/`（`python3 -I scripts/make-site-images.py` で作る） | 同上 |
+| `/images/demo.mp4`・`/images/demo-poster.jpg`・`/images/hud-*.webp` | 販売ページのヒーローの動画（実物の収録。[portfolio.md](portfolio.md) のデモ動画と同じもの）と、その表紙・使い方と機能の静止画（同じ収録から、名前の札が出る前のコマを切り出したもの。日英のページで共通）。CSP は `media-src 'self'`（`_headers`） | `site/` | 同上 |
 | 無いページ | `site/404.html`（`/en/` の下は `site/en/404.html`）を 404 で | `site/` | 同上 |
 | `/updates/appcast.xml` | Sparkle のフィード | R2 の `nonet-updates/appcast.xml` | `scripts/publish.sh` |
 | `/updates/Nonet-<版>.dmg` | 配る DMG | R2 | `scripts/publish.sh` |
 | `/updates/Nonet<新>-<旧>.delta` | 差分（Sparkle の generate_appcast が作る） | R2 | `scripts/publish.sh` |
 | `/download` | 最新の DMG へのリダイレクト | Worker が R2 の appcast を読んで決める | 何もしなくてよい |
+| `/api/paddle/webhook`（POST）・`/api/license`（GET） | ライセンスキーを届ける。Paddle の通知を受けてキーをメールで送り、購入のページにキーを返す（[release.md](release.md) 3.2）。秘密の変数を置くまでは 503 | Worker（`cloudflare/src/licensing.js`）。何も保存しない | 秘密は `wrangler secret put`（release.md 3.2）。一度置けばデプロイしても残る |
 
 アプリ・ページ・docs が指す URL。一度出したら変えない:
 
@@ -34,8 +36,8 @@
 
 | ファイル | 役目 |
 |---|---|
-| `cloudflare/wrangler.toml` | Worker の設定（名前 `nonet`・アカウント・custom domain・静的アセット・R2 のバインディング） |
-| `cloudflare/src/` | Worker。`/`・`/en`・`/en/`・`/updates/*`・`/download` だけを受け持つ |
+| `cloudflare/wrangler.toml` | Worker の設定（名前 `nonet`・アカウント・custom domain・静的アセット・R2 のバインディング・ライセンスの秘密でない値 `[vars]`） |
+| `cloudflare/src/` | Worker。`/`・`/en`・`/en/`・`/updates/*`・`/download`・`/api/*` だけを受け持つ |
 | `cloudflare/test/` | Worker のテスト（`node --test test/*.test.js`） |
 | `cloudflare/scripts/smoke.sh` | 手元で本物の Worker（`wrangler dev --local`）を立て、すべての URL を curl で確かめる。Cloudflare には何も送らない |
 | `cloudflare/scripts/appcast-info.js` | `scripts/publish.sh` が、appcast を Worker の `/download` と同じ読み方で読むための道具 |
@@ -60,6 +62,9 @@
 | `/updates`・`/updates/`・ほかの名前 | 404（R2 に問い合わせない。一覧も出さない） | `no-store` | |
 | `/updates/*`・`/download` への POST など | 405 | `no-store` | `Allow: GET, HEAD` |
 | `/download` | 302 → `https://nonet.astlog.dev/updates/Nonet-<最新>.dmg` | `no-store` | 最新は appcast の既定のチャンネルで `sparkle:version` が最大の項目。まだ何も出していなければ 404 ページ。appcast が読めない・その DMG が R2 に無いときは 503（`Retry-After: 300`。理由は Workers Logs） |
+| `/api/paddle/webhook` | POST だけ（ほかは 405、`Allow: POST`）。署名が合わなければ 401、受け持たない通知は 200（`Ignored`）、送れたら 200、Paddle の API やメールの失敗は 502（Paddle が送り直す）、本文が 256 KB より大きければ 413 | `no-store` | 設定が欠けていれば 503（理由は Workers Logs） |
+| `/api/license?transaction_id=txn_…` | 200 の JSON（`license_key`・`license_id`）。ID の形でなければ 400、無い取引・ほかの商品は 404、まだ済んでいなければ 409（`Retry-After: 2`）、Paddle の API の失敗は 502、GET のほかは 405 | `no-store` | `application/json`、`X-Robots-Tag: noindex`、CSP `sandbox`、`nosniff`。設定が欠けていれば 503 |
+| `/api/` のほかの名前 | 404 | `no-store` | |
 
 `no-cache` にしているのは、同じ名前のまま中身が変わりうるため（失敗したリリースを同じ版で作り直すなど）。ETag で確かめるので、変わっていなければ 304 で済む。
 
@@ -233,6 +238,8 @@ curl -sI -H 'Range: bytes=0-99' "$B/updates/Nonet-1.2.0.dmg"   # 206、content-r
 curl -sI "$B/download"                          # 302、location: …/updates/Nonet-<最新>.dmg、cache-control: no-store
 curl -sI -H 'Sec-Fetch-Mode: navigate' "$B/download"           # ブラウザで押したときと同じ要求でも 302
 curl -sI "$B/updates/Nonet-9.9.9.dmg"           # 404（無いファイルに 200 を返さない）
+curl -s "$B/api/license?transaction_id=txn_01aaaaaaaaaaaaaaaaaaaaaaaa"   # {"error":"not_found"}（秘密を置く前は {"error":"unavailable"} の 503）
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "$B/api/paddle/webhook"  # 401（署名が無い。秘密を置く前は 503）
 ```
 
 手元だけで確かめるなら `cloudflare/scripts/smoke.sh`（Cloudflare に何も送らない。`wrangler dev --local` と使い捨ての R2 で、上と同じことを確かめる）。
@@ -283,7 +290,7 @@ Workers は無料プラン、R2 は無料枠の範囲で動かす想定。数字
 
 | もの | 無料の範囲 | 超えたら | このサイトでは |
 |---|---|---|---|
-| Workers のリクエスト | 1日 100,000（UTC の 0 時に戻る） | Worker を通るパスが 429 になる（静的なアセットは出続ける） | Worker を通るのは `/`・`/en`・`/en/`・`/updates/*`・`/download` だけ。Sparkle の確認は1台につき1日1回ほど |
+| Workers のリクエスト | 1日 100,000（UTC の 0 時に戻る） | Worker を通るパスが 429 になる（静的なアセットは出続ける） | Worker を通るのは `/`・`/en`・`/en/`・`/updates/*`・`/download`・`/api/*` だけ。Sparkle の確認は1台につき1日1回ほど。`/api/*` は購入1回につき数回（通知と、購入のページの問い合わせ） |
 | Workers の CPU 時間 | 1回 10ms（R2 などを待つ時間は数えない） | その要求がエラー | `/download` は 1 MB より大きい appcast を読まない（503） |
 | 静的なアセット | 要求は無料で回数の上限なし。1つの版に 20,000 ファイル、1ファイル 25 MiB まで | | ページだけ。DMG は R2 なので関係ない |
 | Workers Logs | 1日 200,000 件、3日残る | | `head_sampling_rate = 1` で全部を残す |
@@ -322,6 +329,7 @@ Workers は無料プラン、R2 は無料枠の範囲で動かす想定。数字
 - `/updates/*` と `/download` を長く写させない（Cache Rules の Cache Everything・`immutable` など）。`/download` は最新を指し続ける必要があり、DMG は同じ名前で作り直すことがある
 - `workers_dev` と `preview_urls` を有効にしない（`*.workers.dev` から同じ中身が出る）
 - `CLOUDFLARE_API_TOKEN` を Repository secrets・job の env・ファイルに置かない
+- ライセンスの秘密（`PADDLE_API_KEY`・`PADDLE_NOTIFICATION_SECRET`・`LICENSE_PRIVATE_KEY`・`RESEND_API_KEY`）を `wrangler.toml` の `[vars]` やコミットするファイルに書かない。置くのは `wrangler secret put` だけ（手元で試すときは、git が無視する `cloudflare/.dev.vars`。release.md 3.2）
 - 最初のデプロイを GitHub Actions から出さない（DNS のレコードを聞かずに上書きする。2.4）
 - `old_updates/`・`appcast-history/` を上げない（`publish.sh` はその版のファイルと appcast だけを上げる）
 

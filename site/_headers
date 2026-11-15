@@ -9,17 +9,17 @@
 #   - style-src: style.css と、SVG のアイコンの style 属性（style="fill: var(--bg)" など）。
 #     style-src-elem と style-src-attr を分けられるブラウザでは <style> を許さず、属性だけを許す。
 #     分けられない古いブラウザは style-src を見るので、そちらにも 'unsafe-inline' を置く（属性が要るため）
-#   - img-src 'self': favicon.svg・apple-touch-icon.png・images/（共有の画像）。どれも同じオリジン
+#   - img-src 'self': favicon.svg・apple-touch-icon.png・images/（共有の画像・ページの静止画・動画の poster）。どれも同じオリジン
+#   - media-src 'self': ヒーローの動画（images/demo.mp4。poster の画像は img-src）。default-src 'none' のままでは止まる
 #   - base-uri 'self': 404.html が <base href="/"> を使う（どの深さの URL で出ても、相対のリンクを効かせるため）
 #   - form-action 'none'・frame-ancestors 'none': フォームは無く、ほかのサイトの枠には入れさせない
 # 外のものを読むようにしたら（動画・決済のウィジェットなど）、ここも一緒に直す。
-# ヒーローに動画（site/images/ の mp4 と poster）を置くなら media-src 'self' を足す（default-src 'none' のままでは止まる）。
 # thanks.html の <meta http-equiv="refresh">（JavaScript が無いときのダウンロード）は、CSP では止まらない
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; media-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
 
 # 購入のページ（buy.html・en/buy.html）だけは、Paddle.js で購入画面を開くので、上の CSP を差し替えて Paddle の分だけ広げる
 # （ほかのページは外のものを読まないまま。プライバシーポリシーの「8. 販売ページ」）。
@@ -29,7 +29,8 @@
 #   - style-src-elem: Paddle.js が足す <style>（読み込み中の表示とオーバーレイ。中身が動的なので 'unsafe-inline'）と
 #     cdn の paddle.css（sandbox は sandbox-cdn）。古いブラウザ向けの style-src もそろえる
 #   - frame-src: 購入画面（buy.paddle.com・sandbox-buy.paddle.com）と、開けないときのエラーのページ（cdn・sandbox-cdn）
-#   - connect-src は置かない（Paddle.js が通信するのは価格の下見の API だけで、使っていない。購入画面の通信は枠の中のページが行う）
+#   - connect-src 'self': 購入が済んだあと、buy.js が同じサイトの /api/license からキーを受け取る（docs/release.md 3.2）。
+#     外へは許さない（Paddle.js が通信するのは価格の下見の API だけで、使っていない。購入画面の通信は枠の中のページが行う）
 #   - Paddle Retain（public.profitwell.com のスクリプト。本番のときに Paddle.js が足す）は使わないので、許さずに止める
 #     （コンソールに違反が1つ出るのは想定どおり）
 #   - Permissions-Policy の payment: 購入画面の枠（allow="payment"）で Apple Pay などを使えるように、Paddle の枠にだけ許す
@@ -37,13 +38,13 @@
   ! Content-Security-Policy
   ! Permissions-Policy
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=("https://buy.paddle.com" "https://sandbox-buy.paddle.com"), usb=()
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.paddle.com; style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-elem 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-attr 'unsafe-inline'; img-src 'self'; frame-src https://buy.paddle.com https://sandbox-buy.paddle.com https://cdn.paddle.com https://sandbox-cdn.paddle.com; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.paddle.com; style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-elem 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-attr 'unsafe-inline'; img-src 'self'; frame-src https://buy.paddle.com https://sandbox-buy.paddle.com https://cdn.paddle.com https://sandbox-cdn.paddle.com; connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
 
 /en/buy.html
   ! Content-Security-Policy
   ! Permissions-Policy
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=("https://buy.paddle.com" "https://sandbox-buy.paddle.com"), usb=()
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.paddle.com; style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-elem 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-attr 'unsafe-inline'; img-src 'self'; frame-src https://buy.paddle.com https://sandbox-buy.paddle.com https://cdn.paddle.com https://sandbox-cdn.paddle.com; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://cdn.paddle.com; style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-elem 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com; style-src-attr 'unsafe-inline'; img-src 'self'; frame-src https://buy.paddle.com https://sandbox-buy.paddle.com https://cdn.paddle.com https://sandbox-cdn.paddle.com; connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
 
 # favicon.svg は中の <style> で色を変える（ダークモード）。直に開かれたときもそれだけは効かせ、
 # ほかは何も許さない
