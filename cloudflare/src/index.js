@@ -5,6 +5,7 @@
 import { handleDownload } from "./download.js";
 import { withoutBodyFor } from "./http.js";
 import { handleLicensing, isLicensingPath } from "./licensing.js";
+import { isMediaPath, serveMedia } from "./media.js";
 import { isDirectoryIndex, redirectToDirectory, serveDirectoryIndex } from "./site.js";
 import { handleUpdates } from "./updates.js";
 
@@ -26,6 +27,10 @@ export default {
     }
     if (isDirectoryIndex(pathname)) {
       return serveDirectoryIndex(request, env, pathname);
+    }
+    // ページの動画は Range に答える（Safari が 206 を要る。src/media.js）
+    if (isMediaPath(pathname)) {
+      return serveMedia(request, env);
     }
     // run_worker_first を変えて、ここに来るパスが増えたとき。アセットの決まり（404.html など）に任せる
     return env.ASSETS.fetch(request);

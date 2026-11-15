@@ -55,6 +55,7 @@
 |---|---|---|---|
 | `/`・`/en/` | 200（Worker が `index.html` を引く） | `public, max-age=0, must-revalidate` | ETag。`If-None-Match` が合えば 304。ヘッダは `site/_headers`（CSP・`nosniff` など） |
 | `/privacy.html` などのページ・`style.css`・`script.js`・`favicon.svg`・`robots.txt`・`sitemap.xml`・画像 | 200（`.html` のまま。リダイレクトしない） | 同上 | 同上 |
+| `/images/*.mp4`（ページの動画） | 200。`Range` は 206、範囲の外は 416。`If-Range` が今の ETag と違えば全体を 200（Worker がアセットの全体から切り出す。`cloudflare/src/media.js`） | 同上 | `Accept-Ranges: bytes`。ほかのヘッダはアセットのもの。静的なアセットは `Range` に答えず全体を 200 で返し、Safari（とくに iPhone）は 206 が返らないと動画を再生しないことがあるので、動画だけ Worker を通す（2026-11-15） |
 | `/en` | 301 → `/en/` | `public, max-age=86400` | |
 | 無いパス（`/privacy`・`/_headers`・`/.DS_Store` も） | 404 と、いちばん近い `404.html` | `public, max-age=0, must-revalidate` | |
 | `/updates/appcast.xml` | 200。`If-None-Match`・`If-Modified-Since` が合えば 304 | `no-cache`（使う前に毎回確かめる） | `application/xml; charset=utf-8`、ETag・Last-Modified、CSP `sandbox`、`nosniff` |
@@ -235,6 +236,7 @@ curl -sI "$B/no-such-page"                      # 404
 curl -s -H 'Cache-Control: no-cache' "$B/updates/appcast.xml" | grep -E '<sparkle:(version|shortVersionString)>'
 curl -sI "$B/updates/Nonet-1.2.0.dmg"           # 200、content-length が DMG の大きさ、cache-control: no-cache
 curl -sI -H 'Range: bytes=0-99' "$B/updates/Nonet-1.2.0.dmg"   # 206、content-range: bytes 0-99/…
+curl -sI -H 'Range: bytes=0-1' "$B/images/demo.mp4"          # 206、content-range: bytes 0-1/…（Safari が動画で最初に送る要求）
 curl -sI "$B/download"                          # 302、location: …/updates/Nonet-<最新>.dmg、cache-control: no-store
 curl -sI -H 'Sec-Fetch-Mode: navigate' "$B/download"           # ブラウザで押したときと同じ要求でも 302
 curl -sI "$B/updates/Nonet-9.9.9.dmg"           # 404（無いファイルに 200 を返さない）
@@ -290,7 +292,7 @@ Workers は無料プラン、R2 は無料枠の範囲で動かす想定。数字
 
 | もの | 無料の範囲 | 超えたら | このサイトでは |
 |---|---|---|---|
-| Workers のリクエスト | 1日 100,000（UTC の 0 時に戻る） | Worker を通るパスが 429 になる（静的なアセットは出続ける） | Worker を通るのは `/`・`/en`・`/en/`・`/updates/*`・`/download`・`/api/*` だけ。Sparkle の確認は1台につき1日1回ほど。`/api/*` は購入1回につき数回（通知と、購入のページの問い合わせ） |
+| Workers のリクエスト | 1日 100,000（UTC の 0 時に戻る） | Worker を通るパスが 429 になる（静的なアセットは出続ける） | Worker を通るのは `/`・`/en`・`/en/`・`/updates/*`・`/download`・`/api/*`・`/images/*.mp4` だけ。Sparkle の確認は1台につき1日1回ほど。`/api/*` は購入1回につき数回（通知と、購入のページの問い合わせ） |
 | Workers の CPU 時間 | 1回 10ms（R2 などを待つ時間は数えない） | その要求がエラー | `/download` は 1 MB より大きい appcast を読まない（503） |
 | 静的なアセット | 要求は無料で回数の上限なし。1つの版に 20,000 ファイル、1ファイル 25 MiB まで | | ページだけ。DMG は R2 なので関係ない |
 | Workers Logs | 1日 200,000 件、3日残る | | `head_sampling_rate = 1` で全部を残す |
