@@ -61,7 +61,7 @@ assert_called_in_order() {
   for pattern in "$@"; do
     line="$(grep -nF -- "$pattern" "$FAKE_LOG" | head -n 1 | cut -d: -f1 || true)"
     [[ -n "$line" ]] || fail "呼ばれていません: $pattern" "--- 記録 ---" "$(fake_log)" || return 1
-    [[ "$line" -gt "$previous" ]] || fail "順番が違います: $pattern（$line 行目）" "--- 記録 ---" "$(fake_log)" || return 1
+    [[ "$line" -gt "$previous" ]] || fail "順番が違います: ${pattern}（$line 行目）" "--- 記録 ---" "$(fake_log)" || return 1
     previous="$line"
   done
 }

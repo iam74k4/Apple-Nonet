@@ -174,7 +174,7 @@ header_value() {
 http_get() {
   local url="$1" dest="$2" status=0
   CODE="$(curl -sS --max-time 60 -H 'Cache-Control: no-cache' -D "$WORK/headers" -o "$dest" -w '%{http_code}' "$url")" || status=$?
-  [[ "$status" == 0 ]] || die "$url に届きません（curl の終了コード $status）。
+  [[ "$status" == 0 ]] || die "$url に届きません（curl の終了コード ${status}）。
     ネットワークと、Worker を出してあるか（docs/hosting.md「最初のデプロイ」）を確かめてください"
 }
 
@@ -182,7 +182,7 @@ http_get() {
 http_head() {
   local url="$1" status=0
   CODE="$(curl -sS --max-time 60 -I -H 'Cache-Control: no-cache' -D "$WORK/headers" -o /dev/null -w '%{http_code}' "$url")" || status=$?
-  [[ "$status" == 0 ]] || die "$url に届きません（curl の終了コード $status）。
+  [[ "$status" == 0 ]] || die "$url に届きません（curl の終了コード ${status}）。
     ネットワークと、Worker を出してあるか（docs/hosting.md「最初のデプロイ」）を確かめてください"
   LENGTH="$(header_value "$WORK/headers" content-length)"
   ETAG="$(header_value "$WORK/headers" etag)"
@@ -208,11 +208,11 @@ preflight() {
   else
     value="$(xcconfig_value "$ROOT/Config/Nonet.xcconfig" NONET_APPCAST_URL)"
     [[ "$value" == "$APPCAST_URL" ]] ||
-      problems+="Config/Nonet.xcconfig の NONET_APPCAST_URL が「$value」です。アプリはそこを見るので、$APPCAST_URL に上げても届きません（NONET_APPCAST_URL = https:/\$()/nonet.astlog.dev/updates/appcast.xml にして、ビルドから出し直す）"$'\n'
+      problems+="Config/Nonet.xcconfig の NONET_APPCAST_URL が「${value}」です。アプリはそこを見るので、$APPCAST_URL に上げても届きません（NONET_APPCAST_URL = https:/\$()/nonet.astlog.dev/updates/appcast.xml にして、ビルドから出し直す）"$'\n'
   fi
 
   if [[ ! -d "$RELEASES_DIR" ]]; then
-    problems+="リリースのフォルダがありません: $RELEASES_DIR（NONET_RELEASES_DIR）"$'\n'
+    problems+="リリースのフォルダがありません: ${RELEASES_DIR}（NONET_RELEASES_DIR）"$'\n'
   else
     [[ -f "$RELEASES_DIR/$DMG_NAME" ]] ||
       problems+="$RELEASES_DIR に $DMG_NAME がありません（scripts/release.sh $VERSION <ビルド番号> で作る）"$'\n'
@@ -262,10 +262,10 @@ check_local_release() {
   if [[ "$count" == 0 ]]; then
     other="$(rows "$summary" item 3 "$VERSION" | first_column 5)"
     if [[ -n "$other" ]]; then
-      die "手元の appcast.xml の $VERSION の項目は $other を指しています（期待: $DMG_URL）。
+      die "手元の appcast.xml の $VERSION の項目は $other を指しています（期待: ${DMG_URL}）。
     DMG は $UPDATES_PREFIX の下に置きます。NONET_DOWNLOAD_URL_PREFIX を設定せずに scripts/release.sh を動かし直してください"
     fi
-    die "手元の appcast.xml に $VERSION（$DMG_URL）の項目がありません。scripts/release.sh $VERSION <ビルド番号> を最後まで通したか確かめてください"
+    die "手元の appcast.xml に ${VERSION}（${DMG_URL}）の項目がありません。scripts/release.sh $VERSION <ビルド番号> を最後まで通したか確かめてください"
   fi
   [[ "$count" == 1 ]] || die "手元の appcast.xml に $DMG_URL を指す項目が $count 個あります。どれが正しいか分からないので止めます"
 
@@ -274,7 +274,7 @@ check_local_release() {
   default="$(first_column 4 <<<"$matches")"
   length="$(first_column 6 <<<"$matches")"
   [[ "$BUILD" =~ ^[1-9][0-9]*$ ]] || die "$VERSION の項目のビルド番号（sparkle:version）が整数ではありません: $BUILD"
-  [[ "$short" == "$VERSION" ]] || die "$DMG_URL の項目の版（sparkle:shortVersionString）が $short です（期待: $VERSION）"
+  [[ "$short" == "$VERSION" ]] || die "$DMG_URL の項目の版（sparkle:shortVersionString）が $short です（期待: ${VERSION}）"
   [[ "$default" == 1 ]] || die "$VERSION の項目にはチャンネル（sparkle:channel）が付いています。/download が指さない版は、このスクリプトでは公開しません"
 
   DMG_SIZE="$(file_size "$RELEASES_DIR/$DMG_NAME")"
@@ -285,7 +285,7 @@ check_local_release() {
   newest_build="$(rows "$summary" newest | first_column 2)"
   newest_url="$(rows "$summary" newest | first_column 3)"
   [[ "$newest_url" == "$DMG_URL" ]] ||
-    die "手元の appcast.xml で最新（既定のチャンネル）なのはビルド ${newest_build:-なし}（${newest_url:-なし}）で、$VERSION（ビルド $BUILD）ではありません。
+    die "手元の appcast.xml で最新（既定のチャンネル）なのはビルド ${newest_build:-なし}（${newest_url:-なし}）で、${VERSION}（ビルド ${BUILD}）ではありません。
     上げても /download は $VERSION を指しません"
 
   # デルタは Nonet<このビルド>-<古いビルド>.delta（generate_appcast の名前。Worker が配るのもこの形だけ）
@@ -373,7 +373,7 @@ check_published() {
         # 上げると公開中の DMG を別の中身で差し替え、その版の項目は appcast から消える
         local reused
         reused="$( { rows "$WORK/published.tsv" item 3 "$VERSION"; rows "$WORK/published.tsv" item 5 "$DMG_URL"; } | first_column 2)"
-        [[ -z "$reused" ]] || die "版 $VERSION（$DMG_NAME）はビルド $reused としてもう公開されています。出した版の番号は使い直しません。
+        [[ -z "$reused" ]] || die "版 ${VERSION}（${DMG_NAME}）はビルド $reused としてもう公開されています。出した版の番号は使い直しません。
     新しい版の番号で scripts/release.sh からやり直してください"
       fi
       if [[ "$LIVE" == 1 ]]; then
@@ -388,7 +388,7 @@ check_published() {
       info "公開中の appcast はまだありません（HTTP 404）。初めての公開として進めます"
       ;;
     *)
-      die "公開中の appcast を確かめられません（HTTP $CODE）: $APPCAST_URL
+      die "公開中の appcast を確かめられません（HTTP ${CODE}）: $APPCAST_URL
     Worker を出してあるか、R2 のバケット $BUCKET があるかを確かめてください（docs/hosting.md）"
       ;;
   esac
@@ -421,7 +421,7 @@ plan_file() {
       fi
       ;;
     404) state=missing ;;
-    *) die "R2 の $name を確かめられません（$UPDATES_PREFIX$name が HTTP $CODE）" ;;
+    *) die "R2 の $name を確かめられません（$UPDATES_PREFIX$name が HTTP ${CODE}）" ;;
   esac
   if [[ "$LIVE" == 1 && "$state" == different ]]; then
     die "ビルド $BUILD はもう公開されていて、R2 の $name は手元のものと中身が違います。
@@ -440,10 +440,10 @@ print_plan() {
   local i name
   for i in "${!UPLOAD_NAMES[@]}"; do
     name="${UPLOAD_NAMES[$i]}"
-    info "$((i + 1)). $name（$(file_size "$RELEASES_DIR/$name") バイト、${UPLOAD_TYPES[$i]}）"
+    info "$((i + 1)). ${name}（$(file_size "$RELEASES_DIR/$name") バイト、${UPLOAD_TYPES[$i]}）"
   done
   for name in ${SKIPPED_NAMES[@]+"${SKIPPED_NAMES[@]}"}; do
-    info "飛ばす: $name（同じ中身がもう R2 にあります）"
+    info "飛ばす: ${name}（同じ中身がもう R2 にあります）"
   done
   if [[ "$PUBLISHED_EXISTS" == 1 ]]; then
     info "上げる前に、公開中の appcast.xml を $RELEASES_DIR/appcast-history/ に控えます"
@@ -483,7 +483,7 @@ verify_published() {
     summarize_appcast "$WORK/after.xml" "$WORK/after.tsv" "上げたあとの公開中の appcast" \
       "$APPCAST_URL を curl で見て、docs/hosting.md「戻す」の手順で前の appcast.xml を上げ直してください"
     if [[ -z "$(rows "$WORK/after.tsv" item 2 "$BUILD" | awk -F'\t' -v url="$DMG_URL" '$5 == url')" ]]; then
-      problems+="公開中の appcast にビルド $BUILD（$DMG_URL）がありません: $APPCAST_URL"$'\n'
+      problems+="公開中の appcast にビルド ${BUILD}（${DMG_URL}）がありません: $APPCAST_URL"$'\n'
     else
       info "appcast: ビルド $BUILD があります"
     fi
@@ -493,7 +493,7 @@ verify_published() {
   if [[ "$CODE" != 200 ]]; then
     problems+="DMG の URL が HTTP $CODE です: $DMG_URL"$'\n'
   elif [[ "$LENGTH" != "$DMG_SIZE" ]]; then
-    problems+="DMG の Content-Length が ${LENGTH:-無し} です（期待: $DMG_SIZE）: $DMG_URL"$'\n'
+    problems+="DMG の Content-Length が ${LENGTH:-無し} です（期待: ${DMG_SIZE}）: $DMG_URL"$'\n'
   else
     info "DMG: 200、$LENGTH バイト"
   fi
@@ -504,7 +504,7 @@ verify_published() {
       if [[ "$LOCATION" == "$DMG_URL" ]]; then
         info "/download: $CODE → $LOCATION"
       else
-        problems+="/download の行き先が ${LOCATION:-無し} です（期待: $DMG_URL）"$'\n'
+        problems+="/download の行き先が ${LOCATION:-無し} です（期待: ${DMG_URL}）"$'\n'
       fi
       ;;
     *) problems+="/download が HTTP $CODE です（期待: $DMG_URL への 302）"$'\n' ;;
@@ -530,22 +530,22 @@ main() {
 
   local mode=""
   [[ "$DRY_RUN" == 0 ]] || mode="、dry run"
-  step "準備を確かめる（Nonet $VERSION$mode）"
+  step "準備を確かめる（Nonet $VERSION${mode}）"
   preflight
   # TMPDIR の末尾の / で「//」にならないよう、cd と pwd で正規化する
   WORK="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/nonet-publish.XXXXXX")" && pwd)"
   trap 'rm -rf "$WORK"' EXIT
 
-  step "手元のリリースを確かめる（$RELEASES_DIR）"
+  step "手元のリリースを確かめる（${RELEASES_DIR}）"
   check_local_release
 
   step "DMG の署名・公証・Gatekeeper を確かめる"
   verify_dmg
 
-  step "公開中のものと比べる（$SITE_ORIGIN）"
+  step "公開中のものと比べる（${SITE_ORIGIN}）"
   check_published
 
-  step "上げるもの（R2 のバケット $BUCKET、この順番）"
+  step "上げるもの（R2 のバケット ${BUCKET}、この順番）"
   print_plan
   if [[ "$DRY_RUN" == 1 ]]; then
     step "dry run なので、何も上げずに終わります"
@@ -560,7 +560,7 @@ main() {
     backup="$RELEASES_DIR/appcast-history/$(date -u +%Y%m%dT%H%M%SZ)-before-$VERSION.xml"
     mkdir -p "$RELEASES_DIR/appcast-history"
     cp "$WORK/published.xml" "$backup"
-    info "$backup（docs/hosting.md「戻す」）"
+    info "${backup}（docs/hosting.md「戻す」）"
   fi
 
   step "アップロードする"
@@ -572,11 +572,11 @@ main() {
   step "公開されたかを確かめる"
   verify_published
 
-  step "公開しました: Nonet $VERSION（ビルド $BUILD）"
+  step "公開しました: Nonet ${VERSION}（ビルド ${BUILD}）"
   info "appcast:   $APPCAST_URL"
   info "DMG:       $DMG_URL"
   info "/download: $DMG_URL へ"
-  info "次にやること: docs/release.md「確かめる」（別の Mac で DMG を開く・一つ前の版から Sparkle で更新する）と、タグ（git tag -a v$VERSION）"
+  info "次にやること: docs/release.md「確かめる」（別の Mac で DMG を開く・一つ前の版から Sparkle で更新する）と、タグ（git tag -a v${VERSION}）"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

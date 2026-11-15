@@ -211,7 +211,7 @@ reused_version_problem() {
   if appcast_has_version "$file" "$version"; then
     found="版 $version の項目"
   elif appcast_has_url "$file" "$url"; then
-    found="同じ DMG の URL（$url）の項目"
+    found="同じ DMG の URL（${url}）の項目"
   else
     return 0
   fi
@@ -353,7 +353,7 @@ inspect_source() {
 # ここに出したものが、公開する DMG の元になる
 print_source() {
   local count
-  step "ビルドするもの（Nonet $VERSION、ビルド $BUILD）"
+  step "ビルドするもの（Nonet ${VERSION}、ビルド ${BUILD}）"
   if [[ "$GIT_IN_REPO" == 0 ]]; then
     warn "git の作業ツリーではないので、コミットとブランチを確かめられません"
     return 0
@@ -481,7 +481,7 @@ preflight() {
     if [[ -z "${NONET_NOTARY_PROFILE:-}" ]]; then
       problems+="NONET_NOTARY_PROFILE が設定されていません（notarytool のキーチェーンのプロファイル名。docs/release.md「公証の準備」）"$'\n'
     elif [[ -z "$missing" ]] && ! xcrun notarytool history --keychain-profile "$NONET_NOTARY_PROFILE" >/dev/null 2>&1; then
-      problems+="notarytool のプロファイル「$NONET_NOTARY_PROFILE」で認証できません（ネットワークを確かめるか、xcrun notarytool store-credentials で保存し直してください）"$'\n'
+      problems+="notarytool のプロファイル「${NONET_NOTARY_PROFILE}」で認証できません（ネットワークを確かめるか、xcrun notarytool store-credentials で保存し直してください）"$'\n'
     fi
   fi
 
@@ -501,9 +501,9 @@ preflight() {
       if [[ "$ALLOW_BRANCH" == 1 ]]; then
         warn "$RELEASE_BRANCH ではないブランチ $branch から出します（--allow-branch）"
       elif [[ "$DRY_RUN" == 1 ]]; then
-        warn "ブランチが $RELEASE_BRANCH ではありません（いまは $branch）。dry run なので続けますが、本番ではここで止まります"
+        warn "ブランチが $RELEASE_BRANCH ではありません（いまは ${branch}）。dry run なので続けますが、本番ではここで止まります"
       else
-        problems+="ブランチが $RELEASE_BRANCH ではありません（いまは $branch）。$RELEASE_BRANCH に切り替えて出すか、別のブランチから出すと決めているときだけ --allow-branch を付けてください"$'\n'
+        problems+="ブランチが $RELEASE_BRANCH ではありません（いまは ${branch}）。$RELEASE_BRANCH に切り替えて出すか、別のブランチから出すと決めているときだけ --allow-branch を付けてください"$'\n'
       fi
     fi
   fi
@@ -521,7 +521,7 @@ run_logged() {
   shift
   if ! "$@" >"$log" 2>&1; then
     tail -n 40 "$log" >&2
-    die "「$CURRENT_STEP」に失敗しました。ログの全体: $log"
+    die "「${CURRENT_STEP}」に失敗しました。ログの全体: $log"
   fi
 }
 
@@ -545,9 +545,9 @@ check_sparkle_key() {
   local bin="$1" expected="$2" actual
   actual="$("$bin/generate_keys" --account "$SPARKLE_ACCOUNT" -p 2>/dev/null | tail -n 1 || true)"
   actual="$(trim "$actual")"
-  [[ -n "$actual" ]] || die "Sparkle の秘密鍵がキーチェーンにありません（アカウント: $SPARKLE_ACCOUNT）。docs/release.md「Sparkle の鍵」で作るか、書き出した鍵を generate_keys -f で取り込んでください"
+  [[ -n "$actual" ]] || die "Sparkle の秘密鍵がキーチェーンにありません（アカウント: ${SPARKLE_ACCOUNT}）。docs/release.md「Sparkle の鍵」で作るか、書き出した鍵を generate_keys -f で取り込んでください"
   [[ "$actual" == "$expected" ]] ||
-    die "キーチェーンの Sparkle の鍵（公開鍵 $actual）が NONET_SPARKLE_PUBLIC_KEY と違います。このまま出すと、利用者がアップデートを受け取れなくなります"
+    die "キーチェーンの Sparkle の鍵（公開鍵 ${actual}）が NONET_SPARKLE_PUBLIC_KEY と違います。このまま出すと、利用者がアップデートを受け取れなくなります"
 }
 
 # 公開中の appcast を取ってきて（作業用フォルダの published-appcast.xml）、手元の appcast.xml とビルドの番号で比べる。
@@ -575,7 +575,7 @@ fetch_published_appcast() {
   code="$(curl -sSL --max-time 30 -o "$download" -w '%{http_code}' "$url" || exit $?)" || status=$?
   if [[ "$status" != 0 ]]; then
     rm -f "$download"
-    published_appcast_unavailable "$dry_run" "公開中の appcast を取得できませんでした（curl の終了コード $status）: $url" "$retry"
+    published_appcast_unavailable "$dry_run" "公開中の appcast を取得できませんでした（curl の終了コード ${status}）: $url" "$retry"
     return 0
   fi
   case "$code" in
@@ -609,7 +609,7 @@ fetch_published_appcast() {
     手元のものが正しいと分かっているときだけ --force-local-appcast を付けてください"
           fi
           rm -f "$download.shared"
-          warn "手元の appcast には、公開中のものに無いビルド $extra があります。手元のものを使います（$url）
+          warn "手元の appcast には、公開中のものに無いビルド $extra があります。手元のものを使います（${url}）
     前のリリースの appcast.xml をまだアップロードしていないなら、今回のものと一緒に、そのビルドの DMG もアップロードしてください。
     アップロードしたばかりなら、CDN などが前の appcast をまだ返しているだけです"
         elif same_ignoring_whitespace "$download" "$dest"; then
@@ -624,14 +624,14 @@ fetch_published_appcast() {
       ;;
     404 | 410)
       rm -f "$download"
-      [[ "$first_release" == 1 ]] || die "公開中の appcast が見つかりません（HTTP $code）: $url
+      [[ "$first_release" == 1 ]] || die "公開中の appcast が見つかりません（HTTP ${code}）: $url
     初めてのリリースなら --first-release を付けてください。
     公開済みなら、NONET_APPCAST_URL が公開中の URL と同じかを確かめるか、公開中の appcast を $dest に置き、--force-local-appcast を付けてやり直してください
     （このまま新しく作ると、過去の版の項目が消えた appcast になり、利用者にアップデートが届かなくなります）"
       if [[ -f "$dest" ]]; then
-        info "公開中の appcast はまだありません（HTTP $code）。手元の appcast を引き継ぎます"
+        info "公開中の appcast はまだありません（HTTP ${code}）。手元の appcast を引き継ぎます"
       else
-        info "公開中の appcast はまだありません（HTTP $code）。初めてのリリースとして新しく作ります"
+        info "公開中の appcast はまだありません（HTTP ${code}）。初めてのリリースとして新しく作ります"
       fi
       ;;
     *)
@@ -765,7 +765,7 @@ verify_app() {
     expected="${key#*:}"
     key="${key%%:*}"
     actual="$(plist_value "$plist" "$key")"
-    [[ "$actual" == "$expected" ]] || problems+="Info.plist の $key が「$actual」です（期待: $expected）"$'\n'
+    [[ "$actual" == "$expected" ]] || problems+="Info.plist の $key が「${actual}」です（期待: ${expected}）"$'\n'
   done
 
   # 署名や Info.plist だけでなく、中身も確かめる: DEBUG ビルドのコードと署名が混ざっていないこと、実際に動くこと
@@ -797,12 +797,12 @@ notarize() {
   if [[ "$status" != "Accepted" ]]; then
     cat "$result.err" >&2 2>/dev/null || true
     if [[ -n "$id" ]]; then
-      error "公証のログ（ID: $id）:"
+      error "公証のログ（ID: ${id}）:"
       xcrun notarytool log "$id" --keychain-profile "$NONET_NOTARY_PROFILE" >&2 || true
     fi
     die "公証が通りませんでした（状態: ${status:-不明}）: $(basename "$file")"
   fi
-  info "公証が通りました（ID: $id）"
+  info "公証が通りました（ID: ${id}）"
 }
 
 staple() {
@@ -861,7 +861,7 @@ main() {
   [[ "$DRY_RUN" == 0 ]] || mode="、dry run"
   inspect_source
   print_source
-  step "準備を確かめる（Nonet $VERSION、ビルド $BUILD$mode）"
+  step "準備を確かめる（Nonet ${VERSION}、ビルド $BUILD${mode}）"
   preflight
   local config="$ROOT/Config/Nonet.xcconfig"
   APPCAST_URL="$(xcconfig_value "$config" NONET_APPCAST_URL)"
@@ -869,7 +869,7 @@ main() {
   SPARKLE_PUBLIC_KEY="$(xcconfig_value "$config" NONET_SPARKLE_PUBLIC_KEY)"
   LICENSE_PUBLIC_KEY="$(xcconfig_value "$config" NONET_LICENSE_PUBLIC_KEY)"
   SUPPORT_EMAIL="$(xcconfig_value "$config" NONET_SUPPORT_EMAIL)"
-  info "チーム: $TEAM / 署名: Developer ID Application（$IDENTITY）"
+  info "チーム: $TEAM / 署名: Developer ID Application（${IDENTITY}）"
 
   local appcast_dir
   if [[ "$DRY_RUN" == 1 ]]; then
@@ -890,7 +890,7 @@ main() {
   find_sparkle_bin "$DERIVED"
   local sparkle_version
   sparkle_version="$(sparkle_resolved_version "$ROOT/Nonet.xcodeproj")"
-  [[ -z "$sparkle_version" ]] || info "Sparkle $sparkle_version（project.yml の exactVersion で固定）"
+  [[ -z "$sparkle_version" ]] || info "Sparkle ${sparkle_version}（project.yml の exactVersion で固定）"
 
   step "Sparkle の鍵とビルド番号を確かめる"
   check_sparkle_key "$SPARKLE_BIN" "$SPARKLE_PUBLIC_KEY"
@@ -982,7 +982,7 @@ main() {
   grep -q "<sparkle:version>$BUILD</sparkle:version>" "$appcast_dir/appcast.xml" 2>/dev/null ||
     die "appcast.xml にビルド $BUILD の項目がありません。ログ: $WORK/generate_appcast.log"
 
-  step "できました: Nonet $VERSION（ビルド $BUILD）"
+  step "できました: Nonet ${VERSION}（ビルド ${BUILD}）"
   info "DMG:     $appcast_dir/Nonet-$VERSION.dmg"
   info "appcast: $appcast_dir/appcast.xml"
   info "ダウンロードの URL: ${prefix}Nonet-$VERSION.dmg"
@@ -994,7 +994,7 @@ main() {
   feed_name="$(url_file_name "$APPCAST_URL")"
   [[ -z "$feed_name" || "$feed_name" == appcast.xml ]] || rename="（ファイル名を $feed_name にする）"
   info "次にやること（docs/release.md「リリースごとの手順」）:"
-  info "  1. scripts/publish.sh $VERSION（DMG・新しい *.delta・最後に appcast.xml の順に上げて、公開中のものを確かめる。docs/hosting.md）"
+  info "  1. scripts/publish.sh ${VERSION}（DMG・新しい *.delta・最後に appcast.xml の順に上げて、公開中のものを確かめる。docs/hosting.md）"
   info "     ほかの場所に置くなら: Nonet-$VERSION.dmg と新しい *.delta を $prefix に、そのあと appcast.xml を $APPCAST_URL に$rename"
   info "  2. git tag -a v$VERSION -m \"Nonet $VERSION\" && git push origin v$VERSION"
 }

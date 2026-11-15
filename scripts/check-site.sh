@@ -102,7 +102,7 @@ check_external_markup() {
         if [[ "$name" == script && "$value" == "$STORE_SCRIPT" && " $STORE_PAGES " == *" $rel "* ]]; then
           continue
         fi
-        problem "$rel: 外部の${kind}を読み込んでいます（<$name> の $value）"
+        problem "$rel: 外部の${kind}を読み込んでいます（<$name> の ${value}）"
       fi
     done < <(attribute_values "$tag" 'src|href|xlink:href|data|poster|srcset')
   done < <(LC_ALL=C grep -oE '<(script|link|img|iframe|frame|video|audio|source|track|embed|object|input|image|use|feimage)([[:space:]/][^>]*)?>' <<<"$flat" || true)
@@ -120,7 +120,7 @@ check_reference() {
   case "$url" in
     http://* | https://* | mailto:* | tel:* | data:*) return 0 ;;
     "") problem "$rel: 空のリンクがあります" && return 0 ;;
-    javascript:*) problem "$rel: javascript: のリンクは使わない（$url）" && return 0 ;;
+    javascript:*) problem "$rel: javascript: のリンクは使わない（${url}）" && return 0 ;;
   esac
   path="${url%%#*}"
   [[ "$url" != *#* ]] || frag="${url#*#}"
@@ -136,7 +136,7 @@ check_reference() {
     fi
   fi
   if [[ -n "$frag" ]] && ! grep -qF "id=\"$frag\"" "$target"; then
-    problem "$rel: リンク先の #$frag がありません（$url）"
+    problem "$rel: リンク先の #$frag がありません（${url}）"
   fi
   return 0
 }
@@ -151,14 +151,14 @@ check_html() {
     en/*) expected_lang=en ;;
     *) expected_lang=ja ;;
   esac
-  [[ "$lang" == "$expected_lang" ]] || problem "$rel: <html lang> が「$expected_lang」ではありません（いまは「$lang」）"
+  [[ "$lang" == "$expected_lang" ]] || problem "$rel: <html lang> が「${expected_lang}」ではありません（いまは「${lang}」）"
   grep -qi '<meta charset="utf-8">' "$file" || problem "$rel: <meta charset=\"utf-8\"> がありません"
   grep -q '<meta name="viewport" content="width=device-width' "$file" || problem "$rel: viewport の指定がありません"
   grep -qE '<title>[^<]+</title>' "$file" || problem "$rel: <title> がありません"
   grep -qE '<meta name="description" content="[^"]+">' "$file" || problem "$rel: <meta name=\"description\"> がありません"
   grep -q '<main' "$file" || problem "$rel: <main> がありません"
   count="$(grep -oE '<h1[ >]' "$file" | wc -l | tr -d ' ' || true)"
-  [[ "$count" == 1 ]] || problem "$rel: <h1> は 1 つにしてください（いまは $count）"
+  [[ "$count" == 1 ]] || problem "$rel: <h1> は 1 つにしてください（いまは ${count}）"
 
   while IFS= read -r tag; do
     [[ "$tag" == *" alt="* ]] || problem "$rel: alt の無い画像があります: $tag"
@@ -258,9 +258,9 @@ check_app_links() {
   if [[ ! -f "$CONFIG" ]]; then
     # アプリに入れる URL を確かめられない。公開前（--strict）は止める
     if [[ "$STRICT" == 1 ]]; then
-      problem "アプリの設定（$CONFIG）がありません。アプリが開く URL を確かめられません（--config で指定してください）"
+      problem "アプリの設定（${CONFIG}）がありません。アプリが開く URL を確かめられません（--config で指定してください）"
     else
-      info "アプリの設定（$CONFIG）が無いので、アプリが開く URL は確かめていません"
+      info "アプリの設定（${CONFIG}）が無いので、アプリが開く URL は確かめていません"
     fi
     return 0
   fi
@@ -270,9 +270,9 @@ check_app_links() {
     [[ "$url" == http://* || "$url" == https://* ]] || continue
     if [[ -z "$host" ]]; then
       if [[ "$STRICT" == 1 ]]; then
-        problem "$(basename "$SITE")/index.html に canonical が無いので、$key（$url）がこのサイトのページを指しているか確かめられません（公開する URL の canonical を入れてください）"
+        problem "$(basename "$SITE")/index.html に canonical が無いので、${key}（${url}）がこのサイトのページを指しているか確かめられません（公開する URL の canonical を入れてください）"
       else
-        info "$(basename "$SITE")/index.html に canonical が無いので、$key（$url）の行き先は確かめていません（--strict では失敗にする）"
+        info "$(basename "$SITE")/index.html に canonical が無いので、${key}（${url}）の行き先は確かめていません（--strict では失敗にする）"
       fi
       continue
     fi
@@ -286,9 +286,9 @@ check_app_links() {
     if ! site_page_exists "$path"; then
       if [[ -n "$path" && "$path" != */ && -f "$SITE/$path.html" ]]; then
         # 拡張子を省いた URL（/guide）は、S3 ＋ CloudFront のように .html を補わないホストでは 404 になる
-        problem "$(basename "$CONFIG") の $key（$url）は .html を省いています。補わないホストでは開けないので、/$path.html と書いてください"
+        problem "$(basename "$CONFIG") の ${key}（${url}）は .html を省いています。補わないホストでは開けないので、/$path.html と書いてください"
       else
-        problem "$(basename "$CONFIG") の $key（$url）に当たるページが $(basename "$SITE")/ にありません"
+        problem "$(basename "$CONFIG") の ${key}（${url}）に当たるページが $(basename "$SITE")/ にありません"
       fi
       continue
     fi
@@ -296,7 +296,7 @@ check_app_links() {
     # 購入のページも、このサイトのものなら同じ（AppLinks.localized）
     en_path="$(english_path "$path")"
     if ! site_page_exists "$en_path"; then
-      problem "$(basename "$CONFIG") の $key（$url）の英語のページ（${url%%://*}://${rest%%[/?#]*}/$en_path。英語で動くアプリが開く）が $(basename "$SITE")/ にありません"
+      problem "$(basename "$CONFIG") の ${key}（${url}）の英語のページ（${url%%://*}://${rest%%[/?#]*}/${en_path}。英語で動くアプリが開く）が $(basename "$SITE")/ にありません"
     fi
   done
   return 0
@@ -379,7 +379,7 @@ check_head() {
   if [[ -z "$canonical" ]]; then
     issues+=("<link rel=\"canonical\" href=\"$expected\"> がありません")
   elif [[ "$canonical" != "$expected" ]]; then
-    issues+=("canonical が $expected ではありません（いまは $canonical）")
+    issues+=("canonical が $expected ではありません（いまは ${canonical}）")
   fi
   counterpart="$(counterpart_of "$rel")"
   if [[ -n "$counterpart" ]] && ! is_noindex "$SITE/$counterpart"; then
@@ -433,10 +433,10 @@ check_images() {
       width="$(meta_property "$file" 'og:image:width')"
       height="$(meta_property "$file" 'og:image:height')"
       if [[ ! -f "$SITE/$path" ]]; then
-        problem "$rel: og:image の画像がありません: site/$path（python3 -I scripts/make-site-images.py で作る）"
+        problem "$rel: og:image の画像がありません: site/${path}（python3 -I scripts/make-site-images.py で作る）"
       elif [[ -n "$width$height" ]]; then
         actual="$(png_size "$SITE/$path")"
-        [[ "$actual" == "$width×$height" ]] || problem "$rel: og:image（site/$path）の大きさが $width×$height ではありません（いまは ${actual:-PNG ではない}）"
+        [[ "$actual" == "${width}×$height" ]] || problem "$rel: og:image（site/${path}）の大きさが ${width}×$height ではありません（いまは ${actual:-PNG ではない}）"
       fi
     fi
   fi
@@ -444,7 +444,7 @@ check_images() {
     href="$(attribute_values "$tag" href | head -n 1)"
     [[ -n "$href" && -f "$(dirname "$file")/$href" ]] || continue
     actual="$(png_size "$(dirname "$file")/$href")"
-    [[ "$actual" == "180×180" ]] || problem "$rel: apple-touch-icon（$href）が 180×180 の PNG ではありません（いまは ${actual:-PNG ではない}）"
+    [[ "$actual" == "180×180" ]] || problem "$rel: apple-touch-icon（${href}）が 180×180 の PNG ではありません（いまは ${actual:-PNG ではない}）"
   done < <(LC_ALL=C tr '\n\r\t' '   ' <"$file" | LC_ALL=C grep -oE '<link[^>]*rel="apple-touch-icon"[^>]*>' || true)
 }
 
@@ -489,7 +489,7 @@ check_robots_and_sitemap() {
         problem "sitemap.xml: 検索に出さない（noindex の）ページが入っています: $url"
       fi
     elif ! grep -qxF "$url" <<<"$listed"; then
-      problem "sitemap.xml に $rel（$url）がありません"
+      problem "sitemap.xml に ${rel}（${url}）がありません"
     fi
   done <<<"$html_files"
   return 0
@@ -588,6 +588,6 @@ if [[ -n "$pending" ]]; then
 fi
 
 if [[ "$PROBLEMS" != 0 ]]; then
-  die "サイトに $PROBLEMS 件の問題があります（$SITE）"
+  die "サイトに $PROBLEMS 件の問題があります（${SITE}）"
 fi
-info "サイトに問題はありません（$SITE）"
+info "サイトに問題はありません（${SITE}）"

@@ -95,8 +95,8 @@ EOF
       mkdir -p "$(dirname "$sparkle/$executable")"
       cp /usr/bin/true "$sparkle/$executable"
     done
-    # Mach-O の dylib（MH_DYLIB）の頭だけ
-    printf '\xcf\xfa\xed\xfe\x0c\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00%28s' "" | tr ' ' '\0' >"$sparkle/Sparkle"
+    # Mach-O の dylib（MH_DYLIB）の頭だけ。tr はバイト列として扱う（UTF-8 のロケールでは「Illegal byte sequence」で止まる）
+    printf '\xcf\xfa\xed\xfe\x0c\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00%28s' "" | LC_ALL=C tr ' ' '\0' >"$sparkle/Sparkle"
     chmod +x "$sparkle/Sparkle"
   fi
 }

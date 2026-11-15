@@ -56,7 +56,7 @@ const next = () => {
 next();')
 BASE="http://127.0.0.1:$PORT"
 
-step "wrangler dev --local を立てる（ポート $PORT）"
+step "wrangler dev --local を立てる（ポート ${PORT}）"
 (
   cd "$CLOUDFLARE_DIR"
   exec "$WRANGLER" dev --local --ip 127.0.0.1 --port "$PORT" --inspector-port "$INSPECTOR_PORT" \

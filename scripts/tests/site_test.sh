@@ -439,7 +439,7 @@ test_strict_mode_on_the_real_site_stops_only_on_the_store_values() {
     fi
   done < <(grep -E '^ +- ' <<<"$OUT")
   [[ -z "$others" ]] || fail "--strict が Paddle のトークンと価格の ID のほかでも止まります" "$others"
-  [[ "$store" -eq 4 ]] || fail "Paddle の仮の値が4つではありません（$store）"
+  [[ "$store" -eq 4 ]] || fail "Paddle の仮の値が4つではありません（${store}）"
 }
 
 # 価格（¥1,480 税込・$9.99）は、価格の表示・head の JSON-LD の offers・特商法の表記でそろっている

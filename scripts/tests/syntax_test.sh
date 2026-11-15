@@ -11,6 +11,24 @@ test_every_script_parses() {
   done < <(all_shell_scripts)
 }
 
+# macOS の /bin/bash（3.2）は、UTF-8 のロケール（ja_JP.UTF-8・en_US.UTF-8。ふだんのターミナルや CI）では、
+# 「$mode）」のように変数のすぐ後ろに続く日本語の 1 バイト目までを変数名に含めて、set -u で止まる（C のロケールでは通る）。
+# 変数のすぐ後ろが ASCII でない文字なら「${mode}）」のように {} で囲む
+test_variables_before_non_ascii_text_are_braced() {
+  local found="" file
+  while IFS= read -r file; do
+    found+="$(perl -ne 'next if /^\s*#/; print "$ARGV:$.: $_" if /(?<![\\\$])\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]/' "$file")"
+  done < <(all_shell_scripts; [[ ! -d "$ROOT/cloudflare/scripts" ]] || find "$ROOT/cloudflare/scripts" -type f -name '*.sh')
+  [[ -z "$found" ]] || fail "変数のすぐ後ろに日本語などが続いています。\${name} のように囲んでください" "$found"
+}
+
+# 上の決まりを、実際に UTF-8 のロケールの bash で確かめる（囲まないと unbound variable で止まる）
+test_bash_reads_braced_variables_the_same_in_utf8() {
+  local out
+  out="$(LC_ALL=en_US.UTF-8 /bin/bash -c 'set -u; mode=x; printf "%s\n" "a${mode}の"' 2>&1)" || fail "UTF-8 のロケールの bash が止まりました" "$out"
+  assert_eq "axの" "$out" "UTF-8 のロケールの bash"
+}
+
 test_entry_scripts_are_executable_and_strict() {
   local file
   for file in "$ROOT"/scripts/*.sh "$ROOT"/scripts/tests/run.sh "$ROOT"/scripts/tests/fakes/* "$ROOT"/scripts/tests/fakes/sparkle/*; do

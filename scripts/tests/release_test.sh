@@ -166,7 +166,7 @@ test_config_problems_checks_the_support_email() {
   for value in "mailto:support@nonet.test" "support" "support@nonet" "a b@nonet.test" "support@nonet.test?cc=x@y.test"; do
     printf 'NONET_SUPPORT_EMAIL = %s\n' "$value" >>"$file"
     problems="$(config_problems "$file")"
-    assert_contains "$problems" "NONET_SUPPORT_EMAIL は support@example.com のようなメールアドレスにしてください（いまは $value）"
+    assert_contains "$problems" "NONET_SUPPORT_EMAIL は support@example.com のようなメールアドレスにしてください（いまは ${value}）"
   done
   printf 'NONET_SUPPORT_EMAIL = %s\n' "support@example.com" >>"$file"
   assert_contains "$(config_problems "$file")" "NONET_SUPPORT_EMAIL が仮の値のままです（support@example.com）"
@@ -247,7 +247,7 @@ test_project_pins_sparkle_to_an_exact_version() {
   local pinned
   pinned="$(sed -n '/^  Sparkle:/,/^[^ ]/p' "$ROOT/project.yml" | sed -nE 's/^[[:space:]]*exactVersion:[[:space:]]*"?([0-9.]+)"?.*$/\1/p')"
   [[ -n "$pinned" ]] || fail "project.yml の Sparkle に exactVersion がありません"
-  grep -q "exactVersion: \"$pinned\"" "$ROOT/docs/release.md" || fail "docs/release.md に Sparkle の版（$pinned）の説明がありません"
+  grep -q "exactVersion: \"$pinned\"" "$ROOT/docs/release.md" || fail "docs/release.md に Sparkle の版（${pinned}）の説明がありません"
 }
 
 # プライバシーポリシーが書いているキーチェーンの項目を、アプリが作らないまま出さない
@@ -256,7 +256,7 @@ test_trial_keychain_problem() {
   local root="$TEST_TMP/project" service
   service="$(sed -nE 's/.*static let service = "([^"]+)".*/\1/p' "$ROOT/Packages/NonetKit/Sources/NonetCore/Licensing/TrialRecordKeychain.swift")"
   [[ -n "$service" ]] || fail "キーチェーンの項目のサービス名を読めません"
-  grep -qF "service=\"$service\"" "$ROOT/scripts/release.sh" || fail "release.sh のサービス名が TrialRecordKeychain.swift（$service）と違います"
+  grep -qF "service=\"$service\"" "$ROOT/scripts/release.sh" || fail "release.sh のサービス名が TrialRecordKeychain.swift（${service}）と違います"
   mkdir -p "$root/App" "$root/docs"
   assert_eq "" "$(trial_keychain_problem "$TEST_TMP/none")" "App/ が無い（テスト用の偽のリポジトリ）"
   printf 'storage: UserDefaultsLicenseStorage()\n' >"$root/App/AppDelegate.swift"
@@ -914,7 +914,7 @@ test_http_errors_while_fetching_appcast_stop() {
     export FAKE_CURL_HTTP_CODE="$code"
     run "$REPO/scripts/release.sh" --first-release 1.2.0 42
     assert_status 1
-    assert_contains "$OUT" "公開中の appcast を取得できませんでした（HTTP $code）: $TEST_APPCAST_URL"
+    assert_contains "$OUT" "公開中の appcast を取得できませんでした（HTTP ${code}）: $TEST_APPCAST_URL"
     assert_not_contains "$OUT" "新しく作ります"
     assert_not_contains "$OUT" "予期しないエラー"
     assert_not_called "xcodebuild archive"
@@ -931,7 +931,7 @@ test_missing_appcast_needs_first_release() {
     export FAKE_CURL_HTTP_CODE="$code"
     run "$REPO/scripts/release.sh" 1.2.0 42
     assert_status 1
-    assert_contains "$OUT" "公開中の appcast が見つかりません（HTTP $code）: $TEST_APPCAST_URL"
+    assert_contains "$OUT" "公開中の appcast が見つかりません（HTTP ${code}）: $TEST_APPCAST_URL"
     assert_contains "$OUT" "初めてのリリースなら --first-release を付けてください"
     assert_not_called "xcodebuild archive"
     assert_no_file "$RELEASES/appcast.xml"
@@ -1076,7 +1076,7 @@ test_wrong_info_plist_values_are_caught() {
   assert_status 1
   assert_contains "$OUT" "Info.plist の SUFeedURL が「https://wrong.nonet.test/appcast.xml」です"
   assert_contains "$OUT" "Info.plist の NonetLicensePublicKey が「」です"
-  assert_contains "$OUT" "Info.plist の NonetSupportEmail が「old@nonet.test」です（期待: $TEST_SUPPORT_EMAIL）"
+  assert_contains "$OUT" "Info.plist の NonetSupportEmail が「old@nonet.test」です（期待: ${TEST_SUPPORT_EMAIL}）"
   assert_not_called "notarytool submit"
 }
 
@@ -1239,7 +1239,7 @@ test_release_binary_with_debug_only_code_is_rejected() {
     export FAKE_APP_DEBUG_TEXT="$marker"
     run "$REPO/scripts/release.sh" 1.2.0 42
     assert_status 1 "$marker"
-    assert_contains "$OUT" "export/Nonet.app/Contents/MacOS/Nonet に DEBUG ビルドだけのコード（$marker）が入っています" "$marker"
+    assert_contains "$OUT" "export/Nonet.app/Contents/MacOS/Nonet に DEBUG ビルドだけのコード（${marker}）が入っています" "$marker"
     assert_not_called "notarytool submit"
   done
   export FAKE_APP_DEBUG_TEXT="DemoSession DebugPreview"
@@ -1262,8 +1262,8 @@ test_debug_only_markers_are_only_in_debug_code() {
   )
   for marker in "${DEBUG_ONLY_MARKERS[@]}"; do
     found="$(python3 -I "$ROOT/scripts/tests/swift_debug_scope.py" find "$marker" "${sources[@]}")"
-    grep -q '^debug ' <<<"$found" || fail "release.sh の DEBUG_ONLY_MARKERS の「$marker」が、#if DEBUG のコードにありません（名前を変えたなら印も直す）"
-    ! grep -q '^release ' <<<"$found" || fail "「$marker」が #if DEBUG の外にもあります（Release のビルドにも入るので、印にできません）:" "$(grep '^release ' <<<"$found")"
+    grep -q '^debug ' <<<"$found" || fail "release.sh の DEBUG_ONLY_MARKERS の「${marker}」が、#if DEBUG のコードにありません（名前を変えたなら印も直す）"
+    ! grep -q '^release ' <<<"$found" || fail "「${marker}」が #if DEBUG の外にもあります（Release のビルドにも入るので、印にできません）:" "$(grep '^release ' <<<"$found")"
   done
 }
 

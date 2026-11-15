@@ -79,8 +79,8 @@ test_privacy_policy_dates_match_the_site() {
   ja="$(sed -nE 's/^最終更新: (.+)$/\1/p' "$ROOT/docs/privacy.md")"
   en="$(sed -nE 's/^Last updated: (.+)$/\1/p' "$ROOT/docs/privacy.md")"
   [[ -n "$ja" && -n "$en" ]] || fail "docs/privacy.md に最終更新日がありません"
-  grep -qF "最終更新: $ja" "$ROOT/site/privacy.html" || fail "site/privacy.html の最終更新日が docs/privacy.md（$ja）と違います"
-  grep -qF "Last updated: $en" "$ROOT/site/en/privacy.html" || fail "site/en/privacy.html の最終更新日が docs/privacy.md（$en）と違います"
+  grep -qF "最終更新: $ja" "$ROOT/site/privacy.html" || fail "site/privacy.html の最終更新日が docs/privacy.md（${ja}）と違います"
+  grep -qF "Last updated: $en" "$ROOT/site/en/privacy.html" || fail "site/en/privacy.html の最終更新日が docs/privacy.md（${en}）と違います"
 }
 
 # Mac の中に保存するものを、プライバシーポリシーの3つ（docs と販売ページの日英）がすべて書いている
@@ -91,7 +91,7 @@ test_privacy_policy_lists_what_is_stored() {
   for file in docs/privacy.md site/privacy.html site/en/privacy.html; do
     for item in configuration.json configuration.backup.json com.iam74k4.Nonet.plist Application\ Support/Nonet "$service" .command \
       Nonet/Terminal Nonet/Shortcuts input-; do
-      grep -qF "$item" "$ROOT/$file" || fail "$file に保存するもの（$item）の説明がありません"
+      grep -qF "$item" "$ROOT/$file" || fail "$file に保存するもの（${item}）の説明がありません"
     done
   done
 }
