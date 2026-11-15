@@ -94,6 +94,20 @@ test_check_reports_a_missing_string_and_leaves_catalogs_alone() {
   assert_contains "$OUT" "App/Localizable.xcstrings"
 }
 
+# Xcode 26（CI）の swift build は .stringsdata を -emit-localized-strings-path のフォルダに並べて置く。
+# 置き場所ではなく中の source でターゲットを見分けるので、どちらでも同じに通る
+test_check_finds_stringsdata_in_either_layout() {
+  prepare_catalogs
+  export FAKE_SWIFT_STRINGS_FLAT=1
+  run "$REPO/scripts/sync-strings.sh" --check
+  assert_status 0
+  assert_contains "$OUT" "NonetUI: 足りない文言はありません"
+  local target
+  for target in NonetCore NonetPlatform NonetUI; do
+    assert_contains "$(cat "$FAKE_LOG")" "${target}View.stringsdata"
+  done
+}
+
 test_check_passes_when_every_string_is_translated() {
   prepare_catalogs
   run "$REPO/scripts/sync-strings.sh" --check

@@ -53,6 +53,23 @@ EOF
 
 # カタログ（$2）に .stringsdata（$3 以降）を取り込む。
 # --check ではコピーに取り込んで比べ、足りない文言を PROBLEMS に足す（カタログは書き換えない）
+# $WORK の下の .stringsdata のうち、ターゲットのソース（Packages/NonetKit/Sources/<target>/）から出たものを1行に1つ出す。
+# 置き場所はツールチェーンで違う（Xcode 27 の swift build は <target>-t.build の下、Xcode 26 の CI では
+# -emit-localized-strings-path のフォルダなど）ので、場所ではなく中の "source"（元のソースファイル）で見分ける
+stringsdata_for() {
+  python3 -I - "$WORK" "$ROOT/Packages/NonetKit/Sources/$1" <<'PY'
+import json, os, pathlib, sys
+work, prefix = pathlib.Path(sys.argv[1]), os.path.realpath(sys.argv[2]) + os.sep
+for path in sorted(work.rglob("*.stringsdata")):
+    try:
+        source = json.loads(path.read_text(encoding="utf-8")).get("source", "")
+    except (OSError, ValueError, AttributeError):
+        continue
+    if source and os.path.realpath(source).startswith(prefix):
+        print(path)
+PY
+}
+
 sync_catalog() {
   local name="$1" catalog="$2" synced problems
   shift 2
@@ -109,10 +126,7 @@ main() {
   for target in NonetCore NonetPlatform NonetUI; do
     catalog="$ROOT/Packages/NonetKit/Sources/$target/Resources/Localizable.xcstrings"
     files=()
-    # ビルドシステムによって置き場所が <target>.build か <target>-t.build になる
-    while IFS= read -r file; do files+=("$file"); done < <(
-      find "$WORK" \( -path "*/$target.build/*" -o -path "*/$target-t.build/*" \) -name '*.stringsdata' | sort
-    )
+    while IFS= read -r file; do files+=("$file"); done < <(stringsdata_for "$target")
     [[ ${#files[@]} -gt 0 ]] || die "$target の .stringsdata が見つかりません"
     sync_catalog "$target" "$catalog" "${files[@]}"
   done
