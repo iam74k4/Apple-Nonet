@@ -1,0 +1,41 @@
+#!/bin/bash
+# テスト用の偽の git。作業ツリーかどうか、HEAD のコミット、ブランチ、リモート、status --porcelain だけに答える。
+#   FAKE_GIT_STATUS           status --porcelain の出力（空ならきれいな状態）
+#   FAKE_GIT_NOT_REPO         1 なら作業ツリーではない
+#   FAKE_GIT_HEAD             rev-parse HEAD の答え（既定は 40 桁の16進数）
+#   FAKE_GIT_BRANCH           branch --show-current の答え（既定は main。空にすると detached HEAD）
+#   FAKE_GIT_NO_REMOTE        1 ならリモートが無い
+#   FAKE_GIT_REMOTE_BRANCHES  branch -r --contains HEAD の答え（既定は origin/main。空にすると push していない）
+#   FAKE_GIT_REAL             1 なら記録だけして本物の git（/usr/bin/git）に任せる
+set -euo pipefail
+printf 'git %s\n' "$*" >>"${FAKE_LOG:?}"
+[[ -z "${FAKE_GIT_REAL:-}" ]] || exec /usr/bin/git "$@"
+
+[[ "${1:-}" != -C ]] || shift 2
+case "${1:-}" in
+  rev-parse)
+    [[ -z "${FAKE_GIT_NOT_REPO:-}" ]] || exit 128
+    if [[ "${2:-}" == HEAD ]]; then
+      printf '%s\n' "${FAKE_GIT_HEAD:-0123456789abcdef0123456789abcdef01234567}"
+    else
+      printf 'true\n'
+    fi
+    ;;
+  branch)
+    [[ -z "${FAKE_GIT_NOT_REPO:-}" ]] || exit 128
+    case "${2:-}" in
+      --show-current) printf '%s\n' "${FAKE_GIT_BRANCH-main}" ;;
+      -r)
+        remote_branches="${FAKE_GIT_REMOTE_BRANCHES-origin/main}"
+        [[ -z "$remote_branches" ]] || printf '  %s\n' "$remote_branches"
+        ;;
+    esac
+    ;;
+  remote)
+    [[ -z "${FAKE_GIT_NOT_REPO:-}" ]] || exit 128
+    [[ -n "${FAKE_GIT_NO_REMOTE:-}" ]] || printf 'origin\n'
+    ;;
+  status)
+    [[ -z "${FAKE_GIT_STATUS:-}" ]] || printf '%b\n' "$FAKE_GIT_STATUS"
+    ;;
+esac

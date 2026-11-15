@@ -1,0 +1,34 @@
+{
+  "hud": "shots-xcode/round2-1-HUDOverlayPanel.png",
+  "hudScale": 1.7,
+  "pointer": [
+    174,
+    326
+  ],
+  "eyebrow": "やめ方とページ",
+  "headline": [
+    "迷ったら、",
+    "輪の外へ。"
+  ],
+  "description": [
+    "アイコンの輪の外まで動かして離せば、",
+    "何も実行せずに閉じます。"
+  ],
+  "bullets": [
+    {
+      "symbol": "circle.dashed",
+      "text": "輪の外では、アイコンが薄くなる",
+      "tag": "外"
+    },
+    {
+      "symbol": "arrow.left.arrow.right",
+      "text": "右か左で止めると、次・前のページ",
+      "tag": "ページ"
+    },
+    {
+      "symbol": "arrow.down",
+      "text": "下で止めると、グローバルのページ",
+      "tag": "下"
+    }
+  ]
+}

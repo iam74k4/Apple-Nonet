@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download — Nonet</title>
+<meta name="description" content="Download Nonet and install it in three steps: drag it to Applications, allow Accessibility, then slide a finger down from the top edge of the trackpad.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<!-- The page that starts the download. The Download and Try buttons on the site point here.
+     With JavaScript, script.js opens /download on a Mac only (other devices get a note instead).
+     Without it, the meta below opens /download after a second. The Worker redirects /download to the newest DMG (docs/hosting.md) -->
+<noscript><meta http-equiv="refresh" content="1; url=https://nonet.astlog.dev/download"></noscript>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Switching languages must not start a second download (script.js does not start it when the page opens at #install) -->
+<div class="lang-bar" data-lang-bar lang="ja" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>日本語のページもあります。<a href="../thanks.html#install" hreflang="ja">日本語で読む →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="閉じる">×</button>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="../thanks.html#install" hreflang="ja" lang="ja">日本語</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="thanks">
+  <div class="wrap">
+    <div class="thanks-head" data-download data-download-delay="700">
+      <h1 data-download-heading data-text-not-mac="Nonet is a Mac app">Your download has started</h1>
+      <p data-download-status>You're getting the latest Nonet (macOS 14 or later, for Apple silicon and Intel Macs). If nothing happens, <a href="https://nonet.astlog.dev/download" data-download-link>download it here</a>.</p>
+      <div class="not-mac" data-not-mac hidden>
+        <p>Open nonet.astlog.dev on your Mac to download it. To copy it to a Mac yourself, you can still <a href="https://nonet.astlog.dev/download">download the disk image (.dmg)</a>.</p>
+        <button class="btn btn-secondary btn-small" type="button" data-share data-share-url="https://nonet.astlog.dev/en/" data-label-share="Share Link" data-label-copied="Link copied">Copy Link</button>
+        <p class="fine share-status" data-share-status role="status"></p>
+      </div>
+    </div>
+
+    <h2 id="install">Install in three steps</h2>
+    <!-- To use real screenshots, add images/install-1-en.png, install-2-en.png and install-3-en.png
+         (1040×480 each, shown at 520×240 for 2× screens) and replace each svg with an img that has alt text -->
+    <ol class="install-steps">
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="1" y="1" width="258" height="118" rx="12"/>
+          <circle class="faint" cx="15" cy="14" r="3.5"/><circle class="faint" cx="27" cy="14" r="3.5"/><circle class="faint" cx="39" cy="14" r="3.5"/>
+          <rect class="ink" x="46" y="32" width="44" height="44" rx="10"/>
+          <circle class="knock" cx="68" cy="40.5" r="3.6"/><circle class="knock" cx="77.5" cy="44.5" r="3.6"/><circle class="knock" cx="81.5" cy="54" r="3.6"/><circle class="knock" cx="77.5" cy="63.5" r="3.6"/>
+          <circle class="knock" cx="68" cy="67.5" r="3.6"/><circle class="knock" cx="58.5" cy="63.5" r="3.6"/><circle class="knock" cx="54.5" cy="54" r="3.6"/><circle class="knock" cx="58.5" cy="44.5" r="3.6"/>
+          <circle class="knock" cx="68" cy="54" r="4.2"/>
+          <text x="68" y="96" text-anchor="middle" class="label">Nonet</text>
+          <path class="stroke" d="M104 54 H154 M145 46 L154 54 L145 62"/>
+          <path class="ring" d="M172 36 h20 l6 6 h26 a4 4 0 0 1 4 4 v28 a4 4 0 0 1 -4 4 h-52 a4 4 0 0 1 -4 -4 v-34 a4 4 0 0 1 4 -4 z"/>
+          <text x="200" y="96" text-anchor="middle" class="label-muted">Applications</text>
+        </svg>
+        <h3>1. Drag Nonet to Applications</h3>
+        <p>Open the disk image you downloaded (Nonet-….dmg), then drag Nonet to the Applications folder in the window that appears.</p>
+      </li>
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="1" y="1" width="258" height="118" rx="12"/>
+          <text x="18" y="26" class="label">Accessibility</text>
+          <rect class="faint" x="14" y="38" width="232" height="32" rx="8"/>
+          <rect class="ink" x="24" y="46" width="16" height="16" rx="4"/>
+          <text x="50" y="58" class="label">Nonet</text>
+          <rect class="ink" x="202" y="46" width="32" height="16" rx="8"/>
+          <circle class="knock" cx="226" cy="54" r="6"/>
+          <rect class="faint" x="14" y="76" width="232" height="32" rx="8"/>
+          <rect class="faint" x="24" y="84" width="16" height="16" rx="4"/>
+          <rect class="faint" x="50" y="88" width="64" height="8" rx="4"/>
+          <rect class="faint" x="202" y="84" width="32" height="16" rx="8"/>
+          <circle class="ring" cx="210" cy="92" r="6"/>
+        </svg>
+        <h3>2. Allow Accessibility (1 minute)</h3>
+        <p>Open Nonet from the Applications folder and the Welcome to Nonet window appears. Click Open System Settings, then turn on Nonet in Privacy &amp; Security › Accessibility.</p>
+      </li>
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="45" y="6" width="170" height="108" rx="12"/>
+          <path class="faint-fill" d="M57 6.5h146a11.5 11.5 0 0 1 11.5 11.5v3.5h-169v-3.5a11.5 11.5 0 0 1 11.5-11.5z"/>
+          <circle class="ink" cx="130" cy="14" r="6"/>
+          <path class="stroke" d="M130 24 V40 M124 34 L130 40 L136 34"/>
+          <g class="ink">
+            <circle cx="130" cy="50" r="2.6"/><circle cx="141.3" cy="54.7" r="2.6"/><circle cx="146" cy="66" r="2.6"/><circle cx="141.3" cy="77.3" r="2.6"/>
+            <circle cx="130" cy="82" r="2.6"/><circle cx="118.7" cy="77.3" r="2.6"/><circle cx="114" cy="66" r="2.6"/><circle cx="118.7" cy="54.7" r="2.6"/>
+          </g>
+          <circle class="ring" cx="130" cy="66" r="4"/>
+        </svg>
+        <h3>3. Slide in from the top edge</h3>
+        <p>Put a finger on the top edge of the trackpad and slide it down to open the HUD: nine icons around the pointer. Slide to point at one, then lift on an icon to run it. To close without running anything, move outside the ring of icons and lift. You can practice in the Try It Out step of the welcome window, where nothing runs.</p>
+      </li>
+    </ol>
+
+    <div class="thanks-after">
+      <p>Your 14-day trial starts the first time you open Nonet. No card or email needed. When you're ready to buy, see <a href="./#pricing">Pricing</a>.</p>
+      <p>If nothing opens, try again with one finger, sliding down from the top edge right after you touch (a move that starts more than 0.6 seconds after you touch is treated as normal pointer movement). The <a href="guide.html#getting-started">user guide</a> covers the rest, and <a href="guide.html#troubleshooting">Troubleshooting</a> helps if something doesn't work.</p>
+      <p class="fine">Nonet is signed with an Apple Developer ID and notarized by Apple.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">User guide</a></li>
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="mailto:support@astlog.dev">Contact</a></li>
+        <li><a href="../thanks.html#install" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

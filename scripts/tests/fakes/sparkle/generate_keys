@@ -1,0 +1,14 @@
+#!/bin/bash
+# テスト用の偽の Sparkle generate_keys。-p で公開鍵を出す。
+#   FAKE_SPARKLE_PUBLIC_KEY   キーチェーンにある鍵の公開鍵
+#   FAKE_SPARKLE_KEY_MISSING  1 ならキーチェーンに鍵が無い
+set -euo pipefail
+printf 'generate_keys %s\n' "$*" >>"${FAKE_LOG:?}"
+
+if [[ " $* " == *" -p "* ]]; then
+  if [[ -n "${FAKE_SPARKLE_KEY_MISSING:-}" ]]; then
+    printf 'ERROR! Failed to find the private key in the keychain\n' >&2
+    exit 1
+  fi
+  printf '%s\n' "${FAKE_SPARKLE_PUBLIC_KEY:?}"
+fi

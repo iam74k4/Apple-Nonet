@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonet — トラックパッドが、アプリごとの9つのボタンに</title>
+<meta name="description" content="トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。9マスの一覧（HUD）を見ながら指で選び、マスで離すと実行。14日間無料、買い切り、購入から30日以内なら全額返金。">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://nonet.astlog.dev/">
+<link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/">
+<link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/">
+<link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nonet">
+<meta property="og:title" content="Nonet — トラックパッドが、9つのボタンになる">
+<meta property="og:description" content="上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンに。機器の買い足しも、ショートカットの暗記もいりません。">
+<meta property="og:url" content="https://nonet.astlog.dev/">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://nonet.astlog.dev/images/og-ja.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="見出し「トラックパッドが、9つのボタンになる。」と、Xcode の画面に出た Nonet の9マスの一覧（HUD）のイラスト">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
+<!-- 検索エンジン向けの説明（実行されないデータ。CSP の script-src には関係しない）。
+     offers の価格は、下の価格の表示と en/index.html（USD）とそろえる -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nonet",
+  "url": "https://nonet.astlog.dev/",
+  "inLanguage": "ja",
+  "description": "トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS 14 以降",
+  "softwareRequirements": "マルチタッチのトラックパッド（MacBook の内蔵トラックパッドまたは Magic Trackpad）",
+  "image": "https://nonet.astlog.dev/images/og-ja.png",
+  "downloadUrl": "https://nonet.astlog.dev/download",
+  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" },
+  "offers": { "@type": "Offer", "price": "1480", "priceCurrency": "JPY" }
+}
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M11 18h2"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 5h16v14H4z M7 9l3 3-3 3 M12 15h5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5L18 18 M18 6l-2.5 2.5 M8.5 15.5L6 18"/></symbol>
+  <symbol id="i-commit" viewBox="0 0 24 24"><path d="M3 12h6 M15 12h6 M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
+  <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M14 4l6 6-2 2-6-6z M12 8l-8 8 2 2 8-8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M4 15l8-8 7 7-5 5H9z M9 19h11"/></symbol>
+  <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">本文へ移動</a>
+
+<div class="lang-bar" data-lang-bar lang="en" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>This page is also available in English. <a href="en/" hreflang="en">Read in English →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="Close">×</button>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="サイト内の移動">
+      <ul>
+        <li><a href="#how">使い方</a></li>
+        <li><a href="#features">機能</a></li>
+        <li><a href="#pricing">価格</a></li>
+        <li><a href="#faq">よくある質問</a></li>
+        <li><a href="guide.html">利用ガイド</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="en/" hreflang="en" lang="en">English</a>
+      <a class="btn btn-small" href="thanks.html">ダウンロード</a>
+      <details class="menu" data-menu>
+        <summary>メニュー</summary>
+        <nav class="menu-panel" aria-label="サイト内の移動（メニュー）">
+          <ul>
+            <li><a href="#how">使い方</a></li>
+            <li><a href="#features">機能</a></li>
+            <li><a href="#pricing">価格</a></li>
+            <li><a href="#faq">よくある質問</a></li>
+            <li><a href="guide.html">利用ガイド</a></li>
+            <li><a href="en/" hreflang="en" lang="en">English</a></li>
+          </ul>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow" lang="en">Trackpad macro pad for Mac</p>
+        <h1><span class="nowrap">トラックパッドが、</span><span class="nowrap">9つのボタンになる。</span></h1>
+        <p class="lead">トラックパッドの上の縁から指を下へ滑らせると、MacBook のトラックパッドが、アプリごとに変わる3×3のボタンに。キーは使わず、指1本で選んで、離すと実行します。Stream Deck のような機器を買い足さなくても、ショートカットを覚えなくても使えます。</p>
+        <div class="cta">
+          <a class="btn" href="thanks.html">14日間無料で試す</a>
+          <a class="btn btn-secondary" href="#how">使い方を見る</a>
+        </div>
+        <div class="fine-list">
+          <p class="fine">試用にカードもメールアドレスも不要 ・ 買い切り ・ 購入から30日以内なら全額返金</p>
+          <p class="fine">macOS 14 以降 ・ マルチタッチのトラックパッドが必要</p>
+        </div>
+        <div class="not-mac" data-not-mac hidden>
+          <p>Nonet は Mac 用のアプリです。Mac で nonet.astlog.dev を開くと、ダウンロードできます。</p>
+          <button class="btn btn-secondary btn-small" type="button" data-share data-share-url="https://nonet.astlog.dev/" data-label-share="リンクを共有" data-label-copied="リンクをコピーしました">リンクをコピー</button>
+          <p class="fine share-status" data-share-status role="status"></p>
+        </div>
+      </div>
+
+      <figure class="demo" data-demo
+        data-caption-run="上の縁から指を下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開く。指を滑らせてポインタを向け、アイコンで離すと実行。"
+        data-caption-cancel="やめるときは、アイコンの輪の外まで動かして離す。何も実行せずに閉じる。"
+        data-label-pause="動きを止める"
+        data-label-play="動かす">
+        <div class="demo-stage" aria-hidden="true">
+          <div class="screen">
+            <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
+            <div class="hud">
+              <div class="cell slot-7" data-cell data-label="ビルド"><svg class="icon"><use href="#i-hammer"/></svg></div>
+              <div class="cell slot-0" data-cell data-label="実行"><svg class="icon"><use href="#i-play"/></svg></div>
+              <div class="cell slot-1" data-cell data-label="テスト"><svg class="icon"><use href="#i-check"/></svg></div>
+              <div class="cell slot-6" data-cell data-label="シミュレータ"><svg class="icon"><use href="#i-phone"/></svg></div>
+              <div class="cell slot-c" data-cell data-label="クイックオープン"><svg class="icon"><use href="#i-search"/></svg></div>
+              <div class="cell slot-2 on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg></div>
+              <div class="cell slot-5" data-cell data-label="停止"><svg class="icon"><use href="#i-stop"/></svg></div>
+              <div class="cell slot-4" data-cell data-label="クリーン"><svg class="icon"><use href="#i-eraser"/></svg></div>
+              <div class="cell slot-3" data-cell data-label="コミット"><svg class="icon"><use href="#i-commit"/></svg></div>
+              <svg class="pointer" viewBox="0 0 12 19"><path d="M1 1v13.6l3.4-3.1 2.2 5.7 2.2-.9-2.2-5.4h4.3z"/></svg>
+              <span class="hud-label" data-hud-label>Claude Code</span>
+            </div>
+            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>コミット</span></div>
+          </div>
+          <div class="trackpad">
+            <span class="trackpad-edge"></span>
+            <span class="trail"></span>
+            <span class="ripple"></span>
+            <span class="finger"></span>
+          </div>
+        </div>
+        <figcaption data-demo-caption>トラックパッドの上の縁から指を下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開く。指を滑らせてポインタを向け、アイコンで離すと実行。</figcaption>
+        <button class="demo-toggle" type="button" data-demo-toggle hidden>動きを止める</button>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="promises-title">
+    <div class="wrap">
+      <h2 id="promises-title" class="visually-hidden">3つの約束</h2>
+      <ol class="promises">
+        <li>
+          <span class="num">01</span>
+          <h3>機材はいらない</h3>
+          <p>追加のデバイスは不要。MacBook のトラックパッドが、そのままボタンになる。</p>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <h3>覚えなくていい</h3>
+          <p>開くとすぐにポインタの周りに9つのアイコンが出るから、見ながら選べる。迷ったら輪の外で指を離せば、何も実行しない。</p>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <h3>すぐに使える</h3>
+          <p>許可を1つ出せば、Mac にあるアプリに合わせた9マスが最初から並ぶ。メニューから選ぶだけで追加できる。</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="how-title">上の縁から滑らせて、マスで離す</h2>
+        <p>キーもクリックも使いません。トラックパッドの上の縁に指を置いて下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開き、そのまま指を滑らせてポインタを向け、アイコンで離すと実行します。真ん中から見た向きでマスが決まり、設定の3×3の9マスにあたります。</p>
+      </div>
+      <div class="flows">
+        <div class="flow">
+          <h3>実行する</h3>
+          <ol class="steps">
+            <li class="step"><b>上の縁に指を置く</b><span>指は1本</span></li>
+            <li class="step is-hud"><b>下へ滑らせる</b><span>ポインタの周りに9つのアイコン（HUD）が開く</span></li>
+            <li class="step"><b>指を滑らせて向ける</b><span>向けたアイコンの下に白い円が出る</span></li>
+            <li class="step is-goal"><b>アイコンで離す</b><span>そのマスを実行する</span></li>
+          </ol>
+        </div>
+        <div class="flow">
+          <h3>やめる：何も実行しない</h3>
+          <ol class="steps">
+            <li class="step"><b>上の縁から開く</b><span>実行するときと同じ</span></li>
+            <li class="step is-hud"><b>輪の外へ出す</b><span>アイコンが全部薄くなる</span></li>
+            <li class="step is-goal"><b>輪の外で離す</b><span>何も実行せずに閉じる</span></li>
+          </ol>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>触れてから 0.6 秒たって動かしたとき、2本指・手のひら・クリックしたままのドラッグでは開かない</li>
+        <li>開いている間もポインタはふだんどおり動くが、クリックは前面のアプリに届かない</li>
+        <li>マスで少し止まってから離すと実行し、通り過ぎながら離しても実行しない</li>
+        <li>輪の外に線は見えないが、越えるとアイコンが全部薄くなるので分かる</li>
+        <li>キーを押しても、何も実行せずに閉じる（キーはふだんどおりアプリに届く）</li>
+        <li>輪のすぐ外の右か左で止めると、そちら側のページの9マスへ。下で止めると、画面に置く9マスとランチャーへ</li>
+        <li>送信のように取り消せないマスは、「少し長く止めてから実行」にできる</li>
+        <li>「このアプリでは使わない」にしたアプリでは開かず、トラックパッドはいつもどおり</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="features-title">アプリが変われば、9マスも変わる</h2>
+        <p>前面のアプリに合わせて、いちばん使う9つを。設定はプリセットとメニューから選ぶだけ。</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="ink" x="38" y="6" width="58" height="20" rx="10"/>
+            <text x="67" y="20" text-anchor="middle" class="label" style="fill: var(--bg)">Xcode</text>
+            <rect class="faint" x="101" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="130" y="20" text-anchor="middle" class="label-muted">Safari</text>
+            <rect class="faint" x="164" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="193" y="20" text-anchor="middle" class="label-muted">Zoom</text>
+            <circle class="ink" cx="130.0" cy="46.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="54.8" r="5"/>
+            <circle class="ring" cx="160.0" cy="76.0" r="11.0"/>
+            <circle class="ink" cx="160.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="97.2" r="5"/>
+            <circle class="ink" cx="130.0" cy="106.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="97.2" r="5"/>
+            <circle class="ink" cx="100.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="54.8" r="5"/>
+            <circle class="ink" cx="130" cy="76" r="4.0"/>
+          </svg>
+          <h3>アプリごとのプロファイル</h3>
+          <p>Xcode ではビルドとテスト、Zoom ではミュートと画面共有、Finder では選んだファイルの複製やゴミ箱。前面のアプリに合わせて9マスが自動で切り替わる。よく使うアプリには、最初から9マスを用意している。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="10" y="8" width="138" height="104" rx="10"/>
+            <rect class="faint" x="20" y="17" width="118" height="18" rx="9"/>
+            <text x="32" y="30" class="label-muted">メニューを検索</text>
+            <text x="28" y="54" class="label-muted">コピー</text>
+            <rect class="ink" x="18" y="62" width="122" height="20" rx="5"/>
+            <text x="28" y="76" class="label" style="fill: var(--bg)">自動レイアウトを追加</text>
+            <text x="28" y="100" class="label-muted">グループ化</text>
+            <rect class="panel" x="176" y="26" width="72" height="72" rx="9"/>
+            <rect class="tile" x="183" y="33" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="33" width="17" height="17" rx="4"/><rect class="tile" x="224" y="33" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="53.5" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="53.5" width="17" height="17" rx="4"/><rect class="tile-on" x="224" y="53.5" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="74" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="74" width="17" height="17" rx="4"/><rect class="tile" x="224" y="74" width="17" height="17" rx="4"/>
+            <path class="stroke" d="M146 72 C 172 72, 196 80, 226 64 M216 62 L226 64 L222 73"/>
+          </svg>
+          <h3>メニューから選ぶだけ</h3>
+          <p>起動中のアプリのメニューを読み取って一覧に。探して、空いたマスへドラッグすれば割り当て完了。ショートカットを調べなくていい。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <circle class="ink" cx="116" cy="48" r="10"/>
+            <circle class="ink" cx="144" cy="48" r="10"/>
+            <path class="stroke" d="M168 82 L92 82 M102 74 L92 82 L102 90"/>
+            <circle class="ink" cx="118" cy="106" r="3"/>
+            <circle class="ring" cx="130" cy="106" r="2.5"/>
+            <circle class="ring" cx="142" cy="106" r="2.5"/>
+          </svg>
+          <h3>9マス×3ページ、ランチャーにも</h3>
+          <p>輪のすぐ外の右か左で止めてページを切り替え、下で止めるとグローバルのページへ。アプリごとに最大27個まで置ける。グローバルのページは、ウインドウを画面に置く9マスと、Mac にあるアプリを並べたランチャーから始まる。Launchpad の代わりにも。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <path class="dashed" d="M130 60 L178.0 40.1"/>
+            <circle class="ink" cx="130.0" cy="26.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="164.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="130.0" cy="94.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="96.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="130" cy="60" r="3.2"/>
+            <circle class="faint" cx="161.4" cy="47.0" r="20"/>
+            <circle class="ring" cx="161.4" cy="47.0" r="13"/>
+            <circle class="ink" cx="161.4" cy="47.0" r="6"/>
+          </svg>
+          <h3>隣に移ると「コツッ」と振動</h3>
+          <p>感圧タッチ（Force Touch）のトラックパッドなら、ポインタが隣のアイコンに移るたびに軽く振動する。画面を見ていなくても、どこまで動かしたかが指でわかる。設定でオフにもできる。</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="panel" x="10" y="8" width="240" height="104" rx="10"/>
+            <circle cx="24" cy="21" r="3.5" class="tile"/><circle cx="36" cy="21" r="3.5" class="tile"/><circle cx="48" cy="21" r="3.5" class="tile"/>
+            <text x="24" y="54" class="label-hud">$ cd $PROJECT_DIR &amp;&amp; claude</text>
+            <text x="24" y="78" class="label-hud" style="fill: var(--hud-fg)">$NONET_SELECTED_TEXT</text>
+            <text x="24" y="98" class="label-hud" style="fill: var(--hud-fg)">$NONET_BROWSER_URL</text>
+          </svg>
+          <h3>スクリプトと AI</h3>
+          <p>zsh のスクリプトに、前面のアプリ・開いている書類・プロジェクトのフォルダ・選択中のテキストを環境変数で渡せる。macOS 26 では、選んだテキストを Mac の中の Apple Intelligence で要約したり書き換えたり。</p>
+        </article>
+        <article class="feature">
+          <ul class="chips" aria-label="アクションの種類">
+            <li>キー入力</li>
+            <li>アプリ・URL を開く</li>
+            <li>画面に置く</li>
+            <li>スクリプト</li>
+            <li>ショートカット</li>
+            <li>メニュー項目</li>
+            <li>AI</li>
+            <li>ファイル</li>
+          </ul>
+          <h3>8種類のアクション</h3>
+          <p>⌘B のようなキーも、⌘L → ⌘C のような続けて押すキーも、押して記録するだけ。JIS 配列でも ⌘[ などがそのまま届く。ショートカット.app のショートカットも呼び出せる。前面のウインドウを左半分や最大化に置いたり、Finder で選んだファイルをゴミ箱に入れたり複製したりもできる。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap pricing">
+      <div class="section-head">
+        <h2 id="pricing-title">価格</h2>
+        <p>まず14日間、すべての機能を無料で。カードもメールアドレスも要りません。気に入ったら一度だけ購入。サブスクリプションはありません。</p>
+        <p>試用期間が終わっても設定はそのまま残ります。ライセンスキーを入れれば、すぐに元どおり使えます。</p>
+      </div>
+      <div class="price-card">
+        <p class="price-trial">14日間 無料で試せる</p>
+        <div class="price">
+          <!-- 価格（税込）。変えるときは en/index.html と、head の JSON-LD の offers もそろえる -->
+          <span class="price-amount">¥1,480</span>
+          <span class="price-note">税込・買い切り</span>
+        </div>
+        <ul class="checks">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>すべての機能が使える</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>購入から30日以内なら、理由を問わず全額返金</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>1つのライセンスで、あなたが使うすべての Mac に</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>バージョン 1.x のアップデートはすべて無料</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>月額の支払いはなし。アカウント登録も不要</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>ライセンスキーは Mac の中で確認。台数の登録や解除の手続きはなし</li>
+        </ul>
+        <div class="cta">
+          <!-- 購入のページ（buy.html）。アプリの「購入する」（Config/Nonet.xcconfig の NONET_PURCHASE_URL）も同じページを開く -->
+          <a class="btn" href="buy.html">購入する</a>
+          <a class="btn btn-secondary" href="thanks.html">無料で試す</a>
+        </div>
+        <p class="fine">お支払い・領収書・税の計算は、販売代理店（Merchant of Record）の Paddle が行います。購入後、ライセンスキーをメールでお届けします。</p>
+        <ul class="price-links fine">
+          <li><a href="terms.html">利用規約</a></li>
+          <li><a href="terms.html#refunds">返金について</a></li>
+          <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="faq-title">よくある質問</h2>
+      </div>
+      <div class="faq">
+        <details id="faq-refund">
+          <summary>返金できますか？</summary>
+          <div class="answer">
+            <p>できます。購入から30日以内なら、理由を問わず全額を返金します。注文番号を添えて<a href="mailto:support@astlog.dev">お問い合わせ</a>ください。返金の手続きは販売サービスを通じて行い、購入に使ったお支払い方法に戻ります（<a href="terms.html#refunds">利用規約</a>）。</p>
+          </div>
+        </details>
+        <details id="faq-macs">
+          <summary>何台の Mac で使えますか？</summary>
+          <div class="answer">
+            <p>1つのライセンスで、あなたが使うすべての Mac で使えます。家族や同僚が使うときは、1人に1つずつ必要です。</p>
+            <p>キーは Mac の中で確かめるので、台数の登録や解除の手続きはありません。新しい Mac では、同じライセンスキーを登録するだけです。</p>
+          </div>
+        </details>
+        <details id="faq-license-key">
+          <summary>ライセンスキーが見つからないときは？</summary>
+          <div class="answer">
+            <p>ライセンスキーは、購入のあとに、購入に使ったメールアドレスへお送りするメールに書いてあります。迷惑メールのフォルダも確かめてください。</p>
+            <p>見つからないときは、注文番号か購入に使ったメールアドレスを添えて<a href="mailto:support@astlog.dev">お問い合わせ</a>ください。もう一度お送りします。</p>
+          </div>
+        </details>
+        <details id="faq-updates">
+          <summary>アップデートは無料ですか？</summary>
+          <div class="answer">
+            <p>バージョン 1 のあいだのアップデート（1.x）は、すべて無料です。新しい版は Nonet が自動で確かめ、メニューから入れられます。</p>
+          </div>
+        </details>
+        <details id="faq-macos-updates">
+          <summary>macOS のアップデートで使えなくなることはありますか？</summary>
+          <div class="answer">
+            <p>指の位置を読む仕組みが公開されていないため、macOS の大きなアップデートで動かなくなる可能性はあります。新しい macOS はベータ版のうちから確かめ、直したものを無料のアップデートでお届けします。直せないまま使えない状態が続くときは、購入からの日数にかかわらず返金します。</p>
+            <!-- リリースのたびに、実際に確かめた macOS の版をここに並べる（docs/release.md「確認済みの macOS」） -->
+            <p>確認済みの macOS: <span class="todo" data-placeholder="tested-macos">確かめた版をここに並べる</span></p>
+          </div>
+        </details>
+        <details id="faq-trial-end">
+          <summary>試用期間が終わるとどうなりますか？</summary>
+          <div class="answer">
+            <p>上の縁から指を滑らせても9マスが開かなくなり、画面の下に「試用期間が終了しました」と表示されます。設定はそのまま残るので、ライセンスキーを入れればすぐに元どおり使えます。</p>
+          </div>
+        </details>
+        <details id="faq-requirements">
+          <summary>動作環境は？</summary>
+          <div class="answer">
+            <p>macOS 14 Sonoma 以降と、マルチタッチのトラックパッド（MacBook の内蔵トラックパッド、または Magic Trackpad）が必要です。Apple シリコンと Intel のどちらの Mac でも動きます。</p>
+            <p>AI のアクションは、macOS 26 以降で Apple Intelligence が使える Mac だけで動きます。</p>
+          </div>
+        </details>
+        <details id="faq-mouse">
+          <summary>マウスだけの Mac でも使えますか？</summary>
+          <div class="answer">
+            <p>使えません。トラックパッドの上の縁から指を滑らせて開き、ポインタをアイコンへ向けてマスを選ぶので、トラックパッドが必要です。Mac mini や Mac Studio でも、Magic Trackpad をつなげば使えます。</p>
+          </div>
+        </details>
+        <details id="faq-permissions">
+          <summary>どんな権限が必要ですか？</summary>
+          <div class="answer">
+            <p>「アクセシビリティ」の許可が必要です（システム設定 › プライバシーとセキュリティ）。9マスが開いている間にクリックやスクロールを前面のアプリに届けないこと（ポインタは動きます）、開いている間にキーが押されたら閉じること、アクションでのキー入力の送出・メニュー項目の操作・選択中のテキストの読み取りに使います。指の位置を読むのに許可は要りません。</p>
+            <p>スクリプトでブラウザの URL（NONET_BROWSER_URL）を使うときと、「ファイル」のアクションで Finder に選んだファイルを頼むときだけ、macOS が初回に「オートメーション」の確認を出します。ターミナルで実行するときは出ません。スクリーンショットのマスは macOS のスクリーンショットのキーを送るだけなので、「画面収録」の許可は要りません。</p>
+          </div>
+        </details>
+        <details id="faq-privacy">
+          <summary>入力した内容や使い方が送られることはありますか？</summary>
+          <div class="answer">
+            <p>ありません。キーボードを見るのは9マスが開いている間だけで、それもキーが押されたことに気づいて閉じるためです。キー入力の中身は記録も送信もしません。設定は Mac の中（<code>~/Library/Application Support/Nonet</code>）だけに保存し、アカウントもありません。ネットワークを使うのは、アップデートの確認と購入ページを開くときだけです。</p>
+            <p>詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+          </div>
+        </details>
+        <details id="faq-accidental">
+          <summary>ふだんトラックパッドを使っているときに、うっかり開きませんか？</summary>
+          <div class="answer">
+            <p>開くのは、1本の指をトラックパッドの上の縁に置いて、すっと下へ滑らせたときだけです。触れてから 0.6 秒たって動かし始めたとき、2本以上の指や手のひらが触れているとき、上の縁の外から入ってきた指、クリックしたままのドラッグでは開きません。奥の端の近くから下へポインタを動かすと開くことがあるので、ポインタは奥の端から離れたところで動かし始めてください。</p>
+            <p>使わないアプリは、Nonet のメニューの「このアプリでは使わない」で外せます。そのアプリでは、上の縁から滑らせてもトラックパッドはいつもどおりです。</p>
+          </div>
+        </details>
+        <details id="faq-cancel">
+          <summary>開いたあと、何も実行せずに閉じるには？</summary>
+          <div class="answer">
+            <p>ポインタをアイコンの輪の外まで動かして離します。輪の外に出るとアイコンが全部薄くなります。キーを押しても閉じます（キーはふだんどおり前面のアプリに届きます）。輪の外で離して閉じたときは、軽く2回振動します。</p>
+          </div>
+        </details>
+        <details id="faq-hold">
+          <summary>送信のような取り消せない操作を、うっかり実行しませんか？</summary>
+          <div class="answer">
+            <p>マスは、指を少し止めてから離したときだけ実行します。通り過ぎながら離しても実行しません。</p>
+            <p>送信や録音のように取り消せないマスは、マスの設定で「少し長く止めてから実行」にできます。指を0.45秒ほど止めて、HUD のマスの縁が一周してから離したときだけ実行します（一周するとトラックパッドが振動します）。</p>
+          </div>
+        </details>
+        <details id="faq-keyboard">
+          <summary>キーボードでの入力やショートカットの邪魔になりませんか？</summary>
+          <div class="answer">
+            <p>なりません。開くのはトラックパッドだけで、キーは使いません。Nonet がキーボードを見るのは9マスが開いている間だけで、そのときにキーを押すと何も実行せずに閉じ、キーはふだんどおりアプリに届きます。</p>
+            <p>マスに記録したショートカットは、JIS・US などの配列でも同じように届きます。</p>
+          </div>
+        </details>
+        <details id="faq-app-store">
+          <summary>Mac App Store で買えないのはなぜですか？</summary>
+          <div class="answer">
+            <p>ほかのアプリを使っている間も指の位置を読むために、macOS の公開されていない仕組みを使っています。App Store ではこれが認められないため、このサイトで直接販売しています。アプリは Apple の Developer ID で署名し、Apple の公証（ノータライズ）を受けています。</p>
+          </div>
+        </details>
+        <details id="faq-uninstall">
+          <summary>アンインストールするには？</summary>
+          <div class="answer">
+            <p>設定の「Nonet」のタブの「Nonet をアンインストール…」で、アプリと設定をゴミ箱に入れられます。そのあと、アクセシビリティの一覧から Nonet を外してください。ライセンスキーと試用の記録も消す方法は<a href="guide.html#uninstall">利用ガイドの「アンインストール」</a>にまとめています。</p>
+          </div>
+        </details>
+        <details id="faq-stream-deck">
+          <summary>Stream Deck とは何が違いますか？</summary>
+          <div class="answer">
+            <p>Stream Deck は、Elgato の液晶つきのキーが並んだ専用のデバイスです。Nonet はソフトウェアで、MacBook のトラックパッドをボタンとして使います。追加の機器は要りませんが、押した感触のあるキーやキーごとの画面はなく、上の縁から指を滑らせて開いたときだけボタンになります。</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section maker" aria-labelledby="maker-title">
+    <div class="wrap">
+      <div class="maker-inner">
+        <h2 id="maker-title">作っている人</h2>
+        <p>Nonet は Takanari Okazaki が1人で作っている Mac アプリです。お問い合わせには本人が、通常2営業日以内にお返事します。</p>
+        <p><a href="https://astlog.dev" rel="author">これまでに作ったもの（astlog.dev）</a> ・ <a href="mailto:support@astlog.dev">お問い合わせ</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section closing" aria-labelledby="closing-title">
+    <div class="wrap">
+      <h2 id="closing-title">トラックパッドに、9つのボタンを。</h2>
+      <p class="fine">14日間、すべての機能を無料で試せます。購入から30日以内なら全額返金します。</p>
+      <div class="cta">
+        <a class="btn" href="thanks.html">14日間無料で試す</a>
+        <a class="btn btn-secondary" href="buy.html">購入する</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">利用ガイド</a></li>
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+        <li><a href="terms.html">利用規約</a></li>
+        <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="mailto:support@astlog.dev">お問い合わせ</a></li>
+        <li><a href="en/" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Stream Deck は Corsair Memory, Inc. の商標です。Nonet は Elgato および Corsair とは関係がなく、両社から承認や支援を受けたものではありません。</p>
+      <p>Apple、Mac、MacBook、macOS、Magic Trackpad、Force Touch、Apple Intelligence、Launchpad、Xcode、Safari は Apple Inc. の商標です。そのほかの製品名は各社の商標です。</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

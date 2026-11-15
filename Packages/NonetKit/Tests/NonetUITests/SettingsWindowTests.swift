@@ -1,0 +1,205 @@
+// 担当: ui-settings
+// ウィンドウの組み立て（画面には出さない）
+import AppKit
+import NonetCore
+@testable import NonetUI
+import Testing
+
+@Suite @MainActor struct SettingsWindowTests {
+    private func makeController(_ h: SettingsHarness) -> SettingsWindowController {
+        let controller = SettingsWindowController(
+            controller: h.controller,
+            license: h.license,
+            services: h.services,
+            links: AppLinks(),
+            onCheckForUpdates: nil
+        )
+        controller.autosavesFrame = false
+        return controller
+    }
+
+    @Test func buildsOneReusableWindowWithTabs() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        #expect(controller.loadWindow() === window)
+        #expect(!window.isReleasedWhenClosed)
+        #expect(window.styleMask.contains([.titled, .closable, .miniaturizable, .resizable]))
+        #expect(window.contentMinSize.width >= 860)
+        #expect(window.contentMinSize.height >= 560)
+        #expect(!window.isVisible)
+        let toolbar = try #require(window.toolbar)
+        #expect(toolbar.items.map(\.label) == [L10n.ui("プロファイル"), L10n.ui("一般"), "Nonet"])
+        #expect(window.delegate != nil)
+        #expect(controller.model.files != nil)
+    }
+
+    /// 前に開いていた操作スペース（フルスクリーンのアプリの外）へ移らず、今の操作スペースに出す
+    @Test func theWindowOpensOnTheCurrentSpace() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let window = makeController(h).loadWindow()
+        #expect(window.collectionBehavior.contains(.moveToActiveSpace))
+        #expect(window.collectionBehavior.contains(.fullScreenAuxiliary))
+    }
+
+    /// 編集 › 取り消す（⌘Z）はウィンドウの undoManager に届く。マスの変更を元に戻せるよう、設定の undoManager を返す
+    /// 終了ではウィンドウが閉じないので、AppDelegate が stop() の前に打ちかけの欄と記録中のキーを確定させ、一緒に書く
+    @Test func quittingCommitsTypingAndRecordingBeforeTheLastSave() throws {
+        let h = try SettingsHarness()
+        let window = makeController(h)
+        let model = window.model
+        model.createCell(kind: .shortcut, at: 1)
+        let shortcutID = try #require(model.selectedCell?.id)
+        let buffer = SettingsDraftBuffer(value: "", delay: .seconds(60)) { name in
+            model.updateAction(ofCell: shortcutID, as: ShortcutAction.self) { $0.name = name }
+        }
+        buffer.registry = model.pendingEdits
+        buffer.edit("翻訳")
+        model.createCell(kind: .keystroke, at: 3)
+        let keystrokeID = try #require(model.selectedCell?.id)
+        model.beginRecording(cellID: keystrokeID)
+        model.handleKeyDown(keyCode: 0x0B, characters: "b", flags: .command)
+
+        // AppDelegate.applicationWillTerminate と同じ順
+        window.commitPendingEdits()
+        h.controller.stop()
+        let saved = try #require(try h.store.load())
+        #expect(saved.globalProfile.pages[0].cells[1]?.action == .shortcut(ShortcutAction(name: "翻訳")))
+        #expect(saved.globalProfile.pages[0].cells[3]?.action == .keystroke(.key("b", .command)))
+        #expect(!h.controller.isRecordingKeys)
+    }
+
+    @Test func undoGoesThroughTheSettingsUndoManager() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        #expect(window.undoManager === controller.model.undoManager)
+        // 中身（SwiftUI）の欄も、応答の連なりで同じものに届く
+        #expect(window.contentView?.undoManager === controller.model.undoManager)
+    }
+
+    /// 編集メニューの「取り消す」（宛先なしの undo:）は、ウィンドウからマスの変更の取り消しに届く
+    @Test func theWindowsUndoActionUndoesCellChanges() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.model.undoManager.groupsByEvent = false
+        let safari = try #require(controller.model.selectedCell)
+        controller.model.clearCell(at: 0)
+        #expect(window.tryToPerform(Selector(("undo:")), with: nil))
+        #expect(controller.model.selectedCell == safari)
+        #expect(window.tryToPerform(Selector(("redo:")), with: nil))
+        #expect(controller.model.selectedCell == nil)
+    }
+
+    /// ほかのタブで元に戻すとプロファイルのタブに移る。ウィンドウの題名とツールバーの選択も合わせる
+    @Test func undoingFromAnotherTabSelectsTheProfilesTab() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.model.undoManager.groupsByEvent = false
+        controller.model.clearCell(at: 0)
+        controller.select(.general)
+        #expect(window.title == L10n.ui("一般"))
+        controller.model.undoManager.undo()
+        #expect(controller.model.tab == .profiles)
+        #expect(window.title == L10n.ui("プロファイル"))
+        #expect(window.toolbar?.selectedItemIdentifier == SettingsWindowCoordinator.identifier(for: .profiles))
+    }
+
+    @Test func selectingATabUpdatesTitleAndToolbar() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.select(.license)
+        #expect(controller.model.tab == .license)
+        #expect(window.title == "Nonet")
+        #expect(window.toolbar?.selectedItemIdentifier == SettingsWindowCoordinator.identifier(for: .license))
+        controller.select(.general)
+        #expect(window.title == L10n.ui("一般"))
+    }
+
+    @Test func closingTheWindowStopsKeyRecording() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        let window = controller.loadWindow()
+        controller.model.createCell(kind: .keystroke, at: 1)
+        let id = try #require(controller.model.selectedCell?.id)
+        controller.model.beginRecording(cellID: id)
+        #expect(h.controller.isRecordingKeys)
+        window.delegate?.windowWillClose?(Notification(name: NSWindow.willCloseNotification, object: window))
+        #expect(!h.controller.isRecordingKeys)
+    }
+
+    /// 閉じたら、ほかに Nonet のウィンドウが無ければ前面を前のアプリに返す（キーのウィンドウが無いまま Nonet を前面に残さない）
+    @Test func closingTheWindowHandsBackActivation() throws {
+        _ = NSApplication.shared
+        let h = try SettingsHarness()
+        let controller = makeController(h)
+        var handBacks = 0
+        controller.handBackActivation = { handBacks += 1 }
+        let window = controller.loadWindow()
+        window.close()
+        #expect(handBacks == 1)
+    }
+}
+
+/// 利用ガイドとプライバシーポリシーは、画面が英語ならサイトの en/ の下のページを開く
+@Suite struct SettingsLinksTests {
+    static let site = "https://nonet.astlog.dev"
+
+    @Test(arguments: [
+        ("https://nonet.astlog.dev/guide.html", "https://nonet.astlog.dev/en/guide.html"),
+        ("https://nonet.astlog.dev/privacy.html", "https://nonet.astlog.dev/en/privacy.html"),
+        ("https://nonet.astlog.dev/guide.html?from=app#scripts", "https://nonet.astlog.dev/en/guide.html?from=app#scripts"),
+        ("https://nonet.astlog.dev/guide/", "https://nonet.astlog.dev/en/guide/"),
+        ("https://nonet.astlog.dev/", "https://nonet.astlog.dev/en/"),
+        ("https://nonet.astlog.dev", "https://nonet.astlog.dev/en/"),
+        ("https://nonet.astlog.dev/docs/guide.html", "https://nonet.astlog.dev/docs/en/guide.html"),
+        // すでに英語のページ
+        ("https://nonet.astlog.dev/en/guide.html", "https://nonet.astlog.dev/en/guide.html"),
+        ("https://nonet.astlog.dev/en/", "https://nonet.astlog.dev/en/"),
+        // サイトのページでないもの
+        ("mailto:support@example.com", "mailto:support@example.com"),
+    ])
+    func englishPages(url: String, expected: String) {
+        #expect(Self.page(url, language: "en") == expected)
+    }
+
+    @Test func otherLanguagesKeepThePage() {
+        let guide = "\(Self.site)/guide.html"
+        #expect(Self.page(guide, language: "ja") == guide)
+        #expect(Self.page(guide, language: nil) == guide)
+        #expect(Self.page(guide, language: "en-GB") == "\(Self.site)/en/guide.html")
+    }
+
+    @Test func onlyTheGuideAndPrivacyPolicyChange() throws {
+        let links = AppLinks(
+            purchase: URL(string: "https://store.example.com/nonet"),
+            support: URL(string: "\(Self.site)/guide.html"),
+            privacy: URL(string: "\(Self.site)/privacy.html")
+        )
+        let english = links.localized(language: "en")
+        // 販売サービスのページ（ほかのホスト）はそのまま
+        #expect(english.purchase == links.purchase)
+        // 同じサイトの購入ページは、英語のページにする（日本語のページは円の税込の価格）
+        let ownBuyPage = AppLinks(purchase: URL(string: "\(Self.site)/buy.html"), support: URL(string: "\(Self.site)/guide.html"))
+        #expect(ownBuyPage.localized(language: "en").purchase == URL(string: "\(Self.site)/en/buy.html"))
+        #expect(ownBuyPage.localized(language: "ja").purchase == URL(string: "\(Self.site)/buy.html"))
+        #expect(english.support == URL(string: "\(Self.site)/en/guide.html"))
+        #expect(english.privacy == URL(string: "\(Self.site)/en/privacy.html"))
+        #expect(links.localized(language: "ja") == links)
+        #expect(AppLinks().localized(language: "en") == AppLinks())
+    }
+
+    static func page(_ url: String, language: String?) -> String? {
+        URL(string: url).map { AppLinks.page($0, language: language).absoluteString }
+    }
+}

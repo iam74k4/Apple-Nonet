@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "ja",
+  "strings" : {
+    "NSAppleEventsUsageDescription" : {
+      "comment" : "Privacy - AppleEvents Sending Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet asks your browser for the URL of the current page to pass it to your script, and asks Finder which files you've selected so it can rename, duplicate or move them to the Trash."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

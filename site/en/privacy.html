@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Nonet</title>
+<meta name="description" content="Nonet's privacy policy. Nonet collects no information and keeps settings on your Mac. It uses the network only to check for updates and to open the purchase page.">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://nonet.astlog.dev/en/privacy.html">
+<link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/privacy.html">
+<link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/privacy.html">
+<link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/privacy.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Nonet">
+<meta property="og:title" content="Privacy Policy — Nonet">
+<meta property="og:url" content="https://nonet.astlog.dev/en/privacy.html">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://nonet.astlog.dev/images/og-en.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="lang-bar" data-lang-bar lang="ja" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>日本語のページもあります。<a href="../privacy.html" hreflang="ja">日本語で読む →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="閉じる">×</button>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="../privacy.html" hreflang="ja" lang="ja">日本語</a>
+    </div>
+  </div>
+</header>
+
+<!-- The source of truth is docs/privacy.md. Update ../privacy.html too and keep the dates in sync -->
+<main id="main" class="doc">
+  <div class="wrap">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: November 11, 2026</p>
+
+    <p>Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.</p>
+
+    <h2>1. What we do not collect</h2>
+    <ul>
+      <li>The app contains no analytics, telemetry, crash-report uploads or advertising.</li>
+      <li>There is no account. The app never sends your information to our servers.</li>
+    </ul>
+
+    <h2>2. What stays on your Mac</h2>
+    <ul>
+      <li><strong>Settings</strong> (profiles, buttons, actions and preferences) are stored in <code>~/Library/Application Support/Nonet/configuration.json</code>. Each save keeps the previous version as <code>configuration.backup.json</code> in the same folder. If a settings file cannot be read, the app keeps it in the same folder, renamed <code>configuration.corrupt-&lt;date-time&gt;.json</code>, instead of overwriting it. If it can be read but saving would lose something in it (such as a kind of button or a setting this version does not know), the app keeps a copy of the original file as <code>configuration.lossy-&lt;date-time&gt;.json</code>; for a file written by another version of the app, it keeps a copy as <code>configuration.v&lt;number&gt;.json</code> (the number is the version of the file format), in the same folder. These files hold the same information as your settings (including any scripts), and the app never deletes them, so they stay until you delete the <code>~/Library/Application Support/Nonet/</code> folder. While you change your settings (at most once an hour) and before you delete a profile or a page, import profiles and similar changes, the app also saves a copy of your settings in <code>~/Library/Application Support/Nonet/Backups/</code> and keeps the newest 10 (used by “Restore an Earlier Version…”).</li>
+      <li><strong>Trial records</strong> (the start date, the last check time and how much time has passed since the trial started) are stored in the app's preferences (<code>~/Library/Preferences/com.iam74k4.Nonet.plist</code>) and in <code>~/Library/Application Support/Nonet/</code>. The release version also stores them as an item in your login keychain (<code>com.iam74k4.Nonet.license.trial</code>), and copies the same record to a second item named with a hash (64 hexadecimal digits) made from this Mac's identifier (IOPlatformUUID) and the app's ID. The identifier itself is never stored or sent. If no trial record is left anywhere, the app uses the creation dates of the folders <code>~/Library/Application Support/Nonet/Backups/</code> and <code>~/Library/Caches/com.iam74k4.Nonet/</code> in place of the trial start date (it only reads these dates). All of this is used only to count the trial period correctly. The keychain items are not synced with iCloud Keychain.</li>
+      <li><strong>License key</strong> is stored in the app's preferences. A license key contains the name and email address used for the purchase.</li>
+      <li><strong>Other preferences</strong>: the position and size of the settings window, the update-check settings and last check time (Sparkle), the dates the app last reminded you about the trial, and whether you chose not to see the permission reminder at launch (“Don't show again”) are stored in the app's preferences.</li>
+      <li><strong>Temporary files</strong>: when a script runs in Terminal, the app writes the script and the information passed to it (such as the selected text) to a temporary file (<code>nonet-….command</code>) in your Mac's temporary folder (<code>$TMPDIR/Nonet/Terminal/</code>). When a shortcut is set to receive the selected text, the app writes that text to a temporary file (<code>input-….txt</code>) in <code>$TMPDIR/Nonet/Shortcuts/</code>. Only you can read these files. The Terminal file is deleted when the script starts; if it is never opened, the app deletes it after 5 minutes or the next time the app opens. The shortcut file is deleted when the shortcut finishes. When the app quits, it creates an empty marker file (<code>Nonet-quitting-&lt;number&gt;</code>) in your Mac's temporary folder, so that a copy of the app opened right afterwards knows to wait.</li>
+    </ul>
+    <p>When it creates your first settings, the app reads the list of apps in your Dock and uses it to order the launcher. Each time it opens, the app runs zsh once as a login shell (including <code>~/.zshrc</code>) to find your <code>PATH</code> and whether the <code>claude</code> command exists, so that scripts run as they do in Terminal. Both are used only in memory or in your settings.</p>
+    <p>None of this leaves your Mac. Deleting these files and the two keychain items (<code>com.iam74k4.Nonet.license.trial</code> and the one named with 64 hexadecimal digits, with Keychain Access) when you uninstall the app removes them completely (see the <a href="guide.html#uninstall">user guide</a>). “Uninstall Nonet…” on the Nonet tab of Settings moves the app, its settings folder and its caches to the Trash, but keeps your license key and trial records (in the preferences and the keychain), so the app works again without registering if you reinstall it.</p>
+    <p>When you use “Contact Support…” in the app, the email it creates contains only the versions of the app and macOS, your Mac model and your keyboard type. You decide whether to send it. It never includes your license key or your settings.</p>
+
+    <h2>3. How the Accessibility permission is used</h2>
+    <p>The app uses the macOS Accessibility permission only to:</p>
+    <ul>
+      <li>Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.</li>
+      <li>Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.</li>
+      <li>Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.</li>
+      <li>Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.</li>
+      <li>Read the menus of running apps in the settings window.</li>
+      <li>Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable <code>NONET_SELECTED_TEXT</code>. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.</li>
+    </ul>
+    <p>When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked <code>org.nspasteboard.ConcealedType</code>). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.</p>
+    <p>Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge). They are never stored or sent.</p>
+
+    <h2>4. Automation (Apple Events)</h2>
+    <p>The app sends Apple Events to other apps in only two cases. macOS asks for your permission to control that app the first time.</p>
+    <ul>
+      <li>When a script contains the variable <code>NONET_BROWSER_URL</code> and the front app is a supported browser (Safari, Google Chrome, Arc, Microsoft Edge or Brave), the app asks that browser for the URL of the page it shows, just before the script runs. The URL is passed only to that script and is never stored or sent.</li>
+      <li>When a File action runs and the front app is Finder, the app asks Finder for the location of the files you have selected, and asks Finder to do what you configured (move to the Trash or duplicate; for rename, it sends the Return key to start Finder's rename). It reads only the location (name and folder) of each file, never what is inside it. The locations are used only for that operation and are never stored or sent. Moving to the Trash never deletes files for good.</li>
+    </ul>
+    <p>Running a script in Terminal does not use Apple Events; the app only opens a temporary file in Terminal.</p>
+
+    <h2>5. Actions you configure</h2>
+    <p>Actions you configure, such as scripts, shortcuts and URLs, run on your Mac with your privileges. What information they handle and where they send it depends on what they do.</p>
+    <p>When you import profiles, the app first lists any Script, Keystrokes, Menu Item and AI buttons, any File buttons that move to the Trash, rename or duplicate the files selected in Finder, and any buttons that open a file on your Mac, together with everything they do (every line of the script, the keys, the menu item and its keyboard shortcut, the AI prompt and output, the file operation, or the location of the file), and asks you to confirm. Buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (such as curl, <code>| sh</code> and rm -rf) are highlighted, and you can't import until you scroll to the end. Check profiles you receive from someone else, and import them only if you trust them.</p>
+    <p>AI actions use Apple's Foundation Models framework and are processed by the on-device language model. The app never sends your selected text anywhere. To replace the selected text with the result, the app puts the result on the clipboard for a moment, pastes it with ⌘V and then restores the clipboard. It marks the result <code>org.nspasteboard.TransientType</code> so that clipboard history apps do not keep it.</p>
+
+    <h2>6. Network</h2>
+    <p>The app uses the network only:</p>
+    <ul>
+      <li><strong>To check for updates</strong>: using the open-source Sparkle framework, it periodically fetches update information and new versions from our distribution server over HTTPS. The server receives the information that comes with any connection, such as your IP address and a User-Agent that includes the app and macOS versions. Sparkle's system profiling is not used. The distribution server (Cloudflare) keeps a record of these requests, including that information, for up to 7 days to troubleshoot problems (see “8. Website”).</li>
+      <li><strong>To open the purchase page</strong>: choosing "Buy Nonet" opens the purchase page in your default browser. The purchase is governed by the store's privacy policy.</li>
+    </ul>
+    <p>When you choose a page of the website, such as the user guide or this privacy policy, it opens in your default browser (see “8. Website”).</p>
+    <p>License keys are verified on your Mac without using the network. Refunded licenses and keys that were made public are checked against a list of deactivated licenses (SHA-256 hashes of license IDs) built into the app and updated with new versions, so this check doesn't use the network either. Opening the link in your purchase email (<code>nonet://register</code>) or a <code>.nonetlicense</code> file only passes the key to the app and doesn't use the network.</p>
+
+    <h2>7. Purchase information</h2>
+    <p>The store handles checkout and payment; we never receive your card details. To issue license keys and provide support, we receive the buyer's name, email address and order details from the store. We use them only to issue and reissue license keys, answer your questions and keep records required by law. We never sell them or use them for advertising.</p>
+    <p>Purchase records are kept for the period the law requires and then deleted. To see, correct or delete your information, contact us. Information held by the store is handled under the <a href="https://www.paddle.com/legal/privacy">privacy policy</a> of the store (Paddle).</p>
+
+    <h2>8. Website</h2>
+    <p>The website uses no cookies, analytics, or external fonts. The only page that loads an external script is the purchase page below. The website and the app's updates are served by Cloudflare. Requests for the home page, updates and downloads are logged, with the time, URL, IP address, User-Agent and approximate location, and kept for up to 7 days (Cloudflare Workers Logs), only to troubleshoot problems. Cloudflare may also keep standard access logs.</p>
+    <p>The purchase page (the page that opens when you choose Buy) loads a script from the store (Paddle) to open the checkout. Information you enter in the checkout, and information handled by Paddle's script and checkout (including cookies), is handled under Paddle's <a href="https://www.paddle.com/legal/privacy">privacy policy</a>.</p>
+    <p>If you close the language suggestion (such as “日本語のページもあります”), the site remembers only that you closed it, in your browser's localStorage, so it doesn't show again. This stays in your browser and is never sent anywhere.</p>
+
+    <h2>9. Changes</h2>
+    <p>When this policy changes, we update this page and its "Last updated" date.</p>
+
+    <h2>10. Contact</h2>
+    <p>Takanari Okazaki (<a href="mailto:support@astlog.dev">support@astlog.dev</a>)</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">User guide</a></li>
+        <li><a href="privacy.html" aria-current="page">Privacy policy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="mailto:support@astlog.dev">Contact</a></li>
+        <li><a href="../privacy.html" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

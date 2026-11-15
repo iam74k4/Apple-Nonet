@@ -1,0 +1,34 @@
+{
+  "hud": "shots-xcode/round1-1-HUDOverlayPanel.png",
+  "hudScale": 1.7,
+  "pointer": [
+    174,
+    174
+  ],
+  "eyebrow": "Mac のトラックパッド・マクロパッド",
+  "headline": [
+    "トラックパッドが、",
+    "9つのボタンになる。"
+  ],
+  "description": [
+    "上の縁から指を滑らせると、ポインタの周りに",
+    "9つのアイコン。向けて離せば実行。"
+  ],
+  "bullets": [
+    {
+      "symbol": "arrow.down.to.line",
+      "text": "上の縁から滑らせて開く",
+      "tag": "上の縁"
+    },
+    {
+      "symbol": "checkmark.circle",
+      "text": "アイコンに向けて離すと実行",
+      "tag": "アイコン"
+    },
+    {
+      "symbol": "xmark",
+      "text": "輪の外で離すとやめる",
+      "tag": "輪の外"
+    }
+  ]
+}

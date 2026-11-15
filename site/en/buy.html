@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buy — Nonet</title>
+<meta name="description" content="Buy a Nonet license. This page opens the checkout of Paddle, the merchant of record.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<!-- The purchase page. The Buy buttons on the English site open it. See ../buy.html for how it works.
+     The token and price ID are the same as in ../buy.html -->
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer></script>
+<script src="../buy.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="../buy.html" hreflang="ja" lang="ja">日本語</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="thanks">
+  <div class="wrap">
+    <div class="thanks-head" data-checkout
+         data-paddle-token="live_7a8afb13d7cade5a8ac64e3f590"
+         data-paddle-price="pri_01m7eed1e4msh3ebqy6qavp81p"
+         data-text-unavailable="Purchases are not open yet. Please try again later."
+         data-text-blocked="The checkout (Paddle) could not be loaded. Pause any ad or tracker blocking extension, or try another browser."
+         data-text-closed="You closed the checkout. To buy, open it again with the button below."
+         data-text-error="The checkout could not be opened. Wait a moment and try again with the button below. If it keeps happening, contact us."
+         data-text-completed="Thank you for your purchase. Paddle sends your receipt, and the developer sends your license key, to the email address you used at checkout.">
+      <h1>Buy Nonet</h1>
+      <p data-checkout-status role="status">Opening the checkout (Paddle).</p>
+      <noscript><p>To open the checkout, turn on JavaScript.</p></noscript>
+      <p><button class="btn" type="button" data-checkout-open hidden>Open the checkout</button></p>
+    </div>
+
+    <div class="thanks-after">
+      <p>Nonet license (one-time purchase): $9.99. Any sales tax or VAT is shown at checkout. One license covers every Mac you use, and all 1.x updates are free.</p>
+      <p>Payment, receipts and sales tax are handled by Paddle, the merchant of record. Full refund within 30 days of purchase, no questions asked.</p>
+      <p>Before you buy, the 14-day free trial lets you check that Nonet works on your Mac (<a href="thanks.html">download</a>).</p>
+      <ul class="price-links fine">
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="terms.html#refunds">Refunds</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="privacy.html">Privacy policy</a></li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">User guide</a></li>
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="mailto:support@astlog.dev">Contact</a></li>
+        <li><a href="../buy.html" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonet — Your trackpad, as nine buttons for every app</title>
+<meta name="description" content="Slide a finger down from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. Choose on an overlay of all nine and lift to run. 14-day free trial, one-time purchase, full refund within 30 days.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://nonet.astlog.dev/en/">
+<link rel="alternate" hreflang="ja" href="https://nonet.astlog.dev/">
+<link rel="alternate" hreflang="en" href="https://nonet.astlog.dev/en/">
+<link rel="alternate" hreflang="x-default" href="https://nonet.astlog.dev/en/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Nonet">
+<meta property="og:title" content="Nonet — Your trackpad becomes nine buttons">
+<meta property="og:description" content="Slide a finger down from the top edge and your trackpad becomes nine buttons that change with every app. No extra hardware, no shortcuts to memorize.">
+<meta property="og:url" content="https://nonet.astlog.dev/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="ja_JP">
+<meta property="og:image" content="https://nonet.astlog.dev/images/og-en.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The headline “Your trackpad becomes nine buttons.” next to an illustration of Nonet’s overlay of nine buttons over Xcode">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<script src="../script.js" defer></script>
+<!-- For search engines (a data block that never runs, so the CSP script-src does not apply).
+     Keep the offers price in step with the price below and ../index.html (JPY) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nonet",
+  "url": "https://nonet.astlog.dev/en/",
+  "inLanguage": "en",
+  "description": "Slide a finger down from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS 14 or later",
+  "softwareRequirements": "A multi-touch trackpad (the built-in trackpad of a MacBook or a Magic Trackpad)",
+  "image": "https://nonet.astlog.dev/images/og-en.png",
+  "downloadUrl": "https://nonet.astlog.dev/download",
+  "author": { "@type": "Person", "name": "Takanari Okazaki", "url": "https://astlog.dev" },
+  "offers": { "@type": "Offer", "price": "9.99", "priceCurrency": "USD" }
+}
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M8 12l3 3 5-6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M11 18h2"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 5h16v14H4z M7 9l3 3-3 3 M12 15h5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5L18 18 M18 6l-2.5 2.5 M8.5 15.5L6 18"/></symbol>
+  <symbol id="i-commit" viewBox="0 0 24 24"><path d="M3 12h6 M15 12h6 M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2 M15 10V6a3 3 0 0 0-6 0 M5 11a7 7 0 0 0 11.5 5.4 M19 11a7 7 0 0 1-.6 2.8 M12 18v3 M4 4l16 16"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8V5h3 M17 5h3v3 M20 16v3h-3 M7 19H4v-3 M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></symbol>
+  <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M14 4l6 6-2 2-6-6z M12 8l-8 8 2 2 8-8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M4 15l8-8 7 7-5 5H9z M9 19h11"/></symbol>
+  <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="lang-bar" data-lang-bar lang="ja" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>日本語のページもあります。<a href="../" hreflang="ja">日本語で読む →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="閉じる">×</button>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="guide.html">User guide</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="lang-link" href="../" hreflang="ja" lang="ja">日本語</a>
+      <a class="btn btn-small" href="thanks.html">Download</a>
+      <details class="menu" data-menu>
+        <summary>Menu</summary>
+        <nav class="menu-panel" aria-label="Site (menu)">
+          <ul>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="guide.html">User guide</a></li>
+            <li><a href="../" hreflang="ja" lang="ja">日本語</a></li>
+          </ul>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Trackpad macro pad for Mac</p>
+        <h1>Your trackpad becomes nine buttons.</h1>
+        <p class="lead">Slide a finger down from the top edge and your MacBook trackpad turns into nine buttons that change with the app you are using. No key to hold: choose with one finger and lift to run. No extra device like a Stream Deck, and no shortcuts to memorize.</p>
+        <div class="cta">
+          <a class="btn" href="thanks.html">Try free for 14 days</a>
+          <a class="btn btn-secondary" href="#how">See how it works</a>
+        </div>
+        <div class="fine-list">
+          <p class="fine">No card or email needed for the trial · One-time purchase · Full refund within 30 days</p>
+          <p class="fine">macOS 14 or later · Requires a multi-touch trackpad</p>
+        </div>
+        <div class="not-mac" data-not-mac hidden>
+          <p>Nonet is a Mac app. Open nonet.astlog.dev on your Mac to download it.</p>
+          <button class="btn btn-secondary btn-small" type="button" data-share data-share-url="https://nonet.astlog.dev/en/" data-label-share="Share Link" data-label-copied="Link copied">Copy Link</button>
+          <p class="fine share-status" data-share-status role="status"></p>
+        </div>
+      </div>
+
+      <figure class="demo" data-demo
+        data-caption-run="Slide a finger down from the top edge and nine icons open around the pointer. Point at one and lift to run it."
+        data-caption-cancel="To cancel, move outside the ring of icons and lift. Nothing runs."
+        data-label-pause="Pause animation"
+        data-label-play="Play animation">
+        <div class="demo-stage" aria-hidden="true">
+          <div class="screen">
+            <div class="menubar"><b>Xcode</b><svg class="logo"><use href="#i-logo"/></svg></div>
+            <div class="hud">
+              <div class="cell slot-7" data-cell data-label="Build"><svg class="icon"><use href="#i-hammer"/></svg></div>
+              <div class="cell slot-0" data-cell data-label="Run"><svg class="icon"><use href="#i-play"/></svg></div>
+              <div class="cell slot-1" data-cell data-label="Test"><svg class="icon"><use href="#i-check"/></svg></div>
+              <div class="cell slot-6" data-cell data-label="Simulator"><svg class="icon"><use href="#i-phone"/></svg></div>
+              <div class="cell slot-c" data-cell data-label="Open Quickly"><svg class="icon"><use href="#i-search"/></svg></div>
+              <div class="cell slot-2 on" data-cell data-label="Claude Code"><svg class="icon"><use href="#i-sparkle"/></svg></div>
+              <div class="cell slot-5" data-cell data-label="Stop"><svg class="icon"><use href="#i-stop"/></svg></div>
+              <div class="cell slot-4" data-cell data-label="Clean"><svg class="icon"><use href="#i-eraser"/></svg></div>
+              <div class="cell slot-3" data-cell data-label="Commit"><svg class="icon"><use href="#i-commit"/></svg></div>
+              <svg class="pointer" viewBox="0 0 12 19"><path d="M1 1v13.6l3.4-3.1 2.2 5.7 2.2-.9-2.2-5.4h4.3z"/></svg>
+              <span class="hud-label" data-hud-label>Claude Code</span>
+            </div>
+            <div class="toast"><svg class="icon"><use href="#i-check"/></svg><span data-toast-text>Commit</span></div>
+          </div>
+          <div class="trackpad">
+            <span class="trackpad-edge"></span>
+            <span class="trail"></span>
+            <span class="ripple"></span>
+            <span class="finger"></span>
+          </div>
+        </div>
+        <figcaption data-demo-caption>Slide a finger down from the top edge of the trackpad and nine icons open around the pointer: the HUD. Keep sliding to point at one and lift to run it.</figcaption>
+        <button class="demo-toggle" type="button" data-demo-toggle hidden>Pause animation</button>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="promises-title">
+    <div class="wrap">
+      <h2 id="promises-title" class="visually-hidden">Three promises</h2>
+      <ol class="promises">
+        <li>
+          <span class="num">01</span>
+          <h3>No extra hardware</h3>
+          <p>No extra device. The trackpad on your MacBook becomes the buttons.</p>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <h3>Nothing to memorize</h3>
+          <p>All nine icons appear around the pointer the moment you open them, so you choose by looking. Not sure? Lift outside the ring and nothing runs.</p>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <h3>Ready from the start</h3>
+          <p>Allow one permission and Nonet fills in nine buttons for the apps on your Mac. Add more by picking from the app's menus.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="how-title">Slide down from the top edge, lift on a button</h2>
+        <p>No key and no click. Put a finger on the top edge of the trackpad and slide it down to open nine icons around the pointer, keep sliding to point at one, and lift to run it. The direction from the center picks the button, matching the 3×3 grid in Settings.</p>
+      </div>
+      <div class="flows">
+        <div class="flow">
+          <h3>To run a button</h3>
+          <ol class="steps">
+            <li class="step"><b>Touch the top edge</b><span>With one finger</span></li>
+            <li class="step is-hud"><b>Slide down</b><span>Nine icons open around the pointer</span></li>
+            <li class="step"><b>Slide to point at one</b><span>A white disc appears under that icon</span></li>
+            <li class="step is-goal"><b>Lift on the icon</b><span>It runs</span></li>
+          </ol>
+        </div>
+        <div class="flow">
+          <h3>To cancel: nothing runs</h3>
+          <ol class="steps">
+            <li class="step"><b>Open from the top edge</b><span>Same as before</span></li>
+            <li class="step is-hud"><b>Move outside the ring</b><span>All the icons dim</span></li>
+            <li class="step is-goal"><b>Lift outside the ring</b><span>It closes without running anything</span></li>
+          </ol>
+        </div>
+      </div>
+      <ul class="notes">
+        <li>A move that starts more than 0.6 s after you touch, two fingers, a palm or a click-and-drag doesn't open it</li>
+        <li>While the buttons are open the pointer moves as usual, but clicks never reach the app</li>
+        <li>Pause on a button before you lift; lifting while you slide past doesn't run it</li>
+        <li>There is no visible line around the ring, but all the icons dim when you cross it</li>
+        <li>Press any key to close without running anything (the key still reaches your app)</li>
+        <li>Hold the pointer just outside the ring to the right or left for the page of nine on that side, or below it for the window-placement buttons and the launcher</li>
+        <li>Buttons you can't undo, like Send, can be set to Hold before running</li>
+        <li>In apps set to Turn Off in This App, nothing opens and the trackpad works as usual</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="features-title">Switch apps, and the nine buttons switch too</h2>
+        <p>The nine things you use most in whatever app is in front. Set it up with presets and by picking from menus.</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="ink" x="38" y="6" width="58" height="20" rx="10"/>
+            <text x="67" y="20" text-anchor="middle" class="label" style="fill: var(--bg)">Xcode</text>
+            <rect class="faint" x="101" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="130" y="20" text-anchor="middle" class="label-muted">Safari</text>
+            <rect class="faint" x="164" y="6.5" width="58" height="19" rx="9.5"/>
+            <text x="193" y="20" text-anchor="middle" class="label-muted">Zoom</text>
+            <circle class="ink" cx="130.0" cy="46.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="54.8" r="5"/>
+            <circle class="ring" cx="160.0" cy="76.0" r="11.0"/>
+            <circle class="ink" cx="160.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="151.2" cy="97.2" r="5"/>
+            <circle class="ink" cx="130.0" cy="106.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="97.2" r="5"/>
+            <circle class="ink" cx="100.0" cy="76.0" r="5"/>
+            <circle class="ink" cx="108.8" cy="54.8" r="5"/>
+            <circle class="ink" cx="130" cy="76" r="4.0"/>
+          </svg>
+          <h3>A profile for each app</h3>
+          <p>Build and test in Xcode, mute and share your screen in Zoom, duplicate or trash the selected files in Finder. The nine buttons follow the app in front, and popular apps come with a ready-made layout.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="10" y="8" width="138" height="104" rx="10"/>
+            <rect class="faint" x="20" y="17" width="118" height="18" rx="9"/>
+            <text x="32" y="30" class="label-muted">Search menus</text>
+            <text x="28" y="54" class="label-muted">Copy</text>
+            <rect class="ink" x="18" y="62" width="122" height="20" rx="5"/>
+            <text x="28" y="76" class="label" style="fill: var(--bg)">Add Auto Layout</text>
+            <text x="28" y="100" class="label-muted">Group Selection</text>
+            <rect class="panel" x="176" y="26" width="72" height="72" rx="9"/>
+            <rect class="tile" x="183" y="33" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="33" width="17" height="17" rx="4"/><rect class="tile" x="224" y="33" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="53.5" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="53.5" width="17" height="17" rx="4"/><rect class="tile-on" x="224" y="53.5" width="17" height="17" rx="4"/>
+            <rect class="tile" x="183" y="74" width="17" height="17" rx="4"/><rect class="tile" x="203.5" y="74" width="17" height="17" rx="4"/><rect class="tile" x="224" y="74" width="17" height="17" rx="4"/>
+            <path class="stroke" d="M146 72 C 172 72, 196 80, 226 64 M216 62 L226 64 L222 73"/>
+          </svg>
+          <h3>Pick from the menus</h3>
+          <p>Nonet reads the menus of a running app into a searchable list. Find the command and drag it onto an empty button. No need to look up shortcuts.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <circle class="ink" cx="116" cy="48" r="10"/>
+            <circle class="ink" cx="144" cy="48" r="10"/>
+            <path class="stroke" d="M168 82 L92 82 M102 74 L92 82 L102 90"/>
+            <circle class="ink" cx="118" cy="106" r="3"/>
+            <circle class="ring" cx="130" cy="106" r="2.5"/>
+            <circle class="ring" cx="142" cy="106" r="2.5"/>
+          </svg>
+          <h3>Three pages of nine, and a launcher</h3>
+          <p>Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages, with up to 27 buttons per app. The Global pages start with nine buttons that place the window on the screen, then a launcher filled with apps from your Mac, a handy stand-in for Launchpad.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="surface" x="1" y="1" width="258" height="118" rx="14"/>
+            <path class="dashed" d="M130 60 L178.0 40.1"/>
+            <circle class="ink" cx="130.0" cy="26.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="164.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="154.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="130.0" cy="94.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="84.0" r="4"/>
+            <circle class="ink" cx="96.0" cy="60.0" r="4"/>
+            <circle class="ink" cx="106.0" cy="36.0" r="4"/>
+            <circle class="ink" cx="130" cy="60" r="3.2"/>
+            <circle class="faint" cx="161.4" cy="47.0" r="20"/>
+            <circle class="ring" cx="161.4" cy="47.0" r="13"/>
+            <circle class="ink" cx="161.4" cy="47.0" r="6"/>
+          </svg>
+          <h3>A tick as you move along</h3>
+          <p>On Force Touch trackpads, you feel a light tick each time the pointer moves to another icon, so you can feel how far you have moved without looking. You can turn it off in Settings.</p>
+        </article>
+        <article class="feature">
+          <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+            <rect class="panel" x="10" y="8" width="240" height="104" rx="10"/>
+            <circle cx="24" cy="21" r="3.5" class="tile"/><circle cx="36" cy="21" r="3.5" class="tile"/><circle cx="48" cy="21" r="3.5" class="tile"/>
+            <text x="24" y="54" class="label-hud">$ cd $PROJECT_DIR &amp;&amp; claude</text>
+            <text x="24" y="78" class="label-hud" style="fill: var(--hud-fg)">$NONET_SELECTED_TEXT</text>
+            <text x="24" y="98" class="label-hud" style="fill: var(--hud-fg)">$NONET_BROWSER_URL</text>
+          </svg>
+          <h3>Scripts and AI</h3>
+          <p>zsh scripts receive the front app, the open document, its project folder and the selected text as environment variables. On macOS 26, summarize or rewrite selected text with Apple Intelligence, right on your Mac.</p>
+        </article>
+        <article class="feature">
+          <ul class="chips" aria-label="Action types">
+            <li>Keystrokes</li>
+            <li>Open an app or URL</li>
+            <li>Place on screen</li>
+            <li>Script</li>
+            <li>Shortcut</li>
+            <li>Menu item</li>
+            <li>AI</li>
+            <li>File</li>
+          </ul>
+          <h3>Eight kinds of actions</h3>
+          <p>Record a shortcut like ⌘B, or a sequence like ⌘L then ⌘C, just by pressing it. Recorded shortcuts work the same on JIS, US and other layouts, and you can run anything from the Shortcuts app. Put the front window in the left half of the screen or maximize it, and trash or duplicate the files selected in Finder.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="pricing" aria-labelledby="pricing-title">
+    <div class="wrap pricing">
+      <div class="section-head">
+        <h2 id="pricing-title">Pricing</h2>
+        <p>Use every feature free for 14 days, with no card or email needed. If you like it, buy it once. There is no subscription.</p>
+        <p>When the trial ends your settings stay put. Enter a license key and everything works again right away.</p>
+      </div>
+      <div class="price-card">
+        <p class="price-trial">14-day free trial</p>
+        <div class="price">
+          <!-- The price. When it changes, also change ../index.html and the offers in the JSON-LD in the head -->
+          <span class="price-amount">$9.99</span>
+          <span class="price-note">one-time purchase; any sales tax or VAT is shown at checkout</span>
+        </div>
+        <ul class="checks">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>Every feature included</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>Full refund within 30 days, no questions asked</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>One license covers every Mac you use</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>All 1.x updates are free</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>No monthly fee and no account</li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-tick"/></svg>License keys are checked on your Mac. Nothing to activate or deactivate</li>
+        </ul>
+        <div class="cta">
+          <!-- The purchase page (buy.html). The app's Buy button (NONET_PURCHASE_URL in Config/Nonet.xcconfig) opens ../buy.html -->
+          <a class="btn" href="buy.html">Buy Nonet</a>
+          <a class="btn btn-secondary" href="thanks.html">Try it free</a>
+        </div>
+        <p class="fine">Payment, receipts and sales tax are handled by Paddle, the merchant of record. Your license key arrives by email after purchase.</p>
+        <ul class="price-links fine">
+          <li><a href="terms.html">Terms</a></li>
+          <li><a href="terms.html#refunds">Refunds</a></li>
+          <li><a href="../tokushoho.html" hreflang="ja" lang="ja">特定商取引法に基づく表記</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="faq-title">FAQ</h2>
+      </div>
+      <div class="faq">
+        <details id="faq-refund">
+          <summary>Can I get a refund?</summary>
+          <div class="answer">
+            <p>Yes. Within 30 days of purchase, for any reason. <a href="mailto:support@astlog.dev">Email us</a> with your order number. The refund goes back to the payment method you used, through the store (see the <a href="terms.html#refunds">terms</a>).</p>
+          </div>
+        </details>
+        <details id="faq-macs">
+          <summary>How many Macs can I use it on?</summary>
+          <div class="answer">
+            <p>One license covers every Mac you personally use. Each person needs their own license.</p>
+            <p>Keys are checked on your Mac, so there's nothing to activate or deactivate. On a new Mac, just enter the same license key.</p>
+          </div>
+        </details>
+        <details id="faq-license-key">
+          <summary>I can't find my license key</summary>
+          <div class="answer">
+            <p>Your license key is in the email we send after purchase, to the address you bought with. Check your spam folder too.</p>
+            <p>If you still can't find it, <a href="mailto:support@astlog.dev">email us</a> with your order number or the address you bought with, and we'll send it again.</p>
+          </div>
+        </details>
+        <details id="faq-updates">
+          <summary>Are updates free?</summary>
+          <div class="answer">
+            <p>Yes. Every 1.x update is free. Nonet checks for new versions by itself, and you install them from its menu.</p>
+          </div>
+        </details>
+        <details id="faq-macos-updates">
+          <summary>Could a macOS update stop Nonet from working?</summary>
+          <div class="answer">
+            <p>It could. Nonet reads finger positions through a part of macOS that isn't public, so a major macOS update might break it. Each new macOS is tested from the first beta, and fixes ship as free updates. If Nonet stops working and can't be fixed, you get a refund no matter when you bought it.</p>
+            <!-- With every release, list the macOS versions Nonet was actually tested on (docs/release.md, "tested macOS versions") -->
+            <p>Tested on: <span class="todo" data-placeholder="tested-macos">list the versions you tested here</span></p>
+          </div>
+        </details>
+        <details id="faq-trial-end">
+          <summary>What happens when the trial ends?</summary>
+          <div class="answer">
+            <p>The buttons no longer open. Sliding down from the top edge shows "Your trial has ended" at the bottom of the screen instead. Your settings are kept, so entering a license key brings everything back immediately.</p>
+          </div>
+        </details>
+        <details id="faq-requirements">
+          <summary>What are the requirements?</summary>
+          <div class="answer">
+            <p>macOS 14 Sonoma or later and a multi-touch trackpad: the built-in trackpad of a MacBook or a Magic Trackpad. Both Apple silicon and Intel Macs are supported.</p>
+            <p>AI actions need macOS 26 or later on a Mac that supports Apple Intelligence.</p>
+          </div>
+        </details>
+        <details id="faq-mouse">
+          <summary>Can I use it with a mouse only?</summary>
+          <div class="answer">
+            <p>No. You open the buttons by sliding a finger down from the top edge of the trackpad and choose by pointing the pointer at an icon, so you need a trackpad. A Mac mini or Mac Studio works with a Magic Trackpad.</p>
+          </div>
+        </details>
+        <details id="faq-permissions">
+          <summary>Which permissions does Nonet need?</summary>
+          <div class="answer">
+            <p>Accessibility (System Settings › Privacy &amp; Security). Nonet uses it to keep clicks and scrolling from reaching the app while the buttons are open (the pointer still moves), to notice a key press so it can close them, and to send keystrokes, choose menu items and read the selected text for actions. Reading finger positions needs no permission.</p>
+            <p>macOS asks once for Automation permission only when a script uses the browser's URL (NONET_BROWSER_URL) or a File action asks Finder about the selected files. Running a script in Terminal doesn't ask. A screenshot button only sends the macOS screenshot keys, so it needs no Screen Recording permission.</p>
+          </div>
+        </details>
+        <details id="faq-privacy">
+          <summary>Does Nonet send what I type or how I use it?</summary>
+          <div class="answer">
+            <p>No. Nonet looks at the keyboard only while the nine buttons are open, and only to notice that a key was pressed so it can close them. It never records or sends what you type. Settings are stored only on your Mac (<code>~/Library/Application Support/Nonet</code>) and there is no account. The network is used only to check for updates and to open the purchase page.</p>
+            <p>See the <a href="privacy.html">privacy policy</a> for details.</p>
+          </div>
+        </details>
+        <details id="faq-accidental">
+          <summary>Will it open by accident while I use the trackpad as usual?</summary>
+          <div class="answer">
+            <p>It opens only when one finger starts on the top edge of the trackpad and slides down. A move that starts more than 0.6 seconds after you touch, two or more fingers, a palm, a finger that moved into the edge from elsewhere, or a click-and-drag doesn't open it. Moving the pointer straight down from near the far edge can open it, so start moving the pointer away from the far edge.</p>
+            <p>For apps where you don't want it, choose Turn Off in This App in the Nonet menu. In those apps, sliding down from the top edge leaves the trackpad working as usual.</p>
+          </div>
+        </details>
+        <details id="faq-cancel">
+          <summary>How do I close it without running anything?</summary>
+          <div class="answer">
+            <p>Move the pointer outside the ring of icons and lift. Outside the ring, all the icons dim. Pressing any key also closes them, and the key still reaches your app. A double tick tells you that you lifted outside the ring and nothing ran.</p>
+          </div>
+        </details>
+        <details id="faq-hold">
+          <summary>Could I run something I can't undo, like Send, by mistake?</summary>
+          <div class="answer">
+            <p>A button runs only if your finger pauses on it before you lift. Lifting while you slide past doesn't run it.</p>
+            <p>For buttons you can't undo, such as Send or Record, turn on Hold before running in the button's settings. It then runs only if you hold your finger on it for about 0.45 s, until its outline in the HUD has gone all the way around (the trackpad ticks), and then lift.</p>
+          </div>
+        </details>
+        <details id="faq-keyboard">
+          <summary>Will it get in the way of typing or keyboard shortcuts?</summary>
+          <div class="answer">
+            <p>No. Opening the buttons uses only the trackpad, never a key. Nonet looks at the keyboard only while the nine buttons are open: pressing a key then closes them without running anything, and the key reaches your app as usual.</p>
+            <p>Shortcuts you record for a button work the same on JIS, US and other layouts.</p>
+          </div>
+        </details>
+        <details id="faq-app-store">
+          <summary>Why isn't it on the Mac App Store?</summary>
+          <div class="answer">
+            <p>To read finger positions while you use other apps, Nonet relies on a part of macOS that is not public. The App Store does not allow that, so Nonet is sold directly from this site. The app is signed with an Apple Developer ID and notarized by Apple.</p>
+          </div>
+        </details>
+        <details id="faq-uninstall">
+          <summary>How do I uninstall Nonet?</summary>
+          <div class="answer">
+            <p>Click <strong>Uninstall Nonet…</strong> on the Nonet tab of Settings to move the app and its settings to the Trash, then remove Nonet from the Accessibility list. The user guide explains <a href="guide.html#uninstall">how to also delete your license key and trial record</a>.</p>
+          </div>
+        </details>
+        <details id="faq-stream-deck">
+          <summary>How is this different from a Stream Deck?</summary>
+          <div class="answer">
+            <p>Stream Deck is a dedicated device from Elgato with a grid of keys that each have their own display. Nonet is software that uses your MacBook trackpad as the buttons. You need no extra hardware, but there are no physical keys or per-key screens, and the trackpad becomes buttons only when you slide down from the top edge to open them.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section maker" aria-labelledby="maker-title">
+    <div class="wrap">
+      <div class="maker-inner">
+        <h2 id="maker-title">Who makes Nonet</h2>
+        <p>Nonet is made by Takanari Okazaki, an independent Mac developer. I answer every message myself, usually within two business days.</p>
+        <p><a href="https://astlog.dev" rel="author">More of my work (astlog.dev)</a> · <a href="mailto:support@astlog.dev">Contact</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section closing" aria-labelledby="closing-title">
+    <div class="wrap">
+      <h2 id="closing-title">Nine buttons, right on your trackpad.</h2>
+      <p class="fine">Try every feature free for 14 days. Full refund within 30 days of purchase.</p>
+      <div class="cta">
+        <a class="btn" href="thanks.html">Try free for 14 days</a>
+        <a class="btn btn-secondary" href="buy.html">Buy Nonet</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">User guide</a></li>
+        <li><a href="privacy.html">Privacy policy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="../tokushoho.html" hreflang="ja">Legal notice (Japan)</a></li>
+        <li><a href="mailto:support@astlog.dev">Contact</a></li>
+        <li><a href="../" hreflang="ja" lang="ja">日本語</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>Stream Deck is a trademark of Corsair Memory, Inc. Nonet is not affiliated with, endorsed by, or sponsored by Elgato or Corsair.</p>
+      <p>Apple, Mac, MacBook, macOS, Magic Trackpad, Force Touch, Apple Intelligence, Launchpad, Xcode and Safari are trademarks of Apple Inc. Other product names are trademarks of their respective owners.</p>
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

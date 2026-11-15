@@ -1,0 +1,123 @@
+# Xcode プロジェクトは XcodeGen で作る: `xcodegen generate`（Nonet.xcodeproj はコミットしない）
+name: Nonet
+options:
+  bundleIdPrefix: com.iam74k4
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: ja
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Nonet.xcconfig
+  Release: Config/Nonet.xcconfig
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: NL9ZXK2SGR
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+packages:
+  NonetKit:
+    path: Packages/NonetKit
+  # 版を固定する（Package.resolved は Nonet.xcodeproj の中にできてコミットしないので、固定しないと新しい Mac や CI で
+  # 試していない版になる）。上げ方は docs/release.md「Sparkle の版を上げる」
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: "2.10.1"
+targets:
+  Nonet:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    dependencies:
+      - package: NonetKit
+        product: NonetCore
+      - package: NonetKit
+        product: NonetPlatform
+      - package: NonetKit
+        product: NonetUI
+      - package: Sparkle
+        product: Sparkle
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleName: Nonet
+        CFBundleDisplayName: Nonet
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # 文言の元は日本語だが、日本語でも英語でもない言語の利用者には英語を出す
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [ja, en]
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: "© 2026 Takanari Okazaki"
+        NSAppleEventsUsageDescription: "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。"
+        SUFeedURL: $(NONET_APPCAST_URL)
+        SUPublicEDKey: $(NONET_SPARKLE_PUBLIC_KEY)
+        SUEnableAutomaticChecks: true
+        NonetPurchaseURL: $(NONET_PURCHASE_URL)
+        NonetSupportURL: $(NONET_SUPPORT_URL)
+        NonetPrivacyURL: $(NONET_PRIVACY_URL)
+        NonetLicensePublicKey: $(NONET_LICENSE_PUBLIC_KEY)
+        NonetSupportEmail: $(NONET_SUPPORT_EMAIL)
+        # 購入のメールの「Nonet に登録する」のリンク（nonet://register?key=…）。開くと設定で登録してよいか尋ねる
+        CFBundleURLTypes:
+          - CFBundleURLName: com.iam74k4.Nonet.register
+            CFBundleURLSchemes: [nonet]
+        # 購入のメールに添付するライセンスキーのファイル（.nonetlicense）。リンクと同じく、開くと登録してよいか尋ねる
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Nonet License Key
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes: [com.iam74k4.nonet.license]
+        # 設定画面の中のドラッグ（マスの入れ替えなど）とマスのコピー、プロファイルの書き出しファイルと、ライセンスキーのファイル
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.iam74k4.nonet.settings-drag
+            UTTypeDescription: Nonet Settings Item
+            UTTypeConformsTo: [public.data]
+          - UTTypeIdentifier: com.iam74k4.nonet.cell
+            UTTypeDescription: Nonet Button
+            UTTypeConformsTo: [public.data]
+          - UTTypeIdentifier: com.iam74k4.nonet.profile
+            UTTypeDescription: Nonet Profile
+            UTTypeConformsTo: [public.json]
+            UTTypeTagSpecification:
+              public.filename-extension: [nonetprofile]
+          - UTTypeIdentifier: com.iam74k4.nonet.license
+            UTTypeDescription: Nonet License Key
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [nonetlicense]
+    entitlements:
+      path: App/Nonet.entitlements
+      properties:
+        com.apple.security.automation.apple-events: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.iam74k4.Nonet
+        PRODUCT_NAME: Nonet
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Manual
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: "Apple Development"
+          # 開発用のビルドは、本番の appcast を見に行かない（Info.plist の SUFeedURL が空になり、アプリは Sparkle を動かさない）。
+          # 同じ bundle ID の製品版を入れた Mac で、開発用のビルドが製品版のアップデートを受け取らないようにする。
+          # Config/Nonet.xcconfig の値は変えない: Release は xcconfig の値のまま
+          NONET_APPCAST_URL: ""
+        Release:
+          CODE_SIGN_IDENTITY: "Developer ID Application"
+          OTHER_CODE_SIGN_FLAGS: "--timestamp"
+schemes:
+  Nonet:
+    build:
+      targets:
+        Nonet: all
+    run:
+      config: Debug
+    archive:
+      config: Release

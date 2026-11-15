@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ダウンロード — Nonet</title>
+<meta name="description" content="Nonet のダウンロードと、インストールの3つの手順。Applications へドラッグし、アクセシビリティを許可して、トラックパッドの上の縁から指を滑らせるだけです。">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<!-- ダウンロードを始めるページ。販売ページの「ダウンロード」「無料で試す」がここを指す。
+     JavaScript があるときは script.js が、Mac でだけ /download を開く（Mac 以外では案内を出す）。
+     無いときは、次の meta が1秒後に /download を開く。/download は Worker が最新の DMG へ飛ばす（docs/hosting.md） -->
+<noscript><meta http-equiv="refresh" content="1; url=https://nonet.astlog.dev/download"></noscript>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
+</svg>
+
+<a class="skip" href="#main">本文へ移動</a>
+
+<!-- 言語を切り替えた先では、もう一度ダウンロードを始めない（#install で開くと、script.js は始めない） -->
+<div class="lang-bar" data-lang-bar lang="en" aria-live="polite">
+  <div class="lang-bar-inner" data-lang-bar-content hidden>
+    <div class="wrap lang-bar-row">
+      <p>This page is also available in English. <a href="en/thanks.html#install" hreflang="en">Read in English →</a></p>
+      <button class="lang-bar-close" type="button" data-lang-bar-close aria-label="Close">×</button>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+    <div class="header-actions" style="margin-left:auto">
+      <a class="lang-link" href="en/thanks.html#install" hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="thanks">
+  <div class="wrap">
+    <div class="thanks-head" data-download data-download-delay="700">
+      <h1 data-download-heading data-text-not-mac="Nonet は Mac 用のアプリです">ダウンロードを始めました</h1>
+      <p data-download-status>Nonet の最新版（macOS 14 以降。Apple シリコンと Intel の Mac に対応）をダウンロードします。始まらないときは、<a href="https://nonet.astlog.dev/download" data-download-link>こちらからダウンロード</a>してください。</p>
+      <div class="not-mac" data-not-mac hidden>
+        <p>Mac で nonet.astlog.dev を開くと、ダウンロードできます。ほかの Mac に移して入れるときは、<a href="https://nonet.astlog.dev/download">ディスクイメージ（.dmg）をダウンロード</a>できます。</p>
+        <button class="btn btn-secondary btn-small" type="button" data-share data-share-url="https://nonet.astlog.dev/" data-label-share="リンクを共有" data-label-copied="リンクをコピーしました">リンクをコピー</button>
+        <p class="fine share-status" data-share-status role="status"></p>
+      </div>
+    </div>
+
+    <h2 id="install">インストールの3つの手順</h2>
+    <!-- 実際の画面に替えるときは、images/install-1-ja.png・install-2-ja.png・install-3-ja.png（各 1040×480、
+         2倍の解像度で 520×240 に表示）を置き、それぞれの svg を alt つきの img に置き換える -->
+    <ol class="install-steps">
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="1" y="1" width="258" height="118" rx="12"/>
+          <circle class="faint" cx="15" cy="14" r="3.5"/><circle class="faint" cx="27" cy="14" r="3.5"/><circle class="faint" cx="39" cy="14" r="3.5"/>
+          <rect class="ink" x="46" y="32" width="44" height="44" rx="10"/>
+          <circle class="knock" cx="68" cy="40.5" r="3.6"/><circle class="knock" cx="77.5" cy="44.5" r="3.6"/><circle class="knock" cx="81.5" cy="54" r="3.6"/><circle class="knock" cx="77.5" cy="63.5" r="3.6"/>
+          <circle class="knock" cx="68" cy="67.5" r="3.6"/><circle class="knock" cx="58.5" cy="63.5" r="3.6"/><circle class="knock" cx="54.5" cy="54" r="3.6"/><circle class="knock" cx="58.5" cy="44.5" r="3.6"/>
+          <circle class="knock" cx="68" cy="54" r="4.2"/>
+          <text x="68" y="96" text-anchor="middle" class="label">Nonet</text>
+          <path class="stroke" d="M104 54 H154 M145 46 L154 54 L145 62"/>
+          <path class="ring" d="M172 36 h20 l6 6 h26 a4 4 0 0 1 4 4 v28 a4 4 0 0 1 -4 4 h-52 a4 4 0 0 1 -4 -4 v-34 a4 4 0 0 1 4 -4 z"/>
+          <text x="200" y="96" text-anchor="middle" class="label-muted">Applications</text>
+        </svg>
+        <h3>1. Applications へドラッグ</h3>
+        <p>ダウンロードしたディスクイメージ（Nonet-….dmg）を開き、出てきたウインドウで Nonet を Applications フォルダへドラッグします。</p>
+      </li>
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="1" y="1" width="258" height="118" rx="12"/>
+          <text x="18" y="26" class="label">アクセシビリティ</text>
+          <rect class="faint" x="14" y="38" width="232" height="32" rx="8"/>
+          <rect class="ink" x="24" y="46" width="16" height="16" rx="4"/>
+          <text x="50" y="58" class="label">Nonet</text>
+          <rect class="ink" x="202" y="46" width="32" height="16" rx="8"/>
+          <circle class="knock" cx="226" cy="54" r="6"/>
+          <rect class="faint" x="14" y="76" width="232" height="32" rx="8"/>
+          <rect class="faint" x="24" y="84" width="16" height="16" rx="4"/>
+          <rect class="faint" x="50" y="88" width="64" height="8" rx="4"/>
+          <rect class="faint" x="202" y="84" width="32" height="16" rx="8"/>
+          <circle class="ring" cx="210" cy="92" r="6"/>
+        </svg>
+        <h3>2. アクセシビリティを許可（1分）</h3>
+        <p>アプリケーションフォルダから Nonet を開くと、「Nonet へようこそ」の案内が出ます。「システム設定を開く」を押し、プライバシーとセキュリティ › アクセシビリティで Nonet をオンにします。</p>
+      </li>
+      <li class="install-step">
+        <svg class="ill" viewBox="0 0 260 120" aria-hidden="true">
+          <rect class="surface" x="45" y="6" width="170" height="108" rx="12"/>
+          <path class="faint-fill" d="M57 6.5h146a11.5 11.5 0 0 1 11.5 11.5v3.5h-169v-3.5a11.5 11.5 0 0 1 11.5-11.5z"/>
+          <circle class="ink" cx="130" cy="14" r="6"/>
+          <path class="stroke" d="M130 24 V40 M124 34 L130 40 L136 34"/>
+          <g class="ink">
+            <circle cx="130" cy="50" r="2.6"/><circle cx="141.3" cy="54.7" r="2.6"/><circle cx="146" cy="66" r="2.6"/><circle cx="141.3" cy="77.3" r="2.6"/>
+            <circle cx="130" cy="82" r="2.6"/><circle cx="118.7" cy="77.3" r="2.6"/><circle cx="114" cy="66" r="2.6"/><circle cx="118.7" cy="54.7" r="2.6"/>
+          </g>
+          <circle class="ring" cx="130" cy="66" r="4"/>
+        </svg>
+        <h3>3. 上の縁から指を滑らせる</h3>
+        <p>トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。指を滑らせてポインタを向け、アイコンで離すと実行します。アイコンの輪の外まで動かして離すと、何も実行せずに閉じます。案内の「試してみる」で練習できます（練習中は何も実行しません）。</p>
+      </li>
+    </ol>
+
+    <div class="thanks-after">
+      <p>14日間の試用は、初めて起動したときに始まります。カードもメールアドレスも要りません。購入するときは<a href="./#pricing">価格</a>をご覧ください。</p>
+      <p>開かないときは、指1本で、上の縁からすっと下へ滑らせてみてください（触れてから 0.6 秒以上たって動かし始めると、いつものポインタの操作になります）。詳しい使い方は<a href="guide.html#getting-started">利用ガイド</a>に、うまく動かないときの対処は<a href="guide.html#troubleshooting">困ったとき</a>にまとめています。</p>
+      <p class="fine">Nonet は Apple の Developer ID で署名し、Apple の公証（ノータライズ）を受けています。</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-top">
+      <a class="brand" href="./"><svg class="logo" aria-hidden="true"><use href="#i-logo"/></svg>Nonet</a>
+      <ul class="footer-links">
+        <li><a href="guide.html">利用ガイド</a></li>
+        <li><a href="privacy.html">プライバシーポリシー</a></li>
+        <li><a href="terms.html">利用規約</a></li>
+        <li><a href="tokushoho.html">特定商取引法に基づく表記</a></li>
+        <li><a href="mailto:support@astlog.dev">お問い合わせ</a></li>
+        <li><a href="en/thanks.html#install" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </div>
+    <div class="legal">
+      <p>© 2026 Takanari Okazaki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

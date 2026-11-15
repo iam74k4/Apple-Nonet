@@ -1,0 +1,31 @@
+{
+  "hud": "shots-zoom/round1-1-HUDOverlayPanel.png",
+  "hudScale": 1.7,
+  "pointer": [
+    174,
+    174
+  ],
+  "eyebrow": "アプリごとの9つ",
+  "headline": [
+    "アプリが変われば、",
+    "9つも変わる。"
+  ],
+  "description": [
+    "Xcode・Zoom・Safari など 15 のアプリに9つを",
+    "用意。前面のアプリに合わせて切り替わります。"
+  ],
+  "bullets": [
+    {
+      "symbol": "hammer",
+      "text": "ビルド・テスト・コミット"
+    },
+    {
+      "symbol": "video",
+      "text": "ミュート・画面共有・挙手"
+    },
+    {
+      "symbol": "safari",
+      "text": "タブ・ページ内検索・要約"
+    }
+  ]
+}

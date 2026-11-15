@@ -1,0 +1,86 @@
+#!/bin/bash
+# テスト用の偽の xcrun。notarytool・stapler・xcstringstool と、SDK の場所・版の問い合わせだけに答える。
+#   FAKE_NOTARY_STATUS           submit の結果（既定 Accepted。Invalid などで失敗を再現）
+#   FAKE_NOTARY_HISTORY_STATUS   history（プロファイルの確認）の終了コード
+#   FAKE_STAPLER_STATUS          stapler の終了コード
+#   FAKE_SDK_PATH                --sdk macosx --show-sdk-path の答え（use_fakes が FoundationModels 入りの偽の SDK を作る）
+#   FAKE_SDK_VERSION             --sdk macosx --show-sdk-version の答え（既定 27.0）
+#   FAKE_XCSTRINGS_NEW_KEY       xcstringstool sync で、パスに FAKE_XCSTRINGS_TARGET（既定 NonetUI）を含むカタログに足す文言。
+#                                本物と同じく、ファイル名が .stringsdata の表の名前（Localizable.xcstrings）のカタログにだけ足す
+set -euo pipefail
+printf 'xcrun %s\n' "$*" >>"${FAKE_LOG:?}"
+
+if [[ "${1:-}" == --sdk ]]; then
+  case "${3:-}" in
+    --show-sdk-path) printf '%s\n' "${FAKE_SDK_PATH:?}" ;;
+    --show-sdk-version) printf '%s\n' "${FAKE_SDK_VERSION:-27.0}" ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
+
+tool="${1:-}"
+shift || true
+case "$tool" in
+  notarytool)
+    case "${1:-}" in
+      history) exit "${FAKE_NOTARY_HISTORY_STATUS:-0}" ;;
+      submit)
+        cat <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>id</key>
+	<string>00000000-1111-2222-3333-444444444444</string>
+	<key>message</key>
+	<string>Processing complete</string>
+	<key>status</key>
+	<string>${FAKE_NOTARY_STATUS:-Accepted}</string>
+</dict>
+</plist>
+EOF
+        ;;
+      log) printf '{"issues": [{"message": "偽の公証ログ: The signature does not include a secure timestamp."}]}\n' ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  stapler)
+    # stapler staple|validate <パス>。失敗の理由は本物と同じ形で標準出力に出す
+    if [[ "${FAKE_STAPLER_STATUS:-0}" != 0 ]]; then
+      printf 'Processing: %s\nCould not validate ticket for %s\nThe %s action failed!\n' "${*: -1}" "${*: -1}" "${1:-}"
+    fi
+    exit "${FAKE_STAPLER_STATUS:-0}"
+    ;;
+  xcstringstool)
+    case "${1:-}" in
+      sync)
+        catalog="${2:?}"
+        if [[ -n "${FAKE_XCSTRINGS_NEW_KEY:-}" && "$catalog" == *"${FAKE_XCSTRINGS_TARGET:-NonetUI}"* && "$(basename "$catalog")" == Localizable.xcstrings ]]; then
+          python3 -I -c '
+import json, sys
+path, key = sys.argv[1], sys.argv[2]
+catalog = json.load(open(path, encoding="utf-8"))
+catalog.setdefault("strings", {})[key] = {}
+json.dump(catalog, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+' "$catalog" "$FAKE_XCSTRINGS_NEW_KEY"
+        fi
+        ;;
+      extract)
+        # --output-directory の先に、空の .stringsdata を置く
+        while [[ $# -gt 0 ]]; do
+          if [[ "$1" == --output-directory ]]; then
+            mkdir -p "$2"
+            : >"$2/App.stringsdata"
+          fi
+          shift
+        done
+        ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  *)
+    printf '偽の xcrun: %s には答えません\n' "$tool" >&2
+    exit 1
+    ;;
+esac

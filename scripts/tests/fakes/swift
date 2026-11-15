@@ -1,0 +1,32 @@
+#!/bin/bash
+# テスト用の偽の swift。引数と実行したフォルダを記録する。
+#   FAKE_SWIFT_BUILD_STATUS / FAKE_SWIFT_TEST_STATUS  swift build / swift test の終了コード
+# --build-path を付けた swift build（scripts/sync-strings.sh の抽出）では、各ターゲットの .stringsdata（中の source は
+# --package-path の Sources/<target>/ のファイル）を置く。置き場所は Xcode 27 と同じ <build>/debug/<target>-t.build。
+#   FAKE_SWIFT_STRINGS_FLAT=1  Xcode 26 のように -emit-localized-strings-path のフォルダに並べて置く
+set -euo pipefail
+printf 'swift %s (in %s)\n' "$*" "$(basename "$PWD")" >>"${FAKE_LOG:?}"
+
+case "${1:-}" in
+  build)
+    build_path="" package_path="" strings_path="" previous=""
+    while [[ $# -gt 0 ]]; do
+      [[ "$1" != --build-path ]] || build_path="$2"
+      [[ "$1" != --package-path ]] || package_path="$2"
+      [[ "$previous" != -emit-localized-strings-path || "$1" != -Xswiftc ]] || strings_path="${2:-}"
+      [[ "$1" == -Xswiftc ]] || previous="$1"
+      shift
+    done
+    if [[ -n "$build_path" && "${FAKE_SWIFT_BUILD_STATUS:-0}" == 0 ]]; then
+      for target in NonetCore NonetPlatform NonetUI; do
+        dir="$build_path/debug/$target-t.build"
+        [[ "${FAKE_SWIFT_STRINGS_FLAT:-}" != 1 ]] || dir="${strings_path:?-emit-localized-strings-path がありません}"
+        mkdir -p "$dir"
+        printf '{ "source" : "%s/Sources/%s/%sView.swift", "tables" : {}, "version" : 1 }\n' \
+          "${package_path:-$PWD}" "$target" "$target" >"$dir/${target}View.stringsdata"
+      done
+    fi
+    exit "${FAKE_SWIFT_BUILD_STATUS:-0}"
+    ;;
+  test) exit "${FAKE_SWIFT_TEST_STATUS:-0}" ;;
+esac
