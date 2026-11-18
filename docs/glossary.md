@@ -50,6 +50,8 @@
 | 場所（画面に置く） | Position | Inspector label of the Place on Screen action. The nine values are Top Left / Top Half / Top Right / Left Half / Maximize / Right Half / Bottom Left / Bottom Half / Bottom Right (Title Case; "half", not "side"). |
 | 置く枠 / 離すと、ここに置きます | target area (outline) / Lift to place it here | The light-blue outline shown on screen while a Place on Screen button is highlighted, and its note. |
 | %@ のウインドウ / 前面のウインドウ（VoiceOver） | %@ window / The front window | Added to the HUD's VoiceOver name to say what a Place on Screen page acts on: "Safari window". The HUD draws no title. |
+| ユーティリティ | Utilities | Name of the Global profile's second page in a fresh setup, and of its Add Page template. Its buttons: 範囲を撮影 Capture Area / 撮影と収録 Capture & Record / 収録を止める Stop Recording / 絵文字と記号 Emoji & Symbols / 撮影してコピー Capture & Copy / Spotlight Spotlight / 消音の切り替え Mute / Unmute / 画面を消す Sleep Display / 画面をロック Lock Screen (Title Case, as macOS names them). |
+| 空のページ | Empty Page | First item of the Add Page menu (the **+** next to the page chips and Page Actions › Add Page); the others are the Place on Screen and Utilities templates. |
 | スクリプト | Script | Action type; "zsh script" in prose. |
 | 実行の仕方: 裏で実行 / ターミナルで実行 | Run: In Background / In Terminal | Script options. In prose: "run in the background", "run in Terminal". |
 | 「ターミナルで実行」のアプリ / ターミナル | Terminal app for scripts / Terminal | Settings › General row under Scripts (`GlobalSettings.terminalApp`), shown only when iTerm2 is installed. Segmented options "Terminal" and "iTerm2" (a product name, never translated). Caption: "Scripts set to run In Terminal run in a new window of this app. In iTerm2, a shell stays open in the window after the script ends". |

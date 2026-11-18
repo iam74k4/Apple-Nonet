@@ -59,6 +59,34 @@ public final class FixedPresetEnvironment: PresetEnvironmentProviding {
     }
 }
 
+/// 「ページを追加」で選べるページの型（設定のページの「＋」）。どのプロファイルにも足せる。
+/// 初回の設定に入るページを、消した後や前の版から使っている人も足せるようにする
+public enum PageTemplate: CaseIterable, Hashable, Sendable {
+    /// 空のページ
+    case empty
+    /// 「画面に置く」の9マス
+    case windowPlacement
+    /// 「ユーティリティ」の9マス
+    case utilities
+
+    /// メニューに出す名前。型のページは、そのページの名前と同じ
+    public var title: String {
+        switch self {
+        case .empty: String(localized: "空のページ", bundle: .module)
+        case .windowPlacement, .utilities: makePage().name ?? ""
+        }
+    }
+
+    /// 足すページ。マスの id は毎回新しくなる
+    public func makePage() -> Page {
+        switch self {
+        case .empty: .empty
+        case .windowPlacement: PresetLibrary.makeWindowPlacementPage()
+        case .utilities: PresetLibrary.makeUtilityPage()
+        }
+    }
+}
+
 /// 初回起動で用意するアプリ別の9マス
 public struct AppPreset: Identifiable, Sendable {
     public var app: AppReference
@@ -158,6 +186,12 @@ public enum PresetLibrary {
             },
             name: PresetBuilder.text("画面に置く")
         )
+    }
+
+    /// 「ユーティリティ」のページ。撮影と収録・絵文字と記号・Spotlight・消音・画面を消す・画面をロック
+    /// （初回の設定では、グローバルの2ページ目。PresetData.utilityPage）。マスの id は毎回新しくなる
+    public static func makeUtilityPage() -> Page {
+        PresetData.utilityPage
     }
 
     /// Dock のアプリを Dock の順に先に並べ、残りをインストール済みの候補の優先順で足したグローバルのプロファイル。

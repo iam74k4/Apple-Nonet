@@ -271,6 +271,16 @@
         }
       }
     },
+    "Spotlight" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spotlight"
+          }
+        }
+      }
+    },
     "ToDo" : {
       "localizations" : {
         "en" : {
@@ -1787,6 +1797,16 @@
         }
       }
     },
+    "ユーティリティ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilities"
+          }
+        }
+      }
+    },
     "ライセンスに署名する秘密鍵が正しくありません" : {
       "localizations" : {
         "en" : {
@@ -2212,6 +2232,16 @@
         }
       }
     },
+    "収録を止める" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Recording"
+          }
+        }
+      }
+    },
     "受信" : {
       "localizations" : {
         "en" : {
@@ -2409,6 +2439,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Raise Hand"
+          }
+        }
+      }
+    },
+    "撮影してコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture & Copy"
+          }
+        }
+      }
+    },
+    "撮影と収録" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture & Record"
           }
         }
       }
@@ -2890,6 +2940,16 @@
         }
       }
     },
+    "消音の切り替え" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute / Unmute"
+          }
+        }
+      }
+    },
     "現在から再生" : {
       "localizations" : {
         "en" : {
@@ -2906,6 +2966,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Place on Screen"
+          }
+        }
+      }
+    },
+    "画面をロック" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock Screen"
+          }
+        }
+      }
+    },
+    "画面を消す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleep Display"
           }
         }
       }
@@ -2951,6 +3031,16 @@
         }
       }
     },
+    "空のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty Page"
+          }
+        }
+      }
+    },
     "箇条書き" : {
       "localizations" : {
         "en" : {
@@ -2967,6 +3057,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Capture Area"
+          }
+        }
+      }
+    },
+    "絵文字と記号" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emoji & Symbols"
           }
         }
       }
