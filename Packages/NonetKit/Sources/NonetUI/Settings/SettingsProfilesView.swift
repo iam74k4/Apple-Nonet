@@ -524,13 +524,17 @@ struct SettingsPageBar: View {
                     )
                 }
                 if model.canAddPage {
-                    Button {
-                        model.addPage()
+                    // 空のページのほかに、初回の設定に入るページ（画面に置く・ユーティリティ）も選べる。
+                    // 消した後や前の版から使っている人も足せるように
+                    Menu {
+                        addPageItems
                     } label: {
                         Image(systemName: "plus")
                             .frame(width: 22, height: 22)
                     }
-                    .buttonStyle(.borderless)
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
                     .help(String(localized: "ページを追加", bundle: .module))
                     .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
                 }
@@ -541,12 +545,21 @@ struct SettingsPageBar: View {
         }
     }
 
+    /// 「ページを追加」で選べる型。空のページを先に、初回の設定に入るページをその下に
+    @ViewBuilder private var addPageItems: some View {
+        Button(PageTemplate.empty.title) { model.addPage(.empty) }
+        Divider()
+        ForEach([PageTemplate.windowPlacement, .utilities], id: \.self) { template in
+            Button(template.title) { model.addPage(template) }
+        }
+    }
+
     /// 選んでいるページの操作。削除はページの見出しの横に記号だけで置かない（区切りの線に見え、どのページを消すのかも分からない）
     private var pageMenu: some View {
         let title = String(localized: "ページの操作", bundle: .module)
         return Menu {
-            Button {
-                model.addPage()
+            Menu {
+                addPageItems
             } label: {
                 Text(String(localized: "settings.pageMenu.addPage", defaultValue: "ページを追加", bundle: .module))
             }

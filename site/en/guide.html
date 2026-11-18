@@ -67,6 +67,7 @@
             <li><a href="#while-open">The trackpad while the buttons are open</a></li>
             <li><a href="#pages">Pages</a></li>
             <li><a href="#global-and-launcher">Global profile and launcher</a></li>
+            <li><a href="#utilities">Utilities</a></li>
             <li><a href="#haptics">Haptic feedback</a></li>
           </ol>
         </li>
@@ -226,7 +227,7 @@
     <p>While the nine buttons are open, <strong>hold the pointer just outside the ring</strong> to switch pages. Where you hold it decides where you go.</p>
     <ul>
       <li><strong>Right or left</strong> (within 45° of horizontal; a diagonal is fine): the next or previous page of that profile</li>
-      <li><strong>Down</strong>: the Global pages (Place on Screen and the launcher). Only when the front app has a profile</li>
+      <li><strong>Down</strong>: the Global pages (Place on Screen, Utilities and the launcher). Only when the front app has a profile</li>
       <li><strong>Up</strong>: from the Global pages, back to the app page you were on before you went down</li>
     </ul>
     <ol>
@@ -241,7 +242,39 @@
     <p>An app without a profile uses only the Global pages, so holding above or below the ring switches nothing. Instead, “No pages for this app yet” appears under the center icon. Add the app on the Profiles tab of Settings to give it its own pages, and then holding above or below switches between them and the Global pages. For an app set to <strong>Use Global</strong> while in front, it says “This app uses the Global pages”.</p>
     <h3 id="global-and-launcher">Global profile and launcher</h3>
     <p>If the front app has a profile, Nonet uses that app's buttons. In apps without a profile, Nonet uses the Global profile, which works in every app.</p>
-    <p>The Global profile's first page starts as the nine Place on Screen buttons (Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half and Bottom Right; see <a href="#place-window">Place on Screen</a>). After it comes a launcher with up to 18 apps on two pages. Apps in your Dock come first, in Dock order, and popular apps on your Mac fill the rest. It's a handy stand-in for Launchpad, which macOS 26 no longer has. You can change it like any other profile.</p>
+    <p>The Global profile's first page starts as the nine Place on Screen buttons (Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half and Bottom Right; see <a href="#place-window">Place on Screen</a>). The second page is the nine Utilities buttons (capture and recording, emoji and symbols, Spotlight, mute, display sleep and screen lock; see <a href="#utilities">Utilities</a>). After them comes a launcher with up to 9 apps on one page. Apps in your Dock come first, in Dock order, and popular apps on your Mac fill the rest. It's a handy stand-in for Launchpad, which macOS 26 no longer has. You can change it like any other profile.</p>
+    <p>If you delete the Place on Screen or Utilities page, you can add it again with <strong>+</strong> (Add page) in Settings. The same goes if you've used Nonet since an earlier version and your Global profile doesn't have these pages (see <a href="#pages-and-buttons">Pages and buttons</a>).</p>
+    <h3 id="utilities">Utilities</h3>
+    <p>The Global profile's second page, <strong>Utilities</strong>, holds nine things you do the same way in every app. Each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col"></th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Capture Area (⇧⌘4)</td><td>Capture &amp; Record (⇧⌘5)</td><td>Stop Recording (⌃⌘Esc)</td></tr>
+          <tr><td>Emoji &amp; Symbols (⌃⌘Space)</td><td>Capture &amp; Copy (⌃⇧⌘4)</td><td>Spotlight (⌘Space)</td></tr>
+          <tr><td>Mute / Unmute</td><td>Sleep Display</td><td>Lock Screen (⌃⌘Q)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><strong>Capture Area</strong>: select an area and save it as a file</li>
+      <li><strong>Capture &amp; Copy</strong> (center): select an area and put the picture on the clipboard instead of in a file, ready to paste into a chat or a document</li>
+      <li><strong>Capture &amp; Record</strong>: shows the macOS screenshot toolbar. Start window or full-screen captures and screen recordings from there</li>
+      <li><strong>Stop Recording</strong>: stops a screen recording (the same as the stop button in the menu bar)</li>
+      <li><strong>Emoji &amp; Symbols</strong>: opens the emoji and symbols viewer where you're typing</li>
+      <li><strong>Spotlight</strong>: opens the Spotlight search field. Find apps and documents by name and open them</li>
+      <li><strong>Mute / Unmute</strong>: turns the sound off or back on (the script uses <code>set volume</code>). If the output device can't be muted, Nonet shows a failure</li>
+      <li><strong>Sleep Display</strong>: puts the display to sleep (the script uses <code>pmset displaysleepnow</code>). The Mac itself doesn't sleep</li>
+      <li><strong>Lock Screen</strong>: locks the screen right away. Pressing it by mistake means typing your password again, so it runs only after a longer hold (see <a href="#hold-buttons">Buttons that need a longer hold</a>)</li>
+    </ul>
+    <p>The capture, recording, emoji, Spotlight and lock keys are macOS-wide shortcuts. If you've changed or turned them off in <strong>System Settings › Keyboard › Keyboard Shortcuts</strong>, these buttons do nothing. Change the button's <strong>Keys to send</strong> to match.</p>
+    <p>Mission Control, App Exposé and switching desktops aren't on this page because three- and four-finger trackpad gestures already open them.</p>
     <h3 id="haptics">Haptic feedback</h3>
     <p>When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, twice when the page changes, and once more strongly when you switch between the app's pages and the Global pages. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a left or right swipe when there is only one page and so on), and when they don't open because the trial has ended, Accessibility permission is missing or you're entering a password, it gives two light taps. You can turn it off with the <strong>Haptic feedback</strong> setting (you can feel it only on a Force Touch trackpad).</p>
 
@@ -294,7 +327,7 @@
     <h3 id="pages-and-buttons">Pages and buttons</h3>
     <p>The middle column shows the pages and the 3×3 grid of the selected profile.</p>
     <ul>
-      <li>Click <strong>Page 1</strong>, <strong>Page 2</strong> and so on (⌘1–⌘3) to switch pages. Click <strong>+</strong> (Add page) to add one (up to three pages). To delete the selected page, click <strong>…</strong> (Page Actions) next to the pages and choose <strong>Delete This Page…</strong>, or Control-click the page and choose <strong>Delete This Page…</strong>. Nonet asks first if the page has buttons. The <strong>…</strong> menu also has <strong>Add Page</strong> and <strong>Rename…</strong></li>
+      <li>Click <strong>Page 1</strong>, <strong>Page 2</strong> and so on (⌘1–⌘3) to switch pages. Click <strong>+</strong> (Add page) to add an empty page, or a page filled with the Place on Screen or Utilities buttons (up to three pages). To delete the selected page, click <strong>…</strong> (Page Actions) next to the pages and choose <strong>Delete This Page…</strong>, or Control-click the page and choose <strong>Delete This Page…</strong>. Nonet asks first if the page has buttons. The <strong>…</strong> menu also has <strong>Add Page</strong> and <strong>Rename…</strong></li>
       <li>Double-click a page, or Control-click it and choose <strong>Rename…</strong>, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Buttons for Xcode · Debug", and briefly under the center icon when you switch between the app's pages and the Global pages. Leave it empty to go back to "Page 1" and so on</li>
       <li>Click a button to select it, and drag to swap buttons. Drag a button onto <strong>Page 2</strong> (or another page) to move it to an empty button on that page. The selected button is filled: in your accent color when keys (Delete, the arrow keys and so on) go to the grid, and gray when they go somewhere else, such as the profile list or a text field</li>
       <li>Hold the pointer over a button to see its full name (even if it's cut off) and what it does (the keys it sends, the app it opens and so on)</li>
@@ -352,7 +385,7 @@
     <p>Some keys never reach the field because macOS uses them first, such as ⌘Tab, ⌘Space and the ⇧⌘4 screenshot shortcut. For those, type the keys in the field below the recorder (<strong>Type keys as text</strong>) and click <strong>Apply</strong>. Nonet reads symbols like <code>⇧⌘4</code> as well as words like <code>cmd+shift+4</code>. Separate the keystrokes of a sequence with <code>→</code> or <code>,</code>.</p>
     <p>Shortcuts like <code>⌘[</code> work correctly on JIS keyboards too. If the current keyboard layout can't type a shortcut (such as <code>⌘[</code> on a German layout), Nonet clicks the front app's menu item with the same shortcut, if there is one.</p>
     <p>Right before sending, Nonet checks that the front app is still the one that was in front when you opened the buttons. If it changed (for example, an app opened by the previous button came to the front), Nonet doesn't send the keys, so they can't reach the wrong app, and shows "The front app changed, so the keys weren't sent."</p>
-    <p>Screenshots are Keystrokes buttons too: the presets' <strong>Capture Area</strong> button simply sends ⇧⌘4.</p>
+    <p>Screenshots are Keystrokes buttons too: the presets' <strong>Capture Area</strong> button simply sends ⇧⌘4. The Global profile's <strong>Utilities</strong> page gathers the capture and recording buttons (see <a href="#utilities">Utilities</a>).</p>
     <h3 id="open-app">Open (app or URL)</h3>
     <p>Opens an app or a URL. Under <strong>What to open</strong>, choose <strong>App</strong> or <strong>URL</strong>.</p>
     <ul>
@@ -365,7 +398,7 @@
       <li>While this button is highlighted in the HUD, the target area is outlined in light blue on the screen with the note "Lift to place it here". Lift on the button, and the window moves there. Move outside the ring and the outline disappears</li>
       <li>It moves the frontmost window of the app that was in front when you opened the buttons (VoiceOver adds what will move, such as "Safari window", to the HUD's name)</li>
       <li>The window stays on its own display. Full-screen windows and windows with a fixed size (such as System Settings) can't be moved, and Nonet shows "This window couldn't be moved". An app with no window (for example, Finder with all its windows closed) shows "No window is in front"</li>
-      <li>In a fresh setup, these nine buttons are the first page of the Global profile (see <a href="#global-and-launcher">Global profile and launcher</a>). In an app with its own profile, hold the pointer below the ring to reach these buttons; in an app without one, they are the first page</li>
+      <li>In a fresh setup, these nine buttons are the first page of the Global profile (see <a href="#global-and-launcher">Global profile and launcher</a>). In an app with its own profile, hold the pointer below the ring to reach these buttons; in an app without one, they are the first page. If you delete them, add them again with <strong>+</strong> (Add page) › <strong>Place on Screen</strong> in Settings</li>
     </ul>
     <h3 id="script">Script</h3>
     <p>Runs the zsh script in the <strong>Script to run (zsh)</strong> field with <code>/bin/zsh -l -c</code>. Click <strong>?</strong> above the field to see the environment variables described below.</p>

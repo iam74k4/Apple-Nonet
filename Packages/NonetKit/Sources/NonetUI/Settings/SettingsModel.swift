@@ -559,67 +559,71 @@ final class SettingsModel {
         undoNotice = nil
     }
 
-    /// ページを足す。元に戻せる（戻すと足したページを消す。その下に積んだページの削除の取り消しが、上限で戻せなくならないように）
-    func addPage() {
+    /// ページを足す（template は「＋」のメニューで選んだ型。既定は空のページ）。
+    /// 元に戻せる（戻すと足したページを消す。その下に積んだページの削除の取り消しが、上限で戻せなくならないように）
+    func addPage(_ template: PageTemplate = .empty) {
         let profileID = selectedProfile.id
         guard canAddPage else { return }
         pendingEdits.flushAll()
         finishRecording()
         closeEditGroup()
         var added: Int?
-        controller.update { added = $0.addPage(profileID: profileID) }
-        guard let added else { return }
-        registerUndoOfAddingPage(at: added, profileID: profileID)
+        controller.update { added = $0.addPage(template.makePage(), profileID: profileID) }
+        guard let added, let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(added) else { return }
+        let page = pages[added]
+        registerUndoOfAddingPage(page, at: added, profileID: profileID)
         selectedPage = added
         selectedIndex = 0
         gridMessage = nil
         undoNotice = nil
     }
 
-    private func registerUndoOfAddingPage(at index: Int, profileID: UUID) {
+    private func registerUndoOfAddingPage(_ page: Page, at index: Int, profileID: UUID) {
         undoManager.beginUndoGrouping()
         undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
-            self?.removeAddedPage(at: index, profileID: profileID)
+            self?.removeAddedPage(page, at: index, profileID: profileID)
         }
         undoManager.setActionName(String(localized: "ページを追加", bundle: .module))
         undoManager.endUndoGrouping()
     }
 
-    /// 足したページを消す（元に戻す）。その後にマスを置いていれば（取り消しに積まれない変更で）消さずに知らせる
-    private func removeAddedPage(at index: Int, profileID: UUID) {
+    /// 足したページを消す（元に戻す）。その後にマスを置いた・変えた・消したなら（取り消しに積まれない変更で）、消さずに知らせる。
+    /// 型から足したページは、足したときのマスのままなら消す
+    private func removeAddedPage(_ page: Page, at index: Int, profileID: UUID) {
         pendingEdits.flushAll()
         finishRecording()
         undoNotice = nil
         guard let profile = configuration.profile(id: profileID), profile.pages.count > 1,
               profile.pages.indices.contains(index) else { return }
-        guard profile.pages[index].cells.allSatisfy({ $0 == nil }) else {
+        guard profile.pages[index].cells == page.cells else {
             reveal(CellAddress(page: index, index: selectedIndex ?? 0), profileID: profileID)
             gridMessage = String(localized: "マスがその後に変わったため、元に戻せませんでした", bundle: .module)
             return
         }
+        let removed = profile.pages[index]
         controller.update { $0.removePage(at: index, profileID: profileID) }
-        // やり直すと、また同じ場所に足す
+        // やり直すと、また同じ場所に同じページを足す
         undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
-            self?.insertAddedPage(at: index, profileID: profileID)
+            self?.insertAddedPage(removed, at: index, profileID: profileID)
         }
         undoManager.setActionName(String(localized: "ページを追加", bundle: .module))
         reveal(CellAddress(page: max(index - 1, 0), index: selectedIndex ?? 0), profileID: profileID)
     }
 
     /// 足したページをもう一度足す（やり直す）
-    private func insertAddedPage(at index: Int, profileID: UUID) {
+    private func insertAddedPage(_ page: Page, at index: Int, profileID: UUID) {
         pendingEdits.flushAll()
         finishRecording()
         undoNotice = nil
         guard let count = configuration.profile(id: profileID)?.pages.count else { return }
         let position = min(index, count)
         var inserted = false
-        controller.update { inserted = $0.insertPage(.empty, at: position, profileID: profileID) }
-        guard inserted else {
+        controller.update { inserted = $0.insertPage(page, at: position, profileID: profileID) }
+        guard inserted, let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(position) else {
             gridMessage = String(localized: "ページが \(Profile.maxPages) 枚あるため、消したページを元に戻せませんでした", bundle: .module)
             return
         }
-        registerUndoOfAddingPage(at: position, profileID: profileID)
+        registerUndoOfAddingPage(pages[position], at: position, profileID: profileID)
         reveal(CellAddress(page: position, index: 0), profileID: profileID)
     }
 

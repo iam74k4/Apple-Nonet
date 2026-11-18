@@ -47,20 +47,21 @@ public struct ResolvedPage: Equatable, Sendable {
 }
 
 extension NonetConfiguration {
-    /// 初回起動時の設定。グローバルは Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
+    /// 初回起動時の設定。グローバルは「画面に置く」「ユーティリティ」と、Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
     /// アプリのプロファイルは渡されたプリセットから作る
     public static func initial(
         appPresets: [AppPreset],
         installedBundleIDs: Set<String>,
         dockApps: [AppReference] = []
     ) -> NonetConfiguration {
-        // グローバルの最初のページは「画面に置く」。ランチャーはその後ろ（ページ数の上限に収める）
+        // グローバルの最初のページは「画面に置く」、次が「ユーティリティ」。ランチャーはその後ろ（ページ数の上限に収める）
+        let fixedPages = [PresetLibrary.makeWindowPlacementPage(), PresetLibrary.makeUtilityPage()]
         var global = PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
-        var pages = Array(global.pages.prefix(Profile.maxPages - 1))
+        var pages = Array(global.pages.prefix(Profile.maxPages - fixedPages.count))
         if pages.count == 1, pages[0].cells.allSatisfy({ $0 == nil }) {
             pages = []
         }
-        global.pages = [PresetLibrary.makeWindowPlacementPage()] + pages
+        global.pages = fixedPages + pages
         return initial(appPresets: appPresets, globalProfile: global)
     }
 
@@ -170,12 +171,15 @@ extension NonetConfiguration {
         profiles[index].pages[b.page].cells[b.index] = profile.pages[a.page].cells[a.index]
     }
 
-    /// 追加したページの番号。上限なら nil
+    /// page を最後に足す（既定は空のページ。「ページを追加」の型は PageTemplate.makePage()）。追加したページの番号。上限なら nil
     @discardableResult
-    public mutating func addPage(profileID: UUID) -> Int? {
+    public mutating func addPage(_ page: Page = .empty, profileID: UUID) -> Int? {
         guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return nil }
-        profiles[index].pages.append(.empty)
-        return profiles[index].pages.count - 1
+        profiles[index].normalizePages()
+        profiles[index].pages.append(Page(cells: page.cells, name: page.name))
+        // ほかで同じ id のマスが作られていれば振り直す
+        self = validated()
+        return profileIndex(id: profileID).map { profiles[$0].pages.count - 1 }
     }
 
     /// 最後の1ページは消せない

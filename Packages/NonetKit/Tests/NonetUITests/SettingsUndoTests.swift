@@ -459,3 +459,46 @@ import Testing
         #expect(!h.model.undoManager.canUndo)
     }
 }
+
+@Suite @MainActor struct SettingsPageTemplateTests {
+    /// 「＋」のメニューで型を選ぶと、その9マスと名前のページが最後に入り、そのページを選ぶ
+    @Test func addingATemplateAddsItsCellsAndName() throws {
+        let h = try SettingsHarness()
+        h.model.addPage(.utilities)
+        let page = h.model.selectedProfile.pages[1]
+        #expect(h.model.pageIndex == 1)
+        #expect(h.model.selectedIndex == 0)
+        #expect(page.name == L10n.core("ユーティリティ"))
+        #expect(page.cells.map { $0?.action } == PresetLibrary.makeUtilityPage().cells.map { $0?.action })
+        #expect(try h.saved()?.globalProfile.pages[1] == page)
+    }
+
+    /// 型から足したページも、足したときのマスのままなら元に戻すと消え、やり直すと同じマスで戻る
+    @Test func anUnchangedTemplatePageIsUndoneAndRedone() throws {
+        let h = try SettingsHarness()
+        h.model.addPage(.windowPlacement)
+        let added = h.model.selectedProfile.pages[1]
+        #expect(h.model.undoManager.undoActionName == L10n.ui("ページを追加"))
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages.count == 1)
+        #expect(h.model.gridMessage == nil)
+        h.model.undoManager.redo()
+        #expect(h.model.selectedProfile.pages.count == 2)
+        #expect(h.model.selectedProfile.pages[1] == added)
+        // もう一度戻せる
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages.count == 1)
+    }
+
+    /// 型から足したページのマスを（取り消しに積まれない変更で）変えていたら、消さずに知らせる
+    @Test func aChangedTemplatePageIsNotRemoved() throws {
+        let h = try SettingsHarness()
+        let profileID = h.model.selectedProfile.id
+        h.model.addPage(.utilities)
+        h.controller.update { $0.setCell(nil, at: CellAddress(page: 1, index: 4), profileID: profileID) }
+        let before = h.controller.configuration
+        h.model.undoManager.undo()
+        #expect(h.controller.configuration == before)
+        #expect(h.model.gridMessage == L10n.ui("マスがその後に変わったため、元に戻せませんでした"))
+    }
+}

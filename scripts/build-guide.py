@@ -15,7 +15,7 @@ IDS = [
     (2, "about"), (3, "requirements"),
     (2, "getting-started"), (3, "install"), (3, "accessibility"), (3, "welcome-guide"),
     (2, "basics"), (3, "open"), (3, "run"), (3, "cancel"), (3, "hold-buttons"), (3, "while-open"),
-    (3, "pages"), (3, "global-and-launcher"), (3, "haptics"),
+    (3, "pages"), (3, "global-and-launcher"), (3, "utilities"), (3, "haptics"),
     (2, "menu-bar"),
     (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "undo-and-restore"), (3, "power-editing"),
     (3, "inspector"), (3, "pick-from-menus"),

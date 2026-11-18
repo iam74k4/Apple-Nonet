@@ -56,7 +56,7 @@ struct ActionPlaceWindowTests {
         #expect(!ControllerExecutionPolicy.isLongRunning(action))
     }
 
-    /// 初回の設定: グローバルの最初のページは「画面に置く」の9マス、ランチャーはその後ろ（ページ数の上限に収める）
+    /// 初回の設定: グローバルの最初のページは「画面に置く」の9マス、次が「ユーティリティ」、ランチャーはその後ろ（ページ数の上限に収める）
     @Test func theFirstGlobalPageIsWindowPlacement() throws {
         let launcher = PresetLibrary.launcherCandidates.map(\.bundleID)
         let configuration = NonetConfiguration.initial(appPresets: [], installedBundleIDs: Set(launcher))
@@ -65,11 +65,14 @@ struct ActionPlaceWindowTests {
         #expect(pages[0].name == PresetBuilder.text("画面に置く"))
         #expect(pages[0].cells.map { $0?.action } == WindowRegion.allCases.map { .placeWindow(PlaceWindowAction(region: $0)) })
         #expect(pages[0].cells.compactMap { $0 }.map(\.title) == WindowRegion.allCases.map(\.title))
-        #expect(pages[1].cells.compactMap { $0 }.allSatisfy { $0.action.kind == .launchApp })
+        #expect(pages[1].name == PresetBuilder.text("ユーティリティ"))
+        #expect(pages[1].cells.map { $0?.action } == PresetLibrary.makeUtilityPage().cells.map { $0?.action })
+        // ランチャーは1ページ（9個）まで
+        #expect(pages[2].cells.compactMap { $0 }.count == Page.cellCount)
+        #expect(pages[2].cells.compactMap { $0 }.allSatisfy { $0.action.kind == .launchApp })
 
-        // ランチャーの候補が無ければ、「画面に置く」だけ
+        // ランチャーの候補が無ければ、「画面に置く」と「ユーティリティ」だけ
         let bare = NonetConfiguration.initial(appPresets: [], installedBundleIDs: [])
-        #expect(bare.globalProfile.pages.count == 1)
-        #expect(bare.globalProfile.pages[0].name == PresetBuilder.text("画面に置く"))
+        #expect(bare.globalProfile.pages.map(\.name) == [PresetBuilder.text("画面に置く"), PresetBuilder.text("ユーティリティ")])
     }
 }
