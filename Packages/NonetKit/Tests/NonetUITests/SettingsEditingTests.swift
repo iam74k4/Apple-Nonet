@@ -277,6 +277,7 @@ import Testing
         #expect(narrow.width <= 290)
         // 折り返して2行にならない
         #expect(narrow.height <= wide.height + 1)
-        #expect(wide.height < 32)
+        // 3段（下のページ・左右に送るページ・下）の、どの段も1行
+        #expect(wide.height < 32 * 3, "\(wide.height)")
     }
 }

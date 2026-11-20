@@ -350,30 +350,33 @@ import Testing
         #expect(h.keyboard.suppressionAfterEvent == [false])
     }
 
-    /// 2本指で横にスワイプするとページが変わり、残った指を滑らせて選べる。スワイプはアプリの層の中で輪になり
-    /// （最後のページの次は最初のページ）、グローバルのページへは下の帯に止めて移る（強めの1打）
-    @Test func twoFingerSwipesStayInTheLayerAndRestingDownReachesTheGlobalPages() async throws {
+    /// 輪の右に止めるとページが変わり、アプリの層の中で輪になる（最後のページの次は最初のページ）。
+    /// 2本指で動かしてもページは変わらない。グローバルのページへは上の帯に止めて移る（強めの1打）
+    @Test func restingRightStaysInTheLayerAndRestingUpReachesTheGlobalPages() async throws {
         let h = try ControllerHarness()
         h.start()
         h.open()
         h.advance(0.05)
-        for expected in [1, 0] {
-            h.touch(1, x: 0.5, y: 0.5)
-            h.touch(2, x: 0.7, y: 0.5)
-            h.touch(1, x: 0.3, y: 0.5)
-            h.touch(2, x: 0.5, y: 0.5)
+        // 2本指で横に動かしても変わらない
+        h.touch(1, x: 0.5, y: 0.5)
+        h.touch(2, x: 0.7, y: 0.5)
+        h.touch(1, x: 0.3, y: 0.5)
+        h.touch(2, x: 0.5, y: 0.5)
+        #expect(h.hud.current?.pageIndex == 0)
+        h.lift(2)
+        for (expected, y) in [(1, 0.5), (0, 0.55)] {
+            h.touch(1, x: 0.97, y: y)
+            h.advance(SessionConfiguration.defaultEdgePageDwell + 0.05)
             #expect(h.hud.current?.pageIndex == expected)
             #expect(h.hud.current?.layer == .app)
-            h.lift(2)
         }
         #expect(h.haptics.events.filter { $0 == .pageChange }.count == 2)
-        #expect(!h.haptics.events.contains(.rejected))
 
-        h.touch(1, x: 0.5, y: 0.04)
+        h.touch(1, x: 0.5, y: 0.94)
         h.advance(SessionConfiguration.defaultEdgePageDwell + 0.05)
         #expect(h.hud.current?.layer == .global)
         #expect(h.hud.current?.title == ModelFixtures.globalName)
-        #expect(h.hud.current?.lastTurn == .down)
+        #expect(h.hud.current?.lastTurn == .up)
         #expect(h.haptics.events.contains(.layerChange))
         h.touch(on: 8)
         h.advance(0.3)

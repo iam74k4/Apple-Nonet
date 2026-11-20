@@ -233,12 +233,12 @@ struct ConfigurationProfileCopyTests {
         let removed = try #require(configuration.profile(id: xcodeID)?.pages[0])
         configuration.removePage(at: 0, profileID: xcodeID)
         let inserted = configuration.insertPage(removed, at: 0, profileID: xcodeID)
-        #expect(inserted)
+        #expect(inserted == 0)
         #expect(configuration.profile(id: xcodeID)?.pages.first == removed)
         configuration.addPage(profileID: xcodeID)
         let full = configuration.insertPage(.empty, at: 0, profileID: xcodeID)
         let unknown = configuration.insertPage(.empty, at: 0, profileID: UUID())
-        #expect(!full)
-        #expect(!unknown)
+        #expect(full == nil)
+        #expect(unknown == nil)
     }
 }

@@ -8,19 +8,19 @@ import Foundation
 ///
 /// 内蔵の台本（builtIn）は、1つのアプリ（--demo-app。既定は Xcode）のまま4回開き、1回に1つずつ見せる:
 /// 1. 上の縁から開き、上のマスへ向けて止め、離して実行する
-/// 2. 開いて輪のすぐ下で止め、グローバルのページの層へ移る。左のマスへ向けて離し、実行する
+/// 2. 開いて輪のすぐ上で止め、グローバルのページの層へ移る。左上の外を回って左のマスへ向けて離し、実行する
 /// 3. 開いてもう一度グローバルの層へ移り、輪の右で止めて次のページへ送る。右上のマスへ向けて離し、実行する
-/// 4. 開いてすぐ指を上へ戻し、輪の上の外で止めて（鍵が薄くなる）、離してやめる（何も実行しない）。アプリの層の上の帯は
-///    切り替える先も案内も無いので、止めていても何も起きない。真ん中のマスを通らない: 前の台本は真ん中まで来てから下へ出ていて、
+/// 4. 上の縁の右寄りから開いて右上の隅へ出し、帯より遠く（どの側でもない。止めても何も切り替わらない）で止めて（鍵が薄くなる）、離してやめる
+///    （何も実行しない）。アプリの層の上の帯はグローバルの層へ、下の帯は下のページ（ユーティリティ）へ移り、右・左もページがあれば送るので、
+///    やめる場面は帯の外で止める。真ん中のマスを通らない: 前の台本は真ん中まで来てから下へ出ていて、
 ///    真ん中の鍵が名前つきで光ってから閉じるので、そのマスを選んだように見えた（2026-11-11 のレビュー）
 /// どのマスが何をするかは設定しだい。初回の設定のままなら、Xcode の上は「実行」、グローバルの最初のページは「画面に置く」で
 /// 左は「左半分」、次のページはランチャー（並ぶアプリは Mac しだい）。
 /// グローバルの層で真ん中のマスへは向けない: 「画面に置く」の真ん中は「最大化」で、置く場所を示す枠が画面いっぱいに出て、何の枠か分からなくなる
 /// （前の台本はそうしていて、2026-11-11 に所有者が「全画面が紺になるのが変」と退けた。「左半分」なら枠だと分かる）。
 ///
-/// 輪の外で止める時間は、1回だけ切り替わる長さにしてある: SessionConfiguration.defaultEdgePageDwell（0.5 秒）より長く止め、
-/// 続けて切り替わる defaultEdgePageRepeat（その 0.9 秒後）より前にその側を出る。4 の場面は上の帯なので、止めても切り替わらない。
-/// この間隔は実機で確かめたもの（scripts/demo/xcode.json の場面のあとに、zoom.json の 2〜4 つ目の場面を時刻だけずらしてつないだ）。
+/// 輪の外の帯で止める時間は、SessionConfiguration.defaultEdgePageDwell（0.5 秒）より長くしてある（1回止めて動くのは1つだけなので、
+/// 止めすぎても続けては切り替わらない）。帯を通りかかるだけの動きは、止める時間より短く通り過ぎる。
 /// 直すときは、ShellDemoScriptTests が本物の操作のロジックに通して確かめる
 public struct DemoScript: Equatable, Sendable {
     public struct Key: Equatable, Sendable {
@@ -58,38 +58,39 @@ public struct DemoScript: Equatable, Sendable {
         Key(time: 1.5, point: CGPoint(x: 0.5, y: 0.81)),
         Key(time: 2.8, point: CGPoint(x: 0.5, y: 0.81)),
         Key(time: 2.8, point: nil),
-        // 2. 輪のすぐ下で止めて、グローバルの層へ。左下を回って左のマスへ行き、離す
+        // 2. 輪のすぐ上で止めて、グローバルの層へ。左上を回って左のマスへ行き、離す
         Key(time: 4.0, point: CGPoint(x: 0.5, y: 0.975)),
         Key(time: 4.25, point: CGPoint(x: 0.5, y: 0.975)),
         Key(time: 4.6, point: CGPoint(x: 0.5, y: 0.86)),
-        Key(time: 5.3, point: CGPoint(x: 0.5, y: 0.05)),
-        Key(time: 5.95, point: CGPoint(x: 0.5, y: 0.05)),
-        Key(time: 6.2, point: CGPoint(x: 0.12, y: 0.12)),
-        Key(time: 6.4, point: CGPoint(x: 0.08, y: 0.42)),
-        Key(time: 6.6, point: CGPoint(x: 0.19, y: 0.5)),
-        Key(time: 7.9, point: CGPoint(x: 0.19, y: 0.5)),
-        Key(time: 7.9, point: nil),
+        Key(time: 5.0, point: CGPoint(x: 0.5, y: 0.95)),
+        Key(time: 5.65, point: CGPoint(x: 0.5, y: 0.95)),
+        Key(time: 5.9, point: CGPoint(x: 0.12, y: 0.88)),
+        Key(time: 6.1, point: CGPoint(x: 0.08, y: 0.58)),
+        Key(time: 6.3, point: CGPoint(x: 0.19, y: 0.5)),
+        Key(time: 7.6, point: CGPoint(x: 0.19, y: 0.5)),
+        Key(time: 7.6, point: nil),
         // 3. もう一度グローバルの層へ。輪の右で止めて次のページへ送り、右上のマスで離す
-        Key(time: 9.1, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 9.35, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 9.7, point: CGPoint(x: 0.5, y: 0.86)),
-        Key(time: 10.4, point: CGPoint(x: 0.5, y: 0.05)),
-        Key(time: 11.05, point: CGPoint(x: 0.5, y: 0.05)),
-        Key(time: 11.35, point: CGPoint(x: 0.92, y: 0.1)),
-        Key(time: 11.6, point: CGPoint(x: 0.95, y: 0.5)),
-        Key(time: 12.25, point: CGPoint(x: 0.95, y: 0.5)),
-        Key(time: 12.5, point: CGPoint(x: 0.92, y: 0.82)),
-        Key(time: 12.75, point: CGPoint(x: 0.719, y: 0.719)),
-        Key(time: 13.9, point: CGPoint(x: 0.719, y: 0.719)),
-        Key(time: 13.9, point: nil),
-        // 4. 開いてすぐ指を上へ戻し、輪の上の外で止めて（鍵が薄くなる）離し、やめる（アプリの層の上の帯は、止めても何も起きない）
-        Key(time: 15.1, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 15.35, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 15.7, point: CGPoint(x: 0.5, y: 0.86)),
-        Key(time: 16.05, point: CGPoint(x: 0.5, y: 0.96)),
-        Key(time: 17.15, point: CGPoint(x: 0.5, y: 0.96)),
-        Key(time: 17.15, point: nil),
-        Key(time: 18.1, point: nil),
+        Key(time: 8.8, point: CGPoint(x: 0.5, y: 0.975)),
+        Key(time: 9.05, point: CGPoint(x: 0.5, y: 0.975)),
+        Key(time: 9.4, point: CGPoint(x: 0.5, y: 0.86)),
+        Key(time: 9.8, point: CGPoint(x: 0.5, y: 0.95)),
+        Key(time: 10.45, point: CGPoint(x: 0.5, y: 0.95)),
+        Key(time: 10.75, point: CGPoint(x: 0.92, y: 0.9)),
+        Key(time: 11.0, point: CGPoint(x: 0.95, y: 0.5)),
+        Key(time: 11.65, point: CGPoint(x: 0.95, y: 0.5)),
+        Key(time: 11.9, point: CGPoint(x: 0.92, y: 0.82)),
+        Key(time: 12.15, point: CGPoint(x: 0.719, y: 0.719)),
+        Key(time: 13.3, point: CGPoint(x: 0.719, y: 0.719)),
+        Key(time: 13.3, point: nil),
+        // 4. 上の縁の右寄りから開き、右上の隅へ出して、帯より遠くで止めて（鍵が薄くなる）離し、やめる（どの側でもないので、止めても何も起きない）。
+        // 開いてから離すまで、ポインタは帯（輪の外 134〜210pt）に入らない。帯を通ると、そこで開くページの矢印と名前が一瞬出て、移るように見える
+        Key(time: 14.5, point: CGPoint(x: 0.9, y: 0.975)),
+        Key(time: 14.75, point: CGPoint(x: 0.9, y: 0.975)),
+        Key(time: 15.1, point: CGPoint(x: 0.96, y: 0.915)),
+        Key(time: 15.45, point: CGPoint(x: 0.97, y: 0.97)),
+        Key(time: 16.55, point: CGPoint(x: 0.97, y: 0.97)),
+        Key(time: 16.55, point: nil),
+        Key(time: 17.5, point: nil),
     ])
 
     // MARK: - ファイルの台本

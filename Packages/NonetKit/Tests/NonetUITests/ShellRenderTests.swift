@@ -83,10 +83,15 @@ struct ShellRenderTests {
             ("hud-state-opened", variant { $0.isFingerInFrame = true; $0.isWaitingAtCenter = true }, false, false, nil, Color(white: 0.82)),
             ("hud-state-frame", variant { $0.isFingerInFrame = true }, false, false, nil, Color(white: 0.82)),
             ("hud-state-frame-contrast", variant { $0.isFingerInFrame = true }, true, false, nil, Color(white: 0.82)),
-            // 上下の帯に止めても切り替える先が無い（前面のアプリのページが無い・グローバルのページを使う設定）: 真ん中の鍵の下の案内
-            ("hud-state-layer-hint", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("このアプリのページはまだありません") }, false, false, nil, Color(white: 0.82)),
-            ("hud-state-layer-hint-global", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("このアプリはグローバルのページを使います") }, false, false, nil, Color.white),
-            ("hud-state-side-hint", variant { $0.isFingerInFrame = true; $0.edgeHint = L10n.core("左右に送るページはありません") }, false, false, nil, Color(white: 0.82)),
+            // 帯に止めている間の、移る先の名前（真ん中の鍵の下）。下は下のページ、右は次のページ（ページの点の下）
+            ("hud-state-destination-below", variant {
+                $0.isFingerInFrame = true
+                $0.edgePaging = HUDEdgePaging(edge: .down, duration: 0.5, destination: .below, destinationTitle: L10n.core("ユーティリティ"))
+            }, false, false, nil, Color(white: 0.82)),
+            ("hud-state-destination-right", variant {
+                $0.isFingerInFrame = true
+                $0.edgePaging = HUDEdgePaging(edge: .right, duration: 0.5, destinationTitle: "デバッグ")
+            }, false, false, nil, Color.white),
             ("hud-state-hold", variant {
                 $0.highlightedIndex = clean
                 $0.hold = HUDHold(cellIndex: clean, duration: 0.6, isReady: false)

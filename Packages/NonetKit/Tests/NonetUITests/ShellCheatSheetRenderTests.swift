@@ -34,6 +34,9 @@ struct ShellCheatSheetRenderTests {
         var globalPage = xcodeSheet
         globalPage.showPage(xcodeSheet.globalPagesStart ?? 0)
         let fallback = MenuBarCheatSheet(frontApp: notes, configuration: configuration)
+        // 下のページ（最後のページ）: 見出しに下向きの矢印
+        var belowPage = fallback
+        belowPage.showPage(fallback.pageCount - 1)
         var sparse = configuration
         sparse.updateProfile(id: sparse.globalProfile.id) { profile in
             profile.pages = [Page(cells: Array(profile.pages[0].cells.prefix(3)) + [nil, nil, nil, nil, nil, nil])]
@@ -54,6 +57,7 @@ struct ShellCheatSheetRenderTests {
             Shot(name: "cheatsheet-xcode-debug-page", sheet: debugPage, hovered: .nextPage),
             Shot(name: "cheatsheet-global-page", sheet: globalPage),
             Shot(name: "cheatsheet-fallback-global", sheet: fallback),
+            Shot(name: "cheatsheet-above-page", sheet: belowPage),
             Shot(name: "cheatsheet-sparse-hover-empty", sheet: sparseSheet, hovered: .cell(5)),
             Shot(name: "cheatsheet-keyboard", sheet: xcodeSheet, keyboard: true),
             Shot(name: "cheatsheet-compact", sheet: xcodeSheet, density: .compact),

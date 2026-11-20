@@ -138,34 +138,14 @@ import Testing
         #expect(ControllerPresentation.edgePeek(pages: Array(all.prefix(1)), page: 0, edge: .right) == nil)
     }
 
-    /// 層が1つのときの上下の案内: 前面のアプリのプロファイルが無ければ「まだありません」、「グローバルのページを使う」にしていればそのこと。
-    /// 層が2つ・前面のアプリが分からなければ無い。HUD に渡すのは、外枠でエンジンが案内するときだけ
-    @Test func theLayerHintSaysWhyThereIsNoOtherLayer() throws {
-        let configuration = F.configuration()
-        let safari = F.safari.bundleID
-        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: F.safari), frontmostBundleID: safari) == nil)
-        let unknown = "com.example.no-profile"
-        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: configuration.resolvedPages(frontmostBundleID: unknown), frontmostBundleID: unknown)
-            == ModelFixtures.text("このアプリのページはまだありません"))
-        var globalMode = configuration
-        let index = try #require(globalMode.appProfileIndex(forBundleID: safari))
-        globalMode.profiles[index].mode = .global
-        #expect(ControllerPresentation.layerHint(configuration: globalMode, pages: globalMode.resolvedPages(frontmostBundleID: safari), frontmostBundleID: safari)
-            == ModelFixtures.text("このアプリはグローバルのページを使います"))
-        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages(frontmost: nil), frontmostBundleID: nil) == nil)
-        // 「このアプリでは使わない」（練習でだけ開く）: ページが無いのではないので言わない
-        var offMode = configuration
-        offMode.profiles[index].mode = .off
-        #expect(ControllerPresentation.layerHint(configuration: offMode, pages: offMode.resolvedPages(frontmostBundleID: safari), frontmostBundleID: safari) == nil)
-
-        // 上下はこの案内、左右（ページが1つの層）は送るページが無いこと
-        let below = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .down)
-        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: below, banner: nil, layerHint: "案内").edgeHint == "案内")
+    /// 行き先の無い帯に止めても、HUD に文字は渡さない（エンジンが受け付けなかった触覚で知らせる）。行き先があれば、その名前を渡す
+    @Test func theHUDGetsNamesNotHints() {
         let beside = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgeHint: .left)
-        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: beside, banner: nil, layerHint: "案内").edgeHint
-            == ModelFixtures.text("左右に送るページはありません"))
-        let plain = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true)
-        #expect(ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: plain, banner: nil, layerHint: "案内").edgeHint == nil)
+        let hinted = ControllerPresentation.hudModel(pages: pages(frontmost: nil), state: beside, banner: nil)
+        #expect(hinted.edgePaging == nil)
+        let all = pages(frontmost: F.safari)
+        let right = SessionHUDState(page: 0, highlightedCell: nil, isInFrame: true, edgePaging: SessionEdgePaging(edge: .right, since: 0, duration: 0.5))
+        #expect(ControllerPresentation.hudModel(pages: all, state: right, banner: nil).edgePaging?.destinationTitle == ModelFixtures.text("ページ \(2)"))
     }
 
     /// 外枠と進み具合をそのまま渡す。進み具合は光っているマスのものだけ

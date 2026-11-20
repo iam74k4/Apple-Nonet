@@ -15,7 +15,7 @@ import Testing
     /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
     @Test func theOpenGestureIsExplained() {
         #expect(SettingsText.openGestureTitle == L10n.ui("開き方とやめ方"))
-        #expect(SettingsText.openGestureDetail == L10n.ui("上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。"))
+        #expect(SettingsText.openGestureDetail == L10n.ui("上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。"))
     }
 
     /// アクセシビリティの帯は、オンなのに動かないとき（アップデートの後など）の直し方も言う
@@ -370,5 +370,11 @@ import Testing
         #expect(SettingsStatusBanner(status: .noTrackpad)?.buttons.map(\.action) == [.recheck])
         #expect(SettingsStatusBanner(status: .secureInputActive)?.buttons.map(\.action) == [.recheck])
         #expect(SettingsStatusBanner(status: .disabled)?.buttons.map(\.action) == [.enable])
+    }
+
+    /// 練習を終えた後の一言: 下のページがあればその名前で、無ければ右か左のことだけ
+    @Test func practicePagesTipNamesThePageAbove() {
+        #expect(ShellText.practicePagesTip(belowPage: "ユーティリティ").contains("ユーティリティ"))
+        #expect(ShellText.practicePagesTip(belowPage: nil) == L10n.ui("輪のすぐ外の右か左で少し止めると、ページが変わります。"))
     }
 }

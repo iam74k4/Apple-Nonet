@@ -210,6 +210,18 @@ extension SettingsModel {
         undoManager.endUndoGrouping()
     }
 
+    /// 輪の上下の行き先と、ページの点に並べるページ
+    var pageMap: SettingsPageMap {
+        SettingsPageMap(profile: selectedProfile, global: configuration.globalProfile)
+    }
+
+    /// グローバルのプロファイルの index のページを開く（アプリのプロファイルの、ページの並びの図の上下の段から）
+    func showGlobalPage(_ index: Int) {
+        let global = configuration.globalProfile
+        guard global.pages.indices.contains(index) else { return }
+        showProfile(id: global.id, at: CellAddress(page: index, index: 0))
+    }
+
     /// ページの名前の欄を出す（ページの見出しのダブルクリック・右クリック）。そのページも選ぶ
     func beginRenamingPage(_ index: Int) {
         guard selectedProfile.pages.indices.contains(index) else { return }
@@ -328,3 +340,87 @@ extension SettingsModel {
         )
     }
 }
+
+/// 設定の編集でのページの並び: HUD の3段（グローバルの層・真ん中・下のページ）に、選んでいるプロファイルのページを当てたもの。
+/// 真ん中の段（輪の下の点に並べる。輪の右・左で止めて送る）はそのプロファイルのページ（グローバルなら下のページを除く）。
+/// 下のページはグローバルの Page.isBelow、上はアプリのプロファイルのときのグローバルのページ。
+/// アプリのプロファイルの上下はグローバルのページなので、押すとグローバルのプロファイルで開く
+struct SettingsPageMap: Equatable {
+    struct GlobalPage: Equatable {
+        /// グローバルのプロファイルでのページの番号
+        var index: Int
+        var title: String
+    }
+
+    /// 真ん中の段（輪の下の点）に並べる、選んでいるプロファイルのページの番号
+    var centerPages: [Int]
+    /// 選んでいるのがグローバルなら、その下のページの番号（無ければ nil）
+    var ownBelowPage: Int?
+    /// 選んでいるのがアプリのプロファイルなら、下に出すグローバルの下のページ（無ければ nil）
+    var globalBelowPage: GlobalPage?
+    /// 選んでいるのがアプリのプロファイルなら、上に出すグローバルのページ（下のページを除く）。グローバルなら空
+    var globalLayerPages: [GlobalPage]
+    var isGlobal: Bool
+    /// 選んでいるプロファイルのページの題名（「ページ 2」か名前）
+    var titles: [Int: String]
+    /// 上下の行き先を出す。アプリのプロファイルを HUD で使わない（「グローバルを使う」「使わない」・マスが1つも無い）ときは出さない
+    /// （HUD ではこのページを真ん中に使わないので、上下の行き先は事実と違う）
+    var showsRows: Bool
+    /// マスが1つも無いアプリのプロファイル（いまは HUD でグローバルのページを使う）なら、そのアプリの名前
+    var emptyAppName: String?
+
+    init(profile: Profile, global: Profile) {
+        isGlobal = profile.isGlobal
+        titles = Dictionary(uniqueKeysWithValues: profile.pages.indices.map { ($0, SettingsText.pageTitle(index: $0, name: profile.pages[$0].name)) })
+        showsRows = profile.isGlobal || (profile.mode == .profile && profile.hasButtons)
+        emptyAppName = !profile.isGlobal && profile.mode == .profile && !profile.hasButtons ? profile.name : nil
+        if profile.isGlobal {
+            let below = profile.pages.firstIndex(where: \.isBelow)
+            let center = profile.pages.indices.filter { $0 != below }
+            // 下のページしか無いときは、HUD でもふつうのページとして真ん中に並ぶ（NonetConfiguration.resolvedPages）
+            ownBelowPage = center.isEmpty ? nil : below
+            centerPages = center.isEmpty ? Array(profile.pages.indices) : center
+            globalBelowPage = nil
+            globalLayerPages = []
+        } else {
+            ownBelowPage = nil
+            centerPages = Array(profile.pages.indices)
+            let pages = global.pages.indices.map { GlobalPage(index: $0, title: SettingsText.pageTitle(index: $0, name: global.pages[$0].name)) }
+            // グローバルが下のページだけなら、HUD でもふつうのページ（グローバルの層）
+            let below = global.pages.count > 1 ? global.pages.firstIndex(where: \.isBelow).map { pages[$0] } : nil
+            globalBelowPage = below
+            globalLayerPages = pages.filter { $0.index != below?.index }
+        }
+    }
+
+    /// 輪の上と下に出す、止めると開くページ（設定の編集の輪の上・下）
+    enum Destination: Equatable {
+        /// このプロファイルのページ（押すとそのページを選ぶ）
+        case page(index: Int, title: String)
+        /// グローバルのページ（アプリのプロファイルから。押すとグローバルのそのページで開く）。title は出す名前
+        case global(GlobalPage, title: String)
+    }
+
+    /// pageIndex のページを編集しているときの、上・下の行き先。HUD の3段と同じ:
+    /// 下は下のページ（どのアプリでも）、上はグローバルのページ（アプリのとき。名前は「グローバル」）。
+    /// 下のページを編集しているときは、上で真ん中の段の最初のページへ戻る
+    func destinations(at pageIndex: Int, globalName: String) -> [PageEdge: Destination] {
+        var result: [PageEdge: Destination] = [:]
+        if isGlobal {
+            if pageIndex == ownBelowPage, let first = centerPages.first {
+                result[.up] = .page(index: first, title: titles[first] ?? "")
+            } else if let below = ownBelowPage {
+                result[.down] = .page(index: below, title: titles[below] ?? "")
+            }
+        } else if showsRows {
+            if let first = globalLayerPages.first {
+                result[.up] = .global(first, title: globalName)
+            }
+            if let below = globalBelowPage {
+                result[.down] = .global(below, title: below.title)
+            }
+        }
+        return result
+    }
+}
+

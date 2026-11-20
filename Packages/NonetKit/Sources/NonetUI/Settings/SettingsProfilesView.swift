@@ -396,28 +396,30 @@ struct SettingsEditorCenter: View {
 
     var body: some View {
         let profile = model.selectedProfile
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 // 名前が長くて入らないときは、使い方の見出しを省いて名前に場所を譲る（見出しはヘルプと VoiceOver に残す）
                 ViewThatFits(in: .horizontal) {
                     header(profile, showsModeLabel: true)
                     header(profile, showsModeLabel: false)
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    // 使っていないプロファイルは、グリッドを薄くせずに印で伝える（薄くすると灰色の文字が読めない。マスはそのまま直せる）
-                    if !profile.isGlobal, let badge = SettingsProfileRow.badge(profile.mode) {
-                        SettingsBadge(text: badge)
-                            .accessibilityHidden(true)
+                // 説明は、このプロファイルを HUD で使わないとき（「グローバルを使う」「使わない」）だけ。ふだんは名前だけ
+                if !profile.isGlobal, profile.mode != .profile {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        // 使っていないプロファイルは、輪を薄くせずに印で伝える（薄くすると灰色の文字が読めない。マスはそのまま直せる）
+                        if let badge = SettingsProfileRow.badge(profile.mode) {
+                            SettingsBadge(text: badge)
+                                .accessibilityHidden(true)
+                        }
+                        Text(SettingsText.profileDescription(profile))
+                            .font(.system(size: 12))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(SettingsText.profileDescription(profile))
-                        .font(.system(size: 12))
-                        .foregroundStyle(profile.mode == .profile ? Color.secondary : Color.primary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            SettingsPageBar(model: model)
             SettingsGridView(model: model)
+            SettingsPageBar(model: model)
             footer
             Spacer(minLength: 0)
         }
@@ -433,6 +435,7 @@ struct SettingsEditorCenter: View {
                 .truncationMode(.tail)
                 .layoutPriority(1)
             Spacer(minLength: 8)
+            SettingsMenuToggle(model: model)
             if !profile.isGlobal {
                 let title = String(localized: "\(profile.name) が前面にあるとき", bundle: .module)
                 let picker = Picker(selection: Binding(get: { profile.mode }, set: { model.setProfileMode(profile.id, $0) })) {
@@ -485,151 +488,87 @@ struct SettingsEditorCenter: View {
                 Spacer(minLength: 8)
             }
             .font(.system(size: 11))
-        } else {
-            HStack(alignment: .firstTextBaseline) {
-                Text("マスを選んで右側で設定。ドラッグか ⌥⌘＋矢印キーで入れ替え、Delete で空にする。", bundle: .module)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 8)
-            }
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
         }
     }
 }
 
-/// ページの切り替え（最大3）と、メニューから割り当て。ページの見出しのダブルクリックで名前を変える
+/// ページの切り替え（最大3）。輪の下に、ホーム画面のような点と ‹ ›・＋（ページを追加）・…（ページの操作）。
+/// 点にポインタを重ねるとページの名前が出て、ダブルクリックか右クリックで名前を変える。マスを点に落とすと、そのページの空きマスへ移す。
+/// 下のページ（グローバルの Page.isBelow）は点に入れない（輪の下の「↓ ユーティリティ」から開く）
 struct SettingsPageBar: View {
     let model: SettingsModel
 
     var body: some View {
-        // 窓が狭いときはページの名前を数字だけに、それでも入らなければ「メニューから割り当て」をアイコンだけにする
-        // （数字だけでもページと分かるが、アイコンだけのボタンは何をするのか分からない）
-        ViewThatFits(in: .horizontal) {
-            bar(compactPages: false, compactMenuButton: false)
-            bar(compactPages: true, compactMenuButton: false)
-            bar(compactPages: true, compactMenuButton: true)
-        }
-    }
-
-    private func bar(compactPages: Bool, compactMenuButton: Bool) -> some View {
-        let profile = model.selectedProfile
-        return HStack(spacing: 6) {
-            do {
-                ForEach(profile.pages.indices, id: \.self) { index in
-                    pageButton(
-                        index,
-                        name: profile.pages[index].name,
-                        isSelected: index == model.pageIndex,
-                        compact: compactPages
-                    )
+        let pages = model.pageMap.centerPages
+        HStack(spacing: 10) {
+            step(-1, pages: pages)
+            HStack(spacing: 4) {
+                ForEach(pages, id: \.self) { index in
+                    dot(index)
                 }
-                if model.canAddPage {
-                    // 空のページのほかに、初回の設定に入るページ（画面に置く・ユーティリティ）も選べる。
-                    // 消した後や前の版から使っている人も足せるように
-                    Menu {
-                        addPageItems
-                    } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 22, height: 22)
-                    }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .fixedSize()
-                    .help(String(localized: "ページを追加", bundle: .module))
-                    .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
+            }
+            step(1, pages: pages)
+            if model.canAddPage {
+                // 空のページのほかに、初回の設定に入るページ（画面に置く・ユーティリティ）も選べる。
+                // 消した後や前の版から使っている人も足せるように
+                Menu {
+                    addPageItems
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .medium))
+                        .frame(width: 20, height: 20)
                 }
-                pageMenu
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(String(localized: "ページを追加", bundle: .module))
+                .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
             }
-            Spacer(minLength: 8)
-            menuToggle(compact: compactMenuButton)
+            pageMenu
         }
+        .foregroundStyle(.secondary)
     }
 
-    /// 「ページを追加」で選べる型。空のページを先に、初回の設定に入るページをその下に
-    @ViewBuilder private var addPageItems: some View {
-        Button(PageTemplate.empty.title) { model.addPage(.empty) }
-        Divider()
-        ForEach([PageTemplate.windowPlacement, .utilities], id: \.self) { template in
-            Button(template.title) { model.addPage(template) }
-        }
-    }
-
-    /// 選んでいるページの操作。削除はページの見出しの横に記号だけで置かない（区切りの線に見え、どのページを消すのかも分からない）
-    private var pageMenu: some View {
-        let title = String(localized: "ページの操作", bundle: .module)
-        return Menu {
-            Menu {
-                addPageItems
-            } label: {
-                Text(String(localized: "settings.pageMenu.addPage", defaultValue: "ページを追加", bundle: .module))
-            }
-            .disabled(!model.canAddPage)
-            Button {
-                model.beginRenamingPage(model.pageIndex)
-            } label: {
-                Text("名前を変更…", bundle: .module)
-            }
-            Divider()
-            Button(role: .destructive) {
-                model.requestRemovePage(model.pageIndex)
-            } label: {
-                Text("このページを削除…", bundle: .module)
-            }
-            .disabled(!model.canRemovePage)
+    /// ‹ ›: 点の並びの前・次のページ（端からは反対の端へ回る。HUD の左右と同じ）。下のページを編集しているときは、点の最初か最後
+    private func step(_ direction: Int, pages: [Int]) -> some View {
+        let title = direction < 0 ? MenuBarCheatSheet.previousPageTitle : MenuBarCheatSheet.nextPageTitle
+        return Button {
+            guard !pages.isEmpty else { return }
+            let position = pages.firstIndex(of: model.pageIndex)
+            let next = position.map { (($0 + direction) % pages.count + pages.count) % pages.count } ?? (direction < 0 ? pages.count - 1 : 0)
+            model.selectPage(pages[next])
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        .buttonStyle(.plain)
+        .disabled(pages.count < 2 && pages.first == model.pageIndex)
         .help(title)
         .accessibilityLabel(title)
     }
 
-    private func menuToggle(compact: Bool) -> some View {
-        let title = String(localized: "メニューから割り当て", bundle: .module)
-        return Toggle(isOn: Binding(get: { model.rightPanel == .menus }, set: { model.showMenus($0) })) {
-            if compact {
-                Image(systemName: "filemenu.and.selection")
-            } else {
-                Label {
-                    Text(title).lineLimit(1)
-                } icon: {
-                    Image(systemName: "filemenu.and.selection")
-                }
-            }
-        }
-        .toggleStyle(.button)
-        .controlSize(.small)
-        .fixedSize()
-        .help(title)
-        .accessibilityLabel(title)
-    }
-
-    private func pageButton(_ index: Int, name: String?, isSelected: Bool, compact: Bool) -> some View {
+    /// ページの点。選んでいるページだけ濃く塗る。押すとそのページへ
+    private func dot(_ index: Int) -> some View {
+        let profile = model.selectedProfile
+        let name = profile.pages.indices.contains(index) ? profile.pages[index].name : nil
         let title = SettingsText.pageTitle(index: index, name: name)
+        let isSelected = index == model.pageIndex
         let rename = String(localized: "名前を変更…", bundle: .module)
         return Button {
             model.selectPage(index)
         } label: {
-            Text(compact ? "\(index + 1)" : title)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: compact ? nil : 140)
-                .fixedSize()
-                .padding(.horizontal, compact ? 8 : 10)
-                .padding(.vertical, 4)
-                .frame(minWidth: 26)
-                .foregroundStyle(isSelected ? Color(nsColor: .windowBackgroundColor) : Color.primary)
-                // 選んでいるページだけを塗る。ほかのページに枠を付けると、グリッドの選んでいるマスと見分けにくい
-                .background(Capsule(style: .circular).fill(isSelected ? Color.primary : SettingsPalette.cellBackground))
-                .contentShape(Capsule(style: .circular))
+            Circle()
+                .fill(isSelected ? Color.primary : Color.secondary.opacity(0.35))
+                .frame(width: 8, height: 8)
+                .frame(width: 18, height: 20)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         // ダブルクリックで名前を変える（1回目のクリックでそのページを選ぶ）
         .simultaneousGesture(TapGesture(count: 2).onEnded { model.beginRenamingPage(index) })
-        .help(String(localized: "ダブルクリックで名前を変更", bundle: .module))
+        .help(title)
         .accessibilityLabel(SettingsText.pageAccessibilityLabel(index: index, name: name))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityAction(named: rename) { model.beginRenamingPage(index) }
@@ -654,10 +593,70 @@ struct SettingsPageBar: View {
             }
         }
         .dropDestination(for: SettingsDragItem.self) { items, _ in
-            // マスをページの見出しに落とすと、そのページの空きマスへ移す
+            // マスをページの点に落とすと、そのページの空きマスへ移す
             guard let item = items.first else { return false }
             return model.handleDrop(item.payload, ontoPage: index)
         }
+    }
+
+    /// 「ページを追加」で選べる型。空のページを先に、初回の設定に入るページをその下に
+    @ViewBuilder private var addPageItems: some View {
+        Button(PageTemplate.empty.title) { model.addPage(.empty) }
+        Divider()
+        ForEach([PageTemplate.windowPlacement, .utilities], id: \.self) { template in
+            Button(template.title) { model.addPage(template) }
+        }
+    }
+
+    /// 選んでいるページの操作（追加・名前の変更・削除）
+    private var pageMenu: some View {
+        let title = String(localized: "ページの操作", bundle: .module)
+        return Menu {
+            Menu {
+                addPageItems
+            } label: {
+                Text(String(localized: "settings.pageMenu.addPage", defaultValue: "ページを追加", bundle: .module))
+            }
+            .disabled(!model.canAddPage)
+            Button {
+                model.beginRenamingPage(model.pageIndex)
+            } label: {
+                Text("名前を変更…", bundle: .module)
+            }
+            Divider()
+            Button(role: .destructive) {
+                model.requestRemovePage(model.pageIndex)
+            } label: {
+                Text("このページを削除…", bundle: .module)
+            }
+            .disabled(!model.canRemovePage)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 20, height: 20)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(title)
+        .accessibilityLabel(title)
+    }
+}
+
+/// メニューから割り当て（右側の列を、アプリのメニューの一覧にする）。見出しの右に置く
+struct SettingsMenuToggle: View {
+    let model: SettingsModel
+
+    var body: some View {
+        let title = String(localized: "メニューから割り当て", bundle: .module)
+        Toggle(isOn: Binding(get: { model.rightPanel == .menus }, set: { model.showMenus($0) })) {
+            Image(systemName: "filemenu.and.selection")
+        }
+        .toggleStyle(.button)
+        .controlSize(.small)
+        .fixedSize()
+        .help(title)
+        .accessibilityLabel(title)
     }
 }
 

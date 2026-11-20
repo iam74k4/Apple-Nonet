@@ -313,8 +313,8 @@ import Testing
         #expect(Self.near(edge, (ControllerPointerSelection.cellCenter(5).x, ControllerPointerSelection.cellCenter(5).y - ControllerPointerSelection.cellOffsetLimit)))
     }
 
-    @Test("ポインタで選ぶとき、2本指でページを変えた後は、同じ鍵の中で滑らせ直せば選べる")
-    func reselectingTheSameKeyAfterATwoFingerSwipe() {
+    @Test("ポインタで選ぶとき、2本指が触れた後は、同じ鍵の中で滑らせ直せば選べる")
+    func reselectingTheSameKeyAfterTwoFingers() {
         var s = SessionScenario(pageCount: 2)
         s.slideIn(at: 0)
         var selection = ControllerPointerSelection()
@@ -322,7 +322,8 @@ import Testing
         s.touch(x: onKey.x, y: onKey.y, at: 0.1)
         s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
         s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 0.3)
-        #expect(s.engine.pageIndex == 1)
+        // 2本指で動かしてもページは変わらない
+        #expect(s.engine.pageIndex == 0)
         // 1本指に戻る: ポインタは右の鍵の上のまま。滑らせ直すまでは選ばない
         s.setFingers([(1, onKey.x, onKey.y)], at: 0.4)
         #expect(s.engine.hud?.highlightedCell == nil)
@@ -330,6 +331,6 @@ import Testing
         let slid = selection.position(of: Self.pointer(108, 10), in: Self.map)!
         let moved = s.touch(x: slid.x, y: slid.y, at: 0.5)
         #expect(moved.hudStates.last?.highlightedCell == 5)
-        #expect(s.lift(at: 0.7).executions == [.execute(page: 1, cell: 5)])
+        #expect(s.lift(at: 0.7).executions == [.execute(page: 0, cell: 5)])
     }
 }

@@ -31,7 +31,7 @@ enum SettingsText {
 
     /// 横の小さな図と並ぶので、要るところだけ（開く・実行する・やめる・ページを変える）。くわしくは利用ガイド
     static var openGestureDetail: String {
-        String(localized: "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。", bundle: .module)
+        String(localized: "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。", bundle: .module)
     }
 
     static func name(_ sensitivity: OpenSensitivity) -> String {
@@ -126,6 +126,20 @@ enum SettingsText {
     static func pageAccessibilityLabel(index: Int, name: String?) -> String {
         guard let name = Page.normalizedName(name) else { return String(localized: "ページ \(index + 1)", bundle: .module) }
         return String(localized: "ページ \(index + 1)、\(name)", bundle: .module)
+    }
+
+    /// 下のページ（Page.isBelow）の印の名前（早見表の VoiceOver）
+    static var belowPageMark: String {
+        String(localized: "下のページ", bundle: .module)
+    }
+
+    /// ページの並びの図の、段の向きの説明（向きの記号のヘルプと VoiceOver）
+    static func pageMapRowHelp(_ edge: PageEdge) -> String {
+        switch edge {
+        case .up: String(localized: "輪の上で止めると開くページ", bundle: .module)
+        case .down: String(localized: "輪の下で止めると開くページ", bundle: .module)
+        case .left, .right: String(localized: "輪の右・左で止めて送るページ", bundle: .module)
+        }
     }
 
     /// 隣のマスと入れ替える操作の名前（右クリック・VoiceOver）

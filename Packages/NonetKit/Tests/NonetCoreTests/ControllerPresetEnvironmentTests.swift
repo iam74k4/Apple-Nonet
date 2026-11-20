@@ -16,8 +16,8 @@ import Testing
         let cells = xcode.pages[0].cells.compactMap { $0 }
         #expect(cells.count == 8)
         #expect(!cells.contains { if case .script(let script) = $0.action { script.runMode == .terminal } else { false } })
-        // ランチャーは「画面に置く」「ユーティリティ」の次のページ
-        let global = h.controller.configuration.globalProfile.pages[2].cells.compactMap { $0 }
+        // ランチャーは「画面に置く」の次のページ（「ユーティリティ」は下のページで、最後）
+        let global = h.controller.configuration.globalProfile.pages[1].cells.compactMap { $0 }
         #expect(global.first?.action == .launchApp(LaunchAppAction(app: Self.figma)))
         #expect(global.dropFirst().first?.icon == .app(bundleID: "com.apple.mail"))
     }

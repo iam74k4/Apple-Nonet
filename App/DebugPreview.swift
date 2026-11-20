@@ -39,10 +39,10 @@ final class DebugPreview {
 
     /// 前面アプリの最初のページの HUD を出したままにし、3秒ごとに状態を替える（--snapshot の各回で1つずつ写る）:
     /// 1. 中央のマスで指を止めている 2. 指が外枠にある（離すとやめる） 3. 少し長く止めるマスを止めている途中 4. 止め終えた
-    /// 5. 指が右の外枠にあり、止めると次のページ（ページが1つなら、外枠にあるだけ）
-    /// 6. 下の帯で止めてグローバルの層へ移った（押し出し・紺の台・層の名前） 7. 上の帯で止めてアプリの層へ戻った
+    /// 5. 指が右の外枠にあり、止めると次のページ（行き先の名前。ページが1つなら、外枠にあるだけ）
+    /// 6. 上の帯で止めてグローバルの層へ移った（押し出し・紺の台・層の名前） 7. 下の帯で止めてアプリの層へ戻った
     /// （6・7 は前面のアプリにプロファイルがあるときだけ。無ければ 2 と同じ）
-    /// 8. 下の帯で止めたが、層が1つで切り替える先が無い（案内。前面のアプリにプロファイルが無いときだけ。あれば 2 と同じ）
+    /// 8. 下の帯に止めている（行き先の下のページの名前。下のページが無ければ 2 と同じ）
     func showHUD(bundleID: String? = nil, backdrop image: URL? = nil) {
         previewBundleID = bundleID
         if let image {
@@ -85,14 +85,16 @@ final class DebugPreview {
     private func showHUDState(_ state: Int) {
         let configuration = controller.configuration
         let pages = configuration.resolvedPages(frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
-        guard let first = pages.first else { return }
-        // アプリのプロファイルがあれば、アプリの層とグローバルの層の2つ（ControllerPresentation と同じ分け方）
-        let layerStart = pages.firstIndex { $0.profileID != first.profileID }
-        let showsGlobal = state == 5 && layerStart != nil
-        let page = showsGlobal ? pages[layerStart!] : first
-        let layer: HUDLayer? = layerStart == nil ? nil : (showsGlobal ? .global : .app)
-        let layerPageCount = layerStart.map { showsGlobal ? pages.count - $0 : $0 } ?? pages.count
-        let lastTurn: PageEdge? = layerStart == nil ? nil : (state == 5 ? .down : state == 6 ? .up : nil)
+        guard !pages.isEmpty else { return }
+        // 層の分け方（アプリ・グローバル・下のページ）は HUD と同じ ControllerPresentation.layers で決める
+        let globalStart = ControllerPresentation.globalPagesStart(pages)
+        let showsGlobal = state == 5 && globalStart != nil
+        let pageIndex = showsGlobal ? globalStart ?? 0 : 0
+        let page = pages[pageIndex]
+        let layers = ControllerPresentation.layers(of: pages, at: pageIndex)
+        let layer = layers.layer
+        let layerPageCount = max(layers.range.count, 1)
+        let lastTurn: PageEdge? = globalStart == nil ? nil : (state == 5 ? .up : state == 6 ? .down : nil)
         let holdIndex = page.cells.firstIndex { $0?.requiresHold == true } ?? Self.previewHoldCell
         let cells = page.cells.enumerated().map { index, cell in
             cell.map {
@@ -105,9 +107,24 @@ final class DebugPreview {
             }
         }
         let since = ProcessInfo.processInfo.systemUptime
-        let edgePaging = state == 4 && layerPageCount > 1
-            ? HUDEdgePaging(edge: .right, since: since, duration: SessionConfiguration.defaultEdgePageDwell)
-            : nil
+        let edgePaging: HUDEdgePaging? = if state == 4, layerPageCount > 1 {
+            HUDEdgePaging(
+                edge: .right,
+                since: since,
+                duration: SessionConfiguration.defaultEdgePageDwell,
+                destinationTitle: ControllerPresentation.destinationTitle(of: .right, pages: pages, at: pageIndex, layer: nil)
+            )
+        } else if state == 7, ControllerPresentation.belowPageStart(pages) != nil {
+            HUDEdgePaging(
+                edge: .down,
+                since: since,
+                duration: SessionConfiguration.defaultEdgePageDwell,
+                destination: .below,
+                destinationTitle: ControllerPresentation.destinationTitle(of: .down, pages: pages, at: pageIndex, layer: .below)
+            )
+        } else {
+            nil
+        }
         let (highlight, inFrame, hold): (Int?, Bool, HUDHold?) = switch state {
         case 1, 4, 5, 6, 7: (nil, true, nil)
         case 2: (holdIndex, false, HUDHold(cellIndex: holdIndex, since: since, duration: SessionConfiguration.defaultHoldDwell, isReady: false))
@@ -127,10 +144,7 @@ final class DebugPreview {
             banner: license.canExecuteActions ? nil : ControllerPresentation.trialEndedBanner,
             layer: layer,
             lastTurn: lastTurn,
-            scale: configuration.settings.hudScale.factor,
-            edgeHint: state == 7
-                ? ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: previewBundleID ?? services.frontmostApp.current?.app.bundleID)
-                : nil
+            scale: configuration.settings.hudScale.factor
         )
         hud.show(model)
     }

@@ -13,14 +13,10 @@ struct ControllerSession: Equatable, Sendable {
     var hasShownHUD = false
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
-    /// 層が1つのときに、上下の帯に止めたら出す案内（ControllerPresentation.layerHint）。左右の帯の案内は前面のアプリによらない
-    let layerHint: String?
-
     init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
         pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
-        layerHint = ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: frontmostApp?.app.bundleID)
     }
 
     var engineConfiguration: SessionConfiguration {
@@ -28,10 +24,11 @@ struct ControllerSession: Equatable, Sendable {
         let occupied = pages.map { page in Set(page.cells.indices.filter { page.cells[$0] != nil }) }
         // 少し長く止めてから実行するマス
         let holds = pages.map { page in Set(page.cells.indices.filter { page.cells[$0]?.requiresHold == true }) }
-        // 下で止めるとグローバルのページの層へ、上でアプリのページの層へ戻る
+        // 上で止めるとグローバルのページの層へ、下で下のページへ（それぞれ反対の向きで元の層へ戻る）
         return SessionConfiguration(
             pageCount: pages.count,
             layerStart: ControllerPresentation.globalPagesStart(pages),
+            belowStart: ControllerPresentation.belowPageStart(pages),
             occupiedCells: occupied,
             holdCells: holds
         )
@@ -67,8 +64,7 @@ struct ControllerSession: Equatable, Sendable {
             banner: banner?.text,
             bannerStyle: banner?.style ?? .warning,
             scale: settings.hudScale.factor,
-            isWaitingAtCenter: isWaitingAtCenter,
-            layerHint: layerHint
+            isWaitingAtCenter: isWaitingAtCenter
         )
     }
 }

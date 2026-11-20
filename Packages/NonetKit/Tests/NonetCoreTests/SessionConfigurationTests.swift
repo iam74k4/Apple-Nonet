@@ -8,13 +8,11 @@ import NonetCore
         #expect(configuration.hysteresis == 0.03)
         #expect(configuration.frame == .cancelFrame)
         #expect(configuration.frameHysteresis == 0.015)
-        #expect(configuration.swipeThreshold == 0.12)
         #expect(configuration.maxDuration == 20)
         #expect(configuration.liftDwell == 0.1)
         #expect(configuration.holdDwell == 0.45)
         #expect(configuration.boundaryBand == 0.015)
         #expect(configuration.edgePageDwell == 0.5)
-        #expect(configuration.edgePageRepeat == 0.9)
         // 中身のあるマスが分からなければ、空きマスの判断は controller に任せる
         #expect(configuration.occupiedCells == nil)
         #expect(configuration.holdCells == nil)
@@ -36,22 +34,19 @@ import NonetCore
         let broken = SessionConfiguration(
             pageCount: 0,
             hysteresis: .nan,
-            swipeThreshold: 0,
             maxDuration: -5,
             liftDwell: -1,
             holdDwell: .nan
         ).sanitized
         #expect(broken.pageCount == 1)
         #expect(broken.hysteresis == GridMapper.defaultHysteresis)
-        #expect(broken.swipeThreshold == SessionConfiguration.defaultSwipeThreshold)
         #expect(broken.maxDuration == SessionConfiguration.defaultMaxDuration)
         #expect(broken.liftDwell == SessionConfiguration.defaultLiftDwell)
         #expect(broken.holdDwell == SessionConfiguration.defaultHoldDwell)
 
-        let extreme = SessionConfiguration(pageCount: -3, hysteresis: 2, swipeThreshold: 4, maxDuration: .infinity).sanitized
+        let extreme = SessionConfiguration(pageCount: -3, hysteresis: 2, maxDuration: .infinity).sanitized
         #expect(extreme.pageCount == 1)
         #expect(extreme.hysteresis == GridMapper.maxHysteresis)
-        #expect(extreme.swipeThreshold == 1)
         #expect(extreme.maxDuration == SessionConfiguration.defaultMaxDuration)
     }
 
@@ -71,8 +66,8 @@ import NonetCore
     @Test func engineTreatsAZeroPageCountAsOnePage() {
         var s = SessionScenario(pageCount: 0)
         s.slideIn(at: 0)
-        s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.1)
-        s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.15)
+        s.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.1)
+        s.tick(at: 0.1 + SessionConfiguration.defaultEdgePageDwell)
         #expect(s.engine.pageIndex == 0)
         // 1ページしか無いので、先へ行けなかったことだけを知らせる
         #expect(s.log.hapticEvents == [.activation, .rejected])

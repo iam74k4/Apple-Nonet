@@ -44,25 +44,33 @@ public struct HUDHold: Equatable, Sendable {
     }
 }
 
-/// アプリのページとグローバルのページの2つの層があるときの、いまの層
+/// いまの層。アプリのページとグローバルのページの2つの層があるときの、どちらか。下のページ（Page.isBelow）は、層が1つでも below
 public enum HUDLayer: Equatable, Sendable {
     case app
     case global
+    /// 下のページ（グローバルの「ユーティリティ」など）
+    case below
 }
 
 /// 外枠の帯に指を止めている間の、ページか層を切り替えるまでの進み具合（SessionEdgePaging）
 public struct HUDEdgePaging: Equatable, Sendable {
-    /// 指を止めている側。左は前のページ、右は次のページ、下はグローバルの層、上はアプリの層
+    /// 指を止めている側。左は前のページ、右は次のページ、上下は destination の層
     public var edge: PageEdge
     /// 止め始めた時刻（Scheduler.now の秒）。HUD は、これが変わったら進み具合を最初から満たし直す
     public var since: TimeInterval
     /// 切り替えるまでの秒数。HUD はこの間に進み具合を満たしていく
     public var duration: TimeInterval
+    /// 上下で移る先の層。前面のアプリのページが無いときのグローバルのページも global。左右と、分からなければ nil
+    public var destination: HUDLayer?
+    /// 移る先の短い名前（「デバッグ」「ページ 2」「ユーティリティ」「グローバル」）。HUD は真ん中の鍵の下に出し、VoiceOver でも読む
+    public var destinationTitle: String?
 
-    public init(edge: PageEdge, since: TimeInterval = 0, duration: TimeInterval) {
+    public init(edge: PageEdge, since: TimeInterval = 0, duration: TimeInterval, destination: HUDLayer? = nil, destinationTitle: String? = nil) {
         self.edge = edge
         self.since = since
         self.duration = duration
+        self.destination = destination
+        self.destinationTitle = destinationTitle
     }
 }
 
@@ -95,7 +103,8 @@ public struct HUDModel: Equatable, Sendable {
     /// 上部の注意書き（例: 試用期間の終了）
     public var banner: String?
     public var bannerStyle: HUDBannerStyle
-    /// アプリとグローバルの2つの層があるときの、いまの層（グローバルの層は台を紺に寄せる）。層が1つなら nil
+    /// アプリとグローバルの2つの層があるときの、いまの層（グローバルの層は台を紺に寄せる）。下のページなら below。
+    /// 前面のアプリのページが無く、グローバルのページ（下のページのほか）にいるなら nil
     public var layer: HUDLayer?
     /// 最後にページか層を切り替えた向き（SessionHUDState.lastTurn）。HUD は切り替わったときに、この向きへ輪を押し出す
     public var lastTurn: PageEdge?
@@ -105,10 +114,6 @@ public struct HUDModel: Equatable, Sendable {
     /// エンジンには外枠として伝えているので isFingerInFrame も true になるが（離しても何も起きない）、
     /// HUD は「離すとやめる」の薄い見た目にせず、まだ何も選んでいない見た目で出す（開くたびに薄くなっては、選べないように見える）
     public var isWaitingAtCenter: Bool
-    /// 外枠の帯に止めても切り替える先が無いときの案内（SessionHUDState.edgeHint。上下は ControllerPresentation.layerHint、
-    /// 左右は ControllerPresentation.sidePageHint）。HUD は真ん中の鍵の下に出し、VoiceOver でも読む
-    public var edgeHint: String?
-
     public init(
         title: String,
         pageIndex: Int,
@@ -127,8 +132,7 @@ public struct HUDModel: Equatable, Sendable {
         layer: HUDLayer? = nil,
         lastTurn: PageEdge? = nil,
         scale: Double = 1,
-        isWaitingAtCenter: Bool = false,
-        edgeHint: String? = nil
+        isWaitingAtCenter: Bool = false
     ) {
         self.title = title
         self.pageIndex = pageIndex
@@ -148,7 +152,6 @@ public struct HUDModel: Equatable, Sendable {
         self.lastTurn = lastTurn
         self.scale = scale
         self.isWaitingAtCenter = isWaitingAtCenter
-        self.edgeHint = edgeHint
     }
 }
 

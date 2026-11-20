@@ -8,7 +8,6 @@ import Foundation
 
 /// 1回のセッションで使う設定。開くときに渡し、そのセッションの間は変わらない
 public struct SessionConfiguration: Equatable, Sendable {
-    public static let defaultSwipeThreshold = 0.12
     /// これを超えたセッションは終える（指が離れたフレームを取りこぼしたときの安全装置）。
     /// ふつうのセッションは数秒で終わり、指を止めて迷っていても 20 秒あれば足りる
     public static let defaultMaxDuration: TimeInterval = 20
@@ -35,22 +34,22 @@ public struct SessionConfiguration: Equatable, Sendable {
     /// 外枠の帯（左右はページ、上下は層）に指を止めてから、切り替えるまでの秒数。
     /// やめるつもりで外枠に出て離すまで（0.2〜0.3 秒ほど）よりは長く、待つのがもどかしくない短さ
     public static let defaultEdgePageDwell: TimeInterval = 0.5
-    /// 切り替えた後も止めているとき、次に切り替えるまでの秒数。続けて送れるが、行き過ぎないよう最初より長くする
-    public static let defaultEdgePageRepeat: TimeInterval = 0.9
 
     /// 前面アプリで使うページの数（resolvedPages の数）。1 未満は 1 とみなす
     public var pageCount: Int
     /// 2つ目の層（グローバルのページ）の最初のページ。アプリのページの後ろにグローバルのページをつなげたとき。
-    /// 左右はその層の中だけでページを送り、下で止めるとこの層へ、上で止めるとアプリの層へ戻る。nil なら層は1つ（上下では何も起きない）
+    /// 左右はその層の中だけでページを送り、上で止めるとこの層へ、下で止めるとアプリの層へ戻る。nil ならアプリの層は無い（上では何も起きない）
     public var layerStart: Int?
+    /// 下のページ（グローバルの「ユーティリティ」など。ResolvedPage.isBelow）。いちばん後ろの1ページ。
+    /// 真ん中の層（アプリの層、それが無ければグローバルの層）で下に止めるとこのページへ、ここで上に止めると真ん中の層の元のページへ戻る。
+    /// nil なら下のページは無い
+    public var belowStart: Int?
     /// マスの境界で今のマスを保つ余裕（トラックパッド全体を 1 とした割合）
     public var hysteresis: Double
     /// 9マスの外側の枠（やめる場所）の幅
     public var frame: GridInsets
     /// 外枠と9マスの境目で今の場所を保つ余裕
     public var frameHysteresis: Double
-    /// 切り替える、2本の指の平均の移動量（トラックパッドの幅・奥行きを 1 とした割合）。横ならページ、縦なら層
-    public var swipeThreshold: Double
     public var maxDuration: TimeInterval
     /// ページごとの、中身のあるマス（0〜8）。nil や範囲外のページは、すべてのマスに中身があるとみなす。
     /// 空きマスで指を離したら、実行せずにやめる（rejected の触覚）
@@ -62,30 +61,28 @@ public struct SessionConfiguration: Equatable, Sendable {
     public var liftDwell: TimeInterval
     public var holdDwell: TimeInterval
     public var edgePageDwell: TimeInterval
-    public var edgePageRepeat: TimeInterval
 
     public init(
         pageCount: Int = 1,
         layerStart: Int? = nil,
+        belowStart: Int? = nil,
         hysteresis: Double = GridMapper.defaultHysteresis,
         frame: GridInsets = .cancelFrame,
         frameHysteresis: Double = GridMapper.defaultFrameHysteresis,
-        swipeThreshold: Double = SessionConfiguration.defaultSwipeThreshold,
         maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration,
         occupiedCells: [Set<Int>]? = nil,
         holdCells: [Set<Int>]? = nil,
         boundaryBand: Double = GridMapper.defaultBoundaryBand,
         liftDwell: TimeInterval = SessionConfiguration.defaultLiftDwell,
         holdDwell: TimeInterval = SessionConfiguration.defaultHoldDwell,
-        edgePageDwell: TimeInterval = SessionConfiguration.defaultEdgePageDwell,
-        edgePageRepeat: TimeInterval = SessionConfiguration.defaultEdgePageRepeat
+        edgePageDwell: TimeInterval = SessionConfiguration.defaultEdgePageDwell
     ) {
         self.pageCount = pageCount
         self.layerStart = layerStart
+        self.belowStart = belowStart
         self.hysteresis = hysteresis
         self.frame = frame
         self.frameHysteresis = frameHysteresis
-        self.swipeThreshold = swipeThreshold
         self.maxDuration = maxDuration
         self.occupiedCells = occupiedCells
         self.holdCells = holdCells
@@ -93,7 +90,6 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.liftDwell = liftDwell
         self.holdDwell = holdDwell
         self.edgePageDwell = edgePageDwell
-        self.edgePageRepeat = edgePageRepeat
     }
 
     /// 範囲外の値を直したもの。エンジンはセッションの開始時にこれを使う
@@ -101,19 +97,19 @@ public struct SessionConfiguration: Equatable, Sendable {
         var result = self
         result.maxDuration = maxDuration.isFinite && maxDuration > 0 ? maxDuration : Self.defaultMaxDuration
         result.pageCount = max(pageCount, 1)
-        // 層の境目は、どちらの層にも1ページ以上あるときだけ
-        result.layerStart = layerStart.flatMap { $0 > 0 && $0 < result.pageCount ? $0 : nil }
+        // 層の境目は、どちらの層にも1ページ以上あるときだけ（下のページは数えない）
+        result.belowStart = belowStart.flatMap { $0 > 0 && $0 < result.pageCount ? $0 : nil }
+        let end = result.belowStart ?? result.pageCount
+        result.layerStart = layerStart.flatMap { $0 > 0 && $0 < end ? $0 : nil }
         let grid = self.grid
         result.hysteresis = grid.hysteresis
         result.boundaryBand = grid.boundaryBand
         result.frameHysteresis = grid.frameHysteresis
-        result.swipeThreshold = swipeThreshold.isFinite && swipeThreshold > 0 ? min(swipeThreshold, 1) : Self.defaultSwipeThreshold
         result.liftDwell = liftDwell.isFinite && liftDwell >= 0 ? liftDwell : Self.defaultLiftDwell
         // 少し長く止めるマスは、ふつうのマスより短くしない
         let hold = holdDwell.isFinite && holdDwell >= 0 ? holdDwell : Self.defaultHoldDwell
         result.holdDwell = max(hold, result.liftDwell)
         result.edgePageDwell = edgePageDwell.isFinite && edgePageDwell > 0 ? edgePageDwell : Self.defaultEdgePageDwell
-        result.edgePageRepeat = edgePageRepeat.isFinite && edgePageRepeat > 0 ? edgePageRepeat : Self.defaultEdgePageRepeat
         return result
     }
 
@@ -189,7 +185,7 @@ public struct SessionEdgePaging: Equatable, Sendable {
     public var edge: PageEdge
     /// 止め始めた時刻（外枠のその側に入った時刻か、前に切り替えた時刻）
     public var since: TimeInterval
-    /// 切り替えるまでの秒数（edgePageDwell。続けて止めているときは edgePageRepeat）
+    /// 切り替えるまでの秒数（edgePageDwell）
     public var duration: TimeInterval
 
     public init(edge: PageEdge, since: TimeInterval, duration: TimeInterval) {
@@ -213,11 +209,11 @@ public struct SessionHUDState: Equatable, Sendable {
     public var edgePaging: SessionEdgePaging?
     /// 指が、光っているマスと隣との境目の線の上にあり、いま離しても実行しない（止め終えた少し長く止めるマスは別。離せば実行する）
     public var isOnBoundary: Bool
-    /// 最後にページか層を切り替えた向き（右・左は次・前のページ、下・上は次・前の層。2本指のスワイプは右・左）。
+    /// 最後にページか層を切り替えた向き（右・左は次・前のページ、下・上はその向きの層。2本指のスワイプも同じ）。
     /// HUD は、切り替わったときにこの向きへ輪を押し出す。このセッションでまだ切り替えていなければ nil
     public var lastTurn: PageEdge?
-    /// 切り替える先の無い帯に指を edgePageDwell 止めた: その側。ページが1つの層の左右と、層が1つ（前面のアプリのページが無く、
-    /// グローバルのページだけ）の上下。HUD は、左右なら送るページが無いこと、上下ならアプリのページが無いことを案内する（HUDModel.edgeHint）。帯を出れば nil
+    /// 切り替える先の無い帯に指を edgePageDwell 止めた: その側（受け付けなかった触覚を1回鳴らした）。ページが1つの層の左右と、
+    /// 真ん中の層の上下（下は下のページが無いとき、上はグローバルの層が無いとき）。HUD は文字を出さない。帯を出れば nil
     public var edgeHint: PageEdge?
 
     public init(

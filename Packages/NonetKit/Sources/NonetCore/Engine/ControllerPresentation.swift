@@ -2,10 +2,9 @@
 // NonetController が HUD・トースト・結果のパネルに渡すものを作る純粋な関数
 import Foundation
 
-/// trialEndedBanner・trialReminderBanner・layerHint だけ公開する（App の見た目の確認でも、実際と同じ文言を出す）
+/// trialEndedBanner・trialReminderBanner と層の分け方（layers・globalPagesStart・belowPageStart・destinationTitle）を公開する（App の見た目の確認でも、実際と同じ文言と層を出す）
 public enum ControllerPresentation {
-    /// page は resolvedPages での位置。範囲外は端に寄せる。HUD のページの番号と数は、いまの層（アプリかグローバル）の中で数える。
-    /// layerHint は上下の帯の案内（layerHint(configuration:pages:frontmostBundleID:)）。左右の帯の案内は sidePageHint
+    /// page は resolvedPages での位置。範囲外は端に寄せる。HUD のページの番号と数は、いまの層（アプリかグローバル）の中で数える
     static func hudModel(
         pages: [ResolvedPage],
         state: SessionHUDState,
@@ -14,8 +13,7 @@ public enum ControllerPresentation {
         banner: String?,
         bannerStyle: HUDBannerStyle = .warning,
         scale: Double = 1,
-        isWaitingAtCenter: Bool = false,
-        layerHint: String? = nil
+        isWaitingAtCenter: Bool = false
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
@@ -33,7 +31,16 @@ public enum ControllerPresentation {
             highlightedIndex: highlight,
             isFingerInFrame: state.isInFrame,
             hold: hold,
-            edgePaging: state.isInFrame ? state.edgePaging.map { HUDEdgePaging(edge: $0.edge, since: $0.since, duration: $0.duration) } : nil,
+            edgePaging: state.isInFrame ? state.edgePaging.map { paging in
+                let layer = destination(of: paging.edge, from: layers.layer, hasAppLayer: hasAppLayer(pages))
+                return HUDEdgePaging(
+                    edge: paging.edge,
+                    since: paging.since,
+                    duration: paging.duration,
+                    destination: layer,
+                    destinationTitle: destinationTitle(of: paging.edge, pages: pages, at: index, layer: layer)
+                )
+            } : nil,
             isHighlightOnBoundary: highlight != nil && state.isOnBoundary,
             context: context(of: resolved, frontmostApp: frontmostApp),
             edgePeek: state.isInFrame ? edgePeek(pages: pages, page: index, edge: state.edgePaging?.edge) : nil,
@@ -43,38 +50,63 @@ public enum ControllerPresentation {
             layer: layers.layer,
             lastTurn: state.lastTurn,
             scale: scale,
-            isWaitingAtCenter: state.isInFrame && isWaitingAtCenter,
-            edgeHint: state.isInFrame ? state.edgeHint.flatMap { $0 == .left || $0 == .right ? sidePageHint : layerHint } : nil
+            isWaitingAtCenter: state.isInFrame && isWaitingAtCenter
         )
     }
 
-    /// ページが1つの層で、左右の帯に止めたら出す案内
-    static var sidePageHint: String {
-        String(localized: "左右に送るページはありません", bundle: .module)
-    }
-
-    /// 層が1つ（グローバルのページだけ）のときに、上下の帯に止めたら出す案内。前面のアプリにプロファイルが無ければ「ページはまだありません」、
-    /// プロファイルを「グローバルのページを使う」にしていればそのこと。層が2つ・前面のアプリが分からなければ nil
-    public static func layerHint(configuration: NonetConfiguration, pages: [ResolvedPage], frontmostBundleID: String?) -> String? {
-        guard globalPagesStart(pages) == nil, let bundleID = frontmostBundleID?.trimmedNonEmpty else { return nil }
-        if let index = configuration.appProfileIndex(forBundleID: bundleID) {
-            switch configuration.profiles[index].mode {
-            case .global:
-                return String(localized: "このアプリはグローバルのページを使います", bundle: .module)
-            case .off:
-                // 「このアプリでは使わない」（ふだんは開かない。初回の案内の練習でだけ開く）: ページが無いのではないので、何も言わない
+    /// 帯に止めているときの、移る先の短い名前。左右は同じ層の隣のページ（名前が無ければ「ページ 2」）、
+    /// 下のページはその名前、上下の層はプロファイルの名前（「グローバル」「Xcode」）。分からなければ nil
+    public static func destinationTitle(of edge: PageEdge, pages: [ResolvedPage], at index: Int, layer: HUDLayer?) -> String? {
+        switch edge {
+        case .left, .right:
+            let range = layers(of: pages, at: index).range
+            guard let neighbor = edge.neighbor(of: index, in: range), pages.indices.contains(neighbor) else { return nil }
+            return pages[neighbor].pageName.flatMap(Page.normalizedName)
+                ?? String(localized: "ページ \(neighbor - range.lowerBound + 1)", bundle: .module)
+        case .up, .down:
+            switch layer {
+            case .below?:
+                guard let below = belowPageStart(pages) else { return nil }
+                return pages[below].pageName.flatMap(Page.normalizedName) ?? pages[below].profileName
+            case .global?:
+                return pages.first { $0.profileID != pages.first?.profileID && !$0.isBelow }?.profileName
+                    ?? pages.first?.profileName
+            case .app?:
+                return pages.first?.profileName
+            case nil:
                 return nil
-            case .profile:
-                break
             }
         }
-        return String(localized: "このアプリのページはまだありません", bundle: .module)
     }
 
-    /// index のページがある層と、その層のページの範囲（resolvedPages での位置）。アプリのプロファイルが無く層が1つなら、layer は nil で範囲はすべて
-    static func layers(of pages: [ResolvedPage], at index: Int) -> (layer: HUDLayer?, range: Range<Int>) {
-        guard let start = globalPagesStart(pages) else { return (nil, 0..<max(pages.count, 1)) }
-        return index < start ? (.app, 0..<start) : (.global, start..<pages.count)
+    /// index のページがある層と、その層のページの範囲（resolvedPages での位置）。下のページは below で、そのページだけ。
+    /// アプリのプロファイルが無ければ、下のページのほかは layer が nil で、範囲はグローバルのページすべて
+    public static func layers(of pages: [ResolvedPage], at index: Int) -> (layer: HUDLayer?, range: Range<Int>) {
+        let below = belowPageStart(pages)
+        if let below, index >= below { return (.below, below..<pages.count) }
+        let end = below ?? pages.count
+        guard hasAppLayer(pages) else { return (nil, 0..<max(end, 1)) }
+        // グローバルが下のページだけなら、グローバルの層は無い（アプリの層だけ）
+        let start = globalPagesStart(pages) ?? end
+        return index < start ? (.app, 0..<start) : (.global, start..<end)
+    }
+
+    /// 真ん中の層がアプリのページ（前面のアプリのプロファイルのページを使う）。グローバルが下のページだけでグローバルの層が無くても true
+    static func hasAppLayer(_ pages: [ResolvedPage]) -> Bool {
+        guard let first = pages.first else { return false }
+        return pages.contains { $0.profileID != first.profileID }
+    }
+
+    /// layer（layers(of:at:)。nil はアプリのページが無いときのグローバルのページ）から edge の上下へ移る先の層（SessionState.turn と同じ3段）。
+    /// 下のページからは真ん中の層（アプリの層、無ければグローバルの層）へ、グローバルの層からはアプリの層へ戻る。左右は nil
+    static func destination(of edge: PageEdge, from layer: HUDLayer?, hasAppLayer: Bool) -> HUDLayer? {
+        switch (edge, layer) {
+        case (.down, .global?): .app
+        case (.down, _): .below
+        case (.up, .below?): hasAppLayer ? .app : .global
+        case (.up, _): .global
+        case (.left, _), (.right, _): nil
+        }
     }
 
     /// 何に対する操作かの帯。「画面に置く」のページなら、前面のアプリのウインドウ
@@ -96,11 +128,16 @@ public enum ControllerPresentation {
         return [0, 1, 2].map { row in cells[row * 3 + column].map(hudCell) }
     }
 
-    /// アプリのページの後ろにつなげたグローバルのページの、最初の位置（resolvedPages の先頭と別のプロファイルの最初のページ）。
+    /// アプリのページの後ろにつなげたグローバルのページの、最初の位置（resolvedPages の先頭と別のプロファイルの最初のページ。下のページは除く）。
     /// グローバルの層の始まり（SessionConfiguration.layerStart）
-    static func globalPagesStart(_ pages: [ResolvedPage]) -> Int? {
+    public static func globalPagesStart(_ pages: [ResolvedPage]) -> Int? {
         guard let first = pages.first else { return nil }
-        return pages.firstIndex { $0.profileID != first.profileID }
+        return pages.firstIndex { $0.profileID != first.profileID && !$0.isBelow }
+    }
+
+    /// 下のページの位置（ResolvedPage.isBelow。いちばん後ろ）。SessionConfiguration.belowStart。無ければ nil
+    public static func belowPageStart(_ pages: [ResolvedPage]) -> Int? {
+        pages.firstIndex(where: \.isBelow).flatMap { $0 > 0 ? $0 : nil }
     }
 
     static func hudCell(_ cell: Cell) -> HUDCell {

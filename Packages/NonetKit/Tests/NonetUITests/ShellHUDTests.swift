@@ -77,13 +77,13 @@ struct ShellHUDTests {
         #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
         model.edgePaging = HUDEdgePaging(edge: .right, since: 1, duration: 0.5)
         #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
-        // 上下の帯ではページの点を出さないので、譲らない
+        // 上下の帯ではページの点を出さないので、行き先の名前が無ければ譲らない
         model.edgePaging = HUDEdgePaging(edge: .down, since: 1, duration: 0.5)
         #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
-        model.edgePaging = nil
-        model.edgeHint = "案内"
+        // 行き先の名前を出しているときは譲る
+        model.edgePaging = HUDEdgePaging(edge: .down, since: 1, duration: 0.5, destination: .below, destinationTitle: "ユーティリティ")
         #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: true, keyLabel: nil))
-        model.edgeHint = nil
+        model.edgePaging = nil
         #expect(HUDView.isSpotUnderCenterTaken(model, inFrame: false, keyLabel: 4))
         #expect(!HUDView.isSpotUnderCenterTaken(model, inFrame: false, keyLabel: 5))
     }
@@ -168,11 +168,10 @@ struct ShellHUDTests {
         // マスから直に帯に入ったら、続けて読む
         #expect(HUDAnnouncement.announcement(from: Self.model(highlighted: 5, pageCount: 3), to: onRight)
             == [L10n.ui("離すとやめる"), L10n.ui("止めると次のページ")].joined(separator: separator))
-        // 切り替える先が無いことの案内も同じ: 出たときにその案内だけを読む
-        var hinted = inFrame
-        hinted.edgeHint = "案内"
-        #expect(HUDAnnouncement.announcement(from: inFrame, to: hinted) == "案内")
-        #expect(HUDAnnouncement.announcement(from: hinted, to: inFrame) == nil)
+        // 行き先の名前が分かれば、名前で読む
+        var named = onRight
+        named.edgePaging?.destinationTitle = "デバッグ"
+        #expect(HUDAnnouncement.announcement(from: inFrame, to: named) == L10n.ui("止めると「\("デバッグ")」へ"))
         var onLeft = onRight
         onLeft.edgePaging?.edge = .left
         #expect(HUDAnnouncement.frameLabel(in: onLeft) == [L10n.ui("離すとやめる"), L10n.ui("止めると前のページ")].joined(separator: separator))

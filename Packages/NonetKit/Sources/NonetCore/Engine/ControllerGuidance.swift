@@ -2,13 +2,16 @@
 // 試用期間の残り日数の知らせと、開きやすさの案内を、いつ出すか
 import Foundation
 
-/// 試用期間の知らせと開きやすさの案内をいつ出したかの記録。アプリでは UserDefaults に置き、テストでは差し替える
+/// 試用期間の知らせと開きやすさの案内をいつ出したかと、1回だけ行う設定の手直しを済ませたかの記録。アプリでは UserDefaults に置き、テストでは差し替える
 @MainActor
 public protocol HUDGuidanceStoring: AnyObject {
     /// 試用期間の残り日数の帯を最後に出した時刻
     var lastTrialReminder: Date? { get set }
     /// 開きやすさを「控えめ」にする案内（AccidentalOpenTracker）を出した（出すのは1回だけ）
     var hasShownSensitivityHint: Bool { get set }
+    /// 下のページの無い設定の「ユーティリティ」を下のページにする手直し（NonetConfiguration.markUtilityPageBelow）を済ませた。
+    /// 1回だけ行う（利用者が後で下のページを外しても、付け直さない）
+    var hasMarkedUtilityPageBelow: Bool { get set }
 }
 
 /// UserDefaults に置く記録（アプリ本体）
@@ -16,6 +19,7 @@ public protocol HUDGuidanceStoring: AnyObject {
 public final class UserDefaultsHUDGuidanceStore: HUDGuidanceStoring {
     static let lastTrialReminderKey = "com.iam74k4.Nonet.guidance.lastTrialReminder"
     static let sensitivityHintKey = "com.iam74k4.Nonet.guidance.sensitivityHintShown"
+    static let utilityPageAboveKey = "com.iam74k4.Nonet.migration.utilityPageAbove"
 
     private let defaults: UserDefaults
 
@@ -32,6 +36,11 @@ public final class UserDefaultsHUDGuidanceStore: HUDGuidanceStoring {
         get { defaults.bool(forKey: Self.sensitivityHintKey) }
         set { defaults.set(newValue, forKey: Self.sensitivityHintKey) }
     }
+
+    public var hasMarkedUtilityPageBelow: Bool {
+        get { defaults.bool(forKey: Self.utilityPageAboveKey) }
+        set { defaults.set(newValue, forKey: Self.utilityPageAboveKey) }
+    }
 }
 
 /// メモリだけに置く記録（Debug の --config-dir・自己診断・テスト）
@@ -39,10 +48,12 @@ public final class UserDefaultsHUDGuidanceStore: HUDGuidanceStoring {
 public final class MemoryHUDGuidanceStore: HUDGuidanceStoring {
     public var lastTrialReminder: Date?
     public var hasShownSensitivityHint: Bool
+    public var hasMarkedUtilityPageBelow: Bool
 
-    public init(lastTrialReminder: Date? = nil, hasShownSensitivityHint: Bool = false) {
+    public init(lastTrialReminder: Date? = nil, hasShownSensitivityHint: Bool = false, hasMarkedUtilityPageBelow: Bool = false) {
         self.lastTrialReminder = lastTrialReminder
         self.hasShownSensitivityHint = hasShownSensitivityHint
+        self.hasMarkedUtilityPageBelow = hasMarkedUtilityPageBelow
     }
 }
 

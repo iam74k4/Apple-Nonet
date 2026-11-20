@@ -131,15 +131,21 @@ import Testing
         #expect(PageTemplate.utilities.title == PresetBuilder.text("ユーティリティ"))
     }
 
-    /// 型のページを足すと、名前ごと最後に入る。上限なら足さない
+    /// 型のページを足すと、名前ごと入る（下のページの手前）。上限なら足さない。
+    /// 「ユーティリティ」は下のページとして作るが、グローバルにもう下のページがあれば、ふつうのページになる
     @Test func addingATemplatePageKeepsItsNameAndStopsAtTheLimit() throws {
         var configuration = NonetConfiguration.initial(appPresets: [], installedBundleIDs: [])
         let globalID = configuration.globalProfile.id
         #expect(configuration.globalProfile.pages.count == 2)
         let page = PageTemplate.utilities.makePage()
+        #expect(page.isBelow)
         let added = configuration.addPage(page, profileID: globalID)
-        #expect(added == 2)
-        #expect(configuration.globalProfile.pages[2] == page)
+        // 下のページはいつも最後なので、その手前に入る
+        #expect(added == 1)
+        var ordinary = page
+        ordinary.isBelow = false
+        #expect(configuration.globalProfile.pages[1] == ordinary)
+        #expect(configuration.globalProfile.pages.map(\.isBelow) == [false, false, true])
         let overLimit = configuration.addPage(profileID: globalID)
         #expect(overLimit == nil)
         #expect(configuration.globalProfile.pages.count == Profile.maxPages)

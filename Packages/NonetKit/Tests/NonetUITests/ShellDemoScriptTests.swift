@@ -13,6 +13,8 @@ struct ShellDemoScriptTests {
         var ends: [SessionEndReason] = []
         var openedAt: [TimeInterval] = []
         var pages: [Int] = []
+        /// 輪の外の帯に入っていて、そこで開くページの矢印（と名前）が出ていた時刻
+        var pagingShownAt: [TimeInterval] = []
     }
 
     /// 台本の指を 120Hz で入れ、開く動きの判定と SessionEngine を NonetController と同じ順でつなぐ。
@@ -23,8 +25,9 @@ struct ShellDemoScriptTests {
         var selection = ControllerPointerSelection()
         // 表示中の HUD の枠（倍率 1 の円を囲む正方形）。ポインタは枠の中心からの向きと距離だけを見るので、置く場所はどこでもよい
         let map = CGRect(x: 600, y: 300, width: RadialLayout.outerRadius * 2, height: RadialLayout.outerRadius * 2)
-        // 前面のアプリのプロファイル（1 ページ）の後ろにグローバルのページ。輪の下で止めるとグローバルの層（2 ページ目から）へ移る
-        let configuration = SessionConfiguration(pageCount: pageCount, layerStart: 1)
+        // 前面のアプリのプロファイル（1 ページ）の後ろにグローバルのページ、いちばん後ろに下のページ（ユーティリティ）。
+        // 輪の上で止めるとグローバルの層（2 ページ目から）へ、下で止めると下のページへ移る
+        let configuration = SessionConfiguration(pageCount: pageCount, layerStart: 1, belowStart: pageCount - 1)
         var result = Replay()
         var nextTick: TimeInterval?
         var wasTouching = false
@@ -42,6 +45,7 @@ struct ShellDemoScriptTests {
                     // HUD を出すたびに、ポインタの選び方は開いた直後に戻る（NonetController と同じ）
                     if case .showHUD = effect { selection = ControllerPointerSelection() }
                     if let page = engine.pageIndex, result.pages.last != page { result.pages.append(page) }
+                    if engine.hud?.edgePaging != nil { result.pagingShownAt.append(time) }
                 default: break
                 }
             }
@@ -100,25 +104,27 @@ struct ShellDemoScriptTests {
 
     // MARK: - 内蔵の台本
 
-    @Test("内蔵の台本は4回開く: 上のマスを実行・グローバルの層へ移って左のマスを実行・もう一度移り次のページの右上のマスを実行・輪の上の外で止めて離し、やめる")
+    @Test("内蔵の台本は4回開く: 上のマスを実行・グローバルの層へ移って左のマスを実行・もう一度移り次のページの右上のマスを実行・帯より遠くで止めて離し、やめる")
     func theBuiltInScriptShowsTheFourSessions() {
         let result = Self.replay(.builtIn)
         #expect(result.openedAt.count == 4)
         // 1回目は前面のアプリのページの上（1）、2回目はグローバルの最初のページの左（3）、3回目はその次のページの右上（2）。
         // 真ん中（4。「画面に置く」では最大化）は実行しない
         #expect(result.executions == ["0:1", "1:3", "2:2"])
-        // 輪の下で止めた2回はどちらも1回だけ層が替わり、輪の右で止めた1回は1ページだけ送る（止めすぎて続けて替わらない）
+        // 輪の上で止めた2回はどちらも1回だけ層が替わり、輪の右で止めた1回は1ページだけ送る（止めすぎて続けて替わらない）
         #expect(result.haptics.filter { $0 == .layerChange }.count == 2)
         #expect(result.haptics.filter { $0 == .pageChange }.count == 1)
         #expect(result.pages == [0, 1, 0, 1, 2, 0])
         #expect(result.ends == [.released, .released, .released, .cancelled(.liftedInFrame)])
+        // やめる場面は帯に入らない（入ると、そこで開くページの矢印と名前が一瞬出て、移るように見える）
+        #expect(result.pagingShownAt.filter { $0 > result.openedAt[3] }.isEmpty)
     }
 
     @Test("開く動きは、上の縁から1本指で下へ滑らせたもの。どれも触れてから 0.6 秒のうちに開く")
     func opensQuicklyFromTheTopBand() {
         let result = Self.replay(.builtIn)
         let touchStarts = Self.touchStarts(.builtIn)
-        #expect(touchStarts == [0.6, 4.0, 9.1, 15.1])
+        #expect(touchStarts == [0.6, 4.0, 8.8, 14.5])
         #expect(result.openedAt.count == touchStarts.count)
         for (start, opened) in zip(touchStarts, result.openedAt) {
             #expect(opened - start < EdgeSlideRecognizer.entryWindow)
@@ -151,12 +157,19 @@ struct ShellDemoScriptTests {
         let xcode = Self.replay(try Self.recorded("xcode"))
         #expect(xcode.executions == ["0:1"])
         #expect(xcode.ends == [.released])
-        // Zoom: 真ん中（ミュート）・グローバルの左（左半分）・次のページの右上・輪の上の外で止めて離し、やめる
+        // Zoom: 真ん中（ミュート）・上でグローバルへ移って左（左半分）・上でグローバルへ移り右で次のページ（ランチャー）の右上（メール）・
+        // 輪の外を回って下で下のページ（ユーティリティ）へ移り真ん中（撮影してコピー）・帯より遠くで止めて離し、やめる
         let zoom = Self.replay(try Self.recorded("zoom"))
-        #expect(zoom.executions == ["0:4", "1:3", "2:2"])
-        #expect(zoom.haptics.filter { $0 == .layerChange }.count == 2)
+        #expect(zoom.executions == ["0:4", "1:3", "2:2", "3:4"])
+        #expect(zoom.haptics.filter { $0 == .layerChange }.count == 3)
         #expect(zoom.haptics.filter { $0 == .pageChange }.count == 1)
-        #expect(zoom.ends == [.released, .released, .released, .cancelled(.liftedInFrame)])
+        // 軽い2打は、最後にやめたときの1回だけ（移る先が無い向きで止めて知らせることは無い。輪の外は通りかかるだけ）
+        #expect(zoom.haptics.filter { $0 == .rejected }.count == 1)
+        #expect(zoom.haptics.last == .rejected)
+        #expect(zoom.pages == [0, 1, 0, 1, 2, 0, 3, 0])
+        #expect(zoom.ends == [.released, .released, .released, .released, .cancelled(.liftedInFrame)])
+        #expect(!zoom.pagingShownAt.filter { $0 < zoom.openedAt[4] }.isEmpty)
+        #expect(zoom.pagingShownAt.filter { $0 > zoom.openedAt[4] }.isEmpty)
     }
 
     @Test("JSON の台本: [秒, x, y] は指を置く行、[秒] は指を離す行。間は滑らかにつなぐ")

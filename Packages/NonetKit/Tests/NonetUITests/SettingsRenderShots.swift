@@ -57,6 +57,39 @@ struct SettingsRenderShots {
         try #require(h.controller.configuration.profiles.first { $0.name.hasPrefix(name) })
     }
 
+    /// ページの並びの図（上の段・左右の段・下の段）。初回の設定と同じく、グローバルは「画面に置く」・ランチャー・下のページの「ユーティリティ」
+    @Test func renderPageMap() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for (suffix, appearance) in appearances {
+            _ = NSApplication.shared
+            var configuration = NonetConfiguration.initial(appPresets: [], installedBundleIDs: Set(PresetLibrary.launcherCandidates.map(\.bundleID)))
+            configuration.addAppProfile(for: SettingsFixtures.xcode, preset: PresetLibrary.preset(forBundleID: SettingsFixtures.xcode.bundleID))
+            let h = try SettingsHarness(configuration: configuration.validated())
+            let model = h.model
+
+            // グローバル: 上の段に「ユーティリティ」、左右の段に「画面に置く」とランチャー
+            model.selectProfile(nil)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "page-map-global-\(suffix)")
+            // 下のページを選んだところ（最小の大きさ）
+            model.selectPage(2)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "page-map-global-above-min-\(suffix)")
+            // アプリ: 上下の段はグローバルのページ（点線）
+            model.selectProfile(try profile(named: "Xcode", in: h).id)
+            model.addPage()
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "page-map-app-\(suffix)")
+            try await render(SettingsRootView(model: model), size: CGSize(width: 860, height: 560), appearance, "page-map-app-min-\(suffix)")
+            // 「グローバルを使う」にしたアプリ: 上下の段は出さない
+            let xcodeID = model.selectedProfile.id
+            model.setProfileMode(xcodeID, .global)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "page-map-app-uses-global-\(suffix)")
+            model.setProfileMode(xcodeID, .profile)
+            // マスが1つも無いアプリ: 上下の段の代わりに一言
+            h.controller.update { $0.addAppProfile(for: SettingsFixtures.notes, preset: nil) }
+            model.selectProfile(try profile(named: SettingsFixtures.notes.name, in: h).id)
+            try await render(SettingsRootView(model: model), size: CGSize(width: 1120, height: 720), appearance, "page-map-app-empty-\(suffix)")
+        }
+    }
+
     @Test func renderAll() async throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         for (suffix, appearance) in appearances {

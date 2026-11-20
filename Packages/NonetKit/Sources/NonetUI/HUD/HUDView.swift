@@ -365,7 +365,7 @@ struct HUDView: View {
         let size = metrics.size(for: model)
         let inFrame = model.isFingerInFrame && !model.isWaitingAtCenter
         // 押し出している間は、どちらの輪もガラスを外す（HUDPlateStyle.showsGlass）
-        let plateStyle = HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: model.layer == .global, showsGlass: turn == nil)
+        let plateStyle = HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: model.layer == .global || model.layer == .below, showsGlass: turn == nil)
         let dims = Self.dimsKeys(model)
         let distance = HUDMotion.turnDistance * metrics.scale
         // 向けたまま止めたアイコンの名前（出すときだけ）
@@ -375,7 +375,7 @@ struct HUDView: View {
             // 切り替える前のページの輪（押し出されて抜けていく）。マスは光らせない
             if let turn {
                 keyRing(cells: turn.outgoingCells, highlight: nil, hold: nil, dims: dims, metrics: metrics,
-                        plateStyle: HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: turn.outgoingLayer == .global, showsGlass: false))
+                        plateStyle: HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: turn.outgoingLayer == .global || turn.outgoingLayer == .below, showsGlass: false))
                     .modifier(HUDTurnEffect(progress: turnProgress, direction: turn.direction, distance: distance, isOutgoing: true, reduceMotion: reduceMotion))
             }
             keyRing(cells: model.cells, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics, plateStyle: plateStyle)
@@ -400,10 +400,13 @@ struct HUDView: View {
                     .position(metrics.pageDotsPosition)
                     .transition(.opacity)
             }
-            // 帯に止めても切り替える先が無い（ページが1つの層の左右・前面のアプリのページが無いときの上下）: 真ん中の鍵の下に、そのことを1行で
-            if inFrame, let hint = model.edgeHint {
-                HUDKeyLabel(text: hint, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: metrics.center.x))
-                    .position(metrics.pageDotsPosition)
+            // 帯に止めている間は、移る先の名前を真ん中の鍵の下に（左右でページの点を出しているときは、その下に）。
+            // 層を切り替えた直後に出す層の名前と同じ場所。行き先が無いときは文字を出さず、触覚だけで知らせる
+            if inFrame, let paging = model.edgePaging, let title = paging.destinationTitle {
+                let showsDots = model.pageCount > 1 && (paging.edge == .left || paging.edge == .right)
+                let dots = metrics.pageDotsPosition
+                HUDKeyLabel(text: title, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: metrics.center.x))
+                    .position(showsDots ? CGPoint(x: dots.x, y: dots.y + metrics.labelHeight / 2 + metrics.dotSize + 6 * metrics.scale) : dots)
                     .transition(.opacity)
             }
             if let pill = HUDPillContent.content(for: model) {
@@ -425,7 +428,7 @@ struct HUDView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: inFrame)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: labeledIndex)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsLayerName)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.edgeHint)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.edgePaging?.destinationTitle)
         .task(id: layerName?.serial) {
             showsLayerName = false
             guard layerName != nil else { return }
@@ -797,10 +800,10 @@ private struct HUDKeyLabel: View {
 }
 
 extension HUDView {
-    /// 真ん中の鍵の下（pageDotsPosition）に、層の名前より優先して出すものがある: 左右で止めているときのページの点、案内、真ん中の鍵の名前
+    /// 真ん中の鍵の下（pageDotsPosition）に、層の名前より優先して出すものがある: 左右で止めているときのページの点、移る先の名前、真ん中の鍵の名前
     static func isSpotUnderCenterTaken(_ model: HUDModel, inFrame: Bool, keyLabel: Int?) -> Bool {
         let showsDots = model.pageCount > 1 && (model.edgePaging?.edge == .left || model.edgePaging?.edge == .right)
-        return showsDots || (inFrame && model.edgeHint != nil) || keyLabel == RadialLayout.centerCell
+        return showsDots || (inFrame && model.edgePaging?.destinationTitle != nil) || keyLabel == RadialLayout.centerCell
     }
 }
 
@@ -857,10 +860,10 @@ private struct HUDPageIndicator: View {
 
 /// ページの点の並べ方
 enum HUDPageDots {
-    /// page 番目の点の前に空ける幅。グローバルの最初のページの前は pageGroupGap だけ広い
-    static func leadingSpace(before page: Int, globalPagesStart: Int?, metrics: HUDMetrics) -> CGFloat {
+    /// page 番目の点の前に空ける幅。グローバルの最初のページと下のページの前は pageGroupGap だけ広い
+    static func leadingSpace(before page: Int, globalPagesStart: Int?, belowPageStart: Int? = nil, metrics: HUDMetrics) -> CGFloat {
         guard page > 0 else { return 0 }
-        return page == globalPagesStart ? metrics.dotSpacing + metrics.pageGroupGap : metrics.dotSpacing
+        return page == globalPagesStart || page == belowPageStart ? metrics.dotSpacing + metrics.pageGroupGap : metrics.dotSpacing
     }
 }
 
@@ -925,13 +928,18 @@ enum HUDAnnouncement {
         String(localized: "離すとやめる", bundle: .module)
     }
 
-    /// 外枠の帯に指を止めているときに「離すとやめる」に添える文
-    static func edgePagingLabel(_ edge: PageEdge) -> String {
-        switch edge {
-        case .left: String(localized: "止めると前のページ", bundle: .module)
-        case .right: String(localized: "止めると次のページ", bundle: .module)
-        case .up: String(localized: "止めるとアプリのページへ", bundle: .module)
-        case .down: String(localized: "止めるとグローバルのページへ", bundle: .module)
+    /// 外枠の帯に指を止めているときに「離すとやめる」に添える文。移る先の名前（HUDEdgePaging.destinationTitle）で言う。
+    /// 名前が分からなければ、左右は前・次のページ、上下は移る先の層
+    static func edgePagingLabel(_ edge: PageEdge, destination: HUDLayer? = nil, title: String? = nil) -> String {
+        if let title {
+            return String(localized: "止めると「\(title)」へ", bundle: .module)
+        }
+        return switch (edge, destination) {
+        case (.left, _): String(localized: "止めると前のページ", bundle: .module)
+        case (.right, _): String(localized: "止めると次のページ", bundle: .module)
+        case (_, .app?): String(localized: "止めるとアプリのページへ", bundle: .module)
+        case (_, .global?), (.up, nil): String(localized: "止めるとグローバルのページへ", bundle: .module)
+        case (_, .below?), (.down, nil): String(localized: "止めると下のページへ", bundle: .module)
         }
     }
 
@@ -941,9 +949,9 @@ enum HUDAnnouncement {
         return [cancelLabel, addition].joined(separator: String(localized: "、", bundle: .module))
     }
 
-    /// 外枠の帯に止めているときに「離すとやめる」に続けて言うこと: 止めると切り替わる先か、切り替える先が無いことの案内（HUDModel.edgeHint）
+    /// 外枠の帯に止めているときに「離すとやめる」に続けて言うこと: 止めると切り替わる先
     static func frameAddition(in model: HUDModel) -> String? {
-        model.edgePaging.map { edgePagingLabel($0.edge) } ?? model.edgeHint
+        model.edgePaging.map { edgePagingLabel($0.edge, destination: $0.destination, title: $0.destinationTitle) }
     }
 
     /// 外枠にいる（開いた直後のポインタが真ん中から出る前は除く。そのときは外枠扱いでも「離すとやめる」を言わない）
@@ -980,7 +988,8 @@ enum HUDAnnouncement {
     /// 外枠に入ったら「離すとやめる」（開いた直後のポインタが真ん中から出る前は、外枠扱いでも言わない）、外枠の中で帯の案内が変わったらその案内だけ、
     /// 少し長く止めるマスを止め終えたら「離すと実行」
     static func announcement(from previous: HUDModel?, to model: HUDModel) -> String? {
-        let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title
+        // 段（層）が変わったら、題名とページの番号が同じでも新しいページ（名前の無いページを下のページにしたとき）
+        let isNewPage = previous == nil || previous?.pageIndex != model.pageIndex || previous?.title != model.title || previous?.layer != model.layer
         let current = isInFrame(model) ? frameLabel(in: model) : highlighted(in: model)
         if !isNewPage, let hold = model.hold, hold.isReady, previous?.hold?.isReady != true, previous?.highlightedIndex == model.highlightedIndex {
             return holdReady

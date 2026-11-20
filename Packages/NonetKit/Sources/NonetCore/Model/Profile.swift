@@ -47,13 +47,17 @@ public struct Page: Codable, Equatable, Sendable {
     public var cells: [Cell?]
     /// ページの名前（「デバッグ」など）。無ければ nil で、画面では「ページ 2」と出す。HUD の題名にも添える（ResolvedPage.title）
     public var name: String?
+    /// 下のページ（初回の設定では、グローバルの「ユーティリティ」）。HUD で輪の下の外に止めると、どのアプリの前でもこのページへ移る
+    /// （NonetConfiguration.resolvedPages が層の最後に置く）。グローバルのページの1つだけ。アプリのページでは validated() が外す
+    public var isBelow: Bool
 
     /// 9個に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
-    public init(cells: [Cell?] = [], name: String? = nil) {
+    public init(cells: [Cell?] = [], name: String? = nil, isBelow: Bool = false) {
         var normalized = Array(cells.prefix(Page.cellCount))
         normalized += Array(repeating: nil, count: Page.cellCount - normalized.count)
         self.cells = normalized
         self.name = Page.normalizedName(name)
+        self.isBelow = isBelow
     }
 
     public static var empty: Page { Page() }
@@ -231,17 +235,24 @@ extension Cell {
 
 extension Page {
     private enum CodingKeys: String, CodingKey {
-        case cells, name
+        case cells, name, below
+        /// 下のページの印の、開発中の版での名前（上に置いていたころ）。読むだけ
+        case above
     }
 
-    /// cells は 9 個に揃える。読めないマスは空きマス。名前が無い・読めなければ nil
+    /// cells は 9 個に揃える。読めないマスは空きマス。名前が無い・読めなければ nil。下のページの印は無い・読めなければ false
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let cells = container.decodeLossy([LossyElement<Cell>].self, forKey: .cells, default: [])
         if cells.count != Page.cellCount {
             DecodingIssue.log("マスの数（\(cells.count)）", at: container.codingPath + [CodingKeys.cells])
         }
-        self.init(cells: cells.map(\.value), name: container.decodeLossy(String?.self, forKey: .name, default: nil))
+        self.init(
+            cells: cells.map(\.value),
+            name: container.decodeLossy(String?.self, forKey: .name, default: nil),
+            isBelow: container.decodeLossy(Bool.self, forKey: .below, default: false)
+                || container.decodeLossy(Bool.self, forKey: .above, default: false)
+        )
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -250,6 +261,10 @@ extension Page {
         // 名前の無いページは書かない（名前を付けられるようになる前と同じ書式のまま）
         if let name = Page.normalizedName(name) {
             try container.encode(name, forKey: .name)
+        }
+        // 下のページの印は付いているときだけ書く（前の版の Nonet は読み飛ばし、ふつうのページとして左右に並べる）
+        if isBelow {
+            try container.encode(true, forKey: .below)
         }
     }
 }
@@ -327,7 +342,7 @@ extension Profile {
             pages = Array(pages.prefix(Profile.maxPages))
         }
         for index in pages.indices where pages[index].cells.count != Page.cellCount {
-            pages[index] = Page(cells: pages[index].cells, name: pages[index].name)
+            pages[index] = Page(cells: pages[index].cells, name: pages[index].name, isBelow: pages[index].isBelow)
         }
     }
 }

@@ -64,9 +64,22 @@ struct MenuBarCheatSheet: Equatable {
         HUDAnnouncement.pageDescription(pageIndex: pageIndex, pageCount: max(pageCount, 1))
     }
 
-    /// 早見表のまとまりの VoiceOver の名前。ページが複数なら何ページ目かも言う
+    /// 見ているページの台を紺に寄せる（HUD と同じ: アプリのページがあるときのグローバルのページと、下のページ）
+    var usesGlobalPlate: Bool {
+        guard !pages.isEmpty else { return false }
+        let layer = ControllerPresentation.layers(of: pages, at: pageIndex).layer
+        return layer == .global || layer == .below
+    }
+
+    /// 見ているページが下のページ（輪の下で止めて開く）。見出しに下向きの矢印を添え、VoiceOver でも言う
+    var isBelowPage: Bool {
+        currentPage?.isBelow == true
+    }
+
+    /// 早見表のまとまりの VoiceOver の名前。ページが複数なら何ページ目かも言う。下のページならそう言い添える
     var accessibilityLabel: String {
-        pageCount > 1 ? String(localized: "\(title)、\(pageDescription)", bundle: .module) : title
+        let label = pageCount > 1 ? String(localized: "\(title)、\(pageDescription)", bundle: .module) : title
+        return isBelowPage ? String(localized: "\(label)、\(SettingsText.belowPageMark)", bundle: .module) : label
     }
 
     /// マスの名前（表示名が空ならアクションの説明。設定のグリッドと同じ）。空きマスは nil
@@ -129,10 +142,15 @@ struct MenuBarCheatSheet: Equatable {
     mutating func showPreviousPage() { showPage(pageIndex - 1) }
     mutating func showNextPage() { showPage(pageIndex + 1) }
 
-    /// アプリのページの後ろにつなげたグローバルのページの、最初の位置（ページの点をそこで少し離す。HUD と同じ）
+    /// アプリのページの後ろにつなげたグローバルのページの、最初の位置（ページの点をそこで少し離す。HUD と同じ）。下のページは除く
     var globalPagesStart: Int? {
         guard let first = pages.first else { return nil }
-        return pages.firstIndex { $0.profileID != first.profileID }
+        return pages.firstIndex { $0.profileID != first.profileID && !$0.isBelow }
+    }
+
+    /// 下のページ（ResolvedPage.isBelow。いちばん後ろ）の位置。その前でもページの点を少し離す
+    var belowPageStart: Int? {
+        pages.firstIndex(where: \.isBelow).flatMap { $0 > 0 ? $0 : nil }
     }
 
     // MARK: - マス
@@ -155,14 +173,14 @@ struct MenuBarCheatSheet: Equatable {
     }
 }
 
-/// 早見表の寸法。メニューに収まる大きさで、HUD のマスの並び（3×3、角の丸いマス、点線の空きマス）に合わせる。
-/// 座標は左上が原点（ビューは isFlipped）
+/// 早見表の寸法。メニューに収まる大きさの 3×3（左上のマスは左上。HUD の輪と同じ向き）。メニューでは名前を読むので、
+/// 行と列にそろえて目で追いやすくする。鍵は HUD と同じ暗い丸い台にアイコン。座標は左上が原点（ビューは isFlipped）
 struct MenuBarCheatSheetLayout: Equatable {
     /// 画面が低いときは、マスを低くしてメニューの下の項目（設定・ライセンス・終了）を押し出さない
     enum Density: Equatable, Sendable {
-        /// アイコンの下に名前（HUD と同じ並び）
+        /// 台の下に名前
         case regular
-        /// アイコンの右に名前
+        /// 台の右に名前（低いマス）
         case compact
     }
 
@@ -175,7 +193,6 @@ struct MenuBarCheatSheetLayout: Equatable {
     static let topInset: CGFloat = 3
     static let headerHeight: CGFloat = 20
     static let headerGap: CGFloat = 3
-    static let cellSpacing: CGFloat = 4
     /// キーボードで選んだときの枠（グリッドの 3pt 外）が切れない余白
     static let bottomInset: CGFloat = 7
     static let cellCornerRadius: CGFloat = 7
@@ -192,16 +209,30 @@ struct MenuBarCheatSheetLayout: Equatable {
     var density: Density
     var pageCount: Int
     var globalPagesStart: Int?
+    var belowPageStart: Int?
 
-    init(width: CGFloat = Self.preferredWidth, density: Density = .regular, pageCount: Int = 1, globalPagesStart: Int? = nil) {
+    init(
+        width: CGFloat = Self.preferredWidth,
+        density: Density = .regular,
+        pageCount: Int = 1,
+        globalPagesStart: Int? = nil,
+        belowPageStart: Int? = nil
+    ) {
         self.width = max(width, Self.preferredWidth)
         self.density = density
         self.pageCount = max(pageCount, 1)
         self.globalPagesStart = globalPagesStart
+        self.belowPageStart = belowPageStart
     }
 
     init(sheet: MenuBarCheatSheet, width: CGFloat = Self.preferredWidth, density: Density) {
-        self.init(width: width, density: density, pageCount: sheet.pageCount, globalPagesStart: sheet.globalPagesStart)
+        self.init(
+            width: width,
+            density: density,
+            pageCount: sheet.pageCount,
+            globalPagesStart: sheet.globalPagesStart,
+            belowPageStart: sheet.belowPageStart
+        )
     }
 
     static func density(forVisibleScreenHeight height: CGFloat?) -> Density {
@@ -215,6 +246,11 @@ struct MenuBarCheatSheetLayout: Equatable {
         case .compact: 26
         }
     }
+
+    static let cellSpacing: CGFloat = 4
+    /// 台の半径（regular。compact は少し小さく）
+    static let plateRadius: CGFloat = 11
+    var plateRadius: CGFloat { density == .regular ? Self.plateRadius : 9 }
 
     var height: CGFloat {
         Self.topInset + Self.headerHeight + Self.headerGap + gridFrame.height + Self.bottomInset
@@ -250,7 +286,7 @@ struct MenuBarCheatSheetLayout: Equatable {
     /// ページが1枚なら ‹ › と点は出さない
     var hasPageControls: Bool { pageCount > 1 }
 
-    /// 点の幅（HUD と同じく、グローバルの最初のページの前を少し空ける）
+    /// 点の幅（HUD と同じく、グローバルの最初のページと下のページの前を少し空ける）
     var dotsWidth: CGFloat {
         dotOffsets.last.map { $0 + Self.dotMetrics.dotSize } ?? 0
     }
@@ -259,7 +295,12 @@ struct MenuBarCheatSheetLayout: Equatable {
     var dotOffsets: [CGFloat] {
         var x: CGFloat = 0
         return (0..<pageCount).map { page in
-            x += HUDPageDots.leadingSpace(before: page, globalPagesStart: globalPagesStart, metrics: Self.dotMetrics)
+            x += HUDPageDots.leadingSpace(
+                before: page,
+                globalPagesStart: globalPagesStart,
+                belowPageStart: belowPageStart,
+                metrics: Self.dotMetrics
+            )
             defer { x += Self.dotMetrics.dotSize }
             return x
         }
