@@ -189,9 +189,13 @@ public enum PresetLibrary {
     }
 
     /// 「ユーティリティ」のページ。撮影と収録・絵文字と記号・Spotlight・消音・画面を消す・画面をロック
-    /// （初回の設定では、グローバルの2ページ目。PresetData.utilityPage）。マスの id は毎回新しくなる
+    /// （PresetData.utilityPage）。下のページ（Page.isBelow）にして返す: 初回の設定ではグローバルの下のページで、
+    /// 「ページを追加」でグローバルに足したときも、下のページがまだ無ければ下のページになる（あれば・アプリのページでは validated() が外す）。
+    /// マスの id は毎回新しくなる
     public static func makeUtilityPage() -> Page {
-        PresetData.utilityPage
+        var page = PresetData.utilityPage
+        page.isBelow = true
+        return page
     }
 
     /// Dock のアプリを Dock の順に先に並べ、残りをインストール済みの候補の優先順で足したグローバルのプロファイル。

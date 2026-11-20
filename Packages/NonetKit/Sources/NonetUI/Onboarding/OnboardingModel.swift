@@ -307,6 +307,13 @@ final class OnboardingModel {
         return OnboardingPracticePage(pages.first)
     }
 
+    /// 下のページ（輪の下で止めて開く）の題名。練習を終えた後の一言で名前を出す。下のページが無ければ nil
+    var belowPageName: String? {
+        let global = controller.configuration.globalProfile
+        guard global.pages.count > 1, let index = global.pages.firstIndex(where: \.isBelow) else { return nil }
+        return SettingsText.pageTitle(index: index, name: global.pages[index].name)
+    }
+
     /// 練習できない理由。練習できるなら nil。自分で無効にしているなら、ほかの理由より先に出す
     var practiceBlocker: OnboardingPracticeBlocker? {
         if !controller.configuration.settings.isEnabled {

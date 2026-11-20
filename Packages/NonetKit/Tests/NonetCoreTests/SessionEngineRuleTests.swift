@@ -196,10 +196,9 @@ import Testing
         // 中身が分からないマスは controller に任せる
         var unknown = SessionScenario(SessionConfiguration(pageCount: 2, occupiedCells: [[0]]))
         unknown.slideIn(at: 0)
-        unknown.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.1)
-        unknown.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.15)
-        unknown.lift(2, at: 0.2)
-        unknown.touch(on: 4, at: 0.3)
+        unknown.touch(x: Pad.rightFrame.x, y: Pad.rightFrame.y, at: 0.1)
+        unknown.tick(at: 0.1 + SessionConfiguration.defaultEdgePageDwell)
+        unknown.touch(on: 4, at: 0.8)
         #expect(unknown.lift(at: 1).executions == [.execute(page: 1, cell: 4)])
     }
 }
@@ -277,35 +276,18 @@ import Testing
 }
 
 @Suite struct SessionEnginePageTests {
-    /// 2本指で横にスワイプするとページが変わる。2本の間はハイライトしない。左へ動かすと次のページ
-    @Test func aTwoFingerSwipeTurnsThePage() {
+    /// 2本指で動かしても、ページは変わらない（ページを動かすのは、輪の外で止めることだけ）。2本の間はハイライトしない
+    @Test func aTwoFingerSwipeDoesNotTurnThePage() {
         var s = SessionScenario(pageCount: 3)
         s.slideIn(at: 0)
         s.touch(on: 4, at: 0.1)
         let second = s.setFingers([(1, 0.5, 0.5), (2, 0.7, 0.5)], at: 0.2)
         #expect(second.hudStates == [SessionHUDState(page: 0, highlightedCell: nil)])
-        let swipe = s.setFingers([(1, 0.35, 0.5), (2, 0.55, 0.5)], at: 0.3)
-        #expect(swipe.hudStates == [SessionHUDState(page: 1, highlightedCell: nil, lastTurn: .right)])
-        #expect(swipe.hapticEvents == [.pageChange])
-        // 1回のスワイプで1ページ
-        #expect(s.setFingers([(1, 0.1, 0.5), (2, 0.3, 0.5)], at: 0.4).visible.isEmpty)
-        #expect(s.engine.pageIndex == 1)
-    }
-
-    /// 右へ動かすと前のページ。最初のページからは最後のページへ回る。ページが1つなら受け付けなかった触覚
-    @Test func swipingRightGoesBackAndWrapsAround() {
-        var s = SessionScenario(pageCount: 3)
-        s.slideIn(at: 0)
-        s.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1)
-        let back = s.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.2)
-        #expect(back.hudStates == [SessionHUDState(page: 2, highlightedCell: nil, lastTurn: .left)])
-        #expect(back.hapticEvents == [.pageChange])
-
-        var single = SessionScenario(pageCount: 1)
-        single.slideIn(at: 0)
-        single.setFingers([(1, 0.4, 0.5), (2, 0.6, 0.5)], at: 0.1)
-        #expect(single.setFingers([(1, 0.6, 0.5), (2, 0.8, 0.5)], at: 0.2).hapticEvents == [.rejected])
-        #expect(single.engine.pageIndex == 0)
+        let swipe = s.setFingers([(1, 0.25, 0.5), (2, 0.45, 0.5)], at: 0.3)
+        #expect(swipe.visible.isEmpty)
+        let vertical = s.setFingers([(1, 0.25, 0.8), (2, 0.45, 0.8)], at: 0.4)
+        #expect(vertical.visible.isEmpty)
+        #expect(s.engine.pageIndex == 0)
     }
 
     /// 2本指の後に1本指に戻ったら、残った指でまた選べる。選ぶには滑らせ直す（2本の指は同時に離れにくい）
@@ -327,12 +309,12 @@ import Testing
         // 滑らせずに離すとやめる（止めていても）
         var still = s
         #expect(still.lift(at: 1.5).endReason == .cancelled(.liftedWithoutSliding))
-        // 滑らせて選び、止めてから離すと実行する
+        // 滑らせて選び、止めてから離すと実行する（2本指で動かしてもページは変わっていない）
         s.touch(on: 4, at: 0.5)
-        #expect(s.lift(at: 0.7).executions == [.execute(page: 1, cell: 4)])
+        #expect(s.lift(at: 0.7).executions == [.execute(page: 0, cell: 4)])
     }
 
-    /// 2本以上の指が触れたまま離したら実行しない（ページを変えた後でも、何も実行せずに閉じたことを知らせる）
+    /// 2本以上の指が触れたまま離したら実行しない（何も実行せずに閉じたことを知らせる）
     @Test func liftingSeveralFingersAtOnceCancels() {
         var s = SessionScenario(pageCount: 2)
         s.slideIn(at: 0)

@@ -25,8 +25,11 @@ public struct ShellLaunchOptions: Equatable, Sendable {
     public var demoBundleID: String?
     /// --demo-backdrop <画像>: --demo で、画面いっぱいに敷く背景（必須。scripts/make-backdrop.swift で画面と同じ大きさに作る。無い・縦横比が違うときは始めずに終える）
     public var demoBackdrop: URL?
-    /// --demo-script: --demo で、実機の指の代わりに台本どおりの指の動きを入れる（終わったらアプリを終える）
+    /// --demo-script: --demo で、実機の指の代わりに台本どおりの指の動きを入れる（終わったらアプリを終える）。台本は、demoScriptFile が無ければ内蔵のもの（DemoScript.builtIn）
     public var demoScript = false
+    /// --demo-script-file <パス>: 内蔵の台本の代わりに、この JSON の台本を入れる（--demo・--demo-script も兼ねる）。
+    /// 形は [[秒, x, y], [秒], …]（x・y の無い行は指を離す。見本は scripts/demo/）。読めない・検査に落ちたときは始めずに終える
+    public var demoScriptFile: URL?
     /// --demo-start-file <パス>: --demo-script で、このファイルができてから台本を始め、終わったらこのファイルが消えるまで背景を出したままにする（録画が始まってから動かし、録画が止まってから終えるため）。付けなければすぐ始め、終わったら少し見せて終える
     public var demoStartFile: URL?
     /// --preview-toast: トーストを繰り返し出す
@@ -77,6 +80,13 @@ public struct ShellLaunchOptions: Equatable, Sendable {
             case "--demo-script":
                 options.demo = true
                 options.demoScript = true
+            case "--demo-script-file":
+                if let next, !next.hasPrefix("--") {
+                    options.demo = true
+                    options.demoScript = true
+                    options.demoScriptFile = URL(fileURLWithPath: (next as NSString).expandingTildeInPath)
+                    index += 1
+                }
             case "--demo-start-file":
                 if let next, !next.hasPrefix("--") {
                     options.demoStartFile = URL(fileURLWithPath: (next as NSString).expandingTildeInPath)

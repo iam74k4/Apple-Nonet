@@ -1210,14 +1210,29 @@ public final class NonetController {
         }
         if let loaded {
             configuration = loaded
+            markUtilityPageBelowOnce()
             return
         }
         controllerLogger.info("保存された設定が無いので、初回の設定を作ります")
         isFirstLaunch = true
+        // 初回の設定は、はじめからユーティリティが下のページ
+        guidance.hasMarkedUtilityPageBelow = true
         let capabilities = services.presetEnvironment.capabilities
         configuration = Self.initialConfiguration(services: services, capabilities: capabilities)
         saver.saveNow(configuration)
         rebuildFirstPresetsWhenResolved(builtWith: capabilities)
+    }
+
+    /// 下のページを足す前の開発中の版で作った設定の「ユーティリティ」を、1回だけ下のページにする（NonetConfiguration.markUtilityPageBelow）。
+    /// 済ませたことは guidance に残し、利用者が後で外しても付け直さない
+    private func markUtilityPageBelowOnce() {
+        guard !guidance.hasMarkedUtilityPageBelow else { return }
+        guidance.hasMarkedUtilityPageBelow = true
+        var marked = false
+        update { marked = $0.markUtilityPageBelow() }
+        if marked {
+            controllerLogger.info("グローバルの「ユーティリティ」を下のページにした")
+        }
     }
 
     /// 初回の設定は claude を調べ終える前に作る（調べ終えていなければ Claude Code のマスは入らない）。
@@ -1246,6 +1261,8 @@ public final class NonetController {
             controllerLogger.error("設定ファイルが壊れていたので、初期の設定で始めます")
             notice = error.localizedDescription
             saver.saveNow(configuration)
+            // 初期の設定は、はじめからユーティリティが下のページ（ファイルを置き換えたので、手直しは済んだことにする）
+            guidance.hasMarkedUtilityPageBelow = true
         } else {
             // 読めないファイルを上書きしないよう、この起動の間は保存しない
             controllerLogger.error("設定ファイルを読めないので、保存せずに初期の設定で動かします: \(error.localizedDescription, privacy: .public)")

@@ -30,13 +30,16 @@ public struct ResolvedPage: Equatable, Sendable {
     public var cells: [Cell?]
     /// ページの名前（Page.name）。無ければ nil
     public var pageName: String?
+    /// 下のページ（Page.isBelow）。resolvedPages の最後に1つだけ。ほかに使うページが無ければ、ふつうのページとして並べる（false）
+    public var isBelow: Bool
 
-    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil) {
+    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil, isBelow: Bool = false) {
         self.profileID = profileID
         self.profileName = profileName
         self.pageIndex = pageIndex
         self.cells = cells
         self.pageName = pageName
+        self.isBelow = isBelow
     }
 
     /// HUD の題名。ページに名前があれば「Xcode · デバッグ」、無ければプロファイルの名前だけ
@@ -47,21 +50,27 @@ public struct ResolvedPage: Equatable, Sendable {
 }
 
 extension NonetConfiguration {
-    /// 初回起動時の設定。グローバルは「画面に置く」「ユーティリティ」と、Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
-    /// アプリのプロファイルは渡されたプリセットから作る
+    /// 初回起動時の設定。グローバルは「画面に置く」と、Dock のアプリ（Dock の順）とインストール済みの候補を並べたランチャー、
+    /// 下のページの「ユーティリティ」。アプリのプロファイルは渡されたプリセットから作る
     public static func initial(
         appPresets: [AppPreset],
         installedBundleIDs: Set<String>,
         dockApps: [AppReference] = []
     ) -> NonetConfiguration {
-        // グローバルの最初のページは「画面に置く」、次が「ユーティリティ」。ランチャーはその後ろ（ページ数の上限に収める）
-        let fixedPages = [PresetLibrary.makeWindowPlacementPage(), PresetLibrary.makeUtilityPage()]
+        // グローバルの最初のページは「画面に置く」、次がランチャー（ページ数の上限に収める）。
+        // 「ユーティリティ」は下のページ（輪の下で止めて開く）なので、設定でも最後に並べる
+        let placement = PresetLibrary.makeWindowPlacementPage()
+        let utilities = PresetLibrary.makeUtilityPage()
         var global = PresetLibrary.makeGlobalProfile(installedBundleIDs: installedBundleIDs, dockApps: dockApps)
-        var pages = Array(global.pages.prefix(Profile.maxPages - fixedPages.count))
+        var pages = Array(global.pages.prefix(Profile.maxPages - 2))
         if pages.count == 1, pages[0].cells.allSatisfy({ $0 == nil }) {
             pages = []
         }
-        global.pages = fixedPages + pages
+        // ランチャーには名前を付ける（アプリの設定の図の下の段で、アプリの「ページ 2」と見分けられるように）
+        if !pages.isEmpty {
+            pages[0].name = PresetBuilder.text("ランチャー")
+        }
+        global.pages = [placement] + pages + [utilities]
         return initial(appPresets: appPresets, globalProfile: global)
     }
 
@@ -171,15 +180,13 @@ extension NonetConfiguration {
         profiles[index].pages[b.page].cells[b.index] = profile.pages[a.page].cells[a.index]
     }
 
-    /// page を最後に足す（既定は空のページ。「ページを追加」の型は PageTemplate.makePage()）。追加したページの番号。上限なら nil
+    /// page を最後に足す（既定は空のページ。「ページを追加」の型は PageTemplate.makePage()）。追加したページの番号。上限なら nil。
+    /// 下のページ（Page.isBelow）はいつも最後なので、ふつうのページはその手前に入れる。下のページがもうあれば、足すページはふつうのページになる
     @discardableResult
     public mutating func addPage(_ page: Page = .empty, profileID: UUID) -> Int? {
         guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return nil }
         profiles[index].normalizePages()
-        profiles[index].pages.append(Page(cells: page.cells, name: page.name))
-        // ほかで同じ id のマスが作られていれば振り直す
-        self = validated()
-        return profileIndex(id: profileID).map { profiles[$0].pages.count - 1 }
+        return insertPage(page, at: profiles[index].pages.count, profileID: profileID)
     }
 
     /// 最後の1ページは消せない
@@ -190,16 +197,51 @@ extension NonetConfiguration {
         profiles[index].pages.remove(at: pageIndex)
     }
 
-    /// 消したページを pageIndex に戻す（元に戻す）。ページが上限なら何もしないで false
+    /// 消したページを pageIndex に戻す（元に戻す）。入れたページの番号。ページが上限なら何もしないで nil。
+    /// 下のページはいつも最後: ふつうのページは下のページより後ろには入れず、下のページは、もう下のページがあればふつうのページとして入れる
     @discardableResult
-    public mutating func insertPage(_ page: Page, at pageIndex: Int, profileID: UUID) -> Bool {
-        guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return false }
+    public mutating func insertPage(_ page: Page, at pageIndex: Int, profileID: UUID) -> Int? {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return nil }
         profiles[index].normalizePages()
-        let position = min(max(pageIndex, 0), profiles[index].pages.count)
-        profiles[index].pages.insert(Page(cells: page.cells, name: page.name), at: position)
+        let pages = profiles[index].pages
+        let below = pages.firstIndex(where: \.isBelow)
+        let isBelow = page.isBelow && profiles[index].isGlobal && below == nil
+        let position = isBelow ? pages.count : min(max(pageIndex, 0), below ?? pages.count)
+        profiles[index].pages.insert(Page(cells: page.cells, name: page.name, isBelow: isBelow), at: position)
         // ほかで同じ id のマスが作られていれば振り直す
         self = validated()
-        return true
+        return position
+    }
+
+    /// グローバルの pageIndex のページを下のページにする（ほかのページの印は外し、そのページを最後へ移す）か、ふつうのページに戻す（最後のまま）。
+    /// そのページの今の番号を返す。グローバルでない・範囲外・ページが1つだけで下のページにする（左右に送るページが無くなる）なら何もしないで nil
+    @discardableResult
+    public mutating func setBelowPage(_ isBelow: Bool, at pageIndex: Int, profileID: UUID) -> Int? {
+        guard let index = profileIndex(id: profileID), profiles[index].isGlobal,
+              profiles[index].pages.indices.contains(pageIndex),
+              !isBelow || profiles[index].pages.count > 1 else { return nil }
+        for page in profiles[index].pages.indices {
+            profiles[index].pages[page].isBelow = false
+        }
+        guard isBelow else { return pageIndex }
+        var page = profiles[index].pages.remove(at: pageIndex)
+        page.isBelow = true
+        profiles[index].pages.append(page)
+        return profiles[index].pages.count - 1
+    }
+
+    /// 下のページの無いグローバルにある、型どおりの「ユーティリティ」（名前と9マスのアクションが PresetLibrary.makeUtilityPage() と同じ）を
+    /// 下のページにする。下のページを足す前の開発中の版は、ユーティリティをふつうのページとして作ったため（NonetController が1回だけ呼ぶ）。
+    /// 中身を変えたページ・ページが1つだけのグローバルには触らない。下のページにしたら true
+    @discardableResult
+    public mutating func markUtilityPageBelow() -> Bool {
+        let template = PresetLibrary.makeUtilityPage()
+        let global = globalProfile
+        guard global.pages.count > 1, !global.pages.contains(where: \.isBelow),
+              let index = global.pages.firstIndex(where: { page in
+                  page.name == template.name && page.cells.map { $0?.action } == template.cells.map { $0?.action }
+              }) else { return false }
+        return setBelowPage(true, at: index, profileID: global.id) != nil
     }
 
     /// ページの名前を変える。空や nil なら名前を外す（Page.normalizedName(_:) で揃える）
@@ -289,15 +331,25 @@ extension NonetConfiguration {
     /// アプリのプロファイルがあればそのページ、その後ろにグローバルのページ。無ければグローバルのページだけ。使い方が global・off のプロファイルは使わない
     /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
     /// マスが1つも無いアプリのプロファイル（「◯◯ のマスを作る…」で作ったばかり など）も無いものとし、グローバルのページを先に出す
-    /// （空きマスだけのページが先に開いて、グローバルのマスが隠れないように）
+    /// （空きマスだけのページが先に開いて、グローバルのマスが隠れないように）。
+    /// グローバルの下のページ（Page.isBelow）は最後に置く（ResolvedPage.isBelow）。
+    /// グローバルが下のページの1ページだけなら、ふつうのページとして置く（グローバルの左右に送るページが無くならないように）
     public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
-        let globalPages = Self.resolve(globalProfile)
-        guard let bundleID = frontmostBundleID,
-              let appProfile = appProfile(forBundleID: bundleID),
-              appProfile.hasButtons else {
-            return globalPages
+        let global = globalProfile
+        let globalPages = Self.resolve(global).map { page in
+            var page = page
+            page.isBelow = page.isBelow && global.pages.count > 1
+            return page
         }
-        return Self.resolve(appProfile) + globalPages
+        let appPages: [ResolvedPage]
+        if let bundleID = frontmostBundleID,
+           let appProfile = appProfile(forBundleID: bundleID),
+           appProfile.hasButtons {
+            appPages = Self.resolve(appProfile)
+        } else {
+            appPages = []
+        }
+        return appPages + globalPages.filter { !$0.isBelow } + globalPages.filter(\.isBelow)
     }
 
     /// 壊れた設定を直したもの（グローバルが先頭に1つ、ページ数、マス数、重複 id など）
@@ -328,6 +380,17 @@ extension NonetConfiguration {
                 usedProfileIDs.insert(profile.id)
             }
             profile.normalizePages()
+            // 下のページはグローバルのページの1つだけ（前にあるものを残す）。アプリのページには置かない
+            var hasBelowPage = false
+            for page in profile.pages.indices where profile.pages[page].isBelow {
+                profile.pages[page].isBelow = profile.isGlobal && !hasBelowPage
+                hasBelowPage = true
+            }
+            // 下のページはいつも最後（設定のページの番号・⌘1〜⌘3 と、HUD の左右の並びをそろえる）。
+            // ページが1つだけになっても印は残す（消したページを元に戻すと、下のページに戻る）。そのあいだ resolvedPages はふつうのページとして扱う
+            if let below = profile.pages.firstIndex(where: \.isBelow), below != profile.pages.count - 1 {
+                profile.pages.append(profile.pages.remove(at: below))
+            }
             for page in profile.pages.indices {
                 for slot in profile.pages[page].cells.indices {
                     guard var cell = profile.pages[page].cells[slot] else { continue }
@@ -508,7 +571,7 @@ extension NonetConfiguration {
         profile.normalizePages()
         let name = profile.name
         return profile.pages.enumerated().map { pageIndex, page in
-            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name)
+            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name, isBelow: page.isBelow)
         }
     }
 

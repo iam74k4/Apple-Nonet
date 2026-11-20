@@ -143,7 +143,7 @@ private final class MenuBarCalloutPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// 上向きの矢印の付いた吹き出し
+/// 下向きの矢印の付いた吹き出し
 private struct MenuBarCalloutView: View {
     let text: String
 

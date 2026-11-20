@@ -354,6 +354,7 @@
       }
     },
     "このアプリのページはまだありません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -364,6 +365,7 @@
       }
     },
     "このアプリはグローバルのページを使います" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1602,6 +1604,16 @@
         }
       }
     },
+    "ページ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %lld"
+          }
+        }
+      }
+    },
     "ページへ移動" : {
       "localizations" : {
         "en" : {
@@ -1858,6 +1870,16 @@
         }
       }
     },
+    "ランチャー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launcher"
+          }
+        }
+      }
+    },
     "リマインダー" : {
       "localizations" : {
         "en" : {
@@ -1898,6 +1920,17 @@
         }
       }
     },
+    "上のページはありません" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No page above"
+          }
+        }
+      }
+    },
     "上の階層へ" : {
       "localizations" : {
         "en" : {
@@ -1914,6 +1947,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Top Half"
+          }
+        }
+      }
+    },
+    "下のページはありません" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pages below"
           }
         }
       }
@@ -2373,6 +2417,7 @@
       }
     },
     "左右に送るページはありません" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

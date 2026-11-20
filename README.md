@@ -3,7 +3,7 @@
 トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドが「アプリごとに変わる 3×3 の9つのボタン」になる macOS のメニューバーアプリ。開くのにキーは使わない。
 
 - 上の縁に1本指を置いて下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開く。指を滑らせてポインタを向け、アイコンで離すと実行。アイコンの輪の外で離すか、キーを押すと、何も実行せずに閉じる
-- 前面のアプリごとに9マス×最大3ページ（輪のすぐ外の右・左で止めてページ、下で止めてグローバルのページへ）。プリセット・メニューからの割り当て・ランチャー・触覚・スクリプトと AI
+- 前面のアプリごとに9マス×最大3ページ（輪のすぐ外の右・左で止めてページ、下で止めてどのアプリでも同じ「ユーティリティ」へ、上で止めてグローバルのページへ）。プリセット・メニューからの割り当て・ランチャー・触覚・スクリプトと AI
 - macOS 14 以降。非公開の `MultitouchSupport.framework` を使うので Mac App Store ではなく直販（Developer ID 署名と公証、Sparkle でアップデート）。14日間の試用 → 買い切り。アカウントもサーバーもない
 
 ## リポジトリの構成
@@ -14,7 +14,7 @@
 | `Config/Nonet.xcconfig` | 販売用の値（appcast の URL・Sparkle の公開鍵・購入ページ・利用ガイドとプライバシーポリシーのページ・ライセンスの公開鍵） |
 | `App/` | アプリ本体の組み立て（AppDelegate・Sparkle） |
 | `Packages/NonetKit/` | それ以外のすべて（ロジック・macOS の実装・画面・`nonet-license`）。`swift build` と `swift test` で動く |
-| `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの共有の画像作り（`make-site-images.py`）・販売ページの確認（`check-site.sh`）。`scripts/tests/` はそのテスト |
+| `scripts/` | ビルド・テスト・リリース・文言の収集（`sync-strings.sh`）・利用ガイドのページ作り（`build-guide.py`）・販売ページの共有の画像作り（`make-site-images.py`）・販売ページの確認（`check-site.sh`）・宣伝用の画像とデモ動画作り（共通の背景 `make-backdrop.swift`・収録 `demo/record.sh`・仕上げ `vidtool.swift`。手順は `docs/portfolio.md`）。`scripts/tests/` はそのテスト |
 | `site/` | 販売ページ（静的な HTML。日本語と `en/`）。利用規約・特定商取引法に基づく表記・プライバシーポリシー・ダウンロードのページ（`thanks.html`）・購入のページ（`buy.html`。Paddle の購入画面を開く）・`robots.txt`・`sitemap.xml` も |
 | `docs/` | 設計・リリースの手順・利用ガイド・プライバシーポリシー |
 | `Spikes/NonetSpike/` | フェーズ0の技術検証アプリ（使い捨て） |

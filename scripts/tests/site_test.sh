@@ -1017,7 +1017,7 @@ test_guides_limit_automation_to_the_browser_url() {
 }
 
 # 1つのプロファイルは Page.cellCount × Profile.maxPages マスまで。初回のグローバルは1ページ目が「画面に置く」、
-# 2ページ目が「ユーティリティ」なので、ランチャーはその残り（maxPages − 2 ページ）まで（NonetConfiguration.initial）
+# 最後が上のページの「ユーティリティ」なので、ランチャーはその残り（maxPages − 2 ページ）まで（NonetConfiguration.initial）
 test_guides_state_the_launcher_size() {
   local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total launcher_pages launcher file counts
   cells="$(sed -nE 's/.*static let cellCount = ([0-9]+).*/\1/p' "$profile")"

@@ -57,20 +57,29 @@ struct ShellHUDTurnTests {
         #expect(Set([PageEdge.left, .right, .up, .down].map(HUDPagingArrow.symbol)).count == 4)
     }
 
-    @Test("上下の帯で止めているときは、層が変わることを読み上げる")
+    @Test("上下の帯で止めているときは、移る先を読み上げる")
     func announcements() {
-        #expect(HUDAnnouncement.edgePagingLabel(.up) == L10n.ui("止めるとアプリのページへ"))
-        #expect(HUDAnnouncement.edgePagingLabel(.down) == L10n.ui("止めるとグローバルのページへ"))
-        let paging = HUDEdgePaging(edge: .down, duration: 0.5)
-        var model = Self.model()
-        model.isFingerInFrame = true
-        model.edgePaging = paging
-        #expect(HUDAnnouncement.frameLabel(in: model).contains(L10n.ui("止めるとグローバルのページへ")))
-        // 切り替える先が無いときの案内（前面のアプリのページが無い）も読む
-        var hinted = Self.model()
-        hinted.isFingerInFrame = true
-        hinted.edgeHint = "このアプリのページはまだありません"
-        #expect(HUDAnnouncement.frameLabel(in: hinted) == [L10n.ui("離すとやめる"), "このアプリのページはまだありません"].joined(separator: L10n.ui("、")))
+        // 名前が分かれば、名前で言う
+        #expect(HUDAnnouncement.edgePagingLabel(.down, destination: .below, title: "ユーティリティ") == L10n.ui("止めると「\("ユーティリティ")」へ"))
+        // 名前が分からなければ、移る先の層で言う（上はグローバル、下は下のページ）
+        #expect(HUDAnnouncement.edgePagingLabel(.up) == L10n.ui("止めるとグローバルのページへ"))
+        #expect(HUDAnnouncement.edgePagingLabel(.down) == L10n.ui("止めると下のページへ"))
+        #expect(HUDAnnouncement.edgePagingLabel(.up, destination: .app) == L10n.ui("止めるとアプリのページへ"))
+        // 段が変わったら、題名とページの番号が同じでも新しいページとして読む（名前の無いページを下のページにしたとき）
+        var center = Self.model()
+        center.pageIndex = 0
+        var moved = center
+        moved.layer = .below
+        moved.lastTurn = .down
+        #expect(HUDAnnouncement.announcement(from: center, to: moved) != nil)
+        var below = Self.model()
+        below.isFingerInFrame = true
+        below.edgePaging = HUDEdgePaging(edge: .down, duration: 0.5, destination: .below, destinationTitle: "ユーティリティ")
+        #expect(HUDAnnouncement.frameLabel(in: below) == [L10n.ui("離すとやめる"), L10n.ui("止めると「\("ユーティリティ")」へ")].joined(separator: L10n.ui("、")))
+        // 行き先が無い帯（エンジンが触覚で知らせる）では、「離すとやめる」だけ
+        var nothing = Self.model()
+        nothing.isFingerInFrame = true
+        #expect(HUDAnnouncement.frameLabel(in: nothing) == L10n.ui("離すとやめる"))
     }
 
     @Test("ページか層が替わったら、前の輪を残して切り替えた向きへ押し出す。層が替わったら層の名前も出す。閉じたら捨てる")

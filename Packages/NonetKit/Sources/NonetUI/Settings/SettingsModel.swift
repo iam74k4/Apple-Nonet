@@ -616,10 +616,10 @@ final class SettingsModel {
         finishRecording()
         undoNotice = nil
         guard let count = configuration.profile(id: profileID)?.pages.count else { return }
-        let position = min(index, count)
-        var inserted = false
-        controller.update { inserted = $0.insertPage(page, at: position, profileID: profileID) }
-        guard inserted, let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(position) else {
+        var inserted: Int?
+        controller.update { inserted = $0.insertPage(page, at: min(index, count), profileID: profileID) }
+        // 下のページはいつも最後なので、入った位置は頼んだ位置と違うことがある
+        guard let position = inserted, let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(position) else {
             gridMessage = String(localized: "ページが \(Profile.maxPages) 枚あるため、消したページを元に戻せませんでした", bundle: .module)
             return
         }
@@ -673,9 +673,9 @@ final class SettingsModel {
         pendingEdits.flushAll()
         finishRecording()
         undoNotice = nil
-        var restored = false
+        var restored: Int?
         controller.update { restored = $0.insertPage(page, at: index, profileID: profileID) }
-        guard restored else {
+        guard let index = restored else {
             // その下に積んだマスの取り消しは、このページがあるものとして場所を覚えている。
             // 戻すと番号のずれた別のページに入るので、このプロファイルの分は（戻し終えてから）忘れる
             if undoManager.isUndoing || undoManager.isRedoing {

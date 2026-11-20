@@ -96,6 +96,7 @@ struct ShellCheatSheetTests {
         var sheet = MenuBarCheatSheet(frontApp: Self.xcode, configuration: configuration)
         #expect(sheet.pageCount == appPages + globalPages)
         #expect(sheet.globalPagesStart == appPages)
+        #expect(sheet.belowPageStart == nil)
         #expect(!sheet.canShowPreviousPage)
         #expect(sheet.canShowNextPage)
         #expect(sheet.pageDescription == L10n.ui("\(sheet.pageCount) ページ中 \(1) ページ目"))
@@ -186,6 +187,30 @@ struct ShellCheatSheetTests {
 
     // MARK: - 寸法
 
+    @Test("寸法: 下のページの前でも、ページの点を少し離す")
+    func belowPageDots() throws {
+        // 下のページは最後に並び、その前でも点を少し離す（グローバルの最初のページの前と同じ）
+        var configuration = SettingsFixtures.configuration()
+        let globalID = configuration.globalProfile.id
+        configuration.addPage(PageTemplate.utilities.makePage(), profileID: globalID)
+        configuration.addPage(profileID: globalID)
+        let sheet = MenuBarCheatSheet(frontApp: SettingsFixtures.notes, configuration: configuration)
+        #expect(sheet.pageCount == 3)
+        #expect(sheet.globalPagesStart == nil)
+        #expect(sheet.belowPageStart == 2)
+        // 下のページを見ているときは、見出しに下向きの矢印を添え、VoiceOver でも言う
+        var shown = sheet
+        #expect(!shown.isBelowPage)
+        shown.showPage(2)
+        #expect(shown.isBelowPage)
+        #expect(shown.accessibilityLabel.hasSuffix(L10n.ui("下のページ")))
+        let layout = MenuBarCheatSheetLayout(sheet: sheet, density: .regular)
+        let metrics = MenuBarCheatSheetLayout.dotMetrics
+        let offsets = layout.dotOffsets
+        #expect(offsets[1] - offsets[0] == metrics.dotSize + metrics.dotSpacing)
+        #expect(offsets[2] - offsets[1] == metrics.dotSize + metrics.dotSpacing + metrics.pageGroupGap)
+    }
+
     @Test("寸法: マスは重ならずに収まり、見出しは ‹ › と重ならない。低い画面ではマスを低くする")
     func layout() {
         #expect(MenuBarCheatSheetLayout.density(forVisibleScreenHeight: 875) == .regular)
@@ -219,6 +244,9 @@ struct ShellCheatSheetTests {
         }
         // メニューが広ければマスも広がる。狭くはしない
         #expect(MenuBarCheatSheetLayout(width: 360, density: .regular).cellFrame(0).width > regular.cellFrame(0).width)
+        // HUD の輪と同じ向き: 上のマスは真ん中の上、左上のマスは左上
+        #expect(regular.cellFrame(1).midX == regular.cellFrame(4).midX && regular.cellFrame(1).midY < regular.cellFrame(4).midY)
+        #expect(regular.cellFrame(0).midX < regular.cellFrame(4).midX && regular.cellFrame(0).midY < regular.cellFrame(4).midY)
         #expect(MenuBarCheatSheetLayout(width: 100, density: .regular).width == MenuBarCheatSheetLayout.preferredWidth)
         // ページの点は HUD と同じく、グローバルの最初のページの前を少し空ける
         let offsets = regular.dotOffsets

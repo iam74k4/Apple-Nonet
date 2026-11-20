@@ -59,6 +59,15 @@ enum ShellText {
         String(localized: "できました。アイコンで指を離すと実行します。", bundle: .module)
     }
 
+    /// 2つの課題ができた後の一言: 練習では試さない、ページの移り方（下で止めるとどのアプリでも下のページ）。
+    /// belowPage は下のページの題名。下のページが無ければ、右か左のことだけ言う
+    static func practicePagesTip(belowPage: String?) -> String {
+        guard let belowPage else {
+            return String(localized: "輪のすぐ外の右か左で少し止めると、ページが変わります。", bundle: .module)
+        }
+        return String(localized: "次は、輪のすぐ外の下で少し止めてみてください。どのアプリの前でも「\(belowPage)」が開きます。右か左で止めるとページが変わります。", bundle: .module)
+    }
+
     /// 2つ目の課題ができた
     static var practiceCancelDone: String {
         String(localized: "できました。迷ったらアイコンの輪の外で離せば、何も実行しません。", bundle: .module)

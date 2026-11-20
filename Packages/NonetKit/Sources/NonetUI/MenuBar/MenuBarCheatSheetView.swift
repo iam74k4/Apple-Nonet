@@ -370,12 +370,20 @@ struct MenuBarCheatSheetContent: View {
                     .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
                     .placed(in: ring)
             }
-            Text(sheet.title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(increased ? Color.primary : Color.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: layout.titleFrame.width, height: layout.titleFrame.height, alignment: .leading)
+            // 下のページ（輪の下で止めて開く）は、見出しに下向きの矢印を添える
+            HStack(spacing: 3) {
+                if sheet.isBelowPage {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .help(SettingsText.pageMapRowHelp(.down))
+                }
+                Text(sheet.title)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(increased ? Color.primary : Color.secondary)
+            .frame(width: layout.titleFrame.width, height: layout.titleFrame.height, alignment: .leading)
                 .placed(in: layout.titleFrame)
             if layout.hasPageControls {
                 pageControls(layout: layout, sheet: sheet, increased: increased)
@@ -387,7 +395,8 @@ struct MenuBarCheatSheetContent: View {
                     isHovered: store.hovered == .cell(index),
                     isPressed: store.pressed == .cell(index),
                     density: layout.density,
-                    increasedContrast: increased
+                    increasedContrast: increased,
+                    plateStyle: HUDPlateStyle(increasedContrast: increased, isGlobalLayer: sheet.usesGlobalPlate, showsGlass: false)
                 )
                 .placed(in: layout.cellFrame(index))
             }
@@ -453,6 +462,8 @@ private struct MenuBarCheatSheetPageButton: View {
 }
 
 /// 早見表の1マス。HUD のマスと同じ並び（角の丸いマスにアイコンと名前、空きマスは点線）を、メニューの外観の色で描く
+/// 早見表のマス。HUD と同じ暗い丸い台に白いアイコンと、名前（regular は台の下、compact は台の右）。
+/// ポインタが乗ったマスは、台の外をアクセント色の輪で囲み、鉛筆を添える（押すと実行ではなく、設定で開いて編集する）
 struct MenuBarCheatSheetCell: View {
     let cell: Cell?
     let title: String
@@ -460,72 +471,86 @@ struct MenuBarCheatSheetCell: View {
     let isPressed: Bool
     let density: MenuBarCheatSheetLayout.Density
     let increasedContrast: Bool
+    var plateStyle = HUDPlateStyle(showsGlass: false)
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: MenuBarCheatSheetLayout.cellCornerRadius, style: .continuous)
-        let colors = MenuBarCheatSheetPalette.colors(increasedContrast: increasedContrast)
-        let lineWidth: CGFloat = increasedContrast ? 1.5 : 1
-        ZStack {
-            // ポインタが乗ったマスは、塗らずにアクセント色の枠と鉛筆で示す（押すと実行ではなく、設定で開いて編集する）
-            if cell != nil {
-                shape.fill(colors.cellBackground)
-                shape.strokeBorder(isActive ? MenuBarCheatSheetPalette.highlight : colors.cellBorder, lineWidth: isActive ? 2 : lineWidth)
-            } else {
-                shape.strokeBorder(
-                    isActive ? MenuBarCheatSheetPalette.highlight : colors.emptyBorder,
-                    style: StrokeStyle(lineWidth: isActive ? 2 : lineWidth, dash: [4, 3])
-                )
+        Group {
+            switch density {
+            case .regular:
+                VStack(spacing: 2) {
+                    plate
+                    name
+                }
+            case .compact:
+                HStack(spacing: 5) {
+                    plate
+                    name
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, 4)
             }
-            content
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .opacity(isPressed ? 0.75 : 1)
+    }
+
+    private var radius: CGFloat {
+        density == .regular ? MenuBarCheatSheetLayout.plateRadius : 9
+    }
+
+    /// 台の枠は台の大きさだけにして、ポインタが乗ったときの輪と鉛筆は外に重ねる（マスの高さに収める）
+    private var plate: some View {
+        let r = radius
+        return ZStack {
+            if let cell {
+                HUDPlate(radius: r, scale: 0.75, style: plateStyle)
+                HUDGlyph(icon: cell.icon, size: density == .regular ? 11 : 9.5)
+            } else {
+                let colors = MenuBarCheatSheetPalette.colors(increasedContrast: increasedContrast)
+                Circle()
+                    .strokeBorder(isActive ? MenuBarCheatSheetPalette.highlight : colors.emptyBorder, style: StrokeStyle(lineWidth: increasedContrast ? 1.5 : 1, dash: [3, 2]))
+                    .frame(width: r * 2, height: r * 2)
+                if isActive {
+                    // 空きマスも押せる（設定で開いて、何かを入れる）
+                    Image(systemName: "plus")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(MenuBarCheatSheetPalette.highlight)
+                }
+            }
+        }
+        .frame(width: r * 2, height: r * 2)
+        .overlay {
+            if isActive, cell != nil {
+                Circle()
+                    .strokeBorder(MenuBarCheatSheetPalette.highlight, lineWidth: 2)
+                    .frame(width: (r + 3) * 2, height: (r + 3) * 2)
+            }
+        }
+        .overlay(alignment: .topTrailing) {
             if isActive, cell != nil {
                 Image(systemName: "pencil")
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(.system(size: 7, weight: .bold))
                     .foregroundStyle(MenuBarCheatSheetPalette.highlight)
-                    .padding(4)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .offset(x: 8, y: -4)
                     .accessibilityHidden(true)
             }
         }
-        .opacity(isPressed ? 0.75 : 1)
+    }
+
+    /// 長い名前は縮めずに省く（名前はヘルプで全部読める）
+    @ViewBuilder
+    private var name: some View {
+        if cell != nil {
+            Text(title)
+                .font(.system(size: density == .regular ? 10.5 : 11, weight: isActive ? .semibold : .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(Color.primary)
+        }
     }
 
     /// ポインタが乗っている（押せることを見せる）
     private var isActive: Bool { isHovered || isPressed }
-
-    @ViewBuilder
-    private var content: some View {
-        if let cell {
-            Group {
-                switch density {
-                case .regular:
-                    VStack(spacing: 2) {
-                        CellIconView(cell.icon, size: 13)
-                        titleText
-                    }
-                case .compact:
-                    HStack(spacing: 4) {
-                        CellIconView(cell.icon, size: 11)
-                        titleText
-                    }
-                }
-            }
-            .padding(.horizontal, 5)
-            .foregroundStyle(Color.primary)
-        } else if isActive {
-            // 空きマスも押せる（設定で開いて、何かを入れる）
-            Image(systemName: "plus")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(MenuBarCheatSheetPalette.highlight)
-        }
-    }
-
-    /// 長い名前は縮めずに省く（設定のグリッドと同じ）
-    private var titleText: some View {
-        Text(title)
-            .font(.system(size: 11, weight: .medium))
-            .lineLimit(1)
-            .truncationMode(.tail)
-    }
 }
 
 private extension View {

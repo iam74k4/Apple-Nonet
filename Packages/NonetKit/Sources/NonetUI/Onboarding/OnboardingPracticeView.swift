@@ -122,6 +122,19 @@ struct OnboardingPracticeTasks: View {
                 .background(RoundedRectangle(cornerRadius: SettingsMetrics.largeRadius, style: .continuous).strokeBorder(Color.secondary.opacity(0.4)))
                 .accessibilityElement(children: .combine)
             }
+            if state == .succeeded {
+                // 練習の2つの課題では試さない、上下左右に止める操作を一言で教える（下のページに気づけるように）
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    Text(ShellText.practicePagesTip(belowPage: model.belowPageName))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .font(.system(size: 12))
+                .accessibilityElement(children: .combine)
+            }
             if state == .run {
                 Text(ShellText.practiceOpenHint)
                     .font(.system(size: 11))

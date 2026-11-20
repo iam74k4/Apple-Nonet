@@ -58,7 +58,9 @@ public enum GridZone: Equatable, Sendable {
 }
 
 /// 外枠のうち、指を止めると切り替える側。左は前のページ、右は次のページ（どちらも同じ層の中で、端からは反対の端へ回る）。
-/// 下はグローバルのページの層へ、上はアプリのページの層へ戻る（層が2つあるときだけ。SessionConfiguration.layerStart）
+/// 上下は3段（グローバルの層・真ん中の層・下のページ）を1段ずつ移る: 真ん中の層（アプリの層、無ければグローバルの層）から、
+/// 上はグローバルの層へ（アプリの層があるときだけ。SessionConfiguration.layerStart）、下は下のページへ（SessionConfiguration.belowStart）。
+/// 上下へ移った先からは、反対の向きで真ん中の層へ戻る
 public enum PageEdge: Equatable, Sendable {
     case left
     case right
@@ -148,7 +150,7 @@ public struct GridMapper: Equatable, Sendable {
     }
 
     /// 外枠のうち、止めると切り替える側。9マスの行の横の左右の外枠はページ、列の上下の外枠は層。四隅は含めない（どの側でもない）。
-    /// 開いた直後の指は上の外枠にいるが、そのときはアプリの層（か層が1つ）なので、上で止めても何も変わらない（SessionState.availableEdge）。
+    /// 開いた直後の指は上の外枠にいるが、動かすまでは止めているとは数えない（SessionState の openAnchor）。
     /// 外枠かどうかは zone で確かめてから呼ぶ
     public func pagingEdge(x: Double, y: Double) -> PageEdge? {
         if y >= insets.bottom, y <= 1 - insets.top {

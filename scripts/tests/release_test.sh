@@ -1248,7 +1248,7 @@ test_release_binary_with_debug_only_code_is_rejected() {
   assert_contains "$OUT" "DEBUG ビルドだけのコード（DebugPreview DemoSession）"
 
   # 起動引数の名前は NonetUI の ShellLaunchOptions がどのビルドでも読むので、印にしない（本番が必ず止まってしまう）
-  export FAKE_APP_DEBUG_TEXT="--demo-script --demo-start-file --config-dir --preview-hud DemoScript"
+  export FAKE_APP_DEBUG_TEXT="--demo-script --demo-script-file --demo-start-file --config-dir --preview-hud DemoScript"
   run "$REPO/scripts/release.sh" 1.2.0 42
   assert_status 0
 }

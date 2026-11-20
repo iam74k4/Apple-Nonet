@@ -44,9 +44,7 @@ struct ModelTerminalAppCodingTests {
         let pages = configuration.resolvedPages(frontmostBundleID: ModelFixtures.figma.bundleID)
         #expect(pages.map(\.profileID) == [global.id, global.id])
         #expect(ControllerPresentation.globalPagesStart(pages) == nil)
-        // 上下の帯の案内は「このアプリのページはまだありません」
-        #expect(ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: ModelFixtures.figma.bundleID)
-            == ModelFixtures.text("このアプリのページはまだありません"))
+        #expect(!ControllerPresentation.hasAppLayer(pages))
     }
 
     /// どこかのページにマスが1つでもあれば、そのプロファイルのページを先に出す（空きの1ページ目も含めて）

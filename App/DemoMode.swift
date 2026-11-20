@@ -3,9 +3,10 @@
 // 操作のロジック（EdgeSlideRecognizer・SessionEngine）・NonetController・HUD は本物。差し替えるのは次のものだけ:
 // - 何も実行しない（performer）。ポインタを抑止せず、アクセシビリティの許可も要らない（keyboard・permissions）
 // - 前面のアプリを固定する（--demo-app）
-// - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる。付けなければ実機の指をそのまま使う
+// - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる（内蔵の台本。--demo-script-file <JSON> ならその台本）。
+//   付けなければ実機の指をそのまま使う
 // 画面の隅のトラックパッドの図は、どちらのときも指の位置（TouchFrame）をそのまま示す
-// 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の暗いグラデーションとメニューバー）を敷き、実際の画面を写さない
+// 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の墨の無地とメニューバー）を敷き、実際の画面を写さない
 import AppKit
 import NonetCore
 import NonetUI
@@ -28,7 +29,8 @@ final class DemoTouchSource: TouchSource {
     private let base: any TouchSource
     private let scheduler: any Scheduler
     private let model: DemoTrackpadModel
-    private let scripted: Bool
+    /// 入れる台本。nil なら実機の指をそのまま使う
+    private let script: DemoScript?
     /// このファイルができてから台本を始める。nil ならすぐ
     private let startFile: URL?
     private var timer: Timer?
@@ -36,18 +38,17 @@ final class DemoTouchSource: TouchSource {
     private var wasTouching = false
     var onFinished: (() -> Void)?
     var onFrame: ((TouchFrame) -> Void)?
-    /// 表示中の HUD の枠（円を囲む正方形。主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす（本物はポインタでマスを選ぶため）
+    /// 表示中の HUD の枠（円を囲む正方形。主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす
+    /// （本物はポインタでマスを選ぶため。写し方は DemoScript.pointer(for:in:)）
     var mapFrame: (() -> CGRect?)?
-    /// 台本の指の位置（トラックパッドの 0〜1）を枠に写すときの倍率。指がトラックパッドの端まで行けば、ポインタが円の外（外枠）に出るように
-    static let pointerTravel: CGFloat = 1.3
 
-    var isAvailable: Bool { scripted || base.isAvailable }
+    var isAvailable: Bool { script != nil || base.isAvailable }
 
-    init(base: any TouchSource, scheduler: any Scheduler, model: DemoTrackpadModel, scripted: Bool, startFile: URL?) {
+    init(base: any TouchSource, scheduler: any Scheduler, model: DemoTrackpadModel, script: DemoScript?, startFile: URL?) {
         self.base = base
         self.scheduler = scheduler
         self.model = model
-        self.scripted = scripted
+        self.script = script
         self.startFile = startFile
         base.onFrame = { [weak self] frame in
             MainActor.assumeIsolated { self?.deliver(frame) }
@@ -55,7 +56,7 @@ final class DemoTouchSource: TouchSource {
     }
 
     func start() throws {
-        guard scripted else {
+        guard script != nil else {
             try base.start()
             return
         }
@@ -76,6 +77,7 @@ final class DemoTouchSource: TouchSource {
 
     /// 台本の指を、いまの時刻の分だけ進める（実機のフレームと同じく、触れている間だけ指を入れ、離れたら空のフレームを1回送る）
     private func step() {
+        guard let script else { return }
         let now = scheduler.now
         if startedAt == .infinity {
             guard let startFile, FileManager.default.fileExists(atPath: startFile.path) else { return }
@@ -84,25 +86,21 @@ final class DemoTouchSource: TouchSource {
         }
         let time = now - startedAt
         guard time >= 0 else { return }
-        if time >= DemoScript.duration {
-            timer?.invalidate()
-            timer = nil
-            onFinished?()
-            return
-        }
-        if let point = DemoScript.sample(at: time) {
+        if let point = script.sample(at: time) {
             wasTouching = true
             if let map = mapFrame?() {
-                // トラックパッドの真ん中が円の中心。そこからの動きを倍率で広げる
-                CGWarpMouseCursorPosition(CGPoint(
-                    x: map.midX + (point.x - 0.5) * map.width * Self.pointerTravel,
-                    y: map.midY + (0.5 - point.y) * map.height * Self.pointerTravel
-                ))
+                CGWarpMouseCursorPosition(DemoScript.pointer(for: point, in: map))
             }
             deliver(TouchFrame(timestamp: now, points: [TouchPoint(id: 1, x: point.x, y: point.y, isTouching: true, majorAxis: 12)]))
         } else if wasTouching {
             wasTouching = false
             deliver(TouchFrame(timestamp: now, points: []))
+        }
+        // 終わりは、指を離すフレームを送ってから（台本の終わりの時刻まで触れていた指を、触れたままにしない。HUD が開いたまま残る）
+        if time >= script.duration {
+            timer?.invalidate()
+            timer = nil
+            onFinished?()
         }
     }
 
@@ -267,11 +265,19 @@ final class DemoSession {
 
     func services(from live: NonetServices) -> NonetServices {
         var services = live
+        var script: DemoScript?
+        if options.demoScript {
+            // 読めない・検査に落ちた台本では、始めずに終える（背景が無いときと同じ）。内蔵の台本に替えて流すと、頼んだものと違う場面を撮ったことに気づけない
+            guard let loaded = Self.script(options.demoScriptFile) else {
+                exit(2)
+            }
+            script = loaded
+        }
         let source = DemoTouchSource(
             base: live.touchSource,
             scheduler: live.scheduler,
             model: model,
-            scripted: options.demoScript,
+            script: script,
             startFile: options.demoStartFile
         )
         source.onFinished = { [weak self] in self?.finish() }
@@ -286,7 +292,7 @@ final class DemoSession {
 
     /// 背景と図を出し、撮る範囲を標準出力に書く（screencapture -R の x,y,幅,高さ。左上が原点）。
     /// 背景（--demo-backdrop）は必ず敷く。敷かずに撮ると、ユーザーの画面（壁紙・ほかのウインドウ）が写る。
-    /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（暗いグラデーションとメニューバー）にそろえる
+    /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（墨の無地とメニューバー）にそろえる
     func present() {
         // 主の画面（メニューバーのある画面。左上が撮る範囲の原点）に敷く。scripts/record-screen.swift も主の画面を撮る。
         // NSScreen.main（いま使っている画面）にすると、外付けの画面から始めたときに、背景の無い主の画面を撮ってしまう
@@ -310,6 +316,17 @@ final class DemoSession {
             NSHostingView(rootView: DemoTrackpadView(model: model))
         }
         DemoLog.write("demo: capture-region=\(Int(region.minX)),\(Int(region.minY)),\(Int(region.width)),\(Int(region.height))")
+    }
+
+    /// 入れる台本。--demo-script-file が無ければ内蔵のもの。ファイルを読めない・検査に落ちたときは、理由を書いて nil
+    private static func script(_ url: URL?) -> DemoScript? {
+        guard let url else { return .builtIn }
+        do {
+            return try DemoScript(contentsOf: url)
+        } catch {
+            DemoLog.write("demo: error: 台本を読めません: \(url.path): \(error)")
+            return nil
+        }
     }
 
     /// 敷く背景の画像。無い・読めない・画面と縦横比が違う（引き伸ばすとメニューバーの字がゆがむ）ときは、理由を書いて nil

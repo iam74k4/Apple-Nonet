@@ -197,6 +197,22 @@
         }
       }
     },
+    "%@「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: “%2$@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@「%2$@」"
+          }
+        }
+      }
+    },
     "%@の設定に戻しました。戻す前の設定も「以前の設定に戻す」に残しています。" : {
       "localizations" : {
         "en" : {
@@ -2095,6 +2111,17 @@
         }
       }
     },
+    "なし" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
     "なし（メニューを順にたどって押します）" : {
       "localizations" : {
         "en" : {
@@ -2807,12 +2834,45 @@
         }
       }
     },
+    "グローバルのプロファイルで、このページを開きます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens this page in the Global profile"
+          }
+        }
+      }
+    },
     "グローバルのページ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Global pages"
+          }
+        }
+      }
+    },
+    "グローバルのページの「…」で「上のページにする」を選ぶと、そのページが輪の上で開きます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Use as Page Above from a Global page's … menu to open that page above the ring"
+          }
+        }
+      }
+    },
+    "グローバルのページの下には何もありません。プロファイルのあるアプリでは、そのアプリのページから輪の下で止めると、真ん中の段のページが開きます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's nothing below the Global pages. In an app with a profile, holding below the ring on the app's pages opens the pages in the middle row"
           }
         }
       }
@@ -3224,6 +3284,7 @@
       }
     },
     "ダブルクリックで名前を変更" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3897,6 +3958,17 @@
         }
       }
     },
+    "マスを1つ置くと、%@ の前でこのページが開きます。それまではグローバルのページを使います" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a button and this page opens in front of %@. Until then, the Global pages are used"
+          }
+        }
+      }
+    },
     "マスを空にする" : {
       "localizations" : {
         "en" : {
@@ -3939,6 +4011,7 @@
       }
     },
     "マスを選んで右側で設定。ドラッグか ⌥⌘＋矢印キーで入れ替え、Delete で空にする。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4425,12 +4498,78 @@
         }
       }
     },
-    "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。" : {
+    "上のページ" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages."
+            "value" : "Page above"
+          }
+        }
+      }
+    },
+    "上のページ: 9マスでポインタを輪の上の外に止めると、どのアプリの前でもこのページが開きます" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page above: hold the pointer above the ring of nine buttons to open this page in front of any app"
+          }
+        }
+      }
+    },
+    "上のページにする" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use as Page Above"
+          }
+        }
+      }
+    },
+    "上のページの変更" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Page Above"
+          }
+        }
+      }
+    },
+    "上のページはありません" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No page above"
+          }
+        }
+      }
+    },
+    "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、上で止めると上のページ（最初はユーティリティ）に、下で止めるとグローバルのページに変わります。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, above it for the page above (Utilities at first), or below it for the Global pages."
+          }
+        }
+      }
+    },
+    "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, below it for Utilities, or above it for the Global pages."
           }
         }
       }
@@ -4451,6 +4590,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Swap with Button Below"
+          }
+        }
+      }
+    },
+    "下のページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page below"
           }
         }
       }
@@ -5673,6 +5822,27 @@
         }
       }
     },
+    "次は、輪のすぐ外の上で少し止めてみてください。どのアプリの前でも、上のページ「%@」が開きます。右か左で止めるとページが変わります。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next, try holding the pointer just above the ring. The page above, “%@”, opens in front of any app. Hold it to the right or left to change pages."
+          }
+        }
+      }
+    },
+    "次は、輪のすぐ外の下で少し止めてみてください。どのアプリの前でも「%@」が開きます。右か左で止めるとページが変わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next, try holding the pointer just below the ring. “%@” opens in front of any app. Hold it to the right or left to change pages."
+          }
+        }
+      }
+    },
     "次へ" : {
       "localizations" : {
         "en" : {
@@ -5709,6 +5879,16 @@
         }
       }
     },
+    "止めると「%@」へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for “%@”"
+          }
+        }
+      }
+    },
     "止めるとアプリのページへ" : {
       "localizations" : {
         "en" : {
@@ -5725,6 +5905,27 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hold for the global pages"
+          }
+        }
+      }
+    },
+    "止めると上のページへ" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for the page above"
+          }
+        }
+      }
+    },
+    "止めると下のページへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold for the page below"
           }
         }
       }
@@ -6779,6 +6980,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reads the menus of a running app."
+          }
+        }
+      }
+    },
+    "輪のすぐ外の右か左で少し止めると、ページが変わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold the pointer just outside the ring to the right or left to change pages."
+          }
+        }
+      }
+    },
+    "輪の上で止めると開くページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page that opens when you hold above the ring"
+          }
+        }
+      }
+    },
+    "輪の下で止めると開くページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages that open when you hold below the ring"
+          }
+        }
+      }
+    },
+    "輪の右・左で止めて送るページ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages you move through by holding to the right or left of the ring"
           }
         }
       }

@@ -1,6 +1,6 @@
 // 画面の一部を H.264 の MP4 に収録する（販売ページ・ポートフォリオのデモ動画用。macOS 14 以降）。
 // screencapture -v は、ここの環境では録画を始められなかったので、ScreenCaptureKit で書く。ポインタは写さない。
-// コンパイル: swiftc -O scripts/record-screen.swift -o build/record-screen
+// コンパイル: swiftc -O -parse-as-library scripts/record-screen.swift -o build/record-screen（@main があるので -parse-as-library が要る）
 // 使い方: build/record-screen <出力の .mp4> <最長の秒> <x> <y> <幅> <高さ> <出力の幅> <出力の高さ> [ビットレート bps（既定 3000000）] [最初に捨てる秒（既定 0）]
 //   x・y・幅・高さは、画面の左上を原点にした pt。最初に捨てる秒は、デモのアプリが背景を敷く前の画面を残さないため。
 //   最長の秒より前に SIGINT（kill -INT）を送ると、そこで止めて書き終える（呼ぶ側が、写したい場面の終わりに止める）
@@ -26,6 +26,13 @@ final class FrameWriter: NSObject, SCStreamOutput {
                 AVVideoAverageBitRateKey: bitrate,
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
                 AVVideoMaxKeyFrameIntervalKey: 60,
+            ],
+            // 色: 画面を sRGB で受け取り（下の colorSpaceName）、動画にも「伝達関数は sRGB」と書く。既定のままだと、
+            // 暗い色が持ち上がって色みも抜け（#222226 の背景が #2B2B2B に見える）、同じ背景の静止画と色がそろわない
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
             ],
         ])
         input.expectsMediaDataInRealTime = true
@@ -119,6 +126,7 @@ struct RecordScreen {
             configuration.height = outHeight
             configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
             configuration.pixelFormat = kCVPixelFormatType_32BGRA
+            configuration.colorSpaceName = CGColorSpace.sRGB
             configuration.showsCursor = false
             let output = try FrameWriter(url: url, width: outWidth, height: outHeight, bitrate: bitrate, skip: skip)
             let stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: configuration, delegate: nil)

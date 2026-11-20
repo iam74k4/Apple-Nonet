@@ -1,4 +1,4 @@
-// AstLog の画像（1440×900 の JPEG）を作る。共通の背景（暗いグラデーションとメニューバー。scripts/make-backdrop.swift）の上に、
+// AstLog の画像（1440×900 の JPEG）を作る。共通の背景（墨の無地とメニューバー。scripts/make-backdrop.swift）の上に、
 // 左に小見出し・見出し・説明・3 行の箇条、右に HUD の窓の画像（--snapshot の PNG）とポインタ。
 // 背景はここで描かず、デモ動画と同じ make-backdrop.swift の PNG（2880×1800）を敷く（画像と動画の背景を1か所で決める）。
 // 使い方: swift scripts/make-backdrop.swift backdrop.png 2880 1800
@@ -28,7 +28,7 @@ let ctx = CGContext(data: nil, width: W * scale, height: H * scale, bitsPerCompo
 ctx.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
 ctx.interpolationQuality = .high
 func rgb(_ hex: Int, _ a: CGFloat = 1) -> CGColor { CGColor(srgbRed: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: a) }
-// 背景: make-backdrop.swift の PNG（2880×1800。暗いグラデーションとメニューバー）を 1px ずつそのまま敷く
+// 背景: make-backdrop.swift の PNG（2880×1800。墨の無地とメニューバー）を 1px ずつそのまま敷く
 guard args.count == 4,
       let backdropSource = CGImageSourceCreateWithURL(URL(fileURLWithPath: args[3]) as CFURL, nil),
       let backdrop = CGImageSourceCreateImageAtIndex(backdropSource, 0, nil) else {
