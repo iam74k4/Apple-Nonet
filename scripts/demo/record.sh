@@ -53,7 +53,7 @@ if [[ -n "$DEMO_LANGUAGE" ]]; then
 fi
 
 require_commands swift swiftc
-[[ -x "$APP" ]] || die "Debug のアプリがありません: $APP（先に scripts/build.sh）"
+[[ -x "$APP" ]] || die "Debug のアプリがありません: ${APP}（先に scripts/build.sh）"
 [[ -f "$SCRIPT_FILE" ]] || die "台本がありません: $SCRIPT_FILE"
 # --config-dir を付けないと、動いているほかの Nonet に任せて終わり、付けても空のフォルダでは初回の設定になる
 [[ -f "$CONFIG_DIR/configuration.json" ]] || die "見本の設定がありません: $CONFIG_DIR/configuration.json（作り方は docs/portfolio.md の「つくり方」）"
@@ -118,7 +118,7 @@ compile_tool "$SCRIPT_DIR/pointer.swift" "$POINTER"
 # 背景は、いまの主の画面と同じ大きさで毎回作る（画面が替わっていると、アプリが縦横比の違いで始めずに終える）
 swift "$ROOT/scripts/make-backdrop.swift" "$BACKDROP" ${backdrop_args[@]+"${backdrop_args[@]}"} >&2
 
-step "背景を敷く（$BUNDLE_ID・$(basename "$SCRIPT_FILE")）"
+step "背景を敷く（${BUNDLE_ID}・$(basename "$SCRIPT_FILE")）"
 "$APP" --config-dir "$CONFIG_DIR" --demo-script-file "$SCRIPT_FILE" --demo-start-file "$GO" \
   --demo-app "$BUNDLE_ID" --demo-backdrop "$BACKDROP" ${app_language_args[@]+"${app_language_args[@]}"} >/dev/null 2>"$DEMO_LOG" &
 app_pid=$!
