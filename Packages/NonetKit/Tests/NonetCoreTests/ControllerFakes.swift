@@ -288,7 +288,13 @@ final class ControllerFakeFrontmostApp: FrontmostAppObserving {
     var onChange: ((RunningAppInfo?) -> Void)?
     /// Nonet の設定ウィンドウなどがキー（current は変えない）
     var isOwnWindowKey = false
+    /// 前面のブラウザで見ているページのホスト名（テストで変える）
+    var siteHost: String?
     private(set) var isRunning = false
+
+    func currentSiteHost() -> String? {
+        siteHost
+    }
 
     func start() {
         isRunning = true

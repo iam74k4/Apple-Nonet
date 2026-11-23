@@ -107,7 +107,7 @@ struct SettingsProfileCleanupSheet: View {
 
     private func row(_ profile: Profile, isMissing: Bool) -> some View {
         HStack(spacing: 8) {
-            CellIconView(.app(bundleID: profile.app?.bundleID ?? ""), size: 16)
+            CellIconView(profile.site == nil ? .app(bundleID: profile.app?.bundleID ?? "") : .symbol("globe"), size: 16)
                 .accessibilityHidden(true)
             Text(profile.name)
                 .lineLimit(1)

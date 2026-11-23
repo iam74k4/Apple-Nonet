@@ -152,6 +152,11 @@ site/                       販売ページ（静的）
 - プリセットはこの Mac でできること（`PresetCapabilities`: Apple Intelligence・`claude` コマンド）に合わせて組み立てる（`PresetLibrary.apps(for:)`・`preset(forBundleID:capabilities:)`。引数の無い呼び出しは「どちらも使える」）。AI が使えなければ AI のマスを入れず、外側のマスを1つ中央に移す（Safari・Chrome・Arc はページ内検索 ⌘F、Mail はアーカイブ、Teams はミュート、Slack は会話へ移動 ⌘K、Notion は検索、メモはチェックリスト。移した元の位置には、AI を使える Mac には無い別のマスを入れて9マスのままにする（`aiCentered` の `filler`: Slack は前の未読、Teams は挙手、Mail はフラグ、Safari と Chrome は新規ウインドウ、Arc はサイドバー、Notion は新規ウインドウ、メモは新規フォルダ））。Claude Code のマスはどの場合も中央に置かない（Xcode はクイックオープン ⇧⌘O、VS Code・Cursor はコマンド ⇧⌘P、ターミナルは新規タブ ⌘T を中央に置き、Claude Code はその外側。`claude` が無ければ空ける）。Apple Intelligence のモデルをダウンロード中なら使えるものとして扱う。分類の説明（「〜など%lld個」）は入っているマスだけを数える
 - 初回の設定（`NonetConfiguration.initial(…, dockApps:)`。インストール済みでプリセットのあるアプリすべてのプロファイルと、グローバルのランチャーを入れる）と「プロファイルを追加」は、`NonetServices.presetEnvironment` の `capabilities` と `dockApps()` を使う。`claude` はシェルを調べ終えるまで見つからない扱いなので、初回の設定は調べ終える前にわかっていることで作り（`claude` がまだ分からなければ Claude Code のマスは入らない）、調べ終えたら（数秒）できることが変わっていて、それまでにプロファイルを何も変えていなければ、プリセットのプロファイルを作り直す（全体の設定はそのまま。`NonetController.rebuildFirstPresetsWhenResolved`。プロファイルが変わっていれば作り直さない）
 
+### サイトごとのボタン（`ProfileKind.site`）
+- `SiteReference.host`（`normalizedHost`: URL かホスト名から、小文字・www. を除く。点の無い名前は localhost だけ）。サブドメインにも合い（`matches(host:)`）、合うものが複数あればホスト名のいちばん長いもの（`siteProfileIndex(matchingHost:)`）
+- 9マスを開くとき（`openSession`）に1回だけ `FrontmostAppObserving.currentSiteHost()`（`BrowserSiteReader`: 前面のウインドウを幅優先で400要素までたどり、最初の AXWebArea の AXURL。1回の問い合わせは 0.08秒まで。Chromium 系には最初に AXManualAccessibility を頼む）で読み、`resolvedPages(frontmostBundleID:host:)` がそのサイトのプロファイル（mode が profile でマスがあるもの）を、ブラウザのプロファイルの代わりに先に並べる。mode が off なら開かずにクリックを返す（`isTurnedOff(forBundleID:host:)`）
+- 設定ファイルでは `{"type":"site","site":{"host":"youtube.com"}}`。前の版は知らない種類のプロファイルとして読まない。同じホスト名は1つに（`validated`）、読み込みは同じホスト名を置き換える。「サイトを追加…」（`SettingsAddSitePopover`）でプリセット（`SitePresets`: youtube.com）を選べる
+
 ### 設定ファイル（`ConfigurationStore`）
 - `~/Library/Application Support/Nonet/configuration.json`（`NonetConfiguration`: `version`・`settings`・`profiles`）。書き込みはアトミックで、中身が変わるときだけ書き、直前の版を `configuration.backup.json` に残す。読めない今のファイルは上書きしない
 - 書式は前の版の Nonet でも読めるようにする。無い項目・知らない値は既定値で読み（`decodeLossy`）、新しい項目は既定値と違うときだけ書く:

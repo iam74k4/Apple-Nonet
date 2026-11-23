@@ -111,6 +111,8 @@ final class SettingsModel {
     private(set) var selectedIndex: Int? = 0
     var rightPanel: RightPanel = .inspector
     /// プロファイルを追加するシート。閉じたら複製の元も忘れる
+    /// 「サイトを追加」のポップオーバー
+    var isAddingSite = false
     var isAddingProfile = false {
         didSet {
             if !isAddingProfile { duplicatingProfileID = nil }
@@ -372,6 +374,19 @@ final class SettingsModel {
     }
 
     /// プロファイルを追加するシートでアプリを選んだ。「複製して別のアプリに使う…」から開いたときは、元のプロファイルを写す
+    /// 「サイトを追加」の入力（URL かホスト名）でサイトのプロファイルを作り、選ぶ。プリセットのあるサイトはその中身で。
+    /// すでにあればそれを選ぶ。ホスト名にならない入力なら false
+    @discardableResult
+    func addSiteProfile(_ input: String) -> Bool {
+        guard let host = SiteReference.normalizedHost(input) else { return false }
+        var added: UUID?
+        controller.update { added = $0.addSiteProfile(host: host, pages: SitePresets.pages(forHost: host) ?? [.empty]) }
+        guard let added else { return false }
+        isAddingSite = false
+        selectProfile(added)
+        return true
+    }
+
     func addProfile(for app: AppReference) {
         if let source = duplicatingProfileID {
             isAddingProfile = false

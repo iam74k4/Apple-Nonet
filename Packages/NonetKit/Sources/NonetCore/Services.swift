@@ -214,11 +214,17 @@ public protocol FrontmostAppObserving: AnyObject {
     /// Nonet のウィンドウ（設定・初回の案内・結果のパネルなど）がいまキーで、送ったキーがそこに届くか。
     /// current は Nonet を数えないので、別に聞く。Nonet が前面のアプリでも、キーのウィンドウが無ければ false
     var isOwnWindowKey: Bool { get }
+    /// 前面のアプリがブラウザなら、前面のウインドウで見ているページのホスト名（サイトごとのボタン）。
+    /// 9マスを開くときに呼ぶ（読むのに少し掛かることがある）。ブラウザでない・読めなければ nil
+    func currentSiteHost() -> String?
 }
 
 extension FrontmostAppObserving {
     /// Nonet のウィンドウがキーになることの無い実装の既定
     public var isOwnWindowKey: Bool { false }
+
+    /// サイトを読まない実装の既定
+    public func currentSiteHost() -> String? { nil }
 }
 
 // MARK: - 設定画面で使うもの

@@ -84,6 +84,38 @@ public enum ProfileKind: Codable, Hashable, Sendable {
     case global
     /// 特定のアプリが前面にあるときに使う
     case app(AppReference)
+    /// ブラウザで特定のサイトを見ているときに使う（そのブラウザのプロファイルより先）
+    case site(SiteReference)
+}
+
+/// サイト（ホスト名）。www. を除いた小文字で持ち、サブドメインにも合う（youtube.com は m.youtube.com にも合う）
+public struct SiteReference: Codable, Hashable, Sendable {
+    public var host: String
+
+    /// host は SiteReference.normalizedHost で整えたもの
+    public init(host: String) {
+        self.host = Self.normalizedHost(host) ?? host.lowercased()
+    }
+
+    /// URL・ホスト名・「www.」付きのどれからでも、ホスト名を取り出す（https://www.YouTube.com/watch → youtube.com）。
+    /// 取り出せなければ nil（空・空白を含む・点の無い名前（localhost を除く））
+    public static func normalizedHost(_ input: String) -> String? {
+        var text = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !text.isEmpty else { return nil }
+        if !text.contains("://") {
+            text = "https://" + text
+        }
+        guard let host = URLComponents(string: text)?.host, !host.isEmpty, !host.contains(" ") else { return nil }
+        let trimmed = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        guard trimmed.contains(".") || trimmed == "localhost" else { return nil }
+        return trimmed.hasSuffix(".") ? String(trimmed.dropLast()) : trimmed
+    }
+
+    /// 見ているページのホスト名（www. 付きでもよい）が、このサイトかそのサブドメインか
+    public func matches(host other: String) -> Bool {
+        guard let other = Self.normalizedHost(other) else { return false }
+        return other == host || other.hasSuffix("." + host)
+    }
 }
 
 public struct Profile: Codable, Equatable, Identifiable, Sendable {
@@ -123,6 +155,11 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
         return nil
     }
 
+    public var site: SiteReference? {
+        if case .site(let site) = kind { return site }
+        return nil
+    }
+
     /// どこかのページにマスが1つでもある（空きマスだけのアプリのプロファイルは、9マスでも早見表でも無いものとして扱う）
     public var hasButtons: Bool {
         pages.contains { page in page.cells.contains { $0 != nil } }
@@ -133,6 +170,7 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
         switch kind {
         case .global: String(localized: "グローバル", bundle: .module)
         case .app(let app): app.nameOrBundleID
+        case .site(let site): site.host
         }
     }
 }
@@ -256,7 +294,7 @@ extension Page {
 
 extension ProfileKind {
     private enum CodingKeys: String, CodingKey {
-        case type, app
+        case type, app, site
     }
 
     public init(from decoder: any Decoder) throws {
@@ -266,6 +304,8 @@ extension ProfileKind {
             self = .global
         case "app":
             self = .app(try container.decode(AppReference.self, forKey: .app))
+        case "site":
+            self = .site(try container.decode(SiteReference.self, forKey: .site))
         default:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のプロファイルの種類")
         }
@@ -279,6 +319,9 @@ extension ProfileKind {
         case .app(let app):
             try container.encode("app", forKey: .type)
             try container.encode(app, forKey: .app)
+        case .site(let site):
+            try container.encode("site", forKey: .type)
+            try container.encode(site, forKey: .site)
         }
     }
 }

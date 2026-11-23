@@ -86,6 +86,19 @@ struct SettingsSidebar: View {
                     }
                 }
                 .buttonStyle(.borderless)
+                Button {
+                    model.isAddingSite = true
+                } label: {
+                    Label {
+                        Text("サイトを追加…", bundle: .module)
+                    } icon: {
+                        Image(systemName: "globe")
+                    }
+                }
+                .buttonStyle(.borderless)
+                .popover(isPresented: $model.isAddingSite, arrowEdge: .trailing) {
+                    SettingsAddSitePopover(model: model)
+                }
                 // 初めて開いたときはプリセットのプロファイルがたくさん入る。1つずつ消さなくてよいように
                 if model.appProfiles.count >= 2 {
                     Button {
@@ -275,7 +288,7 @@ struct SettingsProfileRow: View {
     var body: some View {
         let isUsed = profile.mode == .profile
         HStack(spacing: 8) {
-            CellIconView(.app(bundleID: profile.app?.bundleID ?? ""), size: 14)
+            CellIconView(profile.site == nil ? .app(bundleID: profile.app?.bundleID ?? "") : .symbol("globe"), size: 14)
                 .saturation(isUsed ? 1 : 0)
                 .opacity(isUsed ? 1 : 0.45)
                 .accessibilityHidden(true)
@@ -709,5 +722,64 @@ struct SettingsPageNameEditor: View {
         .padding(14)
         .frame(width: 260)
         .onAppear { isFocused = true }
+    }
+}
+
+/// 「サイトを追加…」: ブラウザで見ているサイトのボタンを作る（URL かホスト名を入れる。プリセットのあるサイトは候補から選べる）
+struct SettingsAddSitePopover: View {
+    let model: SettingsModel
+    @State private var input = ""
+    @State private var isInvalid = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("サイトを追加", bundle: .module)
+                .font(.headline)
+            Text("Safari・Chrome・Arc・Edge・Brave・Dia でこのサイトを見ているときは、ブラウザのボタンより先に、このサイトのボタンが開きます", bundle: .module)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField(text: $input, prompt: Text(verbatim: "youtube.com")) {
+                Text("サイトの URL かホスト名", bundle: .module)
+            }
+            .textFieldStyle(.roundedBorder)
+            .onSubmit(add)
+            .onChange(of: input) { isInvalid = false }
+            if isInvalid {
+                Text("サイトの URL かホスト名（例: github.com）を入れてください", bundle: .module)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+            }
+            HStack(spacing: 6) {
+                Text("ボタン入り:", bundle: .module)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                ForEach(SitePresets.suggestedHosts, id: \.self) { host in
+                    Button(host) { model.addSiteProfile(host) }
+                        .buttonStyle(.link)
+                        .font(.system(size: 11))
+                }
+            }
+            HStack {
+                Spacer()
+                Button {
+                    model.isAddingSite = false
+                } label: {
+                    Text("キャンセル", bundle: .module)
+                }
+                .keyboardShortcut(.cancelAction)
+                Button(action: add) {
+                    Text("追加", bundle: .module)
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(14)
+        .frame(width: 320)
+    }
+
+    private func add() {
+        isInvalid = !model.addSiteProfile(input)
     }
 }

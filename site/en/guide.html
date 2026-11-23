@@ -75,6 +75,7 @@
         <li><a href="#profiles">Editing profiles</a>
           <ol>
             <li><a href="#profile-list">Profile list</a></li>
+            <li><a href="#sites">Buttons for each site</a></li>
             <li><a href="#pages-and-buttons">Pages and buttons</a></li>
             <li><a href="#undo-and-restore">Undo and earlier versions</a></li>
             <li><a href="#power-editing">Power editing</a></li>
@@ -332,6 +333,19 @@
       <li><strong>When in Front</strong>: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: <strong>This Profile</strong>, <strong>Use Global</strong> or <strong>Turn Off Nonet in This App</strong>. A profile set to <strong>Use Global</strong> is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to <strong>Turn Off Nonet in This App</strong> is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, pressing firmly doesn't open the nine buttons, and the trackpad and the keys work as usual. <strong>Turn Off in This App</strong> in the Nonet menu switches it too</li>
       <li>With 8 or more app profiles, a <strong>Filter by name, button or keys</strong> field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like <code>⌘B</code>). Results look like "Xcode › Build"</li>
       <li><strong>Enable Nonet</strong> under the list is the same switch as in the General settings</li>
+    </ul>
+    <h3 id="sites">Buttons for each site</h3>
+    <p>In a browser (Safari, Chrome, Arc, Edge, Brave or Dia) you can use different nine buttons for each site you visit, such as playback controls on YouTube or shortcuts to the pages you use on GitHub.</p>
+    <ol>
+      <li>On the Profiles tab of Settings, click <strong>Add Site…</strong> below the list</li>
+      <li>Enter the site's URL or host name (such as <code>youtube.com</code>) and click <strong>Add</strong>. Choose a suggestion under <strong>With buttons:</strong> (YouTube) to start with that site's keys already in place</li>
+      <li>Add buttons as you would to any other profile</li>
+    </ol>
+    <ul>
+      <li>When you open the buttons on that site, the site's pages come before the browser's (the Global pages follow). A site also matches its subdomains (<code>youtube.com</code> matches <code>m.youtube.com</code>), and a more specific site (<code>mail.google.com</code>) wins</li>
+      <li>Sites have a globe in the list. Set <strong>When in Front</strong> to <strong>Use Global</strong> to use the browser's buttons on that site too, or turn Nonet off there so the buttons don't open (clicks go through as usual)</li>
+      <li>Nonet reads the page's address once, when you open the buttons, through Accessibility (no Automation permission needed; it's never stored or sent). If it can't read it, you get the browser's buttons</li>
+      <li>The YouTube preset: Play/Pause (K) in the center, back and forward 10 seconds (J and L) on the left and right, Full Screen (F) above, Captions (C) below, Slower and Faster at the top corners, Mute (M) at the bottom left and Theater (T) at the bottom right</li>
     </ul>
     <h3 id="pages-and-buttons">Pages and buttons</h3>
     <p>The middle column shows the pages and the 3×3 grid of the selected profile.</p>

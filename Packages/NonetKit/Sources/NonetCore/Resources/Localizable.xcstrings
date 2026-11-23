@@ -83,6 +83,26 @@
         }
       }
     },
+    "10秒戻る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back 10 s"
+          }
+        }
+      }
+    },
+    "10秒進む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forward 10 s"
+          }
+        }
+      }
+    },
     "AI" : {
       "localizations" : {
         "en" : {
@@ -297,6 +317,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL"
+          }
+        }
+      }
+    },
+    "YouTube" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube"
           }
         }
       }
@@ -801,6 +831,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add to Sidebar"
+          }
+        }
+      }
+    },
+    "シアター" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theater"
           }
         }
       }
@@ -2362,6 +2402,16 @@
         }
       }
     },
+    "字幕" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Captions"
+          }
+        }
+      }
+    },
     "定義へ移動" : {
       "localizations" : {
         "en" : {
@@ -3606,12 +3656,32 @@
         }
       }
     },
+    "速く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faster"
+          }
+        }
+      }
+    },
     "進む" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Forward"
+          }
+        }
+      }
+    },
+    "遅く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slower"
           }
         }
       }

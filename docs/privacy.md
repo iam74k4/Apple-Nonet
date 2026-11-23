@@ -41,6 +41,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。メニュー項目のショートカットを送る前には、アプリのメニューにあるその項目のショートカットを読み、同じかを確かめる。
 - 「画面に置く」のアクションで、前面のアプリのウインドウの位置と大きさを読んで変える。9マスでそのマスを光らせている間は、置く枠を画面に出すために位置と大きさを読む。読んだ値はその場で使うだけで、保存も送信もしません。
 - 設定画面で、起動中のアプリのメニューの一覧を読む。
+- サイトのプロファイルがあるとき、ブラウザ（Safari・Chrome・Arc・Edge・Brave・Dia）が前面で9マスを開くと、前面のウインドウで見ているページの場所（URL）を1回読み、どのサイトのボタンを出すかを決めるのに使う。読んだ場所は保存も送信もしない。
 - あなたが設定したアクションを実行する直前に、そのアクションに渡すものを読む。スクリプトでは、前面のウィンドウで開いている書類の場所をいつも読み、選択中のテキストは、スクリプトに変数 `NONET_SELECTED_TEXT` が書かれているときだけ読む。ショートカットでは「選択中のテキストを渡す」がオンのときだけ、AI では毎回、選択中のテキストを読む。選択中のテキストを直接読めないアプリでは、⌘C でクリップボードを使って読み、クリップボードを元に戻す。読んだ内容はそのアクションに渡すだけで、保存も送信もしません。
 
 クリップボードを一時的に使うときは、パスワード管理アプリがパスワードとしてコピーしたもの（`org.nspasteboard.ConcealedType` の印があるもの）を読みも戻しもしません。macOS（15.4 以降）がクリップボードを読む前に確かめる設定のときは、その答えに従い、拒否されていればクリップボードを読みません。
@@ -138,6 +139,7 @@ The app uses the macOS Accessibility permission only to:
 - Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.
 - Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.
 - Read the menus of running apps in the settings window.
+- When you have a site profile and open the nine buttons with a browser (Safari, Chrome, Arc, Edge, Brave or Dia) in front, read the address (URL) of the page in the front window once, and use it only to decide which site's buttons to show. The address is never stored or sent.
 - Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable `NONET_SELECTED_TEXT`. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.
 
 When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked `org.nspasteboard.ConcealedType`). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.

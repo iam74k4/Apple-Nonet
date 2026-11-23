@@ -221,6 +221,19 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 - With 8 or more app profiles, a **Filter by name, button or keys** field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like `⌘B`). Results look like "Xcode › Build"
 - **Enable Nonet** under the list is the same switch as in the General settings
 
+### Buttons for each site
+
+In a browser (Safari, Chrome, Arc, Edge, Brave or Dia) you can use different nine buttons for each site you visit, such as playback controls on YouTube or shortcuts to the pages you use on GitHub.
+
+1. On the Profiles tab of Settings, click **Add Site…** below the list
+2. Enter the site's URL or host name (such as `youtube.com`) and click **Add**. Choose a suggestion under **With buttons:** (YouTube) to start with that site's keys already in place
+3. Add buttons as you would to any other profile
+
+- When you open the buttons on that site, the site's pages come before the browser's (the Global pages follow). A site also matches its subdomains (`youtube.com` matches `m.youtube.com`), and a more specific site (`mail.google.com`) wins
+- Sites have a globe in the list. Set **When in Front** to **Use Global** to use the browser's buttons on that site too, or turn Nonet off there so the buttons don't open (clicks go through as usual)
+- Nonet reads the page's address once, when you open the buttons, through Accessibility (no Automation permission needed; it's never stored or sent). If it can't read it, you get the browser's buttons
+- The YouTube preset: Play/Pause (K) in the center, back and forward 10 seconds (J and L) on the left and right, Full Screen (F) above, Captions (C) below, Slower and Faster at the top corners, Mute (M) at the bottom left and Theater (T) at the bottom right
+
 ### Pages and buttons
 
 The middle column shows the pages and the 3×3 grid of the selected profile.

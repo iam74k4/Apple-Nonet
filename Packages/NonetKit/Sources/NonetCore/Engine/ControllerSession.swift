@@ -16,8 +16,9 @@ struct ControllerSession: Equatable, Sendable {
     /// 層が1つのときに、上下の帯に止めたら出す案内（ControllerPresentation.layerHint）。左右の帯の案内は前面のアプリによらない
     let layerHint: String?
 
-    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
-        pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
+    /// host は、前面がブラウザなら見ているページのホスト名（そのサイトのプロファイルがあれば、そのページを先に使う）
+    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?, host: String? = nil) {
+        pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID, host: host)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
         layerHint = ControllerPresentation.layerHint(configuration: configuration, pages: pages, frontmostBundleID: frontmostApp?.app.bundleID)

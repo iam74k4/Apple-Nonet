@@ -216,9 +216,37 @@ extension NonetConfiguration {
     }
 
     /// このアプリでは Nonet を使わない（そのアプリのプロファイルが ProfileMode.off）。bundleID が nil や空なら false。
-    public func isTurnedOff(forBundleID bundleID: String?) -> Bool {
+    /// host（ブラウザで見ているサイト）のサイトのプロファイルが off でも true
+    public func isTurnedOff(forBundleID bundleID: String?, host: String? = nil) -> Bool {
+        if let host, let site = siteProfileIndex(matchingHost: host), profiles[site].mode == .off { return true }
         guard let bundleID, !Self.bundleIDKey(bundleID).isEmpty else { return false }
         return appMode(forBundleID: bundleID) == .off
+    }
+
+    /// 見ているページのホスト名に合うサイトのプロファイルの位置（有効・無効にかかわらず）。いちばん細かく合うもの（m.youtube.com なら youtube.com より m.youtube.com）
+    public func siteProfileIndex(matchingHost host: String) -> Int? {
+        profiles.indices
+            .filter { profiles[$0].site?.matches(host: host) == true }
+            .max { (profiles[$0].site?.host.count ?? 0) < (profiles[$1].site?.host.count ?? 0) }
+    }
+
+    /// 同じサイトのプロファイルの位置（ホスト名が同じもの）
+    public func siteProfileIndex(forHost host: String) -> Int? {
+        guard let normalized = SiteReference.normalizedHost(host) else { return nil }
+        return profiles.firstIndex { $0.site?.host == normalized }
+    }
+
+    /// サイトのプロファイルを加える。すでにあればその id。ホスト名にならない入力なら nil
+    @discardableResult
+    public mutating func addSiteProfile(host: String, pages: [Page] = [.empty]) -> UUID? {
+        guard let normalized = SiteReference.normalizedHost(host) else { return nil }
+        if let index = siteProfileIndex(forHost: normalized) {
+            return profiles[index].id
+        }
+        let profile = Profile(kind: .site(SiteReference(host: normalized)), pages: pages)
+        profiles.append(profile)
+        self = validated()
+        return profile.id
     }
 
     /// アプリの使い方を変える。プロファイルが無ければ作る（preset があればその中身で。後で「このプロファイル」に戻したときに使える）。
@@ -275,9 +303,14 @@ extension NonetConfiguration {
     /// 同じアプリのプロファイルか同じ id のプロファイルがすでにある・グローバルなら、何もしないで false
     @discardableResult
     public mutating func restoreAppProfile(_ profile: Profile, at position: Int) -> Bool {
-        guard let app = profile.app, !Self.bundleIDKey(app.bundleID).isEmpty,
-              appProfileIndex(forBundleID: app.bundleID) == nil,
-              profileIndex(id: profile.id) == nil else { return false }
+        let isNew: Bool = if let app = profile.app {
+            !Self.bundleIDKey(app.bundleID).isEmpty && appProfileIndex(forBundleID: app.bundleID) == nil
+        } else if let site = profile.site {
+            siteProfileIndex(forHost: site.host) == nil
+        } else {
+            false
+        }
+        guard isNew, profileIndex(id: profile.id) == nil else { return false }
         var apps = profiles.filter { !$0.isGlobal }
         apps.insert(profile, at: min(max(position, 0), apps.count))
         profiles = profiles.filter(\.isGlobal) + apps
@@ -290,8 +323,12 @@ extension NonetConfiguration {
     /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
     /// マスが1つも無いアプリのプロファイル（「◯◯ のマスを作る…」で作ったばかり など）も無いものとし、グローバルのページを先に出す
     /// （空きマスだけのページが先に開いて、グローバルのマスが隠れないように）
-    public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
+    /// host はブラウザで見ているページのホスト名（分からなければ nil）。そのサイトのプロファイルがあれば、ブラウザのプロファイルより先に使う
+    public func resolvedPages(frontmostBundleID: String?, host: String? = nil) -> [ResolvedPage] {
         let globalPages = Self.resolve(globalProfile)
+        if let host, let index = siteProfileIndex(matchingHost: host), profiles[index].mode == .profile, profiles[index].hasButtons {
+            return Self.resolve(profiles[index]) + globalPages
+        }
         guard let bundleID = frontmostBundleID,
               let appProfile = appProfile(forBundleID: bundleID),
               appProfile.hasButtons else {
@@ -305,6 +342,7 @@ extension NonetConfiguration {
         var usedProfileIDs = Set<UUID>()
         var usedCellIDs = Set<UUID>()
         var seenBundleIDs = Set<String>()
+        var seenHosts = Set<String>()
         var global: Profile?
         var apps: [Profile] = []
 
@@ -322,6 +360,12 @@ extension NonetConfiguration {
                     modelLogger.warning("同じアプリのプロファイルが2つ以上あったので、2つ目以降を外した")
                     continue
                 }
+            case .site(let site):
+                guard let host = SiteReference.normalizedHost(site.host), seenHosts.insert(host).inserted else {
+                    modelLogger.warning("同じサイトか、ホスト名にならないサイトのプロファイルがあったので外した")
+                    continue
+                }
+                profile.kind = .site(SiteReference(host: host))
             }
             if !usedProfileIDs.insert(profile.id).inserted {
                 profile.id = Self.uniqueID(avoiding: usedProfileIDs)
@@ -418,6 +462,23 @@ extension NonetConfiguration {
                     profiles.insert(Profile(kind: .global, pages: profile.pages), at: 0)
                 }
                 result.replacedGlobal = true
+                applied.insert(position)
+            case .site(let site):
+                guard let host = SiteReference.normalizedHost(site.host), seenBundleIDs.insert("site:" + host).inserted else {
+                    result.skipped += 1
+                    continue
+                }
+                if let index = siteProfileIndex(forHost: host) {
+                    profile.id = profiles[index].id
+                    profiles[index] = profile
+                    result.replaced += 1
+                } else {
+                    if profiles.contains(where: { $0.id == profile.id }) {
+                        profile.id = UUID()
+                    }
+                    profiles.append(profile)
+                    result.added += 1
+                }
                 applied.insert(position)
             case .app(let app):
                 let key = Self.bundleIDKey(app.bundleID)

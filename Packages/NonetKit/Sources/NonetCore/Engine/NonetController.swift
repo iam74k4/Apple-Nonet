@@ -608,8 +608,13 @@ public final class NonetController {
             }
             return true
         }
+        // ブラウザなら、見ているサイトのボタンを使う（開くときに1回だけ読む）。そのサイトを「使わない」にしていたら開かない
+        let host = services.frontmostApp.currentSiteHost()
+        if !isPracticeMode, configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID, host: host) {
+            return false
+        }
         beginLatencyActivity()
-        let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current)
+        let next = ControllerSession(configuration: configuration, frontmostApp: services.frontmostApp.current, host: host)
         // エンジンの beginPointerSuppression で、この呼び出しの中で isSuppressingPointer を true にする（直後のポインタイベントを取りこぼさない）
         send(.open(at: services.scheduler.now, configuration: next.engineConfiguration), starting: next)
         guard engine.isInSession else {

@@ -17,7 +17,7 @@ IDS = [
     (2, "basics"), (3, "open"), (3, "run"), (3, "cancel"), (3, "hold-buttons"), (3, "while-open"),
     (3, "pages"), (3, "global-and-launcher"), (3, "utilities"), (3, "haptics"),
     (2, "menu-bar"),
-    (2, "profiles"), (3, "profile-list"), (3, "pages-and-buttons"), (3, "undo-and-restore"), (3, "power-editing"),
+    (2, "profiles"), (3, "profile-list"), (3, "sites"), (3, "pages-and-buttons"), (3, "undo-and-restore"), (3, "power-editing"),
     (3, "inspector"), (3, "pick-from-menus"),
     (2, "actions"), (3, "keystrokes"), (3, "paste-text"), (3, "open-app"), (3, "place-window"), (3, "media"), (3, "script"), (4, "script-variables"),
     (3, "shortcut"), (3, "menu-item"), (3, "ai"), (3, "file"), (3, "recent-screenshots"),
