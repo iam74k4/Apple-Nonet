@@ -64,6 +64,8 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 AI のアクションは、Apple の Foundation Models フレームワークを使い、Mac の中の言語モデルで処理します。本アプリが選択中のテキストを外部に送ることはありません。結果で選択範囲を置き換えるときは、結果をクリップボードに一時的に置いて ⌘V で貼り付け、元のクリップボードに戻します（クリップボードの履歴を残すアプリに残らないよう、`org.nspasteboard.TransientType` の印を付けます）。
 
+「最近のスクショ」のマスは、macOS のスクリーンショットの保存先（既定はデスクトップ）のファイルの一覧を読み、スクリーンショットの画像だけを並べます。初めて使うときに、macOS がそのフォルダを読む許可を確認します。クリックしたスクリーンショットは、その画像とファイルの場所をクリップボードに入れます。読んだ一覧と画像は表示とコピーに使うだけで、保存も送信もしません。
+
 ### 6. ネットワーク
 
 本アプリがネットワークを使うのは、次のときだけです。
@@ -158,6 +160,8 @@ Actions you configure, such as scripts, shortcuts and URLs, run on your Mac with
 When you import profiles, the app first lists any Script, Keystrokes, Menu Item and AI buttons, any File buttons that move to the Trash, rename or duplicate the files selected in Finder, and any buttons that open a file on your Mac, together with everything they do (every line of the script, the keys, the menu item and its keyboard shortcut, the AI prompt and output, the file operation, or the location of the file), and asks you to confirm. Buttons that press a key that works like Return (or a key with ⌃) and lines with commands that need care (such as curl, `| sh` and rm -rf) are highlighted, and you can't import until you scroll to the end. Check profiles you receive from someone else, and import them only if you trust them.
 
 AI actions use Apple's Foundation Models framework and are processed by the on-device language model. The app never sends your selected text anywhere. To replace the selected text with the result, the app puts the result on the clipboard for a moment, pastes it with ⌘V and then restores the clipboard. It marks the result `org.nspasteboard.TransientType` so that clipboard history apps do not keep it.
+
+The Recent Screenshots button reads the list of files in the folder where macOS saves screenshots (the Desktop by default) and shows only the screenshot images. The first time, macOS asks for permission to read that folder. When you click a screenshot, the app puts that image and the location of its file on the clipboard. What it reads is used only to show and copy the screenshots and is never stored or sent.
 
 ### 6. Network
 

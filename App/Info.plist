@@ -71,6 +71,12 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>最近のスクショのマスで、デスクトップに保存されたスクリーンショットを並べるために、デスクトップのファイルの一覧を読みます。</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>最近のスクショのマスで、スクリーンショットの保存先に選んだ書類フォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>最近のスクショのマスで、スクリーンショットの保存先に選んだダウンロードフォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Takanari Okazaki</string>
 	<key>NonetLicensePublicKey</key>

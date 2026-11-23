@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .script, .shortcut, .menuItem, .ai, .file]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
 
     /// 種類の一覧で選ばれている項目。URL のマスは「開く」
     static func menuKind(of action: Action) -> ActionKind {
@@ -23,6 +23,7 @@ enum SettingsActionKinds {
         case .ai: String(localized: "AI", bundle: .module)
         case .file: String(localized: "ファイル", bundle: .module)
         case .placeWindow: String(localized: "画面に置く", bundle: .module)
+        case .screenshots: String(localized: "最近のスクショ", bundle: .module)
         }
     }
 
@@ -38,6 +39,7 @@ enum SettingsActionKinds {
         case .ai: "sparkles"
         case .file: "doc"
         case .placeWindow: "macwindow"
+        case .screenshots: "photo.on.rectangle"
         }
     }
 }
@@ -67,6 +69,7 @@ enum SettingsCellEditing {
         // 取り消しやすい複製から始める（ゴミ箱に入れるは、選んだときに「少し長く止めてから実行」が入る）
         case .file: .file(FileAction(operation: .duplicate))
         case .placeWindow: .placeWindow(PlaceWindowAction(region: .maximize))
+        case .screenshots: .screenshots(ScreenshotTrayAction())
         }
     }
 
@@ -105,7 +108,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .file, .placeWindow: false
+        case .file, .placeWindow, .screenshots: false
         }
     }
 

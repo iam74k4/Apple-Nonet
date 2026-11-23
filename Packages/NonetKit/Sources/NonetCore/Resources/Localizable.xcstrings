@@ -2810,6 +2810,16 @@
         }
       }
     },
+    "最近のスクショ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Screenshots"
+          }
+        }
+      }
+    },
     "未読" : {
       "localizations" : {
         "en" : {

@@ -92,6 +92,7 @@
             <li><a href="#menu-item">Menu Item</a></li>
             <li><a href="#ai">AI</a></li>
             <li><a href="#file">File</a></li>
+            <li><a href="#recent-screenshots">Recent Screenshots</a></li>
           </ol>
         </li>
         <li><a href="#general">Settings</a>
@@ -250,7 +251,7 @@
     <p>The Global profile's first page starts as the nine Place on Screen buttons (Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half and Bottom Right; see <a href="#place-window">Place on Screen</a>). The second page is the nine Utilities buttons (capture and recording, emoji and symbols, Spotlight, mute, display sleep and screen lock; see <a href="#utilities">Utilities</a>). After them comes a launcher with up to 9 apps on one page. Apps in your Dock come first, in Dock order, and popular apps on your Mac fill the rest. It's a handy stand-in for Launchpad, which macOS 26 no longer has. You can change it like any other profile.</p>
     <p>If you delete the Place on Screen or Utilities page, you can add it again with <strong>+</strong> (Add page) in Settings. The same goes if you've used Nonet since an earlier version and your Global profile doesn't have these pages (see <a href="#pages-and-buttons">Pages and buttons</a>).</p>
     <h3 id="utilities">Utilities</h3>
-    <p>The Global profile's second page, <strong>Utilities</strong>, holds nine things you do the same way in every app. Each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission.</p>
+    <p>The Global profile's second page, <strong>Utilities</strong>, holds nine things you do the same way in every app. Apart from Recent Screenshots, each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission (Recent Screenshots asks to read the screenshot folder the first time you use it).</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -262,7 +263,7 @@
         </thead>
         <tbody>
           <tr><td>Capture Area (⇧⌘4)</td><td>Capture &amp; Record (⇧⌘5)</td><td>Stop Recording (⌃⌘Esc)</td></tr>
-          <tr><td>Emoji &amp; Symbols (⌃⌘Space)</td><td>Capture &amp; Copy (⌃⇧⌘4)</td><td>Spotlight (⌘Space)</td></tr>
+          <tr><td>Emoji &amp; Symbols (⌃⌘Space)</td><td>Capture &amp; Copy (⌃⇧⌘4)</td><td>Recent Screenshots</td></tr>
           <tr><td>Mute / Unmute</td><td>Sleep Display</td><td>Lock Screen (⌃⌘Q)</td></tr>
         </tbody>
       </table>
@@ -273,12 +274,12 @@
       <li><strong>Capture &amp; Record</strong>: shows the macOS screenshot toolbar. Start window or full-screen captures and screen recordings from there</li>
       <li><strong>Stop Recording</strong>: stops a screen recording (the same as the stop button in the menu bar)</li>
       <li><strong>Emoji &amp; Symbols</strong>: opens the emoji and symbols viewer where you're typing</li>
-      <li><strong>Spotlight</strong>: opens the Spotlight search field. Find apps and documents by name and open them</li>
+      <li><strong>Recent Screenshots</strong>: shows a tray of the screenshots you took recently. Click one to copy it, or drag it to attach it (see <a href="#recent-screenshots">Recent Screenshots</a> under Action types)</li>
       <li><strong>Mute / Unmute</strong>: turns the sound off or back on (the script uses <code>set volume</code>). If the output device can't be muted, Nonet shows a failure</li>
       <li><strong>Sleep Display</strong>: puts the display to sleep (the script uses <code>pmset displaysleepnow</code>). The Mac itself doesn't sleep</li>
       <li><strong>Lock Screen</strong>: locks the screen right away. Pressing it by mistake means typing your password again, so it runs only after a longer hold (see <a href="#hold-buttons">Buttons that need a longer hold</a>)</li>
     </ul>
-    <p>The capture, recording, emoji, Spotlight and lock keys are macOS-wide shortcuts. If you've changed or turned them off in <strong>System Settings › Keyboard › Keyboard Shortcuts</strong>, these buttons do nothing. Change the button's <strong>Keys to send</strong> to match.</p>
+    <p>The capture, recording, emoji and lock keys are macOS-wide shortcuts. If you've changed or turned them off in <strong>System Settings › Keyboard › Keyboard Shortcuts</strong>, these buttons do nothing. Change the button's <strong>Keys to send</strong> to match.</p>
     <p>Mission Control, App Exposé and switching desktops aren't on this page because three- and four-finger trackpad gestures already open them.</p>
     <h3 id="haptics">Haptic feedback</h3>
     <p>When the nine buttons open, and each time your finger crosses into another button, the trackpad gives a light tick. It ticks once when a button runs or a button that needs a longer hold is ready, twice when the page changes, and once more strongly when you switch between the app's pages and the Global pages. When the buttons close without running anything (a lift outside the ring or on an empty button, a lift with two fingers, a left or right swipe when there is only one page and so on), and when they don't open because the trial has ended, Accessibility permission is missing or you're entering a password, it gives two light taps. You can turn it off with the <strong>Haptic feedback</strong> setting (you can feel it only on a Force Touch trackpad).</p>
@@ -508,6 +509,18 @@ printf '%s' "${NONET_BROWSER_URL:?No browser is in front}" | pbcopy
       <li><strong>Permission</strong>: the first time you use it, macOS asks whether Nonet may control Finder (see <a href="#automation">macOS asks for Automation permission</a>). Nonet reads only the locations of the files selected in Finder, never what is inside them</li>
       <li><strong>Test This Button</strong> in Settings asks first, because the Settings window can't show what is selected in Finder</li>
       <li>The second page of the Finder preset (“Selected Files”) has Duplicate, Rename and Move to Trash (Hold before running)</li>
+    </ul>
+    <h3 id="recent-screenshots">Recent Screenshots</h3>
+    <p>Shows your five most recent screenshots, newest first, in a small panel (the tray) near where the HUD was. They come from where macOS saves screenshots (the location chosen under Options in ⇧⌘5; the Desktop by default). Attach or paste a screenshot you just took without hunting for it on the Desktop.</p>
+    <ul>
+      <li><strong>Click</strong>: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file</li>
+      <li><strong>Drag</strong>: picks it up as a file. Drop it on the attachment area of a chat, email or web page, or in a Finder folder</li>
+      <li><strong>Keyboard</strong>: choose with ← and →, press Return to copy, and press Esc to close</li>
+      <li>Clicking outside the tray closes it too. The front app stays in front, so you can keep typing right away</li>
+      <li><strong>Open Folder</strong> shows the save location in Finder</li>
+      <li>The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings (videos) aren't shown</li>
+      <li><strong>Permission</strong>: the first time, macOS asks whether Nonet may access files in your Desktop folder (or your Documents or Downloads folder, if screenshots are saved there). Nonet reads only the list of files and the screenshots it shows. If you don't allow it, the tray says "Nonet isn't allowed to read the screenshot folder" with <strong>Open System Settings</strong> (turn Nonet on in <strong>System Settings › Privacy &amp; Security › Files and Folders</strong>)</li>
+      <li>There's nothing to set. It's on the Global profile's <strong>Utilities</strong> page</li>
     </ul>
 
     <h2 id="general">Settings</h2>

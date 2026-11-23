@@ -113,7 +113,7 @@ enum ControllerExecutionPolicy {
         case .shortcut, .ai: true
         // 大きなファイルの複製は、長く掛かる
         case .file(let file): file.operation == .duplicate
-        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots: false
         }
     }
 
@@ -123,7 +123,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
+        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots: false
         }
     }
 
@@ -137,7 +137,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .keystroke: true
         case .ai(let ai): ai.output == .replaceSelection
-        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow: false
+        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow, .screenshots: false
         }
     }
 
@@ -145,7 +145,8 @@ enum ControllerExecutionPolicy {
     /// （戻すと「前面なら隠す」の起動が、そのアプリを隠してしまう）
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
-        case .launchApp, .openURL: false
+        // スクリーンショットのトレイは Nonet のパネルなので、どのアプリが前面でも同じ
+        case .launchApp, .openURL, .screenshots: false
         case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow: true
         }
     }

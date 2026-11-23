@@ -31,10 +31,12 @@ public enum Action: Codable, Equatable, Sendable {
     case file(FileAction)
     /// 前面のアプリのウインドウを、画面の決まった場所に置く（3×3 のマスが、そのまま画面の場所）
     case placeWindow(PlaceWindowAction)
+    /// 最近のスクリーンショットを並べたトレイを出す（クリックで画像をコピー、ドラッグでそのまま添付）
+    case screenshots(ScreenshotTrayAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -176,6 +178,17 @@ public struct PlaceWindowAction: Codable, Equatable, Sendable {
     }
 }
 
+/// 最近のスクリーンショットのトレイ。決めることは無い（探す場所は macOS のスクリーンショットの保存先。ScreenshotFolder）
+public struct ScreenshotTrayAction: Codable, Equatable, Sendable {
+    public init() {}
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+    }
+
+    public func encode(to encoder: any Encoder) throws {}
+}
+
 extension Action {
     public var kind: ActionKind {
         switch self {
@@ -188,6 +201,7 @@ extension Action {
         case .ai: .ai
         case .file: .file
         case .placeWindow: .placeWindow
+        case .screenshots: .screenshots
         }
     }
 
@@ -215,6 +229,8 @@ extension Action {
             action.operation.title
         case .placeWindow(let action):
             action.region.title
+        case .screenshots:
+            String(localized: "最近のスクショ", bundle: .module)
         }
     }
 }
@@ -347,6 +363,8 @@ extension Action {
             self = .file(try FileAction(from: decoder))
         case .placeWindow:
             self = .placeWindow(try PlaceWindowAction(from: decoder))
+        case .screenshots:
+            self = .screenshots(try ScreenshotTrayAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -374,6 +392,8 @@ extension Action {
         case .file(let action):
             try action.encode(to: encoder)
         case .placeWindow(let action):
+            try action.encode(to: encoder)
+        case .screenshots(let action):
             try action.encode(to: encoder)
         }
     }

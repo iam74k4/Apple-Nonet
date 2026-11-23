@@ -152,12 +152,12 @@ If you delete the Place on Screen or Utilities page, you can add it again with *
 
 ### Utilities
 
-The Global profile's second page, **Utilities**, holds nine things you do the same way in every app. Each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission.
+The Global profile's second page, **Utilities**, holds nine things you do the same way in every app. Apart from Recent Screenshots, each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission (Recent Screenshots asks to read the screenshot folder the first time you use it).
 
 | | | |
 |---|---|---|
 | Capture Area (⇧⌘4) | Capture & Record (⇧⌘5) | Stop Recording (⌃⌘Esc) |
-| Emoji & Symbols (⌃⌘Space) | Capture & Copy (⌃⇧⌘4) | Spotlight (⌘Space) |
+| Emoji & Symbols (⌃⌘Space) | Capture & Copy (⌃⇧⌘4) | Recent Screenshots |
 | Mute / Unmute | Sleep Display | Lock Screen (⌃⌘Q) |
 
 - **Capture Area**: select an area and save it as a file
@@ -165,12 +165,12 @@ The Global profile's second page, **Utilities**, holds nine things you do the sa
 - **Capture & Record**: shows the macOS screenshot toolbar. Start window or full-screen captures and screen recordings from there
 - **Stop Recording**: stops a screen recording (the same as the stop button in the menu bar)
 - **Emoji & Symbols**: opens the emoji and symbols viewer where you're typing
-- **Spotlight**: opens the Spotlight search field. Find apps and documents by name and open them
+- **Recent Screenshots**: shows a tray of the screenshots you took recently. Click one to copy it, or drag it to attach it (see [Recent Screenshots](#recent-screenshots) under Action types)
 - **Mute / Unmute**: turns the sound off or back on (the script uses `set volume`). If the output device can't be muted, Nonet shows a failure
 - **Sleep Display**: puts the display to sleep (the script uses `pmset displaysleepnow`). The Mac itself doesn't sleep
 - **Lock Screen**: locks the screen right away. Pressing it by mistake means typing your password again, so it runs only after a longer hold (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold))
 
-The capture, recording, emoji, Spotlight and lock keys are macOS-wide shortcuts. If you've changed or turned them off in **System Settings › Keyboard › Keyboard Shortcuts**, these buttons do nothing. Change the button's **Keys to send** to match.
+The capture, recording, emoji and lock keys are macOS-wide shortcuts. If you've changed or turned them off in **System Settings › Keyboard › Keyboard Shortcuts**, these buttons do nothing. Change the button's **Keys to send** to match.
 
 Mission Control, App Exposé and switching desktops aren't on this page because three- and four-finger trackpad gestures already open them.
 
@@ -404,6 +404,19 @@ Trashes, renames or duplicates the files selected in Finder. Click a file in Fin
 - **Permission**: the first time you use it, macOS asks whether Nonet may control Finder (see [macOS asks for Automation permission](#macos-asks-for-automation-permission)). Nonet reads only the locations of the files selected in Finder, never what is inside them
 - **Test This Button** in Settings asks first, because the Settings window can't show what is selected in Finder
 - The second page of the Finder preset (“Selected Files”) has Duplicate, Rename and Move to Trash (Hold before running)
+
+### Recent Screenshots
+
+Shows your five most recent screenshots, newest first, in a small panel (the tray) near where the HUD was. They come from where macOS saves screenshots (the location chosen under Options in ⇧⌘5; the Desktop by default). Attach or paste a screenshot you just took without hunting for it on the Desktop.
+
+- **Click**: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file
+- **Drag**: picks it up as a file. Drop it on the attachment area of a chat, email or web page, or in a Finder folder
+- **Keyboard**: choose with ← and →, press Return to copy, and press Esc to close
+- Clicking outside the tray closes it too. The front app stays in front, so you can keep typing right away
+- **Open Folder** shows the save location in Finder
+- The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings (videos) aren't shown
+- **Permission**: the first time, macOS asks whether Nonet may access files in your Desktop folder (or your Documents or Downloads folder, if screenshots are saved there). Nonet reads only the list of files and the screenshots it shows. If you don't allow it, the tray says "Nonet isn't allowed to read the screenshot folder" with **Open System Settings** (turn Nonet on in **System Settings › Privacy & Security › Files and Folders**)
+- There's nothing to set. It's on the Global profile's **Utilities** page
 
 ## Settings
 

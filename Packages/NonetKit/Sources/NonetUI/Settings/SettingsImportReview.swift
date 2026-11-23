@@ -163,7 +163,7 @@ extension SettingsText {
             if shortcut.passSelectedText {
                 lines.append((String(localized: "選択中のテキストをショートカットに渡します", bundle: .module), .label))
             }
-        case .launchApp, .placeWindow:
+        case .launchApp, .placeWindow, .screenshots:
             break
         }
         if reviewed.pressesSubmitKey {

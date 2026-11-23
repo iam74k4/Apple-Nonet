@@ -12,8 +12,9 @@ import Testing
         for kind in ActionKind.allCases {
             #expect(!SettingsActionKinds.name(kind).isEmpty)
             #expect(SettingsCellEditing.defaultAction(for: kind).kind == kind)
-            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「複製」、画面に置くは「最大化」から始まり、すぐ使える
-            let usableAtOnce: Set<ActionKind> = [.file, .placeWindow]
+            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「複製」、画面に置くは「最大化」から始まり、
+            // 最近のスクショは決めることが無いので、すぐ使える
+            let usableAtOnce: Set<ActionKind> = [.file, .placeWindow, .screenshots]
             #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)) == !usableAtOnce.contains(kind))
             let cell = SettingsCellEditing.newCell(kind: kind)
             #expect(cell.title.isEmpty)

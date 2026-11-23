@@ -550,6 +550,16 @@
         }
       }
     },
+    "Esc で閉じる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc to close"
+          }
+        }
+      }
+    },
     "Esc を加える" : {
       "localizations" : {
         "en" : {
@@ -1179,6 +1189,16 @@
         }
       }
     },
+    "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に5枚並べます。クリックすると画像をコピーし、ドラッグするとそのまま添付できます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows your five most recent screenshots, newest first, from where macOS saves them (the location chosen under Options in ⇧⌘5; the Desktop by default). Click one to copy the image, or drag it to attach it. The first time, macOS asks for permission to read that folder."
+          }
+        }
+      }
+    },
     "menu.edit" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -1345,6 +1365,26 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "終了"
+          }
+        }
+      }
+    },
+    "⇧⌘5 の「オプション」で保存先を選び直してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where screenshots are saved again under Options in ⇧⌘5."
+          }
+        }
+      }
+    },
+    "⌘V で貼り付けられます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌘V to paste it"
           }
         }
       }
@@ -2061,6 +2101,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep your finger still"
+          }
+        }
+      }
+    },
+    "たった今" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
           }
         }
       }
@@ -2797,6 +2847,26 @@
         }
       }
     },
+    "クリックでコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy"
+          }
+        }
+      }
+    },
+    "クリックでコピー、ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy, or drag to attach"
+          }
+        }
+      }
+    },
     "クリップボードにコピー" : {
       "localizations" : {
         "en" : {
@@ -2935,6 +3005,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. If it's already on but doesn't work, remove Nonet from the list with −, then add it again with +. Nonet starts working once you allow it."
+          }
+        }
+      }
+    },
+    "システム設定 › プライバシーとセキュリティ › ファイルとフォルダ で、Nonet にデスクトップなどへのアクセスを許可してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Nonet to access your Desktop (or wherever you save screenshots) in System Settings › Privacy & Security › Files and Folders."
           }
         }
       }
@@ -3172,6 +3252,26 @@
         }
       }
     },
+    "スクリーンショット" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots"
+          }
+        }
+      }
+    },
+    "スクリーンショット %lld 枚。クリックでコピー、ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots: %lld. Click one to copy it, or drag it to attach it."
+          }
+        }
+      }
+    },
     "スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3189,6 +3289,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keys that macOS uses first, like ⇧⌘4 for screenshots, can't be recorded. Click Cancel and type them as text instead."
+          }
+        }
+      }
+    },
+    "スクリーンショットの保存先が見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find the screenshot folder"
+          }
+        }
+      }
+    },
+    "スクリーンショットの保存先を読めません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't read the screenshot folder"
+          }
+        }
+      }
+    },
+    "スクリーンショットはまだありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No screenshots yet"
+          }
+        }
+      }
+    },
+    "スクリーンショットをコピーしました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshot copied"
           }
         }
       }
@@ -3386,6 +3526,16 @@
         }
       }
     },
+    "ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to attach"
+          }
+        }
+      }
+    },
     "バージョン %@" : {
       "localizations" : {
         "en" : {
@@ -3499,6 +3649,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't import the file."
+          }
+        }
+      }
+    },
+    "フォルダを開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Folder"
           }
         }
       }
@@ -4679,6 +4839,16 @@
         }
       }
     },
+    "保存先のフォルダを読む許可がありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet isn't allowed to read the screenshot folder"
+          }
+        }
+      }
+    },
     "停止しています" : {
       "localizations" : {
         "en" : {
@@ -5470,6 +5640,16 @@
         }
       }
     },
+    "撮ったものが、新しい順にここに並びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots you take appear here, newest first."
+          }
+        }
+      }
+    },
     "操作" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5619,6 +5799,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scroll to the end to check everything before you can import."
+          }
+        }
+      }
+    },
+    "最近のスクショ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Screenshots"
           }
         }
       }

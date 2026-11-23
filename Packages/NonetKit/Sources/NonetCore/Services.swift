@@ -328,6 +328,9 @@ public protocol HUDPresenting: AnyObject {
     /// 「画面に置く」のマスを光らせている間、置く枠（AppKit のグローバル座標）を画面に見せる。閉じるときは hide() で消す
     func showPlacementPreview(_ frame: CGRect)
     func hidePlacementPreview()
+    /// 最近のスクリーンショットのトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。
+    /// 探す・並べる・コピーする・ドラッグさせる・閉じるは画面が受け持つ（ScreenshotFolder で探す）
+    func showScreenshotTray()
 }
 
 extension HUDPresenting {
@@ -337,6 +340,9 @@ extension HUDPresenting {
     /// 置く枠を見せない実装の既定
     public func showPlacementPreview(_ frame: CGRect) {}
     public func hidePlacementPreview() {}
+
+    /// トレイを出さない実装の既定
+    public func showScreenshotTray() {}
 
 }
 
