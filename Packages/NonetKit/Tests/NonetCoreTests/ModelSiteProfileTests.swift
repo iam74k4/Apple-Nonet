@@ -61,7 +61,8 @@ import Testing
         let again = configuration.addSiteProfile(host: "youtube.com")
         #expect(again == configuration.profiles.first { $0.site != nil }?.id)
         #expect(configuration.profiles.filter { $0.site != nil }.count == 1)
-        #expect(configuration.addSiteProfile(host: "not a site") == nil)
+        let invalid = configuration.addSiteProfile(host: "not a site")
+        #expect(invalid == nil)
         let data = try JSONEncoder().encode(configuration)
         let decoded = try JSONDecoder().decode(NonetConfiguration.self, from: data)
         #expect(decoded.profiles.first { $0.site != nil }?.site == SiteReference(host: "youtube.com"))
@@ -77,9 +78,11 @@ import Testing
         var configuration = configuration()
         let site = try #require(configuration.profiles.first { $0.site != nil })
         configuration.profiles.removeAll { $0.id == site.id }
-        #expect(configuration.restoreAppProfile(site, at: 0))
+        let restored = configuration.restoreAppProfile(site, at: 0)
+        #expect(restored)
         #expect(configuration.profiles.contains { $0.id == site.id })
-        #expect(!configuration.restoreAppProfile(site, at: 0))
+        let restoredAgain = configuration.restoreAppProfile(site, at: 0)
+        #expect(!restoredAgain)
     }
 
     @Test func youTubeHasAPreset() throws {
@@ -110,7 +113,8 @@ import Testing
 
     @Test func aTurnedOffSiteGivesTheClickBack() throws {
         var configuration = F.configuration()
-        let id = try #require(configuration.addSiteProfile(host: "youtube.com"))
+        let added = configuration.addSiteProfile(host: "youtube.com")
+        let id = try #require(added)
         configuration.updateProfile(id: id) { $0.mode = .off }
         let h = try ControllerHarness(configuration: configuration)
         h.frontmost.siteHost = "youtube.com"
