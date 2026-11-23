@@ -29,6 +29,12 @@ import Testing
         }
     }
 
+    /// 「テキストを貼る」は最初の1文字のアイコン（いくつあっても HUD で見分けられる）。空なら種類のアイコン
+    @Test func pasteTextIconsUseTheFirstCharacter() {
+        #expect(SettingsCellEditing.defaultIcon(for: .pasteText(PasteTextAction(text: "  署名\n岡崎"))) == .text("署"))
+        #expect(SettingsCellEditing.defaultIcon(for: .pasteText(PasteTextAction(text: ""))) == .symbol(SettingsActionKinds.symbol(.pasteText)))
+    }
+
     @Test func newCellsGetAutomaticTitlesFromTheirAction() {
         let cell = SettingsCellEditing.newCell(kind: .keystroke)
         let updated = SettingsCellEditing.replacingAction(.keystroke(.key("b", .command)), in: cell)

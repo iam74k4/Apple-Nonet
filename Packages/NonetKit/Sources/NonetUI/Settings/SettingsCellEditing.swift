@@ -99,6 +99,10 @@ enum SettingsCellEditing {
         if case .media(let media) = action {
             return .symbol(media.key.symbol)
         }
+        // アイコンだけの HUD で、いくつもある「テキストを貼る」を見分けられるよう、最初の1文字にする
+        if case .pasteText(let paste) = action, let first = paste.preview?.first {
+            return .text(String(first))
+        }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
 
