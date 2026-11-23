@@ -6824,6 +6824,16 @@
         }
       }
     },
+    "見ていたサイト「%@」を追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the site you were viewing, “%@”"
+          }
+        }
+      }
+    },
     "触覚" : {
       "localizations" : {
         "en" : {

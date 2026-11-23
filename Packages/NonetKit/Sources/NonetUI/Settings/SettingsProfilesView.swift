@@ -750,6 +750,18 @@ struct SettingsAddSitePopover: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
             }
+            if let recent = model.suggestedRecentSite {
+                Button {
+                    model.addSiteProfile(recent)
+                } label: {
+                    Label {
+                        Text("見ていたサイト「\(recent)」を追加", bundle: .module)
+                    } icon: {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                }
+                .buttonStyle(.link)
+            }
             HStack(spacing: 6) {
                 Text("ボタン入り:", bundle: .module)
                     .font(.system(size: 11))

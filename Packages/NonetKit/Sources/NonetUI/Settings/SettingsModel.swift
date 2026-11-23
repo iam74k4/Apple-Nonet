@@ -111,8 +111,20 @@ final class SettingsModel {
     private(set) var selectedIndex: Int? = 0
     var rightPanel: RightPanel = .inspector
     /// プロファイルを追加するシート。閉じたら複製の元も忘れる
-    /// 「サイトを追加」のポップオーバー
-    var isAddingSite = false
+    /// 「サイトを追加」のポップオーバー。開くときに、直前に使っていたブラウザで見ていたサイトを読んでおく（候補にする）
+    var isAddingSite = false {
+        didSet {
+            guard isAddingSite, !oldValue else { return }
+            recentSiteHost = services.frontmostApp.currentSiteHost().flatMap(SiteReference.normalizedHost)
+        }
+    }
+    /// 直前に使っていたブラウザで見ていたサイト（まだプロファイルが無いものだけ。「サイトを追加」の候補）
+    private(set) var recentSiteHost: String?
+
+    var suggestedRecentSite: String? {
+        guard let host = recentSiteHost, configuration.siteProfileIndex(forHost: host) == nil else { return nil }
+        return host
+    }
     var isAddingProfile = false {
         didSet {
             if !isAddingProfile { duplicatingProfileID = nil }

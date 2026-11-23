@@ -226,7 +226,7 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 In a browser (Safari, Chrome, Arc, Edge, Brave or Dia) you can use different nine buttons for each site you visit, such as playback controls on YouTube or shortcuts to the pages you use on GitHub.
 
 1. On the Profiles tab of Settings, click **Add Site…** below the list
-2. Enter the site's URL or host name (such as `youtube.com`) and click **Add**. Choose a suggestion under **With buttons:** (YouTube) to start with that site's keys already in place
+2. Enter the site's URL or host name (such as `youtube.com`) and click **Add**. If you were just on a site in your browser, **Add the site you were viewing** adds it in one click. Choose a suggestion under **With buttons:** (YouTube) to start with that site's keys already in place
 3. Add buttons as you would to any other profile
 
 - When you open the buttons on that site, the site's pages come before the browser's (the Global pages follow). A site also matches its subdomains (`youtube.com` matches `m.youtube.com`), and a more specific site (`mail.google.com`) wins
