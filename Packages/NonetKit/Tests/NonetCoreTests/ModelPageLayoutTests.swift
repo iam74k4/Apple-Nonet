@@ -75,9 +75,11 @@ import Testing
         let profile = Profile(kind: .global, pages: [Page(cells: (0..<9).map { cell("\($0)") })])
         var configuration = NonetConfiguration(profiles: [profile]).validated()
         let id = configuration.globalProfile.id
-        #expect(!configuration.setPageLayout(.six, at: 0, profileID: id))
+        let tooFew = configuration.setPageLayout(.six, at: 0, profileID: id)
+        #expect(!tooFew)
         #expect(configuration.globalProfile.pages[0].layout == .nine)
-        #expect(configuration.setPageLayout(.twelve, at: 0, profileID: id))
+        let twelve = configuration.setPageLayout(.twelve, at: 0, profileID: id)
+        #expect(twelve)
         #expect(configuration.globalProfile.pages[0].layout == .twelve)
         // HUD に渡すページにもボタンの数が付く
         #expect(configuration.resolvedPages(frontmostBundleID: nil).first?.layout == .twelve)
