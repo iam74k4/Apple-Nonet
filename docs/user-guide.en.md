@@ -9,7 +9,7 @@ Press firmly anywhere on the trackpad and hold for a moment, and Nonet turns you
 - Press firmly anywhere on the trackpad (until the second click) and hold for a moment to open the nine buttons. Ease off, slide to choose one, then lift your finger on it to run it
 - The **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
 - If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
-- The nine buttons follow the front app. Each profile can have up to three pages. Each page can hold 4, 6, 8, 9 or 12 buttons, so you can keep just the few you use, large and easy to hit, or fit twelve (see "[Number of buttons](#number-of-buttons)")
+- The nine buttons follow the front app. Each profile can have up to three pages (36 buttons). Each page can hold 4, 6, 8, 9 or 12 buttons, so you can keep just the few you use, large and easy to hit, or fit twelve (see "[Number of buttons](#number-of-buttons)")
 
 ### Requirements
 

@@ -1019,11 +1019,13 @@ test_guides_limit_automation_to_the_browser_url() {
 # 1つのプロファイルは Page.cellCount × Profile.maxPages マスまで。初回のグローバルは1ページ目が「画面に置く」、
 # 2ページ目が「ユーティリティ」なので、ランチャーはその残り（maxPages − 2 ページ）まで（NonetConfiguration.initial）
 test_guides_state_the_launcher_size() {
-  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total launcher_pages launcher file counts
+  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells most pages total launcher_pages launcher file counts
   cells="$(sed -nE 's/.*static let cellCount = ([0-9]+).*/\1/p' "$profile")"
+  # ページごとのボタンの数の上限（PageLayout）。1つのプロファイルに置ける数は、これ × ページの数
+  most="$(sed -nE 's/.*static let maxCellCount = ([0-9]+).*/\1/p' "$profile")"
   pages="$(sed -nE 's/.*static let maxPages = ([0-9]+).*/\1/p' "$profile")"
-  [[ -n "$cells" && -n "$pages" ]] || fail "Profile.swift から cellCount と maxPages を読めません"
-  total=$((cells * pages))
+  [[ -n "$cells" && -n "$most" && -n "$pages" ]] || fail "Profile.swift から cellCount・maxCellCount・maxPages を読めません"
+  total=$((most * pages))
   launcher_pages=$((pages - 2))
   launcher=$((cells * launcher_pages))
   for file in docs/user-guide.md site/guide.html; do
