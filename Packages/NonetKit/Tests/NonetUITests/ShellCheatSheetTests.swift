@@ -425,7 +425,8 @@ struct ShellCheatSheetTests {
         // マスのボタンは、見ているページのボタンの数（ここでは 9）だけ読む。12 のページのために用意した残りは隠してある
         let shown = Array(view.cellButtons.prefix(Page.cellCount))
         #expect(children == [view.previousButton, view.pageIndicator, view.nextButton] + shown)
-        #expect(view.cellButtons.dropFirst(Page.cellCount).allSatisfy(\.isHidden))
+        let restAreHidden = view.cellButtons.dropFirst(Page.cellCount).allSatisfy { $0.isHidden }
+        #expect(restAreHidden)
         #expect(view.accessibilityLabel() == multi.accessibilityLabel)
         #expect(view.accessibilityRole() == .group)
         for (index, button) in shown.enumerated() {
