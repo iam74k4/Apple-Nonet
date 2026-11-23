@@ -92,6 +92,11 @@ final class HUDScreenshotTrayPanel: NSPanel {
     }
 }
 
+/// 裏で読んだサムネイルをメインスレッドへ渡す箱（CGImage は読んだ後に変えない）
+private struct ThumbnailBox: @unchecked Sendable {
+    let image: CGImage?
+}
+
 @MainActor
 final class HUDScreenshotTrayController {
     private let store = HUDScreenshotTrayStore()
@@ -191,11 +196,11 @@ final class HUDScreenshotTrayController {
         let urls = items.map(\.url)
         loadTask = Task { [weak self] in
             for url in urls {
-                let image = await Task.detached(priority: .userInitiated) {
-                    Self.thumbnail(of: url, maxPixels: HUDScreenshotTrayLayout.thumbnailPixels)
+                let box = await Task.detached(priority: .userInitiated) {
+                    ThumbnailBox(image: Self.thumbnail(of: url, maxPixels: HUDScreenshotTrayLayout.thumbnailPixels))
                 }.value
                 guard !Task.isCancelled else { return }
-                if let image {
+                if let image = box.image {
                     self?.store.thumbnails[url] = NSImage(cgImage: image, size: .zero)
                 }
             }
@@ -213,7 +218,7 @@ final class HUDScreenshotTrayController {
     }
 
     /// 画像（PNG か TIFF）とファイルの場所を、1つの項目として書く。チャットやメールの入力欄では画像として、Finder ではファイルとして貼り付く
-    static func write(_ item: ScreenshotItem, to pasteboard: NSPasteboard) -> Bool {
+    nonisolated static func write(_ item: ScreenshotItem, to pasteboard: NSPasteboard) -> Bool {
         let entry = NSPasteboardItem()
         entry.setString(item.url.absoluteString, forType: .fileURL)
         let ext = item.url.pathExtension.lowercased()
@@ -230,7 +235,7 @@ final class HUDScreenshotTrayController {
         return pasteboard.writeObjects([entry])
     }
 
-    static func announcement(for listing: ScreenshotListing) -> String {
+    nonisolated static func announcement(for listing: ScreenshotListing) -> String {
         switch listing {
         case .found(let items, _) where items.isEmpty:
             String(localized: "スクリーンショットはまだありません", bundle: .module)

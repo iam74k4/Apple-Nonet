@@ -44,7 +44,7 @@ public enum ScreenshotFolder {
     /// 画像として並べる拡張子（収録した動画 .mov は並べない）
     static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tif", "tiff", "gif", "bmp"]
     /// ファイル名の頭（name を変えていないときの既定。macOS の言語で変わる。印が無いファイルを見分けるのに使う）
-    static let defaultNamePrefixes = ["Screenshot", "Screen Shot", "スクリーンショット"]
+    public static let defaultNamePrefixes = ["Screenshot", "Screen Shot", "スクリーンショット"]
 
     /// 保存先。設定が無い・空・「クリップボード」（場所ではない）ならデスクトップ。~ はホームに置き換える
     public static func location(defaults: UserDefaults? = UserDefaults(suiteName: defaultsDomain), home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
