@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
+    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .media, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
 
     /// 種類の一覧で選ばれている項目。URL のマスは「開く」
     static func menuKind(of action: Action) -> ActionKind {
@@ -24,6 +24,7 @@ enum SettingsActionKinds {
         case .file: String(localized: "ファイル", bundle: .module)
         case .placeWindow: String(localized: "画面に置く", bundle: .module)
         case .screenshots: String(localized: "最近のスクショ", bundle: .module)
+        case .media: String(localized: "再生・音量", bundle: .module)
         }
     }
 
@@ -40,6 +41,7 @@ enum SettingsActionKinds {
         case .file: "doc"
         case .placeWindow: "macwindow"
         case .screenshots: "photo.on.rectangle"
+        case .media: "playpause"
         }
     }
 }
@@ -70,6 +72,7 @@ enum SettingsCellEditing {
         case .file: .file(FileAction(operation: .duplicate))
         case .placeWindow: .placeWindow(PlaceWindowAction(region: .maximize))
         case .screenshots: .screenshots(ScreenshotTrayAction())
+        case .media: .media(MediaAction(key: .playPause))
         }
     }
 
@@ -90,6 +93,9 @@ enum SettingsCellEditing {
         if case .placeWindow(let place) = action {
             return .symbol(place.region.symbol)
         }
+        if case .media(let media) = action {
+            return .symbol(media.key.symbol)
+        }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
 
@@ -108,7 +114,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .file, .placeWindow, .screenshots: false
+        case .file, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -325,6 +331,14 @@ extension FileAction: SettingsActionContent {
     }
 
     var asAction: Action { .file(self) }
+}
+
+extension MediaAction: SettingsActionContent {
+    static func content(of action: Action) -> MediaAction? {
+        if case .media(let media) = action { media } else { nil }
+    }
+
+    var asAction: Action { .media(self) }
 }
 
 extension PlaceWindowAction: SettingsActionContent {

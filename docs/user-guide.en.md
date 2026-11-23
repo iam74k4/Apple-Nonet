@@ -225,7 +225,7 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 
 The middle column shows the pages and the 3×3 grid of the selected profile.
 
-- Click **Page 1**, **Page 2** and so on (⌘1–⌘3) to switch pages. Click **+** (Add page) to add an empty page, or a page filled with the Place on Screen or Utilities buttons (up to three pages). To delete the selected page, click **…** (Page Actions) next to the pages and choose **Delete This Page…**, or Control-click the page and choose **Delete This Page…**. Nonet asks first if the page has buttons. The **…** menu also has **Add Page** and **Rename…**
+- Click **Page 1**, **Page 2** and so on (⌘1–⌘3) to switch pages. Click **+** (Add page) to add an empty page, or a page filled with the Place on Screen, Utilities or Media buttons (up to three pages). To delete the selected page, click **…** (Page Actions) next to the pages and choose **Delete This Page…**, or Control-click the page and choose **Delete This Page…**. Nonet asks first if the page has buttons. The **…** menu also has **Add Page** and **Rename…**
 - Double-click a page, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Buttons for Xcode · Debug", and briefly under the center icon when you switch between the app's pages and the Global pages. Leave it empty to go back to "Page 1" and so on
 - Click a button to select it, and drag to swap buttons. Drag a button onto **Page 2** (or another page) to move it to an empty button on that page. The selected button is filled: in your accent color when keys (Delete, the arrow keys and so on) go to the grid, and gray when they go somewhere else, such as the profile list or a text field
 - Hold the pointer over a button to see its full name (even if it's cut off) and what it does (the keys it sends, the app it opens and so on)
@@ -307,6 +307,15 @@ Puts the front app's window in a fixed part of the screen. Under **Where to plac
 - It moves the frontmost window of the app that was in front when you opened the buttons (VoiceOver adds what will move, such as "Safari window", to the HUD's name)
 - The window stays on its own display. Full-screen windows and windows with a fixed size (such as System Settings) can't be moved, and Nonet shows "This window couldn't be moved". An app with no window (for example, Finder with all its windows closed) shows "No window is in front"
 - In a fresh setup, these nine buttons are the first page of the Global profile (see [Global profile and launcher](#global-profile-and-launcher)). In an app with its own profile, hold the pointer below the ring to reach these buttons; in an app without one, they are the first page. If you delete them, add them again with **+** (Add page) › **Place on Screen** in Settings
+
+### Playback & Volume
+
+Works like the playback, volume and brightness keys on your keyboard. It works whichever app is in front, and macOS shows its volume or brightness indicator.
+
+- **Key to press**: Play/Pause, Next Track, Previous Track, Volume Up, Volume Down, Mute, Brightness Up or Brightness Down
+- Volume and brightness change two steps at a time (so it's worth opening the buttons for)
+- **Media** under **+** (Add page) in Settings adds a page with Play/Pause in the center, Previous and Next Track on the left and right, volume above and below, Mute at the bottom left and brightness on the right
+- Brightness works on the Mac's built-in display and on Apple displays whose brightness can be adjusted
 
 ### Script
 

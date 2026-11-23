@@ -2796,6 +2796,16 @@
         }
       }
     },
+    "キーボードの再生・音量・明るさのキーと同じ働きです。どのアプリが前面でも効き、macOS の音量や明るさの表示が出ます。音量と明るさは1回で2段変えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Works like the playback, volume and brightness keys on your keyboard. It works whichever app is in front, and macOS shows its volume or brightness indicator. Volume and brightness change two steps at a time."
+          }
+        }
+      }
+    },
     "キー入力" : {
       "localizations" : {
         "en" : {
@@ -4940,6 +4950,16 @@
         }
       }
     },
+    "再生・音量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback & Volume"
+          }
+        }
+      }
+    },
     "初回の案内をもう一度" : {
       "localizations" : {
         "en" : {
@@ -5685,6 +5705,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Starts recording keys."
+          }
+        }
+      }
+    },
+    "押すキー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key to press"
           }
         }
       }

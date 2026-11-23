@@ -78,6 +78,8 @@ public final class SystemActionPerformer: ActionPerforming {
         case .screenshots:
             // トレイは画面（HUDPresenting.showScreenshotTray）が出す。NonetController が performer に渡す前に受け持つ
             break
+        case .media(let media):
+            try MediaKeySender.send(media.key)
         }
         return nil
     }

@@ -848,3 +848,54 @@ struct SettingsPlaceWindowEditor: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
+
+/// 「再生・音量」: 送るキーを選ぶ（4つずつ2段）
+struct SettingsMediaEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let media: MediaAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "押すキー", bundle: .module)) {
+                Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(0..<2, id: \.self) { row in
+                        GridRow {
+                            ForEach(0..<4, id: \.self) { column in
+                                keyButton(MediaKey.allCases[row * 4 + column])
+                            }
+                        }
+                    }
+                }
+                Text(SettingsText.mediaDetail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func keyButton(_ key: MediaKey) -> some View {
+        let isSelected = key == media.key
+        return Button {
+            model.chooseMediaKey(key, forCell: cellID)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: key.symbol)
+                    .font(.system(size: 16))
+                Text(key.title)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(width: 62, height: 50)
+            .foregroundStyle(isSelected ? Color(nsColor: .alternateSelectedControlTextColor) : Color.primary)
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).fill(isSelected ? Color.accentColor : SettingsPalette.cellBackground))
+            .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+            .contentShape(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(key.title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}

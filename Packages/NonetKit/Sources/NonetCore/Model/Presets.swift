@@ -68,12 +68,14 @@ public enum PageTemplate: CaseIterable, Hashable, Sendable {
     case windowPlacement
     /// 「ユーティリティ」の9マス
     case utilities
+    /// 「メディア」の9マス（再生・音量・明るさ）
+    case media
 
     /// メニューに出す名前。型のページは、そのページの名前と同じ
     public var title: String {
         switch self {
         case .empty: String(localized: "空のページ", bundle: .module)
-        case .windowPlacement, .utilities: makePage().name ?? ""
+        case .windowPlacement, .utilities, .media: makePage().name ?? ""
         }
     }
 
@@ -83,6 +85,7 @@ public enum PageTemplate: CaseIterable, Hashable, Sendable {
         case .empty: .empty
         case .windowPlacement: PresetLibrary.makeWindowPlacementPage()
         case .utilities: PresetLibrary.makeUtilityPage()
+        case .media: PresetLibrary.makeMediaPage()
         }
     }
 }
@@ -185,6 +188,20 @@ public enum PresetLibrary {
                 Cell(title: region.title, icon: .symbol(region.symbol), action: .placeWindow(PlaceWindowAction(region: region)))
             },
             name: PresetBuilder.text("画面に置く")
+        )
+    }
+
+    /// 「メディア」のページ。真ん中が再生／一時停止、左右が前と次の曲、上下が音量、左下が消音、右の上下が明るさ。
+    /// 「ページを追加」の型から足す（初回の設定には入れない）
+    public static func makeMediaPage() -> Page {
+        let cell = { (key: MediaKey) in Cell(title: key.title, icon: .symbol(key.symbol), action: .media(MediaAction(key: key))) }
+        return Page(
+            cells: [
+                nil, cell(.volumeUp), cell(.brightnessUp),
+                cell(.previous), cell(.playPause), cell(.next),
+                cell(.mute), cell(.volumeDown), cell(.brightnessDown),
+            ],
+            name: PresetBuilder.text("メディア")
         )
     }
 

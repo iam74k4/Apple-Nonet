@@ -33,10 +33,12 @@ public enum Action: Codable, Equatable, Sendable {
     case placeWindow(PlaceWindowAction)
     /// 最近のスクリーンショットを並べたトレイを出す（クリックで画像をコピー、ドラッグでそのまま添付）
     case screenshots(ScreenshotTrayAction)
+    /// 再生・音量・明るさのキー（キーボードの F キーの段と同じ働き。どのアプリが前面でも効く）
+    case media(MediaAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots, media
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -178,6 +180,57 @@ public struct PlaceWindowAction: Codable, Equatable, Sendable {
     }
 }
 
+/// 再生・音量・明るさのキー
+public enum MediaKey: String, Codable, CaseIterable, Sendable {
+    case playPause, next, previous, volumeUp, volumeDown, mute, brightnessUp, brightnessDown
+}
+
+public struct MediaAction: Codable, Equatable, Sendable {
+    public var key: MediaKey
+
+    public init(key: MediaKey) {
+        self.key = key
+    }
+}
+
+extension MediaKey {
+    /// 名前（HUD や設定画面に出す）
+    public var title: String {
+        switch self {
+        case .playPause: String(localized: "再生／一時停止", bundle: .module)
+        case .next: String(localized: "次の曲", bundle: .module)
+        case .previous: String(localized: "前の曲", bundle: .module)
+        case .volumeUp: String(localized: "音量を上げる", bundle: .module)
+        case .volumeDown: String(localized: "音量を下げる", bundle: .module)
+        case .mute: String(localized: "消音", bundle: .module)
+        case .brightnessUp: String(localized: "明るくする", bundle: .module)
+        case .brightnessDown: String(localized: "暗くする", bundle: .module)
+        }
+    }
+
+    /// 絵（SF Symbols。macOS 14 にあるもの）
+    public var symbol: String {
+        switch self {
+        case .playPause: "playpause.fill"
+        case .next: "forward.fill"
+        case .previous: "backward.fill"
+        case .volumeUp: "speaker.wave.3.fill"
+        case .volumeDown: "speaker.wave.1.fill"
+        case .mute: "speaker.slash.fill"
+        case .brightnessUp: "sun.max.fill"
+        case .brightnessDown: "sun.min.fill"
+        }
+    }
+
+    /// 1回で何段送るか。音量と明るさは1段では変化が小さく、9マスを開き直す手間に見合わないので2段
+    public var steps: Int {
+        switch self {
+        case .volumeUp, .volumeDown, .brightnessUp, .brightnessDown: 2
+        case .playPause, .next, .previous, .mute: 1
+        }
+    }
+}
+
 /// 最近のスクリーンショットのトレイ。決めることは無い（探す場所は macOS のスクリーンショットの保存先。ScreenshotFolder）
 public struct ScreenshotTrayAction: Codable, Equatable, Sendable {
     public init() {}
@@ -202,6 +255,7 @@ extension Action {
         case .file: .file
         case .placeWindow: .placeWindow
         case .screenshots: .screenshots
+        case .media: .media
         }
     }
 
@@ -231,6 +285,8 @@ extension Action {
             action.region.title
         case .screenshots:
             String(localized: "最近のスクショ", bundle: .module)
+        case .media(let action):
+            action.key.title
         }
     }
 }
@@ -365,6 +421,8 @@ extension Action {
             self = .placeWindow(try PlaceWindowAction(from: decoder))
         case .screenshots:
             self = .screenshots(try ScreenshotTrayAction(from: decoder))
+        case .media:
+            self = .media(try MediaAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -395,7 +453,26 @@ extension Action {
             try action.encode(to: encoder)
         case .screenshots(let action):
             try action.encode(to: encoder)
+        case .media(let action):
+            try action.encode(to: encoder)
         }
+    }
+}
+
+extension MediaAction {
+    private enum CodingKeys: String, CodingKey {
+        case key
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 知らないキーを別のキーとして読まないよう、読めなければマスごと読めないことにする
+        self.init(key: try container.decode(MediaKey.self, forKey: .key))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(key, forKey: .key)
     }
 }
 

@@ -113,7 +113,7 @@ enum ControllerExecutionPolicy {
         case .shortcut, .ai: true
         // 大きなファイルの複製は、長く掛かる
         case .file(let file): file.operation == .duplicate
-        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -123,7 +123,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots: false
+        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -137,7 +137,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .keystroke: true
         case .ai(let ai): ai.output == .replaceSelection
-        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow, .screenshots: false
+        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -146,7 +146,8 @@ enum ControllerExecutionPolicy {
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
         // スクリーンショットのトレイは Nonet のパネルなので、どのアプリが前面でも同じ
-        case .launchApp, .openURL, .screenshots: false
+        // 再生・音量・明るさは、どのアプリが前面でも同じ
+        case .launchApp, .openURL, .screenshots, .media: false
         case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow: true
         }
     }

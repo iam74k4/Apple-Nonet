@@ -1717,6 +1717,16 @@
         }
       }
     },
+    "メディア" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media"
+          }
+        }
+      }
+    },
     "メニューバーの Nonet から止められます" : {
       "localizations" : {
         "en" : {
@@ -2142,6 +2152,16 @@
         }
       }
     },
+    "再生／一時停止" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play/Pause"
+          }
+        }
+      }
+    },
     "写真" : {
       "localizations" : {
         "en" : {
@@ -2188,6 +2208,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Previous Tab"
+          }
+        }
+      }
+    },
+    "前の曲" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Track"
           }
         }
       }
@@ -2740,6 +2770,16 @@
         }
       }
     },
+    "明るくする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness Up"
+          }
+        }
+      }
+    },
     "映像" : {
       "localizations" : {
         "en" : {
@@ -2756,6 +2796,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The action didn't finish in time."
+          }
+        }
+      }
+    },
+    "暗くする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness Down"
           }
         }
       }
@@ -2930,6 +2980,16 @@
         }
       }
     },
+    "次の曲" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Track"
+          }
+        }
+      }
+    },
     "次の未読" : {
       "localizations" : {
         "en" : {
@@ -2946,6 +3006,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stopped"
+          }
+        }
+      }
+    },
+    "消音" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
           }
         }
       }
@@ -3614,6 +3684,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reading View"
+          }
+        }
+      }
+    },
+    "音量を上げる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume Up"
+          }
+        }
+      }
+    },
+    "音量を下げる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume Down"
           }
         }
       }

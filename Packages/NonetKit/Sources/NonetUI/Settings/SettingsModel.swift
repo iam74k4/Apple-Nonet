@@ -1053,6 +1053,13 @@ final class SettingsModel {
         }
     }
 
+    func chooseMediaKey(_ key: MediaKey, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: MediaAction.self, { $0.key = key }) else { return }
+            cell = updated
+        }
+    }
+
     func cell(id: UUID) -> Cell? {
         for profile in configuration.profiles {
             if let address = SettingsGrid.address(ofCell: id, in: profile) {

@@ -149,6 +149,8 @@ struct SettingsCellEditor: View {
             SettingsPlaceWindowEditor(model: model, cellID: cell.id, place: place)
         case .screenshots:
             SettingsNote(text: SettingsText.screenshotsDetail)
+        case .media(let media):
+            SettingsMediaEditor(model: model, cellID: cell.id, media: media)
         }
     }
 }

@@ -122,7 +122,9 @@ import Testing
 
 @Suite struct PageTemplateTests {
     @Test func templatesMakeTheirPages() {
-        #expect(PageTemplate.allCases == [.empty, .windowPlacement, .utilities])
+        #expect(PageTemplate.allCases == [.empty, .windowPlacement, .utilities, .media])
+        #expect(PageTemplate.media.makePage().cells.map { $0?.action } == PresetLibrary.makeMediaPage().cells.map { $0?.action })
+        #expect(PageTemplate.media.title == PresetBuilder.text("メディア"))
         #expect(PageTemplate.empty.makePage() == .empty)
         #expect(PageTemplate.windowPlacement.makePage().cells.map { $0?.action } == PresetLibrary.makeWindowPlacementPage().cells.map { $0?.action })
         #expect(PageTemplate.utilities.makePage().cells.map { $0?.action } == PresetLibrary.makeUtilityPage().cells.map { $0?.action })
