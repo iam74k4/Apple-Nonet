@@ -250,10 +250,10 @@ struct OnboardingTrackpadFigure: View {
                         style: StrokeStyle(lineWidth: isFrameTarget ? 1.5 : 1, dash: [4, 4])
                     )
                     .frame(width: outer * 2, height: outer * 2)
-                ForEach(0..<Page.cellCount, id: \.self) { index in
+                ForEach(0..<(page?.layout ?? .nine).slotCount, id: \.self) { index in
                     key(index)
                         .opacity(isFrameTarget ? 0.45 : 1)
-                        .position(Self.position(ofCell: index, center: center, keyRadius: keyRadius))
+                        .position(Self.position(ofCell: index, layout: page?.layout ?? .nine, center: center, keyRadius: keyRadius))
                 }
                 // 開き方: 強く押し込む（押し込んだ場所のポインタが真ん中になる）。輪の上の帯に置き、上の鍵の名前に重ねない
                 Image(systemName: "smallcircle.filled.circle")
@@ -276,8 +276,8 @@ struct OnboardingTrackpadFigure: View {
     }
 
     /// 鍵の位置（HUD と同じ並び。中央のマスは真ん中）
-    static func position(ofCell index: Int, center: CGPoint, keyRadius: CGFloat) -> CGPoint {
-        guard let position = RadialLayout.position(ofCell: index) else { return center }
+    static func position(ofCell index: Int, layout: PageLayout = .nine, center: CGPoint, keyRadius: CGFloat) -> CGPoint {
+        guard let position = RadialLayout.position(ofCell: index, layout: layout) else { return center }
         let unit = keyRadius / RadialLayout.keyRadius
         return CGPoint(x: center.x + position.x * unit, y: center.y + position.y * unit)
     }
@@ -298,7 +298,8 @@ struct OnboardingTrackpadFigure: View {
         let isTarget = currentTarget?.index == index
         let isDone = doneIndices.contains(index)
         let isWrong = feedback == .wrongCell(index: index, title: Self.title(of: feedback))
-        let above = index < 3
+        // 上の側の鍵（9 は上の段）は名前を上に出す
+        let above = (RadialLayout.position(ofCell: index, layout: page?.layout ?? .nine)?.y ?? 0) < -1
         return VStack(spacing: 2) {
             if above { label(title, isTarget: isTarget, isDone: isDone) }
             marker(isTarget: isTarget, isDone: isDone, isWrong: isWrong, isEmpty: title == nil)

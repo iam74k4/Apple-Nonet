@@ -67,7 +67,7 @@ enum ShellText {
 
     /// 違うマスを実行した（例: 「いまのは左下の「Finder」です。「Safari」は右上にあります」）
     static func practiceWrongCell(index: Int, title: String, target: OnboardingPracticeTarget) -> String {
-        String(localized: "いまのは\(HUDAnnouncement.positionName(index))の「\(title)」です。「\(target.title)」は\(HUDAnnouncement.positionName(target.index))にあります。", bundle: .module)
+        String(localized: "いまのは\(HUDAnnouncement.positionName(index, layout: target.layout))の「\(title)」です。「\(target.title)」は\(target.positionName)にあります。", bundle: .module)
     }
 
     /// やめる課題で、マスを実行した
@@ -77,7 +77,7 @@ enum ShellText {
 
     /// HUD の図の読み上げ（目標のマス）
     static func practiceFigureLabel(_ target: OnboardingPracticeTarget) -> String {
-        String(localized: "HUD の図。目標は\(HUDAnnouncement.positionName(target.index))の「\(target.title)」です。", bundle: .module)
+        String(localized: "HUD の図。目標は\(target.positionName)の「\(target.title)」です。", bundle: .module)
     }
 
     /// HUD の図の読み上げ（やめる課題。輪の外が目標）

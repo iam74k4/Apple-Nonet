@@ -4182,6 +4182,16 @@
         }
       }
     },
+    "ボタンが入りきらない数は、先にボタンを空けると選べます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To choose a number too small for this page, clear some buttons first"
+          }
+        }
+      }
+    },
     "ボタンの数" : {
       "localizations" : {
         "en" : {

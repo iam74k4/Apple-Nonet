@@ -605,16 +605,19 @@ struct SettingsPageBar: View {
         let layout = model.currentPage.layout
         let title = String(localized: "ボタンの数", bundle: .module)
         return Menu {
-            Picker(selection: Binding(get: { model.currentPage.layout }, set: { model.setPageLayout($0) })) {
+            Section(title) {
                 ForEach(PageLayout.allCases, id: \.self) { choice in
-                    Text(SettingsText.pageLayoutChoice(choice))
-                        .tag(choice)
-                        .selectionDisabled(!model.canSetPageLayout(choice))
+                    // メニューの中のトグルは、チェックの付いた項目になる
+                    Toggle(isOn: Binding(get: { model.currentPage.layout == choice }, set: { if $0 { model.setPageLayout(choice) } })) {
+                        Text(SettingsText.pageLayoutChoice(choice))
+                    }
+                    .disabled(choice != layout && !model.canSetPageLayout(choice))
                 }
-            } label: {
-                Text(title)
             }
-            .pickerStyle(.inline)
+            if PageLayout.allCases.contains(where: { !model.canSetPageLayout($0) }) {
+                Divider()
+                Text(SettingsText.pageLayoutDisabledNote)
+            }
         } label: {
             Text(SettingsText.pageLayoutTitle(layout))
                 .font(.system(size: 12))

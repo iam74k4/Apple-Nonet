@@ -40,6 +40,11 @@ enum SettingsText {
         String(localized: "このページには \(filled) 個のボタンがあるので、\(layout.slotCount) にはできません。先にボタンを空けてください。", bundle: .module)
     }
 
+    /// ボタンの数のメニューで、選べない数があるときの説明
+    static var pageLayoutDisabledNote: String {
+        String(localized: "ボタンが入りきらない数は、先にボタンを空けると選べます", bundle: .module)
+    }
+
     /// 9 以外のページの、真ん中の説明
     static var ringCenterNote: String {
         String(localized: "真ん中で離すとやめます", bundle: .module)

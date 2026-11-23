@@ -73,6 +73,19 @@ import Testing
         #expect(SettingsGrid.positionName(0, layout: .nine) == L10n.ui("左上"))
     }
 
+    /// 初回の案内の練習: 9 以外のページでも、下の鍵から選んでもらい、位置はそのページの呼び方で言う
+    @Test func thePracticeFollowsTheLayout() throws {
+        #expect(OnboardingPracticePage.runPreference(for: .four).first == 2)
+        #expect(OnboardingPracticePage.runPreference(for: .twelve).first == 6)
+        #expect(OnboardingPracticePage.runPreference(for: .nine) == OnboardingPracticePage.runPreference)
+        let cells = (0..<4).map { Cell(title: "b\($0)", icon: .text("b"), action: .keystroke(.key("b"))) }
+        let page = ResolvedPage(profileID: UUID(), profileName: "グローバル", pageIndex: 0, cells: cells, layout: .four)
+        let practice = try #require(OnboardingPracticePage(page))
+        #expect(practice.titles.count == 4)
+        #expect(practice.runTarget.index == 2)
+        #expect(practice.runTarget.positionName == L10n.ui("下"))
+    }
+
     /// 円に並べたマスは枠に収まり、隣と重ならない
     @Test func theRingFitsTheGrid() {
         let size = CGSize(width: 616, height: 361)
