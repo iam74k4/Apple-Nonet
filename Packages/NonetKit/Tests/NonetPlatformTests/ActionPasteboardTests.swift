@@ -704,16 +704,16 @@ struct ActionBlockingCallTests {
     @Test("制限時間を過ぎたら、終わりを待たずに代わりの値を返す")
     func timesOut() async {
         var value = ""
-        // 呼び出しは 3 秒止まる。遅い Mac（CI）では、時間切れの後にこのテストの再開が 1 秒ほど遅れることがあるので、
-        // 待ちきった場合（3 秒）と分かれる 2 秒で見る
+        // 呼び出しは 10 秒止まる。遅い Mac（CI）では、時間切れの後にこのテストの再開が数秒遅れることがある
+        // （2026-11 に 2.8〜3.8 秒を見た）ので、待ちきった場合（10 秒）と十分に分かれる 6 秒で見る
         let elapsed = await actionElapsedSeconds {
             value = await BlockingCall.run(timeout: 0.1, fallback: "代わり") {
-                Thread.sleep(forTimeInterval: 3)
+                Thread.sleep(forTimeInterval: 10)
                 return "遅い"
             }
         }
         #expect(value == "代わり")
-        #expect(elapsed < 2, "\(elapsed) 秒待った")
+        #expect(elapsed < 6, "\(elapsed) 秒待った")
     }
 
     @Test("間に合えばその値")
