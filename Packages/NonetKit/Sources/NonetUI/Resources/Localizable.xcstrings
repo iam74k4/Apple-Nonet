@@ -3413,6 +3413,16 @@
         }
       }
     },
+    "テキストを貼る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Text"
+          }
+        }
+      }
+    },
     "テスト実行は、今 Finder で選んでいるファイルに、実際に働きます。選んでいるファイルを確かめてから実行してください。" : {
       "localizations" : {
         "en" : {
@@ -5126,6 +5136,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Puts the front app's window in this part of the screen (not counting the menu bar and the Dock). While this button is highlighted in the HUD, the target area is outlined on screen."
+          }
+        }
+      }
+    },
+    "前面のアプリのカーソルの位置に貼り付けます（クリップボードは元に戻します）。{date} は今日の日付（2026-11-23）、{time} は今の時刻（14:05）になります。最後に改行を入れると、チャットでは送信、ターミナルでは実行になるので気を付けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pastes at the cursor in the front app (the clipboard is put back afterwards). {date} becomes today's date (2026-11-23) and {time} the current time (14:05). A line break at the end sends the message in a chat or runs the command in Terminal, so add one only if you mean it."
           }
         }
       }
@@ -7098,6 +7118,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One-time purchase"
+          }
+        }
+      }
+    },
+    "貼るテキスト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text to paste"
+          }
+        }
+      }
+    },
+    "貼るテキスト:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text to paste:"
           }
         }
       }

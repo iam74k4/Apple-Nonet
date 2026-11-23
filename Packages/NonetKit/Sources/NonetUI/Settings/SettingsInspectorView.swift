@@ -151,6 +151,8 @@ struct SettingsCellEditor: View {
             SettingsScreenshotTrayEditor(model: model, cellID: cell.id, tray: tray)
         case .media(let media):
             SettingsMediaEditor(model: model, cellID: cell.id, media: media)
+        case .pasteText(let paste):
+            SettingsPasteTextEditor(model: model, cellID: cell.id, paste: paste)
         }
     }
 }

@@ -35,10 +35,12 @@ public enum Action: Codable, Equatable, Sendable {
     case screenshots(ScreenshotTrayAction)
     /// 再生・音量・明るさのキー（キーボードの F キーの段と同じ働き。どのアプリが前面でも効く）
     case media(MediaAction)
+    /// 決めておいたテキストを、前面のアプリのカーソルの位置に貼り付ける（定型文・署名・住所など）
+    case pasteText(PasteTextAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots, media
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots, media, pasteText
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -180,6 +182,32 @@ public struct PlaceWindowAction: Codable, Equatable, Sendable {
     }
 }
 
+/// 決めておいたテキストを貼る。{date}・{time} は貼るときの日付と時刻に置き換える
+public struct PasteTextAction: Codable, Equatable, Sendable {
+    public var text: String
+
+    public init(text: String) {
+        self.text = text
+    }
+
+    /// 貼る文字。{date} は 2026-11-23、{time} は 14:05（どちらも今の Mac の時計）
+    public func expanded(now: Date = Date(), timeZone: TimeZone = .current) -> String {
+        guard text.contains("{date}") || text.contains("{time}") else { return text }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let date = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        let time = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        return text.replacingOccurrences(of: "{date}", with: date).replacingOccurrences(of: "{time}", with: time)
+    }
+
+    /// HUD や設定画面に出す短い説明（最初の行の頭）
+    public var preview: String? {
+        guard let line = text.split(whereSeparator: \.isNewline).first?.trimmingCharacters(in: .whitespaces), !line.isEmpty else { return nil }
+        return line.count > 16 ? String(line.prefix(15)) + "…" : line
+    }
+}
+
 /// 再生・音量・明るさのキー
 public enum MediaKey: String, Codable, CaseIterable, Sendable {
     case playPause, next, previous, volumeUp, volumeDown, mute, brightnessUp, brightnessDown
@@ -290,6 +318,7 @@ extension Action {
         case .placeWindow: .placeWindow
         case .screenshots: .screenshots
         case .media: .media
+        case .pasteText: .pasteText
         }
     }
 
@@ -321,6 +350,8 @@ extension Action {
             String(localized: "最近のスクショ", bundle: .module)
         case .media(let action):
             action.key.title
+        case .pasteText(let action):
+            action.preview ?? String(localized: "テキストを貼る", bundle: .module)
         }
     }
 }
@@ -457,6 +488,8 @@ extension Action {
             self = .screenshots(try ScreenshotTrayAction(from: decoder))
         case .media:
             self = .media(try MediaAction(from: decoder))
+        case .pasteText:
+            self = .pasteText(try PasteTextAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -489,7 +522,25 @@ extension Action {
             try action.encode(to: encoder)
         case .media(let action):
             try action.encode(to: encoder)
+        case .pasteText(let action):
+            try action.encode(to: encoder)
         }
+    }
+}
+
+extension PasteTextAction {
+    private enum CodingKeys: String, CodingKey {
+        case text
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(text: try container.decode(String.self, forKey: .text))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(text, forKey: .text)
     }
 }
 

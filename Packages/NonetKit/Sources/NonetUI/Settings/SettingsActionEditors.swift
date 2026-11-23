@@ -927,3 +927,28 @@ struct SettingsScreenshotTrayEditor: View {
         }
     }
 }
+
+/// 「テキストを貼る」: 貼るテキスト（{date}・{time} は貼るときに置き換える）
+struct SettingsPasteTextEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let paste: PasteTextAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "貼るテキスト", bundle: .module)) {
+                SettingsCommitTextEditor(
+                    value: paste.text,
+                    minHeight: 90,
+                    accessibilityLabel: String(localized: "貼るテキスト", bundle: .module)
+                ) { text in
+                    model.updateAction(ofCell: cellID, as: PasteTextAction.self) { $0.text = text }
+                }
+                Text(SettingsText.pasteTextDetail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}

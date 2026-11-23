@@ -292,6 +292,14 @@ Right before sending, Nonet checks that the front app is still the one that was 
 
 Screenshots are Keystrokes buttons too: the presets' **Capture Area** button simply sends ⇧⌘4. The Global profile's **Utilities** page gathers the capture and recording buttons (see [Utilities](#utilities)).
 
+### Paste Text
+
+Pastes text you've set up (email phrases, a signature, your address, replies you use often) at the cursor in the front app.
+
+- **Text to paste**: any number of lines. `{date}` becomes today's date (2026-11-23) and `{time}` the current time (14:05)
+- Nonet sends ⌘V through the clipboard and puts the clipboard back once the app has read it (clipboard history apps don't keep it). If it can't keep what's on the clipboard (it's too large, or reading it isn't allowed), it copies the text instead of pasting it and tells you
+- A line break at the end sends the message in a chat or runs the command in Terminal. When you import profiles, buttons like this with a line break are highlighted for you to check first
+
 ### Open (app or URL)
 
 Opens an app or a URL. Under **What to open**, choose **App** or **URL**.

@@ -113,7 +113,7 @@ enum ControllerExecutionPolicy {
         case .shortcut, .ai: true
         // 大きなファイルの複製は、長く掛かる
         case .file(let file): file.operation == .duplicate
-        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media, .pasteText: false
         }
     }
 
@@ -123,7 +123,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media: false
+        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media, .pasteText: false
         }
     }
 
@@ -135,7 +135,7 @@ enum ControllerExecutionPolicy {
     /// 前面アプリにキーを送る（テスト実行で、そのアプリが前面にならなかったときは送らない。Nonet の設定ウィンドウに届くため）
     static func sendsInputToFrontmostApp(_ action: Action) -> Bool {
         switch action {
-        case .keystroke: true
+        case .keystroke, .pasteText: true
         case .ai(let ai): ai.output == .replaceSelection
         case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow, .screenshots, .media: false
         }
@@ -148,7 +148,7 @@ enum ControllerExecutionPolicy {
         // スクリーンショットのトレイは Nonet のパネルなので、どのアプリが前面でも同じ
         // 再生・音量・明るさは、どのアプリが前面でも同じ
         case .launchApp, .openURL, .screenshots, .media: false
-        case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow: true
+        case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow, .pasteText: true
         }
     }
 }

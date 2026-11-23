@@ -616,6 +616,11 @@ fileprivate extension String {
 extension SettingsText {
     /// ファイルの操作の説明
     /// 「画面に置く」の説明
+    /// 「テキストを貼る」の説明
+    static var pasteTextDetail: String {
+        String(localized: "前面のアプリのカーソルの位置に貼り付けます（クリップボードは元に戻します）。{date} は今日の日付（2026-11-23）、{time} は今の時刻（14:05）になります。最後に改行を入れると、チャットでは送信、ターミナルでは実行になるので気を付けてください。", bundle: .module)
+    }
+
     /// 「再生・音量」の説明
     static var mediaDetail: String {
         String(localized: "キーボードの再生・音量・明るさのキーと同じ働きです。どのアプリが前面でも効き、macOS の音量や明るさの表示が出ます。音量と明るさは1回で2段変えます。", bundle: .module)

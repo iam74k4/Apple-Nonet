@@ -80,6 +80,8 @@ public final class SystemActionPerformer: ActionPerforming {
             break
         case .media(let media):
             try MediaKeySender.send(media.key)
+        case .pasteText(let paste):
+            try await pasteText(paste.expanded(), frontmost: frontmost)
         }
         return nil
     }
@@ -275,6 +277,15 @@ public final class SystemActionPerformer: ActionPerforming {
     }
 
     private struct FrontmostAppChanged: Error {}
+
+    /// 「テキストを貼る」。⌘V で貼り、元のクリップボードに戻す。クリップボードの中身を保てないときは貼らずにコピーして知らせる
+    private func pasteText(_ text: String, frontmost: RunningAppInfo?) async throws {
+        try KeyTarget.check(expected: frontmost, frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier)
+        guard try await replaceSelection(with: text, in: frontmost) else {
+            await PasteboardWriter.writeAfterOtherOperations(text, to: .general)
+            throw NonetError.actionFailed(String(localized: "今のクリップボードを保てないため、貼り付けずにコピーしました。⌘V で貼り付けてください", bundle: .nonetActions))
+        }
+    }
 }
 
 enum SelectionMessage {

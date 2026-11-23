@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .media, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
+    static let ordered: [ActionKind] = [.keystroke, .pasteText, .launchApp, .placeWindow, .media, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
 
     /// 種類の一覧で選ばれている項目。URL のマスは「開く」
     static func menuKind(of action: Action) -> ActionKind {
@@ -25,6 +25,7 @@ enum SettingsActionKinds {
         case .placeWindow: String(localized: "画面に置く", bundle: .module)
         case .screenshots: String(localized: "最近のスクショ", bundle: .module)
         case .media: String(localized: "再生・音量", bundle: .module)
+        case .pasteText: String(localized: "テキストを貼る", bundle: .module)
         }
     }
 
@@ -42,6 +43,7 @@ enum SettingsActionKinds {
         case .placeWindow: "macwindow"
         case .screenshots: "photo.on.rectangle"
         case .media: "playpause"
+        case .pasteText: "text.quote"
         }
     }
 }
@@ -73,6 +75,7 @@ enum SettingsCellEditing {
         case .placeWindow: .placeWindow(PlaceWindowAction(region: .maximize))
         case .screenshots: .screenshots(ScreenshotTrayAction())
         case .media: .media(MediaAction(key: .playPause))
+        case .pasteText: .pasteText(PasteTextAction(text: ""))
         }
     }
 
@@ -114,6 +117,7 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .pasteText(let paste): paste.text.isEmpty
         case .file, .placeWindow, .screenshots, .media: false
         }
     }
@@ -339,6 +343,14 @@ extension ScreenshotTrayAction: SettingsActionContent {
     }
 
     var asAction: Action { .screenshots(self) }
+}
+
+extension PasteTextAction: SettingsActionContent {
+    static func content(of action: Action) -> PasteTextAction? {
+        if case .pasteText(let paste) = action { paste } else { nil }
+    }
+
+    var asAction: Action { .pasteText(self) }
 }
 
 extension MediaAction: SettingsActionContent {

@@ -1232,6 +1232,16 @@
         }
       }
     },
+    "テキストを貼る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Text"
+          }
+        }
+      }
+    },
     "テスト" : {
       "localizations" : {
         "en" : {
