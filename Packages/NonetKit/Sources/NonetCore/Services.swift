@@ -12,7 +12,7 @@ public struct TouchPoint: Equatable, Sendable {
     /// false は近接・離れかけなど、触れていない状態
     public var isTouching: Bool
     /// 接触の楕円の長径（MultitouchSupport の majorAxis。指先でおよそ 8〜15）。分からなければ nil。
-    /// 手のひらを見分けるのに使う（EdgeSlideRecognizer.palmMajorAxis）
+    /// トラックパッドの図（デモ）で指の大きさを見せるのに使う
     public var majorAxis: Double?
 
     public init(id: Int, x: Double, y: Double, isTouching: Bool = true, majorAxis: Double? = nil) {
@@ -62,9 +62,13 @@ public enum KeyboardEvent: Equatable, Sendable {
     /// 9マスを開いている（ポインタを抑止している）間に、キーや修飾キーが押された（そのキーは前面アプリに渡す）。
     /// トラックパッドに触れていない間に届いたマウスやホイールのイベントも同じ
     case interrupted
+    /// トラックパッドのどこかを強く押し込み（強めのクリックの2段目）、そのまま forcePressHold だけ止めた。
+    /// そのクリックはまだ前面アプリに渡していない（預かっている）。受け取ったら、9マスを開くかを決めて finishForcePress で答える
+    case forcePressed
 }
 
-/// キーボードとポインタのイベントタップ。9マスはトラックパッドだけで開くので、キーボードは開いている間だけ見る
+/// キーボードとポインタのイベントタップ。9マスはトラックパッドを強く押し込んで開くので、キーボードは開いている間だけ見る。
+/// 強く長押しで開けるとき（forcePressHold が nil でない）は、トラックパッドで押した左クリックを、強く押し込んで止めたかが分かるまで預かる
 @MainActor
 public protocol KeyboardMonitor: AnyObject {
     var cursorLock: CursorLockMethod { get set }
@@ -78,17 +82,19 @@ public protocol KeyboardMonitor: AnyObject {
     /// 抑止中に、トラックパッドに触れていない間（離してから少し経った後）に届いた押す・スクロール・移動は、
     /// マウスやホイールのものとみなす。そのイベントは手を加えずに前面アプリに渡し、.interrupted を1回送る
     var isTrackpadTouched: Bool { get set }
-    /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）。
-    /// 押し込んだまま（ドラッグを始めるところ など）の指で、9マスを開かないために使う
+    /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）
     var isMouseButtonDown: Bool { get }
+    /// 強く押し込んでから、.forcePressed を送るまで止めておく秒数（ForcePress.hold）。nil の間はクリックを預からず、強く押しても何もしない
+    /// （止めている・無効・許可なし・キーの記録中・「このアプリでは Nonet を使わない」アプリが前面 など、開けないとき）。
+    /// 預かっている間に nil にしたら、預かったクリックは前面アプリに返す
+    var forcePressHold: TimeInterval? { get set }
+    /// .forcePressed への答え。opened なら（9マスを開いた・開かずに知らせた）預かったクリックを捨て、
+    /// そのクリックの離すも捨てる（押したままの動きはボタンを押していない移動として渡す）。そうでなければ、クリックを前面アプリに返す
+    func finishForcePress(opened: Bool)
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
     func stop()
-    /// いまのポインタの位置を覚える。次に isSuppressingPointer を true にしたとき、ポインタをここへ戻す
-    /// （開く動きで指を滑らせた分だけポインタが動くため。NonetController は指が上の縁で触れ始めたときに呼ぶ）。
-    /// CursorLockMethod.none では戻さない
-    func rememberPointerLocation()
     /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
     /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
     func endPointerSuppression(dropsLateClicks: Bool)
@@ -106,8 +112,14 @@ extension KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    /// ポインタを戻さない実装の既定
-    public func rememberPointerLocation() {}
+    /// クリックを預からない実装の既定（強く押しても開かない）
+    public var forcePressHold: TimeInterval? {
+        get { nil }
+        set {}
+    }
+
+    /// クリックを預からない実装の既定
+    public func finishForcePress(opened: Bool) {}
 
     /// ポインタの位置を知らない実装の既定（マスはトラックパッドの上の指の位置で選ぶ）
     public var pointerLocation: CGPoint? { nil }

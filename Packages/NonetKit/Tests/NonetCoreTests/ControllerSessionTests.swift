@@ -1,6 +1,6 @@
 // 担当: engine。指・キーボード・時計の偽物から NonetController を動かし、開く → 選ぶ → 離して実行 / やめる までを確かめる。
 // 既定: 前面は Safari（ページは Safari 2枚＋グローバル1枚）。使い始めの案内は出し終えている（ControllerHarness）。
-// h.open() は上の縁（y 0.98）で触れて 0.05 秒で 0.06 下へ滑らせる。開いた後の指は上の外枠にいる
+// h.open() は指を置き（y 0.92）、強く押し込んで止める（キーボードモニターが .forcePressed を送る）。開いた後の指は上の外枠にいる
 import Foundation
 import Testing
 @testable import NonetCore
@@ -16,21 +16,19 @@ import Testing
 
     // MARK: 開く
 
-    /// 上の縁から滑らせると開く: ポインタの位置を覚え、抑止を始め、HUD をすぐに出し（指は外枠なので「離すとやめる」）、軽い触覚
-    @Test func slidingInFromTheTopEdgeOpensTheGrid() throws {
+    /// 強く押し込んで止めると開く: 抑止を始め、HUD をすぐに出し（指は外枠なので「離すとやめる」）、軽い触覚。
+    /// 預かっていたクリックは捨てる（ポインタの下のボタンやリンクを押さない）
+    @Test func forcePressingOpensTheGrid() throws {
         let h = try ControllerHarness()
         h.start()
         h.recorder.clear()
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        // 上の縁で触れ始めたときにポインタの位置を覚える（開いたらそこへ戻す）
-        #expect(h.recorder.events == ["pointer:remember"])
-        #expect(!h.keyboard.isSuppressingPointer)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: ControllerHarness.slidY)
-        // 見分けてから entryConfirmDelay は待つ（2本指のスクロールの2本目が遅れて触れても、開かないように）
-        #expect(h.recorder.events == ["pointer:remember"])
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        #expect(h.recorder.events == ["pointer:remember", "suppress:on", "hud:show", "haptic:activation"])
+        h.touch(x: 0.5, y: 0.5)
+        h.advance(0.3)
+        // 指を置いただけでは開かない
+        #expect(h.recorder.events.isEmpty)
+        #expect(h.forcePress())
+        #expect(h.recorder.events == ["suppress:on", "hud:show", "haptic:activation"])
+        #expect(h.keyboard.forcePressAnswers == [true])
         let model = try #require(h.hud.current)
         #expect(model.title == "Safari")
         #expect(model.isFingerInFrame)
@@ -38,108 +36,38 @@ import Testing
         #expect(h.haptics.plays == [.init(event: .activation, strength: .medium)])
     }
 
-    /// ポインタの抑止は、待ち（entryConfirmDelay）が終わった呼び出しの中で始まり、そこで触れ始めた位置へ戻す
-    @Test func suppressionStartsWhenTheConfirmDelayEnds() throws {
+    /// 動いている間は、強く長押しで開けることをキーボードモニターに知らせる（止める時間は開きやすさから）
+    @Test func startingArmsTheForcePress() throws {
         let h = try ControllerHarness()
+        #expect(h.keyboard.forcePressHold == nil)
         h.start()
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: ControllerHarness.slidY)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay - 0.01)
-        #expect(!h.keyboard.isSuppressingPointer)
-        h.advance(0.01)
-        #expect(h.keyboard.isSuppressingPointer)
+        #expect(h.keyboard.forcePressHold == ForcePress.hold(for: .standard))
+        h.controller.stop()
+        #expect(h.keyboard.forcePressHold == nil)
     }
 
-    /// 見分けてから待つ間に2本目の指が触れたら（2本指のスクロールの2本目が遅れて触れた）、開かない
-    @Test func aSecondFingerDuringTheConfirmDelayCancelsOpening() throws {
+    /// 押し込みと指のフレームが行き違い、触れている指が無ければ開かず、クリックを前面アプリに返す
+    @Test func aForcePressWithoutATouchingFingerGivesTheClickBack() throws {
         let h = try ControllerHarness()
         h.start()
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        h.advance(0.03)
-        h.touch(x: 0.5, y: ControllerHarness.slidY)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay / 2)
-        h.touch(2, x: 0.6, y: 0.9)
-        h.advance(0.2)
-        #expect(!h.keyboard.isSuppressingPointer)
+        #expect(h.forcePress())
+        #expect(h.keyboard.forcePressAnswers == [false])
         #expect(h.hud.shown.isEmpty)
+        #expect(!h.keyboard.isSuppressingPointer)
         #expect(h.haptics.plays.isEmpty)
     }
 
-    /// 待つ間に、滑らせた指が離れたフレームで別の指が触れたら（指が入れ替わった）、開かない。その指は縁から滑らせていない
-    @Test func aSwappedFingerDuringTheConfirmDelayCancelsOpening() throws {
+    /// キーの記録中は預からない（強く押し込んでもふつうのクリック）。記録を終えたら預かる
+    @Test func recordingKeysDisarmsTheForcePress() throws {
         let h = try ControllerHarness()
         h.start()
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        h.advance(0.03)
-        h.touch(x: 0.5, y: ControllerHarness.slidY)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay / 2)
-        h.replaceFingers(with: [2: (0.4, 0.5)])
-        h.advance(0.2)
-        #expect(!h.keyboard.isSuppressingPointer)
-        #expect(h.hud.shown.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
-    }
-
-    /// 待つ間に指が離れたら（短くなぞっただけ）、開かない
-    @Test func liftingDuringTheConfirmDelayCancelsOpening() throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.touch(x: 0.5, y: ControllerHarness.edgeY)
-        h.advance(0.03)
-        h.touch(x: 0.5, y: ControllerHarness.slidY)
-        h.lift()
-        h.advance(0.2)
-        #expect(!h.keyboard.isSuppressingPointer)
-        #expect(h.hud.shown.isEmpty)
-    }
-
-    /// 帯の外で触れ始めた・遅い・横に滑らせた・2本目の指・手のひら では開かない（ポインタはそのまま）
-    @Test func ordinaryTouchesDoNotOpen() throws {
-        let h = try ControllerHarness()
-        h.start()
-        // 帯の外で触れ始めた
-        h.touch(x: 0.5, y: 0.88)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.6)
-        h.lift()
-        // 遅い
-        h.touch(x: 0.5, y: 0.98)
-        h.advance(0.7)
-        h.touch(x: 0.5, y: 0.8)
-        h.lift()
-        // 横に滑らせた
-        h.touch(x: 0.3, y: 0.98)
-        h.advance(0.05)
-        h.touch(x: 0.45, y: 0.9)
-        h.lift()
-        // 2本目の指
-        h.touch(1, x: 0.5, y: 0.98)
-        h.touch(2, x: 0.2, y: 0.2)
-        h.advance(0.05)
-        h.touch(1, x: 0.5, y: 0.85)
-        h.lift(1)
-        h.lift(2)
-        // 手のひら
-        h.majorAxes[1] = 40
-        h.touch(x: 0.5, y: 0.98)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.85)
-        h.lift()
-        #expect(h.hud.shown.isEmpty)
-        #expect(h.keyboard.suppressionChanges.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
-    }
-
-    /// マウスやトラックパッドのボタンを押し込んだまま（クリックしたままドラッグを始めるところ）なら開かない
-    @Test func aPhysicallyPressedButtonKeepsItClosed() throws {
-        let h = try ControllerHarness()
-        h.start()
-        h.keyboard.isMouseButtonDown = true
+        h.controller.isRecordingKeys = true
+        #expect(h.keyboard.forcePressHold == nil)
         h.open()
         #expect(h.hud.shown.isEmpty)
-        #expect(!h.keyboard.isSuppressingPointer)
-        #expect(h.haptics.plays.isEmpty)
+        h.lift()
+        h.controller.isRecordingKeys = false
+        #expect(h.keyboard.forcePressHold != nil)
     }
 
     /// 「このアプリでは Nonet を使わない」アプリが前面なら開かない（試用期間が終わっていても知らせない）
@@ -148,6 +76,8 @@ import Testing
         let h = try ControllerHarness(trialEnded: trialEnded)
         h.start()
         h.controller.update { _ = $0.setAppMode(.off, for: F.safari) }
+        // そのアプリが前面の間はクリックを預からない（強く押し込んでもふつうのクリック）
+        #expect(h.keyboard.forcePressHold == nil)
         h.open()
         #expect(h.hud.shown.isEmpty)
         #expect(!h.keyboard.isSuppressingPointer)

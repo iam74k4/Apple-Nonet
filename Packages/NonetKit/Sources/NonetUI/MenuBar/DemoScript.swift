@@ -4,10 +4,11 @@ import Foundation
 
 /// デモ動画で見せる指の動き。時刻（秒）と指の位置（x は左が 0、y は手前が 0。TouchPoint と同じ）の並びで、間は滑らかにつなぐ。
 /// 位置が nil の時刻からは、次の時刻まで指を離している。デモはこの位置を HUD の円に写してポインタを動かす
-/// （トラックパッドの真ん中が円の中心。DemoTouchSource.pointerTravel）。見せる流れ（9マスの Xcode のプロファイルと、グローバルのページの層）:
-/// 1. 上の縁から開き、上の鍵を通って真ん中の鍵（Claude Code）に戻して離し、実行する
-/// 2. 上の縁から開き、輪のすぐ下の帯で止めてグローバルのページ（画面に置く）へ。真ん中の鍵（最大化）で離し、実行する
-/// 3. 上の縁から開き、輪の下の外へ出てすぐ離し、やめる（止める時間 edgePageDwell より短く離すので、層は変わらない）
+/// （トラックパッドの真ん中が円の中心。DemoTouchSource.pointerTravel）。どの回も真ん中に指を置いて強く押し込み、
+/// forcePresses の時刻（押し込んでから ForcePress.hold の標準だけ止めた後）に開く。見せる流れ（9マスの Xcode のプロファイルと、グローバルのページの層）:
+/// 1. 開き、上の鍵を通って真ん中の鍵（Claude Code）に戻して離し、実行する
+/// 2. 開き、輪のすぐ下の帯で止めてグローバルのページ（画面に置く）へ。真ん中の鍵（最大化）で離し、実行する
+/// 3. 開き、輪の下の外へ出てすぐ離し、やめる（止める時間 edgePageDwell より短く離すので、層は変わらない）
 /// 帯に止める時間は、1回だけ切り替わる長さ（SessionConfiguration.edgePageDwell の後）にしてある
 public enum DemoScript {
     public struct Key: Equatable, Sendable {
@@ -20,32 +21,33 @@ public enum DemoScript {
         }
     }
 
+    /// 強く押し込んで止め終え、9マスが開く時刻（指を置いて 0.2 秒で押し込み、標準の 0.25 秒止める）
+    public static let forcePresses: [TimeInterval] = [1.45, 5.05, 10.05]
+
     public static let keys: [Key] = [
-        // 1. 開いて、中央のマスで離す
+        // 1. 真ん中で押し込んで開き、上の鍵を通って中央のマスで離す
         Key(time: 0.0, point: nil),
-        Key(time: 1.0, point: CGPoint(x: 0.50, y: 0.975)),
-        Key(time: 1.25, point: CGPoint(x: 0.50, y: 0.975)),
-        Key(time: 1.6, point: CGPoint(x: 0.50, y: 0.86)),
-        Key(time: 2.4, point: CGPoint(x: 0.50, y: 0.50)),
-        Key(time: 3.4, point: CGPoint(x: 0.50, y: 0.50)),
-        Key(time: 3.4, point: nil),
+        Key(time: 1.0, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 1.6, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 2.2, point: CGPoint(x: 0.50, y: 0.86)),
+        Key(time: 3.0, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 4.0, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 4.0, point: nil),
         // 2. 輪のすぐ下の帯で止めて、グローバルのページへ。中央のマスで離す
-        Key(time: 4.6, point: CGPoint(x: 0.62, y: 0.975)),
-        Key(time: 4.85, point: CGPoint(x: 0.62, y: 0.975)),
-        Key(time: 5.2, point: CGPoint(x: 0.62, y: 0.86)),
+        Key(time: 4.6, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 5.2, point: CGPoint(x: 0.50, y: 0.50)),
         Key(time: 6.0, point: CGPoint(x: 0.52, y: 0.06)),
         Key(time: 6.65, point: CGPoint(x: 0.52, y: 0.06)),
         Key(time: 7.45, point: CGPoint(x: 0.50, y: 0.50)),
         Key(time: 8.45, point: CGPoint(x: 0.50, y: 0.50)),
         Key(time: 8.45, point: nil),
         // 3. 手前の外枠ですぐ離して、やめる（止める時間より短いので、層は変わらない）
-        Key(time: 9.8, point: CGPoint(x: 0.38, y: 0.975)),
-        Key(time: 10.05, point: CGPoint(x: 0.38, y: 0.975)),
-        Key(time: 10.4, point: CGPoint(x: 0.38, y: 0.86)),
-        Key(time: 11.2, point: CGPoint(x: 0.50, y: 0.06)),
-        Key(time: 11.5, point: CGPoint(x: 0.50, y: 0.06)),
-        Key(time: 11.5, point: nil),
-        Key(time: 13.7, point: nil),
+        Key(time: 9.6, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 10.2, point: CGPoint(x: 0.50, y: 0.50)),
+        Key(time: 11.0, point: CGPoint(x: 0.50, y: 0.06)),
+        Key(time: 11.3, point: CGPoint(x: 0.50, y: 0.06)),
+        Key(time: 11.3, point: nil),
+        Key(time: 13.5, point: nil),
     ]
 
     public static var duration: TimeInterval { keys.last?.time ?? 0 }

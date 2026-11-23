@@ -31,18 +31,10 @@ struct ModelOpenSensitivityCodingTests {
         #expect(unknown.haptics == .strong)
     }
 
-    /// 控えめは狭い帯・多い動き・短い時間、開きやすいはその逆。標準は今までの定数
-    @Test func thresholdsGrowWithSensitivity() {
-        typealias T = EdgeSlideRecognizer.Thresholds
-        let low = T(.low), standard = T(.standard), high = T(.high)
-        #expect(standard == .standard)
-        #expect(standard == T(bandHeight: EdgeSlideRecognizer.entryBandHeight, travel: EdgeSlideRecognizer.entryTravel, window: EdgeSlideRecognizer.entryWindow))
-        #expect(low.bandHeight < standard.bandHeight && standard.bandHeight < high.bandHeight)
-        #expect(low.travel > standard.travel && standard.travel > high.travel)
-        #expect(low.window < standard.window && standard.window < high.window)
-        // どの段でも、開いた瞬間の指は上の外枠（やめる場所）の中にいる
-        for thresholds in [low, standard, high] {
-            #expect(GridInsets.cancelFrame.top >= thresholds.bandHeight + thresholds.travel)
-        }
+    /// 控えめほど、強く押し込んでから長く止めないと開かない
+    @Test func holdTimesShrinkWithSensitivity() {
+        #expect(ForcePress.hold(for: .low) > ForcePress.hold(for: .standard))
+        #expect(ForcePress.hold(for: .standard) > ForcePress.hold(for: .high))
+        #expect(ForcePress.hold(for: .high) > 0)
     }
 }

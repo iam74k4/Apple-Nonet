@@ -108,11 +108,11 @@ struct TouchDeviceSelector: Sendable {
 /// その最初のフレームと最新のフレームと、途中の位置を keepInterval ごとに1つ残す（指を置いた時刻と今の位置は失わない）。
 /// 指が増えた・減ったフレームは残すので、短いタップも取りこぼさない。上限を超えたら途中の位置から捨てる（dropOne）
 struct TouchFrameCoalescer: Sendable {
-    /// 途中の位置を残す間隔。9マスを開くかは、指を置いてから決まった時間のうちに滑らせたかで決まる。
-    /// 最新のフレームだけにすると、メインスレッドが長く止まったとき、間に合った滑りも遅すぎたように見えて開かない
+    /// 途中の位置を残す間隔。マスに止めていた時間は途中の位置で決まるので、
+    /// 最新のフレームだけにすると、メインスレッドが長く止まったとき、止めていたのに止めていないように見える
     static let keepInterval: TimeInterval = 0.05
-    /// 指を置いてからこの間の位置は、上限を超えても後まで残す（開く動きを見る時間。いちばん長い「開きやすい」に合わせる）
-    static let openingWindow: TimeInterval = EdgeSlideRecognizer.Thresholds(.high).window + EdgeSlideRecognizer.entryConfirmDelay
+    /// 指を置いてからこの間の位置は、上限を超えても後まで残す（強く押し込んで開き、最初のマスを選ぶまでの時間）
+    static let openingWindow: TimeInterval = 1.04
     /// ふだんの上限。開く動きを見る時間の位置（約 21 個）と、今に近い位置（マスで止めていた時間が分かるだけ）を残せる
     static let defaultCapacity = 64
 

@@ -86,6 +86,8 @@ enum EventTapMask {
     static let keyboard = mask(of: [CGEventType.keyDown.rawValue, CGEventType.flagsChanged.rawValue])
     /// 抑止中とその後片付けの間だけ受け取る
     static let pointer = mask(of: PointerEventKind.all)
+    /// 強く長押しで開けるときだけ受け取る（左ボタンの押下だけ。ふだんの移動やスクロールは Nonet を通さない）
+    static let click = mask(of: [PointerEventKind.leftMouseDown])
 
     static func mask(of types: some Sequence<UInt32>) -> CGEventMask {
         types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << CGEventMask($1)) }
@@ -109,6 +111,8 @@ enum PointerEventKind {
     static let otherMouseDown: UInt32 = 25
     static let otherMouseUp: UInt32 = 26
     static let otherMouseDragged: UInt32 = 27
+    /// 感圧（NSEvent.EventType.pressure。強めのクリックの段階が変わったときなど）
+    static let pressure: UInt32 = 34
 
     /// 回転・ジェスチャーの開始と終了・ジェスチャー・拡大縮小・スワイプ・スマートズーム・クイックルック・感圧・直接タッチ
     static let gestures: Set<UInt32> = [18, 19, 20, 29, 30, 31, 32, 33, 34, 37]

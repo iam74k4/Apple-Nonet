@@ -126,7 +126,7 @@ public struct SessionConfiguration: Equatable, Sendable {
 
 /// エンジンへの入力。時刻はすべて Scheduler.now と同じ時計の秒
 public enum SessionInput: Equatable, Sendable {
-    /// 9マスを開く（EdgeSlideRecognizer が上の縁からの滑り込みを見分け、NonetController が開いてよいと決めた）。
+    /// 9マスを開く（キーボードモニターが強く押し込んで止めたのを見つけ、NonetController が開いてよいと決めた）。
     /// 触れている指でそのまま選び始める。セッション中なら、そのセッションを何も実行せずに終えてから開く。
     /// 触れている指が無ければ（もう離れていた）何もしない
     case open(at: TimeInterval, configuration: SessionConfiguration)
@@ -274,7 +274,7 @@ public enum SessionEffect: Equatable, Sendable {
 /// NonetController からの使い方:
 /// - トラックパッド・キーボード・tick を `handle(_:)` に渡し、返ってきた出力を並び順どおりに処理する
 /// - トラックパッドのフレームはセッションの外でも渡す。セッションの外では何も出力しない
-/// - 開く動き（EdgeSlideRecognizer）を見分けて開いてよければ `.open` を渡す。HUD をすぐに出し、指の下の場所を見せる
+/// - 強く押し込んで止めた（KeyboardEvent.forcePressed）ときに、開いてよければ `.open` を渡す。HUD をすぐに出し、指の下の場所を見せる
 /// - `requestTick(at:)` を受けたら、その時刻に `.tick` を渡す。時刻を過ぎた入力が来れば、エンジンはその時刻までに起きるべきことを先に処理する
 /// - すべての指が離れたら終える。光っているマスに liftDwell（少し長く止めるマスは holdDwell）以上留まって1本指で離せば、
 ///   そのマスを実行する。外枠・境界の帯・空きマスで離した・留まる時間が足りない・2本以上で離したなら、何もせずに rejected の触覚

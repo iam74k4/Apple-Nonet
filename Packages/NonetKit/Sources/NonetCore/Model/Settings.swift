@@ -5,12 +5,12 @@ public enum HapticStrength: String, Codable, CaseIterable, Sendable {
     case off, light, medium, strong
 }
 
-/// 開きやすさ。上の縁からの滑り込みをどれだけ受け付けるか（帯の高さ・時間・動きの量。EdgeSlideRecognizer.Thresholds）
+/// 開きやすさ。強く押し込んでから、どれだけ止めると開くか（ForcePress.hold）
 public enum OpenSensitivity: String, Codable, CaseIterable, Sendable {
-    /// 奥の端のすぐ近くで、すばやく滑らせたときだけ（ふだんのポインタ操作で開いてしまう人向け）
+    /// はっきり止めたときだけ（強く押す癖があって、思わず開いてしまう人向け）
     case low
     case standard
-    /// 縁から少し離れて置いても、ゆっくりでも開く（縁から滑らせても開かないことがある人向け）
+    /// 押し込んだらほぼすぐ（待つのがもどかしい人向け）
     case high
 }
 

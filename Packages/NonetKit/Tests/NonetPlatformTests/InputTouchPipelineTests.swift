@@ -163,7 +163,7 @@ import Testing
         }
         let times = coalescer.drain().map(\.timestamp)
         #expect(times.first == 0)
-        #expect(times.last == 0.65)
+        #expect(abs((times.last ?? 0) - 0.65) < 1e-9)
         // 隣どうしの間は keepInterval より少し短いか同じくらい（遅れても、続けて残すのは keepInterval に1つ）
         for (earlier, later) in zip(times, times.dropFirst()) {
             #expect(later - earlier <= TouchFrameCoalescer.keepInterval + 1e-9)
@@ -211,7 +211,7 @@ import Testing
         #expect(frames.last?.touchingIDs == [])
     }
 
-    /// 止まっている間に、置いたままの指が上限を埋めてから離れ、別の指で上の縁から滑らせた。新しい指の最初の位置を残して開く
+    /// 長く触れていたタッチの後に新しいタッチが始まると、上限を超えても新しいタッチの始まりの位置（開いて最初のマスを選ぶまで）を残す
     @Test func overflowKeepsTheOpeningOfANewTouch() {
         var coalescer = TouchFrameCoalescer(capacity: TouchFrameCoalescer.defaultCapacity)
         for i in 0...400 {
@@ -220,25 +220,25 @@ import Testing
         coalescer.push(TouchFrame(timestamp: 4.01, points: []))
         for i in 0...80 {
             let time = 4.1 + Double(i) * 0.01
-            let y = 0.97 - 0.07 * min(Double(i) * 0.01, 0.2) / 0.2
-            coalescer.push(TouchFrame(timestamp: time, points: [TouchPoint(id: 2, x: 0.5, y: y)]))
+            coalescer.push(TouchFrame(timestamp: time, points: [TouchPoint(id: 2, x: 0.5, y: 0.5 - 0.001 * Double(i))]))
         }
-        var recognizer = EdgeSlideRecognizer()
-        let events = coalescer.drain().map { recognizer.apply($0, isSessionActive: false) }
-        #expect(events.contains(.slid))
+        let opening = coalescer.drain().filter { $0.touchingIDs == [2] }.map(\.timestamp)
+        #expect(opening.first == 4.1)
+        // 始まりから keepInterval ごとの位置が残っている
+        #expect(opening.filter { $0 <= 4.1 + 0.2 + 1e-9 }.count >= 4)
     }
 
-    /// 上の縁から 0.2 秒で滑らせたあと、メインスレッドが 0.65 秒まで止まっていても、まとめたフレームで9マスが開く
-    @Test func aSlideDuringALongStallStillOpens() {
+    /// メインスレッドが 0.65 秒止まっていても、触れ始めの位置と途中の位置が残る（マスに止めていた時間が分かる）
+    @Test func aLongStallKeepsTheIntermediatePositions() {
         var coalescer = TouchFrameCoalescer(capacity: 32)
         for i in 0...65 {
             let time = Double(i) * 0.01
-            let y = 0.97 - 0.07 * min(time, 0.2) / 0.2
-            coalescer.push(TouchFrame(timestamp: time, points: [TouchPoint(id: 1, x: 0.5, y: y)]))
+            coalescer.push(TouchFrame(timestamp: time, points: [TouchPoint(id: 1, x: 0.5, y: 0.5 - 0.1 * min(time, 0.2))]))
         }
-        var recognizer = EdgeSlideRecognizer()
-        let events = coalescer.drain().map { recognizer.apply($0, isSessionActive: false) }
-        #expect(events.contains(.slid))
+        let times = coalescer.drain().map(\.timestamp)
+        #expect(times.first == 0)
+        #expect(abs((times.last ?? 0) - 0.65) < 1e-9)
+        #expect(times.filter { $0 <= 0.2 + 1e-9 }.count >= 4)
     }
 
     @Test func keepsEveryChangeInTheTouchingFingers() {

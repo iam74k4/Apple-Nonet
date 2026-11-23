@@ -1,4 +1,4 @@
-// 担当: engine。設定の「開きやすさ」（GlobalSettings.openSensitivity）が、開く動きの見分け方に効く
+// 担当: engine。設定の「開きやすさ」（GlobalSettings.openSensitivity）が、強く押し込んでから止める時間に効く
 import Foundation
 import NonetCore
 import Testing
@@ -10,47 +10,28 @@ import Testing
         return h
     }
 
-    /// 控えめ: 標準で開く動き（0.06 下へ）では開かず、0.07 下へ動かすと開く
-    @Test func lowNeedsMoreTravel() throws {
-        let h = try harness(.low)
-        h.touch(x: 0.5, y: 0.98)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.92)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        #expect(!h.hud.isVisible)
-        h.touch(x: 0.5, y: 0.90)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        #expect(h.hud.isVisible)
+    /// 開きやすさごとの止める時間を、キーボードモニターに入れる
+    @Test(arguments: OpenSensitivity.allCases)
+    func theHoldTimeFollowsTheSetting(_ sensitivity: OpenSensitivity) throws {
+        let h = try harness(sensitivity)
+        #expect(h.keyboard.forcePressHold == ForcePress.hold(for: sensitivity))
     }
 
-    /// 開きやすい: 標準の帯の外（0.89）で触れ始めても、0.04 下へ動かせば開く
-    @Test func highOpensFromFurtherDown() throws {
-        let h = try harness(.high)
-        h.touch(x: 0.5, y: 0.89)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.85)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        #expect(h.hud.isVisible)
-    }
-
-    /// 標準では、0.89 は帯の外なので開かない
-    @Test func standardDoesNotOpenBelowItsBand() throws {
-        let h = try harness(.standard)
-        h.touch(x: 0.5, y: 0.89)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.85)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        #expect(!h.hud.isVisible)
-    }
-
-    /// 設定を変えたら、起動し直さなくても次のタッチから効く
-    @Test func changingTheSettingTakesEffectOnTheNextTouch() throws {
+    /// 設定を変えたら、起動し直さなくても次の押し込みから効く
+    @Test func changingTheSettingTakesEffectOnTheNextPress() throws {
         let h = try harness(.standard)
         h.controller.update { $0.settings.openSensitivity = .high }
-        h.touch(x: 0.5, y: 0.89)
-        h.advance(0.05)
-        h.touch(x: 0.5, y: 0.85)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
+        #expect(h.keyboard.forcePressHold == ForcePress.hold(for: .high))
+        h.open()
         #expect(h.hud.isVisible)
+    }
+
+    /// 無効にしたら預からない。有効に戻したら預かる
+    @Test func disablingDisarms() throws {
+        let h = try harness(.standard)
+        h.controller.update { $0.settings.isEnabled = false }
+        #expect(h.keyboard.forcePressHold == nil)
+        h.controller.update { $0.settings.isEnabled = true }
+        #expect(h.keyboard.forcePressHold == ForcePress.hold(for: .standard))
     }
 }

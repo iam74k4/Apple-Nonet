@@ -201,15 +201,15 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         }
     }
     var onEvent: ((KeyboardEvent) -> Void)?
-    /// rememberPointerLocation が呼ばれた回数（本物は、次の抑止の始まりでポインタをそこへ戻す）
-    private(set) var rememberedPointerCount = 0
+    /// コントローラーが入れた、強く長押しで開くときの止める秒数（nil の間は、強く押し込んでも知らせない）
+    var forcePressHold: TimeInterval?
+    /// finishForcePress の答え（順に）。true は開いた（クリックを捨てた）、false は前面アプリに返した
+    private(set) var forcePressAnswers: [Bool] = []
     /// コントローラーが知らせた、トラックパッドに触れているか（知らされた順）
     var isTrackpadTouched = false {
         didSet { trackpadTouchReports.append(isTrackpadTouched) }
     }
     private(set) var trackpadTouchReports: [Bool] = []
-    /// マウスやトラックパッドのボタンを物理的に押し込んでいるか（テストで変える）
-    var isMouseButtonDown = false
     private(set) var isRunning = false
     /// start() で投げるもの（アクセシビリティの許可が無いときは別に permissionDenied を投げる）
     var startError: (any Error)?
@@ -253,9 +253,16 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    func rememberPointerLocation() {
-        rememberedPointerCount += 1
-        recorder.log("pointer:remember")
+    func finishForcePress(opened: Bool) {
+        forcePressAnswers.append(opened)
+    }
+
+    /// トラックパッドを強く押し込んで止めた。本物と同じく、強く長押しで開けるとき（forcePressHold がある）だけ知らせる。知らせたら true
+    @discardableResult
+    func forcePress() -> Bool {
+        guard isRunning, forcePressHold != nil else { return false }
+        send(.forcePressed)
+        return true
     }
 
     /// 本物のモニターは動いている間だけイベントを渡す（キーは抑止している間だけ見る）

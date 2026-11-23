@@ -1,9 +1,10 @@
 #if DEBUG
 // 販売ページ・ポートフォリオ用のデモ動画を撮るための組み立て（DEBUG ビルドだけ。--demo。一覧は App/DebugPreview.swift）。
-// 操作のロジック（EdgeSlideRecognizer・SessionEngine）・NonetController・HUD は本物。差し替えるのは次のものだけ:
+// 操作のロジック（SessionEngine）・NonetController・HUD は本物。差し替えるのは次のものだけ:
 // - 何も実行しない（performer）。ポインタを抑止せず、アクセシビリティの許可も要らない（keyboard・permissions）
 // - 前面のアプリを固定する（--demo-app）
-// - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる。付けなければ実機の指をそのまま使う
+// - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れ、台本の時刻に強く押し込んだことにする。
+//   付けなければ実機の指をそのまま使う（ポインタを抑止しないのでクリックを預からず、強く押し込んでも開かない。台本で撮る）
 // 画面の隅のトラックパッドの図は、どちらのときも指の位置（TouchFrame）をそのまま示す
 // 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の暗いグラデーションとメニューバー）を敷き、実際の画面を写さない
 import AppKit
@@ -36,6 +37,10 @@ final class DemoTouchSource: TouchSource {
     private var wasTouching = false
     var onFinished: (() -> Void)?
     var onFrame: ((TouchFrame) -> Void)?
+    /// 台本の押し込みの時刻（DemoScript.forcePresses）が来た
+    var onForcePress: (() -> Void)?
+    /// 前の step の台本の時刻（その間に来た押し込みを知らせる）
+    private var lastTime: TimeInterval = -1
     /// 表示中の HUD の枠（円を囲む正方形。主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす（本物はポインタでマスを選ぶため）
     var mapFrame: (() -> CGRect?)?
     /// 台本の指の位置（トラックパッドの 0〜1）を枠に写すときの倍率。指がトラックパッドの端まで行けば、ポインタが円の外（外枠）に出るように
@@ -90,6 +95,7 @@ final class DemoTouchSource: TouchSource {
             onFinished?()
             return
         }
+        defer { lastTime = time }
         if let point = DemoScript.sample(at: time) {
             wasTouching = true
             if let map = mapFrame?() {
@@ -103,6 +109,9 @@ final class DemoTouchSource: TouchSource {
         } else if wasTouching {
             wasTouching = false
             deliver(TouchFrame(timestamp: now, points: []))
+        }
+        for press in DemoScript.forcePresses where press > lastTime && press <= time {
+            onForcePress?()
         }
     }
 
@@ -277,7 +286,10 @@ final class DemoSession {
         source.onFinished = { [weak self] in self?.finish() }
         source.mapFrame = { [weak self] in self?.mapFrame?() }
         services.touchSource = source
-        services.keyboard = DemoKeyboardMonitor()
+        let keyboard = DemoKeyboardMonitor()
+        // 台本の押し込み: 本物のモニターが強く押し込んで止めたクリックを見つけたときと同じく知らせる
+        source.onForcePress = { [weak keyboard] in keyboard?.onEvent?(.forcePressed) }
+        services.keyboard = keyboard
         services.performer = DemoPerformer()
         services.permissions = DemoPermissions()
         services.frontmostApp = DemoFrontmostApp(app: app(for: options.demoBundleID ?? "com.apple.dt.Xcode"))

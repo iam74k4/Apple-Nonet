@@ -134,17 +134,20 @@ final class ControllerHarness {
         keyboard.pressKey()
     }
 
-    /// 上の縁の帯で触れ始めた指の高さと、開くまでに下へ滑らせた後の高さ
-    static let edgeY = 0.98
-    static let slidY = 0.92
+    /// 開くときに指を置く高さ（上の外枠の中。開いた直後は、指がどこにあっても外枠にいることになる）
+    static let pressY = 0.92
 
-    /// 上の縁から指を下へ滑り込ませて9マスを開く（触れて 0.05 秒で 0.06 下へ。EdgeSlideRecognizer）。
-    /// 見分けてから実際に開くまで、entryConfirmDelay 待つ。開いた後の指は上の外枠にいる
+    /// 指を置き、強く押し込んで止めて9マスを開く（キーボードモニターが .forcePressed を送る）。開いた後の指は上の外枠にいる
     func open(_ id: Int = 1, x: Double = 0.5) {
-        touch(id, x: x, y: Self.edgeY)
+        touch(id, x: x, y: Self.pressY)
         advance(0.05)
-        touch(id, x: x, y: Self.slidY)
-        advance(EdgeSlideRecognizer.entryConfirmDelay)
+        forcePress()
+    }
+
+    /// 触れている指で強く押し込んで止めた（強く長押しで開けないときは何も起きない）
+    @discardableResult
+    func forcePress() -> Bool {
+        keyboard.forcePress()
     }
 
     /// 開いて、マスまで滑らせ、dwell だけ止めてから離す（ふつうのマスは 0.15 秒止めれば実行する）

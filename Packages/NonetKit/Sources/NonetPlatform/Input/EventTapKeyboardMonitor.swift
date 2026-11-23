@@ -5,7 +5,9 @@ import ApplicationServices
 import NonetCore
 
 /// セッション（9マスを開いている間）のポインタ系のイベントを止め、キーが押されたら知らせるイベントタップ。
-/// タップはキーボード用とポインタ用に分ける。キーボード用は抑止中だけ有効にし、9マスを開いていない間はキーボードを見ない。
+/// タップはキーボード用・ポインタ用・クリック用に分ける。キーボード用は抑止中だけ有効にし、9マスを開いていない間はキーボードを見ない。
+/// クリック用は強く長押しで開けるとき（forcePressHold）だけ有効にし、左ボタンの押下だけを見る。トラックパッドで押した左クリックを
+/// 預かり（ForceClickHolder）、預かっている間はポインタ用も有効にして、その離す・押したままの動き・感圧を見る。
 /// ポインタ用は抑止中とその後片付け（指が離れた直後などに終えたときに、遅れて届くクリックを捨てる短い間を含む）の間だけ有効にして、
 /// ふだんのマウス・トラックパッドのイベントを Nonet のメインスレッドに通さない（メインスレッドが詰まったときに、システム全体のカーソルが止まらないように）
 @MainActor
@@ -28,7 +30,28 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
 
     /// 両方のタップがあり、システムに無効にされていない（アクセシビリティを切ると、タップの Mach ポートが無効になることがある。
     /// 2秒ごとの確かめの間に切って入れ直しても、ここが false になれば start で作り直す）
-    public var isRunning: Bool { keyboardTap?.isAlive == true && pointerTap?.isAlive == true }
+    public var isRunning: Bool { keyboardTap?.isAlive == true && pointerTap?.isAlive == true && clickTap?.isAlive == true }
+
+    /// 強く押し込んでから .forcePressed を送るまで止めておく秒数。nil の間はクリックを預からない（クリック用のタップも止める）
+    public var forcePressHold: TimeInterval? {
+        didSet {
+            guard forcePressHold != oldValue else { return }
+            if forcePressHold == nil {
+                returnHeldClick()
+            }
+            updateClickTap()
+            scheduleHolderTimer()
+        }
+    }
+
+    /// .forcePressed への答え。開いたならクリックを捨て、開かなかったなら前面アプリに返す
+    public func finishForcePress(opened: Bool) {
+        if case .giveBack(let withUp) = holder.finish(opened: opened) {
+            giveBackHeldClick(withUp: withUp)
+        }
+        if !holder.isActive { heldDown = nil }
+        updatePointerTap()
+    }
 
     /// 見るボタンの番号（0: 左・1: 右・2: 真ん中、その先はマウスの追加のボタン。CGMouseButton は 32 個まで）
     static let watchedButtons: Range<Int64> = 0..<32
@@ -51,6 +74,12 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private var keys = SessionKeyWatcher()
     private var suppressor = PointerSuppressor()
     private var contact = TrackpadContact()
+    /// 強く長押しで開くために預かっているクリック
+    private var holder = ForceClickHolder()
+    /// 預かっている左ボタンの押下の写し（返すときに送る）
+    private var heldDown: CGEvent?
+    /// 預かったクリックの、強く押し込んで止め終える時刻か、返す時刻
+    private var holderTimer: Timer?
     /// この抑止の間に、マウスやホイールで .interrupted を送った（1回だけ送る）
     private var didInterruptForOtherDevice = false
     /// 抑止を始めたときの方式と、カーソルの位置
@@ -62,6 +91,10 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private var keyboardTap: EventTapConnection?
     /// 抑止中と、捨てた押下の離す・スクロールの続きを待っている間だけ有効
     private var pointerTap: EventTapConnection?
+    /// 強く長押しで開けるときだけ有効（左ボタンの押下だけを見る）
+    private var clickTap: EventTapConnection?
+    /// クリック用のタップを有効にしているか
+    private(set) var isClickTapEnabled = false
     /// ポインタのタップを有効にしているか（タップが無いときも、有効にしたいかを覚えておく）
     private(set) var isPointerTapEnabled = false
     /// キーボードのタップを有効にしているか（抑止中だけ。タップが無いときも、有効にしたいかを覚えておく）
@@ -75,6 +108,10 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private let association: CursorAssociationGuard
     private let physicalButton: (Int64) -> Bool
     private let isAccessibilityTrusted: () -> Bool
+    /// 返すイベントを送る（テストでは送らずに記録する）
+    private let postEvent: (CGEvent) -> Void
+    /// 感圧のイベントの段階（NSEvent.stage。1: ふつうのクリック、2: 強めのクリック）
+    private let pressureStage: @MainActor (CGEvent) -> Int
     private let ownProcessID: Int64
     /// 単調な時計の秒
     private let now: () -> TimeInterval
@@ -96,8 +133,12 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         physicalButton: @escaping (Int64) -> Bool,
         isAccessibilityTrusted: @escaping () -> Bool,
         ownProcessID: Int64,
-        now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+        now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        postEvent: @escaping (CGEvent) -> Void = { $0.post(tap: .cghidEventTap) },
+        pressureStage: @escaping @MainActor (CGEvent) -> Int = { NSEvent(cgEvent: $0)?.stage ?? 0 }
     ) {
+        self.postEvent = postEvent
+        self.pressureStage = pressureStage
         self.cursor = cursor
         association = CursorAssociationGuard(cursor: cursor)
         self.physicalButton = physicalButton
@@ -109,7 +150,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     public func start() throws {
         guard !isRunning else { return }
         // システムに無効にされたタップが残っていれば、外してから作り直す
-        if keyboardTap != nil || pointerTap != nil {
+        if keyboardTap != nil || pointerTap != nil || clickTap != nil {
             inputLogger.notice("イベントタップが無効になっていたので、作り直す")
             stop()
         }
@@ -119,22 +160,33 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         // 片方だけでは使えない（ポインタを止められないと、タップがそのままクリックになる）。作れなければ両方とも外す。
         // どちらも無効のまま作り、9マスを開いている間（とポインタの後片付けの間）だけ有効にする
         guard let keyboardTap = EventTapConnection(box: EventTapBox(monitor: self, role: .keyboard), events: EventTapMask.keyboard, enabled: false),
-              let pointerTap = EventTapConnection(box: EventTapBox(monitor: self, role: .pointer), events: EventTapMask.pointer, enabled: false)
+              let pointerTap = EventTapConnection(box: EventTapBox(monitor: self, role: .pointer), events: EventTapMask.pointer, enabled: false),
+              let clickTap = EventTapConnection(box: EventTapBox(monitor: self, role: .click), events: EventTapMask.click, enabled: false)
         else {
             inputLogger.error("イベントタップを作れない")
             throw NonetError.permissionDenied(InputText.accessibility)
         }
         self.keyboardTap = keyboardTap
         self.pointerTap = pointerTap
+        self.clickTap = clickTap
         suppressor = PointerSuppressor()
+        holder = ForceClickHolder()
+        heldDown = nil
         isPointerTapEnabled = false
         isKeyboardTapEnabled = false
+        isClickTapEnabled = false
         updateKeyboardTap()
         updatePointerTap()
+        updateClickTap()
         inputLogger.info("イベントタップを開始（キーボード: \(keyboardTap.levelName, privacy: .public)、ポインタ: \(pointerTap.levelName, privacy: .public)）")
     }
 
     public func stop() {
+        // 預かっているクリックは返してから外す（押したままにも、押していないことにもしない）
+        returnHeldClick()
+        clickTap?.invalidate()
+        clickTap = nil
+        isClickTapEnabled = false
         keyboardTap?.invalidate()
         keyboardTap = nil
         pointerTap?.invalidate()
@@ -144,6 +196,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         // 抑止の後片付け（クリックを捨てる間を含む）も残さない
         suppressor = PointerSuppressor()
         updatePointerTap()
+        stopHolderTimer()
         association.restore()
     }
 
@@ -168,6 +221,12 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
             if let output { emit(output) }
             return true
         default:
+            if role == .click {
+                return handleClickDown(type: type.rawValue, event: event)
+            }
+            if holder.isActive, !isOwnEvent(event), let pass = handleHeldClick(type: type.rawValue, event: event) {
+                return pass
+            }
             return handlePointer(type: type.rawValue, event: event)
         }
     }
@@ -187,10 +246,19 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
             guard isKeyboardTapEnabled else { return }
             keyboardTap?.setEnabled(true)
             inputLogger.notice("キーボードのイベントタップが無効にされたので有効にし直した（\(type.rawValue)）")
+        case .click:
+            guard PointerTapDisableResponse.response(to: type, isPointerTapEnabled: isClickTapEnabled) == .recover else { return }
+            // 無効にされた間の押下は前面アプリに渡っている。預かっているクリックがあれば返す
+            returnHeldClick()
+            if isClickTapEnabled { clickTap?.setEnabled(true) }
+            inputLogger.notice("クリックのイベントタップが無効にされた（\(type.rawValue)）")
+            updatePointerTap()
         case .pointer:
             // 自分で無効にした直後にも届く（start の後と、セッションの後片付けを終えるたび）。取りこぼしではない
             guard PointerTapDisableResponse.response(to: type, isPointerTapEnabled: isPointerTapEnabled) == .recover else { return }
             suppressor.eventsMayHaveBeenMissed()
+            // 預かっているクリックの離すを取りこぼしたかもしれない
+            returnHeldClick()
             // 有効にしておくはずのときだけ有効にし直す
             if isPointerTapEnabled { pointerTap?.setEnabled(true) }
             inputLogger.notice("ポインタのイベントタップが無効にされた（\(type.rawValue)）")
@@ -250,7 +318,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// 待っている間だけ有効にする。判断を変えうること（抑止の開始・終了、ポインタのイベント、片付け）の後に毎回呼ぶ
     private func updatePointerTap() {
         let time = now()
-        let wanted = suppressor.needsEvents(suppressing: isSuppressingPointer, now: time)
+        let wanted = suppressor.needsEvents(suppressing: isSuppressingPointer, now: time) || holder.isActive
         if wanted != isPointerTapEnabled {
             isPointerTapEnabled = wanted
             pointerTap?.setEnabled(wanted)
@@ -271,6 +339,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     /// 抑止が終わった後、もう届かない離すイベントやスクロールの続きを待つのをやめる
     func sweepPointerState() {
         suppressor.sweep(isPhysicallyPressed: physicalButton, now: now())
+        holder.forgetConsumedIfReleased(isPressed: physicalButton(0))
         updatePointerTap()
     }
 
@@ -324,9 +393,126 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         return timer
     }
 
+    // MARK: 強く長押し（クリックの預かり）
+
+    /// クリック用のタップは、強く長押しで開けるときだけ有効にする
+    private func updateClickTap() {
+        let wanted = forcePressHold != nil
+        guard wanted != isClickTapEnabled else { return }
+        isClickTapEnabled = wanted
+        clickTap?.setEnabled(wanted)
+    }
+
+    /// クリック用のタップに届いた左ボタンの押下。開けるとき・開いていないとき・トラックパッドに触れているときだけ預かる
+    /// （マウスのクリックや、指を離した後に届く「タップでクリック」は預からない）
+    private func handleClickDown(type: UInt32, event: CGEvent) -> Bool {
+        guard type == PointerEventKind.leftMouseDown, !isOwnEvent(event) else { return true }
+        let canHold = forcePressHold != nil && !isSuppressingPointer && contact.isKnown && contact.isTouched
+        let decision = holder.leftDown(at: event.location, now: now(), canHold: canHold)
+        heldDown = holder.isActive ? event.copy() : nil
+        updatePointerTap()
+        scheduleHolderTimer()
+        return apply(decision, to: event)
+    }
+
+    /// 預かっている間にポインタ用のタップに届いた、左ボタンの離す・押したままの動き・感圧。ほかのイベントなら nil（ふつうに扱う）
+    private func handleHeldClick(type: UInt32, event: CGEvent) -> Bool? {
+        let decision: ForceClickHolder.Decision
+        switch type {
+        case PointerEventKind.leftMouseUp:
+            decision = holder.leftUp()
+        case PointerEventKind.leftMouseDragged:
+            decision = holder.leftDragged(to: event.location)
+        case PointerEventKind.pressure:
+            decision = holder.pressure(stage: pressureStage(event), now: now())
+        default:
+            return nil
+        }
+        let pass = apply(decision, to: event)
+        if !holder.isActive { heldDown = nil }
+        updatePointerTap()
+        scheduleHolderTimer()
+        return pass
+    }
+
+    private func apply(_ decision: ForceClickHolder.Decision, to event: CGEvent) -> Bool {
+        switch decision {
+        case .pass:
+            return true
+        case .drop:
+            return false
+        case .passAsMove:
+            event.type = .mouseMoved
+            return true
+        case .giveBackWithCurrent:
+            giveBackHeldClick(withUp: false, current: event)
+            return false
+        }
+    }
+
+    /// 止め終えた・強く押し込まないまま押し続けた（タイマーから呼ぶ）
+    func holderDeadlineDidPass() {
+        stopHolderTimer()
+        switch holder.tick(now: now(), hold: forcePressHold ?? 0) {
+        case .none:
+            break
+        case .giveBack:
+            giveBackHeldClick(withUp: false)
+        case .requestOpen:
+            emit(.forcePressed)
+        }
+        if !holder.isActive { heldDown = nil }
+        updatePointerTap()
+        scheduleHolderTimer()
+    }
+
+    var isWaitingForHolderDeadline: Bool { holderTimer != nil }
+
+    private func scheduleHolderTimer() {
+        stopHolderTimer()
+        guard let deadline = holder.nextDeadline(hold: forcePressHold ?? 0) else { return }
+        let timer = Timer(timeInterval: max(deadline - now(), 0), repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.holderDeadlineDidPass() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        holderTimer = timer
+    }
+
+    private func stopHolderTimer() {
+        holderTimer?.invalidate()
+        holderTimer = nil
+    }
+
+    /// 預かっているクリックを返し、預かるのをやめる（ボタンがもう離れていれば離すも送る）
+    private func returnHeldClick() {
+        if case .giveBack(let withUp) = holder.returnAll(isPressed: physicalButton(0)) {
+            giveBackHeldClick(withUp: withUp)
+        }
+        heldDown = nil
+        stopHolderTimer()
+    }
+
+    /// 預かった押下を前面アプリに返す。current があれば続けてその写しを、なければ withUp のとき離すを送る。
+    /// 送るイベントには Nonet の印を付ける（このタップを素通りさせる）
+    private func giveBackHeldClick(withUp: Bool, current: CGEvent? = nil) {
+        guard let down = heldDown else { return }
+        heldDown = nil
+        post(down)
+        if let current, let copy = current.copy() {
+            post(copy)
+        } else if withUp, let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: down.location, mouseButton: .left) {
+            post(up)
+        }
+    }
+
+    private func post(_ event: CGEvent) {
+        event.setIntegerValueField(.eventSourceUserData, value: OwnEventFilter.userData)
+        postEvent(event)
+    }
+
     // MARK: カーソル
 
-    /// いまのカーソルの位置を覚える。次の抑止の始まりでそこへ戻す（指が上の縁で触れ始めたときに呼ばれる）
+    /// いまのカーソルの位置を覚える。次の抑止の始まりでそこへ戻す（CursorLockMethod が none 以外のとき）
     public func rememberPointerLocation() {
         rememberedLocation = cursor.location
     }
@@ -435,6 +621,7 @@ final class CursorAssociationGuard {
 enum EventTapRole {
     case keyboard
     case pointer
+    case click
 }
 
 /// コールバックからモニタを引くための箱。タップが持ち、モニタは弱参照

@@ -1,4 +1,4 @@
-// 担当: ui-shell。デモ動画の台本（DemoScript）を、本物の操作のロジック（EdgeSlideRecognizer・SessionEngine）に通して確かめる
+// 担当: ui-shell。デモ動画の台本（DemoScript）を、本物の操作のロジック（SessionEngine）に通して確かめる
 import CoreGraphics
 import Foundation
 import NonetCore
@@ -15,10 +15,10 @@ struct ShellDemoScriptTests {
         var pages: [Int] = []
     }
 
-    /// 台本の指を 120Hz で入れ、開く動きの判定と SessionEngine を NonetController と同じ順でつなぐ
+    /// 台本の指を 120Hz で入れ、台本の押し込みの時刻に開く。SessionEngine には NonetController と同じ順でつなぐ
     static func replay(pageCount: Int = 4) -> Replay {
         var engine = SessionEngine()
-        var recognizer = EdgeSlideRecognizer()
+        var pendingPresses = DemoScript.forcePresses
         // Xcode のプロファイル（1 ページ）の後ろにグローバルのページ。下の帯でグローバルの層（2 ページ目から）へ移る
         let configuration = SessionConfiguration(pageCount: pageCount, layerStart: 1)
         var result = Replay()
@@ -57,7 +57,10 @@ struct ShellDemoScriptTests {
             }
             if let frame {
                 collect(engine.handle(.touches(frame)), at: time)
-                if recognizer.apply(frame, isSessionActive: engine.isInSession) == .slid {
+            }
+            if let press = pendingPresses.first, press <= time {
+                pendingPresses.removeFirst()
+                if !engine.isInSession {
                     result.openedAt.append(time)
                     collect(engine.handle(.open(at: time, configuration: configuration)), at: time)
                 }
@@ -78,13 +81,15 @@ struct ShellDemoScriptTests {
         #expect(result.ends == [.released, .released, .cancelled(.liftedInFrame)])
     }
 
-    @Test("開く動きは、上の縁から1本指で下へ滑らせたもの。どれも触れてから 0.6 秒のうちに開く")
-    func opensQuicklyFromTheTopBand() {
+    @Test("どの回も、指を置いて押し込み、止めてから開く（置いたまま動かさない間に開く）")
+    func opensWhileTheFingerRestsAtTheCenter() {
         let result = Self.replay()
-        let touchStarts = [1.0, 4.6, 9.8]
-        for (start, opened) in zip(touchStarts, result.openedAt) {
-            #expect(opened - start < EdgeSlideRecognizer.entryWindow)
-            #expect(opened > start)
+        #expect(result.openedAt.count == DemoScript.forcePresses.count)
+        for press in DemoScript.forcePresses {
+            let before = DemoScript.sample(at: press - ForcePress.hold(for: .standard))
+            let at = DemoScript.sample(at: press)
+            #expect(before == CGPoint(x: 0.5, y: 0.5))
+            #expect(at == CGPoint(x: 0.5, y: 0.5))
         }
     }
 
@@ -98,7 +103,7 @@ struct ShellDemoScriptTests {
             time += 0.01
         }
         #expect(DemoScript.sample(at: 0.5) == nil)
-        #expect(DemoScript.sample(at: 3.5) == nil)
+        #expect(DemoScript.sample(at: 4.3) == nil)
         #expect(DemoScript.sample(at: DemoScript.duration) == nil)
         #expect(DemoScript.sample(at: -1) == nil)
     }

@@ -1,4 +1,4 @@
-// 担当: engine。開けないとき（アクセシビリティの許可なし・パスワードの入力中）の知らせと、思わず開いてしまうときの開きやすさの案内
+// 担当: engine。開けないとき（アクセシビリティの許可なし・パスワードの入力中）の扱いと、思わず開いてしまうときの開きやすさの案内
 import Foundation
 import Testing
 @testable import NonetCore
@@ -9,11 +9,12 @@ import Testing
 
     // MARK: アクセシビリティの許可なし
 
-    /// 許可が無くても指は読み、上の縁から滑らせたら、開かずにトーストと rejected の触覚で知らせる（どこでオンにするかも言う）
-    @Test func withoutAccessibilityASlideExplainsWhyNothingOpens() async throws {
+    /// 許可が無い間はイベントタップを作れないので、クリックを預からない（強く押し込んでもふつうのクリックで、何も知らせない）
+    @Test func withoutAccessibilityNothingIsHeld() async throws {
         let h = try ControllerHarness()
         h.permissions.isAccessibilityGranted = false
         h.start()
+        #expect(h.keyboard.forcePressHold == nil)
         h.open()
         h.advance(0.3)
         h.touch(on: 2)
@@ -24,85 +25,23 @@ import Testing
         #expect(h.hud.shown.isEmpty)
         #expect(h.keyboard.suppressionChanges.isEmpty)
         #expect(h.performer.calls.isEmpty)
-        #expect(h.haptics.events == [.rejected])
-        #expect(h.hud.toasts == [ControllerPresentation.accessibilityNeededToast(isMenuBarIconVisible: true)])
-        // 開けないので、開く動きのほかは何もしない（ポインタの位置も覚えない）
-        #expect(h.keyboard.rememberedPointerCount == 0)
+        #expect(h.haptics.plays.isEmpty)
         #expect(h.controller.lastExecution == nil)
     }
 
-    /// 続けて滑らせても、同じ理由のトーストは refusalToastInterval に1回まで（触覚は毎回）
-    @Test func repeatedSlidesDoNotRepeatTheToast() throws {
-        let h = try ControllerHarness()
-        h.permissions.isAccessibilityGranted = false
-        h.start()
-        h.open()
-        h.liftAndClose()
-        h.open()
-        h.liftAndClose()
-        #expect(h.haptics.events == [.rejected, .rejected])
-        #expect(h.hud.toasts.count == 1)
-
-        h.advance(NonetController.refusalToastInterval)
-        h.open()
-        h.liftAndClose()
-        #expect(h.hud.toasts.count == 2)
-    }
-
-    /// メニューバーのアイコンが見えないときは、システム設定の場所だけを言う
-    @Test func aHiddenMenuBarIconChangesWhereToGo() throws {
-        let h = try ControllerHarness()
-        h.permissions.isAccessibilityGranted = false
-        h.controller.isMenuBarIconVisible = { false }
-        h.start()
-        h.open()
-        h.liftAndClose()
-        #expect(h.hud.toasts == [ControllerPresentation.accessibilityNeededToast(isMenuBarIconVisible: false)])
-    }
-
     /// 許可されたら、そのまま開ける（知らせは出さない）
-    @Test func grantingAccessibilityLetsTheNextSlideOpen() async throws {
+    @Test func grantingAccessibilityLetsTheNextPressOpen() async throws {
         let h = try ControllerHarness()
         h.permissions.isAccessibilityGranted = false
         h.start()
-        h.open()
-        h.liftAndClose()
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.controller.status == .running)
+        #expect(h.keyboard.forcePressHold != nil)
         h.run(2)
         await h.settle()
         #expect(h.performer.actions == [F.closeTab.action])
-        #expect(h.hud.toasts.count == 1)
-    }
-
-    /// 「このアプリでは Nonet を使わない」アプリでは、許可が無くても何も知らせない
-    @Test func nothingIsSaidInAnAppWhereNonetIsOff() throws {
-        var configuration = F.configuration()
-        configuration.setAppMode(.off, for: F.safari)
-        let h = try ControllerHarness(configuration: configuration)
-        h.permissions.isAccessibilityGranted = false
-        h.start()
-        h.open()
-        h.liftAndClose()
         #expect(h.hud.toasts.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
-    }
-
-    /// 2本指で触れた（スクロール）など、開く動きでなければ何も知らせない
-    @Test func aTwoFingerTouchSaysNothing() throws {
-        let h = try ControllerHarness()
-        h.permissions.isAccessibilityGranted = false
-        h.start()
-        h.touch(1, x: 0.5, y: ControllerHarness.edgeY)
-        h.advance(0.05)
-        h.touch(1, x: 0.5, y: ControllerHarness.slidY)
-        h.touch(2, x: 0.6, y: ControllerHarness.slidY)
-        h.advance(EdgeSlideRecognizer.entryConfirmDelay)
-        h.lift(1)
-        h.lift(2)
-        #expect(h.hud.toasts.isEmpty)
-        #expect(h.haptics.plays.isEmpty)
     }
 
     // MARK: パスワードの入力中
@@ -116,6 +55,8 @@ import Testing
         #expect(h.hud.shown.isEmpty)
         #expect(h.haptics.events == [.rejected])
         #expect(h.hud.toasts == [ControllerPresentation.secureInputToast])
+        // 開かなかったクリックは前面アプリに返す（パスワード欄をふつうにクリックできる）
+        #expect(h.keyboard.forcePressAnswers == [false])
 
         // パスワード欄から離れたら、すぐに開ける
         h.permissions.isSecureInputActive = false
