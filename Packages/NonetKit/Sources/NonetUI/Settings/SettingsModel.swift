@@ -590,6 +590,47 @@ final class SettingsModel {
         undoNotice = nil
     }
 
+    // MARK: - ボタンの数
+
+    /// 選んでいるページのボタンの数をその数に変えられる（中身のあるマスが全部入る）
+    func canSetPageLayout(_ layout: PageLayout) -> Bool {
+        currentPage.canResize(to: layout)
+    }
+
+    /// 選んでいるページのボタンの数を変える。上から時計回りの順を保って詰め直す（Page.resized(to:)）。元に戻せる
+    func setPageLayout(_ layout: PageLayout) {
+        let profileID = selectedProfile.id
+        let index = pageIndex
+        let before = currentPage
+        guard before.layout != layout else { return }
+        guard before.canResize(to: layout) else {
+            gridMessage = SettingsText.pageLayoutTooSmall(filled: before.filledCount, layout: layout)
+            return
+        }
+        // 選んでいるマスは、詰め直した後も同じものを選ぶ
+        let selectedID = selectedCell?.id
+        replacePage(before.resized(to: layout), at: index, profileID: profileID, actionName: String(localized: "ボタンの数の変更", bundle: .module))
+        selectedIndex = selectedID.flatMap { id in currentPage.cells.firstIndex { $0?.id == id } } ?? selectedIndex.map { min($0, layout.slotCount - 1) }
+        gridMessage = nil
+    }
+
+    private func replacePage(_ page: Page, at index: Int, profileID: UUID, actionName: String) {
+        guard let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(index) else { return }
+        let before = pages[index]
+        guard before != page else { return }
+        finishRecording()
+        closeEditGroup()
+        controller.update { $0.replacePage(page, at: index, profileID: profileID) }
+        undoNotice = nil
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.replacePage(before, at: index, profileID: profileID, actionName: actionName)
+            self?.reveal(CellAddress(page: index, index: 0), profileID: profileID)
+        }
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
+    }
+
     /// ページを足す（template は「＋」のメニューで選んだ型。既定は空のページ）。
     /// 元に戻せる（戻すと足したページを消す。その下に積んだページの削除の取り消しが、上限で戻せなくならないように）
     func addPage(_ template: PageTemplate = .empty) {
