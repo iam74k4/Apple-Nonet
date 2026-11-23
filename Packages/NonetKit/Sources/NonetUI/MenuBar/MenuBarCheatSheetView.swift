@@ -57,7 +57,7 @@ final class MenuBarCheatSheetView: NSView {
         store = MenuBarCheatSheetStore(sheet: sheet, layout: layout)
         store.increasedContrast = increasedContrast
         hosting = NSHostingView(rootView: MenuBarCheatSheetContent(store: store))
-        cellButtons = (0..<Page.cellCount).map { MenuBarCheatSheetButton(control: .cell($0)) }
+        cellButtons = (0..<Page.maxCellCount).map { MenuBarCheatSheetButton(control: .cell($0)) }
         super.init(frame: NSRect(origin: .zero, size: layout.size))
         // メニューがもっと広ければ、それに合わせて広げる（マスも広がる）
         autoresizingMask = [.width]
@@ -161,7 +161,9 @@ final class MenuBarCheatSheetView: NSView {
         if store.hovered == .previousPage, !store.sheet.canShowPreviousPage { store.hovered = nil }
         if store.hovered == .nextPage, !store.sheet.canShowNextPage { store.hovered = nil }
         store.pressed = nil
-        applyAccessibility()
+        // ページごとにボタンの数が違う（マスの並びと数を変える。高さは全部のページで同じ）
+        layoutControls()
+        if case .cell(let index)? = store.hovered, index >= store.layout.pageLayout.slotCount { store.hovered = nil }
         onPageChange?()
         NSAccessibility.post(element: pageIndicator, notification: .valueChanged)
         HUDAccessibility.announce(store.sheet.accessibilityLabel)
@@ -182,6 +184,8 @@ final class MenuBarCheatSheetView: NSView {
         }
         for (index, button) in cellButtons.enumerated() {
             button.frame = layout.cellFrame(index)
+            // 見ているページのボタンの数の外は隠す
+            button.isHidden = index >= layout.pageLayout.slotCount
         }
         previousButton.frame = layout.previousButtonFrame ?? .zero
         nextButton.frame = layout.nextButtonFrame ?? .zero
@@ -218,7 +222,7 @@ final class MenuBarCheatSheetView: NSView {
     /// 読む順: ‹、何ページ目か、›、9マス（左上から右へ、上の行から）。描くだけの SwiftUI は含めない
     override func accessibilityChildren() -> [Any]? {
         let pageControls: [NSView] = store.layout.hasPageControls ? [previousButton, pageIndicator, nextButton] : []
-        return pageControls + cellButtons
+        return pageControls + Array(cellButtons.prefix(store.layout.pageLayout.slotCount))
     }
 }
 
@@ -380,7 +384,7 @@ struct MenuBarCheatSheetContent: View {
             if layout.hasPageControls {
                 pageControls(layout: layout, sheet: sheet, increased: increased)
             }
-            ForEach(0..<Page.cellCount, id: \.self) { index in
+            ForEach(0..<layout.pageLayout.slotCount, id: \.self) { index in
                 MenuBarCheatSheetCell(
                     cell: sheet.cell(at: index),
                     title: sheet.cellTitle(at: index) ?? "",

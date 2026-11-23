@@ -495,4 +495,26 @@ struct ShellCheatSheetTests {
         #expect(window.model.tab == .profiles)
         #expect(window.model.selectedProfile.id == xcode.id)
     }
+
+    /// ボタンの数が 9 でないページも、升目の外周に HUD の円と同じ向きで並べる。12 のページがあれば、どのページも高さは同じ
+    @Test func otherButtonCountsAreLaidOutAroundTheGrid() {
+        for pageLayout in PageLayout.allCases {
+            let layout = MenuBarCheatSheetLayout(density: .regular, pageLayout: pageLayout)
+            let cells = (0..<pageLayout.slotCount).map(layout.cellFrame)
+            for (index, cell) in cells.enumerated() {
+                #expect(cell.width > 0 && layout.gridFrame.contains(cell), "\(pageLayout) \(index)")
+                for other in cells[(index + 1)...] {
+                    #expect(!cell.intersects(other), "\(pageLayout) \(index)")
+                }
+            }
+            #expect(layout.cellFrame(pageLayout.slotCount) == .zero)
+        }
+        // 4: 上・右・下・左
+        let four = MenuBarCheatSheetLayout(density: .regular, pageLayout: .four)
+        #expect(four.cellFrame(0).midY < four.cellFrame(1).midY && four.cellFrame(1).midX > four.cellFrame(3).midX)
+        let nine = MenuBarCheatSheetLayout(density: .regular, pageLayout: .nine, gridSide: 4)
+        let twelve = MenuBarCheatSheetLayout(density: .regular, pageLayout: .twelve)
+        #expect(nine.height == twelve.height)
+        #expect(MenuBarCheatSheetLayout(density: .regular).height < twelve.height)
+    }
 }

@@ -373,7 +373,7 @@ final class SettingsModel {
         guard let address, selectedProfile.id == id, selectedProfile.pages.indices.contains(address.page) else { return }
         finishRecording()
         selectedPage = address.page
-        selectedIndex = min(max(address.index, 0), Page.cellCount - 1)
+        selectedIndex = min(max(address.index, 0), selectedProfile.pages[address.page].layout.slotCount - 1)
         gridMessage = nil
         undoNotice = nil
     }
@@ -582,6 +582,10 @@ final class SettingsModel {
         finishRecording()
         closeEditGroup()
         selectedPage = index
+        // ボタンの数の少ないページへ移ったら、選んでいるマスをその中に収める
+        if let selected = selectedIndex, selected >= currentPage.cells.count {
+            selectedIndex = max(currentPage.cells.count - 1, 0)
+        }
         gridMessage = nil
         undoNotice = nil
     }
@@ -723,7 +727,7 @@ final class SettingsModel {
     // MARK: - マス
 
     func selectCell(_ index: Int?) {
-        let index = index.map { min(max($0, 0), Page.cellCount - 1) }
+        let index = index.map { min(max($0, 0), currentPage.layout.slotCount - 1) }
         guard index != selectedIndex else { return }
         finishRecording()
         closeEditGroup()
@@ -737,7 +741,7 @@ final class SettingsModel {
             selectCell(0)
             return
         }
-        selectCell(SettingsGrid.neighbor(of: current, direction))
+        selectCell(SettingsGrid.neighbor(of: current, direction, layout: currentPage.layout))
     }
 
     /// マスを空にする（確かめずに消すので、元に戻せるようにする）

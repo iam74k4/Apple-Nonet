@@ -34,7 +34,8 @@ struct ControllerSession: Equatable, Sendable {
             pageCount: pages.count,
             layerStart: ControllerPresentation.globalPagesStart(pages),
             occupiedCells: occupied,
-            holdCells: holds
+            holdCells: holds,
+            pageShapes: pages.map(\.layout.gridShape)
         )
     }
 
@@ -50,6 +51,11 @@ struct ControllerSession: Equatable, Sendable {
             profileID: resolved.profileID,
             profilePageCount: pages.filter { $0.profileID == resolved.profileID }.count
         )
+    }
+
+    /// page（resolvedPages での位置）のボタンの数。範囲外は 9
+    func layout(ofPage page: Int) -> PageLayout {
+        pages.indices.contains(page) ? pages[page].layout : .nine
     }
 
     func hudModel(_ state: SessionHUDState, isPracticeMode: Bool, isTrialEnded: Bool, isWaitingAtCenter: Bool = false) -> HUDModel {

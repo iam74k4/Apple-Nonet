@@ -21,6 +21,30 @@ enum SettingsText {
         }
     }
 
+    // MARK: ボタンの数
+
+    /// ページの見出しの横のメニューの名前（「ボタン 9」）
+    static func pageLayoutTitle(_ layout: PageLayout) -> String {
+        String(localized: "ボタン \(layout.slotCount)", bundle: .module)
+    }
+
+    /// メニューの項目（「9（円に8つと真ん中）」「12（円に並べる）」）
+    static func pageLayoutChoice(_ layout: PageLayout) -> String {
+        layout.centerCell == nil
+            ? String(localized: "\(layout.slotCount)（円に並べる）", bundle: .module)
+            : String(localized: "\(layout.slotCount)（円に \(layout.ringCells.count) と真ん中）", bundle: .module)
+    }
+
+    /// 中身のあるマスが入りきらない数を選んだとき
+    static func pageLayoutTooSmall(filled: Int, layout: PageLayout) -> String {
+        String(localized: "このページには \(filled) 個のボタンがあるので、\(layout.slotCount) にはできません。先にボタンを空けてください。", bundle: .module)
+    }
+
+    /// 9 以外のページの、真ん中の説明
+    static var ringCenterNote: String {
+        String(localized: "真ん中で離すとやめます", bundle: .module)
+    }
+
     // MARK: 一般
 
 

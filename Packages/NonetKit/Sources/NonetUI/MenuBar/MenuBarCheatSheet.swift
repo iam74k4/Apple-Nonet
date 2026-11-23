@@ -84,7 +84,7 @@ struct MenuBarCheatSheet: Equatable {
 
     /// マスの VoiceOver の名前。位置とマスの名前（設定のグリッドと同じ読み方）
     func accessibilityLabel(ofCell index: Int) -> String {
-        SettingsGrid.accessibilityLabel(index: index, cell: cell(at: index))
+        SettingsGrid.accessibilityLabel(index: index, cell: cell(at: index), layout: currentPage?.layout ?? .nine)
     }
 
     /// マスの VoiceOver のヒント
@@ -145,7 +145,7 @@ struct MenuBarCheatSheet: Equatable {
 
     /// 見ているページの index 番目のマス（空きマスも）を設定で開くときの場所。ページが無い・範囲外なら nil
     func location(ofCell index: Int) -> MenuBarCellLocation? {
-        guard let page = currentPage, (0..<Page.cellCount).contains(index) else { return nil }
+        guard let page = currentPage, page.cells.indices.contains(index) else { return nil }
         return MenuBarCellLocation(profileID: page.profileID, address: CellAddress(page: page.pageIndex, index: index))
     }
 
@@ -192,16 +192,42 @@ struct MenuBarCheatSheetLayout: Equatable {
     var density: Density
     var pageCount: Int
     var globalPagesStart: Int?
+    /// 見ているページのボタンの数
+    var pageLayout: PageLayout
+    /// 升目の一辺（3。12 のボタンのページがあれば 4）。どのページを見ても高さを変えない（メニューが伸び縮みしない）ように、全部のページで決める
+    var gridSide: Int
 
-    init(width: CGFloat = Self.preferredWidth, density: Density = .regular, pageCount: Int = 1, globalPagesStart: Int? = nil) {
+    init(width: CGFloat = Self.preferredWidth, density: Density = .regular, pageCount: Int = 1, globalPagesStart: Int? = nil,
+         pageLayout: PageLayout = .nine, gridSide: Int? = nil) {
         self.width = max(width, Self.preferredWidth)
         self.density = density
         self.pageCount = max(pageCount, 1)
         self.globalPagesStart = globalPagesStart
+        self.pageLayout = pageLayout
+        self.gridSide = max(gridSide ?? Self.placement(of: pageLayout).side, Self.placement(of: pageLayout).side)
     }
 
     init(sheet: MenuBarCheatSheet, width: CGFloat = Self.preferredWidth, density: Density) {
-        self.init(width: width, density: density, pageCount: sheet.pageCount, globalPagesStart: sheet.globalPagesStart)
+        self.init(
+            width: width,
+            density: density,
+            pageCount: sheet.pageCount,
+            globalPagesStart: sheet.globalPagesStart,
+            pageLayout: sheet.currentPage?.layout ?? .nine,
+            gridSide: sheet.pages.map { Self.placement(of: $0.layout).side }.max()
+        )
+    }
+
+    /// ボタンの数ごとの、升目（一辺 side の正方形）の中のマスの置き場所（左上から右へ、上の行から数えた番号）。
+    /// 9 は 3×3 のまま、ほかは HUD の円と同じ向き（上から時計回り）に、升目の外周に並べる
+    static func placement(of layout: PageLayout) -> (side: Int, positions: [Int]) {
+        switch layout {
+        case .nine: (3, Array(0..<9))
+        case .four: (3, [1, 5, 7, 3])
+        case .six: (3, [1, 2, 8, 7, 6, 0])
+        case .eight: (3, [1, 2, 5, 8, 7, 6, 3, 0])
+        case .twelve: (4, [1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4, 0])
+        }
     }
 
     static func density(forVisibleScreenHeight height: CGFloat?) -> Density {
@@ -227,21 +253,26 @@ struct MenuBarCheatSheetLayout: Equatable {
             x: Self.horizontalInset,
             y: Self.topInset + Self.headerHeight + Self.headerGap,
             width: width - Self.horizontalInset * 2,
-            height: cellHeight * 3 + Self.cellSpacing * 2
+            height: cellHeight * CGFloat(gridSide) + Self.cellSpacing * CGFloat(gridSide - 1)
         )
     }
 
-    /// index 番目のマス（左上から右へ、上の行から）
+    /// index 番目のマス（placement の置き場所）。見ているページのボタンの数の外は空の枠
     func cellFrame(_ index: Int) -> CGRect {
+        let placement = Self.placement(of: pageLayout)
+        guard placement.positions.indices.contains(index) else { return .zero }
         let grid = gridFrame
-        let cellWidth = (grid.width - Self.cellSpacing * 2) / 3
-        let row = CGFloat(index / 3)
-        let column = CGFloat(index % 3)
+        let side = CGFloat(placement.side)
+        let cellWidth = (grid.width - Self.cellSpacing * (side - 1)) / side
+        let height = (grid.height - Self.cellSpacing * (side - 1)) / side
+        let position = placement.positions[index]
+        let row = CGFloat(position / placement.side)
+        let column = CGFloat(position % placement.side)
         return CGRect(
             x: grid.minX + column * (cellWidth + Self.cellSpacing),
-            y: grid.minY + row * (cellHeight + Self.cellSpacing),
+            y: grid.minY + row * (height + Self.cellSpacing),
             width: cellWidth,
-            height: cellHeight
+            height: height
         )
     }
 

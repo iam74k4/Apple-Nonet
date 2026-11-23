@@ -213,7 +213,7 @@ public final class SettingsWindowController {
         let elapsed = now.timeIntervalSince(record.date)
         guard elapsed >= 0, elapsed <= recentExecutionWindow,
               profile.pages.indices.contains(record.address.page),
-              (0..<Page.cellCount).contains(record.address.index) else { return nil }
+              profile.pages[record.address.page].cells.indices.contains(record.address.index) else { return nil }
         return record.address
     }
 

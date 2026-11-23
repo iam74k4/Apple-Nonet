@@ -10,7 +10,7 @@ public enum CellIcon: Codable, Hashable, Sendable {
     case text(String)
 }
 
-/// 9マスのうちの1つ
+/// ページのボタン（マス）の1つ
 public struct Cell: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var title: String
@@ -38,22 +38,100 @@ extension Cell {
     }
 }
 
-/// 3×3 の1ページ。cells は常に9個で、左上から右へ、上の行から並ぶ。nil は空きマス
+/// 1ページに並べるボタンの数（HUD の円に並ぶ鍵の数）。9 は円に8つと真ん中に1つ、ほかは円に並べるだけで、
+/// 真ん中は空き（離すとやめる）。ページごとに選べる。設定ファイルには 9 以外のときだけ buttons として書く
+public enum PageLayout: Int, Codable, CaseIterable, Sendable {
+    case four = 4
+    case six = 6
+    case eight = 8
+    case nine = 9
+    case twelve = 12
+
+    /// ボタンの数
+    public var slotCount: Int { rawValue }
+
+    /// 円の上の鍵の並び: 上から時計回りに、マスの番号。9 は設定画面の 3×3 と同じ向き（左上のマスは左上の鍵）、
+    /// ほかはマスの番号の順に上から時計回り
+    public var ringCells: [Int] {
+        self == .nine ? [1, 2, 5, 8, 7, 6, 3, 0] : Array(0..<slotCount)
+    }
+
+    /// 真ん中のマス。9 だけ（ほかは真ん中が空きで、離すとやめる）
+    public var centerCell: Int? {
+        self == .nine ? 4 : nil
+    }
+
+    /// 上から時計回りに並べたマスの番号（真ん中は最後）。数を変えるときは、この順に詰め直す（Page.resized(to:)）
+    public var clockwiseCells: [Int] {
+        ringCells + (centerCell.map { [$0] } ?? [])
+    }
+
+    /// トラックパッドの位置で選ぶとき（ポインタが読めないとき）と、エンジンが使う並び。マスの数と同じだけの升目
+    public var gridShape: GridShape {
+        switch self {
+        case .four: GridShape(columns: 2, rows: 2)
+        case .six: GridShape(columns: 3, rows: 2)
+        case .eight: GridShape(columns: 4, rows: 2)
+        case .nine: GridShape(columns: 3, rows: 3)
+        case .twelve: GridShape(columns: 4, rows: 3)
+        }
+    }
+
+    /// 選べない数は、いちばん近い数（同じだけ離れていれば多いほう）
+    public init(nearest count: Int) {
+        self = Self.allCases.min { a, b in
+            let da = abs(a.rawValue - count), db = abs(b.rawValue - count)
+            return da == db ? a.rawValue > b.rawValue : da < db
+        } ?? .nine
+    }
+}
+
+/// 1ページ。cells は常に layout のボタンの数だけあり、9 なら 3×3 を左上から右へ、上の行から、ほかは上から時計回りに並ぶ。nil は空きマス
 public struct Page: Codable, Equatable, Sendable {
+    /// 9マス（標準のボタンの数）。ほかの数は PageLayout
     public static let cellCount = 9
+    /// ボタンの数の上限（PageLayout.twelve）
+    public static let maxCellCount = 12
     /// ページの名前の長さの上限（文字数）。HUD の題名に添えるので短くする
     public static let maxNameLength = 24
 
     public var cells: [Cell?]
     /// ページの名前（「デバッグ」など）。無ければ nil で、画面では「ページ 2」と出す。HUD の題名にも添える（ResolvedPage.title）
     public var name: String?
+    /// ボタンの数
+    public var layout: PageLayout
 
-    /// 9個に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
-    public init(cells: [Cell?] = [], name: String? = nil) {
-        var normalized = Array(cells.prefix(Page.cellCount))
-        normalized += Array(repeating: nil, count: Page.cellCount - normalized.count)
+    /// layout の数に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
+    public init(cells: [Cell?] = [], name: String? = nil, layout: PageLayout = .nine) {
+        var normalized = Array(cells.prefix(layout.slotCount))
+        normalized += Array(repeating: nil, count: layout.slotCount - normalized.count)
         self.cells = normalized
         self.name = Page.normalizedName(name)
+        self.layout = layout
+    }
+
+    /// 中身のあるマスの数
+    public var filledCount: Int { cells.lazy.filter { $0 != nil }.count }
+
+    /// その数に変えても、中身のあるマスが全部残る
+    public func canResize(to layout: PageLayout) -> Bool {
+        filledCount <= layout.slotCount
+    }
+
+    /// ボタンの数を変えたページ。上から時計回りの順（PageLayout.clockwiseCells）を保って詰め直す:
+    /// 入りきらなければ、後ろの空きマスから減らす。中身のあるマスが入りきらなければ（canResize が false）、後ろのマスを切り捨てる
+    public func resized(to layout: PageLayout) -> Page {
+        guard layout != self.layout else { return self }
+        var ordered = self.layout.clockwiseCells.map { cells.indices.contains($0) ? cells[$0] : nil }
+        while ordered.count > layout.slotCount, let index = ordered.lastIndex(where: { $0 == nil }) {
+            ordered.remove(at: index)
+        }
+        ordered = Array(ordered.prefix(layout.slotCount))
+        var result = Array<Cell?>(repeating: nil, count: layout.slotCount)
+        for (position, cell) in zip(layout.clockwiseCells, ordered) {
+            result[position] = cell
+        }
+        return Page(cells: result, name: name, layout: layout)
     }
 
     public static var empty: Page { Page() }
@@ -269,22 +347,27 @@ extension Cell {
 
 extension Page {
     private enum CodingKeys: String, CodingKey {
-        case cells, name
+        case cells, name, buttons
     }
 
-    /// cells は 9 個に揃える。読めないマスは空きマス。名前が無い・読めなければ nil
+    /// cells はボタンの数（buttons。無ければ 9、選べない数は近い数）に揃える。読めないマスは空きマス。名前が無い・読めなければ nil
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let cells = container.decodeLossy([LossyElement<Cell>].self, forKey: .cells, default: [])
-        if cells.count != Page.cellCount {
+        let layout = container.decodeLossy(Int?.self, forKey: .buttons, default: nil).map(PageLayout.init(nearest:)) ?? .nine
+        if cells.count != layout.slotCount {
             DecodingIssue.log("マスの数（\(cells.count)）", at: container.codingPath + [CodingKeys.cells])
         }
-        self.init(cells: cells.map(\.value), name: container.decodeLossy(String?.self, forKey: .name, default: nil))
+        self.init(cells: cells.map(\.value), name: container.decodeLossy(String?.self, forKey: .name, default: nil), layout: layout)
     }
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(Page(cells: cells).cells, forKey: .cells)
+        try container.encode(Page(cells: cells, layout: layout).cells, forKey: .cells)
+        // 9 のページは書かない（数を選べるようになる前と同じ書式のまま）
+        if layout != .nine {
+            try container.encode(layout.slotCount, forKey: .buttons)
+        }
         // 名前の無いページは書かない（名前を付けられるようになる前と同じ書式のまま）
         if let name = Page.normalizedName(name) {
             try container.encode(name, forKey: .name)
@@ -362,15 +445,15 @@ extension Profile {
 }
 
 extension Profile {
-    /// ページ数を 1〜maxPages、各ページを9マスに揃える
+    /// ページ数を 1〜maxPages、各ページをボタンの数に揃える
     mutating func normalizePages() {
         if pages.isEmpty {
             pages = [.empty]
         } else if pages.count > Profile.maxPages {
             pages = Array(pages.prefix(Profile.maxPages))
         }
-        for index in pages.indices where pages[index].cells.count != Page.cellCount {
-            pages[index] = Page(cells: pages[index].cells, name: pages[index].name)
+        for index in pages.indices where pages[index].cells.count != pages[index].layout.slotCount {
+            pages[index] = Page(cells: pages[index].cells, name: pages[index].name, layout: pages[index].layout)
         }
     }
 }

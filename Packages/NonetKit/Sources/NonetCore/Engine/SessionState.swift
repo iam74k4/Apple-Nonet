@@ -11,7 +11,6 @@ private struct SwipeBaseline: Sendable {
 /// 1回のセッション。開いたときに触れていた指のタッチ1つで、すべての指が離れたら終える
 struct SessionState: Sendable {
     private let configuration: SessionConfiguration
-    private let grid: GridMapper
     private let start: TimeInterval
     /// 開いたタッチの最初の指が触れた時刻（遅れて届くクリックの判断に使う）
     private let touchStart: TimeInterval
@@ -65,7 +64,6 @@ struct SessionState: Sendable {
     init?(configuration: SessionConfiguration, start: TimeInterval, tracker: FingerTracker) {
         guard tracker.isTouching else { return nil }
         self.configuration = configuration
-        grid = configuration.grid
         self.start = start
         touchStart = tracker.gestureStart
         zoneSince = start
@@ -78,12 +76,15 @@ struct SessionState: Sendable {
             // 開いた瞬間は外枠にいる（開く動きの直後の指が、もう上の段のマスに入っていても選ばない）
             zone = .frame
             openAnchor = finger
-            bandEdge = grid.pagingEdge(x: finger.x, y: finger.y)
+            bandEdge = configuration.grid(forPage: 0).pagingEdge(x: finger.x, y: finger.y)
             edgeAnchor = bandEdge == nil ? nil : finger
         }
     }
 
     var isEnded: Bool { endReason != nil }
+
+    /// いまのページの升目（ボタンの数でページごとに違う）
+    private var grid: GridMapper { configuration.grid(forPage: page) }
 
     var hudState: SessionHUDState {
         let shown = isMultiFinger ? nil : zone

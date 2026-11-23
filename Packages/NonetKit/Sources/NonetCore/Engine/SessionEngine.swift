@@ -57,6 +57,8 @@ public struct SessionConfiguration: Equatable, Sendable {
     public var occupiedCells: [Set<Int>]?
     /// ページごとの、少し長く止めてから実行するマス（0〜8。`Cell.requiresHold`）。nil や範囲外のページは、どのマスもふつう
     public var holdCells: [Set<Int>]?
+    /// ページごとの、マスの升目（ボタンの数。PageLayout.gridShape）。nil や範囲外のページは 3×3
+    public var pageShapes: [GridShape]?
     /// 指を離しても実行しない、内側の境界の線の片側の幅（GridMapper.boundaryBand）
     public var boundaryBand: Double
     public var liftDwell: TimeInterval
@@ -74,6 +76,7 @@ public struct SessionConfiguration: Equatable, Sendable {
         maxDuration: TimeInterval = SessionConfiguration.defaultMaxDuration,
         occupiedCells: [Set<Int>]? = nil,
         holdCells: [Set<Int>]? = nil,
+        pageShapes: [GridShape]? = nil,
         boundaryBand: Double = GridMapper.defaultBoundaryBand,
         liftDwell: TimeInterval = SessionConfiguration.defaultLiftDwell,
         holdDwell: TimeInterval = SessionConfiguration.defaultHoldDwell,
@@ -89,6 +92,7 @@ public struct SessionConfiguration: Equatable, Sendable {
         self.maxDuration = maxDuration
         self.occupiedCells = occupiedCells
         self.holdCells = holdCells
+        self.pageShapes = pageShapes
         self.boundaryBand = boundaryBand
         self.liftDwell = liftDwell
         self.holdDwell = holdDwell
@@ -119,6 +123,12 @@ public struct SessionConfiguration: Equatable, Sendable {
 
     var grid: GridMapper {
         GridMapper(hysteresis: hysteresis, insets: frame, boundaryBand: boundaryBand, frameHysteresis: frameHysteresis)
+    }
+
+    /// page（resolvedPages での位置）の升目で分けるもの
+    func grid(forPage page: Int) -> GridMapper {
+        let shape = pageShapes.flatMap { $0.indices.contains(page) ? $0[page] : nil } ?? .nine
+        return GridMapper(hysteresis: hysteresis, insets: frame, boundaryBand: boundaryBand, frameHysteresis: frameHysteresis, shape: shape)
     }
 }
 

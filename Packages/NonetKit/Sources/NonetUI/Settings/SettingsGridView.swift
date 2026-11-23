@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 3×3 のグリッド。クリックで選ぶ・ドラッグで入れ替える・Delete で空にする・矢印キーで移る・右クリックで複製など。
+// ページのマス（9 は 3×3、ほかは HUD と同じ円の並び）。クリックで選ぶ・ドラッグで入れ替える・Delete で空にする・矢印キーで移る・右クリックで複製など。
 // グリッドにいるときのキー: Return で表示名の欄へ、⌘D で複製、⌘⌫ で空にする、⌥⌘＋矢印キーで隣と入れ替え、⌘C・⌘V でコピーと貼り付け
 import NonetCore
 import SwiftUI
@@ -11,26 +11,34 @@ struct SettingsGridView: View {
     var body: some View {
         let profile = model.selectedProfile
         let page = model.currentPage
-        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-            ForEach(0..<3, id: \.self) { row in
-                GridRow {
-                    ForEach(0..<3, id: \.self) { column in
-                        let index = row * SettingsGrid.columns + column
-                        SettingsGridCell(
-                            model: model,
-                            index: index,
-                            cell: page.cells.indices.contains(index) ? page.cells[index] : nil,
-                            isSelected: model.selectedIndex == index,
-                            isGridFocused: isFocused,
-                            dragItem: SettingsDragItem(payload: .cell(
-                                profileID: profile.id,
-                                address: CellAddress(page: model.pageIndex, index: index)
-                            )),
-                            onSelect: {
-                                model.selectCell(index)
-                                isFocused = true
+        Group {
+            if page.layout == .nine {
+                Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+                    ForEach(0..<3, id: \.self) { row in
+                        GridRow {
+                            ForEach(0..<3, id: \.self) { column in
+                                gridCell(row * SettingsGrid.columns + column, page: page, profile: profile)
                             }
-                        )
+                        }
+                    }
+                }
+            } else {
+                // 9 以外は HUD と同じく円に並べる（上から時計回り）。横に長い枠に入るよう楕円に置く
+                GeometryReader { proxy in
+                    let size = SettingsRingLayout.cellSize(for: page.layout, in: proxy.size)
+                    ZStack {
+                        Text(SettingsText.ringCenterNote)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(width: max(proxy.size.width * 0.3, 80))
+                            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+                            .accessibilityHidden(true)
+                        ForEach(0..<page.layout.slotCount, id: \.self) { index in
+                            gridCell(index, page: page, profile: profile)
+                                .frame(width: size.width, height: size.height)
+                                .position(SettingsRingLayout.center(of: index, layout: page.layout, in: proxy.size, cell: size))
+                        }
                     }
                 }
             }
@@ -91,6 +99,25 @@ struct SettingsGridView: View {
         .accessibilityLabel(String(localized: "\(profile.name) のページ \(model.pageIndex + 1)", bundle: .module))
     }
 
+    private func gridCell(_ index: Int, page: Page, profile: Profile) -> some View {
+        SettingsGridCell(
+            model: model,
+            index: index,
+            layout: page.layout,
+            cell: page.cells.indices.contains(index) ? page.cells[index] : nil,
+            isSelected: model.selectedIndex == index,
+            isGridFocused: isFocused,
+            dragItem: SettingsDragItem(payload: .cell(
+                profileID: profile.id,
+                address: CellAddress(page: model.pageIndex, index: index)
+            )),
+            onSelect: {
+                model.selectCell(index)
+                isFocused = true
+            }
+        )
+    }
+
     static func isOptionCommand(_ modifiers: EventModifiers) -> Bool {
         modifiers.contains(.option) && modifiers.contains(.command) && !modifiers.contains(.shift) && !modifiers.contains(.control)
     }
@@ -106,9 +133,41 @@ struct SettingsGridView: View {
     }
 }
 
+/// 円に並べるページ（9 以外）の、マスの大きさと置き場所。枠いっぱいの楕円の上に、HUD と同じ向き（上から時計回り）で置く
+enum SettingsRingLayout {
+    static let spacing: CGFloat = 8
+
+    /// マスの大きさ。数が多いほど小さくする（隣と重ならない）
+    static func cellSize(for layout: PageLayout, in size: CGSize) -> CGSize {
+        let width: CGFloat = switch layout.slotCount {
+        case ...4: 0.3
+        case ...6: 0.26
+        case ...8: 0.22
+        default: 0.15
+        }
+        let height: CGFloat = switch layout.slotCount {
+        case ...4: 0.28
+        case ...8: 0.24
+        default: 0.18
+        }
+        return CGSize(width: max(size.width * width, 60), height: max(size.height * height, 44))
+    }
+
+    /// マスの中心。楕円の半径は、枠の端にマスが収まる大きさ
+    static func center(of index: Int, layout: PageLayout, in size: CGSize, cell: CGSize) -> CGPoint {
+        guard let slot = RadialLayout.slot(ofCell: index, layout: layout) else { return CGPoint(x: size.width / 2, y: size.height / 2) }
+        let radians = RadialLayout.angle(ofSlot: slot, layout: layout) * .pi / 180
+        let rx = max(size.width / 2 - cell.width / 2, 0)
+        let ry = max(size.height / 2 - cell.height / 2, 0)
+        return CGPoint(x: size.width / 2 + rx * cos(radians), y: size.height / 2 + ry * sin(radians))
+    }
+}
+
 struct SettingsGridCell: View {
     let model: SettingsModel
     let index: Int
+    /// ページのボタンの数（位置の呼び方）
+    var layout: PageLayout = .nine
     let cell: Cell?
     let isSelected: Bool
     /// キー（Delete・矢印キーなど）がグリッドに届く。選んでいるマスを、リストの選択と同じく、届くならアクセント色・届かなければ灰色で塗る
@@ -151,7 +210,7 @@ struct SettingsGridCell: View {
             }
             .help(SettingsGrid.tooltip(for: cell) ?? "")
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell))
+            .accessibilityLabel(SettingsGrid.accessibilityLabel(index: index, cell: cell, layout: layout))
             .accessibilityValue(HoldMark.accessibilityValue(requiresHold: cell?.requiresHold == true))
             // ⌥⌘＋矢印キーで入れ替えるのは、選んでいるマス（VoiceOver で読んでいるマスではない）
             .accessibilityHint(String(localized: "選んでから ⌥⌘＋矢印キーで、隣のマスと入れ替え", bundle: .module))

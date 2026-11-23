@@ -19,8 +19,9 @@ public enum ControllerPresentation {
     ) -> HUDModel {
         let index = pages.isEmpty ? 0 : min(max(state.page, 0), pages.count - 1)
         let resolved = pages.indices.contains(index) ? pages[index] : nil
-        let cells = Page(cells: resolved?.cells ?? []).cells.map { $0.map(hudCell) }
-        let highlight = state.highlightedCell.flatMap { (0..<Page.cellCount).contains($0) ? $0 : nil }
+        let layout = resolved?.layout ?? .nine
+        let cells = Page(cells: resolved?.cells ?? [], layout: layout).cells.map { $0.map(hudCell) }
+        let highlight = state.highlightedCell.flatMap { (0..<layout.slotCount).contains($0) ? $0 : nil }
         let hold = state.hold.flatMap { hold in
             hold.cell == highlight ? HUDHold(cellIndex: hold.cell, since: hold.since, duration: hold.duration, isReady: hold.isReady) : nil
         }
@@ -30,6 +31,7 @@ public enum ControllerPresentation {
             pageIndex: index - layers.range.lowerBound,
             pageCount: max(layers.range.count, 1),
             cells: cells,
+            layout: layout,
             highlightedIndex: highlight,
             isFingerInFrame: state.isInFrame,
             hold: hold,
@@ -87,10 +89,11 @@ public enum ControllerPresentation {
     }
 
     /// 左右の外枠に指を止めている側の、隣のページの端の列（右なら次のページの左の列、左なら前のページの右の列。上の段から）。
-    /// 同じ層の中だけで、端のページからは反対の端のページ（PageEdge.neighbor）。上下（層の切り替え）・ページが1つの層は nil
+    /// 同じ層の中だけで、端のページからは反対の端のページ（PageEdge.neighbor）。上下（層の切り替え）・ページが1つの層・
+    /// 隣のページのボタンが 9 でない（列が無い）ときは nil
     static func edgePeek(pages: [ResolvedPage], page: Int, edge: PageEdge?) -> [HUDCell?]? {
         guard let edge, let neighbor = edge.neighbor(of: page, in: layers(of: pages, at: page).range),
-              pages.indices.contains(neighbor) else { return nil }
+              pages.indices.contains(neighbor), pages[neighbor].layout == .nine else { return nil }
         let cells = Page(cells: pages[neighbor].cells).cells
         let column = edge == .right ? 0 : 2
         return [0, 1, 2].map { row in cells[row * 3 + column].map(hudCell) }

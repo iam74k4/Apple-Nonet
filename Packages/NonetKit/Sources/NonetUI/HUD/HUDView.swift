@@ -53,22 +53,22 @@ struct HUDMetrics: Equatable {
     /// パネルの、円を囲む正方形の外の余白（帯とその影が入る大きさ）。帯は倍率に合わせて大きくなるので、余白も倍率に合わせる（1 より小さくはしない）
     var shadowMargin: CGFloat { HUDLayout.shadowMargin * max(scale, 1) }
 
-    /// 正方形の中の、マスの中心（中央のマスは円の中心）
-    func position(ofCell index: Int) -> CGPoint {
-        guard let position = RadialLayout.position(ofCell: index) else { return center }
+    /// 正方形の中の、マスの中心（中央のマスは円の中心）。layout はページのボタンの数
+    func position(ofCell index: Int, layout: PageLayout = .nine) -> CGPoint {
+        guard let position = RadialLayout.position(ofCell: index, layout: layout) else { return center }
         return CGPoint(x: center.x + position.x * scale, y: center.y + position.y * scale)
     }
 
     /// 向けたまま止めたアイコンの名前の中心（白い円のすぐ下。above なら白い円のすぐ上）
-    func labelPosition(ofCell index: Int, above: Bool = false) -> CGPoint {
-        let key = position(ofCell: index)
+    func labelPosition(ofCell index: Int, layout: PageLayout = .nine, above: Bool = false) -> CGPoint {
+        let key = position(ofCell: index, layout: layout)
         let offset = selectionRadius + labelGap + labelHeight / 2
         return CGPoint(x: key.x, y: above ? key.y - offset : key.y + offset)
     }
 
     /// 白い円のすぐ下に出した名前が、円の下の帯（pillFrame(below: true)）に重なるか（下の鍵）
-    func labelOverlapsPillBelow(ofCell index: Int) -> Bool {
-        labelPosition(ofCell: index).y + labelHeight / 2 > pillFrame(below: true).minY
+    func labelOverlapsPillBelow(ofCell index: Int, layout: PageLayout = .nine) -> Bool {
+        labelPosition(ofCell: index, layout: layout).y + labelHeight / 2 > pillFrame(below: true).minY
     }
 
     /// 名前の帯の幅の上限: x を中心にして、パネル（円を囲む正方形と余白）からはみ出さない幅。長い名前は末尾を省く
@@ -164,7 +164,7 @@ final class HUDStore {
         guard let direction = model.lastTurn else { return }
         turnSerial += 1
         let serial = turnSerial
-        turn = HUDTurn(outgoingCells: previous.cells, outgoingLayer: previous.layer, direction: direction, serial: serial)
+        turn = HUDTurn(outgoingCells: previous.cells, outgoingLayout: previous.layout, outgoingLayer: previous.layer, direction: direction, serial: serial)
         if previous.layer != model.layer {
             layerName = HUDLayerName(text: model.title, serial: serial)
         }
@@ -196,6 +196,8 @@ final class HUDStore {
 struct HUDTurn: Equatable {
     /// 切り替える前のページのマス
     var outgoingCells: [HUDCell?]
+    /// 切り替える前のページのボタンの数
+    var outgoingLayout: PageLayout = .nine
     var outgoingLayer: HUDLayer?
     /// 切り替えた向き（その側から次の輪が入り、前の輪は反対へ抜ける）
     var direction: PageEdge
@@ -374,11 +376,11 @@ struct HUDView: View {
         ZStack(alignment: .topLeading) {
             // 切り替える前のページの輪（押し出されて抜けていく）。マスは光らせない
             if let turn {
-                keyRing(cells: turn.outgoingCells, highlight: nil, hold: nil, dims: dims, metrics: metrics,
+                keyRing(cells: turn.outgoingCells, layout: turn.outgoingLayout, highlight: nil, hold: nil, dims: dims, metrics: metrics,
                         plateStyle: HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: turn.outgoingLayer == .global, showsGlass: false))
                     .modifier(HUDTurnEffect(progress: turnProgress, direction: turn.direction, distance: distance, isOutgoing: true, reduceMotion: reduceMotion))
             }
-            keyRing(cells: model.cells, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics, plateStyle: plateStyle)
+            keyRing(cells: model.cells, layout: model.layout, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics, plateStyle: plateStyle)
                 .modifier(HUDTurnEffect(progress: turn == nil ? 1 : turnProgress, direction: turn?.direction, distance: distance, isOutgoing: false, reduceMotion: reduceMotion))
             if let paging = model.edgePaging {
                 HUDPagingArrow(paging: paging, metrics: metrics, animates: !reduceMotion)
@@ -414,8 +416,8 @@ struct HUDView: View {
             }
             // 向けたまま止めたアイコンの名前（白い円のすぐ下。円の下の帯に重なる下の鍵では、白い円のすぐ上）。動かせば消える
             if let keyLabel {
-                let above = pillBelow && HUDPillContent.content(for: model) != nil && metrics.labelOverlapsPillBelow(ofCell: keyLabel.index)
-                let position = metrics.labelPosition(ofCell: keyLabel.index, above: above)
+                let above = pillBelow && HUDPillContent.content(for: model) != nil && metrics.labelOverlapsPillBelow(ofCell: keyLabel.index, layout: model.layout)
+                let position = metrics.labelPosition(ofCell: keyLabel.index, layout: model.layout, above: above)
                 HUDKeyLabel(text: keyLabel.text, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: position.x))
                     .position(position)
                     .transition(.opacity)
@@ -445,14 +447,15 @@ struct HUDView: View {
         .accessibilityLabel(Text(HUDAnnouncement.frameTitle(for: model)))
     }
 
-    /// 9つの鍵の輪。台のガラスは鍵ごとに描く（GlassEffectContainer でまとめると、まとめたガラスがアイコンや線より上に描かれて隠れる）
-    private func keyRing(cells: [HUDCell?], highlight: Int?, hold: HUDHold?, dims: Bool, metrics: HUDMetrics, plateStyle: HUDPlateStyle) -> some View {
+    /// 鍵の輪（ボタンの数だけ）。台のガラスは鍵ごとに描く（GlassEffectContainer でまとめると、まとめたガラスがアイコンや線より上に描かれて隠れる）
+    private func keyRing(cells: [HUDCell?], layout: PageLayout, highlight: Int?, hold: HUDHold?, dims: Bool, metrics: HUDMetrics, plateStyle: HUDPlateStyle) -> some View {
         let size = metrics.size(for: model)
         return ZStack(alignment: .topLeading) {
-            ForEach(0..<Page.cellCount, id: \.self) { index in
+            ForEach(0..<layout.slotCount, id: \.self) { index in
                 HUDKeyView(
                     cell: cells.indices.contains(index) ? cells[index] : nil,
                     index: index,
+                    layout: layout,
                     isHighlighted: highlight == index,
                     hold: hold?.cellIndex == index && highlight == index ? hold : nil,
                     isDimmed: dims,
@@ -461,7 +464,7 @@ struct HUDView: View {
                     reduceMotion: reduceMotion,
                     fixedHoldProgress: fixedHoldProgress
                 )
-                .position(metrics.position(ofCell: index))
+                .position(metrics.position(ofCell: index, layout: layout))
             }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
@@ -475,6 +478,7 @@ struct HUDView: View {
 struct HUDKeyView: View {
     let cell: HUDCell?
     let index: Int
+    var layout: PageLayout = .nine
     let isHighlighted: Bool
     /// 光っている、少し長く止めるマスの進み具合。止め終えるまでは白く塗らず、円に沿って線を伸ばす
     var hold: HUDHold?
@@ -495,7 +499,7 @@ struct HUDKeyView: View {
         isHighlighted && hold?.isReady == false
     }
 
-    private var isCenter: Bool { index == RadialLayout.centerCell }
+    private var isCenter: Bool { index == layout.centerCell }
 
     /// アイコン・点・印の不透明度
     private var markOpacity: Double { isDimmed ? plateStyle.dimmedIconOpacity : 1 }
@@ -559,7 +563,7 @@ struct HUDKeyView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index)))
+        .accessibilityLabel(Text(HUDAnnouncement.cellDescription(cell, index: index, layout: layout)))
         .accessibilityValue(Text(HUDAnnouncement.cellValue(cell)))
         .accessibilityAddTraits(isHighlighted ? .isSelected : [])
     }
@@ -800,7 +804,7 @@ extension HUDView {
     /// 真ん中の鍵の下（pageDotsPosition）に、層の名前より優先して出すものがある: 左右で止めているときのページの点、案内、真ん中の鍵の名前
     static func isSpotUnderCenterTaken(_ model: HUDModel, inFrame: Bool, keyLabel: Int?) -> Bool {
         let showsDots = model.pageCount > 1 && (model.edgePaging?.edge == .left || model.edgePaging?.edge == .right)
-        return showsDots || (inFrame && model.edgeHint != nil) || keyLabel == RadialLayout.centerCell
+        return showsDots || (inFrame && model.edgeHint != nil) || (keyLabel != nil && keyLabel == model.layout.centerCell)
     }
 }
 
@@ -866,6 +870,23 @@ enum HUDPageDots {
 
 /// VoiceOver に読ませる文
 enum HUDAnnouncement {
+    /// マスの位置の呼び方。9 のページは 3×3（左上から右へ、上の行から）。ほかは円の上の向き: 上下左右と斜めならその呼び方、
+    /// それ以外は時計の文字盤の向き（「2時の方向」）
+    static func positionName(_ index: Int, layout: PageLayout) -> String {
+        guard layout != .nine else { return positionName(index) }
+        guard let slot = RadialLayout.slot(ofCell: index, layout: layout) else { return "" }
+        // 上から時計回りの角度（0〜360）
+        let degrees = RadialLayout.keySpacing(for: layout) * Double(slot)
+        let eighth = degrees / 45
+        if abs(eighth - eighth.rounded()) < 0.001 {
+            // 上・右上・右・右下・下・左下・左・左上 を、3×3 の番号で
+            let names = [1, 2, 5, 8, 7, 6, 3, 0]
+            return positionName(names[Int(eighth.rounded()) % 8])
+        }
+        let hour = Int((degrees / 30).rounded()) % 12
+        return String(localized: "\(hour == 0 ? 12 : hour)時の方向", bundle: .module)
+    }
+
     /// マスの位置の呼び方（左上から右へ、上の行から）
     static func positionName(_ index: Int) -> String {
         switch index {
@@ -898,8 +919,8 @@ enum HUDAnnouncement {
         String(localized: "\(pageCount) ページ中 \(pageIndex + 1) ページ目", bundle: .module)
     }
 
-    static func cellDescription(_ cell: HUDCell?, index: Int) -> String {
-        let position = positionName(index)
+    static func cellDescription(_ cell: HUDCell?, index: Int, layout: PageLayout = .nine) -> String {
+        let position = positionName(index, layout: layout)
         guard let cell else {
             return String(localized: "空きマス、\(position)", bundle: .module)
         }
@@ -969,9 +990,9 @@ enum HUDAnnouncement {
 
     /// ハイライト中のマス。指が外枠にある・離れていれば nil。少し長く止めてから実行するマスなら、そう言い添える
     static func highlighted(in model: HUDModel) -> String? {
-        guard let index = model.highlightedIndex, (0..<Page.cellCount).contains(index) else { return nil }
+        guard let index = model.highlightedIndex, (0..<model.layout.slotCount).contains(index) else { return nil }
         let cell = model.cells.indices.contains(index) ? model.cells[index] : nil
-        let description = cellDescription(cell, index: index)
+        let description = cellDescription(cell, index: index, layout: model.layout)
         guard cell?.requiresHold == true else { return description }
         return String(localized: "\(description)、\(HoldMark.accessibilityValue)", bundle: .module)
     }

@@ -11,7 +11,7 @@ struct SettingsInspectorView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if let index = model.selectedIndex {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(SettingsGrid.cellName(index))
+                        Text(SettingsGrid.cellName(index, layout: model.currentPage.layout))
                             .font(.system(size: 15, weight: .bold))
                         Spacer()
                         if model.selectedProfile.pages.count > 1 {

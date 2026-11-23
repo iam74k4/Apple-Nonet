@@ -553,7 +553,9 @@ public final class NonetController {
         // 開いている間は、HUD の中心からのポインタの向きと距離で決めたマスの位置を指の位置にする（HUD が無ければポインタは読まない）
         let pointer = engine.isInSession ? hudMapFrame.flatMap { sessionPointer(for: frame, map: $0) } : nil
         let wasWaitingAtCenter = pointerSelection.isWaitingAtCenter
-        send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame)))
+        // いまのページのボタンの数で、円の鍵の並びとエンジンの升目が変わる
+        let layout = session?.layout(ofPage: lastHUDState?.page ?? 0) ?? .nine
+        send(.touches(pointerSelection.frame(frame, pointer: pointer, map: hudMapFrame, layout: layout)))
         // 中央から出たのにエンジンの状態が変わらなかった（外枠のまま）ときも、HUD の「開いた直後」の見た目を解く
         if wasWaitingAtCenter, !pointerSelection.isWaitingAtCenter, isHUDVisible, let session, let state = lastHUDState {
             if let map = hud.update(hudModel(session, state: state)) {

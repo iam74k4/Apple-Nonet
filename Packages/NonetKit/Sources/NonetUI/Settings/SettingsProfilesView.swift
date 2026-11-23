@@ -552,6 +552,7 @@ struct SettingsPageBar: View {
                     .accessibilityLabel(String(localized: "ページを追加", bundle: .module))
                 }
                 pageMenu
+                layoutMenu
             }
             Spacer(minLength: 8)
             menuToggle(compact: compactMenuButton)
@@ -597,6 +598,32 @@ struct SettingsPageBar: View {
         .fixedSize()
         .help(title)
         .accessibilityLabel(title)
+    }
+
+    /// 選んでいるページのボタンの数（4・6・8・9・12）。入りきらない数は選べない（中身のあるマスを消さない）
+    private var layoutMenu: some View {
+        let layout = model.currentPage.layout
+        let title = String(localized: "ボタンの数", bundle: .module)
+        return Menu {
+            Picker(selection: Binding(get: { model.currentPage.layout }, set: { model.setPageLayout($0) })) {
+                ForEach(PageLayout.allCases, id: \.self) { choice in
+                    Text(SettingsText.pageLayoutChoice(choice))
+                        .tag(choice)
+                        .selectionDisabled(!model.canSetPageLayout(choice))
+                }
+            } label: {
+                Text(title)
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Text(SettingsText.pageLayoutTitle(layout))
+                .font(.system(size: 12))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityValue(SettingsText.pageLayoutTitle(layout))
     }
 
     private func menuToggle(compact: Bool) -> some View {

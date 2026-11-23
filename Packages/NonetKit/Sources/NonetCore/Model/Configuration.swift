@@ -30,13 +30,16 @@ public struct ResolvedPage: Equatable, Sendable {
     public var cells: [Cell?]
     /// ページの名前（Page.name）。無ければ nil
     public var pageName: String?
+    /// ボタンの数（Page.layout）
+    public var layout: PageLayout
 
-    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil) {
+    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil, layout: PageLayout = .nine) {
         self.profileID = profileID
         self.profileName = profileName
         self.pageIndex = pageIndex
         self.cells = cells
         self.pageName = pageName
+        self.layout = layout
     }
 
     /// HUD の題名。ページに名前があれば「Xcode · デバッグ」、無ければプロファイルの名前だけ
@@ -176,7 +179,7 @@ extension NonetConfiguration {
     public mutating func addPage(_ page: Page = .empty, profileID: UUID) -> Int? {
         guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return nil }
         profiles[index].normalizePages()
-        profiles[index].pages.append(Page(cells: page.cells, name: page.name))
+        profiles[index].pages.append(Page(cells: page.cells, name: page.name, layout: page.layout))
         // ほかで同じ id のマスが作られていれば振り直す
         self = validated()
         return profileIndex(id: profileID).map { profiles[$0].pages.count - 1 }
@@ -196,9 +199,27 @@ extension NonetConfiguration {
         guard let index = profileIndex(id: profileID), profiles[index].pages.count < Profile.maxPages else { return false }
         profiles[index].normalizePages()
         let position = min(max(pageIndex, 0), profiles[index].pages.count)
-        profiles[index].pages.insert(Page(cells: page.cells, name: page.name), at: position)
+        profiles[index].pages.insert(Page(cells: page.cells, name: page.name, layout: page.layout), at: position)
         // ほかで同じ id のマスが作られていれば振り直す
         self = validated()
+        return true
+    }
+
+    /// ページを丸ごと置き換える（ボタンの数を変えたのを元に戻す）。page はそのボタンの数に揃える
+    public mutating func replacePage(_ page: Page, at pageIndex: Int, profileID: UUID) {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return }
+        profiles[index].pages[pageIndex] = Page(cells: page.cells, name: page.name, layout: page.layout)
+        self = validated()
+    }
+
+    /// ページのボタンの数を変える（Page.resized(to:)。上から時計回りの順を保って詰め直す）。
+    /// 中身のあるマスが入りきらなければ何もしないで false
+    @discardableResult
+    public mutating func setPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID) -> Bool {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return false }
+        let page = profiles[index].pages[pageIndex]
+        guard page.canResize(to: layout) else { return false }
+        profiles[index].pages[pageIndex] = page.resized(to: layout)
         return true
     }
 
@@ -569,7 +590,7 @@ extension NonetConfiguration {
         profile.normalizePages()
         let name = profile.name
         return profile.pages.enumerated().map { pageIndex, page in
-            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name)
+            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name, layout: page.layout)
         }
     }
 

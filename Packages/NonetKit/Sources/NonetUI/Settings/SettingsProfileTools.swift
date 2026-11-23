@@ -170,12 +170,12 @@ extension SettingsModel {
 
     /// その向きに隣のマスがある（端では入れ替えられない）
     func canSwapCell(at index: Int, _ direction: SettingsGridDirection) -> Bool {
-        SettingsGrid.neighbor(of: index, direction) != index
+        SettingsGrid.neighbor(of: index, direction, layout: currentPage.layout) != index
     }
 
     /// 隣のマスと入れ替える（⌥⌘＋矢印キー・右クリック・VoiceOver）。入れ替えた先を選ぶ
     func swapCell(at index: Int, _ direction: SettingsGridDirection) {
-        let neighbor = SettingsGrid.neighbor(of: index, direction)
+        let neighbor = SettingsGrid.neighbor(of: index, direction, layout: currentPage.layout)
         guard canSwapCell(at: index, direction) else { return }
         swapCells(CellAddress(page: pageIndex, index: index), CellAddress(page: pageIndex, index: neighbor))
     }
@@ -207,6 +207,45 @@ extension SettingsModel {
             self?.reveal(CellAddress(page: index, index: self?.selectedIndex ?? 0), profileID: profileID)
         }
         undoManager.setActionName(String(localized: "ページの名前の変更", bundle: .module))
+        undoManager.endUndoGrouping()
+    }
+
+    /// 選んでいるページのボタンの数をその数に変えられる（中身のあるマスが全部入る）
+    func canSetPageLayout(_ layout: PageLayout) -> Bool {
+        currentPage.canResize(to: layout)
+    }
+
+    /// 選んでいるページのボタンの数を変える。上から時計回りの順を保って詰め直す（Page.resized(to:)）。元に戻せる
+    func setPageLayout(_ layout: PageLayout) {
+        let profileID = selectedProfile.id
+        let index = pageIndex
+        let before = currentPage
+        guard before.layout != layout else { return }
+        guard before.canResize(to: layout) else {
+            gridMessage = SettingsText.pageLayoutTooSmall(filled: before.filledCount, layout: layout)
+            return
+        }
+        // 選んでいるマスは、詰め直した後も同じものを選ぶ
+        let selectedID = selectedCell?.id
+        replacePage(before.resized(to: layout), at: index, profileID: profileID, actionName: String(localized: "ボタンの数の変更", bundle: .module))
+        selectedIndex = selectedID.flatMap { id in currentPage.cells.firstIndex { $0?.id == id } } ?? selectedIndex.map { min($0, layout.slotCount - 1) }
+        gridMessage = nil
+    }
+
+    private func replacePage(_ page: Page, at index: Int, profileID: UUID, actionName: String) {
+        guard let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(index) else { return }
+        let before = pages[index]
+        guard before != page else { return }
+        finishRecording()
+        closeEditGroup()
+        controller.update { $0.replacePage(page, at: index, profileID: profileID) }
+        undoNotice = nil
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.replacePage(before, at: index, profileID: profileID, actionName: actionName)
+            self?.reveal(CellAddress(page: index, index: 0), profileID: profileID)
+        }
+        undoManager.setActionName(actionName)
         undoManager.endUndoGrouping()
     }
 

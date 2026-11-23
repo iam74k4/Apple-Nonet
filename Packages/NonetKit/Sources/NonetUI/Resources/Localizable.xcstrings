@@ -473,6 +473,16 @@
         }
       }
     },
+    "%lld時の方向" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld o'clock"
+          }
+        }
+      }
+    },
     "%lld番目のマス（%@）" : {
       "localizations" : {
         "en" : {
@@ -485,6 +495,32 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld番目のマス（%2$@）"
+          }
+        }
+      }
+    },
+    "%lld（円に %lld と真ん中）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld (%2$lld in a ring and one in the middle)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld（円に %2$lld と真ん中）"
+          }
+        }
+      }
+    },
+    "%lld（円に並べる）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld (in a ring)"
           }
         }
       }
@@ -1887,6 +1923,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export This Profile…"
+          }
+        }
+      }
+    },
+    "このページには %lld 個のボタンがあるので、%lld にはできません。先にボタンを空けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This page has %1$lld buttons, so it can’t have %2$lld. Clear some buttons first."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "このページには %1$lld 個のボタンがあるので、%2$lld にはできません。先にボタンを空けてください。"
           }
         }
       }
@@ -4116,6 +4168,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buttons"
+          }
+        }
+      }
+    },
+    "ボタン %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Buttons"
+          }
+        }
+      }
+    },
+    "ボタンの数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number of Buttons"
+          }
+        }
+      }
+    },
+    "ボタンの数の変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Number of Buttons"
           }
         }
       }
@@ -6475,6 +6557,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "登録者: %1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "真ん中で離すとやめます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let go in the middle to cancel"
           }
         }
       }
