@@ -94,6 +94,8 @@ public struct CancellationRecord: Equatable, Sendable {
 public final class NonetController {
     /// 権限・トラックパッド・セキュア入力を確かめ直す間隔
     static let pollInterval: TimeInterval = 2
+    /// これより短い止める時間（開きやすい）では、押し込んでから開くまでの輪を出さない（出た瞬間に消えてちらつくだけ）
+    static let pressProgressMinimum: TimeInterval = 0.2
     /// テスト実行で、アプリを前面に出してから待つ時間
     static let activationDelay: TimeInterval = 0.4
     /// それでも前面にならないとき（起動に時間がかかるとき）に確かめ直す間隔と回数
@@ -450,7 +452,15 @@ public final class NonetController {
         case .interrupted:
             send(.interrupted(at: services.scheduler.now))
         case .forcePressed:
+            hud.hidePressProgress()
             services.keyboard.finishForcePress(opened: openFromForcePress())
+        case .forcePressStarted(let hold):
+            // 押し込みを感じたら、止めておけば開くことを見せる（途中で離すとふつうのクリックになる）。すぐ開く段では出さない
+            if hold >= Self.pressProgressMinimum {
+                hud.showPressProgress(duration: hold)
+            }
+        case .forcePressCancelled:
+            hud.hidePressProgress()
         }
     }
 

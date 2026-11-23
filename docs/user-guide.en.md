@@ -71,7 +71,7 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 1. Rest one finger anywhere on the trackpad (the HUD opens around the pointer wherever it is)
 2. Press firmly: past the ordinary click (the first click) until you feel a second click. This is a Force Click in macOS
-3. Hold it there for a moment (about 0.25 seconds with the standard setting)
+3. Hold it there for a moment (about 0.25 seconds with the standard setting). When you press firmly, a white ring around the pointer fills up, and the buttons open when it's full (let go before that and it's an ordinary click; with High sensitivity they open at once, so there's no ring)
 
 The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. Once they're open you can ease off the press (keep your finger on the trackpad). The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything. Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
 

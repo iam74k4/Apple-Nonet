@@ -77,6 +77,7 @@ site/                       販売ページ（静的）
 
 1. **開く**（`ForceClickHolder`・`EventTapKeyboardMonitor`）: 強く長押しで開けるとき（`KeyboardMonitor.forcePressHold` が nil でない。下の 2）は、左ボタンの押下だけを受け取るクリックのイベントタップ（`EventTapMask.click`）を有効にする。トラックパッドに触れている間（`TrackpadContact`）に届いた左ボタンの押下は、前面のアプリに渡さずに預かり（写しを持つ）、預かっている間はポインタのイベントタップも有効にして、その離す・押したままの動き・感圧（`NSEvent.EventType.pressure`。`NSEvent.stage`）を見る。決まり:
    - 強めのクリックの2段目（stage 2）まで押し込んでから `forcePressHold`（開きやすさ `GlobalSettings.openSensitivity` → `ForcePress.hold`。控えめ 0.5秒・標準 0.25秒・開きやすい 0.1秒）押し続けたら `.forcePressed` を送り、答え（`finishForcePress(opened:)`）を待つ。開いたらそのクリックは捨て（ポインタの下のボタンやリンクを押さない）、その離すも捨て、押したままの動きはボタンを押していない移動として渡す（`ForceClickHolder.Phase.consumed`）。開かなかったら押下を返す（答えを待つ間に離していれば離すも）
+   - 2段目まで押し込んだら `.forcePressStarted(hold:)` を送り、`NonetController` が `HUDPresenting.showPressProgress(duration:)` でポインタの周りに満ちていく輪を出す（`HUDPressProgressController`。クリックを通す小さなパネル。止める時間が `pressProgressMinimum` 0.2秒より短い「開きやすい」では出さない）。開いたら・止め終える前に離した（`.forcePressCancelled`）ら消す
    - 離した（ふつうのクリック）・`slop`（6pt）より動かした（ドラッグ）・2段目まで押し込まないまま `lightPressLimit`（0.6秒）押し続けた（押したままで出るメニュー）なら、押下の写しを送り直して返す（離す・動きは続けて写しを送る）。送り直すイベントには Nonet の印（`OwnEventFilter.userData`）を付け、タップを素通りさせる。ふつうのクリックは、アプリに届くのが押したときから離したときに変わる
    - 預からない: マウスのクリック・指を離した後に届く「タップでクリック」（トラックパッドに触れていない）・副ボタンとほかのボタン・9マスを開いている間・`forcePressHold` が nil の間。タップが無効にされた・`forcePressHold` を nil にした・止めるときは、預かっている押下を返す（ボタンがもう離れていれば離すも送る）
    - 2段目が来ないとき（macOS の「強めのクリックと触覚フィードバック」がオフ。グローバルの `com.apple.trackpad.forceClick` が false。感圧タッチでないトラックパッド）は開けない。設定の「一般」でオフを知らせ、システム設定のトラックパッドを開くボタンを出す（`TrackpadForceClick`）

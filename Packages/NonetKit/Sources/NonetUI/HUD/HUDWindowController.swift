@@ -35,6 +35,8 @@ public final class HUDWindowController: HUDPresenting {
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
     private let placementPreview = HUDPlacementPreviewController()
+    /// 強く押し込んでから開くまでの輪（テストで確かめる）
+    let pressProgress = HUDPressProgressController()
     /// 「最近のスクショ」のトレイ（テストで中を確かめる）
     let screenshotTray = HUDScreenshotTrayController()
 
@@ -163,6 +165,15 @@ public final class HUDWindowController: HUDPresenting {
         // HUD を出していた場所（ポインタの近く）に出す
         let anchor = hudFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? cursor
         self.result.show(result, centeredAt: anchor, on: screen)
+    }
+
+    public func showPressProgress(duration: TimeInterval) {
+        pressProgress.prefersReducedMotion = prefersReducedMotion
+        pressProgress.show(at: mouseLocation(), duration: duration)
+    }
+
+    public func hidePressProgress() {
+        pressProgress.hide()
     }
 
     /// 「最近のスクショ」のトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。コピーしたらトーストで知らせる

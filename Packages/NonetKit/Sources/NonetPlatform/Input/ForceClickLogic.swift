@@ -66,6 +66,12 @@ struct ForceClickHolder: Equatable {
     /// 押下を預かっている・答えを待っている・開いたクリックの離すを待っている
     var isActive: Bool { phase != .idle }
 
+    /// 押下を預かっていて、強めのクリックの2段目まで押し込んである（止め終えるのを待っている）
+    var isForcePressed: Bool {
+        if case .holding(let held) = phase { return held.forceAt != nil }
+        return false
+    }
+
     /// 預かっている押下の位置（返すときに離すを作る）
     var heldLocation: CGPoint? {
         switch phase {

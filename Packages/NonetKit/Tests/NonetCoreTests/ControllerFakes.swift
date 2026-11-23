@@ -464,6 +464,17 @@ final class ControllerFakeHUD: HUDPresenting {
         recorder.log("hud:preview")
     }
 
+    /// showPressProgress（秒）と hidePressProgress（nil）の順
+    private(set) var pressProgress: [TimeInterval?] = []
+
+    func showPressProgress(duration: TimeInterval) {
+        pressProgress.append(duration)
+    }
+
+    func hidePressProgress() {
+        pressProgress.append(nil)
+    }
+
     func showScreenshotTray(_ options: ScreenshotTrayAction) {
         screenshotTrayRequests.append(options)
     }

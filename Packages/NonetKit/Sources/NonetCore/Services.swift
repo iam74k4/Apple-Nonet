@@ -65,6 +65,10 @@ public enum KeyboardEvent: Equatable, Sendable {
     /// トラックパッドのどこかを強く押し込み（強めのクリックの2段目）、そのまま forcePressHold だけ止めた。
     /// そのクリックはまだ前面アプリに渡していない（預かっている）。受け取ったら、9マスを開くかを決めて finishForcePress で答える
     case forcePressed
+    /// 強めのクリックの2段目まで押し込んだ。hold 秒止めると .forcePressed が来る（その間、ポインタに輪を見せる）
+    case forcePressStarted(hold: TimeInterval)
+    /// 押し込んだが、止め終える前に離した・動かした（輪を消す。クリックは前面アプリに返した）
+    case forcePressCancelled
 }
 
 /// キーボードとポインタのイベントタップ。9マスはトラックパッドを強く押し込んで開くので、キーボードは開いている間だけ見る。
@@ -337,6 +341,9 @@ public protocol HUDPresenting: AnyObject {
     /// 最近のスクリーンショットのトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。
     /// 探す・並べる・コピーする・ドラッグさせる・閉じるは画面が受け持つ（ScreenshotFolder で探す）
     func showScreenshotTray(_ options: ScreenshotTrayAction)
+    /// 強く押し込んでから開くまでの間、ポインタの周りに duration で満ちる輪を出す（止め終えたら9マスが開く）
+    func showPressProgress(duration: TimeInterval)
+    func hidePressProgress()
 }
 
 extension HUDPresenting {
@@ -349,6 +356,10 @@ extension HUDPresenting {
 
     /// トレイを出さない実装の既定
     public func showScreenshotTray(_ options: ScreenshotTrayAction) {}
+
+    /// 輪を出さない実装の既定
+    public func showPressProgress(duration: TimeInterval) {}
+    public func hidePressProgress() {}
 
 }
 

@@ -81,6 +81,8 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
     private var heldDown: CGEvent?
     /// 預かったクリックの、強く押し込んで止め終える時刻か、返す時刻
     private var holderTimer: Timer?
+    /// .forcePressStarted を送り、まだ .forcePressed も .forcePressCancelled も送っていない
+    private var isReportingForcePress = false
     /// この抑止の間に、マウスやホイールで .interrupted を送った（1回だけ送る）
     private var didInterruptForOtherDevice = false
     /// 抑止を始めたときの方式と、カーソルの位置
@@ -411,6 +413,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         let canHold = forcePressHold != nil && !isSuppressingPointer && contact.isKnown && contact.isTouched
         let decision = holder.leftDown(at: event.location, now: now(), canHold: canHold)
         heldDown = holder.isActive ? event.copy() : nil
+        reportForcePressCancelledIfNeeded()
         updatePointerTap()
         scheduleHolderTimer()
         return apply(decision, to: event)
@@ -426,14 +429,27 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
             decision = holder.leftDragged(to: event.location)
         case PointerEventKind.pressure:
             decision = holder.pressure(stage: pressureStage(event), now: now())
+            if holder.isForcePressed, !isReportingForcePress, let hold = forcePressHold {
+                isReportingForcePress = true
+                emit(.forcePressStarted(hold: hold))
+            }
         default:
             return nil
         }
         let pass = apply(decision, to: event)
         if !holder.isActive { heldDown = nil }
+        reportForcePressCancelledIfNeeded()
         updatePointerTap()
         scheduleHolderTimer()
         return pass
+    }
+
+    /// 押し込んだと知らせた後、開く前に預かるのをやめた（離した・動かした・返した）
+    private func reportForcePressCancelledIfNeeded() {
+        guard isReportingForcePress, !holder.isForcePressed else { return }
+        isReportingForcePress = false
+        if case .deciding = holder.phase { return }
+        emit(.forcePressCancelled)
     }
 
     private func apply(_ decision: ForceClickHolder.Decision, to event: CGEvent) -> Bool {
@@ -460,6 +476,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         case .giveBack:
             giveBackHeldClick(withUp: false)
         case .requestOpen:
+            isReportingForcePress = false
             emit(.forcePressed)
         }
         if !holder.isActive { heldDown = nil }
@@ -489,6 +506,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
         if case .giveBack(let withUp) = holder.returnAll(isPressed: physicalButton(0)) {
             giveBackHeldClick(withUp: withUp)
         }
+        reportForcePressCancelledIfNeeded()
         heldDown = nil
         stopHolderTimer()
     }

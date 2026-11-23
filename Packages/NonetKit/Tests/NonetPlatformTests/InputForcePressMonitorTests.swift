@@ -109,9 +109,11 @@ import Testing
         state.now += 0.1
         state.stage = 2
         #expect(monitor.handle(type: try #require(CGEventType(rawValue: PointerEventKind.pressure)), event: try pressure(), from: .pointer) == false)
+        // 押し込んだら、止める時間を知らせる（ポインタに輪を見せる）
+        #expect(state.events == [.forcePressStarted(hold: 0.25)])
         state.now += 0.25
         monitor.holderDeadlineDidPass()
-        #expect(state.events == [.forcePressed])
+        #expect(state.events == [.forcePressStarted(hold: 0.25), .forcePressed])
         monitor.isSuppressingPointer = true
         monitor.finishForcePress(opened: true)
         #expect(state.posted.isEmpty)
@@ -121,6 +123,16 @@ import Testing
         #expect(drag.type == .mouseMoved)
         #expect(monitor.handle(type: .leftMouseUp, event: try mouse(.leftMouseUp), from: .pointer) == false)
         #expect(state.posted.isEmpty)
+    }
+
+    /// 押し込んだ後、止め終える前に離したら、輪を消すよう知らせる（クリックは返す）
+    @Test func releasingEarlyCancelsTheProgress() throws {
+        _ = try press()
+        state.stage = 2
+        _ = monitor.handle(type: try #require(CGEventType(rawValue: PointerEventKind.pressure)), event: try pressure(), from: .pointer)
+        _ = monitor.handle(type: .leftMouseUp, event: try mouse(.leftMouseUp), from: .pointer)
+        #expect(state.events == [.forcePressStarted(hold: 0.25), .forcePressCancelled])
+        #expect(postedTypes == [.leftMouseDown, .leftMouseUp])
     }
 
     @Test func notOpeningGivesTheClickBack() throws {
