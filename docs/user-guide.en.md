@@ -9,7 +9,7 @@ Press firmly anywhere on the trackpad and hold for a moment, and Nonet turns you
 - Press firmly anywhere on the trackpad (until the second click) and hold for a moment to open the nine buttons. Ease off, slide to choose one, then lift your finger on it to run it
 - The **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
 - If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
-- The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
+- The nine buttons follow the front app. Each profile can have up to three pages. Each page can hold 4, 6, 8, 9 or 12 buttons, so you can keep just the few you use, large and easy to hit, or fit twelve (see "[Number of buttons](#number-of-buttons)")
 
 ### Requirements
 
@@ -245,9 +245,17 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
 - Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. The item acts on the button you Control-clicked and selects it first (after clearing, the notice names the button, as in “Cleared “Build”.”). On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
 
+### Number of buttons
+
+Click **9 Buttons** next to the pages to choose how many buttons the page holds: 4, 6, 8, 9 or 12. Each page can have its own number.
+
+- **9** (the default): eight on a ring and one in the center. Settings shows them as a 3×3 grid
+- **4, 6, 8 and 12**: the buttons sit on a ring and the center is empty. Come back to the center and lift to cancel without running anything. Fewer buttons give each direction more room, so they're easier to hit. Settings arranges them on a ring too, clockwise from the top, just like the HUD. The HUD, the cheat sheet in the menu bar and VoiceOver name the buttons by direction (top, top-right and so on) or, between those, by clock position ("2 o'clock")
+- Changing the number never removes a button. Nonet keeps them in clockwise order, and when there are fewer places it closes up the empty ones first. You can't pick a number too small for the buttons on the page (clear some first). Press ⌘Z to undo
+
 ### Undo and earlier versions
 
-- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting), changes in the inspector (one step per button), adding or renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
+- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting), changes in the inspector (one step per button), adding or renaming a page, changing the number of buttons, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
 - After you clear a button, replace a filled button, or delete a profile or a page, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so
 - Replacing profiles by importing can't be undone with ⌘Z. Use a saved version instead (below)
 - Nonet saves a copy of your settings while you change them (at most once an hour), and before deleting a profile or a page, importing, resetting to a preset or restoring an earlier version. It keeps the newest 10 in `~/Library/Application Support/Nonet/Backups/`. Under Export & Import on the Nonet tab of Settings, click **Restore an Earlier Version…**, choose a version, then click **Restore…** and **Restore** to go back to those profiles and settings. Your settings from before are saved too, so you can go back again
@@ -256,7 +264,7 @@ The middle column shows the pages and the 3×3 grid of the selected profile.
 
 - **Profiles**: **Duplicate for Another App…** (Control-click the profile) creates a profile for another app with all the pages and buttons. Menu Item buttons that chose the original app's menus choose the new app's menus, which helps when you copy VS Code buttons to Cursor, for example. **Reset to Preset…** asks first, then replaces the buttons with the preset
 - **Buttons**: ⌘C and ⌘V copy and paste a button. You can paste into another profile too, which is how you copy buttons between profiles
-- **Keys on the grid**: ⌘D duplicates, ⌘⌫ clears, ⌥⌘ and an arrow key swap with the next button, and Return moves to the **Name** field
+- **Keys on the grid**: ⌘D duplicates, ⌘⌫ clears, ⌥⌘ and an arrow key swap with the next button, and Return moves to the **Name** field. On a page arranged as a ring, the arrow keys move to the nearest button in that direction
 - **Keys on the Profiles tab**: ⌘1–⌘3 switch pages, and ⌘F filters profiles
 
 ### Inspector
