@@ -165,7 +165,7 @@ struct ActionClipboardTests {
         @Test("中身を渡すのが遅いアプリでも、メインスレッドを止めずに時間切れであきらめる")
         func slowProviderDoesNotBlockMainThread() async {
             await withPrivatePasteboard { pasteboard in
-                // 渡すのに 4 秒かかるアプリ。1 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
+                // 渡すのに 4 秒かかるアプリ。2 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
                 // 待ちきった場合（4 秒）とはっきり分かれる
                 let provider = SlowProvider(delay: 4)
                 putLazy("表のテキスト", types: [custom], provider: provider, on: pasteboard)
@@ -180,17 +180,17 @@ struct ActionClipboardTests {
                 }
                 var result: Result<PasteboardSnapshot, PasteboardSnapshot.Failure>?
                 let elapsed = await actionElapsedSeconds {
-                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 1))
+                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 2))
                 }
                 ticker.cancel()
                 #expect(result?.failure == .tooSlow, "\(String(describing: result))")
-                #expect(elapsed < 3, "\(elapsed) 秒待った")
-                // 止まっていれば、写している 1 秒の間は時刻が残らず、間が 1 秒ほど空く。遅い Mac（CI）では 20 ミリ秒の眠りが
-                // 150〜300 ミリ秒ほどに延びることがあるので、回数ではなく、いちばん長い間（0.7 秒より短いか）で見る
+                #expect(elapsed < 3.5, "\(elapsed) 秒待った")
+                // 止まっていれば、写している 2 秒の間は時刻が残らず、間が 2 秒ほど空く。遅い Mac（CI）では 20 ミリ秒の眠りが
+                // 150〜750 ミリ秒ほどに延びることがあるので、回数ではなく、いちばん長い間（1 秒より短いか）で見る
                 let times = ticks.value + [ProcessInfo.processInfo.systemUptime]
                 let longestGap = zip(times, times.dropFirst()).map { $1 - $0 }.max() ?? .infinity
                 #expect(times.count >= 3, "メインスレッドが止まっていた（\(times.count - 1) 回）")
-                #expect(longestGap < 0.7, "メインスレッドが \(longestGap) 秒止まっていた")
+                #expect(longestGap < 1.0, "メインスレッドが \(longestGap) 秒止まっていた")
                 // 裏で続いている読み取りが終わってからクリップボードを片付ける
                 _ = await waitUntil { provider.isDone }
             }

@@ -87,7 +87,8 @@ import Testing
         let data = try JSONEncoder().encode(configuration)
         let decoded = try JSONDecoder().decode(NonetConfiguration.self, from: data)
         #expect(decoded.globalProfile.pages[0].layout == .twelve)
-        #expect(decoded.globalProfile.pages[0].cells.compactMap { $0?.title } == (0..<9).map { "\($0)" })
+        // 12 にしたときに、9 の上から時計回りの順（1, 2, 5, 8, 7, 6, 3, 0, 4）で詰め直してある
+        #expect(decoded.globalProfile.pages[0].cells.compactMap { $0?.title } == PageLayout.nine.clockwiseCells.map { "\($0)" })
     }
 
     /// 円の上の鍵の向きと、ポインタの向きで選ぶマス

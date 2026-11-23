@@ -229,7 +229,10 @@ import Testing
         // 中身のあるマスも渡す（空きマスで離したらやめる）。少し長く止めるマスは無い
         let occupied: [Set<Int>] = [[0, 2, 4, 8], [0], [0, 8]]
         // グローバルの層は 3 ページ目から
-        #expect(session.engineConfiguration == SessionConfiguration(pageCount: 3, layerStart: 2, occupiedCells: occupied, holdCells: [[], [], []]))
+        // どのページも 9 のボタン（3×3 の升目）
+        #expect(session.engineConfiguration == SessionConfiguration(
+            pageCount: 3, layerStart: 2, occupiedCells: occupied, holdCells: [[], [], []], pageShapes: [.nine, .nine, .nine]
+        ))
 
         let other = ControllerSession(configuration: F.configuration(), frontmostApp: nil)
         #expect(other.pages.map(\.profileName) == [ModelFixtures.globalName])

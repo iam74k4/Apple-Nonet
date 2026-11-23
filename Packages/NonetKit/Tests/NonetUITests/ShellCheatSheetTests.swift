@@ -422,10 +422,13 @@ struct ShellCheatSheetTests {
         #expect(multi.pageCount > 1)
         let view = MenuBarCheatSheetView(sheet: multi, density: .regular, increasedContrast: false)
         let children = try #require(view.accessibilityChildren() as? [NSView])
-        #expect(children == [view.previousButton, view.pageIndicator, view.nextButton] + view.cellButtons)
+        // マスのボタンは、見ているページのボタンの数（ここでは 9）だけ読む。12 のページのために用意した残りは隠してある
+        let shown = Array(view.cellButtons.prefix(Page.cellCount))
+        #expect(children == [view.previousButton, view.pageIndicator, view.nextButton] + shown)
+        #expect(view.cellButtons.dropFirst(Page.cellCount).allSatisfy(\.isHidden))
         #expect(view.accessibilityLabel() == multi.accessibilityLabel)
         #expect(view.accessibilityRole() == .group)
-        for (index, button) in view.cellButtons.enumerated() {
+        for (index, button) in shown.enumerated() {
             #expect(button.accessibilityRole() == .button)
             #expect(button.accessibilityLabel() == multi.accessibilityLabel(ofCell: index))
             // 中身のあるマスには「前面のアプリで実行」の操作がある（⌥クリックと同じ）
@@ -439,7 +442,7 @@ struct ShellCheatSheetTests {
         // ページが1枚なら ‹ › は無い
         view.update(sheet: MenuBarCheatSheet(frontApp: nil, configuration: configuration), density: .compact, increasedContrast: true)
         let single = try #require(view.accessibilityChildren() as? [NSView])
-        #expect(single == view.cellButtons)
+        #expect(single == Array(view.cellButtons.prefix(Page.cellCount)))
         #expect(view.previousButton.isHidden && view.nextButton.isHidden)
         #expect(view.frame.size == MenuBarCheatSheetLayout(density: .compact).size)
         #expect(view.store.increasedContrast)
