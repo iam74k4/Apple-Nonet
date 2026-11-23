@@ -19,6 +19,7 @@ import Testing
     private func tray(_ listing: ScreenshotListing) -> (HUDScreenshotTrayController, Box) {
         let box = Box()
         let tray = HUDScreenshotTrayController()
+        tray.becomesKey = false
         tray.findScreenshots = { _ in listing }
         tray.writeToPasteboard = { box.written.append($0); return true }
         tray.openURL = { box.opened.append($0) }

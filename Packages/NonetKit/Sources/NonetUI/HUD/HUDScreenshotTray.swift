@@ -156,6 +156,9 @@ final class HUDScreenshotTrayController {
     /// ゴミ箱に入れられなかった（トーストで知らせる）
     var onTrashFailed: ((ScreenshotItem) -> Void)?
 
+    /// 出すときにキーにする（Esc・↑↓←→ を受け取る）。テストでは、ほかのテストのウインドウと取り合わないよう false にする
+    var becomesKey = true
+
     var isVisible: Bool { panel?.isVisible == true }
     var listing: ScreenshotListing? { store.listing }
 
@@ -173,7 +176,11 @@ final class HUDScreenshotTrayController {
         let panel = self.panel ?? makePanel()
         panel.title = String(localized: "スクリーンショット", bundle: .module)
         layOut()
-        panel.makeKeyAndOrderFront(nil)
+        if becomesKey {
+            panel.makeKeyAndOrderFront(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
         let find = findScreenshots
         listTask = Task { [weak self] in
             let listing = await Task.detached(priority: .userInitiated) { find(options) }.value

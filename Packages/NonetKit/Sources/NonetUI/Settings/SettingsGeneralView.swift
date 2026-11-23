@@ -38,6 +38,7 @@ struct SettingsGeneralView: View {
                     Text(SettingsText.openGestureChoiceTitle)
                     Text(SettingsText.detail(model.settings.openGesture))
                 }
+                .pickerStyle(.segmented)
                 if model.settings.openGesture.usesForcePress, TrackpadForceClick.isOff() {
                     LabeledContent {
                         VStack(alignment: .trailing, spacing: 6) {

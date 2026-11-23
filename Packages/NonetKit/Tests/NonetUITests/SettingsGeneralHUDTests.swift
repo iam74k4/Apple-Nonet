@@ -46,8 +46,9 @@ import Testing
             (0..<control.segmentCount).map { control.label(forSegment: $0) ?? "" }
         }
         #expect(segments.contains(OpenSensitivity.allCases.map(SettingsText.name)))
-        // HUD の位置の選択肢は無い（HUD はポインタのすぐ下に出す）
-        #expect(segments.count == 1)
+        #expect(segments.contains(OpenGesture.allCases.map(SettingsText.name)))
+        // HUD の位置の選択肢は無い（HUD はポインタのすぐ下に出す）。開き方と開きやすさだけ
+        #expect(segments.count == 2)
         #expect(!walk(hosting).contains { $0 is NSPopUpButton })
         #expect(!walk(hosting).contains { $0 is NSSlider })
     }
