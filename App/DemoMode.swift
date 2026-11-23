@@ -222,13 +222,10 @@ struct DemoTrackpadView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            // マスはポインタで選ぶので、トラックパッドには何も描かない（上の縁の帯だけ: 開く場所）
+            // マスはポインタで選ぶので、トラックパッドには何も描かない（指の点だけ）
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.white.opacity(0.07))
                 RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Color.white.opacity(0.22), lineWidth: 1.5)
-                Rectangle()
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: size.width, height: size.height * 0.09)
                 ForEach(model.trail) { mark in
                     let age = (model.trail.last?.time ?? mark.time) - mark.time
                     let strength = max(0, 1 - age / DemoTrackpadModel.trailDuration)

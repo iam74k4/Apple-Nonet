@@ -65,10 +65,10 @@ import Testing
     @Test func namesAndDetailsMatchTheUserGuide() {
         #expect(SettingsText.openSensitivityTitle == L10n.ui("開きやすさ"))
         #expect(OpenSensitivity.allCases.map(SettingsText.name) == [L10n.ui("控えめ"), L10n.ui("標準"), L10n.ui("開きやすい")])
-        // 説明は、選んだ段の帯の高さ・動き・時間を言う
-        #expect(SettingsText.openSensitivityDetail(.low) == L10n.ui("奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに"))
-        #expect(SettingsText.openSensitivityDetail(.standard) == L10n.ui("奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ"))
-        #expect(SettingsText.openSensitivityDetail(.high) == L10n.ui("奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに"))
+        // 説明は、選んだ段の止める時間を言う（ForcePress.hold と同じ）
+        #expect(SettingsText.openSensitivityDetail(.low) == L10n.ui("強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに"))
+        #expect(SettingsText.openSensitivityDetail(.standard) == L10n.ui("強く押し込んでから 0.25秒ほど止めると開きます"))
+        #expect(SettingsText.openSensitivityDetail(.high) == L10n.ui("強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに"))
         #expect(Set(OpenSensitivity.allCases.map(SettingsText.openSensitivityDetail)).count == 3)
     }
 }
@@ -117,5 +117,27 @@ import Testing
         }
         #expect(segments.contains(TerminalApp.allCases.map(SettingsText.name)))
         #expect(!walk(hosting).contains { $0 is NSPopUpButton })
+    }
+}
+
+/// macOS の「強めのクリックと触覚フィードバック」がオフだと、強く押し込んでも開かないので、一般のタブで知らせる
+@Suite struct SettingsForceClickTests {
+    private func defaults(_ value: Bool?) throws -> UserDefaults {
+        let name = "SettingsForceClickTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defaults.removePersistentDomain(forName: name)
+        if let value { defaults.set(value, forKey: TrackpadForceClick.key) }
+        return defaults
+    }
+
+    @Test func onlyAnExplicitOffCounts() throws {
+        #expect(!TrackpadForceClick.isOff(defaults: try defaults(nil)))
+        #expect(!TrackpadForceClick.isOff(defaults: try defaults(true)))
+        #expect(TrackpadForceClick.isOff(defaults: try defaults(false)))
+    }
+
+    @Test func theNoticeSaysWhereToTurnItOn() {
+        #expect(SettingsText.forceClickOffTitle == L10n.ui("macOS の「強めのクリック」がオフです"))
+        #expect(TrackpadForceClick.settingsURL.scheme == "x-apple.systempreferences")
     }
 }

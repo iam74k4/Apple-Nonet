@@ -7,7 +7,7 @@ let controllerLogger = Logger(subsystem: "com.iam74k4.Nonet", category: "engine"
 
 public enum ControllerStatus: Equatable, Sendable {
     case stopped
-    /// 上の縁からの滑り込みを待っている
+    /// 強く押し込んで止めるのを待っている
     case running
     /// 設定で無効にしている
     case disabled

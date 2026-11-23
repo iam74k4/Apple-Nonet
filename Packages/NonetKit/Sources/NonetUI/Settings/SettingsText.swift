@@ -24,14 +24,27 @@ enum SettingsText {
     // MARK: 一般
 
 
-    /// 「開き方」の説明（GlobalSettings に開き方の設定は無い。トラックパッドの上の縁から滑らせるだけ）
+    /// 「開き方」の説明（トラックパッドのどこかを強く押し込んで止める。止める時間は開きやすさ）
     static var openGestureTitle: String {
         String(localized: "開き方とやめ方", bundle: .module)
     }
 
     /// 横の小さな図と並ぶので、要るところだけ（開く・実行する・やめる・ページを変える）。くわしくは利用ガイド
     static var openGestureDetail: String {
-        String(localized: "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。", bundle: .module)
+        String(localized: "トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。", bundle: .module)
+    }
+
+    /// macOS の「強めのクリックと触覚フィードバック」がオフのときの知らせ（強めのクリックの2段目が来ないので、強く押し込んでも開かない）
+    static var forceClickOffTitle: String {
+        String(localized: "macOS の「強めのクリック」がオフです", bundle: .module)
+    }
+
+    static var forceClickOffDetail: String {
+        String(localized: "強く押し込んでも開きません。システム設定 › トラックパッド で「強めのクリックと触覚フィードバック」をオンにしてください", bundle: .module)
+    }
+
+    static var openTrackpadSettings: String {
+        String(localized: "トラックパッドの設定を開く", bundle: .module)
     }
 
     static func name(_ sensitivity: OpenSensitivity) -> String {
@@ -46,15 +59,15 @@ enum SettingsText {
         String(localized: "開きやすさ", bundle: .module)
     }
 
-    /// 今の段の決まり（帯の高さと、滑らせる量と時間）
+    /// 今の段の決まり（強く押し込んでから止める時間。ForcePress.hold）
     static func openSensitivityDetail(_ sensitivity: OpenSensitivity) -> String {
         switch sensitivity {
         case .low:
-            String(localized: "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに", bundle: .module)
+            String(localized: "強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに", bundle: .module)
         case .standard:
-            String(localized: "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ", bundle: .module)
+            String(localized: "強く押し込んでから 0.25秒ほど止めると開きます", bundle: .module)
         case .high:
-            String(localized: "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに", bundle: .module)
+            String(localized: "強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに", bundle: .module)
         }
     }
 
@@ -555,7 +568,7 @@ struct SettingsStatusBanner: Equatable {
         case .disabled:
             symbol = "pause.circle"
             title = String(localized: "Nonet は無効になっています", bundle: .module)
-            message = String(localized: "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません", bundle: .module)
+            message = String(localized: "トラックパッドを強く押し込んでも、9つのアイコン（HUD）は開きません", bundle: .module)
             buttons = [Button(action: .enable, title: String(localized: "有効にする", bundle: .module))]
         }
     }

@@ -28,7 +28,7 @@ public enum OnboardingPurpose: Equatable, Sendable {
 
 /// 練習の進み具合。マスで離して実行する → 外枠で離してやめる の順に進む
 enum OnboardingPracticeState: Equatable {
-    /// 1つ目: 上の縁から指を滑らせて開き、目標のマスまで滑らせて離す
+    /// 1つ目: 強く押し込んで開き、目標のマスまで滑らせて離す
     case run
     /// 2つ目: もう一度開き、外枠まで滑らせて離す（何も実行しない）
     case cancel
@@ -55,7 +55,7 @@ struct OnboardingPracticeTarget: Equatable {
 
 /// 練習に使うページ。練習の HUD に出るもの（前面のアプリのプロファイルの最初のページ）なので、本物のボタンの名前で案内できる
 struct OnboardingPracticePage: Equatable {
-    /// 選んでもらうマス。開くとポインタは真ん中にあり、上の縁から入ってきた指をそのまま下へ滑らせると届く下の鍵を最初に、
+    /// 選んでもらうマス。開くとポインタは真ん中にあり、手前へ滑らせるだけで届く下の鍵を最初に（トラックパッドの奥で押し込む人が多い）、
     /// 斜め下・横・上の順。真ん中の鍵は、一度外へ出てから戻す必要があるので最後
     static let runPreference = [7, 8, 6, 5, 3, 1, 2, 0, 4]
 

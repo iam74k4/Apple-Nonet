@@ -12,7 +12,7 @@ struct SettingsGeneralView: View {
                 Toggle(isOn: binding(\.isEnabled)) {
                     Text("Nonet を有効にする", bundle: .module)
                     // この画面で最初に出す呼び方は「9つのアイコン（HUD）」、次からは「HUD」
-                    Text("オフにすると、トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）が開きません", bundle: .module)
+                    Text("オフにすると、トラックパッドを強く押し込んでも、9つのアイコン（HUD）が開きません（ふつうのクリックになります）", bundle: .module)
                 }
                 LabeledContent {
                     SettingsOpenGestureFigure()
@@ -28,6 +28,23 @@ struct SettingsGeneralView: View {
                             Text("くわしくは利用ガイドへ", bundle: .module)
                         }
                         .buttonStyle(.link)
+                    }
+                }
+                if TrackpadForceClick.isOff() {
+                    LabeledContent {
+                        Button {
+                            model.openURL(TrackpadForceClick.settingsURL)
+                        } label: {
+                            Text(SettingsText.openTrackpadSettings)
+                        }
+                    } label: {
+                        Label {
+                            Text(SettingsText.forceClickOffTitle)
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                        }
+                        Text(SettingsText.forceClickOffDetail)
                     }
                 }
                 Picker(selection: binding(\.openSensitivity)) {
@@ -92,30 +109,44 @@ struct SettingsGeneralView: View {
     }
 }
 
-/// 「開き方とやめ方」の小さな図。トラックパッドと、上の縁から下への矢印。
+/// 「開き方とやめ方」の小さな図。トラックパッドと、その真ん中で強く押し込む指（指の点と、押し込みを表す2重の輪）。
 /// 説明は横の文が言うので、VoiceOver には読ませない
 struct SettingsOpenGestureFigure: View {
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.07))
                 RoundedRectangle(cornerRadius: SettingsMetrics.smallRadius, style: .continuous)
                     .strokeBorder(Color.secondary.opacity(0.6), lineWidth: 1)
-                // 上の縁から下へ滑らせる
-                Path { path in
-                    let x = size.width / 2
-                    path.move(to: CGPoint(x: x, y: 1))
-                    path.addLine(to: CGPoint(x: x, y: size.height * 0.55))
-                }
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .heavy))
-                    .foregroundStyle(Color.accentColor)
-                    .position(x: size.width / 2, y: size.height * 0.55)
+                // 強く押し込む指
+                Circle()
+                    .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 1.5)
+                    .frame(width: 34, height: 34)
+                    .position(center)
+                Circle()
+                    .strokeBorder(Color.accentColor, lineWidth: 2)
+                    .frame(width: 22, height: 22)
+                    .position(center)
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 10, height: 10)
+                    .position(center)
             }
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// macOS の「強めのクリックと触覚フィードバック」（グローバルの設定 com.apple.trackpad.forceClick）。
+/// オフだと強めのクリックの2段目が来ないので、強く押し込んでも開かない。値が無ければ（既定のまま）オン
+enum TrackpadForceClick {
+    static let key = "com.apple.trackpad.forceClick"
+    static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Trackpad-Settings.extension")!
+
+    static func isOff(defaults: UserDefaults = .standard) -> Bool {
+        (defaults.object(forKey: key) as? Bool) == false
     }
 }

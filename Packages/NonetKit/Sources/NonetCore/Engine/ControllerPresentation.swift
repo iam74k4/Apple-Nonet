@@ -136,7 +136,7 @@ public enum ControllerPresentation {
         String(localized: "試用期間は残り\(daysLeft)日です", bundle: .module, locale: textLocale)
     }
 
-    /// 設定や案内のウィンドウが前面のときに、上の縁から指を滑らせたとき（9マスは開かない。起動してから1回だけ知らせる）
+    /// 設定や案内のウィンドウが前面のときに、強く押し込んだとき（9マスは開かない。起動してから1回だけ知らせる）
     static var ownWindowToast: ToastModel {
         ToastModel(
             title: String(localized: "Nonet のウインドウが前面のときは、9マスは開きません", bundle: .module),
@@ -145,7 +145,7 @@ public enum ControllerPresentation {
         )
     }
 
-    /// 試用期間が終わった後に、上の縁から指を滑らせたとき（9マスは開かない）。
+    /// 試用期間が終わった後に、強く押し込んだとき（9マスは開かない）。
     /// メニューバーのアイコンが見えないときは、アプリケーションフォルダから開き直すことを言う
     static func trialEndedToast(isMenuBarIconVisible: Bool = true) -> ToastModel {
         ToastModel(
@@ -157,7 +157,7 @@ public enum ControllerPresentation {
         )
     }
 
-    /// アクセシビリティの許可が無いときに、上の縁から指を滑らせたとき（9マスは開かない）。どこでオンにするかを言う
+    /// アクセシビリティの許可が無いときに開こうとしたとき（9マスは開かない）。どこでオンにするかを言う
     static func accessibilityNeededToast(isMenuBarIconVisible: Bool = true) -> ToastModel {
         ToastModel(
             title: String(localized: "アクセシビリティの許可が必要です", bundle: .module),
@@ -168,7 +168,7 @@ public enum ControllerPresentation {
         )
     }
 
-    /// パスワードの入力中（セキュア入力）に、上の縁から指を滑らせたとき（9マスは開かない）。
+    /// パスワードの入力中（セキュア入力）に、強く押し込んだとき（9マスは開かない）。
     /// どのアプリがセキュア入力にしているかは、macOS から分からないので言わない
     static var secureInputToast: ToastModel {
         ToastModel(

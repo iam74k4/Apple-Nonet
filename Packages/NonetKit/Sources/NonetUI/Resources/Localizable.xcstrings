@@ -1169,6 +1169,16 @@
         }
       }
     },
+    "macOS の「強めのクリック」がオフです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Click is off in macOS"
+          }
+        }
+      }
+    },
     "menu.edit" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -1595,12 +1605,12 @@
         }
       }
     },
-    "うまく開かないときは、トラックパッドのいちばん奥の端に指を1本だけ置いて、すぐ下へ滑らせてください。2本指や手のひらでは開きません。" : {
+    "うまく開かないときは、指を1本だけ置いて、2回目のカチッと感じるまで強く押し込み、そのまま少し止めてください。システム設定 › トラックパッド の「強めのクリックと触覚フィードバック」がオフだと開きません。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If it doesn't open, place just one finger on the far edge of the trackpad and slide it straight down. Two fingers or a palm won't open it."
+            "value" : "If it doesn't open, rest just one finger, press firmly until you feel a second click, and hold for a moment. It won't open while Force Click and haptic feedback is off in System Settings › Trackpad."
           }
         }
       }
@@ -2179,12 +2189,12 @@
         }
       }
     },
-    "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
+    "もう一度強く押し込んで HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the HUD from the top edge again. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
+            "value" : "Press firmly again to open the HUD. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
           }
         }
       }
@@ -2626,12 +2636,12 @@
         }
       }
     },
-    "オフにすると、トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）が開きません" : {
+    "オフにすると、トラックパッドを強く押し込んでも、9つのアイコン（HUD）が開きません（ふつうのクリックになります）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD)"
+            "value" : "When off, pressing firmly on the trackpad doesn't open the nine icons (the HUD); it's an ordinary click"
           }
         }
       }
@@ -3294,42 +3304,42 @@
         }
       }
     },
-    "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません" : {
+    "トラックパッドのどこかに指を1本置いて強く押し込み（2回目のカチッまで）、そのまま少し止めると、ポインタの周りに9つのアイコン（HUD）が開きます。力を抜いて指を置いたまま滑らせ、ポインタを「%@」の上へ動かして、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sliding down from the top edge of the trackpad won't open the nine icons (the HUD)"
+            "value" : "Rest one finger anywhere on the trackpad, press firmly until you feel a second click, and hold for a moment: nine icons (the HUD) open around the pointer. Ease off the press, keep your finger down and slide to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
           }
         }
       }
     },
-    "トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます" : {
+    "トラックパッドのどこかに指を1本置いて強く押し込み（2回目のカチッまで）、そのまま少し止めると、ポインタの周りに9つのアイコン（HUD）が開きます。力を抜いて指を置いたまま滑らせ、ポインタを「%@」の上へ動かして、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger down from the top edge of the trackpad to open nine buttons that change with each app"
+            "value" : "Rest one finger anywhere on the trackpad, press firmly until you feel a second click, and hold for a moment: nine icons (the HUD) open around the pointer. Ease off the press, keep your finger down and slide to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
           }
         }
       }
     },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
+    "トラックパッドのどこかを強く押し込んで少し止めると、アプリごとに変わる9つのボタンが開きます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
+            "value" : "Press firmly anywhere on the trackpad and hold for a moment to open nine buttons that change with each app"
           }
         }
       }
     },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
+    "トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
+            "value" : "Press firmly anywhere on the trackpad and hold for a moment to open the HUD around the pointer. Ease off and slide: lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages."
           }
         }
       }
@@ -3341,6 +3351,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trackpad diagram"
+          }
+        }
+      }
+    },
+    "トラックパッドの設定を開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Trackpad Settings"
+          }
+        }
+      }
+    },
+    "トラックパッドを強く押し込んでも、9つのアイコン（HUD）は開きません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressing firmly on the trackpad won't open the nine icons (the HUD)"
           }
         }
       }
@@ -4425,16 +4455,6 @@
         }
       }
     },
-    "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages."
-          }
-        }
-      }
-    },
     "下" : {
       "localizations" : {
         "en" : {
@@ -5069,36 +5089,6 @@
         }
       }
     },
-    "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A finger placed within about 13 mm of the far edge, moved about 4 mm down within 1 second. For when sliding from the edge sometimes doesn't open the buttons"
-          }
-        }
-      }
-    },
-    "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A finger placed within about 6 mm of the far edge, moved about 7 mm down within 0.4 seconds. For when ordinary pointer moves open the buttons"
-          }
-        }
-      }
-    },
-    "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A finger placed within about 9 mm of the far edge, moved about 5 mm down within 0.6 seconds"
-          }
-        }
-      }
-    },
     "完了" : {
       "localizations" : {
         "en" : {
@@ -5308,6 +5298,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Strong"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens about 0.1 seconds after you press firmly. For when holding still feels slow"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.25秒ほど止めると開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens after you press firmly and hold for about 0.25 seconds"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens after you press firmly and hold for about 0.5 seconds. For when you tend to click hard and open the buttons by accident"
+          }
+        }
+      }
+    },
+    "強く押し込んでも開きません。システム設定 › トラックパッド で「強めのクリックと触覚フィードバック」をオンにしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressing firmly won't open the buttons. Turn on Force Click and haptic feedback in System Settings › Trackpad."
           }
         }
       }
@@ -6062,12 +6092,12 @@
         }
       }
     },
-    "終了すると、もう一度 Nonet を開くまで、トラックパッドの上の縁から HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。" : {
+    "終了すると、もう一度 Nonet を開くまで、トラックパッドを強く押し込んでも HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "After you quit, the HUD won't open from the top edge of the trackpad until you open Nonet again. To close just the window, press ⌘W."
+            "value" : "After you quit, pressing firmly on the trackpad won't open the HUD until you open Nonet again. To close just the window, press ⌘W."
           }
         }
       }

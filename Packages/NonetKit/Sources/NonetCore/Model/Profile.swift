@@ -74,7 +74,7 @@ public enum ProfileMode: String, Codable, CaseIterable, Sendable {
     case profile
     /// このプロファイルは使わず、グローバルのページを使う（中身は残す。以前の「無効」）
     case global
-    /// このアプリでは Nonet を使わない。トラックパッドの上の縁から指を滑らせても9マスを開かず、
+    /// このアプリでは Nonet を使わない。トラックパッドを強く押し込んでも9マスを開かず（クリックも預からず）、
     /// ポインタはそのまま前面アプリに届く（NonetConfiguration.isTurnedOff(forBundleID:)）
     case off
 }

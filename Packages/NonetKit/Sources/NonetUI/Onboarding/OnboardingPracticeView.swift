@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 2. 試してみる: 上の縁から開いてマスで離す → 外枠で離してやめる の2つの課題。閉じる前に、ログイン時に起動を選ぶ
+// 2. 試してみる: 強く押し込んで開いてマスで離す → 外枠で離してやめる の2つの課題。閉じる前に、ログイン時に起動を選ぶ
 import NonetCore
 import SwiftUI
 
@@ -220,9 +220,9 @@ struct OnboardingTrackpadFigure: View {
         return [page.runTarget.index]
     }
 
-    /// 図の大きさ。上の帯（openArrowBand）に開き方の矢印を置き、その下の正方形に輪を描く
+    /// 図の大きさ。上の帯（openArrowBand）に開き方の印（強く押し込む）を置き、その下の正方形に輪を描く
     static let size = CGSize(width: 312, height: 222)
-    /// 開き方の矢印を置く、輪の上の帯の高さ。上の鍵の名前は輪の上の端にかかるので、矢印は輪の外に出して重ねない
+    /// 開き方の印を置く、輪の上の帯の高さ。上の鍵の名前は輪の上の端にかかるので、印は輪の外に出して重ねない
     static let openArrowBand: CGFloat = 18
 
     /// 輪の中心・外の線の半径・鍵の円の半径（外の線を帯の下に収め、鍵の円と真ん中の鍵は HUD と同じ割合）
@@ -255,8 +255,8 @@ struct OnboardingTrackpadFigure: View {
                         .opacity(isFrameTarget ? 0.45 : 1)
                         .position(Self.position(ofCell: index, center: center, keyRadius: keyRadius))
                 }
-                // 開き方: 上の縁から下へ（ポインタは真ん中に出る）。輪の上の帯に置き、上の鍵の名前に重ねない
-                Image(systemName: "arrow.down")
+                // 開き方: 強く押し込む（押し込んだ場所のポインタが真ん中になる）。輪の上の帯に置き、上の鍵の名前に重ねない
+                Image(systemName: "smallcircle.filled.circle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .position(x: center.x, y: Self.openArrowBand / 2)
