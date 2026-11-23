@@ -118,6 +118,25 @@ public struct Page: Codable, Equatable, Sendable {
         filledCount <= layout.slotCount
     }
 
+    /// 中身のあるマスが入りきらない数にするときの、残すページと、入りきらない分を並べたページ。
+    /// 中身のあるマスを上から時計回りの順に並べ、前から layout の数だけ残し、残りは今の数のページに同じ順で並べる。
+    /// 入りきるなら overflow は nil（resized(to:) と同じ）
+    public func split(to layout: PageLayout) -> (page: Page, overflow: Page?) {
+        guard !canResize(to: layout) else { return (resized(to: layout), nil) }
+        let filled = self.layout.clockwiseCells.compactMap { cells.indices.contains($0) ? cells[$0] : nil }
+        func placed(_ cells: ArraySlice<Cell>, in layout: PageLayout, name: String?) -> Page {
+            var result = Array<Cell?>(repeating: nil, count: layout.slotCount)
+            for (position, cell) in zip(layout.clockwiseCells, cells) {
+                result[position] = cell
+            }
+            return Page(cells: result, name: name, layout: layout)
+        }
+        return (
+            placed(filled.prefix(layout.slotCount), in: layout, name: name),
+            placed(filled.dropFirst(layout.slotCount), in: self.layout, name: nil)
+        )
+    }
+
     /// ボタンの数を変えたページ。上から時計回りの順（PageLayout.clockwiseCells）を保って詰め直す:
     /// 入りきらなければ、後ろの空きマスから減らす。中身のあるマスが入りきらなければ（canResize が false）、後ろのマスを切り捨てる
     public func resized(to layout: PageLayout) -> Page {

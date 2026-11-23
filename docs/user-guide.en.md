@@ -251,7 +251,8 @@ Click **9 Buttons** next to the pages to choose how many buttons the page holds:
 
 - **9** (the default): eight on a ring and one in the center. Settings shows them as a 3×3 grid
 - **4, 6, 8 and 12**: the buttons sit on a ring and the center is empty. Come back to the center and lift to cancel without running anything. Fewer buttons give each direction more room, so they're easier to hit. Settings arranges them on a ring too, clockwise from the top, just like the HUD. The HUD, the cheat sheet in the menu bar and VoiceOver name the buttons by direction (top, top-right and so on) or, between those, by clock position ("2 o'clock")
-- Changing the number never removes a button. Nonet keeps them in clockwise order, and when there are fewer places it closes up the empty ones first. You can't pick a number too small for the buttons on the page (clear some first). Press ⌘Z to undo
+- Changing the number never removes a button. Nonet keeps them in clockwise order, and when there are fewer places it closes up the empty ones first. If they still don't fit, the menu says **the rest on a new page**, and the buttons that don't fit move to a new page right after this one (if the profile already has three pages, the number can't be chosen: clear some buttons or remove a page first). Press ⌘Z to undo
+- The HUD shows bigger icons when there are fewer buttons, and slightly smaller ones with twelve so they don't crowd each other
 
 ### Undo and earlier versions
 

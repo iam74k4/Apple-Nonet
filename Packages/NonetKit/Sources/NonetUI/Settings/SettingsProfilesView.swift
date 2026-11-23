@@ -609,7 +609,7 @@ struct SettingsPageBar: View {
                 ForEach(PageLayout.allCases, id: \.self) { choice in
                     // メニューの中のトグルは、チェックの付いた項目になる
                     Toggle(isOn: Binding(get: { model.currentPage.layout == choice }, set: { if $0 { model.setPageLayout(choice) } })) {
-                        Text(SettingsText.pageLayoutChoice(choice))
+                        Text(model.pageLayoutMovesOverflow(choice) ? SettingsText.pageLayoutChoiceMovingOverflow(choice) : SettingsText.pageLayoutChoice(choice))
                     }
                     .disabled(choice != layout && !model.canSetPageLayout(choice))
                 }

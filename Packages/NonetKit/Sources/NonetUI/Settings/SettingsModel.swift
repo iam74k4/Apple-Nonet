@@ -592,26 +592,42 @@ final class SettingsModel {
 
     // MARK: - ボタンの数
 
-    /// 選んでいるページのボタンの数をその数に変えられる（中身のあるマスが全部入る）
+    /// 選んでいるページのボタンの数をその数に変えられる（中身のあるマスが全部入るか、入りきらない分を新しいページへ移せる）
     func canSetPageLayout(_ layout: PageLayout) -> Bool {
-        currentPage.canResize(to: layout)
+        configuration.canSetPageLayout(layout, at: pageIndex, profileID: selectedProfile.id, movingOverflow: true)
     }
 
-    /// 選んでいるページのボタンの数を変える。上から時計回りの順を保って詰め直す（Page.resized(to:)）。元に戻せる
+    /// その数にすると、入りきらないボタンを新しいページへ移す（メニューの項目にそう添える）
+    func pageLayoutMovesOverflow(_ layout: PageLayout) -> Bool {
+        !currentPage.canResize(to: layout) && canSetPageLayout(layout)
+    }
+
+    /// 選んでいるページのボタンの数を変える。上から時計回りの順を保って詰め直す（Page.resized(to:)）。
+    /// 入りきらなければ、入りきらない分をすぐ後ろの新しいページへ移す（Page.split(to:)。ページが上限なら変えない）。元に戻せる
     func setPageLayout(_ layout: PageLayout) {
         let profileID = selectedProfile.id
         let index = pageIndex
         let before = currentPage
         guard before.layout != layout else { return }
-        guard before.canResize(to: layout) else {
+        guard canSetPageLayout(layout) else {
             gridMessage = SettingsText.pageLayoutTooSmall(filled: before.filledCount, layout: layout)
             return
         }
         // 選んでいるマスは、詰め直した後も同じものを選ぶ
         let selectedID = selectedCell?.id
-        replacePage(before.resized(to: layout), at: index, profileID: profileID, actionName: String(localized: "ボタンの数の変更", bundle: .module))
+        let actionName = String(localized: "ボタンの数の変更", bundle: .module)
+        if before.canResize(to: layout) {
+            replacePage(before.resized(to: layout), at: index, profileID: profileID, actionName: actionName)
+            gridMessage = nil
+        } else {
+            finishRecording()
+            closeEditGroup()
+            replacePages(ofProfile: profileID, actionName: actionName) {
+                _ = $0.setPageLayout(layout, at: index, profileID: profileID, movingOverflow: true)
+            }
+            gridMessage = SettingsText.pageLayoutMovedOverflow(count: before.filledCount - layout.slotCount, toPage: index + 1)
+        }
         selectedIndex = selectedID.flatMap { id in currentPage.cells.firstIndex { $0?.id == id } } ?? selectedIndex.map { min($0, layout.slotCount - 1) }
-        gridMessage = nil
     }
 
     private func replacePage(_ page: Page, at index: Int, profileID: UUID, actionName: String) {

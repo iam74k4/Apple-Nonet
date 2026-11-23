@@ -197,6 +197,16 @@
         }
       }
     },
+    "%@、残りは新しいページへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, the rest on a new page"
+          }
+        }
+      }
+    },
     "%@の設定に戻しました。戻す前の設定も「以前の設定に戻す」に残しています。" : {
       "localizations" : {
         "en" : {
@@ -4182,12 +4192,12 @@
         }
       }
     },
-    "ボタンが入りきらない数は、先にボタンを空けると選べます" : {
+    "ボタンが入りきらない数は、先にボタンを空けるかページを減らすと選べます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To choose a number too small for this page, clear some buttons first"
+            "value" : "To choose a number too small for this page, clear some buttons or remove a page first"
           }
         }
       }
@@ -5147,6 +5157,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Undo"
+          }
+        }
+      }
+    },
+    "入りきらない %lld 個のボタンを、新しいページ %lld へ移しました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved %1$lld buttons that didn’t fit to the new page %2$lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "入りきらない %1$lld 個のボタンを、新しいページ %2$lld へ移しました。"
           }
         }
       }

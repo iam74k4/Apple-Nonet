@@ -95,7 +95,7 @@ extension SettingsModel {
     }
 
     /// プロファイルのページをまとめて変え、変える前のページに戻せるようにする（やり直しも同じ道を通る）
-    private func replacePages(ofProfile id: UUID, actionName: String, _ change: (inout NonetConfiguration) -> Void) {
+    func replacePages(ofProfile id: UUID, actionName: String, _ change: (inout NonetConfiguration) -> Void) {
         guard let before = configuration.profile(id: id)?.pages else { return }
         controller.update(change)
         // 前の操作の「元に戻す」の知らせは閉じる（この変更が上に積まれるので、知らせからは戻せなくなる）

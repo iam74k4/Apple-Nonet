@@ -35,14 +35,24 @@ enum SettingsText {
             : String(localized: "\(layout.slotCount)（円に \(layout.ringCells.count) と真ん中）", bundle: .module)
     }
 
+    /// 入りきらないボタンを新しいページへ移したとき（page は移した先のページの番号の 0 始まり）
+    static func pageLayoutMovedOverflow(count: Int, toPage page: Int) -> String {
+        String(localized: "入りきらない \(count) 個のボタンを、新しいページ \(page + 1) へ移しました。", bundle: .module)
+    }
+
+    /// メニューの項目に添える、入りきらない分を移すこと
+    static func pageLayoutChoiceMovingOverflow(_ layout: PageLayout) -> String {
+        String(localized: "\(pageLayoutChoice(layout))、残りは新しいページへ", bundle: .module)
+    }
+
     /// 中身のあるマスが入りきらない数を選んだとき
     static func pageLayoutTooSmall(filled: Int, layout: PageLayout) -> String {
         String(localized: "このページには \(filled) 個のボタンがあるので、\(layout.slotCount) にはできません。先にボタンを空けてください。", bundle: .module)
     }
 
-    /// ボタンの数のメニューで、選べない数があるときの説明
+    /// ボタンの数のメニューで、選べない数があるときの説明（ページが上限で、入りきらない分を移せない）
     static var pageLayoutDisabledNote: String {
-        String(localized: "ボタンが入りきらない数は、先にボタンを空けると選べます", bundle: .module)
+        String(localized: "ボタンが入りきらない数は、先にボタンを空けるかページを減らすと選べます", bundle: .module)
     }
 
     /// 9 以外のページの、真ん中の説明

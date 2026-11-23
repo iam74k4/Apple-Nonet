@@ -71,6 +71,28 @@ import Testing
         #expect(nine.resized(to: .nine) == nine)
     }
 
+    /// 入りきらない分は、上から時計回りの順の後ろから、今の数のページへ
+    @Test func splittingMovesTheRestToAnotherPage() {
+        let full = Page(cells: (0..<9).map { cell("\($0)") }, name: "p")
+        let (kept, overflow) = full.split(to: .four)
+        // 9 の時計回り: 1, 2, 5, 8 が残り、7, 6, 3, 0, 4 が移る
+        #expect(kept.layout == .four && kept.name == "p")
+        #expect(kept.cells.map { $0?.title } == ["1", "2", "5", "8"])
+        #expect(overflow?.layout == .nine)
+        #expect(overflow?.name == nil)
+        #expect(overflow.map { page in PageLayout.nine.clockwiseCells.compactMap { page.cells[$0]?.title } } == ["7", "6", "3", "0", "4"])
+        // 入りきるなら移さない
+        #expect(full.split(to: .twelve).overflow == nil)
+        var configuration = NonetConfiguration(profiles: [Profile(kind: .global, pages: [full])]).validated()
+        let id = configuration.globalProfile.id
+        #expect(!configuration.canSetPageLayout(.four, at: 0, profileID: id))
+        #expect(configuration.canSetPageLayout(.four, at: 0, profileID: id, movingOverflow: true))
+        let moved = configuration.setPageLayout(.four, at: 0, profileID: id, movingOverflow: true)
+        #expect(moved)
+        #expect(configuration.globalProfile.pages.count == 2)
+        #expect(configuration.globalProfile.pages.map(\.filledCount) == [4, 5])
+    }
+
     @Test func theConfigurationChangesTheLayoutOnlyWhenEverythingFits() throws {
         let profile = Profile(kind: .global, pages: [Page(cells: (0..<9).map { cell("\($0)") })])
         var configuration = NonetConfiguration(profiles: [profile]).validated()

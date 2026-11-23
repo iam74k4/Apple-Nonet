@@ -7,9 +7,29 @@ import SwiftUI
 struct HUDMetrics: Equatable {
     /// 寸法と文字に掛ける倍率（HUDModel.scale）
     var scale: CGFloat
+    /// 鍵（アイコン・台・白い円・印）だけに掛ける倍率。ボタンの数で変える（keyScale(for:)）。位置と円の大きさは変えない
+    var keyScale: CGFloat = 1
 
     init(scale: CGFloat) {
         self.scale = scale.isFinite && scale > 0 ? scale : 1
+    }
+
+    /// ボタンの数ごとの鍵の倍率。少ないページは大きく見せて押しやすく（選ぶ向きの幅はもともと広い）、
+    /// 12 は隣の白い円と重ならないよう少し小さくする（鍵の間は 56pt ほどで、白い円の直径は 39pt ほど）
+    static func keyScale(for layout: PageLayout) -> CGFloat {
+        switch layout {
+        case .four: 1.3
+        case .six: 1.15
+        case .eight, .nine: 1
+        case .twelve: 0.88
+        }
+    }
+
+    /// layout のページの鍵を描く寸法
+    func forKeys(of layout: PageLayout) -> HUDMetrics {
+        var result = self
+        result.keyScale = Self.keyScale(for: layout)
+        return result
     }
 
     /// ここより外は外枠（見えない線）
@@ -21,14 +41,14 @@ struct HUDMetrics: Equatable {
     var circleSide: CGFloat { outerRadius * 2 }
     /// 正方形の中の、円の中心（開いたときのポインタ）
     var center: CGPoint { CGPoint(x: outerRadius, y: outerRadius) }
-    var iconSize: CGFloat { HUDLayout.iconSize * scale }
-    var centerIconSize: CGFloat { HUDLayout.centerIconSize * scale }
+    var iconSize: CGFloat { HUDLayout.iconSize * scale * keyScale }
+    var centerIconSize: CGFloat { HUDLayout.centerIconSize * scale * keyScale }
     /// 光らせた鍵の下の白い円の半径
-    var selectionRadius: CGFloat { HUDLayout.selectionRadius * scale }
+    var selectionRadius: CGFloat { HUDLayout.selectionRadius * scale * keyScale }
     /// アイコンの下の暗い台の半径
-    var plateRadius: CGFloat { HUDLayout.plateRadius * scale }
+    var plateRadius: CGFloat { HUDLayout.plateRadius * scale * keyScale }
     /// 空きマスの小さな台の半径
-    var emptyPlateRadius: CGFloat { HUDLayout.emptyPlateRadius * scale }
+    var emptyPlateRadius: CGFloat { HUDLayout.emptyPlateRadius * scale * keyScale }
     /// 止めている途中・空きマスを光らせたときの線を、台の縁から内へ離す幅（線の外側にも台の暗さを残す）
     var ringInset: CGFloat { 2 * scale }
     /// 空きマスの点の半径
@@ -36,7 +56,7 @@ struct HUDMetrics: Equatable {
     /// 少し長く止めるマスの進み具合の線の太さ
     var holdLineWidth: CGFloat { 2.5 * scale }
     /// 少し長く止めてから実行するマスの印（HoldBadge）の大きさ
-    var badgeSize: CGFloat { 7 * scale }
+    var badgeSize: CGFloat { 7 * scale * keyScale }
     /// 外枠の帯に止めているときの矢印の円の半径
     var pageArrowRadius: CGFloat { HUDLayout.pageArrowRadius * scale }
     var dotSize: CGFloat { 4.5 * scale }
@@ -376,11 +396,11 @@ struct HUDView: View {
         ZStack(alignment: .topLeading) {
             // 切り替える前のページの輪（押し出されて抜けていく）。マスは光らせない
             if let turn {
-                keyRing(cells: turn.outgoingCells, layout: turn.outgoingLayout, highlight: nil, hold: nil, dims: dims, metrics: metrics,
+                keyRing(cells: turn.outgoingCells, layout: turn.outgoingLayout, highlight: nil, hold: nil, dims: dims, metrics: metrics.forKeys(of: turn.outgoingLayout),
                         plateStyle: HUDPlateStyle(increasedContrast: increasedContrast, reduceTransparency: reduceTransparency, isGlobalLayer: turn.outgoingLayer == .global, showsGlass: false))
                     .modifier(HUDTurnEffect(progress: turnProgress, direction: turn.direction, distance: distance, isOutgoing: true, reduceMotion: reduceMotion))
             }
-            keyRing(cells: model.cells, layout: model.layout, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics, plateStyle: plateStyle)
+            keyRing(cells: model.cells, layout: model.layout, highlight: model.highlightedIndex, hold: model.hold, dims: dims, metrics: metrics.forKeys(of: model.layout), plateStyle: plateStyle)
                 .modifier(HUDTurnEffect(progress: turn == nil ? 1 : turnProgress, direction: turn?.direction, distance: distance, isOutgoing: false, reduceMotion: reduceMotion))
             if let paging = model.edgePaging {
                 HUDPagingArrow(paging: paging, metrics: metrics, animates: !reduceMotion)
@@ -416,8 +436,9 @@ struct HUDView: View {
             }
             // 向けたまま止めたアイコンの名前（白い円のすぐ下。円の下の帯に重なる下の鍵では、白い円のすぐ上）。動かせば消える
             if let keyLabel {
-                let above = pillBelow && HUDPillContent.content(for: model) != nil && metrics.labelOverlapsPillBelow(ofCell: keyLabel.index, layout: model.layout)
-                let position = metrics.labelPosition(ofCell: keyLabel.index, layout: model.layout, above: above)
+                let keys = metrics.forKeys(of: model.layout)
+                let above = pillBelow && HUDPillContent.content(for: model) != nil && keys.labelOverlapsPillBelow(ofCell: keyLabel.index, layout: model.layout)
+                let position = keys.labelPosition(ofCell: keyLabel.index, layout: model.layout, above: above)
                 HUDKeyLabel(text: keyLabel.text, metrics: metrics, maxWidth: metrics.labelMaxWidth(centeredAt: position.x))
                     .position(position)
                     .transition(.opacity)

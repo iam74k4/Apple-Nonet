@@ -26,15 +26,47 @@ import Testing
         #expect(h.model.currentPage == before)
     }
 
-    @Test func aCountThatCannotHoldTheButtonsIsRefused() throws {
-        let h = try harness()
-        // 全部のマスを埋めてから、少ない数にしようとする
+    private func fillCurrentPage(_ h: SettingsHarness) {
         for index in h.model.currentPage.cells.indices where h.model.currentPage.cells[index] == nil {
             let profileID = h.model.selectedProfile.id
+            let page = h.model.pageIndex
             h.model.controller.update {
-                $0.setCell(Cell(title: "x\(index)", icon: .text("x"), action: .keystroke(.key("x"))), at: CellAddress(page: 0, index: index), profileID: profileID)
+                $0.setCell(Cell(title: "x\(index)", icon: .text("x"), action: .keystroke(.key("x"))), at: CellAddress(page: page, index: index), profileID: profileID)
             }
         }
+    }
+
+    /// 入りきらない数にすると、入りきらない分をすぐ後ろの新しいページへ移す（ボタンを消さない）。元に戻せる
+    @Test func theButtonsThatDoNotFitMoveToANewPage() throws {
+        let h = try harness()
+        fillCurrentPage(h)
+        let before = h.model.selectedProfile.pages
+        try #require(before.count < Profile.maxPages)
+        let titles = Set(h.model.currentPage.cells.compactMap { $0?.title })
+        #expect(h.model.canSetPageLayout(.six))
+        #expect(h.model.pageLayoutMovesOverflow(.six))
+        #expect(!h.model.pageLayoutMovesOverflow(.twelve))
+        h.model.setPageLayout(.six)
+        let pages = h.model.selectedProfile.pages
+        #expect(pages.count == before.count + 1)
+        #expect(pages[h.model.pageIndex].layout == .six)
+        #expect(pages[h.model.pageIndex].filledCount == 6)
+        #expect(pages[h.model.pageIndex + 1].filledCount == 3)
+        let moved = Set(pages[h.model.pageIndex].cells.compactMap { $0?.title } + pages[h.model.pageIndex + 1].cells.compactMap { $0?.title })
+        #expect(moved == titles)
+        #expect(h.model.gridMessage == SettingsText.pageLayoutMovedOverflow(count: 3, toPage: h.model.pageIndex + 1))
+        h.model.undoManager.undo()
+        #expect(h.model.selectedProfile.pages == before)
+    }
+
+    /// ページが上限なら、入りきらない数は選べない
+    @Test func aCountThatCannotHoldTheButtonsIsRefusedWhenThePagesAreFull() throws {
+        let h = try harness()
+        while h.model.selectedProfile.pages.count < Profile.maxPages {
+            let profileID = h.model.selectedProfile.id
+            h.model.controller.update { _ = $0.addPage(profileID: profileID) }
+        }
+        fillCurrentPage(h)
         #expect(!h.model.canSetPageLayout(.eight))
         h.model.setPageLayout(.eight)
         #expect(h.model.currentPage.layout == .nine)
@@ -84,6 +116,19 @@ import Testing
         #expect(practice.titles.count == 4)
         #expect(practice.runTarget.index == 2)
         #expect(practice.runTarget.positionName == L10n.ui("下"))
+    }
+
+    /// 少ないページは鍵を大きく、12 は隣と重ならないよう小さく描く
+    @Test func keysAreSizedByTheButtonCount() {
+        let base = HUDMetrics(scale: 1)
+        #expect(base.forKeys(of: .four).selectionRadius > base.selectionRadius)
+        #expect(base.forKeys(of: .nine).selectionRadius == base.selectionRadius)
+        let twelve = base.forKeys(of: .twelve)
+        // 隣の鍵の中心の間（円の弦）より、白い円の直径が小さい
+        let gap = 2 * RadialLayout.keyRadius * sin(.pi / 12)
+        #expect(Double(twelve.selectionRadius * 2) < gap)
+        // 位置は変えない
+        #expect(twelve.position(ofCell: 3, layout: .twelve) == base.position(ofCell: 3, layout: .twelve))
     }
 
     /// 円に並べたマスは枠に収まり、隣と重ならない

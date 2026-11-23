@@ -213,14 +213,29 @@ extension NonetConfiguration {
     }
 
     /// ページのボタンの数を変える（Page.resized(to:)。上から時計回りの順を保って詰め直す）。
-    /// 中身のあるマスが入りきらなければ何もしないで false
+    /// 中身のあるマスが入りきらないとき、movingOverflow ならページを足せる限り、入りきらない分をすぐ後ろの新しいページへ移す
+    /// （Page.split(to:)）。できなければ何もしないで false
     @discardableResult
-    public mutating func setPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID) -> Bool {
+    public mutating func setPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID, movingOverflow: Bool = false) -> Bool {
         guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return false }
         let page = profiles[index].pages[pageIndex]
-        guard page.canResize(to: layout) else { return false }
-        profiles[index].pages[pageIndex] = page.resized(to: layout)
+        if page.canResize(to: layout) {
+            profiles[index].pages[pageIndex] = page.resized(to: layout)
+            return true
+        }
+        guard movingOverflow, profiles[index].pages.count < Profile.maxPages else { return false }
+        let (kept, overflow) = page.split(to: layout)
+        profiles[index].pages[pageIndex] = kept
+        if let overflow {
+            profiles[index].pages.insert(overflow, at: pageIndex + 1)
+        }
         return true
+    }
+
+    /// ボタンの数を layout にできる（入りきるか、入りきらない分を新しいページへ移せる）
+    public func canSetPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID, movingOverflow: Bool = false) -> Bool {
+        guard let profile = profile(id: profileID), profile.pages.indices.contains(pageIndex) else { return false }
+        return profile.pages[pageIndex].canResize(to: layout) || (movingOverflow && profile.pages.count < Profile.maxPages)
     }
 
     /// ページの名前を変える。空や nil なら名前を外す（Page.normalizedName(_:) で揃える）
