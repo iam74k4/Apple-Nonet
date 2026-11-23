@@ -22,6 +22,8 @@ import Testing
         tray.findScreenshots = { _ in listing }
         tray.writeToPasteboard = { box.written.append($0); return true }
         tray.openURL = { box.opened.append($0) }
+        tray.revealInFinder = { box.revealed.append($0) }
+        tray.moveToTrash = { box.trashed.append($0) }
         tray.onCopied = { box.copied.append($0) }
         return (tray, box)
     }
@@ -30,12 +32,15 @@ import Testing
         var written: [ScreenshotItem] = []
         var opened: [URL] = []
         var copied: [ScreenshotItem] = []
+        var revealed: [URL] = []
+        var trashed: [URL] = []
     }
 
-    @Test func showsTheNewestScreenshotsAndCopiesTheClickedOne() {
+    @Test func showsTheNewestScreenshotsAndCopiesTheClickedOne() async {
         let shots = items(3)
         let (tray, box) = tray(.found(shots, folder: folder))
         tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         #expect(tray.isVisible)
         #expect(tray.listing == .found(shots, folder: folder))
         tray.copy(shots[1])
@@ -45,10 +50,55 @@ import Testing
         #expect(!tray.isVisible)
     }
 
-    @Test func theArrowKeysChooseAndReturnCopies() {
+    /// 開いた直後は「探しています」（探すのはメインスレッドの外）。探し終えたら並べる
+    @Test func listsInTheBackground() async {
+        let shots = items(2)
+        let (tray, _) = tray(.found(shots, folder: folder))
+        tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        #expect(tray.listing == nil)
+        #expect(tray.isVisible)
+        await tray.waitForListing()
+        #expect(tray.listing == .found(shots, folder: folder))
+        tray.close()
+    }
+
+    /// 右クリックや ⌘⌫ で、デスクトップを片付けられる（ゴミ箱に入れてもトレイは開いたまま）
+    @Test func trashingRemovesTheItemAndKeepsTheTrayOpen() async {
         let shots = items(3)
         let (tray, box) = tray(.found(shots, folder: folder))
         tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
+        tray.moveSelection(by: 2)
+        await tray.trash(shots[2])
+        #expect(box.trashed == [shots[2].url])
+        #expect(tray.listing == .found(Array(shots.prefix(2)), folder: folder))
+        #expect(tray.selection == 1)
+        #expect(tray.isVisible)
+        tray.reveal(shots[0])
+        #expect(box.revealed == [shots[0].url])
+        #expect(!tray.isVisible)
+    }
+
+    @Test func aFailedTrashLeavesTheItem() async {
+        let shots = items(2)
+        let (tray, _) = tray(.found(shots, folder: folder))
+        struct Refused: Error {}
+        tray.moveToTrash = { _ in throw Refused() }
+        var failed: [ScreenshotItem] = []
+        tray.onTrashFailed = { failed.append($0) }
+        tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
+        await tray.trash(shots[0])
+        #expect(failed == [shots[0]])
+        #expect(tray.listing == .found(shots, folder: folder))
+        tray.close()
+    }
+
+    @Test func theArrowKeysChooseAndReturnCopies() async {
+        let shots = items(3)
+        let (tray, box) = tray(.found(shots, folder: folder))
+        tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         #expect(tray.selection == 0)
         tray.moveSelection(by: -1)
         #expect(tray.selection == 0)
@@ -59,27 +109,30 @@ import Testing
         #expect(box.written == [shots[2]])
         // 開き直すと、いちばん新しいものから
         tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         #expect(tray.selection == 0)
         tray.close()
     }
 
-    @Test func aFailedCopyKeepsTheTrayOpen() {
+    @Test func aFailedCopyKeepsTheTrayOpen() async {
         let shots = items(1)
         let (tray, box) = tray(.found(shots, folder: folder))
         tray.writeToPasteboard = { _ in false }
         tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         tray.copy(shots[0])
         #expect(box.copied.isEmpty)
         #expect(tray.isVisible)
         tray.close()
     }
 
-    @Test func emptyOrUnreadableFoldersSayWhatToDo() {
+    @Test func emptyOrUnreadableFoldersSayWhatToDo() async {
         #expect(HUDScreenshotTrayController.announcement(for: .found([], folder: folder)) == L10n.ui("スクリーンショットはまだありません"))
         #expect(HUDScreenshotTrayController.announcement(for: .notPermitted(folder: folder)) == L10n.ui("スクリーンショットの保存先を読めません"))
         #expect(HUDScreenshotTrayController.announcement(for: .missingFolder(folder)) == L10n.ui("スクリーンショットの保存先が見つかりません"))
         let (tray, _) = tray(.found([], folder: folder))
         tray.show(centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         #expect(tray.isVisible)
         // 何も無くてもコピーしない
         tray.copySelection()
@@ -88,7 +141,7 @@ import Testing
     }
 
     /// 12枚は 6 × 2 段。↑ ↓ で段を移る
-    @Test func manyItemsWrapIntoRows() {
+    @Test func manyItemsWrapIntoRows() async {
         #expect(HUDScreenshotTrayLayout.columns(count: 12) == 6)
         #expect(HUDScreenshotTrayLayout.rows(count: 12) == 2)
         #expect(HUDScreenshotTrayLayout.columns(count: 8) == 4)
@@ -98,6 +151,7 @@ import Testing
         let shots = items(12)
         let (tray, _) = tray(.found(shots, folder: folder))
         tray.show(ScreenshotTrayAction(count: 12), centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        await tray.waitForListing()
         tray.moveSelection(by: 6)
         #expect(tray.selection == 6)
         tray.close()
@@ -120,7 +174,7 @@ import Testing
         #expect(pasteboard.pasteboardItems?.first?.types == [.fileURL])
     }
 
-    @Test func theTrayFitsItsThumbnails() {
+    @Test func theTrayFitsItsThumbnails() async {
         let three = HUDScreenshotTrayLayout.panelSize(count: 3)
         let five = HUDScreenshotTrayLayout.panelSize(count: 5)
         #expect(five.width > three.width)
@@ -129,7 +183,7 @@ import Testing
         #expect(HUDScreenshotTrayLayout.panelSize(count: 0).height < three.height)
     }
 
-    @Test func agesAndFolderNamesAreShort() {
+    @Test func agesAndFolderNamesAreShort() async {
         let now = Date(timeIntervalSince1970: 10_000)
         #expect(HUDScreenshotTrayView.age(of: now.addingTimeInterval(-20), now: now) == L10n.ui("たった今"))
         #expect(!HUDScreenshotTrayView.age(of: now.addingTimeInterval(-180), now: now).isEmpty)

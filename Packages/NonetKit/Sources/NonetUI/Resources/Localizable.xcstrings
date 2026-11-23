@@ -600,6 +600,16 @@
         }
       }
     },
+    "Finder で表示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
     "Finder で選んだファイルを: %@" : {
       "localizations" : {
         "en" : {
@@ -1395,6 +1405,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Press ⌘V to paste it"
+          }
+        }
+      }
+    },
+    "⌘⌫ でゴミ箱へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘⌫ to move to Trash"
           }
         }
       }
@@ -2984,6 +3004,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copied"
+          }
+        }
+      }
+    },
+    "ゴミ箱に入れられませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't move it to the Trash"
+          }
+        }
+      }
+    },
+    "ゴミ箱に入れる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Trash"
           }
         }
       }
@@ -5806,6 +5846,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prompt"
+          }
+        }
+      }
+    },
+    "探しています…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking…"
           }
         }
       }

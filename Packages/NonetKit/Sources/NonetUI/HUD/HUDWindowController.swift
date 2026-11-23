@@ -182,6 +182,15 @@ public final class HUDWindowController: HUDPresenting {
                 ))
             }
         }
+        if screenshotTray.onTrashFailed == nil {
+            screenshotTray.onTrashFailed = { [weak self] item in
+                self?.showToast(ToastModel(
+                    title: String(localized: "ゴミ箱に入れられませんでした", bundle: .module),
+                    detail: item.url.lastPathComponent,
+                    style: .failure
+                ))
+            }
+        }
         let anchor = hudFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? cursor
         screenshotTray.show(options, centeredAt: anchor, on: screen)
     }

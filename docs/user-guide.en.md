@@ -432,7 +432,9 @@ Shows your most recent screenshots and screen recordings (videos), newest first,
 
 - **Click**: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file. Recordings are copied as files, so they attach in a chat or email
 - **Drag**: picks it up as a file. Drop it on the attachment area of a chat, email or web page, or in a Finder folder
-- **Keyboard**: choose with the arrow keys, press Return to copy, and press Esc to close
+- **Control-click**: Copy, Show in Finder or Move to Trash. The tray stays open after you move one to the Trash, so you can keep tidying up (handy when screenshots pile up on the Desktop)
+- **Keyboard**: choose with the arrow keys, press Return to copy, ⌘⌫ to move to the Trash, and Esc to close
+- The tray says "Looking…" at first, and fills in once it has found your screenshots
 - Clicking outside the tray closes it too. The front app stays in front, so you can keep typing right away
 - **Open Folder** shows the save location in Finder
 - The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings are videos macOS marks as recordings, or whose names start with "Screen Recording" or "画面収録"

@@ -69,6 +69,8 @@ final class HUDScreenshotTrayPanel: NSPanel {
     var onMove: ((Int) -> Void)?
     var columns = 1
     var onCopySelection: (() -> Void)?
+    /// ⌘⌫（Finder と同じ）で選んでいる1枚をゴミ箱へ
+    var onTrashSelection: (() -> Void)?
 
     init() {
         super.init(
@@ -107,6 +109,7 @@ final class HUDScreenshotTrayPanel: NSPanel {
         case 126: onMove?(-columns)
         case 125: onMove?(columns)
         case 36, 76, 49: onCopySelection?()
+        case 51 where event.modifierFlags.contains(.command): onTrashSelection?()
         default: super.keyDown(with: event)
         }
     }
@@ -122,10 +125,16 @@ final class HUDScreenshotTrayController {
     private let store = HUDScreenshotTrayStore()
     private var panel: HUDScreenshotTrayPanel?
     private var loadTask: Task<Void, Never>?
+    /// 探している（最初の1回は macOS がフォルダを読む許可を確かめるので、メインスレッドでは探さない）
+    private var listTask: Task<Void, Never>?
+    /// show を呼ぶたびに増やす（前に頼んだ探し物の結果で、新しいトレイを上書きしない）
+    private var generation = 0
+    /// 出した場所（探し終えて大きさが変わったときに、同じ中心に置き直す）
+    private var placement: (center: CGPoint, screen: HUDScreenGeometry)?
     /// コピーした（トーストで知らせる）
     var onCopied: ((ScreenshotItem) -> Void)?
     /// 探す（テストでは差し替える）
-    var findScreenshots: (ScreenshotTrayAction) -> ScreenshotListing = { options in
+    var findScreenshots: @Sendable (ScreenshotTrayAction) -> ScreenshotListing = { options in
         let defaults = UserDefaults(suiteName: ScreenshotFolder.defaultsDomain)
         return ScreenshotFolder.recent(
             in: ScreenshotFolder.location(defaults: defaults),
@@ -138,30 +147,62 @@ final class HUDScreenshotTrayController {
     var writeToPasteboard: (ScreenshotItem) -> Bool = { HUDScreenshotTrayController.write($0, to: .general) }
     /// URL を開く（保存先を Finder で開く・システム設定を開く）
     var openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// Finder でそのファイルを選んで見せる
+    var revealInFinder: (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
+    /// ゴミ箱に入れる（Finder の「ゴミ箱に入れる」と同じ。戻せる）
+    var moveToTrash: (URL) async throws -> Void = { url in
+        _ = try await NSWorkspace.shared.recycle([url])
+    }
+    /// ゴミ箱に入れられなかった（トーストで知らせる）
+    var onTrashFailed: ((ScreenshotItem) -> Void)?
 
     var isVisible: Bool { panel?.isVisible == true }
     var listing: ScreenshotListing? { store.listing }
 
-    /// center を中心に出す。開くたびに探し直す
+    /// center を中心に出す。すぐに「探しています」で出し、探し終えたら並べる（開くたびに探し直す）
     func show(_ options: ScreenshotTrayAction = ScreenshotTrayAction(), centeredAt center: CGPoint, on screen: HUDScreenGeometry) {
-        let listing = findScreenshots(options)
-        store.listing = listing
+        generation += 1
+        let current = generation
+        loadTask?.cancel()
+        listTask?.cancel()
+        store.listing = nil
         store.selection = 0
         store.now = Date()
         store.thumbnails = [:]
+        placement = (center, screen)
         let panel = self.panel ?? makePanel()
         panel.title = String(localized: "スクリーンショット", bundle: .module)
-        let size = HUDScreenshotTrayLayout.panelSize(count: store.items.count)
-        panel.columns = HUDScreenshotTrayLayout.columns(count: store.items.count)
-        panel.setFrame(HUDPlacement.frame(size: size, centeredAt: center, in: screen), display: true)
+        layOut()
         panel.makeKeyAndOrderFront(nil)
-        loadThumbnails(for: store.items)
-        HUDAccessibility.announce(Self.announcement(for: listing))
+        let find = findScreenshots
+        listTask = Task { [weak self] in
+            let listing = await Task.detached(priority: .userInitiated) { find(options) }.value
+            guard let self, !Task.isCancelled, self.generation == current else { return }
+            self.store.listing = listing
+            self.layOut()
+            self.loadThumbnails(for: self.store.items)
+            HUDAccessibility.announce(Self.announcement(for: listing))
+        }
+    }
+
+    /// 探し終えるまで待つ（テスト用）
+    func waitForListing() async {
+        await listTask?.value
+    }
+
+    /// 並べる数に合わせて大きさを変え、出した場所を中心に置き直す
+    private func layOut() {
+        guard let panel, let placement else { return }
+        let count = store.items.count
+        panel.columns = HUDScreenshotTrayLayout.columns(count: count)
+        let size = HUDScreenshotTrayLayout.panelSize(count: count)
+        panel.setFrame(HUDPlacement.frame(size: size, centeredAt: placement.center, in: placement.screen), display: true)
     }
 
     func close() {
         loadTask?.cancel()
         loadTask = nil
+        listTask?.cancel()
         guard let panel, panel.isVisible else { return }
         panel.orderOut(nil)
     }
@@ -188,14 +229,46 @@ final class HUDScreenshotTrayController {
 
     var selection: Int { store.selection }
 
+    /// Finder でその1枚を選んで見せ、トレイを閉じる
+    func reveal(_ item: ScreenshotItem) {
+        close()
+        revealInFinder(item.url)
+    }
+
+    /// その1枚をゴミ箱に入れ、トレイから外す（デスクトップを片付ける）。トレイは開いたまま
+    func trash(_ item: ScreenshotItem) async {
+        do {
+            try await moveToTrash(item.url)
+        } catch {
+            onTrashFailed?(item)
+            return
+        }
+        guard case .found(var items, let folder)? = store.listing, let index = items.firstIndex(of: item) else { return }
+        items.remove(at: index)
+        store.listing = .found(items, folder: folder)
+        store.thumbnails[item.url] = nil
+        store.selection = min(store.selection, max(items.count - 1, 0))
+        layOut()
+    }
+
+    func trashSelection() {
+        let items = store.items
+        guard items.indices.contains(store.selection) else { return }
+        let item = items[store.selection]
+        Task { await trash(item) }
+    }
+
     private func makePanel() -> HUDScreenshotTrayPanel {
         let panel = HUDScreenshotTrayPanel()
         panel.onClose = { [weak self] in self?.close() }
         panel.onMove = { [weak self] in self?.moveSelection(by: $0) }
         panel.onCopySelection = { [weak self] in self?.copySelection() }
+        panel.onTrashSelection = { [weak self] in self?.trashSelection() }
         let view = HUDScreenshotTrayView(
             store: store,
             onCopy: { [weak self] in self?.copy($0) },
+            onReveal: { [weak self] in self?.reveal($0) },
+            onTrash: { [weak self] item in Task { await self?.trash(item) } },
             onOpenFolder: { [weak self] in
                 guard let self, let folder = self.store.listing?.folder else { return }
                 self.close()
@@ -291,6 +364,8 @@ final class HUDScreenshotTrayController {
 struct HUDScreenshotTrayView: View {
     @Bindable var store: HUDScreenshotTrayStore
     let onCopy: (ScreenshotItem) -> Void
+    let onReveal: (ScreenshotItem) -> Void
+    let onTrash: (ScreenshotItem) -> Void
     let onOpenFolder: () -> Void
     let onOpenPrivacySettings: () -> Void
 
@@ -353,6 +428,14 @@ struct HUDScreenshotTrayView: View {
                 detail: String(localized: "⇧⌘5 の「オプション」で保存先を選び直してください", bundle: .module),
                 button: nil
             )
+        case nil:
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("探しています…", bundle: .module)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: Layout.messageHeight)
         default:
             message(
                 String(localized: "スクリーンショットはまだありません", bundle: .module),
@@ -366,6 +449,7 @@ struct HUDScreenshotTrayView: View {
         HStack(spacing: 18) {
             Text("クリックでコピー", bundle: .module)
             Text("ドラッグで添付", bundle: .module)
+            Text("⌘⌫ でゴミ箱へ", bundle: .module)
             Text("Esc で閉じる", bundle: .module)
         }
         .font(.system(size: 12))
@@ -418,6 +502,24 @@ struct HUDScreenshotTrayView: View {
         .buttonStyle(.plain)
         .onDrag {
             NSItemProvider(contentsOf: item.url) ?? NSItemProvider()
+        }
+        .contextMenu {
+            Button {
+                onCopy(item)
+            } label: {
+                Text("コピー", bundle: .module)
+            }
+            Button {
+                onReveal(item)
+            } label: {
+                Text("Finder で表示", bundle: .module)
+            }
+            Divider()
+            Button(role: .destructive) {
+                onTrash(item)
+            } label: {
+                Text("ゴミ箱に入れる", bundle: .module)
+            }
         }
         .help(item.url.lastPathComponent)
         .accessibilityLabel(Text(Self.label(of: item, now: store.now)))
