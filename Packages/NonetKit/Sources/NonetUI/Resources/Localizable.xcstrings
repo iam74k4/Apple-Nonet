@@ -1199,6 +1199,16 @@
         }
       }
     },
+    "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に並べます。クリックするとコピーし（収録はファイルとして）、ドラッグするとそのまま添付できます。↑↓←→ で選んで Return でもコピーできます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows your most recent screenshots, newest first, from where macOS saves them (the location chosen under Options in ⇧⌘5; the Desktop by default). Click one to copy it (recordings are copied as files), or drag it to attach it. You can also choose with the arrow keys and press Return to copy. The first time, macOS asks for permission to read that folder."
+          }
+        }
+      }
+    },
     "menu.edit" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -4705,6 +4715,16 @@
         }
       }
     },
+    "並べる数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number to show"
+          }
+        }
+      }
+    },
     "中" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5146,6 +5166,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Running"
+          }
+        }
+      }
+    },
+    "収録・%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording · %@"
           }
         }
       }
@@ -6209,6 +6239,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bottom of Screen"
+          }
+        }
+      }
+    },
+    "画面の収録（動画）も並べる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include screen recordings (videos)"
           }
         }
       }

@@ -166,7 +166,7 @@ public final class HUDWindowController: HUDPresenting {
     }
 
     /// 「最近のスクショ」のトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。コピーしたらトーストで知らせる
-    public func showScreenshotTray() {
+    public func showScreenshotTray(_ options: ScreenshotTrayAction) {
         let cursor = mouseLocation()
         guard let screen = HUDPlacement.screen(containing: cursor, in: screens()) else {
             logger.error("トレイを出す画面が見つからない")
@@ -183,7 +183,7 @@ public final class HUDWindowController: HUDPresenting {
             }
         }
         let anchor = hudFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? cursor
-        screenshotTray.show(centeredAt: anchor, on: screen)
+        screenshotTray.show(options, centeredAt: anchor, on: screen)
     }
 
     private func place(_ frame: CGRect, screen: HUDScreenGeometry) {

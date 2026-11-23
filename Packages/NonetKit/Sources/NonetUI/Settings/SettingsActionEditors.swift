@@ -899,3 +899,31 @@ struct SettingsMediaEditor: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
+
+/// 「最近のスクショ」: 並べる数と、画面の収録も並べるか
+struct SettingsScreenshotTrayEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let tray: ScreenshotTrayAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "並べる数", bundle: .module)) {
+                Picker(selection: Binding(get: { tray.count }, set: { count in model.setScreenshotTray({ $0.count = count }, forCell: cellID) })) {
+                    ForEach(ScreenshotTrayAction.counts, id: \.self) { count in
+                        Text(verbatim: "\(count)").tag(count)
+                    }
+                } label: {
+                    Text("並べる数", bundle: .module)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 220)
+            }
+            Toggle(isOn: Binding(get: { tray.includesVideos }, set: { on in model.setScreenshotTray({ $0.includesVideos = on }, forCell: cellID) })) {
+                Text("画面の収録（動画）も並べる", bundle: .module)
+            }
+            SettingsNote(text: SettingsText.screenshotsDetail)
+        }
+    }
+}

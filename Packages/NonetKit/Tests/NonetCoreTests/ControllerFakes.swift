@@ -433,8 +433,9 @@ final class ControllerFakeHUD: HUDPresenting {
     private(set) var hideCount = 0
     private(set) var toasts: [ToastModel] = []
     private(set) var results: [ResultModel] = []
-    /// showScreenshotTray が呼ばれた回数
-    private(set) var screenshotTrays = 0
+    /// showScreenshotTray で頼まれたトレイ（順に）
+    private(set) var screenshotTrayRequests: [ScreenshotTrayAction] = []
+    var screenshotTrays: Int { screenshotTrayRequests.count }
     private(set) var isVisible = false
     /// いま出ている中身
     private(set) var current: HUDModel?
@@ -457,8 +458,8 @@ final class ControllerFakeHUD: HUDPresenting {
         recorder.log("hud:preview")
     }
 
-    func showScreenshotTray() {
-        screenshotTrays += 1
+    func showScreenshotTray(_ options: ScreenshotTrayAction) {
+        screenshotTrayRequests.append(options)
     }
 
     func hidePlacementPreview() {

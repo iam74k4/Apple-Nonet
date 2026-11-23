@@ -330,7 +330,7 @@ public protocol HUDPresenting: AnyObject {
     func hidePlacementPreview()
     /// 最近のスクリーンショットのトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。
     /// 探す・並べる・コピーする・ドラッグさせる・閉じるは画面が受け持つ（ScreenshotFolder で探す）
-    func showScreenshotTray()
+    func showScreenshotTray(_ options: ScreenshotTrayAction)
 }
 
 extension HUDPresenting {
@@ -342,7 +342,7 @@ extension HUDPresenting {
     public func hidePlacementPreview() {}
 
     /// トレイを出さない実装の既定
-    public func showScreenshotTray() {}
+    public func showScreenshotTray(_ options: ScreenshotTrayAction) {}
 
 }
 

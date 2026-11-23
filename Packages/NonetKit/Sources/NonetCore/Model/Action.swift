@@ -231,15 +231,49 @@ extension MediaKey {
     }
 }
 
-/// 最近のスクリーンショットのトレイ。決めることは無い（探す場所は macOS のスクリーンショットの保存先。ScreenshotFolder）
+/// 最近のスクリーンショットのトレイ（探す場所は macOS のスクリーンショットの保存先。ScreenshotFolder）
 public struct ScreenshotTrayAction: Codable, Equatable, Sendable {
-    public init() {}
+    /// 並べる数として選べるもの
+    public static let counts = [3, 5, 8, 12]
+    public static let defaultCount = 5
 
-    public init(from decoder: any Decoder) throws {
-        self.init()
+    /// 並べる数（counts のどれか。ほかの値は近いものに直す）
+    public var count: Int
+    /// 画面の収録（動画）も並べる
+    public var includesVideos: Bool
+
+    public init(count: Int = ScreenshotTrayAction.defaultCount, includesVideos: Bool = true) {
+        self.count = Self.nearestCount(count)
+        self.includesVideos = includesVideos
     }
 
-    public func encode(to encoder: any Encoder) throws {}
+    public static func nearestCount(_ value: Int) -> Int {
+        // 同じだけ離れていれば多い方（4 なら 5）
+        counts.min { (abs($0 - value), -$0) < (abs($1 - value), -$1) } ?? defaultCount
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case count, includesVideos
+    }
+
+    /// 既定の値は書かない（前の版の {"type":"screenshots"} と同じ書式のまま）
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            count: container.decodeLossy(Int.self, forKey: .count, default: Self.defaultCount),
+            includesVideos: container.decodeLossy(Bool.self, forKey: .includesVideos, default: true)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if count != Self.defaultCount {
+            try container.encode(count, forKey: .count)
+        }
+        if !includesVideos {
+            try container.encode(includesVideos, forKey: .includesVideos)
+        }
+    }
 }
 
 extension Action {

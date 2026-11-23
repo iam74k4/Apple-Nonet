@@ -7,7 +7,7 @@ import Testing
 @Suite struct ControllerScreenshotTrayTests {
     typealias F = ControllerFixtures
 
-    static let tray = Cell(title: "最近のスクショ", icon: .symbol("photo.on.rectangle"), action: .screenshots(ScreenshotTrayAction()))
+    static let tray = Cell(title: "最近のスクショ", icon: .symbol("photo.on.rectangle"), action: .screenshots(ScreenshotTrayAction(count: 8, includesVideos: false)))
 
     private func harness() throws -> ControllerHarness {
         var configuration = F.configuration()
@@ -21,7 +21,7 @@ import Testing
         let h = try harness()
         h.run(1)
         await h.settle()
-        #expect(h.hud.screenshotTrays == 1)
+        #expect(h.hud.screenshotTrayRequests == [ScreenshotTrayAction(count: 8, includesVideos: false)])
         #expect(h.performer.calls.isEmpty)
         #expect(h.controller.lastExecution?.succeeded == true)
         // トレイが出るので、成功のトーストは出さない

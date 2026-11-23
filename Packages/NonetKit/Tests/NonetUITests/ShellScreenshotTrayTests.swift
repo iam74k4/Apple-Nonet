@@ -19,7 +19,7 @@ import Testing
     private func tray(_ listing: ScreenshotListing) -> (HUDScreenshotTrayController, Box) {
         let box = Box()
         let tray = HUDScreenshotTrayController()
-        tray.findScreenshots = { listing }
+        tray.findScreenshots = { _ in listing }
         tray.writeToPasteboard = { box.written.append($0); return true }
         tray.openURL = { box.opened.append($0) }
         tray.onCopied = { box.copied.append($0) }
@@ -85,6 +85,39 @@ import Testing
         tray.copySelection()
         #expect(tray.isVisible)
         tray.close()
+    }
+
+    /// 12枚は 6 × 2 段。↑ ↓ で段を移る
+    @Test func manyItemsWrapIntoRows() {
+        #expect(HUDScreenshotTrayLayout.columns(count: 12) == 6)
+        #expect(HUDScreenshotTrayLayout.rows(count: 12) == 2)
+        #expect(HUDScreenshotTrayLayout.columns(count: 8) == 4)
+        #expect(HUDScreenshotTrayLayout.rows(count: 8) == 2)
+        #expect(HUDScreenshotTrayLayout.rows(count: 5) == 1)
+        #expect(HUDScreenshotTrayLayout.panelSize(count: 12).height > HUDScreenshotTrayLayout.panelSize(count: 5).height)
+        let shots = items(12)
+        let (tray, _) = tray(.found(shots, folder: folder))
+        tray.show(ScreenshotTrayAction(count: 12), centeredAt: CGPoint(x: 700, y: 400), on: screen)
+        tray.moveSelection(by: 6)
+        #expect(tray.selection == 6)
+        tray.close()
+    }
+
+    /// 収録（動画）は「収録・」を付け、ファイルとしてコピーする
+    @Test func recordingsAreMarkedAndCopiedAsFiles() throws {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let video = ScreenshotItem(url: folder.appending(path: "画面収録.mov"), date: now.addingTimeInterval(-10))
+        #expect(video.isVideo)
+        #expect(HUDScreenshotTrayView.label(of: video, now: now) == L10n.ui("収録・\(L10n.ui("たった今"))"))
+        let dir = FileManager.default.temporaryDirectory.appending(path: "ShellScreenshotTrayTests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appending(path: "Screen Recording.mov")
+        try Data([0, 0, 0, 0]).write(to: url)
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("ShellScreenshotTrayTests-\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        #expect(HUDScreenshotTrayController.write(ScreenshotItem(url: url, date: now), to: pasteboard))
+        #expect(pasteboard.pasteboardItems?.first?.types == [.fileURL])
     }
 
     @Test func theTrayFitsItsThumbnails() {

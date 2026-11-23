@@ -67,9 +67,9 @@ import Testing
         try file("design.png", in: dir, created: 400, marked: true)
         // スクリーンショットでない画像・動画・ほかのファイルは並べない
         try file("photo.png", in: dir, created: 500)
-        try file("スクリーンショット 収録.mov", in: dir, created: 600, marked: true)
+        try file("holiday.mov", in: dir, created: 550)
         try file("Screenshot notes.txt", in: dir, created: 700)
-        let listing = ScreenshotFolder.recent(in: dir)
+        let listing = ScreenshotFolder.recent(in: dir, includesVideos: false)
         guard case .found(let items, let found) = listing else {
             Issue.record("見つからなかった: \(listing)")
             return
@@ -77,6 +77,24 @@ import Testing
         #expect(found == dir)
         #expect(items.map(\.url.lastPathComponent) == ["design.png", "Screenshot 2026-11-23 at 11.00.00.png", "スクリーンショット 2026-11-23 10.00.00.png"])
         #expect(items.first?.date == Date(timeIntervalSince1970: 400))
+    }
+
+    /// 画面の収録（印か、名前が「画面収録」「Screen Recording」で始まる動画）も並べる。動画を外すこともできる
+    @Test func screenRecordingsAreListedToo() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try file("Screenshot 1.png", in: dir, created: 100)
+        try file("画面収録 2026-11-23 12.00.00.mov", in: dir, created: 200)
+        try file("clip.mov", in: dir, created: 300, marked: true)
+        try file("holiday.mov", in: dir, created: 400)
+        guard case .found(let items, _) = ScreenshotFolder.recent(in: dir) else {
+            Issue.record("見つからなかった")
+            return
+        }
+        #expect(items.map(\.url.lastPathComponent) == ["clip.mov", "画面収録 2026-11-23 12.00.00.mov", "Screenshot 1.png"])
+        #expect(items.map(\.isVideo) == [true, true, false])
+        guard case .found(let images, _) = ScreenshotFolder.recent(in: dir, includesVideos: false) else { return }
+        #expect(images.map(\.url.lastPathComponent) == ["Screenshot 1.png"])
     }
 
     @Test func showsAtMostTheLimit() throws {
@@ -116,6 +134,14 @@ import Testing
         let data = try JSONEncoder().encode(action)
         #expect(String(decoding: data, as: UTF8.self) == #"{"type":"screenshots"}"#)
         #expect(try JSONDecoder().decode(Action.self, from: data) == action)
+        let custom = Action.screenshots(ScreenshotTrayAction(count: 12, includesVideos: false))
+        #expect(try JSONDecoder().decode(Action.self, from: JSONEncoder().encode(custom)) == custom)
+        // 選べない数は近いものに直す
+        #expect(ScreenshotTrayAction(count: 7).count == 8)
+        #expect(ScreenshotTrayAction(count: 100).count == 12)
+        #expect(ScreenshotTrayAction(count: -3).count == 3)
+        let odd = try JSONDecoder().decode(Action.self, from: Data(#"{"type":"screenshots","count":4,"includesVideos":"yes"}"#.utf8))
+        #expect(odd == .screenshots(ScreenshotTrayAction(count: 5, includesVideos: true)))
         #expect(action.kind == .screenshots)
         #expect(action.summary == ModelFixtures.text("最近のスクショ"))
     }

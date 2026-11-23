@@ -623,7 +623,7 @@ extension SettingsText {
 
     /// 「最近のスクショ」の説明（決めることは無い）
     static var screenshotsDetail: String {
-        String(localized: "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に5枚並べます。クリックすると画像をコピーし、ドラッグするとそのまま添付できます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。", bundle: .module)
+        String(localized: "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に並べます。クリックするとコピーし（収録はファイルとして）、ドラッグするとそのまま添付できます。↑↓←→ で選んで Return でもコピーできます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。", bundle: .module)
     }
 
     static var placeWindowDetail: String {

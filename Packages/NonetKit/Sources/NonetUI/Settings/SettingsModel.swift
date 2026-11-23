@@ -1053,6 +1053,13 @@ final class SettingsModel {
         }
     }
 
+    func setScreenshotTray(_ transform: @escaping (inout ScreenshotTrayAction) -> Void, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: ScreenshotTrayAction.self, transform) else { return }
+            cell = updated
+        }
+    }
+
     func chooseMediaKey(_ key: MediaKey, forCell id: UUID) {
         updateCell(id: id) { cell in
             guard let updated = SettingsCellEditing.updatingContent(of: cell, as: MediaAction.self, { $0.key = key }) else { return }

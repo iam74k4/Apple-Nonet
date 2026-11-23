@@ -947,9 +947,9 @@ public final class NonetController {
     /// stopRunningAction で止めたら、終わり方（取り消しで投げた・結果を返した）によらず stopped を true にする
     private func performAction(_ target: ControllerTarget, context: ActionContext) async throws -> (output: String?, stopped: Bool) {
         let action = target.cell.action
-        if case .screenshots = action {
+        if case .screenshots(let options) = action {
             // Nonet の画面だけで済む（前面のアプリには何も送らない）
-            hud.showScreenshotTray()
+            hud.showScreenshotTray(options)
             return (nil, false)
         }
         let performer = services.performer

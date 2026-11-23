@@ -12,6 +12,9 @@ public struct ScreenshotItem: Equatable, Sendable, Identifiable {
 
     public var id: URL { url }
 
+    /// 画面の収録（動画）
+    public var isVideo: Bool { ScreenshotFolder.videoExtensions.contains(url.pathExtension.lowercased()) }
+
     public init(url: URL, date: Date) {
         self.url = url
         self.date = date
@@ -41,10 +44,13 @@ public enum ScreenshotFolder {
     public static let trayLimit = 5
     /// macOS が撮ったスクリーンショットに付ける印（拡張属性。Spotlight の kMDItemIsScreenCapture）
     static let screenCaptureAttribute = "com.apple.metadata:kMDItemIsScreenCapture"
-    /// 画像として並べる拡張子（収録した動画 .mov は並べない）
+    /// 画像として並べる拡張子
     static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "tif", "tiff", "gif", "bmp"]
-    /// ファイル名の頭（name を変えていないときの既定。macOS の言語で変わる。印が無いファイルを見分けるのに使う）
-    public static let defaultNamePrefixes = ["Screenshot", "Screen Shot", "スクリーンショット"]
+    /// 画面の収録として並べる拡張子（⇧⌘5 の収録は .mov）
+    static let videoExtensions: Set<String> = ["mov", "mp4", "m4v"]
+    /// ファイル名の頭（name を変えていないときの既定。macOS の言語で変わる。印が無いファイルを見分けるのに使う）。
+    /// 収録の名前（画面収録・Screen Recording）も含める
+    public static let defaultNamePrefixes = ["Screenshot", "Screen Shot", "スクリーンショット", "Screen Recording", "画面収録"]
 
     /// 保存先。設定が無い・空・「クリップボード」（場所ではない）ならデスクトップ。~ はホームに置き換える
     public static func location(defaults: UserDefaults? = UserDefaults(suiteName: defaultsDomain), home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
@@ -73,12 +79,13 @@ public enum ScreenshotFolder {
         return prefixes
     }
 
-    /// 保存先の最近のスクリーンショットを新しい順に limit 枚まで。
-    /// スクリーンショットとみなすのは、画像の拡張子で、macOS の印（isScreenCapture）があるか、ファイル名が namePrefixes で始まるもの。
+    /// 保存先の最近のスクリーンショット（includesVideos なら画面の収録も）を新しい順に limit 枚まで。
+    /// スクリーンショットとみなすのは、画像（か動画）の拡張子で、macOS の印（isScreenCapture）があるか、ファイル名が namePrefixes で始まるもの。
     /// 隠しファイルと、書き終わっていない一時ファイル（名前が . で始まる）は外す
     public static func recent(
         in folder: URL,
         limit: Int = trayLimit,
+        includesVideos: Bool = true,
         namePrefixes: [String] = defaultNamePrefixes,
         fileManager: FileManager = .default,
         isScreenCapture: (URL) -> Bool = hasScreenCaptureMark
@@ -92,7 +99,8 @@ public enum ScreenshotFolder {
         }
         var items: [ScreenshotItem] = []
         for url in contents {
-            guard imageExtensions.contains(url.pathExtension.lowercased()) else { continue }
+            let ext = url.pathExtension.lowercased()
+            guard imageExtensions.contains(ext) || (includesVideos && videoExtensions.contains(ext)) else { continue }
             let values = try? url.resourceValues(forKeys: Set(keys))
             guard values?.isRegularFile ?? false else { continue }
             let name = url.lastPathComponent

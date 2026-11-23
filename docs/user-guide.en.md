@@ -417,16 +417,19 @@ Trashes, renames or duplicates the files selected in Finder. Click a file in Fin
 
 ### Recent Screenshots
 
-Shows your five most recent screenshots, newest first, in a small panel (the tray) near where the HUD was. They come from where macOS saves screenshots (the location chosen under Options in ⇧⌘5; the Desktop by default). Attach or paste a screenshot you just took without hunting for it on the Desktop.
+Shows your most recent screenshots and screen recordings (videos), newest first, in a small panel (the tray) near where the HUD was. They come from where macOS saves screenshots (the location chosen under Options in ⇧⌘5; the Desktop by default). Attach or paste a screenshot you just took without hunting for it on the Desktop.
 
-- **Click**: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file
+- **Number to show**: 3, 5, 8 or 12 (5 by default; 8 and 12 are shown in two rows)
+- **Include screen recordings (videos)**: turn it off to show screenshots only (on by default). Recordings get a play mark and "Recording ·" in their label
+
+- **Click**: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file. Recordings are copied as files, so they attach in a chat or email
 - **Drag**: picks it up as a file. Drop it on the attachment area of a chat, email or web page, or in a Finder folder
-- **Keyboard**: choose with ← and →, press Return to copy, and press Esc to close
+- **Keyboard**: choose with the arrow keys, press Return to copy, and press Esc to close
 - Clicking outside the tray closes it too. The front app stays in front, so you can keep typing right away
 - **Open Folder** shows the save location in Finder
-- The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings (videos) aren't shown
+- The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings are videos macOS marks as recordings, or whose names start with "Screen Recording" or "画面収録"
 - **Permission**: the first time, macOS asks whether Nonet may access files in your Desktop folder (or your Documents or Downloads folder, if screenshots are saved there). Nonet reads only the list of files and the screenshots it shows. If you don't allow it, the tray says "Nonet isn't allowed to read the screenshot folder" with **Open System Settings** (turn Nonet on in **System Settings › Privacy & Security › Files and Folders**)
-- There's nothing to set. It's on the Global profile's **Utilities** page
+- It's on the Global profile's **Utilities** page
 
 ## Settings
 

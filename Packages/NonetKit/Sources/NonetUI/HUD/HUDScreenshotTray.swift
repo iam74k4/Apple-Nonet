@@ -1,10 +1,11 @@
 // 担当: ui-shell
-// 「最近のスクショ」のトレイ: 最近のスクリーンショットを新しい順に並べ、クリックで画像をコピー、ドラッグでそのまま添付する。
+// 「最近のスクショ」のトレイ: 最近のスクリーンショットと画面の収録を新しい順に並べ、クリックでコピー、ドラッグでそのまま添付する。
 // 前面のアプリを替えない（キーだけ受け取る）パネル。Esc・外のクリック・コピーで閉じる
 import AppKit
 import ImageIO
 import NonetCore
 import Observation
+import QuickLookThumbnailing
 import SwiftUI
 
 /// トレイの寸法
@@ -22,10 +23,25 @@ enum HUDScreenshotTrayLayout {
     /// サムネイルの長い辺の画素数（Retina で 148pt を描ける大きさ）
     static let thumbnailPixels = 360
 
+    /// 1段に並べる最大の数（12枚は 6 × 2 段）
+    static let maxColumns = 6
+
+    /// 段の数に合わせた列の数（3 枚より少なくても、案内が入る幅は取る）
+    static func columns(count: Int) -> Int {
+        guard count > maxColumns else { return max(count, 3) }
+        return Int((Double(count) / Double((count + maxColumns - 1) / maxColumns)).rounded(.up))
+    }
+
+    static func rows(count: Int) -> Int {
+        count == 0 ? 0 : (count + columns(count: count) - 1) / columns(count: count)
+    }
+
     static func panelSize(count: Int) -> CGSize {
-        let columns = max(count, 3)
+        let columns = columns(count: count)
+        let rows = rows(count: count)
         let width = padding * 2 + CGFloat(columns) * thumbnailSize.width + CGFloat(columns - 1) * spacing
-        let body = count == 0 ? messageHeight : thumbnailSize.height + 8 + labelHeight
+        let row = thumbnailSize.height + 8 + labelHeight
+        let body = count == 0 ? messageHeight : CGFloat(rows) * row + CGFloat(rows - 1) * spacing
         return CGSize(width: width, height: padding * 2 + headerHeight + 10 + body + footerHeight)
     }
 }
@@ -49,7 +65,9 @@ final class HUDScreenshotTrayStore {
 /// 前面のアプリを替えずにキーになるパネル。Esc・外のクリックで閉じる
 final class HUDScreenshotTrayPanel: NSPanel {
     var onClose: (() -> Void)?
+    /// ← → は1つ、↑ ↓ は1段（列の数）
     var onMove: ((Int) -> Void)?
+    var columns = 1
     var onCopySelection: (() -> Void)?
 
     init() {
@@ -86,6 +104,8 @@ final class HUDScreenshotTrayPanel: NSPanel {
         switch event.keyCode {
         case 123: onMove?(-1)
         case 124: onMove?(1)
+        case 126: onMove?(-columns)
+        case 125: onMove?(columns)
         case 36, 76, 49: onCopySelection?()
         default: super.keyDown(with: event)
         }
@@ -93,7 +113,7 @@ final class HUDScreenshotTrayPanel: NSPanel {
 }
 
 /// 裏で読んだサムネイルをメインスレッドへ渡す箱（CGImage は読んだ後に変えない）
-private struct ThumbnailBox: @unchecked Sendable {
+struct ThumbnailBox: @unchecked Sendable {
     let image: CGImage?
 }
 
@@ -105,10 +125,12 @@ final class HUDScreenshotTrayController {
     /// コピーした（トーストで知らせる）
     var onCopied: ((ScreenshotItem) -> Void)?
     /// 探す（テストでは差し替える）
-    var findScreenshots: () -> ScreenshotListing = {
+    var findScreenshots: (ScreenshotTrayAction) -> ScreenshotListing = { options in
         let defaults = UserDefaults(suiteName: ScreenshotFolder.defaultsDomain)
         return ScreenshotFolder.recent(
             in: ScreenshotFolder.location(defaults: defaults),
+            limit: options.count,
+            includesVideos: options.includesVideos,
             namePrefixes: ScreenshotFolder.namePrefixes(defaults: defaults)
         )
     }
@@ -121,8 +143,8 @@ final class HUDScreenshotTrayController {
     var listing: ScreenshotListing? { store.listing }
 
     /// center を中心に出す。開くたびに探し直す
-    func show(centeredAt center: CGPoint, on screen: HUDScreenGeometry) {
-        let listing = findScreenshots()
+    func show(_ options: ScreenshotTrayAction = ScreenshotTrayAction(), centeredAt center: CGPoint, on screen: HUDScreenGeometry) {
+        let listing = findScreenshots(options)
         store.listing = listing
         store.selection = 0
         store.now = Date()
@@ -130,6 +152,7 @@ final class HUDScreenshotTrayController {
         let panel = self.panel ?? makePanel()
         panel.title = String(localized: "スクリーンショット", bundle: .module)
         let size = HUDScreenshotTrayLayout.panelSize(count: store.items.count)
+        panel.columns = HUDScreenshotTrayLayout.columns(count: store.items.count)
         panel.setFrame(HUDPlacement.frame(size: size, centeredAt: center, in: screen), display: true)
         panel.makeKeyAndOrderFront(nil)
         loadThumbnails(for: store.items)
@@ -193,12 +216,17 @@ final class HUDScreenshotTrayController {
     /// サムネイルはメインスレッドの外で小さく読む（大きな画面のスクリーンショットでも止めない）
     private func loadThumbnails(for items: [ScreenshotItem]) {
         loadTask?.cancel()
-        let urls = items.map(\.url)
+        let entries = items.map { ($0.url, $0.isVideo) }
         loadTask = Task { [weak self] in
-            for url in urls {
-                let box = await Task.detached(priority: .userInitiated) {
-                    ThumbnailBox(image: Self.thumbnail(of: url, maxPixels: HUDScreenshotTrayLayout.thumbnailPixels))
-                }.value
+            for (url, isVideo) in entries {
+                let box: ThumbnailBox
+                if isVideo {
+                    box = await Self.videoThumbnail(of: url)
+                } else {
+                    box = await Task.detached(priority: .userInitiated) {
+                        ThumbnailBox(image: Self.thumbnail(of: url, maxPixels: HUDScreenshotTrayLayout.thumbnailPixels))
+                    }.value
+                }
                 guard !Task.isCancelled else { return }
                 if let image = box.image {
                     self?.store.thumbnails[url] = NSImage(cgImage: image, size: .zero)
@@ -217,12 +245,23 @@ final class HUDScreenshotTrayController {
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 
-    /// 画像（PNG か TIFF）とファイルの場所を、1つの項目として書く。チャットやメールの入力欄では画像として、Finder ではファイルとして貼り付く
+    /// 動画の最初の場面（QuickLook。macOS が作るので、動画を自分で読まない）
+    nonisolated static func videoThumbnail(of url: URL) async -> ThumbnailBox {
+        let size = CGSize(width: HUDScreenshotTrayLayout.thumbnailSize.width, height: HUDScreenshotTrayLayout.thumbnailSize.height)
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: 2, representationTypes: .thumbnail)
+        let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+        return ThumbnailBox(image: representation?.cgImage)
+    }
+
+    /// 画像（PNG か TIFF）とファイルの場所を、1つの項目として書く。チャットやメールの入力欄では画像として、Finder ではファイルとして貼り付く。
+    /// 動画はファイルの場所だけ（チャットやメールの入力欄では添付になる）
     nonisolated static func write(_ item: ScreenshotItem, to pasteboard: NSPasteboard) -> Bool {
         let entry = NSPasteboardItem()
         entry.setString(item.url.absoluteString, forType: .fileURL)
         let ext = item.url.pathExtension.lowercased()
-        if ext == "png", let data = try? Data(contentsOf: item.url) {
+        if item.isVideo {
+            guard FileManager.default.isReadableFile(atPath: item.url.path(percentEncoded: false)) else { return false }
+        } else if ext == "png", let data = try? Data(contentsOf: item.url) {
             entry.setData(data, forType: .png)
         } else if (ext == "tif" || ext == "tiff"), let data = try? Data(contentsOf: item.url) {
             entry.setData(data, forType: .tiff)
@@ -296,7 +335,8 @@ struct HUDScreenshotTrayView: View {
     private var content: some View {
         switch store.listing {
         case .found(let items, _)? where !items.isEmpty:
-            HStack(alignment: .top, spacing: Layout.spacing) {
+            let columns = Array(repeating: GridItem(.fixed(Layout.thumbnailSize.width), spacing: Layout.spacing, alignment: .top), count: Layout.columns(count: items.count))
+            LazyVGrid(columns: columns, alignment: .leading, spacing: Layout.spacing) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     thumbnail(item, isSelected: index == store.selection)
                 }
@@ -351,6 +391,16 @@ struct HUDScreenshotTrayView: View {
                     } else {
                         ProgressView().controlSize(.small)
                     }
+                    if item.isVideo {
+                        // 収録の印（右下の再生の印）
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 22))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, .black.opacity(0.55))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                            .padding(8)
+                            .accessibilityHidden(true)
+                    }
                 }
                 .frame(width: Layout.thumbnailSize.width, height: Layout.thumbnailSize.height)
                 .overlay(
@@ -358,7 +408,7 @@ struct HUDScreenshotTrayView: View {
                         .strokeBorder(Color.accentColor, lineWidth: isSelected ? 3 : 0)
                         .padding(-3)
                 )
-                Text(Self.age(of: item.date, now: store.now))
+                Text(Self.label(of: item, now: store.now))
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .frame(height: Layout.labelHeight)
@@ -370,7 +420,7 @@ struct HUDScreenshotTrayView: View {
             NSItemProvider(contentsOf: item.url) ?? NSItemProvider()
         }
         .help(item.url.lastPathComponent)
-        .accessibilityLabel(Text(Self.age(of: item.date, now: store.now)))
+        .accessibilityLabel(Text(Self.label(of: item, now: store.now)))
         .accessibilityHint(Text("クリックでコピー、ドラッグで添付", bundle: .module))
     }
 
@@ -388,6 +438,13 @@ struct HUDScreenshotTrayView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: Layout.messageHeight, alignment: .topLeading)
+    }
+
+    /// 名前の行: 撮った時刻と、収録なら「収録」
+    static func label(of item: ScreenshotItem, now: Date) -> String {
+        let age = age(of: item.date, now: now)
+        guard item.isVideo else { return age }
+        return String(localized: "収録・\(age)", bundle: .module)
     }
 
     /// 「たった今」「3分前」「昨日」（今の言語で）

@@ -333,6 +333,14 @@ extension FileAction: SettingsActionContent {
     var asAction: Action { .file(self) }
 }
 
+extension ScreenshotTrayAction: SettingsActionContent {
+    static func content(of action: Action) -> ScreenshotTrayAction? {
+        if case .screenshots(let tray) = action { tray } else { nil }
+    }
+
+    var asAction: Action { .screenshots(self) }
+}
+
 extension MediaAction: SettingsActionContent {
     static func content(of action: Action) -> MediaAction? {
         if case .media(let media) = action { media } else { nil }
