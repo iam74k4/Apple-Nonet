@@ -69,7 +69,7 @@ import Testing
         #expect(SettingsText.openSensitivityDetail(.low) == L10n.ui("強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに"))
         #expect(SettingsText.openSensitivityDetail(.standard) == L10n.ui("強く押し込んでから 0.25秒ほど止めると開きます"))
         #expect(SettingsText.openSensitivityDetail(.high) == L10n.ui("強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに"))
-        #expect(Set(OpenSensitivity.allCases.map(SettingsText.openSensitivityDetail)).count == 3)
+        #expect(Set(OpenSensitivity.allCases.map { SettingsText.openSensitivityDetail($0) }).count == 3)
     }
 }
 
