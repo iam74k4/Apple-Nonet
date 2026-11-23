@@ -147,7 +147,9 @@ enum ControllerExecutionPolicy {
         switch action {
         // スクリーンショットのトレイは Nonet のパネルなので、どのアプリが前面でも同じ
         // 再生・音量・明るさは、どのアプリが前面でも同じ
-        case .launchApp, .openURL, .screenshots, .media: false
+        case .launchApp, .screenshots, .media: false
+        // 選んだテキストで開く URL は、前面のアプリの選択を読む
+        case .openURL(let url): url.usesSelection
         case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow, .pasteText: true
         }
     }

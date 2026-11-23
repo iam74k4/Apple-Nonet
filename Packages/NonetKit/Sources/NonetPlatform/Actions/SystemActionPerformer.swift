@@ -62,7 +62,7 @@ public final class SystemActionPerformer: ActionPerforming {
         case .launchApp(let launch):
             try await AppLauncher.launch(launch)
         case .openURL(let url):
-            try await URLNormalizer.open(url.url)
+            try await openURL(url, frontmost: frontmost, didReadContext: didReadContext)
         case .script(let script):
             return try await runScript(script, frontmost: frontmost, didReadContext: didReadContext, terminalApp: terminalApp)
         case .shortcut(let shortcut):
@@ -251,6 +251,20 @@ public final class SystemActionPerformer: ActionPerforming {
         // メニューの「止める」で止めた後に返ってきた結果は、貼り付けもコピーもしない
         try Task.checkCancellation()
         return try await deliver(result, to: ai.output, selection: reading.selectionSource, frontmost: frontmost)
+    }
+
+    /// URL を開く。{selection} があれば、前面のアプリの選択（読めなければ ⌘C で取る）に置き換える。選択が無ければ開かずに知らせる
+    private func openURL(_ url: URLAction, frontmost: RunningAppInfo?, didReadContext: @MainActor () -> Void) async throws {
+        guard url.usesSelection else {
+            try await URLNormalizer.open(url.url)
+            return
+        }
+        let reading = await contextReader.read(.forAI, app: frontmost)
+        didReadContext()
+        guard let text = reading.info.selectedText, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw NonetError.actionFailed(SelectionMessage.noSelection(reading))
+        }
+        try await URLNormalizer.open(url.url(withSelection: text))
     }
 
     /// クリップボード経由で ⌘V し、相手が読み終えてから元のクリップボードに戻す。

@@ -55,10 +55,48 @@ public struct LaunchAppAction: Codable, Equatable, Sendable {
 }
 
 public struct URLAction: Codable, Equatable, Sendable {
+    /// URL のこの部分を、選択中のテキストに置き換えて開く（「選んだ言葉で検索」）
+    public static let selectionPlaceholder = "{selection}"
+    /// 置き換える選択の長さの上限（文字数）。長い選択は先頭だけにする（検索の URL が長くなりすぎない）
+    public static let maxSelectionLength = 500
+
     public var url: String
 
     public init(url: String) {
         self.url = url
+    }
+
+    /// 開くときに選択中のテキストを読む（{selection} がある）
+    public var usesSelection: Bool { url.contains(Self.selectionPlaceholder) }
+
+    /// {selection} を選択に置き換えた URL。選択は前後の空白を除き、改行やタブは空白1つにまとめ、
+    /// maxSelectionLength 文字までにして、英数字と - . _ ~ 以外をパーセントエンコードする（? & # などで URL が崩れない）
+    public func url(withSelection text: String) -> String {
+        let singleLine = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
+        let short = String(singleLine.prefix(Self.maxSelectionLength))
+        var allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+        allowed.formIntersection(.urlQueryAllowed)
+        let encoded = short.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        return url.replacingOccurrences(of: Self.selectionPlaceholder, with: encoded)
+    }
+}
+
+/// 選んだテキストで開く URL のひな形（設定の「選んだ言葉で開く」）
+public enum URLSelectionTemplate: String, CaseIterable, Sendable {
+    case googleSearch
+    case googleTranslate
+    case youTubeSearch
+    case wikipedia
+
+    /// languageCode は翻訳の先と Wikipedia の言語（"ja" など）
+    public func url(languageCode: String) -> String {
+        let language = languageCode.isEmpty ? "en" : languageCode
+        return switch self {
+        case .googleSearch: "https://www.google.com/search?q={selection}"
+        case .googleTranslate: "https://translate.google.com/?sl=auto&tl=\(language)&text={selection}"
+        case .youTubeSearch: "https://www.youtube.com/results?search_query={selection}"
+        case .wikipedia: "https://\(language).wikipedia.org/w/index.php?search={selection}"
+        }
     }
 }
 
@@ -330,7 +368,12 @@ extension Action {
         case .launchApp(let action):
             action.app.nameOrBundleID
         case .openURL(let action):
-            URLAction.displayHost(of: action.url) ?? String(localized: "URL", bundle: .module)
+            if action.usesSelection, let host = URLAction.displayHost(of: action.url) {
+                // 選んだ言葉で開く URL（「google.com で検索」）
+                String(localized: "\(host) で検索", bundle: .module)
+            } else {
+                URLAction.displayHost(of: action.url) ?? String(localized: "URL", bundle: .module)
+            }
         case .script(let action):
             switch action.runMode {
             case .background: String(localized: "スクリプト", bundle: .module)
@@ -432,9 +475,11 @@ extension URLAction {
     /// 表示用のホスト名（"www." は省く）。ホストの無い URL はそのまま、空なら nil
     static func displayHost(of string: String) -> String? {
         guard let trimmed = string.trimmedNonEmpty else { return nil }
-        var components = URLComponents(string: trimmed)
+        // {selection} は URL に使えない文字なので、確かめるときは置き換えておく
+        let checked = trimmed.replacingOccurrences(of: selectionPlaceholder, with: "x")
+        var components = URLComponents(string: checked)
         if components?.scheme == nil {
-            components = URLComponents(string: "https://" + trimmed)
+            components = URLComponents(string: "https://" + checked)
         }
         guard let host = components?.host, !host.isEmpty else { return trimmed }
         if host.lowercased().hasPrefix("www."), host.count > 4 {

@@ -53,6 +53,16 @@
         }
       }
     },
+    "%@ で検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search %@"
+          }
+        }
+      }
+    },
     "%@ のウインドウ" : {
       "localizations" : {
         "en" : {

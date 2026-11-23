@@ -197,7 +197,9 @@ enum SettingsURLCheck: Equatable {
     case invalid
 
     init(_ raw: String) {
+        // {selection}（選択に置き換える部分）は、置き換えた後の形で確かめる
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: URLAction.selectionPlaceholder, with: "x")
         guard !text.isEmpty else {
             self = .empty
             return

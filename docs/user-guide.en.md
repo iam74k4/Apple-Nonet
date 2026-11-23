@@ -327,7 +327,7 @@ Pastes text you've set up (email phrases, a signature, your address, replies you
 Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 
 - **App**: opens the app, or brings it to the front if it's already running. Under **App to open**, click **Choose App…** and choose an installed app. For an app that isn't listed, click **Choose Another App…**. The app's name appears in the inspector and in the help tag when you hold the pointer over the button. Turn on **Hide if already in front** to hide the app when you run the button again, so you can switch to it and back
-- **URL**: opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder
+- **URL**: opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder. Write `{selection}` in the URL to put in the text you have selected when it opens, to search for a word, for example `https://www.google.com/search?q={selection}`. The **Open with Selected Text** menu fills in Search Google, Google Translate, Search YouTube or Look Up in Wikipedia. Nonet trims the selection, turns line breaks into spaces and uses up to 500 characters. In apps whose selection can't be read through Accessibility, it copies with ⌘C (and puts your clipboard back). Nothing opens if no text is selected
 
 ### Place on Screen
 

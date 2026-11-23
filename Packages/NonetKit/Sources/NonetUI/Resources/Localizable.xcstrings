@@ -696,6 +696,26 @@
         }
       }
     },
+    "Google で検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Google"
+          }
+        }
+      }
+    },
+    "Google 翻訳" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Translate"
+          }
+        }
+      }
+    },
     "HUD で選んだときだけ実行" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1156,6 +1176,36 @@
         }
       }
     },
+    "URL の最後に {selection} を足す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add {selection} to the End of the URL"
+          }
+        }
+      }
+    },
+    "Wikipedia で調べる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look Up in Wikipedia"
+          }
+        }
+      }
+    },
+    "YouTube で検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search YouTube"
+          }
+        }
+      }
+    },
     "attributivePosition.bottomLeft" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -1441,6 +1491,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "終了"
+          }
+        }
+      }
+    },
+    "{selection} を、そのとき選んでいるテキストに置き換えて開きます。何も選んでいなければ開きません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaces {selection} with the text you have selected when it opens. Nothing opens if no text is selected."
           }
         }
       }
@@ -6121,12 +6181,12 @@
         }
       }
     },
-    "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。" : {
+    "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。{selection} と書くと、選んでいるテキストに置き換えます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opens in the default app. App URLs like obsidian:// work too."
+            "value" : "Opens in the default app. App URLs such as obsidian:// work too. Write {selection} to put in the text you have selected."
           }
         }
       }
@@ -7547,6 +7607,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All of their buttons are deleted too. You can undo this with ⌘Z."
+          }
+        }
+      }
+    },
+    "選んだ言葉で開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with Selected Text"
           }
         }
       }

@@ -387,10 +387,49 @@ struct SettingsURLEditor: View {
                         symbol: check.isProblem ? "exclamationmark.triangle" : "info.circle",
                         isWarning: check.isProblem
                     )
+                } else if url.usesSelection {
+                    SettingsNote(text: String(localized: "{selection} を、そのとき選んでいるテキストに置き換えて開きます。何も選んでいなければ開きません。", bundle: .module))
                 } else {
-                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。", bundle: .module))
+                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。{selection} と書くと、選んでいるテキストに置き換えます。", bundle: .module))
                 }
+                selectionMenu
             }
+        }
+    }
+
+    /// 選んだテキストで開く URL（検索・翻訳など）のひな形と、{selection} を足す
+    private var selectionMenu: some View {
+        Menu {
+            ForEach(URLSelectionTemplate.allCases, id: \.self) { template in
+                Button(Self.title(template)) { set(template.url(languageCode: Self.languageCode)) }
+            }
+            Divider()
+            Button(String(localized: "URL の最後に {selection} を足す", bundle: .module)) {
+                set(url.url + URLAction.selectionPlaceholder)
+            }
+            .disabled(url.url.isEmpty || url.usesSelection)
+        } label: {
+            Text("選んだ言葉で開く", bundle: .module)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private func set(_ text: String) {
+        model.updateAction(ofCell: cellID, as: URLAction.self) { $0.url = text }
+    }
+
+    /// 翻訳の先と Wikipedia の言語（Mac の言語）
+    static var languageCode: String {
+        Locale.preferredLanguages.first.map { Locale(identifier: $0).language.languageCode?.identifier ?? "en" } ?? "en"
+    }
+
+    static func title(_ template: URLSelectionTemplate) -> String {
+        switch template {
+        case .googleSearch: String(localized: "Google で検索", bundle: .module)
+        case .googleTranslate: String(localized: "Google 翻訳", bundle: .module)
+        case .youTubeSearch: String(localized: "YouTube で検索", bundle: .module)
+        case .wikipedia: String(localized: "Wikipedia で調べる", bundle: .module)
         }
     }
 }
