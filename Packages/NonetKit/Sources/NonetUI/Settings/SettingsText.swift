@@ -47,6 +47,34 @@ enum SettingsText {
         String(localized: "トラックパッドの設定を開く", bundle: .module)
     }
 
+    static var openGestureChoiceTitle: String {
+        String(localized: "開き方", bundle: .module)
+    }
+
+    static func name(_ gesture: OpenGesture) -> String {
+        switch gesture {
+        case .forcePress: String(localized: "強く押し込む", bundle: .module)
+        case .edgeSlide: String(localized: "上の縁から滑らせる", bundle: .module)
+        case .both: String(localized: "両方", bundle: .module)
+        }
+    }
+
+    static func detail(_ gesture: OpenGesture) -> String {
+        switch gesture {
+        case .forcePress:
+            String(localized: "トラックパッドのどこかを強く押し込んで止めます。押し込んでいる間のクリックは Nonet が預かります", bundle: .module)
+        case .edgeSlide:
+            String(localized: "トラックパッドの上の縁から指を下へ滑らせます。感圧タッチでないトラックパッドや、強く押すのがつらいときに。クリックは預かりません", bundle: .module)
+        case .both:
+            String(localized: "強く押し込んでも、上の縁から滑らせても開きます", bundle: .module)
+        }
+    }
+
+    /// 強めのクリックがオフのとき、上の縁から滑らせる開き方に切り替えるボタン
+    static var useEdgeSlide: String {
+        String(localized: "上の縁から滑らせる開き方にする", bundle: .module)
+    }
+
     static func name(_ sensitivity: OpenSensitivity) -> String {
         switch sensitivity {
         case .low: String(localized: "控えめ", bundle: .module)
@@ -60,8 +88,15 @@ enum SettingsText {
     }
 
     /// 今の段の決まり（強く押し込んでから止める時間。ForcePress.hold）
-    static func openSensitivityDetail(_ sensitivity: OpenSensitivity) -> String {
-        switch sensitivity {
+    static func openSensitivityDetail(_ sensitivity: OpenSensitivity, gesture: OpenGesture = .forcePress) -> String {
+        if gesture == .edgeSlide {
+            return switch sensitivity {
+            case .low: String(localized: "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに", bundle: .module)
+            case .standard: String(localized: "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ", bundle: .module)
+            case .high: String(localized: "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに", bundle: .module)
+            }
+        }
+        return switch sensitivity {
         case .low:
             String(localized: "強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに", bundle: .module)
         case .standard:

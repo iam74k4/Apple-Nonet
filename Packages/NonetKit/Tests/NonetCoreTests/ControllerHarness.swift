@@ -144,6 +144,15 @@ final class ControllerHarness {
         forcePress()
     }
 
+    /// 上の縁から指を下へ滑り込ませる（触れて 0.05 秒で 0.06 下へ。EdgeSlideRecognizer）。見分けてから entryConfirmDelay 待つ。
+    /// 開き方が上の縁から滑らせる（か両方）のときだけ開く
+    func slideOpen(_ id: Int = 1, x: Double = 0.5) {
+        touch(id, x: x, y: 0.98)
+        advance(0.05)
+        touch(id, x: x, y: Self.pressY)
+        advance(EdgeSlideRecognizer.entryConfirmDelay)
+    }
+
     /// 触れている指で強く押し込んで止めた（強く長押しで開けないときは何も起きない）
     @discardableResult
     func forcePress() -> Bool {

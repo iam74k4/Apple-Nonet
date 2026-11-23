@@ -185,7 +185,13 @@ public final class NonetController {
     @ObservationIgnored private var saveFailureNotice: String?
     /// 開いたときに最後に license.refresh() を頼んだ時刻（Scheduler.now）
     @ObservationIgnored private var lastLicenseRefresh: TimeInterval?
-    /// 強く押し込んで開いてから、指を離すまでの ProcessInfo のアクティビティ。メニューバーのアプリはウィンドウが無いと App Nap で
+    /// もう1つの開き方（上の縁からの滑り込み。openGesture が edgeSlide か both のとき）。フレームはセッションの外の分もすべて渡す
+    @ObservationIgnored private var opener = EdgeSlideRecognizer()
+    /// 上の縁からの滑り込みを見分けてから、開くまで待っている（EdgeSlideRecognizer.entryConfirmDelay）
+    @ObservationIgnored private var pendingOpen: (any ScheduledTask)?
+    /// pendingOpen を決めた、上の縁から滑らせた指（同じフレームで指が入れ替わったら開かない）
+    @ObservationIgnored private var pendingOpenFingerID: Int?
+    /// 強く押し込んで（か、上の縁で触れ始めて）から、指を離すまでの ProcessInfo のアクティビティ。メニューバーのアプリはウィンドウが無いと App Nap で
     /// タイマーがまとめて遅らされることがあるので、止めて切り替えるまでの時間・少し長く止めるマスを
     /// 遅らせない。ふつうにポインタを動かすだけのタッチでは持たない（電力を使わない）
     @ObservationIgnored private var latencyActivity: NSObjectProtocol?
@@ -281,6 +287,7 @@ public final class NonetController {
             firstPresetsRebuild?.cancel()
             firstPresetsRebuild = nil
             services.keyboard.forcePressHold = nil
+            cancelPendingOpen()
             services.keyboard.onEvent = nil
             services.touchSource.onFrame = nil
             services.frontmostApp.onChange = nil
@@ -293,6 +300,7 @@ public final class NonetController {
             }
             engine = SessionEngine()
             session = nil
+            opener = EdgeSlideRecognizer()
             controllerLogger.info("停止しました")
         }
         saver.flush()
@@ -471,9 +479,59 @@ public final class NonetController {
                 endLatencyActivity()
             }
         }
-        if status != .needsAccessibility {
+        let canOpen = status != .needsAccessibility
+        if canOpen {
             passTouchesToEngine(frame)
         }
+        guard configuration.settings.openGesture.usesEdgeSlide else { return }
+        // 待つ間に2本目の指が触れた・指が離れた・別の指に入れ替わったなら、開かない（2本指のスクロールを始めた・短くなぞっただけ・
+        // 滑らせた指を離したフレームで別の指が触れた。その指は縁から滑らせていない）
+        if frame.touching.count != 1 || frame.touching.first?.id != pendingOpenFingerID {
+            cancelPendingOpen()
+        }
+        // 開きやすさは設定からそのつど入れる（触れ始めた後に変えても、そのタッチは触れたときの決まりで見る）
+        let thresholds = EdgeSlideRecognizer.Thresholds(configuration.settings.openSensitivity)
+        if opener.thresholds != thresholds {
+            opener.thresholds = thresholds
+        }
+        switch opener.apply(frame, isSessionActive: engine.isInSession) {
+        case .none:
+            break
+        case .touchBeganInBand:
+            beginLatencyActivity()
+        case .slid:
+            scheduleOpen(fingerID: frame.touching.first?.id)
+        }
+    }
+
+    /// 上の縁からの滑り込みを見分けた。entryConfirmDelay だけ待って、1本指のままなら開く（待つ間のフレームに頼らず、タイマーで待つ）
+    private func scheduleOpen(fingerID: Int?) {
+        cancelPendingOpen()
+        pendingOpenFingerID = fingerID
+        pendingOpen = services.scheduler.schedule(after: EdgeSlideRecognizer.entryConfirmDelay) { [weak self] in
+            guard let self else { return }
+            self.pendingOpen = nil
+            self.pendingOpenFingerID = nil
+            guard self.isTrackpadTouched else { return }
+            self.openFromEdge()
+        }
+    }
+
+    private func cancelPendingOpen() {
+        pendingOpen?.cancel()
+        pendingOpen = nil
+        pendingOpenFingerID = nil
+    }
+
+    /// 上の縁からの滑り込みで開く。ボタンを押し込んだまま（クリックしたままドラッグを始めるところ）なら開かない。
+    /// ほかの決まりは強く押し込んだときと同じ（openSession）。許可が無いときも、開けない理由を知らせる（滑り込みは指のフレームで見分けるので、
+    /// イベントタップが無くても届く）
+    private func openFromEdge() {
+        guard !services.keyboard.isMouseButtonDown else {
+            controllerLogger.debug("ボタンが押されているため、開きません")
+            return
+        }
+        _ = openSession()
     }
 
     /// フレームをエンジンに渡す。開いている間は、ポインタの位置で選んだマスを指の位置にする
@@ -498,7 +556,7 @@ public final class NonetController {
         guard latencyActivity == nil else { return }
         latencyActivity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
-            reason: "強く押し込んで9マスを開いている"
+            reason: "9マスを開いている"
         )
     }
 
@@ -515,6 +573,11 @@ public final class NonetController {
     /// 試用期間が終わっていたら開かず、終わったことと次にすることをトースト1つと触覚で知らせる
     /// （開く動きは1回の押し込みで1回なので、トーストも1回）
     private func openFromForcePress() -> Bool {
+        openSession()
+    }
+
+    /// 開いてよければセッションを始める（強く押し込んだときと、上の縁から滑らせたとき）。返す値は openFromForcePress と同じ
+    private func openSession() -> Bool {
         guard !engine.isInSession else { return false }
         guard canBeginSession() else {
             explainWhyNotOpening()
@@ -561,7 +624,7 @@ public final class NonetController {
     /// 止めている・無効・許可なし・トラックパッドなし・キーの記録中・「このアプリでは Nonet を使わない」アプリが前面（練習中を除く）なら預からない。
     /// セキュア入力の間は預かる（開かずに理由を知らせ、クリックは返す）。止める時間は開きやすさから決める
     private func updateForcePressArming() {
-        let canArm = isStarted && !isRecordingKeys
+        let canArm = isStarted && !isRecordingKeys && configuration.settings.openGesture.usesForcePress
             && (status == .running || status == .secureInputActive)
             && (isPracticeMode || !configuration.isTurnedOff(forBundleID: services.frontmostApp.current?.app.bundleID))
         let hold = canArm ? ForcePress.hold(for: configuration.settings.openSensitivity) : nil

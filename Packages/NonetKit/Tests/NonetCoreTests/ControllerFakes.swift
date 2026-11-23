@@ -205,6 +205,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
     var forcePressHold: TimeInterval?
     /// finishForcePress の答え（順に）。true は開いた（クリックを捨てた）、false は前面アプリに返した
     private(set) var forcePressAnswers: [Bool] = []
+    /// マウスやトラックパッドのボタンを物理的に押し込んでいるか（テストで変える。上の縁から滑らせて開くときに見る）
+    var isMouseButtonDown = false
     /// コントローラーが知らせた、トラックパッドに触れているか（知らされた順）
     var isTrackpadTouched = false {
         didSet { trackpadTouchReports.append(isTrackpadTouched) }

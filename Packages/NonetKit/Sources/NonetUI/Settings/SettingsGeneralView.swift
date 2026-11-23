@@ -30,12 +30,29 @@ struct SettingsGeneralView: View {
                         .buttonStyle(.link)
                     }
                 }
-                if TrackpadForceClick.isOff() {
+                Picker(selection: binding(\.openGesture)) {
+                    ForEach(OpenGesture.allCases, id: \.self) { gesture in
+                        Text(SettingsText.name(gesture)).tag(gesture)
+                    }
+                } label: {
+                    Text(SettingsText.openGestureChoiceTitle)
+                    Text(SettingsText.detail(model.settings.openGesture))
+                }
+                if model.settings.openGesture.usesForcePress, TrackpadForceClick.isOff() {
                     LabeledContent {
-                        Button {
-                            model.openURL(TrackpadForceClick.settingsURL)
-                        } label: {
-                            Text(SettingsText.openTrackpadSettings)
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Button {
+                                model.openURL(TrackpadForceClick.settingsURL)
+                            } label: {
+                                Text(SettingsText.openTrackpadSettings)
+                            }
+                            if model.settings.openGesture == .forcePress {
+                                Button {
+                                    model.setSetting(\.openGesture, .edgeSlide)
+                                } label: {
+                                    Text(SettingsText.useEdgeSlide)
+                                }
+                            }
                         }
                     } label: {
                         Label {
@@ -53,7 +70,7 @@ struct SettingsGeneralView: View {
                     }
                 } label: {
                     Text(SettingsText.openSensitivityTitle)
-                    Text(SettingsText.openSensitivityDetail(model.settings.openSensitivity))
+                    Text(SettingsText.openSensitivityDetail(model.settings.openSensitivity, gesture: model.settings.openGesture))
                 }
                 .pickerStyle(.segmented)
                 // 前の版の「特大」は、大きく表示のオンとして見せる（オフにすると標準に戻る）

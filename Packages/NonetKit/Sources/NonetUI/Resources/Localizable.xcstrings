@@ -3484,6 +3484,26 @@
         }
       }
     },
+    "トラックパッドのどこかを強く押し込んで止めます。押し込んでいる間のクリックは Nonet が預かります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press firmly anywhere on the trackpad and hold. Nonet holds on to that click while you press."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁から指を下へ滑らせます。感圧タッチでないトラックパッドや、強く押すのがつらいときに。クリックは預かりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge of the trackpad. For trackpads without Force Touch, or if pressing firmly is uncomfortable. Clicks aren't held."
+          }
+        }
+      }
+    },
     "トラックパッドの図" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4615,6 +4635,26 @@
         }
       }
     },
+    "上の縁から滑らせる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide from the top edge"
+          }
+        }
+      }
+    },
+    "上の縁から滑らせる開き方にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the Top-Edge Slide"
+          }
+        }
+      }
+    },
     "下" : {
       "localizations" : {
         "en" : {
@@ -4641,6 +4681,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The details below are used only to look into your question."
+          }
+        }
+      }
+    },
+    "両方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both"
           }
         }
       }
@@ -5259,6 +5309,36 @@
         }
       }
     },
+    "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A finger placed within about 13 mm of the far edge, moved about 4 mm down within 1 second. For when sliding from the edge sometimes doesn't open the buttons"
+          }
+        }
+      }
+    },
+    "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A finger placed within about 6 mm of the far edge, moved about 7 mm down within 0.4 seconds. For when ordinary pointer moves open the buttons"
+          }
+        }
+      }
+    },
+    "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A finger placed within about 9 mm of the far edge, moved about 5 mm down within 0.6 seconds"
+          }
+        }
+      }
+    },
     "完了" : {
       "localizations" : {
         "en" : {
@@ -5472,6 +5552,16 @@
         }
       }
     },
+    "強く押し込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firm press"
+          }
+        }
+      }
+    },
     "強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに" : {
       "localizations" : {
         "en" : {
@@ -5498,6 +5588,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opens after you press firmly and hold for about 0.5 seconds. For when you tend to click hard and open the buttons by accident"
+          }
+        }
+      }
+    },
+    "強く押し込んでも、上の縁から滑らせても開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Either a firm press or a slide from the top edge opens the buttons."
           }
         }
       }
@@ -7240,6 +7340,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open sensitivity"
+          }
+        }
+      }
+    },
+    "開き方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with"
           }
         }
       }
