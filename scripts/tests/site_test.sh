@@ -531,7 +531,7 @@ test_pages_state_the_sales_terms() {
   assert_not_contains "$legal" "TODO" "tokushoho.html"
 }
 
-# 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。
+# 操作はトラックパッドだけ（強く押し込んで止めて開き、アイコンで離すと実行、輪の外で離すとやめる）。
 # なくなった操作（トリガーキー・すぐにタップ・角に指を置く）を販売ページとダウンロードのページに書かない
 test_pages_describe_only_the_trackpad_controls() {
   local page text
@@ -539,7 +539,7 @@ test_pages_describe_only_the_trackpad_controls() {
     text="$(cat "$ROOT/site/$page")"
     case "$page" in
       terms.html) ;;
-      *) assert_contains "$text" "上の縁" "$page" ;;
+      *) assert_contains "$text" "強く押し込" "$page" ;;
     esac
     for old in "トリガー" "右⌘" "右⌥" "タップ" "角に指" "長押し" "キーを押している間" "キーを押したまま" "マスを押"; do
       assert_not_contains "$text" "$old" "$page"
@@ -549,14 +549,14 @@ test_pages_describe_only_the_trackpad_controls() {
     text="$(cat "$ROOT/site/$page")"
     case "$page" in
       en/terms.html) ;;
-      *) assert_contains "$text" "top edge" "$page" ;;
+      *) assert_contains "$text" "Press firmly" "$page" ;;
     esac
     for old in "trigger" "Trigger" "right ⌘" "Right ⌘" "right ⌥" "Right ⌥" "Hold the key" "hold a key" "Hold a key" "while you hold" "corner of the trackpad" " tap"; do
       assert_not_contains "$text" "$old" "$page"
     done
   done
-  assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドの上の縁から指を下へ滑らせると"
-  assert_contains "$(cat "$ROOT/site/en/index.html")" "Slide a finger down from the top edge"
+  assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドのどこかを強く押し込んで少し止めると"
+  assert_contains "$(cat "$ROOT/site/en/index.html")" "Press firmly anywhere on the trackpad"
   assert_contains "$(cat "$ROOT/site/thanks.html")" "アイコンの輪の外まで動かして離すと、何も実行せずに閉じます"
   assert_contains "$(cat "$ROOT/site/en/thanks.html")" "move outside the ring of icons and lift"
 }

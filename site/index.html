@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nonet — トラックパッドが、アプリごとの9つのボタンに</title>
-<meta name="description" content="トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。9マスの一覧（HUD）を見ながら指で選び、マスで離すと実行。14日間無料、買い切り、購入から30日以内なら全額返金。">
+<meta name="description" content="トラックパッドを強く押し込んで少し止めると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。9マスの一覧（HUD）を見ながら指で選び、マスで離すと実行。14日間無料、買い切り、購入から30日以内なら全額返金。">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nonet">
 <meta property="og:title" content="Nonet — トラックパッドが、9つのボタンになる">
-<meta property="og:description" content="上の縁から指を滑らせると、トラックパッドがアプリごとに変わる9つのボタンに。機器の買い足しも、ショートカットの暗記もいりません。">
+<meta property="og:description" content="トラックパッドを強く押し込むと、アプリごとに変わる9つのボタンに。機器の買い足しも、ショートカットの暗記もいりません。">
 <meta property="og:url" content="https://nonet.astlog.dev/">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:locale:alternate" content="en_US">
@@ -38,7 +38,7 @@
   "name": "Nonet",
   "url": "https://nonet.astlog.dev/",
   "inLanguage": "ja",
-  "description": "トラックパッドの上の縁から指を滑らせると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。",
+  "description": "トラックパッドを強く押し込んで少し止めると、MacBook のトラックパッドがアプリごとに変わる 3×3 のボタンになる Mac アプリ。",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "macOS 14 以降",
   "softwareRequirements": "マルチタッチのトラックパッド（MacBook の内蔵トラックパッドまたは Magic Trackpad）",
@@ -112,7 +112,7 @@
     <div class="wrap">
       <div class="hero-copy">
         <h1><span class="nowrap">トラックパッドが、</span><span class="nowrap">9つのボタンになる。</span></h1>
-        <p class="lead">トラックパッドの上の縁から指を下へ滑らせると、ポインタの周りに9つのアイコンが開く。</p>
+        <p class="lead">トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに9つのアイコンが開く。</p>
         <div class="cta">
           <a class="btn" href="thanks.html">14日間無料で試す</a>
           <a class="btn btn-secondary" href="#pricing">¥1,480・買い切り</a>
@@ -131,7 +131,7 @@
           <video src="images/demo.mp4" poster="images/demo-poster.jpg" width="1440" height="900" muted loop playsinline controls preload="metadata"></video>
           <button class="video-toggle" type="button" data-video-toggle hidden aria-label="動画を止める"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg></button>
         </div>
-        <p class="visually-hidden" id="demo-description">実際の画面の収録。右下の図が、トラックパッドの上の指。指が上の縁から滑ると、ポインタの周りに9つのアイコンが開く。Xcode では「実行」、Zoom では「ミュート」で離して実行する。輪のすぐ下で止めてウインドウを画面の左半分に置き、次のページのランチャーから「メール」を開く。最後は輪の外で離して、何も実行せずに閉じる。指の動きは台本どおりに入れたもので、2回の収録をつないである。</p>
+        <p class="visually-hidden" id="demo-description">実際の画面の収録。右下の図が、トラックパッドの上の指。指を強く押し込んで止めると、ポインタの周りに9つのアイコンが開く。Xcode では「実行」、Zoom では「ミュート」で離して実行する。輪のすぐ下で止めてウインドウを画面の左半分に置き、次のページのランチャーから「メール」を開く。最後は輪の外で離して、何も実行せずに閉じる。指の動きは台本どおりに入れたもので、2回の収録をつないである。</p>
       </figure>
 
       <ul class="promises" aria-label="3つの約束">
@@ -144,28 +144,19 @@
 
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
-      <h2 id="how-title" class="section-title">滑らせて、離すだけ</h2>
+      <h2 id="how-title" class="section-title">押し込んで、離すだけ</h2>
       <ol class="cards">
         <li>
           <div class="shot">
-            <!-- トラックパッドの図（デモ動画の右下の図と同じ形: 白い指に緑の縁） -->
-            <svg viewBox="0 0 540 540" role="img" aria-label="トラックパッドの上の縁に置いた指を、下へ滑らせたところ">
-              <defs>
-                <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
-                  <stop offset="1" stop-color="#ffffff" stop-opacity="0.55"/>
-                </linearGradient>
-                <clipPath id="pad-clip"><rect x="80" y="140" width="380" height="253" rx="24"/></clipPath>
-              </defs>
+            <!-- トラックパッドの図（デモ動画の右下の図と同じ形: 白い指に緑の縁。押し込みを表す2重の輪） -->
+            <svg viewBox="0 0 540 540" role="img" aria-label="トラックパッドに置いた指を、強く押し込んだところ">
               <rect x="80" y="140" width="380" height="253" rx="24" fill="#2f2e34" stroke="#ffffff" stroke-opacity="0.1"/>
-              <rect x="80" y="140" width="380" height="30" fill="#ffffff" fill-opacity="0.08" clip-path="url(#pad-clip)"/>
-              <circle cx="270" cy="155" r="9" fill="#ffffff" fill-opacity="0.35"/>
-              <rect x="262" y="155" width="16" height="118" rx="8" fill="url(#trail)"/>
-              <circle cx="270" cy="282" r="21" fill="#ffffff" stroke="#30d158" stroke-width="5"/>
-              <path d="M252 334l18 18 18-18" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="270" cy="266" r="62" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+              <circle cx="270" cy="266" r="42" fill="none" stroke="#ffffff" stroke-opacity="0.4" stroke-width="4"/>
+              <circle cx="270" cy="266" r="21" fill="#ffffff" stroke="#30d158" stroke-width="5"/>
             </svg>
           </div>
-          <h3><span class="step-num">1</span>上の縁から、下へ</h3>
+          <h3><span class="step-num">1</span>強く押し込んで、止める</h3>
         </li>
         <li>
           <div class="shot"><img src="images/hud-xcode.webp" width="540" height="540" loading="lazy" alt="Xcode の9つのアイコンがポインタの周りに輪になって開き、上の「実行」に白い円が出ている"></div>

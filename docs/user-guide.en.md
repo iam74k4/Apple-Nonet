@@ -4,9 +4,9 @@
 
 ## About Nonet
 
-Slide a finger down from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
+Press firmly anywhere on the trackpad and hold for a moment, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
 
-- Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it
+- Press firmly anywhere on the trackpad (until the second click) and hold for a moment to open the nine buttons. Ease off, slide to choose one, then lift your finger on it to run it
 - The **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
 - If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
 - The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
@@ -37,13 +37,14 @@ The first time you open Nonet, the Welcome to Nonet window (the welcome guide) o
 
 **Why Nonet needs it**: macOS requires this permission for apps that work with the pointer and keyboard while you use other apps. Nonet uses it only to:
 
+- Hold on to a trackpad click until it's clear whether you pressed firmly and held (if you didn't, the click goes through right away)
 - Keep pointer movement and clicks from reaching the front app while the nine buttons are open
 - Notice a key press while the nine buttons are open, so it can close them without running anything. While they're closed, Nonet doesn't look at the keyboard at all
 - Send the keystrokes you set up, choose menu items and read selected text
 
 **What Nonet doesn't collect**: Nonet never records or sends what you type. Your settings are stored only on your Mac (in `~/Library/Application Support/Nonet/`), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the [privacy policy](privacy.md).
 
-You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). If you slide down from the top edge before allowing it, the nine buttons don't open, and "Accessibility permission required" appears at the bottom of the screen with where to turn it on (you feel two light taps). If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
+You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). Until you allow it, pressing firmly on the trackpad is just an ordinary click, and the nine buttons don't open. If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
 
 The first time you use a File action, or a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
 
@@ -52,7 +53,7 @@ The first time you use a File action, or a script uses the URL of the page shown
 The Welcome to Nonet window has two steps, shown at the top.
 
 1. **Accessibility**: the permission described above
-2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel outside the ring**: open the HUD from the top edge again, then move the pointer outside the ring of icons and lift your finger. Nothing runs in practice mode. Practice works only while the welcome guide window is in use; if you click another app, the buttons run for real. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
+2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: rest a finger on the trackpad, press firmly and hold for a moment, and when the HUD opens, ease off and slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel outside the ring**: press firmly again to open the HUD, then move the pointer outside the ring of icons and lift your finger. Nothing runs in practice mode. Practice works only while the welcome guide window is in use; if you click another app, the buttons run for real. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
 At the bottom of the practice step are the **Open Nonet automatically when you log in** checkbox, **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). The checkbox is checked the first time you open Nonet. When you see the guide again, it starts from your current setting (**Open at login** in Settings). Nonet applies your choice when the guide closes from the practice step (with **Done**, **Skip**, **Open Settings** or the window's close button). If macOS needs your approval, System Settings opens at Login Items, the practice step says "To open Nonet at login, allow it in System Settings under Login Items.", and the guide stays open (click the button again to close it). If you can't see the Nonet icon in the menu bar, the practice step says "If you can't see the icon in the menu bar, open Nonet from the Applications folder to open Settings."
 
@@ -68,16 +69,20 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 ### Opening the buttons
 
-1. Place one finger on the top edge (the far edge) of the trackpad
-2. Slide it straight down in one smooth move
+1. Rest one finger anywhere on the trackpad (the HUD opens around the pointer wherever it is)
+2. Press firmly: past the ordinary click (the first click) until you feel a second click. This is a Force Click in macOS
+3. Hold it there for a moment (about 0.25 seconds with the standard setting)
 
-The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
+The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. Once they're open you can ease off the press (keep your finger on the trackpad). The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything. Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
 
-- They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
-- Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
-- The speed of your finger isn't checked (it opens if your finger moves about 5 mm down within 0.6 seconds of touching). If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
-- They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
-- They don't open while a Nonet window, such as Settings or the welcome guide, is in front (except for practice in the welcome guide), because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
+- While you press firmly and hold, that click doesn't reach the front app. When the buttons open, Nonet drops the click, so nothing under the pointer is clicked
+- If you lift without pressing firmly (an ordinary click), move while pressing (a drag), or keep a light press for 0.6 seconds (for menus that appear when you hold a button), Nonet passes the click on to the front app as it was. An ordinary click reaches the app when you lift instead of when you press, which you'll hardly notice
+- **Open sensitivity** in Settings sets how long to hold (Low 0.5 seconds, Standard 0.25 seconds, High 0.1 seconds)
+- You need a Force Touch trackpad (the built-in trackpad of MacBooks from 2015 on, or Magic Trackpad 2 and later). If **Force Click and haptic feedback** is off in **System Settings › Trackpad**, there's no second click and the buttons don't open (the General tab of Settings shows a notice)
+- If **Look up & data detectors** is set to **Force Click with one finger**, Nonet gets the firm press first, so Look Up doesn't appear. To keep using Look Up, set it to **Tap with three fingers** in **System Settings › Trackpad**
+- Mouse clicks, the click from **Tap to click** that arrives after you lift, and secondary clicks (two-finger clicks) pass through untouched
+- While an app set to **Turn Off in This App** is in front, and while you're recording keys in Settings, Nonet doesn't hold clicks, and a firm press is an ordinary click
+- They don't open while a Nonet window, such as Settings or the welcome guide, is in front (except for practice in the welcome guide), because Settings uses the trackpad for things like dragging buttons. The click goes through instead. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
 - The HUD appears on the display with the pointer. When there is no room for the ring at the edge of the screen, the ring is moved to where it fits and the pointer is moved to its center instead
 
 ### Choosing and running a button
@@ -184,10 +189,10 @@ Click the Nonet icon (the ring of dots) in the menu bar to open the Nonet menu.
 | Dismiss Notice | Appears with a notice, for example when Nonet couldn't read its settings file |
 | Stop “Build” | Appears just below the status line only while a background script, shortcut or AI button is running. Choose it to stop the button the same way the timeout does; "Stopped “Build”" appears at the bottom of the screen (it isn't counted as a failure, and Recent Runs marks it "■") |
 | Cheat sheet | Shows the buttons the front app would open with, starting from the first page. Use ‹ › to see the other pages. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). Option-click a button to run it in the front app, the same way as **Test This Button** in Settings (with VoiceOver, use the action **Run in Front App**). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
-| Enable Nonet | Uncheck it, and sliding down from the top edge no longer opens the buttons |
+| Enable Nonet | Uncheck it, and pressing firmly on the trackpad no longer opens the buttons (it's an ordinary click) |
 | Settings… | Opens the Settings window on the General tab |
 | Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). For an app without a preset the new profile is empty, and until you add a button to it, the Global pages open in that app too. If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
-| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
+| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, pressing firmly doesn't open the nine buttons, and the trackpad works as usual (Nonet doesn't hold clicks). Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
 | Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason, and ones you stopped show "■" (long lines are cut short). Choose one to open that button on the Profiles tab of Settings. For a failed one, the whole reason also appears in the result panel, where you can select and copy it |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | User Guide | Opens this guide |
@@ -211,7 +216,7 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to see the three **When in Front** choices and **Duplicate for Another App…**, **Reset to Preset…** (only for apps with a preset), **Export This Profile…** and **Delete…**. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)
 - **Clean Up Profiles…**: appears under the list (and when you Control-click a profile) once you have two or more app profiles. Select the profiles of apps you don't use and delete them all at once (with **Select All**, **Deselect All**, and **Select Missing Apps** when some apps aren't on this Mac). Nonet asks once and keeps one earlier version, and ⌘Z or **Undo** under the grid brings them all back to where they were
-- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
+- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, pressing firmly doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
 - With 8 or more app profiles, a **Filter by name, button or keys** field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like `⌘B`). Results look like "Xcode › Build"
 - **Enable Nonet** under the list is the same switch as in the General settings
 
@@ -408,9 +413,10 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 
 | Setting | Default | What it does |
 |---|---|---|
-| Enable Nonet | On | When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD). You can also switch it in the Nonet menu and under the profile list |
+| Enable Nonet | On | When off, pressing firmly on the trackpad doesn't open the nine icons (the HUD); it's an ordinary click. You can also switch it in the Nonet menu and under the profile list |
 | How to open and cancel | | Briefly shows how to open, run, cancel and change pages, with a drawing of the trackpad. **Learn more in the User Guide** opens this guide (see [Basics](#basics)) |
-| Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
+| Force Click is off in macOS | | Shown only while **Force Click and haptic feedback** is off in macOS. **Open Trackpad Settings** opens the Trackpad section of System Settings |
+| Open sensitivity | Standard | Low, Standard or High. Sets how long you hold a firm press before the buttons open (0.5, 0.25 or 0.1 seconds; see [Opening the buttons](#opening-the-buttons)). Choose Low if you tend to click hard and open the buttons by accident, and High if holding still feels slow |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you move to another icon and when a button runs (Force Touch trackpads only). Two taps when the page changes, one stronger tap when you switch between the app's pages and the Global pages, and two light taps mean they closed without running anything |
 
@@ -455,7 +461,7 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 
 - You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the Nonet tab of Settings
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
-- When the trial ends, sliding down from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps; when the menu bar icon is hidden, the second line reads "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Enter License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
+- When the trial ends, pressing firmly no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps; when the menu bar icon is hidden, the second line reads "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Enter License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
 - After you buy Nonet, your license key arrives by email (within 24 hours at the latest). One license covers every Mac you use. You can get a full refund within 30 days of purchase
 - Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the Nonet tab says why, and Nonet goes back to the trial if any trial time is left
 
@@ -481,7 +487,7 @@ When Nonet can't work, the top line of the Nonet menu and the banner at the top 
 
 ### “Accessibility permission required”
 
-This also appears at the bottom of the screen when you slide down from the top edge without the permission; the nine buttons don't open (the same notice appears at most once every 30 seconds).
+Without the permission, pressing firmly on the trackpad is an ordinary click, and the nine buttons don't open.
 
 - Click **Open System Settings** in the banner at the top of the Settings window (the first click shows the macOS prompt; click again to open System Settings), or choose **Allow Accessibility Access…** from the Nonet menu
 - Turn on Nonet in **System Settings › Privacy & Security › Accessibility**. Nonet starts working once you allow it
@@ -489,7 +495,7 @@ This also appears at the bottom of the screen when you slide down from the top e
 
 ### “Nonet doesn't work while you enter a password”
 
-While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons (sliding down from the top edge shows "Doesn't open while you're entering a password" at the bottom of the screen, at most once every 30 seconds). Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
+While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons (pressing firmly shows "Doesn't open while you're entering a password" at the bottom of the screen, at most once every 30 seconds, and the click goes through). Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
 
 ### “Can't find a multi-touch trackpad”
 
@@ -501,8 +507,9 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down right after touching near the far edge does open them, even at ordinary pointer speed (see [Opening the buttons](#opening-the-buttons) under Basics)
-- While a Nonet window such as Settings is in front, sliding down from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
+- Make sure you press firmly until you feel a second click, then hold for a moment. If you stop at the first click (an ordinary click), Nonet passes it on as an ordinary click after 0.6 seconds (see [Opening the buttons](#opening-the-buttons) under Basics)
+- Make sure **Force Click and haptic feedback** is on in **System Settings › Trackpad** (when it's off, the General tab of Settings shows a notice). Trackpads without Force Touch can't open the buttons
+- While a Nonet window such as Settings is in front, pressing firmly doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing
 
@@ -510,7 +517,7 @@ When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again fro
 
 ### The buttons open when you didn't mean to
 
-If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. If it happens often, start pointer moves a little away from the far edge, or set **Open sensitivity** on the General tab of Settings to Low (if you lift right after the buttons open three times within 10 minutes, a notice at the bottom of the screen suggests this once). For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+If you tend to click hard, an ordinary click can reach the second click and open the nine buttons when you hold it. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. The click doesn't reach the app, so click again. If it happens often, set **Open sensitivity** on the General tab of Settings to Low (the buttons open only after a 0.5-second hold), or set **Click** to Firm in **System Settings › Trackpad** (if you lift right after the buttons open three times within 10 minutes, a notice at the bottom of the screen suggests this once). For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
 
 ### The pointer doesn't move or clicks don't work
 

@@ -8,7 +8,7 @@
 
 ## 日本語
 
-最終更新: 2026年11月15日
+最終更新: 2026年11月23日
 
 Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち」）が提供する macOS 用のアプリです。本アプリは、あなたの情報を集めないように作っています。
 
@@ -35,7 +35,8 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 本アプリは macOS の「アクセシビリティ」の許可を、次のことだけに使います。
 
-- 9マスを開いている間、クリック・スクロール・ジェスチャーを前面のアプリに渡さない（ポインタの移動はふだんどおりで、前面のアプリにも届く）。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときはポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
+- 9マスを開いている間、クリック・スクロール・ジェスチャーを前面のアプリに渡さない（ポインタの移動はふだんどおりで、前面のアプリにも届く）。そのためのポインタのイベントタップは、9マスを開いている間と、閉じた直後の短い後片付けの間（遅れて届くクリックと、開いている間に渡さなかったクリックの「離す」やスクロールの続きを捨てる間）だけ有効にし、それ以外のときは（次の項目のクリックの預かりを除き）ポインタのイベントが本アプリを通りません。開いている間に、トラックパッドに指を触れずにマウスやホイールを使ったときは、そのイベントを手を加えずに前面のアプリに渡し、9マスを閉じます。
+- トラックパッドを強く押し込んで止めたときに9マスを開くため、トラックパッドで押した左クリックを、強く押し込んで止めたかが分かるまで（強く押し込まなければ最長0.6秒）前面のアプリに渡さずに預かる。強く押し込んで止めなかったときは、そのクリックを手を加えずに前面のアプリに渡し、9マスを開いたときは捨てる。そのためのクリックのイベントタップは左ボタンの押下だけを受け取り、預かっている間だけポインタのイベントタップも有効にする。マウスのクリックと、「このアプリでは使わない」にしたアプリが前面のときのクリックは預からない。クリックの位置や回数は、記録も保存も送信もしません。
 - 9マスを開いている間だけ、キーが押されたことを知り、押されたら何も実行せずに9マスを閉じる。キーボードのイベントタップは9マスを開いている間だけ有効にし、それ以外のときはキーボードのイベントが本アプリを通りません。押されたキーは手を加えずに前面のアプリに渡します。入力した文字の内容は、記録も保存も送信もしません。
 - あなたが設定したキー入力を前面のアプリに送り、メニュー項目を押す。メニュー項目のショートカットを送る前には、アプリのメニューにあるその項目のショートカットを読み、同じかを確かめる。
 - 「画面に置く」のアクションで、前面のアプリのウインドウの位置と大きさを読んで変える。9マスでそのマスを光らせている間は、置く枠を画面に出すために位置と大きさを読む。読んだ値はその場で使うだけで、保存も送信もしません。
@@ -44,7 +45,7 @@ Nonet（以下「本アプリ」）は、Takanari Okazaki（以下「私たち�
 
 クリップボードを一時的に使うときは、パスワード管理アプリがパスワードとしてコピーしたもの（`org.nspasteboard.ConcealedType` の印があるもの）を読みも戻しもしません。macOS（15.4 以降）がクリップボードを読む前に確かめる設定のときは、その答えに従い、拒否されていればクリップボードを読みません。
 
-トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み（この読み取りには許可は要りません）、9マスを開く動き（上の縁から指を滑らせる）を見分けることのためにメモリの中だけで使います。保存も送信もしません。
+トラックパッドの指の位置は、macOS のマルチタッチの仕組みから読み（この読み取りには許可は要りません）、トラックパッドに触れているかを知ることと、9マスを開いている間の指の動き（マスを選んで離したか など）を見分けることのためにメモリの中だけで使います。保存も送信もしません。
 
 ### 4. オートメーション（Apple Events）
 
@@ -102,7 +103,7 @@ Takanari Okazaki（問い合わせ先: support@astlog.dev）
 
 ## English
 
-Last updated: November 15, 2026
+Last updated: November 23, 2026
 
 Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.
 
@@ -129,7 +130,8 @@ When you use “Contact Support…” in the app, the email it creates contains 
 
 The app uses the macOS Accessibility permission only to:
 
-- Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
+- Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app (except for holding a click, described next). If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.
+- Hold a left click made on the trackpad, without passing it to the front app, until it is clear whether you pressed firmly and held, so that a firm press can open the nine buttons (at most about 0.6 seconds if you don't press firmly). If you didn't press firmly and hold, the app passes the click to the front app unchanged; if the nine buttons open, it drops the click. The click event tap for this receives only left-button presses, and the pointer event tap is enabled only while a click is being held. Mouse clicks, and clicks while an app set to Turn Off in This App is in front, are never held. The position and number of clicks are never recorded, stored or sent.
 - Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.
 - Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.
 - Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.
@@ -138,7 +140,7 @@ The app uses the macOS Accessibility permission only to:
 
 When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked `org.nspasteboard.ConcealedType`). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.
 
-Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge). They are never stored or sent.
+Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to know whether a finger is on the trackpad and to follow your finger while the nine buttons are open (for example, whether you lifted it on a button). They are never stored or sent.
 
 ### 4. Automation (Apple Events)
 

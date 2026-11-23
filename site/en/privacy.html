@@ -53,7 +53,7 @@
 <main id="main" class="doc">
   <div class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: November 15, 2026</p>
+    <p class="updated">Last updated: November 23, 2026</p>
 
     <p>Nonet ("the app") is a macOS app provided by Takanari Okazaki ("we"). The app is designed not to collect your information.</p>
 
@@ -78,7 +78,8 @@
     <h2>3. How the Accessibility permission is used</h2>
     <p>The app uses the macOS Accessibility permission only to:</p>
     <ul>
-      <li>Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app. If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.</li>
+      <li>Keep clicks, scrolling and gestures from reaching the front app while the nine buttons are open (the pointer keeps moving as usual, and the front app still sees it move). The pointer event tap for this is enabled only while the nine buttons are open and for a short clean-up right after they close (to drop a late click, and the release of a click or the rest of a scroll that it held back while they were open); at all other times, pointer events never pass through the app (except for holding a click, described next). If you use a mouse or scroll wheel while the buttons are open and no finger is on the trackpad, the app passes that event to the front app unchanged and closes the buttons.</li>
+      <li>Hold a left click made on the trackpad, without passing it to the front app, until it is clear whether you pressed firmly and held, so that a firm press can open the nine buttons (at most about 0.6 seconds if you don't press firmly). If you didn't press firmly and hold, the app passes the click to the front app unchanged; if the nine buttons open, it drops the click. The click event tap for this receives only left-button presses, and the pointer event tap is enabled only while a click is being held. Mouse clicks, and clicks while an app set to Turn Off in This App is in front, are never held. The position and number of clicks are never recorded, stored or sent.</li>
       <li>Notice that a key was pressed while the nine buttons are open, so that it can close them without running anything. The keyboard event tap is enabled only while the nine buttons are open; at all other times, keyboard events never pass through the app. The key still reaches the front app unchanged. What you type is never recorded, stored or sent.</li>
       <li>Send the keystrokes you configured to the front app and choose menu items. Before sending a menu item's keyboard shortcut, the app reads that item's shortcut in the app's menus to check that they match.</li>
       <li>Read and change the position and size of the front app's window when a Place on Screen action runs. While that button is highlighted among the nine buttons, the app reads the position and size to outline the target area on screen. What it reads is used only at that moment and is never stored or sent.</li>
@@ -86,7 +87,7 @@
       <li>Just before an action you configured runs, read the information passed to it. For a script, the app always reads the location of the document open in the front window, and reads the selected text only when the script contains the variable <code>NONET_SELECTED_TEXT</code>. For a shortcut, it reads the selected text only when “Pass selected text as input” is on; for an AI action, it always reads the selected text. In apps whose selection cannot be read directly, the app copies it with ⌘C through the clipboard and then restores the clipboard. What it reads is passed only to that action and is never stored or sent.</li>
     </ul>
     <p>When the app uses the clipboard this way, it never reads or puts back a password copied by a password manager (content marked <code>org.nspasteboard.ConcealedType</code>). If macOS (15.4 or later) is set to ask before apps read the clipboard, the app follows your answer, and if reading is denied, it does not read the clipboard.</p>
-    <p>Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to recognize the slide that opens the nine buttons (a finger sliding down from the top edge). They are never stored or sent.</p>
+    <p>Finger positions on the trackpad are read through macOS's multi-touch support (reading them needs no permission) and used only in memory to know whether a finger is on the trackpad and to follow your finger while the nine buttons are open (for example, whether you lifted it on a button). They are never stored or sent.</p>
 
     <h2>4. Automation (Apple Events)</h2>
     <p>The app sends Apple Events to other apps in only two cases. macOS asks for your permission to control that app the first time.</p>

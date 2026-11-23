@@ -261,7 +261,8 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
     @discardableResult
     func forcePress() -> Bool {
         guard isRunning, forcePressHold != nil else { return false }
-        send(.forcePressed)
+        // send と違い suppressionAfterEvent には数えない（キーやマウスでの中断だけを数える）
+        onEvent?(.forcePressed)
         return true
     }
 

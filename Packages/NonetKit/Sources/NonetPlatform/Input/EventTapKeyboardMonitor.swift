@@ -40,6 +40,7 @@ public final class EventTapKeyboardMonitor: KeyboardMonitor {
                 returnHeldClick()
             }
             updateClickTap()
+            updatePointerTap()
             scheduleHolderTimer()
         }
     }
