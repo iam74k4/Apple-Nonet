@@ -26,9 +26,9 @@
       "tag": "ページ"
     },
     {
-      "symbol": "arrow.down",
-      "text": "下で止めると、グローバルのページ",
-      "tag": "下"
+      "symbol": "arrow.up.arrow.down",
+      "text": "下でユーティリティ、上でグローバル",
+      "tag": "上下"
     }
   ]
 }
