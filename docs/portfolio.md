@@ -38,11 +38,11 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
 - **2026-11-08 の差し替え**: アイコンを暗い丸い台に載せ、下で止めてグローバルのページへ移るようにした版で、メインの画像・ほかの画像 2〜4・デモ動画（13.9 秒・301KB・H.264・1440×900）を作り直し、同じ wrangler の手順で差し替えた（KV `items/nonet-<16進 32 字>.<拡張子>` に置き、metadata は `contentType` と `size` → D1 の `items.image_url`・`image_alt` と `item_shots` の `url`・`alt`・寸法を書き換え → 古い5つを `archive/`（`expirationTtl` 90 日、metadata に `originalKey`・`archivedAt`）へ写してから消す → `site:version` を新しい UUID に）。メインの代替テキストは真ん中を「Claude Code」に、動画とほかの画像 2 の代替テキストは下で止めてグローバルのページへ移る流れに直した。見本の設定は Xcode の1ページ目の真ん中と右（クイックオープンと Claude Code）を入れ替えたもの、ランチャーの画像はさらにグローバルの1・2ページ目を入れ替えたもの。動画は台本を流す前にポインタを録る範囲の真ん中へ動かし（HUD はポインタの位置に開く）、0.5 秒ごとのコマで背景以外が写っていないことを確かめた。zsh では行を単語に分けないので、キーと大きさを並べて回すときは bash で回す
 - **共通の背景にそろえる（2026-11-09）**: 所有者が全アプリの背景を無彩色（`#1F1F21` → `#0E0E0F`）に決めた。画像4枚は `make-backdrop.swift` の背景で作り直し、wrangler で差し替えた（メイン `nonet-16b4aeab7423a13f7a094fa2bb251c28.jpg`・並び順 10 `nonet-86ff5fe439e90fec7d704799be0f943d.jpg`・20 `nonet-2cc9d47189abd165f66034a897454198.jpg`・30 `nonet-8d62ab7ff343ebd1a1f466aad00f8955.jpg`。前の4枚は `archive/` に 90 日。文言は公開中の版（ページの画像の箇条は develop の `docs/astlog-images/shot10.json`））。**動画（2026-11-08）はまだ前のまま**: メニューバーが日付やアイコンの無い帯で、地も前の色。所有者の指示で、Nonet の動作確認のセッションが終わってから、その版で撮り直して差し替える（2026-11-09 に develop を入れた版で試しに撮ったものは `build/astlog/demo.mp4`。差し替えには使わない）。撮り直すときの残りの課題: macOS が収録中に出す紫の印が、描いたメニューバーの日付のすぐ左に写る。WindowServer が描く印なので、ScreenCaptureKit の `excludingApplications`（コントロールセンター・SystemUIServer）では消えなかった。コマごとにメニューバーの帯（上の 34pt）を背景の PNG で塗り直すなど、収録の側で消す
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
-- **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足し、購入画面が開くようになったら `Buy` を足す（[リンクを追加する](#リンクを追加する任意)）
+- **リンク（2026-11-25）**: `Website` / `https://nonet.astlog.dev/` の1本だけを足した（日本語の販売ページ。AstLog の文は日本語なので、英語の `/en/` は足さない）。作品のページと Projects の一覧に出る。押し手（`lead_link`）は 0 のまま。管理画面は使わず、この Mac の wrangler で書いた: 本番 D1 の `item_links` に1行（`item_id` 4・`sort_order` 0）→ `items.updated_at` を進める → AstLog のリポジトリで `npm run site:touch`（`site:version` を進める）。`Download`・`Buy` は発売してから足す（[リンクを追加する](#リンクを追加する任意)）
 
 ## 0. 前提
 
-- **下書きで保存し、公開は後にする。** Website のリンク先 https://nonet.astlog.dev/ は、まだ開いていない。Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする
+- **下書きで保存し、公開は後にする。**（これは 2026-10-31 の下書きのときの前提。Nonet の項目はすでに公開済みで、Website のリンク先 https://nonet.astlog.dev/ は 2026-11-25 に開いているのを確かめて足した。）Website のリンク先は、Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする
 - 販売ページの仮の値（購入のページの `TODO: Paddle の…`・`support@TODO.invalid` など）が残ったまま AstLog に公開すると、リンクの先で TODO が見える。`scripts/check-site.sh --strict` が通ってから公開する
 - AstLog の Worker が持つのは `astlog.dev` の custom domain だけ（AstLog の `wrangler.toml` の `routes`）。同じ Cloudflare アカウントで `nonet.astlog.dev` を別の Worker（`cloudflare/`）に当てても、AstLog とはぶつからない
 - 手元の AstLog（`/Users/iam74k4/Git/Web-AstLog`）は `develop` で、本番より古い。この文書の欄・上限・画像の決まりは本番の `main`（`cb899fd`）に合わせた（作品の文書の欄・動画・保存後に編集画面へ戻る、は `main` にしか無い）
@@ -131,7 +131,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 
 | ラベル | URL | いつ |
 |---|---|---|
-| `Website` | `https://nonet.astlog.dev/` | いま入れる（公開は販売ページが開いてから） |
+| `Website` | `https://nonet.astlog.dev/` | **2026-11-25 に入れた**（販売ページが開いてから） |
 | `Download` | `https://nonet.astlog.dev/download` | **いまは入れない。** 公証済みの DMG を出したら、Website の次に足す（最新の DMG へ飛ぶ固定の URL） |
 | `Buy` | `https://nonet.astlog.dev/buy.html` | **いまは入れない。** 購入のページ（`site/buy.html`）に Paddle のトークンと価格の ID を入れて公開し、Paddle の購入画面が開くのを確かめてから、Download の次に足す |
 | `Repository` | — | **入れない。** 有料のアプリなので、GitHub のリポジトリ（`iam74k4/Apple-Nonet`）は非公開にした（2026-10-31） |
