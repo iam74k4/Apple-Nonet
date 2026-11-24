@@ -387,10 +387,49 @@ struct SettingsURLEditor: View {
                         symbol: check.isProblem ? "exclamationmark.triangle" : "info.circle",
                         isWarning: check.isProblem
                     )
+                } else if url.usesSelection {
+                    SettingsNote(text: String(localized: "{selection} を、そのとき選んでいるテキストに置き換えて開きます。何も選んでいなければ開きません。", bundle: .module))
                 } else {
-                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。", bundle: .module))
+                    SettingsNote(text: String(localized: "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。{selection} と書くと、選んでいるテキストに置き換えます。", bundle: .module))
                 }
+                selectionMenu
             }
+        }
+    }
+
+    /// 選んだテキストで開く URL（検索・翻訳など）のひな形と、{selection} を足す
+    private var selectionMenu: some View {
+        Menu {
+            ForEach(URLSelectionTemplate.allCases, id: \.self) { template in
+                Button(Self.title(template)) { set(template.url(languageCode: Self.languageCode)) }
+            }
+            Divider()
+            Button(String(localized: "URL の最後に {selection} を足す", bundle: .module)) {
+                set(url.url + URLAction.selectionPlaceholder)
+            }
+            .disabled(url.url.isEmpty || url.usesSelection)
+        } label: {
+            Text("選んだ言葉で開く", bundle: .module)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+
+    private func set(_ text: String) {
+        model.updateAction(ofCell: cellID, as: URLAction.self) { $0.url = text }
+    }
+
+    /// 翻訳の先と Wikipedia の言語（Mac の言語）
+    static var languageCode: String {
+        Locale.preferredLanguages.first.map { Locale(identifier: $0).language.languageCode?.identifier ?? "en" } ?? "en"
+    }
+
+    static func title(_ template: URLSelectionTemplate) -> String {
+        switch template {
+        case .googleSearch: String(localized: "Google で検索", bundle: .module)
+        case .googleTranslate: String(localized: "Google 翻訳", bundle: .module)
+        case .youTubeSearch: String(localized: "YouTube で検索", bundle: .module)
+        case .wikipedia: String(localized: "Wikipedia で調べる", bundle: .module)
         }
     }
 }
@@ -846,5 +885,109 @@ struct SettingsPlaceWindowEditor: View {
         .buttonStyle(.plain)
         .accessibilityLabel(region.title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// 「再生・音量」: 送るキーを選ぶ（4つずつ2段）
+struct SettingsMediaEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let media: MediaAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "押すキー", bundle: .module)) {
+                Grid(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(0..<2, id: \.self) { row in
+                        GridRow {
+                            ForEach(0..<4, id: \.self) { column in
+                                keyButton(MediaKey.allCases[row * 4 + column])
+                            }
+                        }
+                    }
+                }
+                Text(SettingsText.mediaDetail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func keyButton(_ key: MediaKey) -> some View {
+        let isSelected = key == media.key
+        return Button {
+            model.chooseMediaKey(key, forCell: cellID)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: key.symbol)
+                    .font(.system(size: 16))
+                Text(key.title)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(width: 62, height: 50)
+            .foregroundStyle(isSelected ? Color(nsColor: .alternateSelectedControlTextColor) : Color.primary)
+            .background(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).fill(isSelected ? Color.accentColor : SettingsPalette.cellBackground))
+            .overlay(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius).strokeBorder(isSelected ? Color.clear : SettingsPalette.cellBorder))
+            .contentShape(RoundedRectangle(cornerRadius: SettingsMetrics.mediumRadius))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(key.title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// 「最近のスクショ」: 並べる数と、画面の収録も並べるか
+struct SettingsScreenshotTrayEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let tray: ScreenshotTrayAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "並べる数", bundle: .module)) {
+                Picker(selection: Binding(get: { tray.count }, set: { count in model.setScreenshotTray({ $0.count = count }, forCell: cellID) })) {
+                    ForEach(ScreenshotTrayAction.counts, id: \.self) { count in
+                        Text(verbatim: "\(count)").tag(count)
+                    }
+                } label: {
+                    Text("並べる数", bundle: .module)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 220)
+            }
+            Toggle(isOn: Binding(get: { tray.includesVideos }, set: { on in model.setScreenshotTray({ $0.includesVideos = on }, forCell: cellID) })) {
+                Text("画面の収録（動画）も並べる", bundle: .module)
+            }
+            SettingsNote(text: SettingsText.screenshotsDetail)
+        }
+    }
+}
+
+/// 「テキストを貼る」: 貼るテキスト（{date}・{time} は貼るときに置き換える）
+struct SettingsPasteTextEditor: View {
+    let model: SettingsModel
+    let cellID: UUID
+    let paste: PasteTextAction
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SettingsField(title: String(localized: "貼るテキスト", bundle: .module)) {
+                SettingsCommitTextEditor(
+                    value: paste.text,
+                    minHeight: 90,
+                    accessibilityLabel: String(localized: "貼るテキスト", bundle: .module)
+                ) { text in
+                    model.updateAction(ofCell: cellID, as: PasteTextAction.self) { $0.text = text }
+                }
+                Text(SettingsText.pasteTextDetail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

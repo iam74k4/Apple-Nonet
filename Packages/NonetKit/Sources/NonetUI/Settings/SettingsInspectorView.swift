@@ -11,7 +11,7 @@ struct SettingsInspectorView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if let index = model.selectedIndex {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(SettingsGrid.cellName(index))
+                        Text(SettingsGrid.cellName(index, layout: model.currentPage.layout))
                             .font(.system(size: 15, weight: .bold))
                         Spacer()
                         if model.selectedProfile.pages.count > 1 {
@@ -147,6 +147,12 @@ struct SettingsCellEditor: View {
             SettingsFileEditor(model: model, cellID: cell.id, file: file)
         case .placeWindow(let place):
             SettingsPlaceWindowEditor(model: model, cellID: cell.id, place: place)
+        case .screenshots(let tray):
+            SettingsScreenshotTrayEditor(model: model, cellID: cell.id, tray: tray)
+        case .media(let media):
+            SettingsMediaEditor(model: model, cellID: cell.id, media: media)
+        case .pasteText(let paste):
+            SettingsPasteTextEditor(model: model, cellID: cell.id, paste: paste)
         }
     }
 }

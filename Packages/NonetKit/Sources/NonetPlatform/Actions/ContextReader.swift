@@ -258,6 +258,15 @@ enum BrowserURLReader {
         "com.brave.Browser", "com.brave.Browser.beta", "com.brave.Browser.nightly",
     ]
 
+    /// サイトごとのボタンで見るブラウザ（Safari と Chromium 系。BrowserSiteReader）
+    static func isSupported(bundleID: String) -> Bool {
+        safariIDs.contains(bundleID) || chromiumIDs.contains(bundleID) || bundleID == "company.thebrowser.dia"
+    }
+
+    static func isChromium(bundleID: String) -> Bool {
+        chromiumIDs.contains(bundleID) || bundleID == "company.thebrowser.dia"
+    }
+
     /// 対応するブラウザなら AppleScript。bundleID は上の決まった表からしか入らない
     static func script(forBundleID bundleID: String) -> String? {
         if safariIDs.contains(bundleID) {

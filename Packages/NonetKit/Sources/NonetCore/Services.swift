@@ -12,7 +12,7 @@ public struct TouchPoint: Equatable, Sendable {
     /// false は近接・離れかけなど、触れていない状態
     public var isTouching: Bool
     /// 接触の楕円の長径（MultitouchSupport の majorAxis。指先でおよそ 8〜15）。分からなければ nil。
-    /// 手のひらを見分けるのに使う（EdgeSlideRecognizer.palmMajorAxis）
+    /// トラックパッドの図（デモ）で指の大きさを見せるのに使う
     public var majorAxis: Double?
 
     public init(id: Int, x: Double, y: Double, isTouching: Bool = true, majorAxis: Double? = nil) {
@@ -62,9 +62,17 @@ public enum KeyboardEvent: Equatable, Sendable {
     /// 9マスを開いている（ポインタを抑止している）間に、キーや修飾キーが押された（そのキーは前面アプリに渡す）。
     /// トラックパッドに触れていない間に届いたマウスやホイールのイベントも同じ
     case interrupted
+    /// トラックパッドのどこかを強く押し込み（強めのクリックの2段目）、そのまま forcePressHold だけ止めた。
+    /// そのクリックはまだ前面アプリに渡していない（預かっている）。受け取ったら、9マスを開くかを決めて finishForcePress で答える
+    case forcePressed
+    /// 強めのクリックの2段目まで押し込んだ。hold 秒止めると .forcePressed が来る（その間、ポインタに輪を見せる）
+    case forcePressStarted(hold: TimeInterval)
+    /// 押し込んだが、止め終える前に離した・動かした（輪を消す。クリックは前面アプリに返した）
+    case forcePressCancelled
 }
 
-/// キーボードとポインタのイベントタップ。9マスはトラックパッドだけで開くので、キーボードは開いている間だけ見る
+/// キーボードとポインタのイベントタップ。9マスはトラックパッドを強く押し込んで開くので、キーボードは開いている間だけ見る。
+/// 強く長押しで開けるとき（forcePressHold が nil でない）は、トラックパッドで押した左クリックを、強く押し込んで止めたかが分かるまで預かる
 @MainActor
 public protocol KeyboardMonitor: AnyObject {
     var cursorLock: CursorLockMethod { get set }
@@ -78,17 +86,19 @@ public protocol KeyboardMonitor: AnyObject {
     /// 抑止中に、トラックパッドに触れていない間（離してから少し経った後）に届いた押す・スクロール・移動は、
     /// マウスやホイールのものとみなす。そのイベントは手を加えずに前面アプリに渡し、.interrupted を1回送る
     var isTrackpadTouched: Bool { get set }
-    /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）。
-    /// 押し込んだまま（ドラッグを始めるところ など）の指で、9マスを開かないために使う
+    /// マウスやトラックパッドのボタンが、いま物理的に押されているか（どのボタンでも）
     var isMouseButtonDown: Bool { get }
+    /// 強く押し込んでから、.forcePressed を送るまで止めておく秒数（ForcePress.hold）。nil の間はクリックを預からず、強く押しても何もしない
+    /// （止めている・無効・許可なし・キーの記録中・「このアプリでは Nonet を使わない」アプリが前面 など、開けないとき）。
+    /// 預かっている間に nil にしたら、預かったクリックは前面アプリに返す
+    var forcePressHold: TimeInterval? { get set }
+    /// .forcePressed への答え。opened なら（9マスを開いた・開かずに知らせた）預かったクリックを捨て、
+    /// そのクリックの離すも捨てる（押したままの動きはボタンを押していない移動として渡す）。そうでなければ、クリックを前面アプリに返す
+    func finishForcePress(opened: Bool)
     var isRunning: Bool { get }
     /// アクセシビリティの許可が無ければ NonetError.permissionDenied
     func start() throws
     func stop()
-    /// いまのポインタの位置を覚える。次に isSuppressingPointer を true にしたとき、ポインタをここへ戻す
-    /// （開く動きで指を滑らせた分だけポインタが動くため。NonetController は指が上の縁で触れ始めたときに呼ぶ）。
-    /// CursorLockMethod.none では戻さない
-    func rememberPointerLocation()
     /// isSuppressingPointer を false にする。dropsLateClicks なら、その直後の短い間に届くクリックの「押す」も捨てる
     /// （終わる直前に離れた指の「タップでクリック」が、抑止の後に遅れて届くことがあるため）
     func endPointerSuppression(dropsLateClicks: Bool)
@@ -106,8 +116,14 @@ extension KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    /// ポインタを戻さない実装の既定
-    public func rememberPointerLocation() {}
+    /// クリックを預からない実装の既定（強く押しても開かない）
+    public var forcePressHold: TimeInterval? {
+        get { nil }
+        set {}
+    }
+
+    /// クリックを預からない実装の既定
+    public func finishForcePress(opened: Bool) {}
 
     /// ポインタの位置を知らない実装の既定（マスはトラックパッドの上の指の位置で選ぶ）
     public var pointerLocation: CGPoint? { nil }
@@ -136,7 +152,7 @@ public enum HapticEvent: Equatable, Sendable {
     /// 少し長く止めるマスを止め終えた（いま離すと実行する）
     case holdReady
     case execute
-    /// トラックパッドの上の縁から指を滑らせて9マスを開いた（開いたことを指に知らせる）
+    /// トラックパッドを強く押し込んで9マスを開いた（開いたことを指に知らせる）
     case activation
     /// 受け付けたが何もしなかった（外枠・境界の帯・空きマスで離した・止める時間が足りずに離した・2本以上の指で離した・
     /// 試用期間の終了や Nonet のウィンドウで実行しなかった・切り替える先の無い向きへスワイプした）。
@@ -202,11 +218,17 @@ public protocol FrontmostAppObserving: AnyObject {
     /// Nonet のウィンドウ（設定・初回の案内・結果のパネルなど）がいまキーで、送ったキーがそこに届くか。
     /// current は Nonet を数えないので、別に聞く。Nonet が前面のアプリでも、キーのウィンドウが無ければ false
     var isOwnWindowKey: Bool { get }
+    /// 前面のアプリがブラウザなら、前面のウインドウで見ているページのホスト名（サイトごとのボタン）。
+    /// 9マスを開くときに呼ぶ（読むのに少し掛かることがある）。ブラウザでない・読めなければ nil
+    func currentSiteHost() -> String?
 }
 
 extension FrontmostAppObserving {
     /// Nonet のウィンドウがキーになることの無い実装の既定
     public var isOwnWindowKey: Bool { false }
+
+    /// サイトを読まない実装の既定
+    public func currentSiteHost() -> String? { nil }
 }
 
 // MARK: - 設定画面で使うもの
@@ -316,6 +338,12 @@ public protocol HUDPresenting: AnyObject {
     /// 「画面に置く」のマスを光らせている間、置く枠（AppKit のグローバル座標）を画面に見せる。閉じるときは hide() で消す
     func showPlacementPreview(_ frame: CGRect)
     func hidePlacementPreview()
+    /// 最近のスクリーンショットのトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。
+    /// 探す・並べる・コピーする・ドラッグさせる・閉じるは画面が受け持つ（ScreenshotFolder で探す）
+    func showScreenshotTray(_ options: ScreenshotTrayAction)
+    /// 強く押し込んでから開くまでの間、ポインタの周りに duration で満ちる輪を出す（止め終えたら9マスが開く）
+    func showPressProgress(duration: TimeInterval)
+    func hidePressProgress()
 }
 
 extension HUDPresenting {
@@ -325,6 +353,13 @@ extension HUDPresenting {
     /// 置く枠を見せない実装の既定
     public func showPlacementPreview(_ frame: CGRect) {}
     public func hidePlacementPreview() {}
+
+    /// トレイを出さない実装の既定
+    public func showScreenshotTray(_ options: ScreenshotTrayAction) {}
+
+    /// 輪を出さない実装の既定
+    public func showPressProgress(duration: TimeInterval) {}
+    public func hidePressProgress() {}
 
 }
 

@@ -51,8 +51,11 @@ final class SettingsFakePerformer: ActionPerforming {
 final class SettingsFakeFrontmost: FrontmostAppObserving {
     var current: RunningAppInfo?
     var onChange: ((RunningAppInfo?) -> Void)?
+    /// 直前に使っていたブラウザで見ていたページのホスト名（テストで変える）
+    var siteHost: String?
     func start() {}
     func stop() {}
+    func currentSiteHost() -> String? { siteHost }
 }
 
 @MainActor

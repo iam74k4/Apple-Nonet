@@ -164,11 +164,12 @@ struct ActionScriptRunnerTests {
         let directory = try ActionTemporaryDirectory()
         var output: ProcessOutput?
         let elapsed = try await actionElapsedSeconds {
-            output = try await runScript("sleep 3 & echo done", in: directory)
+            // 裏の sleep を待てば 10 秒。遅い Mac（CI）でも本体の終わりから数秒で戻れば、待っていないと分かる
+            output = try await runScript("sleep 10 & echo done", in: directory)
         }
         #expect(output?.succeeded == true)
         #expect(output?.stdout == "done\n")
-        #expect(elapsed < 2.5)
+        #expect(elapsed < 6)
     }
 
     @Test("出力は上限まで、末尾を残す")

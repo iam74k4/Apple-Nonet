@@ -266,9 +266,9 @@ struct ShellOnboardingTests {
         #expect(!unchecked.isTrackpadMissing)
     }
 
-    @Test("ようこその説明は、上の縁から指を滑らせることを言う")
+    @Test("ようこその説明は、強く押し込んで止めることを言う")
     func welcomeSubtitleSaysHowToOpen() {
-        #expect(ShellText.tagline == L10n.ui("トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます"))
+        #expect(ShellText.tagline == L10n.ui("トラックパッドのどこかを強く押し込んで少し止めると、アプリごとに変わる9つのボタンが開きます"))
     }
 
     @Test("許可せずに先へ進める")
@@ -552,21 +552,21 @@ struct ShellOnboardingTests {
         #expect(opened == [.profiles])
     }
 
-    @Test("練習の手順は、上の縁から開いて目標のボタンの名前で離すこと、外枠で離してやめること")
+    @Test("練習の手順は、強く押し込んで開いて目標のボタンの名前で離すこと、外枠で離してやめること")
     func practiceInstructionText() throws {
         let (model, _) = Self.make()
         Self.enterPractice(model)
         let page = try #require(model.practicePage)
         let title = page.runTarget.title
         #expect(ShellText.practiceRunInstruction(page.runTarget)
-            == L10n.ui("トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「\(title)」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
+            == L10n.ui("トラックパッドのどこかに指を1本置いて強く押し込み（2回目のカチッまで）、そのまま少し止めると、ポインタの周りに9つのアイコン（HUD）が開きます。力を抜いて指を置いたまま滑らせ、ポインタを「\(title)」の上へ動かして、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。"))
         // 文をつなげて作らない（英語で文と文の間の空白が抜けないように。1つの文言の中で区切る）
         #expect(!ShellText.practiceRunInstruction(page.runTarget).contains(".If"))
         #expect(ShellText.practiceCancelInstruction
-            == L10n.ui("もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。"))
+            == L10n.ui("もう一度強く押し込んで HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。"))
         #expect(ShellText.practiceRanInsteadOfCancelling("X")
             == L10n.ui("「\("X")」で離しました。やめるときは、ポインタをアイコンの輪の外まで動かしてから離してください。"))
-        // トラックパッドには「押す」「長押し」と言わない
+        // ふつうのクリックと区別できない「長押し」とは言わない（強く押し込んで止める）
         for text in [ShellText.practiceRunInstruction(page.runTarget), ShellText.practiceCancelInstruction] {
             #expect(!text.contains("長押し"))
         }
@@ -892,7 +892,7 @@ struct ShellPracticeTextTests {
         // やめる課題の途中は、外枠で離す以外は、どれも同じ案内
         let cancelling = Set(reasons.map { ShellText.practiceNotRun($0, target: target, whileCancelling: true) })
         #expect(cancelling.count == 1)
-        // トラックパッドには「押す」「長押し」と言わない
+        // ふつうのクリックと区別できない「長押し」とは言わない（強く押し込んで止める）
         for text in texts + Array(cancelling) + [ShellText.practiceOpenHint] {
             #expect(!text.contains("押す") && !text.contains("長押し"))
         }

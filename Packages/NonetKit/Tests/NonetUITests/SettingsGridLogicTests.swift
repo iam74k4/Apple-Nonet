@@ -153,7 +153,7 @@ import UniformTypeIdentifiers
 
     @Test(arguments: [
         "", "hello", "nonet-settings-cell|", "nonet-settings-cell|not-a-uuid|0|0",
-        "nonet-settings-cell|\(UUID().uuidString)|0|9", "nonet-settings-cell|\(UUID().uuidString)|-1|0",
+        "nonet-settings-cell|\(UUID().uuidString)|0|12", "nonet-settings-cell|\(UUID().uuidString)|-1|0",
         "nonet-settings-cell|\(UUID().uuidString)|0", "nonet-settings-menu|",
     ])
     func dragPayloadRejectsForeignText(token: String) {

@@ -95,7 +95,7 @@ extension SettingsModel {
     }
 
     /// プロファイルのページをまとめて変え、変える前のページに戻せるようにする（やり直しも同じ道を通る）
-    private func replacePages(ofProfile id: UUID, actionName: String, _ change: (inout NonetConfiguration) -> Void) {
+    func replacePages(ofProfile id: UUID, actionName: String, _ change: (inout NonetConfiguration) -> Void) {
         guard let before = configuration.profile(id: id)?.pages else { return }
         controller.update(change)
         // 前の操作の「元に戻す」の知らせは閉じる（この変更が上に積まれるので、知らせからは戻せなくなる）
@@ -170,12 +170,12 @@ extension SettingsModel {
 
     /// その向きに隣のマスがある（端では入れ替えられない）
     func canSwapCell(at index: Int, _ direction: SettingsGridDirection) -> Bool {
-        SettingsGrid.neighbor(of: index, direction) != index
+        SettingsGrid.neighbor(of: index, direction, layout: currentPage.layout) != index
     }
 
     /// 隣のマスと入れ替える（⌥⌘＋矢印キー・右クリック・VoiceOver）。入れ替えた先を選ぶ
     func swapCell(at index: Int, _ direction: SettingsGridDirection) {
-        let neighbor = SettingsGrid.neighbor(of: index, direction)
+        let neighbor = SettingsGrid.neighbor(of: index, direction, layout: currentPage.layout)
         guard canSwapCell(at: index, direction) else { return }
         swapCells(CellAddress(page: pageIndex, index: index), CellAddress(page: pageIndex, index: neighbor))
     }

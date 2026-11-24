@@ -56,7 +56,7 @@ public final class ShellQuitConfirmation {
     }
 
     static var message: String {
-        String(localized: "終了すると、もう一度 Nonet を開くまで、トラックパッドの上の縁から HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。", bundle: .module)
+        String(localized: "終了すると、もう一度 Nonet を開くまで、トラックパッドを強く押し込んでも HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。", bundle: .module)
     }
 
     static var quitButton: String {

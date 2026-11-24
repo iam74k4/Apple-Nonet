@@ -21,17 +21,97 @@ enum SettingsText {
         }
     }
 
+    // MARK: ボタンの数
+
+    /// ページの見出しの横のメニューの名前（「ボタン 9」）
+    static func pageLayoutTitle(_ layout: PageLayout) -> String {
+        String(localized: "ボタン \(layout.slotCount)", bundle: .module)
+    }
+
+    /// メニューの項目（「9（円に8つと真ん中）」「12（円に並べる）」）
+    static func pageLayoutChoice(_ layout: PageLayout) -> String {
+        layout.centerCell == nil
+            ? String(localized: "\(layout.slotCount)（円に並べる）", bundle: .module)
+            : String(localized: "\(layout.slotCount)（円に \(layout.ringCells.count) と真ん中）", bundle: .module)
+    }
+
+    /// 入りきらないボタンを新しいページへ移したとき（page は移した先のページの番号の 0 始まり）
+    static func pageLayoutMovedOverflow(count: Int, toPage page: Int) -> String {
+        String(localized: "入りきらない \(count) 個のボタンを、新しいページ \(page + 1) へ移しました。", bundle: .module)
+    }
+
+    /// メニューの項目に添える、入りきらない分を移すこと
+    static func pageLayoutChoiceMovingOverflow(_ layout: PageLayout) -> String {
+        String(localized: "\(pageLayoutChoice(layout))、残りは新しいページへ", bundle: .module)
+    }
+
+    /// 中身のあるマスが入りきらない数を選んだとき
+    static func pageLayoutTooSmall(filled: Int, layout: PageLayout) -> String {
+        String(localized: "このページには \(filled) 個のボタンがあるので、\(layout.slotCount) にはできません。先にボタンを空けてください。", bundle: .module)
+    }
+
+    /// ボタンの数のメニューで、選べない数があるときの説明（ページが上限で、入りきらない分を移せない）
+    static var pageLayoutDisabledNote: String {
+        String(localized: "ボタンが入りきらない数は、先にボタンを空けるかページを減らすと選べます", bundle: .module)
+    }
+
+    /// 9 以外のページの、真ん中の説明
+    static var ringCenterNote: String {
+        String(localized: "真ん中で離すとやめます", bundle: .module)
+    }
+
     // MARK: 一般
 
 
-    /// 「開き方」の説明（GlobalSettings に開き方の設定は無い。トラックパッドの上の縁から滑らせるだけ）
+    /// 「開き方」の説明（トラックパッドのどこかを強く押し込んで止める。止める時間は開きやすさ）
     static var openGestureTitle: String {
         String(localized: "開き方とやめ方", bundle: .module)
     }
 
     /// 横の小さな図と並ぶので、要るところだけ（開く・実行する・やめる・ページを変える）。くわしくは利用ガイド
     static var openGestureDetail: String {
-        String(localized: "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。", bundle: .module)
+        String(localized: "トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。", bundle: .module)
+    }
+
+    /// macOS の「強めのクリックと触覚フィードバック」がオフのときの知らせ（強めのクリックの2段目が来ないので、強く押し込んでも開かない）
+    static var forceClickOffTitle: String {
+        String(localized: "macOS の「強めのクリック」がオフです", bundle: .module)
+    }
+
+    static var forceClickOffDetail: String {
+        String(localized: "強く押し込んでも開きません。システム設定 › トラックパッド で「強めのクリックと触覚フィードバック」をオンにしてください", bundle: .module)
+    }
+
+    static var openTrackpadSettings: String {
+        String(localized: "トラックパッドの設定を開く", bundle: .module)
+    }
+
+    static var openGestureChoiceTitle: String {
+        String(localized: "開き方", bundle: .module)
+    }
+
+    static func name(_ gesture: OpenGesture) -> String {
+        switch gesture {
+        case .forcePress: String(localized: "強く押し込む", bundle: .module)
+        case .edgeSlide: String(localized: "上の縁から滑らせる", bundle: .module)
+        case .both: String(localized: "両方", bundle: .module)
+        }
+    }
+
+    static func detail(_ gesture: OpenGesture) -> String {
+        switch gesture {
+        case .forcePress:
+            String(localized: "トラックパッドのどこかを強く押し込んで止めます。押し込んでいる間のクリックは Nonet が預かります", bundle: .module)
+        case .edgeSlide:
+            String(localized: "トラックパッドの上の縁から指を下へ滑らせます。感圧タッチでないトラックパッドや、強く押すのがつらいときに。クリックは預かりません", bundle: .module)
+        case .both:
+            String(localized: "強く押し込んでも、上の縁から滑らせても開きます", bundle: .module)
+        }
+    }
+
+    /// 強めのクリックがオフのとき、上の縁から滑らせる開き方に切り替えるボタン
+    static var useEdgeSlide: String {
+        String(localized: "上の縁から滑らせる開き方にする", bundle: .module)
     }
 
     static func name(_ sensitivity: OpenSensitivity) -> String {
@@ -46,15 +126,22 @@ enum SettingsText {
         String(localized: "開きやすさ", bundle: .module)
     }
 
-    /// 今の段の決まり（帯の高さと、滑らせる量と時間）
-    static func openSensitivityDetail(_ sensitivity: OpenSensitivity) -> String {
-        switch sensitivity {
+    /// 今の段の決まり（強く押し込んでから止める時間。ForcePress.hold）
+    static func openSensitivityDetail(_ sensitivity: OpenSensitivity, gesture: OpenGesture = .forcePress) -> String {
+        if gesture == .edgeSlide {
+            return switch sensitivity {
+            case .low: String(localized: "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに", bundle: .module)
+            case .standard: String(localized: "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ", bundle: .module)
+            case .high: String(localized: "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに", bundle: .module)
+            }
+        }
+        return switch sensitivity {
         case .low:
-            String(localized: "奥の端から 6mm ほどに置いた指を、0.4秒のうちに 7mm ほど下へ。ふだんのポインタ操作で開いてしまうときに", bundle: .module)
+            String(localized: "強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに", bundle: .module)
         case .standard:
-            String(localized: "奥の端から 9mm ほどに置いた指を、0.6秒のうちに 5mm ほど下へ", bundle: .module)
+            String(localized: "強く押し込んでから 0.25秒ほど止めると開きます", bundle: .module)
         case .high:
-            String(localized: "奥の端から 13mm ほどに置いた指を、1秒のうちに 4mm ほど下へ。縁から滑らせても開かないことがあるときに", bundle: .module)
+            String(localized: "強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに", bundle: .module)
         }
     }
 
@@ -569,7 +656,7 @@ struct SettingsStatusBanner: Equatable {
         case .disabled:
             symbol = "pause.circle"
             title = String(localized: "Nonet は無効になっています", bundle: .module)
-            message = String(localized: "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません", bundle: .module)
+            message = String(localized: "トラックパッドを強く押し込んでも、9つのアイコン（HUD）は開きません", bundle: .module)
             buttons = [Button(action: .enable, title: String(localized: "有効にする", bundle: .module))]
         }
     }
@@ -582,6 +669,21 @@ fileprivate extension String {
 extension SettingsText {
     /// ファイルの操作の説明
     /// 「画面に置く」の説明
+    /// 「テキストを貼る」の説明
+    static var pasteTextDetail: String {
+        String(localized: "前面のアプリのカーソルの位置に貼り付けます（クリップボードは元に戻します）。{date} は今日の日付（2026-11-23）、{time} は今の時刻（14:05）になります。最後に改行を入れると、チャットでは送信、ターミナルでは実行になるので気を付けてください。", bundle: .module)
+    }
+
+    /// 「再生・音量」の説明
+    static var mediaDetail: String {
+        String(localized: "キーボードの再生・音量・明るさのキーと同じ働きです。どのアプリが前面でも効き、macOS の音量や明るさの表示が出ます。音量と明るさは1回で2段変えます。", bundle: .module)
+    }
+
+    /// 「最近のスクショ」の説明（決めることは無い）
+    static var screenshotsDetail: String {
+        String(localized: "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に並べます。クリックするとコピーし（収録はファイルとして）、ドラッグするとそのまま添付できます。↑↓←→ で選んで Return でもコピーできます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。", bundle: .module)
+    }
+
     static var placeWindowDetail: String {
         String(localized: "前面のアプリのウインドウを、画面の使える範囲（メニューバーと Dock を除く）のこの場所に置きます。HUD でこのマスを光らせている間、置く枠が画面に出ます。", bundle: .module)
     }

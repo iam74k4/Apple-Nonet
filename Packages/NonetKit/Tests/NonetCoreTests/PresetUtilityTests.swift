@@ -38,11 +38,12 @@ import Testing
         #expect(actions[PresetBuilder.centerIndex] == .keystroke(.key("4", [.control, .shift, .command])))
     }
 
-    /// 中の段の右は Spotlight。強制終了 ⌥⌘Esc は、アプリが送ったキーでは macOS が「アプリケーションの強制終了」を
-    /// 開かないので置かない（PresetData+Utilities.swift の「入れないもの」）
-    @Test func spotlightSitsWhereForceQuitWouldNotWork() throws {
-        #expect(PresetLibrary.makeUtilityPage().cells[5]?.title == PresetBuilder.text("Spotlight"))
-        #expect(try Self.cell("Spotlight").action == .keystroke(.special(.space, [.command])))
+    /// 中の段の右は、撮ったスクリーンショットをすぐ添付する「最近のスクショ」（撮影の並びのすぐ下）。
+    /// 強制終了 ⌥⌘Esc は、アプリが送ったキーでは macOS が「アプリケーションの強制終了」を開かないので置かない
+    /// （PresetData+Utilities.swift の「入れないもの」）
+    @Test func recentScreenshotsSitBelowTheCaptures() throws {
+        #expect(PresetLibrary.makeUtilityPage().cells[5]?.title == PresetBuilder.text("最近のスクショ"))
+        #expect(try Self.cell("最近のスクショ").action == .screenshots(ScreenshotTrayAction()))
         #expect(!Self.cells.contains { $0.action == .keystroke(.special(.escape, [.option, .command])) })
     }
 
@@ -121,7 +122,9 @@ import Testing
 
 @Suite struct PageTemplateTests {
     @Test func templatesMakeTheirPages() {
-        #expect(PageTemplate.allCases == [.empty, .windowPlacement, .utilities])
+        #expect(PageTemplate.allCases == [.empty, .windowPlacement, .utilities, .media])
+        #expect(PageTemplate.media.makePage().cells.map { $0?.action } == PresetLibrary.makeMediaPage().cells.map { $0?.action })
+        #expect(PageTemplate.media.title == PresetBuilder.text("メディア"))
         #expect(PageTemplate.empty.makePage() == .empty)
         #expect(PageTemplate.windowPlacement.makePage().cells.map { $0?.action } == PresetLibrary.makeWindowPlacementPage().cells.map { $0?.action })
         #expect(PageTemplate.utilities.makePage().cells.map { $0?.action } == PresetLibrary.makeUtilityPage().cells.map { $0?.action })

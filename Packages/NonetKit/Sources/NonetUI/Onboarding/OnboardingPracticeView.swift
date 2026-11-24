@@ -1,5 +1,5 @@
 // 担当: ui-shell
-// 2. 試してみる: 上の縁から開いてマスで離す → 外枠で離してやめる の2つの課題。閉じる前に、ログイン時に起動を選ぶ
+// 2. 試してみる: 強く押し込んで開いてマスで離す → 外枠で離してやめる の2つの課題。閉じる前に、ログイン時に起動を選ぶ
 import NonetCore
 import SwiftUI
 
@@ -233,9 +233,9 @@ struct OnboardingTrackpadFigure: View {
         return [page.runTarget.index]
     }
 
-    /// 図の大きさ。上の帯（openArrowBand）に開き方の矢印を置き、その下の正方形に輪を描く
+    /// 図の大きさ。上の帯（openArrowBand）に開き方の印（強く押し込む）を置き、その下の正方形に輪を描く
     static let size = CGSize(width: 312, height: 222)
-    /// 開き方の矢印を置く、輪の上の帯の高さ。上の鍵の名前は輪の上の端にかかるので、矢印は輪の外に出して重ねない
+    /// 開き方の印を置く、輪の上の帯の高さ。上の鍵の名前は輪の上の端にかかるので、印は輪の外に出して重ねない
     static let openArrowBand: CGFloat = 18
 
     /// 輪の中心・外の線の半径・鍵の円の半径（外の線を帯の下に収め、鍵の円と真ん中の鍵は HUD と同じ割合）
@@ -263,13 +263,13 @@ struct OnboardingTrackpadFigure: View {
                         style: StrokeStyle(lineWidth: isFrameTarget ? 1.5 : 1, dash: [4, 4])
                     )
                     .frame(width: outer * 2, height: outer * 2)
-                ForEach(0..<Page.cellCount, id: \.self) { index in
+                ForEach(0..<(page?.layout ?? .nine).slotCount, id: \.self) { index in
                     key(index)
                         .opacity(isFrameTarget ? 0.45 : 1)
-                        .position(Self.position(ofCell: index, center: center, keyRadius: keyRadius))
+                        .position(Self.position(ofCell: index, layout: page?.layout ?? .nine, center: center, keyRadius: keyRadius))
                 }
-                // 開き方: 上の縁から下へ（ポインタは真ん中に出る）。輪の上の帯に置き、上の鍵の名前に重ねない
-                Image(systemName: "arrow.down")
+                // 開き方: 強く押し込む（押し込んだ場所のポインタが真ん中になる）。輪の上の帯に置き、上の鍵の名前に重ねない
+                Image(systemName: "smallcircle.filled.circle")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .position(x: center.x, y: Self.openArrowBand / 2)
@@ -289,8 +289,8 @@ struct OnboardingTrackpadFigure: View {
     }
 
     /// 鍵の位置（HUD と同じ並び。中央のマスは真ん中）
-    static func position(ofCell index: Int, center: CGPoint, keyRadius: CGFloat) -> CGPoint {
-        guard let position = RadialLayout.position(ofCell: index) else { return center }
+    static func position(ofCell index: Int, layout: PageLayout = .nine, center: CGPoint, keyRadius: CGFloat) -> CGPoint {
+        guard let position = RadialLayout.position(ofCell: index, layout: layout) else { return center }
         let unit = keyRadius / RadialLayout.keyRadius
         return CGPoint(x: center.x + position.x * unit, y: center.y + position.y * unit)
     }
@@ -311,7 +311,8 @@ struct OnboardingTrackpadFigure: View {
         let isTarget = currentTarget?.index == index
         let isDone = doneIndices.contains(index)
         let isWrong = feedback == .wrongCell(index: index, title: Self.title(of: feedback))
-        let above = index < 3
+        // 上の側の鍵（9 は上の段）は名前を上に出す
+        let above = (RadialLayout.position(ofCell: index, layout: page?.layout ?? .nine)?.y ?? 0) < -1
         return VStack(spacing: 2) {
             if above { label(title, isTarget: isTarget, isDone: isDone) }
             marker(isTarget: isTarget, isDone: isDone, isWrong: isWrong, isEmpty: title == nil)

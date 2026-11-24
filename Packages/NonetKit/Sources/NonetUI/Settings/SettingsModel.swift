@@ -111,6 +111,20 @@ final class SettingsModel {
     private(set) var selectedIndex: Int? = 0
     var rightPanel: RightPanel = .inspector
     /// プロファイルを追加するシート。閉じたら複製の元も忘れる
+    /// 「サイトを追加」のポップオーバー。開くときに、直前に使っていたブラウザで見ていたサイトを読んでおく（候補にする）
+    var isAddingSite = false {
+        didSet {
+            guard isAddingSite, !oldValue else { return }
+            recentSiteHost = services.frontmostApp.currentSiteHost().flatMap(SiteReference.normalizedHost)
+        }
+    }
+    /// 直前に使っていたブラウザで見ていたサイト（まだプロファイルが無いものだけ。「サイトを追加」の候補）
+    private(set) var recentSiteHost: String?
+
+    var suggestedRecentSite: String? {
+        guard let host = recentSiteHost, configuration.siteProfileIndex(forHost: host) == nil else { return nil }
+        return host
+    }
     var isAddingProfile = false {
         didSet {
             if !isAddingProfile { duplicatingProfileID = nil }
@@ -359,7 +373,7 @@ final class SettingsModel {
         guard let address, selectedProfile.id == id, selectedProfile.pages.indices.contains(address.page) else { return }
         finishRecording()
         selectedPage = address.page
-        selectedIndex = min(max(address.index, 0), Page.cellCount - 1)
+        selectedIndex = min(max(address.index, 0), selectedProfile.pages[address.page].layout.slotCount - 1)
         gridMessage = nil
         undoNotice = nil
     }
@@ -372,6 +386,19 @@ final class SettingsModel {
     }
 
     /// プロファイルを追加するシートでアプリを選んだ。「複製して別のアプリに使う…」から開いたときは、元のプロファイルを写す
+    /// 「サイトを追加」の入力（URL かホスト名）でサイトのプロファイルを作り、選ぶ。プリセットのあるサイトはその中身で。
+    /// すでにあればそれを選ぶ。ホスト名にならない入力なら false
+    @discardableResult
+    func addSiteProfile(_ input: String) -> Bool {
+        guard let host = SiteReference.normalizedHost(input) else { return false }
+        var added: UUID?
+        controller.update { added = $0.addSiteProfile(host: host, pages: SitePresets.pages(forHost: host) ?? [.empty]) }
+        guard let added else { return false }
+        isAddingSite = false
+        selectProfile(added)
+        return true
+    }
+
     func addProfile(for app: AppReference) {
         if let source = duplicatingProfileID {
             isAddingProfile = false
@@ -555,8 +582,69 @@ final class SettingsModel {
         finishRecording()
         closeEditGroup()
         selectedPage = index
+        // ボタンの数の少ないページへ移ったら、選んでいるマスをその中に収める
+        if let selected = selectedIndex, selected >= currentPage.cells.count {
+            selectedIndex = max(currentPage.cells.count - 1, 0)
+        }
         gridMessage = nil
         undoNotice = nil
+    }
+
+    // MARK: - ボタンの数
+
+    /// 選んでいるページのボタンの数をその数に変えられる（中身のあるマスが全部入るか、入りきらない分を新しいページへ移せる）
+    func canSetPageLayout(_ layout: PageLayout) -> Bool {
+        configuration.canSetPageLayout(layout, at: pageIndex, profileID: selectedProfile.id, movingOverflow: true)
+    }
+
+    /// その数にすると、入りきらないボタンを新しいページへ移す（メニューの項目にそう添える）
+    func pageLayoutMovesOverflow(_ layout: PageLayout) -> Bool {
+        !currentPage.canResize(to: layout) && canSetPageLayout(layout)
+    }
+
+    /// 選んでいるページのボタンの数を変える。上から時計回りの順を保って詰め直す（Page.resized(to:)）。
+    /// 入りきらなければ、入りきらない分をすぐ後ろの新しいページへ移す（Page.split(to:)。ページが上限なら変えない）。元に戻せる
+    func setPageLayout(_ layout: PageLayout) {
+        let profileID = selectedProfile.id
+        let index = pageIndex
+        let before = currentPage
+        guard before.layout != layout else { return }
+        guard canSetPageLayout(layout) else {
+            gridMessage = SettingsText.pageLayoutTooSmall(filled: before.filledCount, layout: layout)
+            return
+        }
+        // 選んでいるマスは、詰め直した後も同じものを選ぶ
+        let selectedID = selectedCell?.id
+        let actionName = String(localized: "ボタンの数の変更", bundle: .module)
+        if before.canResize(to: layout) {
+            replacePage(before.resized(to: layout), at: index, profileID: profileID, actionName: actionName)
+            gridMessage = nil
+        } else {
+            finishRecording()
+            closeEditGroup()
+            replacePages(ofProfile: profileID, actionName: actionName) {
+                _ = $0.setPageLayout(layout, at: index, profileID: profileID, movingOverflow: true)
+            }
+            gridMessage = SettingsText.pageLayoutMovedOverflow(count: before.filledCount - layout.slotCount, toPage: index + 1)
+        }
+        selectedIndex = selectedID.flatMap { id in currentPage.cells.firstIndex { $0?.id == id } } ?? selectedIndex.map { min($0, layout.slotCount - 1) }
+    }
+
+    private func replacePage(_ page: Page, at index: Int, profileID: UUID, actionName: String) {
+        guard let pages = configuration.profile(id: profileID)?.pages, pages.indices.contains(index) else { return }
+        let before = pages[index]
+        guard before != page else { return }
+        finishRecording()
+        closeEditGroup()
+        controller.update { $0.replacePage(page, at: index, profileID: profileID) }
+        undoNotice = nil
+        undoManager.beginUndoGrouping()
+        undoManager.registerUndo(withTarget: undoTarget(for: profileID)) { [weak self] _ in
+            self?.replacePage(before, at: index, profileID: profileID, actionName: actionName)
+            self?.reveal(CellAddress(page: index, index: 0), profileID: profileID)
+        }
+        undoManager.setActionName(actionName)
+        undoManager.endUndoGrouping()
     }
 
     /// ページを足す（template は「＋」のメニューで選んだ型。既定は空のページ）。
@@ -696,7 +784,7 @@ final class SettingsModel {
     // MARK: - マス
 
     func selectCell(_ index: Int?) {
-        let index = index.map { min(max($0, 0), Page.cellCount - 1) }
+        let index = index.map { min(max($0, 0), currentPage.layout.slotCount - 1) }
         guard index != selectedIndex else { return }
         finishRecording()
         closeEditGroup()
@@ -710,7 +798,7 @@ final class SettingsModel {
             selectCell(0)
             return
         }
-        selectCell(SettingsGrid.neighbor(of: current, direction))
+        selectCell(SettingsGrid.neighbor(of: current, direction, layout: currentPage.layout))
     }
 
     /// マスを空にする（確かめずに消すので、元に戻せるようにする）
@@ -1049,6 +1137,20 @@ final class SettingsModel {
     func choosePlaceWindowRegion(_ region: WindowRegion, forCell id: UUID) {
         updateCell(id: id) { cell in
             guard let updated = SettingsCellEditing.updatingContent(of: cell, as: PlaceWindowAction.self, { $0.region = region }) else { return }
+            cell = updated
+        }
+    }
+
+    func setScreenshotTray(_ transform: @escaping (inout ScreenshotTrayAction) -> Void, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: ScreenshotTrayAction.self, transform) else { return }
+            cell = updated
+        }
+    }
+
+    func chooseMediaKey(_ key: MediaKey, forCell id: UUID) {
+        updateCell(id: id) { cell in
+            guard let updated = SettingsCellEditing.updatingContent(of: cell, as: MediaAction.self, { $0.key = key }) else { return }
             cell = updated
         }
     }

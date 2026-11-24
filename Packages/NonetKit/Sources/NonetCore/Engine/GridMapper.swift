@@ -33,15 +33,29 @@ public struct GridInsets: Equatable, Sendable {
     /// 幅 15cm・奥行き 10cm ほどのトラックパッドで、1マスは 4cm × 2.3cm ほど残る
     /// - 左右 0.11: 幅 15cm ほどで 1.6cm ほど。勢いよく滑らせても、外枠で止めやすい
     /// - 手前 0.15: 押し込むと奥より手前が沈み、手のひらや親指も手前の縁に来やすいので、左右より広くする
-    /// - 奥 0.17: 開く動きは上の縁の帯（EdgeSlideRecognizer.entryBandHeight 0.09）から下へ entryTravel（0.05）動いた
-    ///   ところで合図するので、開いた瞬間の指は奥から 0.14 までの外枠にいる（開いただけで上の段のマスを光らせない）。
-    ///   開いてすぐ離せばやめられるよう、そこからさらに余裕を持たせる
+    /// - 奥 0.17: 奥の縁に沿って指を滑らせることが多いので、手前と同じくらい広くする
     public static let cancelFrame = GridInsets(left: 0.11, right: 0.11, bottom: 0.15, top: 0.17)
 
     private static func sanitize(_ value: Double) -> Double {
         guard value.isFinite else { return 0 }
         return min(max(value, 0), maxInset)
     }
+}
+
+/// マスの升目の並び（列 × 行）。ページのボタンの数（PageLayout.gridShape）ごとに決まる
+public struct GridShape: Equatable, Hashable, Sendable {
+    public let columns: Int
+    public let rows: Int
+
+    public init(columns: Int, rows: Int) {
+        self.columns = max(columns, 1)
+        self.rows = max(rows, 1)
+    }
+
+    public var cellCount: Int { columns * rows }
+
+    /// 3×3（9マス）
+    public static let nine = GridShape(columns: 3, rows: 3)
 }
 
 /// 指のいる場所。9マスのどれかか、その外側の枠（外枠。insets の部分）
@@ -80,15 +94,20 @@ public enum PageEdge: Equatable, Sendable {
     }
 }
 
-/// 指の位置（x は左が 0、y は手前が 0 の 0〜1）を 3×3 のマス番号（0〜8、左上から右へ、上の行から）に変える。
+/// 指の位置（x は左が 0、y は手前が 0 の 0〜1）を升目（shape。標準は 3×3）のマス番号（左上から右へ、上の行から）に変える。
 /// 境界付近では今のマスを保ち（ヒステリシス）、境界の上で指が震えてもハイライトがちらつかないようにする
 public struct GridMapper: Equatable, Sendable {
     public static let columns = 3
     public static let rows = 3
     public static let cellCount = columns * rows
     public static let defaultHysteresis = 0.03
-    /// 縁を使わないときのマスの半分。これより大きいと、隣のマスの中央に来ても切り替わらなくなる
-    public static let maxHysteresis = 1.0 / Double(columns * 2)
+    /// 縁を使わないときのマスの半分（3×3）。これより大きいと、隣のマスの中央に来ても切り替わらなくなる
+    public static let maxHysteresis = maximumHysteresis(for: .nine)
+
+    /// 升目ごとの maxHysteresis（列か行の多いほうのマスの半分）
+    public static func maximumHysteresis(for shape: GridShape) -> Double {
+        1.0 / Double(max(shape.columns, shape.rows) * 2)
+    }
     /// 余裕の上限（マス1つ分を 1 とした単位）。縁を除いてマスが小さくなっても、隣のマスの中央では必ず切り替わる。
     /// ちょうど半分だと中央が余裕の端と重なり、座標の丸め誤差で結果が変わるので、センサーの分解能よりずっと小さい分だけ引く
     static let maxMarginInCells = 0.5 - 1e-9
@@ -115,14 +134,18 @@ public struct GridMapper: Equatable, Sendable {
     public let boundaryBand: Double
     /// 外枠と9マスの境目で今の場所を保つ余裕（トラックパッド全体を 1 とした割合）
     public let frameHysteresis: Double
+    /// マスの升目
+    public let shape: GridShape
 
     public init(
         hysteresis: Double = GridMapper.defaultHysteresis,
         insets: GridInsets = .zero,
         boundaryBand: Double = GridMapper.defaultBoundaryBand,
-        frameHysteresis: Double = GridMapper.defaultFrameHysteresis
+        frameHysteresis: Double = GridMapper.defaultFrameHysteresis,
+        shape: GridShape = .nine
     ) {
-        self.hysteresis = hysteresis.isFinite ? min(max(hysteresis, 0), Self.maxHysteresis) : Self.defaultHysteresis
+        self.shape = shape
+        self.hysteresis = hysteresis.isFinite ? min(max(hysteresis, 0), Self.maximumHysteresis(for: shape)) : Self.defaultHysteresis
         self.insets = insets
         self.boundaryBand = boundaryBand.isFinite ? max(boundaryBand, 0) : Self.defaultBoundaryBand
         // 外枠の幅を超える余裕は意味が無い（外枠に出ても切り替わらなくなる）ので、いちばん狭い外枠の半分で止める
@@ -137,12 +160,12 @@ public struct GridMapper: Equatable, Sendable {
         guard boundaryBand > 0 else { return false }
         let width = 1 - insets.left - insets.right
         let height = 1 - insets.bottom - insets.top
-        let column = Self.normalize((x - insets.left) / width) * Double(Self.columns)
-        let row = (1 - Self.normalize((y - insets.bottom) / height)) * Double(Self.rows)
-        let bandX = min(boundaryBand / width * Double(Self.columns), Self.maxBoundaryBandInCells)
-        let bandY = min(boundaryBand / height * Double(Self.rows), Self.maxBoundaryBandInCells)
-        return Self.isNearInnerLine(column, count: Self.columns, band: bandX)
-            || Self.isNearInnerLine(row, count: Self.rows, band: bandY)
+        let column = Self.normalize((x - insets.left) / width) * Double(shape.columns)
+        let row = (1 - Self.normalize((y - insets.bottom) / height)) * Double(shape.rows)
+        let bandX = min(boundaryBand / width * Double(shape.columns), Self.maxBoundaryBandInCells)
+        let bandY = min(boundaryBand / height * Double(shape.rows), Self.maxBoundaryBandInCells)
+        return Self.isNearInnerLine(column, count: shape.columns, band: bandX)
+            || Self.isNearInnerLine(row, count: shape.rows, band: bandY)
     }
 
     public func isInBoundaryBand(_ point: TouchPoint) -> Bool {
@@ -195,18 +218,18 @@ public struct GridMapper: Equatable, Sendable {
         let width = 1 - insets.left - insets.right
         let height = 1 - insets.bottom - insets.top
         // 列は左から、行は奥（y = 1）から数える。単位はマス1つ分
-        let column = Self.normalize((x - insets.left) / width) * Double(Self.columns)
-        let row = (1 - Self.normalize((y - insets.bottom) / height)) * Double(Self.rows)
-        let candidate = Self.index(column: column, row: row)
+        let column = Self.normalize((x - insets.left) / width) * Double(shape.columns)
+        let row = (1 - Self.normalize((y - insets.bottom) / height)) * Double(shape.rows)
+        let candidate = Self.index(column: column, row: row, shape: shape)
 
-        guard let current, (0..<Self.cellCount).contains(current), current != candidate, hysteresis > 0 else {
+        guard let current, (0..<shape.cellCount).contains(current), current != candidate, hysteresis > 0 else {
             return candidate
         }
         // 縁を除くとマスが小さくなり、トラックパッド単位の余裕がマスの半分を超えうるので、軸ごとにマス単位で抑える
-        let marginX = min(hysteresis / width * Double(Self.columns), Self.maxMarginInCells)
-        let marginY = min(hysteresis / height * Double(Self.rows), Self.maxMarginInCells)
-        let currentColumn = Double(current % Self.columns)
-        let currentRow = Double(current / Self.columns)
+        let marginX = min(hysteresis / width * Double(shape.columns), Self.maxMarginInCells)
+        let marginY = min(hysteresis / height * Double(shape.rows), Self.maxMarginInCells)
+        let currentColumn = Double(current % shape.columns)
+        let currentRow = Double(current / shape.columns)
         let staysInside = column >= currentColumn - marginX && column <= currentColumn + 1 + marginX
             && row >= currentRow - marginY && row <= currentRow + 1 + marginY
         return staysInside ? current : candidate
@@ -222,9 +245,9 @@ public struct GridMapper: Equatable, Sendable {
         return min(max(value, 0), 1)
     }
 
-    private static func index(column: Double, row: Double) -> Int {
-        let c = min(Int(column), columns - 1)
-        let r = min(Int(row), rows - 1)
-        return r * columns + c
+    private static func index(column: Double, row: Double, shape: GridShape) -> Int {
+        let c = min(Int(column), shape.columns - 1)
+        let r = min(Int(row), shape.rows - 1)
+        return r * shape.columns + c
     }
 }

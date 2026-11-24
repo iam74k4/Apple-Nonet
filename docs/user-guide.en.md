@@ -4,12 +4,12 @@
 
 ## About Nonet
 
-Slide a finger down from the top edge, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
+Press firmly anywhere on the trackpad and hold for a moment, and Nonet turns your MacBook trackpad into nine buttons, a 3×3 grid that changes with each app. You use only the trackpad, no keys.
 
-- Place a finger on the top edge of the trackpad and slide it down to open the nine buttons. Keep sliding to choose one, then lift your finger on it to run it
+- Press firmly anywhere on the trackpad (until the second click) and hold for a moment to open the nine buttons. Ease off, slide to choose one, then lift your finger on it to run it
 - The **direction of the pointer** from the center picks the button: the eight directions and the center match the 3×3 grid in Settings. While the buttons are open, the HUD, an overlay that shows all nine buttons, appears on the screen
 - If you change your mind, move the pointer outside the ring of icons and lift your finger. Nothing runs
-- The nine buttons follow the front app. Each profile can have up to three pages (27 buttons)
+- The nine buttons follow the front app. Each profile can have up to three pages (36 buttons). Each page can hold 4, 6, 8, 9 or 12 buttons, so you can keep just the few you use, large and easy to hit, or fit twelve (see "[Number of buttons](#number-of-buttons)")
 
 ### Requirements
 
@@ -37,13 +37,14 @@ The first time you open Nonet, the Welcome to Nonet window (the welcome guide) o
 
 **Why Nonet needs it**: macOS requires this permission for apps that work with the pointer and keyboard while you use other apps. Nonet uses it only to:
 
+- Hold on to a trackpad click until it's clear whether you pressed firmly and held (if you didn't, the click goes through right away)
 - Keep pointer movement and clicks from reaching the front app while the nine buttons are open
 - Notice a key press while the nine buttons are open, so it can close them without running anything. While they're closed, Nonet doesn't look at the keyboard at all
 - Send the keystrokes you set up, choose menu items and read selected text
 
 **What Nonet doesn't collect**: Nonet never records or sends what you type. Your settings are stored only on your Mac (in `~/Library/Application Support/Nonet/`), and there's no account. Nonet uses the network only to check for updates and to open the purchase page. Reading finger positions on the trackpad needs no permission. For details, see the [privacy policy](privacy.md).
 
-You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). If you slide down from the top edge before allowing it, the nine buttons don't open, and "Accessibility permission required" appears at the bottom of the screen with where to turn it on (you feel two light taps). If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
+You can click **Not Now** to continue without it, but Nonet doesn't work until you allow it (the Accessibility step at the top of the welcome guide gets a "!"). Until you allow it, pressing firmly on the trackpad is just an ordinary click, and the nine buttons don't open. If you finish without allowing it, the next time Nonet opens it shows "One more step to start using Nonet". Choose **Don't show again** to stop it. To allow it later, choose **Allow Accessibility Access…** from the Nonet menu (it opens this same step), or click **Open System Settings** in the banner at the top of the Settings window. If Nonet can't find a trackpad, this step says so too, and **Check Again** looks for it again.
 
 The first time you use a File action, or a script uses the URL of the page shown in a browser (`NONET_BROWSER_URL`), macOS asks for Automation permission (see [macOS asks for Automation permission](#macos-asks-for-automation-permission) under Troubleshooting).
 
@@ -52,7 +53,7 @@ The first time you use a File action, or a script uses the URL of the page shown
 The Welcome to Nonet window has two steps, shown at the top.
 
 1. **Accessibility**: the permission described above
-2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: place a finger on the top edge of the trackpad and slide it down, and when the HUD opens, slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel outside the ring**: open the HUD from the top edge again, then move the pointer outside the ring of icons and lift your finger. When both are done, a short tip says that holding just below the ring opens Utilities in front of any app, and holding to the right or left changes pages. Nothing runs in practice mode. Practice works only while the welcome guide window is in use; if you click another app, the buttons run for real. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
+2. **Try It Out**: two tasks in practice mode. The trackpad drawing shows the names of the buttons the HUD will show. The first task is **Open and lift on a button**: rest a finger on the trackpad, press firmly and hold for a moment, and when the HUD opens, ease off and slide to the button named in the task and lift your finger there (if you lift on another button, the task tells you where the named one is). The second is **Cancel outside the ring**: press firmly again to open the HUD, then move the pointer outside the ring of icons and lift your finger. When both are done, a short tip says that holding just below the ring opens Utilities in front of any app, and holding to the right or left changes pages. Nothing runs in practice mode. Practice works only while the welcome guide window is in use; if you click another app, the buttons run for real. Click **Skip** to move on. If you can't practice yet, the step says why and offers a fix: **Enable Nonet** if Nonet is disabled, **Check Again** if there's no trackpad, **Open Settings** if the page in use has no buttons, or **Enter License Key…** if your trial has ended (once you register a key, the notice goes away)
 
 At the bottom of the practice step are the **Open Nonet automatically when you log in** checkbox, **Back**, **Open Settings** and, once both tasks are done, **Done** (otherwise **Skip**). The checkbox is checked the first time you open Nonet. When you see the guide again, it starts from your current setting (**Open at login** in Settings). Nonet applies your choice when the guide closes from the practice step (with **Done**, **Skip**, **Open Settings** or the window's close button). If macOS needs your approval, System Settings opens at Login Items, the practice step says "To open Nonet at login, allow it in System Settings under Login Items.", and the guide stays open (click the button again to close it). If you can't see the Nonet icon in the menu bar, the practice step says "If you can't see the icon in the menu bar, open Nonet from the Applications folder to open Settings."
 
@@ -68,16 +69,21 @@ To see the welcome guide again, choose **Show Welcome Guide** from the Nonet men
 
 ### Opening the buttons
 
-1. Place one finger on the top edge (the far edge) of the trackpad
-2. Slide it straight down in one smooth move
+1. Rest one finger anywhere on the trackpad (the HUD opens around the pointer wherever it is)
+2. Press firmly: past the ordinary click (the first click) until you feel a second click. This is a Force Click in macOS
+3. Hold it there for a moment (about 0.25 seconds with the standard setting). When you press firmly, a white ring around the pointer fills up, and the buttons open when it's full (let go before that and it's an ordinary click; with High sensitivity they open at once, so there's no ring)
 
-The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything (even with **Open sensitivity** set to High, or after a quick slide). Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
+The nine buttons open as the HUD: nine icons around the pointer, eight on a ring and one in the center, with no panel, frame or text. The trackpad gives a light tick. Once they're open you can ease off the press (keep your finger on the trackpad). The pointer starts in the center and keeps moving as usual while the buttons are open. The icon you point at sits on a white disc, so keep sliding your finger to point at an icon and lift to run it. Right after they open, even with the pointer in the center, lifting cancels: the buttons close without running anything. Slide toward an icon to start choosing. To choose the center icon, move out once and come back to the center.
 
-- They open when a finger placed on the top edge (within about 9 mm of the far edge) moves down about 5 mm within 0.6 seconds of touching. It doesn't have to be straight down: a diagonal move opens them too, as long as it goes no more than 1.5 times as far sideways as down (distances are measured as a fraction of the trackpad's width and depth, so on a real trackpad, which is wider than it is deep, a move that leans a bit more sideways still opens them). A move that starts more than 0.6 seconds after you touch, or a move along the edge, counts as ordinary pointer movement
-- Nonet waits about 0.04 seconds after it recognizes the slide, then opens the buttons. If a second finger touches in that time (the start of a two-finger scroll) or the finger lifts, they don't open
-- The speed of your finger isn't checked (it opens if your finger moves about 5 mm down within 0.6 seconds of touching). If you place a finger within 9 mm of the far edge and move the pointer straight down, the buttons open even though you meant to move the pointer. When you move the pointer, start with your finger away from the far edge. If that happens often, set **Open sensitivity** in Settings to Low: the band narrows to about 6 mm and the buttons open only when you slide about 7 mm within 0.4 seconds. If sliding from the edge sometimes doesn't open them, choose High (a 13 mm band, about 4 mm within 1 second)
-- They don't open if you touch with two or more fingers or your palm, if your finger slides in from below the edge, or while a mouse or trackpad button is held down (for example, when you click and start dragging)
-- They don't open while a Nonet window, such as Settings or the welcome guide, is in front (except for practice in the welcome guide), because Settings uses the trackpad for things like dragging buttons. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
+- While you press firmly and hold, that click doesn't reach the front app. When the buttons open, Nonet drops the click, so nothing under the pointer is clicked
+- If you lift without pressing firmly (an ordinary click), move while pressing (a drag), or keep a light press for 0.6 seconds (for menus that appear when you hold a button), Nonet passes the click on to the front app as it was. An ordinary click reaches the app when you lift instead of when you press, which you'll hardly notice
+- **Open sensitivity** in Settings sets how long to hold (Low 0.5 seconds, Standard 0.25 seconds, High 0.1 seconds)
+- You need a Force Touch trackpad (the built-in trackpad of MacBooks from 2015 on, or Magic Trackpad 2 and later). If **Force Click and haptic feedback** is off in **System Settings › Trackpad**, there's no second click and the buttons don't open (the General tab of Settings shows a notice)
+- **You can also open them with a slide from the top edge**: set **Open with** on the General tab of Settings to **Slide from the top edge** or **Both**, then place one finger on the top edge (the far edge) of the trackpad and slide it straight down. Use it with a trackpad without Force Touch, or if pressing firmly is uncomfortable. With **Slide from the top edge** alone, Nonet doesn't hold clicks
+- If **Look up & data detectors** is set to **Force Click with one finger**, Nonet gets the firm press first, so Look Up doesn't appear. To keep using Look Up, set it to **Tap with three fingers** in **System Settings › Trackpad**
+- Mouse clicks, the click from **Tap to click** that arrives after you lift, and secondary clicks (two-finger clicks) pass through untouched
+- While an app set to **Turn Off in This App** is in front, and while you're recording keys in Settings, Nonet doesn't hold clicks, and a firm press is an ordinary click
+- They don't open while a Nonet window, such as Settings or the welcome guide, is in front (except for practice in the welcome guide), because Settings uses the trackpad for things like dragging buttons. The click goes through instead. The first time after Nonet starts, a notice at the bottom of the screen says "The nine buttons don't open while a Nonet window is in front". Try it over another app
 - The HUD appears on the display with the pointer. When there is no room for the ring at the edge of the screen, the ring is moved to where it fits and the pointer is moved to its center instead
 
 ### Choosing and running a button
@@ -139,18 +145,18 @@ Each profile can have up to three pages. While two fingers are touching, no butt
 
 If the front app has a profile, Nonet uses that app's buttons. In apps without a profile, Nonet uses the Global profile, which works in every app.
 
-The Global profile's first page starts as the nine Place on Screen buttons (Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half and Bottom Right; see [Place on Screen](#place-on-screen)). After it comes a launcher with up to 9 apps on one page, named **Launcher**. Apps in your Dock come first, in Dock order, and popular apps on your Mac fill the rest. It's a handy stand-in for Launchpad, which macOS 26 no longer has. The last page, the nine Utilities buttons (capture and recording, emoji and symbols, Spotlight, mute, display sleep and screen lock; see [Utilities](#utilities)), isn't one of the pages to the left or right: you open it by holding below the ring. You can change them like any other profile.
+The Global profile's first page starts as the nine Place on Screen buttons (Top Left, Top Half, Top Right, Left Half, Maximize, Right Half, Bottom Left, Bottom Half and Bottom Right; see [Place on Screen](#place-on-screen)). After it comes a launcher with up to 9 apps on one page, named **Launcher**. Apps in your Dock come first, in Dock order, and popular apps on your Mac fill the rest. It's a handy stand-in for Launchpad, which macOS 26 no longer has. The last page, the nine Utilities buttons (capture and recording, emoji and symbols, Recent Screenshots, mute, display sleep and screen lock; see [Utilities](#utilities)), isn't one of the pages to the left or right: you open it by holding below the ring. You can change them like any other profile.
 
 If you delete the Place on Screen or Utilities page, you can add it again with **+** (Add page) in Settings. The same goes if you've used Nonet since an earlier version and your Global profile doesn't have these pages. If the Global profile has no Utilities page, the one you add becomes the page that opens below the ring (see [Pages and buttons](#pages-and-buttons)).
 
 ### Utilities
 
-**Utilities** holds nine things you do the same way in every app. Open the nine buttons, then hold the pointer just outside the ring below it to open this page (see [Pages](#pages)). It opens the same way whether or not the front app has a profile. Each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission.
+**Utilities** holds nine things you do the same way in every app. Open the nine buttons, then hold the pointer just outside the ring below it to open this page (see [Pages](#pages)). It opens the same way whether or not the front app has a profile. Apart from Recent Screenshots, each is a Keystrokes button that sends a macOS shortcut or a short Script button, so they need no new permission (Recent Screenshots asks to read the screenshot folder the first time you use it).
 
 | | | |
 |---|---|---|
 | Capture Area (⇧⌘4) | Capture & Record (⇧⌘5) | Stop Recording (⌃⌘Esc) |
-| Emoji & Symbols (⌃⌘Space) | Capture & Copy (⌃⇧⌘4) | Spotlight (⌘Space) |
+| Emoji & Symbols (⌃⌘Space) | Capture & Copy (⌃⇧⌘4) | Recent Screenshots |
 | Mute / Unmute | Sleep Display | Lock Screen (⌃⌘Q) |
 
 - **Capture Area**: select an area and save it as a file
@@ -158,12 +164,12 @@ If you delete the Place on Screen or Utilities page, you can add it again with *
 - **Capture & Record**: shows the macOS screenshot toolbar. Start window or full-screen captures and screen recordings from there
 - **Stop Recording**: stops a screen recording (the same as the stop button in the menu bar)
 - **Emoji & Symbols**: opens the emoji and symbols viewer where you're typing
-- **Spotlight**: opens the Spotlight search field. Find apps and documents by name and open them
+- **Recent Screenshots**: shows a tray of the screenshots you took recently. Click one to copy it, or drag it to attach it (see [Recent Screenshots](#recent-screenshots) under Action types)
 - **Mute / Unmute**: turns the sound off or back on (the script uses `set volume`). If the output device can't be muted, Nonet shows a failure
 - **Sleep Display**: puts the display to sleep (the script uses `pmset displaysleepnow`). The Mac itself doesn't sleep
 - **Lock Screen**: locks the screen right away. Pressing it by mistake means typing your password again, so it runs only after a longer hold (see [Buttons that need a longer hold](#buttons-that-need-a-longer-hold))
 
-The capture, recording, emoji, Spotlight and lock keys are macOS-wide shortcuts. If you've changed or turned them off in **System Settings › Keyboard › Keyboard Shortcuts**, these buttons do nothing. Change the button's **Keys to send** to match.
+The capture, recording, emoji and lock keys are macOS-wide shortcuts. If you've changed or turned them off in **System Settings › Keyboard › Keyboard Shortcuts**, these buttons do nothing. Change the button's **Keys to send** to match.
 
 Mission Control, App Exposé and switching desktops aren't on this page because three- and four-finger trackpad gestures already open them.
 
@@ -181,11 +187,11 @@ Click the Nonet icon (the ring of dots) in the menu bar to open the Nonet menu.
 | Allow Accessibility Access… | Appears only when Nonet doesn't have permission. Opens the permission step of the welcome guide |
 | Dismiss Notice | Appears with a notice, for example when Nonet couldn't read its settings file |
 | Stop “Build” | Appears just below the status line only while a background script, shortcut or AI button is running. Choose it to stop the button the same way the timeout does; "Stopped “Build”" appears at the bottom of the screen (it isn't counted as a failure, and Recent Runs marks it "■") |
-| Cheat sheet | Shows the buttons the front app would open with, on the same plates as the HUD in a 3×3 grid (names below the plates; beside them on a short screen), starting from the first page. Use ‹ › to see the other pages. Utilities (the page you open by holding below the ring) comes last and has a down arrow in its title. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). Option-click a button to run it in the front app, the same way as **Test This Button** in Settings (with VoiceOver, use the action **Run in Front App**). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
-| Enable Nonet | Uncheck it, and sliding down from the top edge no longer opens the buttons |
+| Cheat sheet | Shows the buttons the front app would open with, on the same plates as the HUD, arranged for the page's number of buttons (a 3×3 grid for nine; names below the plates, or beside them on a short screen), starting from the first page. Use ‹ › to see the other pages. Utilities (the page you open by holding below the ring) comes last and has a down arrow in its title. Click a button to open it on the Profiles tab of Settings (it doesn't run; when the pointer is over a button, it gets an outline and a pencil). Option-click a button to run it in the front app, the same way as **Test This Button** in Settings (with VoiceOver, use the action **Run in Front App**). If Nonet is turned off for the front app, a short line such as "Nonet is off in Xcode" appears instead |
+| Enable Nonet | Uncheck it, and pressing firmly on the trackpad no longer opens the buttons (it's an ordinary click) |
 | Settings… | Opens the Settings window on the General tab |
 | Edit Buttons for Xcode… / Create Buttons for Pages… / Edit Global Buttons… | Opens the front app's buttons on the Profiles tab of Settings. If the app has no profile, Nonet creates one (from its preset, if there is one). For an app without a preset the new profile is empty, and until you add a button to it, the Global pages open in that app too. If you ran one of that profile's buttons in the last minute, that button is selected. When Nonet can't tell the front app, it opens the Global buttons |
-| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad works as usual. Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
+| Turn Off in This App | Turns Nonet off in the front app (the item gets a checkmark). In that app, pressing firmly doesn't open the nine buttons, and the trackpad works as usual (Nonet doesn't hold clicks). Choose it again to turn Nonet back on (see [Profile list](#profile-list) under Editing profiles) |
 | Recent Runs | Lists up to 10 buttons you ran recently, newest first, like "✓ Xcode › Build". Ones that failed show "✗" and the first line of the reason, and ones you stopped show "■" (long lines are cut short). Choose one to open that button on the Profiles tab of Settings. For a failed one, the whole reason also appears in the result panel, where you can select and copy it |
 | Show Welcome Guide | Opens the Welcome to Nonet window |
 | User Guide | Opens this guide |
@@ -209,16 +215,29 @@ Choose **Edit Buttons for Xcode…** (with your front app's name instead of Xcod
 - Click **Add Profile…** and choose an installed app to create its profile. Apps with a preset start with their buttons filled in. For an app that isn't listed, click **Choose Another App…**
 - Control-click (or right-click) a profile to see the three **When in Front** choices and **Duplicate for Another App…**, **Reset to Preset…** (only for apps with a preset), **Export This Profile…** and **Delete…**. You can also press Delete. Nonet asks before deleting (you can undo it with ⌘Z)
 - **Clean Up Profiles…**: appears under the list (and when you Control-click a profile) once you have two or more app profiles. Select the profiles of apps you don't use and delete them all at once (with **Select All**, **Deselect All**, and **Select Missing Apps** when some apps aren't on this Mac). Nonet asks once and keeps one earlier version, and ⌘Z or **Undo** under the grid brings them all back to where they were
-- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, sliding down from the top edge doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
+- **When in Front**: at the top right of the grid (or by Control-clicking the profile), choose what happens while the app is in front: **This Profile**, **Use Global** or **Turn Off Nonet in This App**. A profile set to **Use Global** is marked Global, and Nonet uses the Global buttons in that app (the profile's buttons are kept). An app set to **Turn Off Nonet in This App** is marked Off (the same mark appears next to the description above the grid; you can still edit its buttons). In that app, pressing firmly doesn't open the nine buttons, and the trackpad and the keys work as usual. **Turn Off in This App** in the Nonet menu switches it too
 - With 8 or more app profiles, a **Filter by name, button or keys** field appears above the list (press ⌘F to show it at any time; press Esc or click × (Clear Filter) to close it). It finds profile names, and the names, contents and keys of buttons in every profile (type keys with their modifiers, like `⌘B`). Results look like "Xcode › Build"
 - **Enable Nonet** under the list is the same switch as in the General settings
 
+### Buttons for each site
+
+In a browser (Safari, Chrome, Arc, Edge, Brave or Dia) you can use different nine buttons for each site you visit, such as playback controls on YouTube or shortcuts to the pages you use on GitHub.
+
+1. On the Profiles tab of Settings, click **Add Site…** below the list
+2. Enter the site's URL or host name (such as `youtube.com`) and click **Add**. If you were just on a site in your browser, **Add the site you were viewing** adds it in one click. Choose a suggestion under **With buttons:** (YouTube) to start with that site's keys already in place
+3. Add buttons as you would to any other profile
+
+- When you open the buttons on that site, the site's pages come before the browser's (the Global pages follow). A site also matches its subdomains (`youtube.com` matches `m.youtube.com`), and a more specific site (`mail.google.com`) wins
+- Sites have a globe in the list. Set **When in Front** to **Use Global** to use the browser's buttons on that site too, or turn Nonet off there so the buttons don't open (clicks go through as usual)
+- Nonet reads the page's address once, when you open the buttons, through Accessibility (no Automation permission needed; it's never stored or sent). If it can't read it, you get the browser's buttons
+- The YouTube preset: Play/Pause (K) in the center, back and forward 10 seconds (J and L) on the left and right, Full Screen (F) above, Captions (C) below, Slower and Faster at the top corners, Mute (M) at the bottom left and Theater (T) at the bottom right
+
 ### Pages and buttons
 
-The middle column shows the nine buttons of the selected profile. They are laid out in a ring, like the HUD (the center and eight around it; the top-left button is at the top left), each icon on the same dark round plate as in the HUD with its name below (Global plates are slightly navy, as in the HUD). Empty buttons are thin rings. In a narrow window the names take one line, and in a narrower one only the icons show (hold the pointer over a button to see its name).
+The middle column shows the nine buttons of the selected profile. They are laid out in a ring, like the HUD (the center and eight around it; the top-left button is at the top left), each icon on the same dark round plate as in the HUD with its name below (Global plates are slightly navy, as in the HUD). Empty buttons are thin rings. When the page holds a number of buttons other than nine, the ring has that many (see [Number of buttons](#number-of-buttons)). In a narrow window the names take one line, and in a narrower one only the icons show (hold the pointer over a button to see its name).
 
 - Below the ring are dots for the pages (‹ ● ○ ›); the selected page's dot is filled. Click a dot or ‹ › (or press ⌘1–⌘3) to switch pages. Like left and right in the HUD, ‹ › wraps around from one end to the other. Hold the pointer over a dot to see the page's name
-- Click **+** (Add page) next to the dots to add an empty page, or a page filled with the Place on Screen or Utilities buttons (up to three pages). The **…** menu (Page Actions) has **Add Page**, **Rename…** and **Delete This Page…**. You can also Control-click a dot to rename or delete it. Nonet asks first if the page has buttons
+- Click **+** (Add page) next to the dots to add an empty page, or a page filled with the Place on Screen, Utilities or Media buttons (up to three pages). The **…** menu (Page Actions) has **Add Page**, **Rename…** and **Delete This Page…**. The menu after it, **9 Buttons**, sets how many buttons the page holds (see [Number of buttons](#number-of-buttons)). You can also Control-click a dot to rename or delete it. Nonet asks first if the page has buttons
 - Above and below the ring are the names of the pages that open when you hold the pointer there in the HUD, like “↑ Global” and “↓ Utilities”. Click one to go to that page. In an app profile, up is the Global pages and down is Utilities; clicking one opens that page in the Global profile. In the Global profile, Utilities appears below, and while you edit Utilities, the page you go back to appears above. Nothing appears on a side with nowhere to go. For an app set to **Use Global** or **Turn Off Nonet in This App** while in front, and for an app with no buttons yet, the HUD doesn't use the app's pages, so nothing appears above or below (with no buttons yet, it says “Add a button and this page opens in front of …”)
 - Utilities (the Global page you open by holding below the ring) is a single page and always below. You can change its buttons freely. It isn't one of the dots; open it with “↓ Utilities” below the ring. If you delete all the other Global pages, Utilities is used as an ordinary page
 - Double-click a dot, or Control-click it and choose **Rename…**, to give the page a name such as "Debug" or "Git". The name appears in the title of the cheat sheet at the top of the Nonet menu, like "Buttons for Xcode · Debug", and in the HUD under the center icon as the place you'll go while you hold the pointer outside the ring. Leave it empty to go back to "Page 1" and so on
@@ -227,9 +246,18 @@ The middle column shows the nine buttons of the selected profile. They are laid 
 - Use the arrow keys to move the selection, and press Delete to clear a button. For more keys, see "Power editing" below
 - Control-click a button to choose **Duplicate**, **Delete** or **Test This Button**. The item acts on the button you Control-clicked and selects it first (after clearing, the notice names the button, as in “Cleared “Build”.”). On an empty button, choose an action type from **Add Action**. Copying, pasting and swapping with the next button are done with keys (see "Power editing" below)
 
+### Number of buttons
+
+Click **9 Buttons** to the right of the page dots to choose how many buttons the page holds: 4, 6, 8, 9 or 12. Each page can have its own number.
+
+- **9** (the default): eight on a ring and one in the center. Settings shows them as a 3×3 grid
+- **4, 6, 8 and 12**: the buttons sit on a ring and the center is empty. Come back to the center and lift to cancel without running anything. Fewer buttons give each direction more room, so they're easier to hit. Settings arranges them on a ring too, clockwise from the top, just like the HUD. The HUD, the cheat sheet in the menu bar and VoiceOver name the buttons by direction (top, top-right and so on) or, between those, by clock position ("2 o'clock")
+- Changing the number never removes a button. Nonet keeps them in clockwise order, and when there are fewer places it closes up the empty ones first. If they still don't fit, the menu says **the rest on a new page**, and the buttons that don't fit move to a new page right after this one (if the profile already has three pages, the number can't be chosen: clear some buttons or remove a page first). Press ⌘Z to undo
+- The HUD shows bigger icons when there are fewer buttons, and slightly smaller ones with twelve so they don't crowd each other
+
 ### Undo and earlier versions
 
-- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting), changes in the inspector (one step per button), adding or renaming a page, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
+- Press ⌘Z to undo, and ⇧⌘Z to redo: changes to buttons (clearing, deleting, duplicating, creating, swapping, moving to another page, assigning a menu item, pasting), changes in the inspector (one step per button), adding or renaming a page, changing the number of buttons, **Reset to Preset…**, **Duplicate for Another App…**, and deleting a profile or a page
 - After you clear a button, replace a filled button, or delete a profile or a page, you can also click **Undo** under the grid. If you changed the button again since then, Nonet doesn't undo it and tells you so
 - Replacing profiles by importing can't be undone with ⌘Z. Use a saved version instead (below)
 - Nonet saves a copy of your settings while you change them (at most once an hour), and before deleting a profile or a page, importing, resetting to a preset or restoring an earlier version. It keeps the newest 10 in `~/Library/Application Support/Nonet/Backups/`. Under Export & Import on the Nonet tab of Settings, click **Restore an Earlier Version…**, choose a version, then click **Restore…** and **Restore** to go back to those profiles and settings. Your settings from before are saved too, so you can go back again
@@ -238,7 +266,7 @@ The middle column shows the nine buttons of the selected profile. They are laid 
 
 - **Profiles**: **Duplicate for Another App…** (Control-click the profile) creates a profile for another app with all the pages and buttons. Menu Item buttons that chose the original app's menus choose the new app's menus, which helps when you copy VS Code buttons to Cursor, for example. **Reset to Preset…** asks first, then replaces the buttons with the preset
 - **Buttons**: ⌘C and ⌘V copy and paste a button. You can paste into another profile too, which is how you copy buttons between profiles
-- **Keys on the grid**: ⌘D duplicates, ⌘⌫ clears, ⌥⌘ and an arrow key swap with the next button, and Return moves to the **Name** field
+- **Keys on the grid**: ⌘D duplicates, ⌘⌫ clears, ⌥⌘ and an arrow key swap with the next button, and Return moves to the **Name** field. On a page arranged as a ring, the arrow keys move to the nearest button in that direction
 - **Keys on the Profiles tab**: ⌘1–⌘3 switch pages, and ⌘F filters profiles
 
 ### Inspector
@@ -287,12 +315,20 @@ Right before sending, Nonet checks that the front app is still the one that was 
 
 Screenshots are Keystrokes buttons too: the presets' **Capture Area** button simply sends ⇧⌘4. The Global profile's **Utilities** page gathers the capture and recording buttons (see [Utilities](#utilities)).
 
+### Paste Text
+
+Pastes text you've set up (email phrases, a signature, your address, replies you use often) at the cursor in the front app.
+
+- **Text to paste**: any number of lines. `{date}` becomes today's date (2026-11-23) and `{time}` the current time (14:05)
+- Nonet sends ⌘V through the clipboard and puts the clipboard back once the app has read it (clipboard history apps don't keep it). If it can't keep what's on the clipboard (it's too large, or reading it isn't allowed), it copies the text instead of pasting it and tells you
+- A line break at the end sends the message in a chat or runs the command in Terminal. When you import profiles, buttons like this with a line break are highlighted for you to check first
+
 ### Open (app or URL)
 
 Opens an app or a URL. Under **What to open**, choose **App** or **URL**.
 
 - **App**: opens the app, or brings it to the front if it's already running. Under **App to open**, click **Choose App…** and choose an installed app. For an app that isn't listed, click **Choose Another App…**. The app's name appears in the inspector and in the help tag when you hold the pointer over the button. Turn on **Hide if already in front** to hide the app when you run the button again, so you can switch to it and back
-- **URL**: opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder
+- **URL**: opens the **URL to open** in its default app. If you leave out `https://`, Nonet adds it (`http://` for addresses like `localhost`). App URLs like `obsidian://` work too. A path that starts with `/` or `~` opens as a file or folder. Write `{selection}` in the URL to put in the text you have selected when it opens, to search for a word, for example `https://www.google.com/search?q={selection}`. The **Open with Selected Text** menu fills in Search Google, Google Translate, Search YouTube or Look Up in Wikipedia. Nonet trims the selection, turns line breaks into spaces and uses up to 500 characters. In apps whose selection can't be read through Accessibility, it copies with ⌘C (and puts your clipboard back). Nothing opens if no text is selected
 
 ### Place on Screen
 
@@ -301,7 +337,16 @@ Puts the front app's window in a fixed part of the screen. Under **Where to plac
 - While this button is highlighted in the HUD, the target area is outlined in light blue on the screen with the note "Lift to place it here". Lift on the button, and the window moves there. Move outside the ring and the outline disappears
 - It moves the frontmost window of the app that was in front when you opened the buttons (VoiceOver adds what will move, such as "Safari window", to the HUD's name)
 - The window stays on its own display. Full-screen windows and windows with a fixed size (such as System Settings) can't be moved, and Nonet shows "This window couldn't be moved". An app with no window (for example, Finder with all its windows closed) shows "No window is in front"
-- In a fresh setup, these nine buttons are the first page of the Global profile (see [Global profile and launcher](#global-profile-and-launcher)). In an app with its own profile, hold the pointer below the ring to reach these buttons; in an app without one, they are the first page. If you delete them, add them again with **+** (Add page) › **Place on Screen** in Settings
+- In a fresh setup, these nine buttons are the first page of the Global profile (see [Global profile and launcher](#global-profile-and-launcher)). In an app with its own profile, hold the pointer just above the ring to reach these buttons; in an app without one, they are the first page. If you delete them, add them again with **+** (Add page) › **Place on Screen** in Settings
+
+### Playback & Volume
+
+Works like the playback, volume and brightness keys on your keyboard. It works whichever app is in front, and macOS shows its volume or brightness indicator.
+
+- **Key to press**: Play/Pause, Next Track, Previous Track, Volume Up, Volume Down, Mute, Brightness Up or Brightness Down
+- Volume and brightness change two steps at a time (so it's worth opening the buttons for)
+- **Media** under **+** (Add page) in Settings adds a page with Play/Pause in the center, Previous and Next Track on the left and right, volume above and below, Mute at the bottom left and brightness on the right
+- Brightness works on the Mac's built-in display and on Apple displays whose brightness can be adjusted
 
 ### Script
 
@@ -401,6 +446,24 @@ Trashes, renames or duplicates the files selected in Finder. Click a file in Fin
 - **Test This Button** in Settings asks first, because the Settings window can't show what is selected in Finder
 - The second page of the Finder preset (“Selected Files”) has Duplicate, Rename and Move to Trash (Hold before running)
 
+### Recent Screenshots
+
+Shows your most recent screenshots and screen recordings (videos), newest first, in a small panel (the tray) near where the HUD was. They come from where macOS saves screenshots (the location chosen under Options in ⇧⌘5; the Desktop by default). Attach or paste a screenshot you just took without hunting for it on the Desktop.
+
+- **Number to show**: 3, 5, 8 or 12 (5 by default; 8 and 12 are shown in two rows)
+- **Include screen recordings (videos)**: turn it off to show screenshots only (on by default). Recordings get a play mark and "Recording ·" in their label
+
+- **Click**: puts that screenshot on the clipboard and closes the tray ("Screenshot copied" appears at the bottom of the screen). Press ⌘V in a chat or email to paste it as a picture; in Finder it pastes as a file. Recordings are copied as files, so they attach in a chat or email
+- **Drag**: picks it up as a file. Drop it on the attachment area of a chat, email or web page, or in a Finder folder
+- **Control-click**: Copy, Show in Finder or Move to Trash. The tray stays open after you move one to the Trash, so you can keep tidying up (handy when screenshots pile up on the Desktop)
+- **Keyboard**: choose with the arrow keys, press Return to copy, ⌘⌫ to move to the Trash, and Esc to close
+- The tray says "Looking…" at first, and fills in once it has found your screenshots
+- Clicking outside the tray closes it too. The front app stays in front, so you can keep typing right away
+- **Open Folder** shows the save location in Finder
+- The tray shows screenshots macOS took (images it marks as screenshots) and images whose names start with "Screenshot" or "スクリーンショット" (or the name you set in ⇧⌘5). Screen recordings are videos macOS marks as recordings, or whose names start with "Screen Recording" or "画面収録"
+- **Permission**: the first time, macOS asks whether Nonet may access files in your Desktop folder (or your Documents or Downloads folder, if screenshots are saved there). Nonet reads only the list of files and the screenshots it shows. If you don't allow it, the tray says "Nonet isn't allowed to read the screenshot folder" with **Open System Settings** (turn Nonet on in **System Settings › Privacy & Security › Files and Folders**)
+- It's on the Global profile's **Utilities** page
+
 ## Settings
 
 Choose **Settings…** from the Nonet menu to open the General tab of the Settings window. Use the tabs at the top of the window to switch between Profiles, General and Nonet. The Profiles tab is described under [Editing profiles](#editing-profiles), and the license and About parts of the Nonet tab under [Trial and license](#trial-and-license) and [Updates and About](#updates-and-about). The General tab is grouped into these sections.
@@ -409,9 +472,11 @@ Choose **Settings…** from the Nonet menu to open the General tab of the Settin
 
 | Setting | Default | What it does |
 |---|---|---|
-| Enable Nonet | On | When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD). You can also switch it in the Nonet menu and under the profile list |
+| Enable Nonet | On | When off, pressing firmly on the trackpad doesn't open the nine icons (the HUD); it's an ordinary click. You can also switch it in the Nonet menu and under the profile list |
 | How to open and cancel | | Briefly shows how to open, run, cancel and change pages, with a drawing of the trackpad. **Learn more in the User Guide** opens this guide (see [Basics](#basics)) |
-| Open sensitivity | Standard | Low, Standard or High. Changes the height of the top-edge band and how far and how soon you need to slide (see [Opening the buttons](#opening-the-buttons)). Choose Low if the buttons open during ordinary pointer moves, and High if sliding from the edge sometimes doesn't open them |
+| Force Click is off in macOS | | Shown only while **Force Click and haptic feedback** is off in macOS. **Open Trackpad Settings** opens the Trackpad section of System Settings |
+| Open with | Firm press | Firm press, Slide from the top edge or Both (see [Opening the buttons](#opening-the-buttons)) |
+| Open sensitivity | Standard | Low, Standard or High. Sets how long you hold a firm press before the buttons open (for the top-edge slide: the height of the edge band and how far and how soon you slide) (0.5, 0.25 or 0.1 seconds; see [Opening the buttons](#opening-the-buttons)). Choose Low if you tend to click hard and open the buttons by accident, and High if holding still feels slow |
 | Show larger | Off | Shows the HUD and the notices at the bottom of the screen at 1.25×. If it doesn't fit on the screen, Nonet makes it as large as fits |
 | Haptic feedback | On | The trackpad gives a light tick when the buttons open, when you move to another icon and when a button runs (Force Touch trackpads only). Two taps when the page changes, one stronger tap when you move up or down, and two light taps mean they closed without running anything or there's nothing to move to |
 
@@ -456,7 +521,7 @@ In other cases, Nonet imports the file without asking. The result (how many prof
 
 - You can use every feature free for **14 days** from the day you first open Nonet. The days left appear in the Nonet menu and on the Nonet tab of Settings
 - With 3 days or fewer left, the icon gets a "!", and the top line of the Nonet menu shows the days left. The HUD also shows a line like "3 days left in your trial", once a day. You can buy or register at any time with **Buy Nonet…** and **Enter License Key…** in the Nonet menu
-- When the trial ends, sliding down from the top edge no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps; when the menu bar icon is hidden, the second line reads "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Enter License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
+- When the trial ends, pressing firmly no longer opens the nine buttons. Instead, "Your trial has ended" and "Buy Nonet or register a license key from its menu bar icon." appear at the bottom of the screen (you feel two light taps; when the menu bar icon is hidden, the second line reads "Open Nonet from the Applications folder, then buy Nonet or register a license key in Settings."). Your settings are kept. You can also buy or register from a small "Your Nonet trial has ended" window (at most once a day, with **Buy Nonet**, **Enter License Key…** and **Not Now**), and from the banner at the top of the Settings window (**Buy Nonet** and **Enter License Key…**)
 - After you buy Nonet, your license key arrives by email (within 24 hours at the latest). One license covers every Mac you use. You can get a full refund within 30 days of purchase
 - Keys for refunded licenses and keys that were made public stop working in later versions of Nonet. If your registered key stops working, the Nonet tab says why, and Nonet goes back to the trial if any trial time is left
 
@@ -482,7 +547,7 @@ When Nonet can't work, the top line of the Nonet menu and the banner at the top 
 
 ### “Accessibility permission required”
 
-This also appears at the bottom of the screen when you slide down from the top edge without the permission; the nine buttons don't open (the same notice appears at most once every 30 seconds).
+Without the permission, pressing firmly on the trackpad is an ordinary click, and the nine buttons don't open.
 
 - Click **Open System Settings** in the banner at the top of the Settings window (the first click shows the macOS prompt; click again to open System Settings), or choose **Allow Accessibility Access…** from the Nonet menu
 - Turn on Nonet in **System Settings › Privacy & Security › Accessibility**. Nonet starts working once you allow it
@@ -490,7 +555,7 @@ This also appears at the bottom of the screen when you slide down from the top e
 
 ### “Nonet doesn't work while you enter a password”
 
-While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons (sliding down from the top edge shows "Doesn't open while you're entering a password" at the bottom of the screen, at most once every 30 seconds). Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
+While the cursor is in a password field, or while Secure Keyboard Entry is on in Terminal, macOS keeps keystrokes from other apps, so Nonet doesn't open the nine buttons (pressing firmly shows "Doesn't open while you're entering a password" at the bottom of the screen, at most once every 30 seconds, and the click goes through). Leave the password field, or turn off **Terminal › Secure Keyboard Entry**. Nonet starts working again on its own. To check right away, click **Check Again** in the banner.
 
 ### “Can't find a multi-touch trackpad”
 
@@ -502,8 +567,9 @@ Nonet needs a MacBook's built-in trackpad or a Magic Trackpad. It doesn't work w
 - Make sure **Turn Off in This App** isn't checked for the front app (such apps are marked Off in the profile list)
 - Make sure your trial hasn't ended (the Nonet menu shows "Your trial has ended")
 - Check whether one of the three problems above (Accessibility, password entry or trackpad) is shown
-- Make sure you place your finger on the top edge (the far edge) of the trackpad first, then slide it down in one smooth move. Starting below the edge, or starting to move more than 0.6 seconds after you touch, doesn't open the buttons. (With Open sensitivity set to High, Nonet accepts a start up to about 13 mm from the edge and up to 1 second.) Moving the pointer straight down right after touching near the far edge does open them, even at ordinary pointer speed (see [Opening the buttons](#opening-the-buttons) under Basics)
-- While a Nonet window such as Settings is in front, sliding down from the top edge doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
+- Make sure you press firmly until you feel a second click, then hold for a moment. If you stop at the first click (an ordinary click), Nonet passes it on as an ordinary click after 0.6 seconds (see [Opening the buttons](#opening-the-buttons) under Basics)
+- Make sure **Force Click and haptic feedback** is on in **System Settings › Trackpad** (when it's off, the General tab of Settings shows a notice). Trackpads without Force Touch can't open the buttons
+- While a Nonet window such as Settings is in front, pressing firmly doesn't open the nine buttons, because Settings uses the trackpad for things like dragging buttons. Switch to the app you want to use first, or, to try a button in Settings, use **Test This Button** in the inspector. When you close the Settings window, the app you were using before comes back to the front
 
 ### The menu bar icon is missing
 
@@ -511,7 +577,7 @@ When the menu bar is crowded, the Nonet icon can be hidden. Open Nonet again fro
 
 ### The buttons open when you didn't mean to
 
-If you move the pointer by sliding a finger quickly down from the far edge of the trackpad, the nine buttons open. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. If it happens often, start pointer moves a little away from the far edge, or set **Open sensitivity** on the General tab of Settings to Low (if you lift right after the buttons open three times within 10 minutes, a notice at the bottom of the screen suggests this once). For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
+If you tend to click hard, an ordinary click can reach the second click and open the nine buttons when you hold it. If that happens, just lift your finger: nothing runs, because right after they open, lifting always cancels until you move the pointer away from the center. The click doesn't reach the app, so click again. If it happens often, set **Open sensitivity** on the General tab of Settings to Low (the buttons open only after a 0.5-second hold), or set **Click** to Firm in **System Settings › Trackpad** (if you lift right after the buttons open three times within 10 minutes, a notice at the bottom of the screen suggests this once). For apps where you don't use Nonet, choose **Turn Off in This App** from the Nonet menu, and the buttons won't open there.
 
 ### The pointer doesn't move or clicks don't work
 

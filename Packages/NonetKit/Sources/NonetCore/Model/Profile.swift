@@ -10,7 +10,7 @@ public enum CellIcon: Codable, Hashable, Sendable {
     case text(String)
 }
 
-/// 9マスのうちの1つ
+/// ページのボタン（マス）の1つ
 public struct Cell: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var title: String
@@ -38,9 +38,60 @@ extension Cell {
     }
 }
 
-/// 3×3 の1ページ。cells は常に9個で、左上から右へ、上の行から並ぶ。nil は空きマス
+/// 1ページに並べるボタンの数（HUD の円に並ぶ鍵の数）。9 は円に8つと真ん中に1つ、ほかは円に並べるだけで、
+/// 真ん中は空き（離すとやめる）。ページごとに選べる。設定ファイルには 9 以外のときだけ buttons として書く
+public enum PageLayout: Int, Codable, CaseIterable, Sendable {
+    case four = 4
+    case six = 6
+    case eight = 8
+    case nine = 9
+    case twelve = 12
+
+    /// ボタンの数
+    public var slotCount: Int { rawValue }
+
+    /// 円の上の鍵の並び: 上から時計回りに、マスの番号。9 は設定画面の 3×3 と同じ向き（左上のマスは左上の鍵）、
+    /// ほかはマスの番号の順に上から時計回り
+    public var ringCells: [Int] {
+        self == .nine ? [1, 2, 5, 8, 7, 6, 3, 0] : Array(0..<slotCount)
+    }
+
+    /// 真ん中のマス。9 だけ（ほかは真ん中が空きで、離すとやめる）
+    public var centerCell: Int? {
+        self == .nine ? 4 : nil
+    }
+
+    /// 上から時計回りに並べたマスの番号（真ん中は最後）。数を変えるときは、この順に詰め直す（Page.resized(to:)）
+    public var clockwiseCells: [Int] {
+        ringCells + (centerCell.map { [$0] } ?? [])
+    }
+
+    /// トラックパッドの位置で選ぶとき（ポインタが読めないとき）と、エンジンが使う並び。マスの数と同じだけの升目
+    public var gridShape: GridShape {
+        switch self {
+        case .four: GridShape(columns: 2, rows: 2)
+        case .six: GridShape(columns: 3, rows: 2)
+        case .eight: GridShape(columns: 4, rows: 2)
+        case .nine: GridShape(columns: 3, rows: 3)
+        case .twelve: GridShape(columns: 4, rows: 3)
+        }
+    }
+
+    /// 選べない数は、いちばん近い数（同じだけ離れていれば多いほう）
+    public init(nearest count: Int) {
+        self = Self.allCases.min { a, b in
+            let da = abs(a.rawValue - count), db = abs(b.rawValue - count)
+            return da == db ? a.rawValue > b.rawValue : da < db
+        } ?? .nine
+    }
+}
+
+/// 1ページ。cells は常に layout のボタンの数だけあり、9 なら 3×3 を左上から右へ、上の行から、ほかは上から時計回りに並ぶ。nil は空きマス
 public struct Page: Codable, Equatable, Sendable {
+    /// 9マス（標準のボタンの数）。ほかの数は PageLayout
     public static let cellCount = 9
+    /// ボタンの数の上限（PageLayout.twelve）
+    public static let maxCellCount = 12
     /// ページの名前の長さの上限（文字数）。HUD の題名に添えるので短くする
     public static let maxNameLength = 24
 
@@ -50,14 +101,61 @@ public struct Page: Codable, Equatable, Sendable {
     /// 下のページ（初回の設定では、グローバルの「ユーティリティ」）。HUD で輪の下の外に止めると、どのアプリの前でもこのページへ移る
     /// （NonetConfiguration.resolvedPages が層の最後に置く）。グローバルのページの1つだけ。アプリのページでは validated() が外す
     public var isBelow: Bool
+    /// ボタンの数
+    public var layout: PageLayout
 
-    /// 9個に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
-    public init(cells: [Cell?] = [], name: String? = nil, isBelow: Bool = false) {
-        var normalized = Array(cells.prefix(Page.cellCount))
-        normalized += Array(repeating: nil, count: Page.cellCount - normalized.count)
+    /// layout の数に満たなければ空きマスで埋め、多ければ切り捨てる。name は normalizedName(_:) で揃える
+    public init(cells: [Cell?] = [], name: String? = nil, layout: PageLayout = .nine, isBelow: Bool = false) {
+        var normalized = Array(cells.prefix(layout.slotCount))
+        normalized += Array(repeating: nil, count: layout.slotCount - normalized.count)
         self.cells = normalized
         self.name = Page.normalizedName(name)
+        self.layout = layout
         self.isBelow = isBelow
+    }
+
+    /// 中身のあるマスの数
+    public var filledCount: Int { cells.lazy.filter { $0 != nil }.count }
+
+    /// その数に変えても、中身のあるマスが全部残る
+    public func canResize(to layout: PageLayout) -> Bool {
+        filledCount <= layout.slotCount
+    }
+
+    /// 中身のあるマスが入りきらない数にするときの、残すページと、入りきらない分を並べたページ。
+    /// 中身のあるマスを上から時計回りの順に並べ、前から layout の数だけ残し、残りは今の数のページに同じ順で並べる。
+    /// 下のページの印（isBelow）は残すページが持ち、入りきらない分のページは持たない。
+    /// 入りきるなら overflow は nil（resized(to:) と同じ）
+    public func split(to layout: PageLayout) -> (page: Page, overflow: Page?) {
+        guard !canResize(to: layout) else { return (resized(to: layout), nil) }
+        let filled = self.layout.clockwiseCells.compactMap { cells.indices.contains($0) ? cells[$0] : nil }
+        func placed(_ cells: ArraySlice<Cell>, in layout: PageLayout, name: String?, isBelow: Bool) -> Page {
+            var result = Array<Cell?>(repeating: nil, count: layout.slotCount)
+            for (position, cell) in zip(layout.clockwiseCells, cells) {
+                result[position] = cell
+            }
+            return Page(cells: result, name: name, layout: layout, isBelow: isBelow)
+        }
+        return (
+            placed(filled.prefix(layout.slotCount), in: layout, name: name, isBelow: isBelow),
+            placed(filled.dropFirst(layout.slotCount), in: self.layout, name: nil, isBelow: false)
+        )
+    }
+
+    /// ボタンの数を変えたページ。上から時計回りの順（PageLayout.clockwiseCells）を保って詰め直す:
+    /// 入りきらなければ、後ろの空きマスから減らす。中身のあるマスが入りきらなければ（canResize が false）、後ろのマスを切り捨てる
+    public func resized(to layout: PageLayout) -> Page {
+        guard layout != self.layout else { return self }
+        var ordered = self.layout.clockwiseCells.map { cells.indices.contains($0) ? cells[$0] : nil }
+        while ordered.count > layout.slotCount, let index = ordered.lastIndex(where: { $0 == nil }) {
+            ordered.remove(at: index)
+        }
+        ordered = Array(ordered.prefix(layout.slotCount))
+        var result = Array<Cell?>(repeating: nil, count: layout.slotCount)
+        for (position, cell) in zip(layout.clockwiseCells, ordered) {
+            result[position] = cell
+        }
+        return Page(cells: result, name: name, layout: layout, isBelow: isBelow)
     }
 
     public static var empty: Page { Page() }
@@ -78,7 +176,7 @@ public enum ProfileMode: String, Codable, CaseIterable, Sendable {
     case profile
     /// このプロファイルは使わず、グローバルのページを使う（中身は残す。以前の「無効」）
     case global
-    /// このアプリでは Nonet を使わない。トラックパッドの上の縁から指を滑らせても9マスを開かず、
+    /// このアプリでは Nonet を使わない。トラックパッドを強く押し込んでも9マスを開かず（クリックも預からず）、
     /// ポインタはそのまま前面アプリに届く（NonetConfiguration.isTurnedOff(forBundleID:)）
     case off
 }
@@ -88,6 +186,38 @@ public enum ProfileKind: Codable, Hashable, Sendable {
     case global
     /// 特定のアプリが前面にあるときに使う
     case app(AppReference)
+    /// ブラウザで特定のサイトを見ているときに使う（そのブラウザのプロファイルより先）
+    case site(SiteReference)
+}
+
+/// サイト（ホスト名）。www. を除いた小文字で持ち、サブドメインにも合う（youtube.com は m.youtube.com にも合う）
+public struct SiteReference: Codable, Hashable, Sendable {
+    public var host: String
+
+    /// host は SiteReference.normalizedHost で整えたもの
+    public init(host: String) {
+        self.host = Self.normalizedHost(host) ?? host.lowercased()
+    }
+
+    /// URL・ホスト名・「www.」付きのどれからでも、ホスト名を取り出す（https://www.YouTube.com/watch → youtube.com）。
+    /// 取り出せなければ nil（空・空白を含む・点の無い名前（localhost を除く））
+    public static func normalizedHost(_ input: String) -> String? {
+        var text = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !text.isEmpty else { return nil }
+        if !text.contains("://") {
+            text = "https://" + text
+        }
+        guard let host = URLComponents(string: text)?.host, !host.isEmpty, !host.contains(" ") else { return nil }
+        let trimmed = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        guard trimmed.contains(".") || trimmed == "localhost" else { return nil }
+        return trimmed.hasSuffix(".") ? String(trimmed.dropLast()) : trimmed
+    }
+
+    /// 見ているページのホスト名（www. 付きでもよい）が、このサイトかそのサブドメインか
+    public func matches(host other: String) -> Bool {
+        guard let other = Self.normalizedHost(other) else { return false }
+        return other == host || other.hasSuffix("." + host)
+    }
 }
 
 public struct Profile: Codable, Equatable, Identifiable, Sendable {
@@ -127,6 +257,11 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
         return nil
     }
 
+    public var site: SiteReference? {
+        if case .site(let site) = kind { return site }
+        return nil
+    }
+
     /// どこかのページにマスが1つでもある（空きマスだけのアプリのプロファイルは、9マスでも早見表でも無いものとして扱う）
     public var hasButtons: Bool {
         pages.contains { page in page.cells.contains { $0 != nil } }
@@ -137,6 +272,7 @@ public struct Profile: Codable, Equatable, Identifiable, Sendable {
         switch kind {
         case .global: String(localized: "グローバル", bundle: .module)
         case .app(let app): app.nameOrBundleID
+        case .site(let site): site.host
         }
     }
 }
@@ -235,21 +371,23 @@ extension Cell {
 
 extension Page {
     private enum CodingKeys: String, CodingKey {
-        case cells, name, below
+        case cells, name, buttons, below
         /// 下のページの印の、開発中の版での名前（上に置いていたころ）。読むだけ
         case above
     }
 
-    /// cells は 9 個に揃える。読めないマスは空きマス。名前が無い・読めなければ nil。下のページの印は無い・読めなければ false
+    /// cells はボタンの数（buttons。無ければ 9、選べない数は近い数）に揃える。読めないマスは空きマス。名前が無い・読めなければ nil。下のページの印は無い・読めなければ false
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let cells = container.decodeLossy([LossyElement<Cell>].self, forKey: .cells, default: [])
-        if cells.count != Page.cellCount {
+        let layout = container.decodeLossy(Int?.self, forKey: .buttons, default: nil).map(PageLayout.init(nearest:)) ?? .nine
+        if cells.count != layout.slotCount {
             DecodingIssue.log("マスの数（\(cells.count)）", at: container.codingPath + [CodingKeys.cells])
         }
         self.init(
             cells: cells.map(\.value),
             name: container.decodeLossy(String?.self, forKey: .name, default: nil),
+            layout: layout,
             isBelow: container.decodeLossy(Bool.self, forKey: .below, default: false)
                 || container.decodeLossy(Bool.self, forKey: .above, default: false)
         )
@@ -257,7 +395,11 @@ extension Page {
 
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(Page(cells: cells).cells, forKey: .cells)
+        try container.encode(Page(cells: cells, layout: layout).cells, forKey: .cells)
+        // 9 のページは書かない（数を選べるようになる前と同じ書式のまま）
+        if layout != .nine {
+            try container.encode(layout.slotCount, forKey: .buttons)
+        }
         // 名前の無いページは書かない（名前を付けられるようになる前と同じ書式のまま）
         if let name = Page.normalizedName(name) {
             try container.encode(name, forKey: .name)
@@ -271,7 +413,7 @@ extension Page {
 
 extension ProfileKind {
     private enum CodingKeys: String, CodingKey {
-        case type, app
+        case type, app, site
     }
 
     public init(from decoder: any Decoder) throws {
@@ -281,6 +423,8 @@ extension ProfileKind {
             self = .global
         case "app":
             self = .app(try container.decode(AppReference.self, forKey: .app))
+        case "site":
+            self = .site(try container.decode(SiteReference.self, forKey: .site))
         default:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のプロファイルの種類")
         }
@@ -294,6 +438,9 @@ extension ProfileKind {
         case .app(let app):
             try container.encode("app", forKey: .type)
             try container.encode(app, forKey: .app)
+        case .site(let site):
+            try container.encode("site", forKey: .type)
+            try container.encode(site, forKey: .site)
         }
     }
 }
@@ -334,15 +481,15 @@ extension Profile {
 }
 
 extension Profile {
-    /// ページ数を 1〜maxPages、各ページを9マスに揃える
+    /// ページ数を 1〜maxPages、各ページをボタンの数に揃える
     mutating func normalizePages() {
         if pages.isEmpty {
             pages = [.empty]
         } else if pages.count > Profile.maxPages {
             pages = Array(pages.prefix(Profile.maxPages))
         }
-        for index in pages.indices where pages[index].cells.count != Page.cellCount {
-            pages[index] = Page(cells: pages[index].cells, name: pages[index].name, isBelow: pages[index].isBelow)
+        for index in pages.indices where pages[index].cells.count != pages[index].layout.slotCount {
+            pages[index] = Page(cells: pages[index].cells, name: pages[index].name, layout: pages[index].layout, isBelow: pages[index].isBelow)
         }
     }
 }

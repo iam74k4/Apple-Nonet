@@ -163,7 +163,10 @@ extension SettingsText {
             if shortcut.passSelectedText {
                 lines.append((String(localized: "選択中のテキストをショートカットに渡します", bundle: .module), .label))
             }
-        case .launchApp, .placeWindow:
+        case .pasteText(let paste):
+            lines.append((String(localized: "貼るテキスト:", bundle: .module), .label))
+            lines += sourceLines(paste.text).map { ($0, .code(terms: [])) }
+        case .launchApp, .placeWindow, .screenshots, .media:
             break
         }
         if reviewed.pressesSubmitKey {

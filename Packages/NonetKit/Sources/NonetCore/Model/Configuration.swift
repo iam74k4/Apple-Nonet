@@ -32,14 +32,17 @@ public struct ResolvedPage: Equatable, Sendable {
     public var pageName: String?
     /// 下のページ（Page.isBelow）。resolvedPages の最後に1つだけ。ほかに使うページが無ければ、ふつうのページとして並べる（false）
     public var isBelow: Bool
+    /// ボタンの数（Page.layout）
+    public var layout: PageLayout
 
-    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil, isBelow: Bool = false) {
+    public init(profileID: UUID, profileName: String, pageIndex: Int, cells: [Cell?], pageName: String? = nil, layout: PageLayout = .nine, isBelow: Bool = false) {
         self.profileID = profileID
         self.profileName = profileName
         self.pageIndex = pageIndex
         self.cells = cells
         self.pageName = pageName
         self.isBelow = isBelow
+        self.layout = layout
     }
 
     /// HUD の題名。ページに名前があれば「Xcode · デバッグ」、無ければプロファイルの名前だけ
@@ -207,7 +210,7 @@ extension NonetConfiguration {
         let below = pages.firstIndex(where: \.isBelow)
         let isBelow = page.isBelow && profiles[index].isGlobal && below == nil
         let position = isBelow ? pages.count : min(max(pageIndex, 0), below ?? pages.count)
-        profiles[index].pages.insert(Page(cells: page.cells, name: page.name, isBelow: isBelow), at: position)
+        profiles[index].pages.insert(Page(cells: page.cells, name: page.name, layout: page.layout, isBelow: isBelow), at: position)
         // ほかで同じ id のマスが作られていれば振り直す
         self = validated()
         return position
@@ -244,6 +247,39 @@ extension NonetConfiguration {
         return setBelowPage(true, at: index, profileID: global.id) != nil
     }
 
+    /// ページを丸ごと置き換える（ボタンの数を変えたのを元に戻す）。page はそのボタンの数に揃える
+    public mutating func replacePage(_ page: Page, at pageIndex: Int, profileID: UUID) {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return }
+        profiles[index].pages[pageIndex] = Page(cells: page.cells, name: page.name, layout: page.layout)
+        self = validated()
+    }
+
+    /// ページのボタンの数を変える（Page.resized(to:)。上から時計回りの順を保って詰め直す）。
+    /// 中身のあるマスが入りきらないとき、movingOverflow ならページを足せる限り、入りきらない分をすぐ後ろの新しいページへ移す
+    /// （Page.split(to:)）。できなければ何もしないで false
+    @discardableResult
+    public mutating func setPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID, movingOverflow: Bool = false) -> Bool {
+        guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return false }
+        let page = profiles[index].pages[pageIndex]
+        if page.canResize(to: layout) {
+            profiles[index].pages[pageIndex] = page.resized(to: layout)
+            return true
+        }
+        guard movingOverflow, profiles[index].pages.count < Profile.maxPages else { return false }
+        let (kept, overflow) = page.split(to: layout)
+        profiles[index].pages[pageIndex] = kept
+        if let overflow {
+            profiles[index].pages.insert(overflow, at: pageIndex + 1)
+        }
+        return true
+    }
+
+    /// ボタンの数を layout にできる（入りきるか、入りきらない分を新しいページへ移せる）
+    public func canSetPageLayout(_ layout: PageLayout, at pageIndex: Int, profileID: UUID, movingOverflow: Bool = false) -> Bool {
+        guard let profile = profile(id: profileID), profile.pages.indices.contains(pageIndex) else { return false }
+        return profile.pages[pageIndex].canResize(to: layout) || (movingOverflow && profile.pages.count < Profile.maxPages)
+    }
+
     /// ページの名前を変える。空や nil なら名前を外す（Page.normalizedName(_:) で揃える）
     public mutating func renamePage(at pageIndex: Int, profileID: UUID, to name: String?) {
         guard let index = profileIndex(id: profileID), profiles[index].pages.indices.contains(pageIndex) else { return }
@@ -258,9 +294,37 @@ extension NonetConfiguration {
     }
 
     /// このアプリでは Nonet を使わない（そのアプリのプロファイルが ProfileMode.off）。bundleID が nil や空なら false。
-    public func isTurnedOff(forBundleID bundleID: String?) -> Bool {
+    /// host（ブラウザで見ているサイト）のサイトのプロファイルが off でも true
+    public func isTurnedOff(forBundleID bundleID: String?, host: String? = nil) -> Bool {
+        if let host, let site = siteProfileIndex(matchingHost: host), profiles[site].mode == .off { return true }
         guard let bundleID, !Self.bundleIDKey(bundleID).isEmpty else { return false }
         return appMode(forBundleID: bundleID) == .off
+    }
+
+    /// 見ているページのホスト名に合うサイトのプロファイルの位置（有効・無効にかかわらず）。いちばん細かく合うもの（m.youtube.com なら youtube.com より m.youtube.com）
+    public func siteProfileIndex(matchingHost host: String) -> Int? {
+        profiles.indices
+            .filter { profiles[$0].site?.matches(host: host) == true }
+            .max { (profiles[$0].site?.host.count ?? 0) < (profiles[$1].site?.host.count ?? 0) }
+    }
+
+    /// 同じサイトのプロファイルの位置（ホスト名が同じもの）
+    public func siteProfileIndex(forHost host: String) -> Int? {
+        guard let normalized = SiteReference.normalizedHost(host) else { return nil }
+        return profiles.firstIndex { $0.site?.host == normalized }
+    }
+
+    /// サイトのプロファイルを加える。すでにあればその id。ホスト名にならない入力なら nil
+    @discardableResult
+    public mutating func addSiteProfile(host: String, pages: [Page] = [.empty]) -> UUID? {
+        guard let normalized = SiteReference.normalizedHost(host) else { return nil }
+        if let index = siteProfileIndex(forHost: normalized) {
+            return profiles[index].id
+        }
+        let profile = Profile(kind: .site(SiteReference(host: normalized)), pages: pages)
+        profiles.append(profile)
+        self = validated()
+        return profile.id
     }
 
     /// アプリの使い方を変える。プロファイルが無ければ作る（preset があればその中身で。後で「このプロファイル」に戻したときに使える）。
@@ -317,9 +381,14 @@ extension NonetConfiguration {
     /// 同じアプリのプロファイルか同じ id のプロファイルがすでにある・グローバルなら、何もしないで false
     @discardableResult
     public mutating func restoreAppProfile(_ profile: Profile, at position: Int) -> Bool {
-        guard let app = profile.app, !Self.bundleIDKey(app.bundleID).isEmpty,
-              appProfileIndex(forBundleID: app.bundleID) == nil,
-              profileIndex(id: profile.id) == nil else { return false }
+        let isNew: Bool = if let app = profile.app {
+            !Self.bundleIDKey(app.bundleID).isEmpty && appProfileIndex(forBundleID: app.bundleID) == nil
+        } else if let site = profile.site {
+            siteProfileIndex(forHost: site.host) == nil
+        } else {
+            false
+        }
+        guard isNew, profileIndex(id: profile.id) == nil else { return false }
         var apps = profiles.filter { !$0.isGlobal }
         apps.insert(profile, at: min(max(position, 0), apps.count))
         profiles = profiles.filter(\.isGlobal) + apps
@@ -332,9 +401,10 @@ extension NonetConfiguration {
     /// （off のアプリでは NonetController がセッションを始めないので、ここは呼ばれない）。
     /// マスが1つも無いアプリのプロファイル（「◯◯ のマスを作る…」で作ったばかり など）も無いものとし、グローバルのページを先に出す
     /// （空きマスだけのページが先に開いて、グローバルのマスが隠れないように）。
+    /// host はブラウザで見ているページのホスト名（分からなければ nil）。そのサイトのプロファイルがあれば、ブラウザのプロファイルより先に使う。
     /// グローバルの下のページ（Page.isBelow）は最後に置く（ResolvedPage.isBelow）。
     /// グローバルが下のページの1ページだけなら、ふつうのページとして置く（グローバルの左右に送るページが無くならないように）
-    public func resolvedPages(frontmostBundleID: String?) -> [ResolvedPage] {
+    public func resolvedPages(frontmostBundleID: String?, host: String? = nil) -> [ResolvedPage] {
         let global = globalProfile
         let globalPages = Self.resolve(global).map { page in
             var page = page
@@ -342,7 +412,9 @@ extension NonetConfiguration {
             return page
         }
         let appPages: [ResolvedPage]
-        if let bundleID = frontmostBundleID,
+        if let host, let index = siteProfileIndex(matchingHost: host), profiles[index].mode == .profile, profiles[index].hasButtons {
+            appPages = Self.resolve(profiles[index])
+        } else if let bundleID = frontmostBundleID,
            let appProfile = appProfile(forBundleID: bundleID),
            appProfile.hasButtons {
             appPages = Self.resolve(appProfile)
@@ -357,6 +429,7 @@ extension NonetConfiguration {
         var usedProfileIDs = Set<UUID>()
         var usedCellIDs = Set<UUID>()
         var seenBundleIDs = Set<String>()
+        var seenHosts = Set<String>()
         var global: Profile?
         var apps: [Profile] = []
 
@@ -374,6 +447,12 @@ extension NonetConfiguration {
                     modelLogger.warning("同じアプリのプロファイルが2つ以上あったので、2つ目以降を外した")
                     continue
                 }
+            case .site(let site):
+                guard let host = SiteReference.normalizedHost(site.host), seenHosts.insert(host).inserted else {
+                    modelLogger.warning("同じサイトか、ホスト名にならないサイトのプロファイルがあったので外した")
+                    continue
+                }
+                profile.kind = .site(SiteReference(host: host))
             }
             if !usedProfileIDs.insert(profile.id).inserted {
                 profile.id = Self.uniqueID(avoiding: usedProfileIDs)
@@ -482,6 +561,23 @@ extension NonetConfiguration {
                 }
                 result.replacedGlobal = true
                 applied.insert(position)
+            case .site(let site):
+                guard let host = SiteReference.normalizedHost(site.host), seenBundleIDs.insert("site:" + host).inserted else {
+                    result.skipped += 1
+                    continue
+                }
+                if let index = siteProfileIndex(forHost: host) {
+                    profile.id = profiles[index].id
+                    profiles[index] = profile
+                    result.replaced += 1
+                } else {
+                    if profiles.contains(where: { $0.id == profile.id }) {
+                        profile.id = UUID()
+                    }
+                    profiles.append(profile)
+                    result.added += 1
+                }
+                applied.insert(position)
             case .app(let app):
                 let key = Self.bundleIDKey(app.bundleID)
                 guard !key.isEmpty, seenBundleIDs.insert(key).inserted else {
@@ -571,7 +667,7 @@ extension NonetConfiguration {
         profile.normalizePages()
         let name = profile.name
         return profile.pages.enumerated().map { pageIndex, page in
-            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name, isBelow: page.isBelow)
+            ResolvedPage(profileID: profile.id, profileName: name, pageIndex: pageIndex, cells: page.cells, pageName: page.name, layout: page.layout, isBelow: page.isBelow)
         }
     }
 

@@ -1,5 +1,5 @@
 // 担当: ui-settings
-// 9マスの位置・選択の移動・複製先・ドラッグの中身など、画面に依存しない決まり
+// マスの位置・選択の移動・複製先・ドラッグの中身など、画面に依存しない決まり
 import CoreTransferable
 import Foundation
 import NonetCore
@@ -17,8 +17,9 @@ enum SettingsGrid {
     /// 隣と入れ替えるメニュー・VoiceOver の並び
     static let swapDirections: [SettingsGridDirection] = [.up, .down, .left, .right]
 
-    /// 矢印キーで移る先。端では止まる
-    static func neighbor(of index: Int, _ direction: SettingsGridDirection) -> Int {
+    /// 矢印キーで移る先。端では止まる。9 以外のページ（円に並ぶ）は、その向きにあるいちばん近いマス（無ければ止まる）
+    static func neighbor(of index: Int, _ direction: SettingsGridDirection, layout: PageLayout = .nine) -> Int {
+        guard layout == .nine else { return ringNeighbor(of: index, direction, layout: layout) }
         let index = min(max(index, 0), Page.cellCount - 1)
         let row = index / columns
         let column = index % columns
@@ -30,16 +31,39 @@ enum SettingsGrid {
         }
     }
 
+    /// 円に並ぶページの、矢印キーで移る先: その向き（右・下が正）に、向きから 60° より外れずにあるマスのうち、向きに沿って近いもの
+    static func ringNeighbor(of index: Int, _ direction: SettingsGridDirection, layout: PageLayout) -> Int {
+        let index = min(max(index, 0), layout.slotCount - 1)
+        guard let from = RadialLayout.position(ofCell: index, layout: layout) else { return index }
+        let (ux, uy): (Double, Double) = switch direction {
+        case .left: (-1, 0)
+        case .right: (1, 0)
+        case .up: (0, -1)
+        case .down: (0, 1)
+        }
+        let candidates = (0..<layout.slotCount).compactMap { other -> (index: Int, score: Double)? in
+            guard other != index, let to = RadialLayout.position(ofCell: other, layout: layout) else { return nil }
+            let dx = to.x - from.x, dy = to.y - from.y
+            let along = dx * ux + dy * uy
+            let across = abs(dx * uy - dy * ux)
+            // 向きから 60° 以内（across ≤ along × √3）
+            guard along > 1, across <= along * 1.733 else { return nil }
+            return (other, along + across * 2)
+        }
+        return candidates.min { $0.score < $1.score }?.index ?? index
+    }
+
     /// 複製の置き場所。同じページの次のマスから順に（折り返して）探し、無ければほかのページを前から探す
     static func nextEmptyAddress(after address: CellAddress, in profile: Profile) -> CellAddress? {
         var candidates: [CellAddress] = []
         if profile.pages.indices.contains(address.page) {
-            for offset in 1..<Page.cellCount {
-                candidates.append(CellAddress(page: address.page, index: (address.index + offset) % Page.cellCount))
+            let count = profile.pages[address.page].cells.count
+            for offset in 1..<max(count, 1) {
+                candidates.append(CellAddress(page: address.page, index: (address.index + offset) % count))
             }
         }
         for page in profile.pages.indices where page != address.page {
-            for index in 0..<Page.cellCount {
+            for index in profile.pages[page].cells.indices {
                 candidates.append(CellAddress(page: page, index: index))
             }
         }
@@ -98,6 +122,11 @@ enum SettingsGrid {
         return profile.pages[address.page].cells[address.index]
     }
 
+    /// HUD の上の位置の名前。9 のページは 3×3、ほかは円の上の向き（HUDAnnouncement.positionName(_:layout:)）
+    static func positionName(_ index: Int, layout: PageLayout) -> String {
+        layout == .nine ? positionName(index) : HUDAnnouncement.positionName(index, layout: layout)
+    }
+
     /// トラックパッド上の位置の名前
     static func positionName(_ index: Int) -> String {
         switch index {
@@ -114,8 +143,8 @@ enum SettingsGrid {
     }
 
     /// 「マス 5（中央）」
-    static func cellName(_ index: Int) -> String {
-        String(localized: "マス \(index + 1)（\(positionName(index))）", bundle: .module)
+    static func cellName(_ index: Int, layout: PageLayout = .nine) -> String {
+        String(localized: "マス \(index + 1)（\(positionName(index, layout: layout))）", bundle: .module)
     }
 
     /// マスに出す説明（"⌘B" など）。中身が未設定なら「未設定」。名前と同じになるときは種類の名前
@@ -171,8 +200,8 @@ enum SettingsGrid {
     }
 
     /// VoiceOver の読み上げ（「5番目のマス（中央）：Claude Code、ターミナル」）
-    static func accessibilityLabel(index: Int, cell: Cell?) -> String {
-        let position = String(localized: "\(index + 1)番目のマス（\(positionName(index))）", bundle: .module)
+    static func accessibilityLabel(index: Int, cell: Cell?, layout: PageLayout = .nine) -> String {
+        let position = String(localized: "\(index + 1)番目のマス（\(positionName(index, layout: layout))）", bundle: .module)
         guard let cell else {
             return String(localized: "\(position)：空き", bundle: .module)
         }
@@ -204,7 +233,7 @@ enum SettingsDragPayload: Equatable, Sendable {
             let parts = token.dropFirst(Self.cellPrefix.count).split(separator: "|", omittingEmptySubsequences: false)
             guard parts.count == 3, let id = UUID(uuidString: String(parts[0])),
                   let page = Int(parts[1]), let index = Int(parts[2]),
-                  page >= 0, (0..<Page.cellCount).contains(index) else { return nil }
+                  page >= 0, (0..<Page.maxCellCount).contains(index) else { return nil }
             self = .cell(profileID: id, address: CellAddress(page: page, index: index))
         } else if token.hasPrefix(Self.menuPrefix) {
             let id = String(token.dropFirst(Self.menuPrefix.count))

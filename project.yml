@@ -54,6 +54,9 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: "© 2026 Takanari Okazaki"
         NSAppleEventsUsageDescription: "スクリプトに渡すためにブラウザで表示中のページの URL を取得し、ファイルのアクションのために Finder で選んでいるファイルを調べて、名前の変更・複製・ゴミ箱に入れる操作をします。"
+        NSDesktopFolderUsageDescription: "最近のスクショのマスで、デスクトップに保存されたスクリーンショットを並べるために、デスクトップのファイルの一覧を読みます。"
+        NSDocumentsFolderUsageDescription: "最近のスクショのマスで、スクリーンショットの保存先に選んだ書類フォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。"
+        NSDownloadsFolderUsageDescription: "最近のスクショのマスで、スクリーンショットの保存先に選んだダウンロードフォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。"
         SUFeedURL: $(NONET_APPCAST_URL)
         SUPublicEDKey: $(NONET_SPARKLE_PUBLIC_KEY)
         SUEnableAutomaticChecks: true

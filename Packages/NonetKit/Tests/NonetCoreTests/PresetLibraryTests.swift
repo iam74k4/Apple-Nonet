@@ -261,7 +261,7 @@ import Testing
                 #expect(!url.url.isEmpty)
             case .ai(let ai):
                 #expect(!ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            case .keystroke, .shortcut, .file, .placeWindow:
+            case .keystroke, .shortcut, .file, .placeWindow, .screenshots, .media, .pasteText:
                 break
             }
         }

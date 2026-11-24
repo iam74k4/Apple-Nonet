@@ -165,29 +165,32 @@ struct ActionClipboardTests {
         @Test("中身を渡すのが遅いアプリでも、メインスレッドを止めずに時間切れであきらめる")
         func slowProviderDoesNotBlockMainThread() async {
             await withPrivatePasteboard { pasteboard in
-                // 渡すのに 4 秒かかるアプリ。1 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
+                // 渡すのに 4 秒かかるアプリ。2 秒で諦めれば、遅い Mac（CI。並行するテストで再開が 1 秒ほど遅れる）でも
                 // 待ちきった場合（4 秒）とはっきり分かれる
                 let provider = SlowProvider(delay: 4)
                 putLazy("表のテキスト", types: [custom], provider: provider, on: pasteboard)
 
-                // 写している間もメインスレッドが動いているか（イベントタップと同じスレッド）
-                let ticks = Box(0)
+                // 写している間もメインスレッドが動いているか（イベントタップと同じスレッド）。20 ミリ秒ごとに時刻を残す
+                let ticks = Box([TimeInterval]())
                 let ticker = Task { @MainActor in
                     while !Task.isCancelled {
-                        ticks.value += 1
+                        ticks.value.append(ProcessInfo.processInfo.systemUptime)
                         try? await Task.sleep(for: .milliseconds(20))
                     }
                 }
                 var result: Result<PasteboardSnapshot, PasteboardSnapshot.Failure>?
                 let elapsed = await actionElapsedSeconds {
-                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 1))
+                    result = await PasteboardSnapshot.capture(pasteboard, limits: .init(timeout: 2))
                 }
                 ticker.cancel()
                 #expect(result?.failure == .tooSlow, "\(String(describing: result))")
-                #expect(elapsed < 3, "\(elapsed) 秒待った")
-                // 20 ミリ秒ごとに数える（1 秒でおよそ 50 回）。止まっていれば写している間は 1 回も進まない（始まりと終わりの 1〜2 回だけ）。
-                // 遅い Mac（CI）では 20 ミリ秒の眠りが 150 ミリ秒ほどに延びた（0.5 秒で 3 回）ので、回数は少なめに見る
-                #expect(ticks.value >= 4, "メインスレッドが止まっていた（\(ticks.value) 回）")
+                #expect(elapsed < 3.5, "\(elapsed) 秒待った")
+                // 止まっていれば、写している 2 秒の間は時刻が残らず、間が 2 秒ほど空く。遅い Mac（CI）では 20 ミリ秒の眠りが
+                // 150〜750 ミリ秒ほどに延びることがあるので、回数ではなく、いちばん長い間（1 秒より短いか）で見る
+                let times = ticks.value + [ProcessInfo.processInfo.systemUptime]
+                let longestGap = zip(times, times.dropFirst()).map { $1 - $0 }.max() ?? .infinity
+                #expect(times.count >= 3, "メインスレッドが止まっていた（\(times.count - 1) 回）")
+                #expect(longestGap < 1.0, "メインスレッドが \(longestGap) 秒止まっていた")
                 // 裏で続いている読み取りが終わってからクリップボードを片付ける
                 _ = await waitUntil { provider.isDone }
             }
@@ -704,16 +707,16 @@ struct ActionBlockingCallTests {
     @Test("制限時間を過ぎたら、終わりを待たずに代わりの値を返す")
     func timesOut() async {
         var value = ""
-        // 呼び出しは 3 秒止まる。遅い Mac（CI）では、時間切れの後にこのテストの再開が 1 秒ほど遅れることがあるので、
-        // 待ちきった場合（3 秒）と分かれる 2 秒で見る
+        // 呼び出しは 10 秒止まる。遅い Mac（CI）では、時間切れの後にこのテストの再開が数秒遅れることがある
+        // （2026-11 に 2.8〜3.8 秒を見た）ので、待ちきった場合（10 秒）と十分に分かれる 6 秒で見る
         let elapsed = await actionElapsedSeconds {
             value = await BlockingCall.run(timeout: 0.1, fallback: "代わり") {
-                Thread.sleep(forTimeInterval: 3)
+                Thread.sleep(forTimeInterval: 10)
                 return "遅い"
             }
         }
         #expect(value == "代わり")
-        #expect(elapsed < 2, "\(elapsed) 秒待った")
+        #expect(elapsed < 6, "\(elapsed) 秒待った")
     }
 
     @Test("間に合えばその値")

@@ -450,10 +450,14 @@ struct ShellCheatSheetTests {
         #expect(multi.pageCount > 1)
         let view = MenuBarCheatSheetView(sheet: multi, density: .regular, increasedContrast: false)
         let children = try #require(view.accessibilityChildren() as? [NSView])
-        #expect(children == [view.previousButton, view.pageIndicator, view.nextButton] + view.cellButtons)
+        // マスのボタンは、見ているページのボタンの数（ここでは 9）だけ読む。12 のページのために用意した残りは隠してある
+        let shown = Array(view.cellButtons.prefix(Page.cellCount))
+        #expect(children == [view.previousButton, view.pageIndicator, view.nextButton] + shown)
+        let restAreHidden = view.cellButtons.dropFirst(Page.cellCount).allSatisfy { $0.isHidden }
+        #expect(restAreHidden)
         #expect(view.accessibilityLabel() == multi.accessibilityLabel)
         #expect(view.accessibilityRole() == .group)
-        for (index, button) in view.cellButtons.enumerated() {
+        for (index, button) in shown.enumerated() {
             #expect(button.accessibilityRole() == .button)
             #expect(button.accessibilityLabel() == multi.accessibilityLabel(ofCell: index))
             // 中身のあるマスには「前面のアプリで実行」の操作がある（⌥クリックと同じ）
@@ -467,7 +471,7 @@ struct ShellCheatSheetTests {
         // ページが1枚なら ‹ › は無い
         view.update(sheet: MenuBarCheatSheet(frontApp: nil, configuration: configuration), density: .compact, increasedContrast: true)
         let single = try #require(view.accessibilityChildren() as? [NSView])
-        #expect(single == view.cellButtons)
+        #expect(single == Array(view.cellButtons.prefix(Page.cellCount)))
         #expect(view.previousButton.isHidden && view.nextButton.isHidden)
         #expect(view.frame.size == MenuBarCheatSheetLayout(density: .compact).size)
         #expect(view.store.increasedContrast)
@@ -522,5 +526,27 @@ struct ShellCheatSheetTests {
         window.selectCell(profileID: UUID(), address: CellAddress(page: 0, index: 0))
         #expect(window.model.tab == .profiles)
         #expect(window.model.selectedProfile.id == xcode.id)
+    }
+
+    /// ボタンの数が 9 でないページも、升目の外周に HUD の円と同じ向きで並べる。12 のページがあれば、どのページも高さは同じ
+    @Test func otherButtonCountsAreLaidOutAroundTheGrid() {
+        for pageLayout in PageLayout.allCases {
+            let layout = MenuBarCheatSheetLayout(density: .regular, pageLayout: pageLayout)
+            let cells = (0..<pageLayout.slotCount).map(layout.cellFrame)
+            for (index, cell) in cells.enumerated() {
+                #expect(cell.width > 0 && layout.gridFrame.contains(cell), "\(pageLayout) \(index)")
+                for other in cells[(index + 1)...] {
+                    #expect(!cell.intersects(other), "\(pageLayout) \(index)")
+                }
+            }
+            #expect(layout.cellFrame(pageLayout.slotCount) == .zero)
+        }
+        // 4: 上・右・下・左
+        let four = MenuBarCheatSheetLayout(density: .regular, pageLayout: .four)
+        #expect(four.cellFrame(0).midY < four.cellFrame(1).midY && four.cellFrame(1).midX > four.cellFrame(3).midX)
+        let nine = MenuBarCheatSheetLayout(density: .regular, pageLayout: .nine, gridSide: 4)
+        let twelve = MenuBarCheatSheetLayout(density: .regular, pageLayout: .twelve)
+        #expect(nine.height == twelve.height)
+        #expect(MenuBarCheatSheetLayout(density: .regular).height < twelve.height)
     }
 }

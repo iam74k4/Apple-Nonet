@@ -12,8 +12,9 @@ import Testing
         for kind in ActionKind.allCases {
             #expect(!SettingsActionKinds.name(kind).isEmpty)
             #expect(SettingsCellEditing.defaultAction(for: kind).kind == kind)
-            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「複製」、画面に置くは「最大化」から始まり、すぐ使える
-            let usableAtOnce: Set<ActionKind> = [.file, .placeWindow]
+            // どの種類も、中身を決めるまでは実行できない。ただしファイルは「複製」、画面に置くは「最大化」から始まり、
+            // 最近のスクショは決めることが無いので、すぐ使える
+            let usableAtOnce: Set<ActionKind> = [.file, .placeWindow, .screenshots, .media]
             #expect(SettingsCellEditing.isIncomplete(SettingsCellEditing.defaultAction(for: kind)) == !usableAtOnce.contains(kind))
             let cell = SettingsCellEditing.newCell(kind: kind)
             #expect(cell.title.isEmpty)
@@ -21,10 +22,17 @@ import Testing
             let expectedSymbol = switch kind {
             case .file: SettingsActionKinds.symbol(FileOperation.duplicate)
             case .placeWindow: WindowRegion.maximize.symbol
+            case .media: MediaKey.playPause.symbol
             default: SettingsActionKinds.symbol(kind)
             }
             #expect(cell.icon == .symbol(expectedSymbol))
         }
+    }
+
+    /// 「テキストを貼る」は最初の1文字のアイコン（いくつあっても HUD で見分けられる）。空なら種類のアイコン
+    @Test func pasteTextIconsUseTheFirstCharacter() {
+        #expect(SettingsCellEditing.defaultIcon(for: .pasteText(PasteTextAction(text: "  署名\n岡崎"))) == .text("署"))
+        #expect(SettingsCellEditing.defaultIcon(for: .pasteText(PasteTextAction(text: ""))) == .symbol(SettingsActionKinds.symbol(.pasteText)))
     }
 
     @Test func newCellsGetAutomaticTitlesFromTheirAction() {

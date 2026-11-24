@@ -81,8 +81,10 @@ public struct HUDModel: Equatable, Sendable {
     /// いまの層（layer）の中でのページの番号と数
     public var pageIndex: Int
     public var pageCount: Int
-    /// 常に9個。nil は空きマス
+    /// ボタンの数（layout.slotCount）だけある。nil は空きマス
     public var cells: [HUDCell?]
+    /// ボタンの数（円に並べる鍵の数と、真ん中のマスがあるか）
+    public var layout: PageLayout
     /// 指の下にあるマス。指が外枠にある・2本以上の指が触れていれば nil
     public var highlightedIndex: Int?
     /// 指が9マスの外側の枠（やめる場所）にある。離すと何も実行しない。HUD はマスを暗くし、枠を強めて「離すとやめる」を出す
@@ -119,6 +121,7 @@ public struct HUDModel: Equatable, Sendable {
         pageIndex: Int,
         pageCount: Int,
         cells: [HUDCell?],
+        layout: PageLayout = .nine,
         highlightedIndex: Int?,
         isFingerInFrame: Bool = false,
         hold: HUDHold? = nil,
@@ -138,6 +141,7 @@ public struct HUDModel: Equatable, Sendable {
         self.pageIndex = pageIndex
         self.pageCount = pageCount
         self.cells = cells
+        self.layout = layout
         self.highlightedIndex = highlightedIndex
         self.isFingerInFrame = isFingerInFrame
         self.hold = hold
