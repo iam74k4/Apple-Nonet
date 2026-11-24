@@ -31,10 +31,16 @@ public enum Action: Codable, Equatable, Sendable {
     case file(FileAction)
     /// 前面のアプリのウインドウを、画面の決まった場所に置く（3×3 のマスが、そのまま画面の場所）
     case placeWindow(PlaceWindowAction)
+    /// 最近のスクリーンショットを並べたトレイを出す（クリックで画像をコピー、ドラッグでそのまま添付）
+    case screenshots(ScreenshotTrayAction)
+    /// 再生・音量・明るさのキー（キーボードの F キーの段と同じ働き。どのアプリが前面でも効く）
+    case media(MediaAction)
+    /// 決めておいたテキストを、前面のアプリのカーソルの位置に貼り付ける（定型文・署名・住所など）
+    case pasteText(PasteTextAction)
 }
 
 public enum ActionKind: String, Codable, CaseIterable, Hashable, Sendable {
-    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow
+    case keystroke, launchApp, openURL, script, shortcut, menuItem, ai, file, placeWindow, screenshots, media, pasteText
 }
 
 public struct LaunchAppAction: Codable, Equatable, Sendable {
@@ -49,10 +55,48 @@ public struct LaunchAppAction: Codable, Equatable, Sendable {
 }
 
 public struct URLAction: Codable, Equatable, Sendable {
+    /// URL のこの部分を、選択中のテキストに置き換えて開く（「選んだ言葉で検索」）
+    public static let selectionPlaceholder = "{selection}"
+    /// 置き換える選択の長さの上限（文字数）。長い選択は先頭だけにする（検索の URL が長くなりすぎない）
+    public static let maxSelectionLength = 500
+
     public var url: String
 
     public init(url: String) {
         self.url = url
+    }
+
+    /// 開くときに選択中のテキストを読む（{selection} がある）
+    public var usesSelection: Bool { url.contains(Self.selectionPlaceholder) }
+
+    /// {selection} を選択に置き換えた URL。選択は前後の空白を除き、改行やタブは空白1つにまとめ、
+    /// maxSelectionLength 文字までにして、英数字と - . _ ~ 以外をパーセントエンコードする（? & # などで URL が崩れない）
+    public func url(withSelection text: String) -> String {
+        let singleLine = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
+        let short = String(singleLine.prefix(Self.maxSelectionLength))
+        var allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+        allowed.formIntersection(.urlQueryAllowed)
+        let encoded = short.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        return url.replacingOccurrences(of: Self.selectionPlaceholder, with: encoded)
+    }
+}
+
+/// 選んだテキストで開く URL のひな形（設定の「選んだ言葉で開く」）
+public enum URLSelectionTemplate: String, CaseIterable, Sendable {
+    case googleSearch
+    case googleTranslate
+    case youTubeSearch
+    case wikipedia
+
+    /// languageCode は翻訳の先と Wikipedia の言語（"ja" など）
+    public func url(languageCode: String) -> String {
+        let language = languageCode.isEmpty ? "en" : languageCode
+        return switch self {
+        case .googleSearch: "https://www.google.com/search?q={selection}"
+        case .googleTranslate: "https://translate.google.com/?sl=auto&tl=\(language)&text={selection}"
+        case .youTubeSearch: "https://www.youtube.com/results?search_query={selection}"
+        case .wikipedia: "https://\(language).wikipedia.org/w/index.php?search={selection}"
+        }
     }
 }
 
@@ -176,6 +220,128 @@ public struct PlaceWindowAction: Codable, Equatable, Sendable {
     }
 }
 
+/// 決めておいたテキストを貼る。{date}・{time} は貼るときの日付と時刻に置き換える
+public struct PasteTextAction: Codable, Equatable, Sendable {
+    public var text: String
+
+    public init(text: String) {
+        self.text = text
+    }
+
+    /// 貼る文字。{date} は 2026-11-23、{time} は 14:05（どちらも今の Mac の時計）
+    public func expanded(now: Date = Date(), timeZone: TimeZone = .current) -> String {
+        guard text.contains("{date}") || text.contains("{time}") else { return text }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        let date = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        let time = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        return text.replacingOccurrences(of: "{date}", with: date).replacingOccurrences(of: "{time}", with: time)
+    }
+
+    /// HUD や設定画面に出す短い説明（最初の行の頭）
+    public var preview: String? {
+        guard let line = text.split(whereSeparator: \.isNewline).first?.trimmingCharacters(in: .whitespaces), !line.isEmpty else { return nil }
+        return line.count > 16 ? String(line.prefix(15)) + "…" : line
+    }
+}
+
+/// 再生・音量・明るさのキー
+public enum MediaKey: String, Codable, CaseIterable, Sendable {
+    case playPause, next, previous, volumeUp, volumeDown, mute, brightnessUp, brightnessDown
+}
+
+public struct MediaAction: Codable, Equatable, Sendable {
+    public var key: MediaKey
+
+    public init(key: MediaKey) {
+        self.key = key
+    }
+}
+
+extension MediaKey {
+    /// 名前（HUD や設定画面に出す）
+    public var title: String {
+        switch self {
+        case .playPause: String(localized: "再生／一時停止", bundle: .module)
+        case .next: String(localized: "次の曲", bundle: .module)
+        case .previous: String(localized: "前の曲", bundle: .module)
+        case .volumeUp: String(localized: "音量を上げる", bundle: .module)
+        case .volumeDown: String(localized: "音量を下げる", bundle: .module)
+        case .mute: String(localized: "消音", bundle: .module)
+        case .brightnessUp: String(localized: "明るくする", bundle: .module)
+        case .brightnessDown: String(localized: "暗くする", bundle: .module)
+        }
+    }
+
+    /// 絵（SF Symbols。macOS 14 にあるもの）
+    public var symbol: String {
+        switch self {
+        case .playPause: "playpause.fill"
+        case .next: "forward.fill"
+        case .previous: "backward.fill"
+        case .volumeUp: "speaker.wave.3.fill"
+        case .volumeDown: "speaker.wave.1.fill"
+        case .mute: "speaker.slash.fill"
+        case .brightnessUp: "sun.max.fill"
+        case .brightnessDown: "sun.min.fill"
+        }
+    }
+
+    /// 1回で何段送るか。音量と明るさは1段では変化が小さく、9マスを開き直す手間に見合わないので2段
+    public var steps: Int {
+        switch self {
+        case .volumeUp, .volumeDown, .brightnessUp, .brightnessDown: 2
+        case .playPause, .next, .previous, .mute: 1
+        }
+    }
+}
+
+/// 最近のスクリーンショットのトレイ（探す場所は macOS のスクリーンショットの保存先。ScreenshotFolder）
+public struct ScreenshotTrayAction: Codable, Equatable, Sendable {
+    /// 並べる数として選べるもの
+    public static let counts = [3, 5, 8, 12]
+    public static let defaultCount = 5
+
+    /// 並べる数（counts のどれか。ほかの値は近いものに直す）
+    public var count: Int
+    /// 画面の収録（動画）も並べる
+    public var includesVideos: Bool
+
+    public init(count: Int = ScreenshotTrayAction.defaultCount, includesVideos: Bool = true) {
+        self.count = Self.nearestCount(count)
+        self.includesVideos = includesVideos
+    }
+
+    public static func nearestCount(_ value: Int) -> Int {
+        // 同じだけ離れていれば多い方（4 なら 5）
+        counts.min { (abs($0 - value), -$0) < (abs($1 - value), -$1) } ?? defaultCount
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case count, includesVideos
+    }
+
+    /// 既定の値は書かない（前の版の {"type":"screenshots"} と同じ書式のまま）
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            count: container.decodeLossy(Int.self, forKey: .count, default: Self.defaultCount),
+            includesVideos: container.decodeLossy(Bool.self, forKey: .includesVideos, default: true)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if count != Self.defaultCount {
+            try container.encode(count, forKey: .count)
+        }
+        if !includesVideos {
+            try container.encode(includesVideos, forKey: .includesVideos)
+        }
+    }
+}
+
 extension Action {
     public var kind: ActionKind {
         switch self {
@@ -188,6 +354,9 @@ extension Action {
         case .ai: .ai
         case .file: .file
         case .placeWindow: .placeWindow
+        case .screenshots: .screenshots
+        case .media: .media
+        case .pasteText: .pasteText
         }
     }
 
@@ -199,7 +368,12 @@ extension Action {
         case .launchApp(let action):
             action.app.nameOrBundleID
         case .openURL(let action):
-            URLAction.displayHost(of: action.url) ?? String(localized: "URL", bundle: .module)
+            if action.usesSelection, let host = URLAction.displayHost(of: action.url) {
+                // 選んだ言葉で開く URL（「google.com で検索」）
+                String(localized: "\(host) で検索", bundle: .module)
+            } else {
+                URLAction.displayHost(of: action.url) ?? String(localized: "URL", bundle: .module)
+            }
         case .script(let action):
             switch action.runMode {
             case .background: String(localized: "スクリプト", bundle: .module)
@@ -215,6 +389,12 @@ extension Action {
             action.operation.title
         case .placeWindow(let action):
             action.region.title
+        case .screenshots:
+            String(localized: "最近のスクショ", bundle: .module)
+        case .media(let action):
+            action.key.title
+        case .pasteText(let action):
+            action.preview ?? String(localized: "テキストを貼る", bundle: .module)
         }
     }
 }
@@ -295,9 +475,11 @@ extension URLAction {
     /// 表示用のホスト名（"www." は省く）。ホストの無い URL はそのまま、空なら nil
     static func displayHost(of string: String) -> String? {
         guard let trimmed = string.trimmedNonEmpty else { return nil }
-        var components = URLComponents(string: trimmed)
+        // {selection} は URL に使えない文字なので、確かめるときは置き換えておく
+        let checked = trimmed.replacingOccurrences(of: selectionPlaceholder, with: "x")
+        var components = URLComponents(string: checked)
         if components?.scheme == nil {
-            components = URLComponents(string: "https://" + trimmed)
+            components = URLComponents(string: "https://" + checked)
         }
         guard let host = components?.host, !host.isEmpty else { return trimmed }
         if host.lowercased().hasPrefix("www."), host.count > 4 {
@@ -347,6 +529,12 @@ extension Action {
             self = .file(try FileAction(from: decoder))
         case .placeWindow:
             self = .placeWindow(try PlaceWindowAction(from: decoder))
+        case .screenshots:
+            self = .screenshots(try ScreenshotTrayAction(from: decoder))
+        case .media:
+            self = .media(try MediaAction(from: decoder))
+        case .pasteText:
+            self = .pasteText(try PasteTextAction(from: decoder))
         case nil:
             throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "未知のアクションの種類")
         }
@@ -375,7 +563,46 @@ extension Action {
             try action.encode(to: encoder)
         case .placeWindow(let action):
             try action.encode(to: encoder)
+        case .screenshots(let action):
+            try action.encode(to: encoder)
+        case .media(let action):
+            try action.encode(to: encoder)
+        case .pasteText(let action):
+            try action.encode(to: encoder)
         }
+    }
+}
+
+extension PasteTextAction {
+    private enum CodingKeys: String, CodingKey {
+        case text
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(text: try container.decode(String.self, forKey: .text))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(text, forKey: .text)
+    }
+}
+
+extension MediaAction {
+    private enum CodingKeys: String, CodingKey {
+        case key
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 知らないキーを別のキーとして読まないよう、読めなければマスごと読めないことにする
+        self.init(key: try container.decode(MediaKey.self, forKey: .key))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(key, forKey: .key)
     }
 }
 

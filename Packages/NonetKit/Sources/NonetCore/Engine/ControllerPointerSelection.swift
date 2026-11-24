@@ -29,24 +29,27 @@ public struct ControllerPointerSelection: Equatable, Sendable {
         CGPoint(x: map.midX, y: map.midY)
     }
 
-    /// ポインタの位置をマスか外枠に変え、エンジンに渡す指の位置にする。枠の大きさが 0 や、位置が NaN なら nil
-    public mutating func position(of pointer: CGPoint, in map: CGRect) -> (x: Double, y: Double)? {
+    /// ポインタの位置をマスか外枠に変え、エンジンに渡す指の位置にする。layout はいまのページのボタンの数（エンジンの升目もそれに合わせる）。
+    /// 枠の大きさが 0 や、位置が NaN なら nil
+    public mutating func position(of pointer: CGPoint, in map: CGRect, layout: PageLayout = .nine) -> (x: Double, y: Double)? {
         guard map.width > 0, map.height > 0, pointer.x.isFinite, pointer.y.isFinite else { return nil }
         // 枠は倍率（HUDModel.scale）を掛けた大きさなので、倍率 1 のポイントに戻す
         let unit = map.width / 2 / RadialLayout.outerRadius
         let dx = (pointer.x - map.midX) / unit
         let dy = (pointer.y - map.midY) / unit
-        let next = Self.mapper.zone(dx: dx, dy: dy, current: zone)
+        let isInCenter = Self.mapper.isInCenter(dx: dx, dy: dy, current: zone, layout: layout)
+        let next = Self.mapper.zone(dx: dx, dy: dy, current: zone, layout: layout)
         zone = next
         pagingEdge = next == .frame ? Self.mapper.pagingEdge(dx: dx, dy: dy, current: pagingEdge) : nil
-        if next == .cell(RadialLayout.centerCell) {
+        if isInCenter {
             guard hasLeftCenter else { return Self.gridPosition(for: .frame, pagingEdge: nil) }
         } else {
             hasLeftCenter = true
         }
-        let position = Self.gridPosition(for: next, pagingEdge: pagingEdge)
+        let shape = layout.gridShape
+        let position = Self.gridPosition(for: next, pagingEdge: pagingEdge, shape: shape)
         guard case .cell(let cell) = next else { return position }
-        let offset = Self.cellOffset(of: cell, dx: dx, dy: dy)
+        let offset = Self.cellOffset(of: cell, dx: dx, dy: dy, layout: layout)
         return (position.x + offset.x, position.y + offset.y)
     }
 
@@ -57,18 +60,18 @@ public struct ControllerPointerSelection: Equatable, Sendable {
     static let cellOffsetLimit = 0.06
 
     /// 鍵の中のポインタの位置（鍵の中心からのずれ。倍率 1 のポイント、y は下向き）を、マスの中央からのずれ（3×3 の座標、y は奥向き）にする
-    static func cellOffset(of cell: Int, dx: Double, dy: Double) -> (x: Double, y: Double) {
-        guard let key = RadialLayout.position(ofCell: cell) else { return (0, 0) }
+    static func cellOffset(of cell: Int, dx: Double, dy: Double, layout: PageLayout = .nine) -> (x: Double, y: Double) {
+        guard let key = RadialLayout.position(ofCell: cell, layout: layout) else { return (0, 0) }
         func limited(_ value: Double) -> Double { min(max(value, -cellOffsetLimit), cellOffsetLimit) }
         return (limited((dx - key.x) * cellOffsetPerPoint), limited(-(dy - key.y) * cellOffsetPerPoint))
     }
 
     /// 1本指のフレームなら、その指の位置をポインタから合成した位置に置き換える。2本以上の指（スワイプでページを切り替える）は実物の位置のまま。
     /// ポインタの位置か HUD の枠が分からなければ、実物の位置のまま
-    public mutating func frame(_ frame: TouchFrame, pointer: CGPoint?, map: CGRect?) -> TouchFrame {
+    public mutating func frame(_ frame: TouchFrame, pointer: CGPoint?, map: CGRect?, layout: PageLayout = .nine) -> TouchFrame {
         guard let pointer, let map, frame.touching.count == 1,
               let index = frame.points.firstIndex(where: \.isTouching),
-              let position = position(of: pointer, in: map) else { return frame }
+              let position = position(of: pointer, in: map, layout: layout) else { return frame }
         var result = frame
         result.points[index].x = position.x
         result.points[index].y = position.y
@@ -77,11 +80,11 @@ public struct ControllerPointerSelection: Equatable, Sendable {
 
     /// 合成する指の位置。マスはその中央、外枠は切り替える側の帯の中央（左右・上下）。
     /// どの側でもない外枠（帯の外端より遠い・開いた直後）は奥の左の角: GridMapper.pagingEdge がどの側にもしない場所
-    public static func gridPosition(for zone: GridZone, pagingEdge: PageEdge?) -> (x: Double, y: Double) {
+    public static func gridPosition(for zone: GridZone, pagingEdge: PageEdge?, shape: GridShape = .nine) -> (x: Double, y: Double) {
         let insets = GridInsets.cancelFrame
         switch zone {
         case .cell(let index):
-            return cellCenter(index)
+            return cellCenter(index, shape: shape)
         case .frame:
             switch pagingEdge {
             case .left?: return (insets.left / 2, 0.5)
@@ -93,17 +96,17 @@ public struct ControllerPointerSelection: Equatable, Sendable {
         }
     }
 
-    /// マスの中央（外枠 GridInsets.cancelFrame の内側を 3×3 に分けたもの。行は奥から）。範囲外は端のマス
-    public static func cellCenter(_ index: Int) -> (x: Double, y: Double) {
+    /// マスの中央（外枠 GridInsets.cancelFrame の内側を升目 shape に分けたもの。行は奥から）。範囲外は端のマス
+    public static func cellCenter(_ index: Int, shape: GridShape = .nine) -> (x: Double, y: Double) {
         let insets = GridInsets.cancelFrame
-        let clamped = min(max(index, 0), GridMapper.cellCount - 1)
-        let column = Double(clamped % GridMapper.columns)
-        let row = Double(clamped / GridMapper.columns)
+        let clamped = min(max(index, 0), shape.cellCount - 1)
+        let column = Double(clamped % shape.columns)
+        let row = Double(clamped / shape.columns)
         let width = 1 - insets.left - insets.right
         let height = 1 - insets.bottom - insets.top
         return (
-            insets.left + width * (column + 0.5) / Double(GridMapper.columns),
-            insets.bottom + height * (1 - (row + 0.5) / Double(GridMapper.rows))
+            insets.left + width * (column + 0.5) / Double(shape.columns),
+            insets.bottom + height * (1 - (row + 0.5) / Double(shape.rows))
         )
     }
 }

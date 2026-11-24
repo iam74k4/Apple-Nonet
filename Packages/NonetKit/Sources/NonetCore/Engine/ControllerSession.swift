@@ -13,8 +13,9 @@ struct ControllerSession: Equatable, Sendable {
     var hasShownHUD = false
     /// 試用期間の残り日数を帯で知らせる（そのセッションの間は出したまま）
     var trialReminderDays: Int?
-    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?) {
-        pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID)
+    /// host は、前面がブラウザなら見ているページのホスト名（そのサイトのプロファイルがあれば、そのページを先に使う）
+    init(configuration: NonetConfiguration, frontmostApp: RunningAppInfo?, host: String? = nil) {
+        pages = configuration.resolvedPages(frontmostBundleID: frontmostApp?.app.bundleID, host: host)
         self.frontmostApp = frontmostApp
         settings = configuration.settings
     }
@@ -30,7 +31,8 @@ struct ControllerSession: Equatable, Sendable {
             layerStart: ControllerPresentation.globalPagesStart(pages),
             belowStart: ControllerPresentation.belowPageStart(pages),
             occupiedCells: occupied,
-            holdCells: holds
+            holdCells: holds,
+            pageShapes: pages.map(\.layout.gridShape)
         )
     }
 
@@ -46,6 +48,11 @@ struct ControllerSession: Equatable, Sendable {
             profileID: resolved.profileID,
             profilePageCount: pages.filter { $0.profileID == resolved.profileID }.count
         )
+    }
+
+    /// page（resolvedPages での位置）のボタンの数。範囲外は 9
+    func layout(ofPage page: Int) -> PageLayout {
+        pages.indices.contains(page) ? pages[page].layout : .nine
     }
 
     func hudModel(_ state: SessionHUDState, isPracticeMode: Bool, isTrialEnded: Bool, isWaitingAtCenter: Bool = false) -> HUDModel {

@@ -5,7 +5,7 @@ import NonetCore
 
 enum SettingsActionKinds {
     /// インスペクタに並べる順。URL は「開く」（launchApp）の中で切り替えるので、ここには並べない
-    static let ordered: [ActionKind] = [.keystroke, .launchApp, .placeWindow, .script, .shortcut, .menuItem, .ai, .file]
+    static let ordered: [ActionKind] = [.keystroke, .pasteText, .launchApp, .placeWindow, .media, .script, .shortcut, .menuItem, .ai, .file, .screenshots]
 
     /// 種類の一覧で選ばれている項目。URL のマスは「開く」
     static func menuKind(of action: Action) -> ActionKind {
@@ -23,6 +23,9 @@ enum SettingsActionKinds {
         case .ai: String(localized: "AI", bundle: .module)
         case .file: String(localized: "ファイル", bundle: .module)
         case .placeWindow: String(localized: "画面に置く", bundle: .module)
+        case .screenshots: String(localized: "最近のスクショ", bundle: .module)
+        case .media: String(localized: "再生・音量", bundle: .module)
+        case .pasteText: String(localized: "テキストを貼る", bundle: .module)
         }
     }
 
@@ -38,6 +41,9 @@ enum SettingsActionKinds {
         case .ai: "sparkles"
         case .file: "doc"
         case .placeWindow: "macwindow"
+        case .screenshots: "photo.on.rectangle"
+        case .media: "playpause"
+        case .pasteText: "text.quote"
         }
     }
 }
@@ -67,6 +73,9 @@ enum SettingsCellEditing {
         // 取り消しやすい複製から始める（ゴミ箱に入れるは、選んだときに「少し長く止めてから実行」が入る）
         case .file: .file(FileAction(operation: .duplicate))
         case .placeWindow: .placeWindow(PlaceWindowAction(region: .maximize))
+        case .screenshots: .screenshots(ScreenshotTrayAction())
+        case .media: .media(MediaAction(key: .playPause))
+        case .pasteText: .pasteText(PasteTextAction(text: ""))
         }
     }
 
@@ -87,6 +96,13 @@ enum SettingsCellEditing {
         if case .placeWindow(let place) = action {
             return .symbol(place.region.symbol)
         }
+        if case .media(let media) = action {
+            return .symbol(media.key.symbol)
+        }
+        // アイコンだけの HUD で、いくつもある「テキストを貼る」を見分けられるよう、最初の1文字にする
+        if case .pasteText(let paste) = action, let first = paste.preview?.first {
+            return .text(String(first))
+        }
         return .symbol(SettingsActionKinds.symbol(action.kind))
     }
 
@@ -105,7 +121,8 @@ enum SettingsCellEditing {
         case .shortcut(let shortcut): shortcut.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .menuItem(let menu): menu.path.isEmpty
         case .ai(let ai): ai.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .file, .placeWindow: false
+        case .pasteText(let paste): paste.text.isEmpty
+        case .file, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -180,7 +197,9 @@ enum SettingsURLCheck: Equatable {
     case invalid
 
     init(_ raw: String) {
+        // {selection}（選択に置き換える部分）は、置き換えた後の形で確かめる
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: URLAction.selectionPlaceholder, with: "x")
         guard !text.isEmpty else {
             self = .empty
             return
@@ -322,6 +341,30 @@ extension FileAction: SettingsActionContent {
     }
 
     var asAction: Action { .file(self) }
+}
+
+extension ScreenshotTrayAction: SettingsActionContent {
+    static func content(of action: Action) -> ScreenshotTrayAction? {
+        if case .screenshots(let tray) = action { tray } else { nil }
+    }
+
+    var asAction: Action { .screenshots(self) }
+}
+
+extension PasteTextAction: SettingsActionContent {
+    static func content(of action: Action) -> PasteTextAction? {
+        if case .pasteText(let paste) = action { paste } else { nil }
+    }
+
+    var asAction: Action { .pasteText(self) }
+}
+
+extension MediaAction: SettingsActionContent {
+    static func content(of action: Action) -> MediaAction? {
+        if case .media(let media) = action { media } else { nil }
+    }
+
+    var asAction: Action { .media(self) }
 }
 
 extension PlaceWindowAction: SettingsActionContent {

@@ -28,7 +28,7 @@ public enum OnboardingPurpose: Equatable, Sendable {
 
 /// 練習の進み具合。マスで離して実行する → 外枠で離してやめる の順に進む
 enum OnboardingPracticeState: Equatable {
-    /// 1つ目: 上の縁から指を滑らせて開き、目標のマスまで滑らせて離す
+    /// 1つ目: 強く押し込んで開き、目標のマスまで滑らせて離す
     case run
     /// 2つ目: もう一度開き、外枠まで滑らせて離す（何も実行しない）
     case cancel
@@ -51,36 +51,55 @@ struct OnboardingPracticeTarget: Equatable {
     var title: String
     /// 少し長く止めてから実行するマス。そればかりのページでは、これを練習に使うので、止める手順も案内する
     var requiresHold = false
+    /// 練習に使うページのボタンの数（位置の呼び方）
+    var layout: PageLayout = .nine
+
+    /// HUD の上の位置の呼び方（「右下」「2時の方向」）
+    var positionName: String { HUDAnnouncement.positionName(index, layout: layout) }
 }
 
 /// 練習に使うページ。練習の HUD に出るもの（前面のアプリのプロファイルの最初のページ）なので、本物のボタンの名前で案内できる
 struct OnboardingPracticePage: Equatable {
-    /// 選んでもらうマス。開くとポインタは真ん中にあり、上の縁から入ってきた指をそのまま下へ滑らせると届く下の鍵を最初に、
+    /// 選んでもらうマス。開くとポインタは真ん中にあり、手前へ滑らせるだけで届く下の鍵を最初に（トラックパッドの奥で押し込む人が多い）、
     /// 斜め下・横・上の順。真ん中の鍵は、一度外へ出てから戻す必要があるので最後
     static let runPreference = [7, 8, 6, 5, 3, 1, 2, 0, 4]
 
+    /// ボタンの数ごとの runPreference。9 以外は、下（6時の方向）に近い鍵から
+    static func runPreference(for layout: PageLayout) -> [Int] {
+        guard layout != .nine else { return runPreference }
+        let spacing = RadialLayout.keySpacing(for: layout)
+        return layout.ringCells.enumerated().sorted { a, b in
+            func away(_ slot: Int) -> Double { abs(180 - Double(slot) * spacing) }
+            return away(a.offset) < away(b.offset)
+        }.map(\.element)
+    }
+
     var profileName: String
-    /// 9マスの名前。空きマスは nil
+    /// マスの名前（ボタンの数だけ）。空きマスは nil
     var titles: [String?]
+    /// ボタンの数（図の並び）
+    var layout: PageLayout
     var runTarget: OnboardingPracticeTarget
 
     /// 中身のあるマスが無ければ nil（空きマスで離しても何も記録されないので、練習にならない）
     init?(_ page: ResolvedPage?) {
         guard let page else { return nil }
         // 表示名の無いマスは、アクションの説明（設定の格子と同じ。練習の文や図に「」と出さない）
-        let titles = (0..<Page.cellCount).map { index in
+        let titles = (0..<page.layout.slotCount).map { index in
             page.cells.indices.contains(index) ? page.cells[index].map(SettingsGrid.displayTitle(for:)) : nil
         }
         let occupied = Set(titles.indices.filter { titles[$0] != nil })
         // 少し長く止めてから実行するマス（Cell.requiresHold）は、最初の練習には使わない（そればかりなら使う）
         let ordinary = occupied.filter { page.cells.indices.contains($0) && page.cells[$0]?.requiresHold != true }
-        guard let run = Self.runPreference.first(where: (ordinary.isEmpty ? occupied : ordinary).contains) else { return nil }
+        guard let run = Self.runPreference(for: page.layout).first(where: (ordinary.isEmpty ? occupied : ordinary).contains) else { return nil }
         profileName = page.profileName
         self.titles = titles
+        layout = page.layout
         runTarget = OnboardingPracticeTarget(
             index: run,
             title: titles[run] ?? "",
-            requiresHold: page.cells.indices.contains(run) && page.cells[run]?.requiresHold == true
+            requiresHold: page.cells.indices.contains(run) && page.cells[run]?.requiresHold == true,
+            layout: page.layout
         )
     }
 }

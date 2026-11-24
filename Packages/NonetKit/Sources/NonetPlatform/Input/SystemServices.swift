@@ -66,6 +66,12 @@ public final class WorkspaceFrontmostAppObserver: FrontmostAppObserving {
         observations = []
     }
 
+    /// 前面のブラウザで見ているページのホスト名（BrowserSiteReader。アクセシビリティで読む）
+    public func currentSiteHost() -> String? {
+        guard let current else { return nil }
+        return BrowserSiteReader.host(bundleID: current.app.bundleID, processID: current.processID)
+    }
+
     /// 設定ウィンドウ・初回の案内・結果のパネル（クリックしてキーにしたとき）など、Nonet のウィンドウがキーで、
     /// 送ったキーがそこに届く。Nonet が前面のアプリでも、ウィンドウを閉じた後や Finder から開いた直後のように
     /// キーのウィンドウが無ければ false（キーはどのウィンドウにも届かない）

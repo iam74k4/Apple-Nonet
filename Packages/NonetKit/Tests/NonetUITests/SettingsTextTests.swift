@@ -12,10 +12,10 @@ import Testing
         #expect(AIOutput.allCases.map(SettingsText.name) == [L10n.ui("選択範囲を置き換える"), L10n.ui("クリップボードにコピー"), L10n.ui("画面に表示")])
     }
 
-    /// 開き方とやめ方の説明（一般のタブ）。トラックパッドに「押す」とは言わない
+    /// 開き方とやめ方の説明（一般のタブ）。強く押し込んで止める
     @Test func theOpenGestureIsExplained() {
         #expect(SettingsText.openGestureTitle == L10n.ui("開き方とやめ方"))
-        #expect(SettingsText.openGestureDetail == L10n.ui("上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。"))
+        #expect(SettingsText.openGestureDetail == L10n.ui("トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。"))
     }
 
     /// アクセシビリティの帯は、オンなのに動かないとき（アップデートの後など）の直し方も言う

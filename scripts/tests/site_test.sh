@@ -531,7 +531,7 @@ test_pages_state_the_sales_terms() {
   assert_not_contains "$legal" "TODO" "tokushoho.html"
 }
 
-# 操作はトラックパッドだけ（上の縁から指を下へ滑らせて開き、アイコンで離すと実行、輪の外で離すとやめる）。
+# 操作はトラックパッドだけ（強く押し込んで止めて開き、アイコンで離すと実行、輪の外で離すとやめる）。
 # なくなった操作（トリガーキー・すぐにタップ・角に指を置く）を販売ページとダウンロードのページに書かない
 test_pages_describe_only_the_trackpad_controls() {
   local page text
@@ -539,7 +539,7 @@ test_pages_describe_only_the_trackpad_controls() {
     text="$(cat "$ROOT/site/$page")"
     case "$page" in
       terms.html) ;;
-      *) assert_contains "$text" "上の縁" "$page" ;;
+      *) assert_contains "$text" "強く押し込" "$page" ;;
     esac
     for old in "トリガー" "右⌘" "右⌥" "タップ" "角に指" "長押し" "キーを押している間" "キーを押したまま" "マスを押"; do
       assert_not_contains "$text" "$old" "$page"
@@ -549,14 +549,14 @@ test_pages_describe_only_the_trackpad_controls() {
     text="$(cat "$ROOT/site/$page")"
     case "$page" in
       en/terms.html) ;;
-      *) assert_contains "$text" "top edge" "$page" ;;
+      *) assert_contains "$text" "Press firmly" "$page" ;;
     esac
     for old in "trigger" "Trigger" "right ⌘" "Right ⌘" "right ⌥" "Right ⌥" "Hold the key" "hold a key" "Hold a key" "while you hold" "corner of the trackpad" " tap"; do
       assert_not_contains "$text" "$old" "$page"
     done
   done
-  assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドの上の縁から指を下へ滑らせると"
-  assert_contains "$(cat "$ROOT/site/en/index.html")" "Slide a finger down from the top edge"
+  assert_contains "$(cat "$ROOT/site/index.html")" "トラックパッドのどこかを強く押し込んで少し止めると"
+  assert_contains "$(cat "$ROOT/site/en/index.html")" "Press firmly anywhere on the trackpad"
   assert_contains "$(cat "$ROOT/site/thanks.html")" "アイコンの輪の外まで動かして離すと、何も実行せずに閉じます"
   assert_contains "$(cat "$ROOT/site/en/thanks.html")" "move outside the ring of icons and lift"
 }
@@ -1019,11 +1019,13 @@ test_guides_limit_automation_to_the_browser_url() {
 # 1つのプロファイルは Page.cellCount × Profile.maxPages マスまで。初回のグローバルは1ページ目が「画面に置く」、
 # 最後が上のページの「ユーティリティ」なので、ランチャーはその残り（maxPages − 2 ページ）まで（NonetConfiguration.initial）
 test_guides_state_the_launcher_size() {
-  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells pages total launcher_pages launcher file counts
+  local profile="$ROOT/Packages/NonetKit/Sources/NonetCore/Model/Profile.swift" cells most pages total launcher_pages launcher file counts
   cells="$(sed -nE 's/.*static let cellCount = ([0-9]+).*/\1/p' "$profile")"
+  # ページごとのボタンの数の上限（PageLayout）。1つのプロファイルに置ける数は、これ × ページの数
+  most="$(sed -nE 's/.*static let maxCellCount = ([0-9]+).*/\1/p' "$profile")"
   pages="$(sed -nE 's/.*static let maxPages = ([0-9]+).*/\1/p' "$profile")"
-  [[ -n "$cells" && -n "$pages" ]] || fail "Profile.swift から cellCount と maxPages を読めません"
-  total=$((cells * pages))
+  [[ -n "$cells" && -n "$most" && -n "$pages" ]] || fail "Profile.swift から cellCount・maxCellCount・maxPages を読めません"
+  total=$((most * pages))
   launcher_pages=$((pages - 2))
   launcher=$((cells * launcher_pages))
   for file in docs/user-guide.md site/guide.html; do

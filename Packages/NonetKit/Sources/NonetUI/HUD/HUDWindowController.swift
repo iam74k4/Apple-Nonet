@@ -35,6 +35,10 @@ public final class HUDWindowController: HUDPresenting {
     private let toast = HUDToastPresenter()
     private let result = HUDResultPanelController()
     private let placementPreview = HUDPlacementPreviewController()
+    /// 強く押し込んでから開くまでの輪（テストで確かめる）
+    let pressProgress = HUDPressProgressController()
+    /// 「最近のスクショ」のトレイ（テストで中を確かめる）
+    let screenshotTray = HUDScreenshotTrayController()
 
     public convenience init() {
         self.init(
@@ -161,6 +165,45 @@ public final class HUDWindowController: HUDPresenting {
         // HUD を出していた場所（ポインタの近く）に出す
         let anchor = hudFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? cursor
         self.result.show(result, centeredAt: anchor, on: screen)
+    }
+
+    public func showPressProgress(duration: TimeInterval) {
+        pressProgress.prefersReducedMotion = prefersReducedMotion
+        pressProgress.show(at: mouseLocation(), duration: duration)
+    }
+
+    public func hidePressProgress() {
+        pressProgress.hide()
+    }
+
+    /// 「最近のスクショ」のトレイを、HUD を出していた場所（無ければポインタ）の近くに出す。コピーしたらトーストで知らせる
+    public func showScreenshotTray(_ options: ScreenshotTrayAction) {
+        let cursor = mouseLocation()
+        guard let screen = HUDPlacement.screen(containing: cursor, in: screens()) else {
+            logger.error("トレイを出す画面が見つからない")
+            return
+        }
+        if screenshotTray.onCopied == nil {
+            screenshotTray.onCopied = { [weak self] _ in
+                self?.showToast(ToastModel(
+                    title: String(localized: "スクリーンショットをコピーしました", bundle: .module),
+                    detail: String(localized: "⌘V で貼り付けられます", bundle: .module),
+                    icon: .symbol("photo.on.rectangle"),
+                    style: .success
+                ))
+            }
+        }
+        if screenshotTray.onTrashFailed == nil {
+            screenshotTray.onTrashFailed = { [weak self] item in
+                self?.showToast(ToastModel(
+                    title: String(localized: "ゴミ箱に入れられませんでした", bundle: .module),
+                    detail: item.url.lastPathComponent,
+                    style: .failure
+                ))
+            }
+        }
+        let anchor = hudFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? cursor
+        screenshotTray.show(options, centeredAt: anchor, on: screen)
     }
 
     private func place(_ frame: CGRect, screen: HUDScreenGeometry) {

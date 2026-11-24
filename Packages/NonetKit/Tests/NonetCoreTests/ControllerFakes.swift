@@ -201,15 +201,17 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         }
     }
     var onEvent: ((KeyboardEvent) -> Void)?
-    /// rememberPointerLocation が呼ばれた回数（本物は、次の抑止の始まりでポインタをそこへ戻す）
-    private(set) var rememberedPointerCount = 0
+    /// コントローラーが入れた、強く長押しで開くときの止める秒数（nil の間は、強く押し込んでも知らせない）
+    var forcePressHold: TimeInterval?
+    /// finishForcePress の答え（順に）。true は開いた（クリックを捨てた）、false は前面アプリに返した
+    private(set) var forcePressAnswers: [Bool] = []
+    /// マウスやトラックパッドのボタンを物理的に押し込んでいるか（テストで変える。上の縁から滑らせて開くときに見る）
+    var isMouseButtonDown = false
     /// コントローラーが知らせた、トラックパッドに触れているか（知らされた順）
     var isTrackpadTouched = false {
         didSet { trackpadTouchReports.append(isTrackpadTouched) }
     }
     private(set) var trackpadTouchReports: [Bool] = []
-    /// マウスやトラックパッドのボタンを物理的に押し込んでいるか（テストで変える）
-    var isMouseButtonDown = false
     private(set) var isRunning = false
     /// start() で投げるもの（アクセシビリティの許可が無いときは別に permissionDenied を投げる）
     var startError: (any Error)?
@@ -253,9 +255,17 @@ final class ControllerFakeKeyboard: KeyboardMonitor {
         isSuppressingPointer = false
     }
 
-    func rememberPointerLocation() {
-        rememberedPointerCount += 1
-        recorder.log("pointer:remember")
+    func finishForcePress(opened: Bool) {
+        forcePressAnswers.append(opened)
+    }
+
+    /// トラックパッドを強く押し込んで止めた。本物と同じく、強く長押しで開けるとき（forcePressHold がある）だけ知らせる。知らせたら true
+    @discardableResult
+    func forcePress() -> Bool {
+        guard isRunning, forcePressHold != nil else { return false }
+        // send と違い suppressionAfterEvent には数えない（キーやマウスでの中断だけを数える）
+        onEvent?(.forcePressed)
+        return true
     }
 
     /// 本物のモニターは動いている間だけイベントを渡す（キーは抑止している間だけ見る）
@@ -278,7 +288,13 @@ final class ControllerFakeFrontmostApp: FrontmostAppObserving {
     var onChange: ((RunningAppInfo?) -> Void)?
     /// Nonet の設定ウィンドウなどがキー（current は変えない）
     var isOwnWindowKey = false
+    /// 前面のブラウザで見ているページのホスト名（テストで変える）
+    var siteHost: String?
     private(set) var isRunning = false
+
+    func currentSiteHost() -> String? {
+        siteHost
+    }
 
     func start() {
         isRunning = true
@@ -423,6 +439,9 @@ final class ControllerFakeHUD: HUDPresenting {
     private(set) var hideCount = 0
     private(set) var toasts: [ToastModel] = []
     private(set) var results: [ResultModel] = []
+    /// showScreenshotTray で頼まれたトレイ（順に）
+    private(set) var screenshotTrayRequests: [ScreenshotTrayAction] = []
+    var screenshotTrays: Int { screenshotTrayRequests.count }
     private(set) var isVisible = false
     /// いま出ている中身
     private(set) var current: HUDModel?
@@ -443,6 +462,21 @@ final class ControllerFakeHUD: HUDPresenting {
         placementPreview = frame
         placementPreviews.append(frame)
         recorder.log("hud:preview")
+    }
+
+    /// showPressProgress（秒）と hidePressProgress（nil）の順
+    private(set) var pressProgress: [TimeInterval?] = []
+
+    func showPressProgress(duration: TimeInterval) {
+        pressProgress.append(duration)
+    }
+
+    func hidePressProgress() {
+        pressProgress.append(nil)
+    }
+
+    func showScreenshotTray(_ options: ScreenshotTrayAction) {
+        screenshotTrayRequests.append(options)
     }
 
     func hidePlacementPreview() {

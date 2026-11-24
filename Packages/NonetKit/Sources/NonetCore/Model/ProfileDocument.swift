@@ -105,6 +105,7 @@ struct ProfileDocument: Encodable {
         switch profile.kind {
         case .global: true
         case .app(let app): !NonetConfiguration.bundleIDKey(app.bundleID).isEmpty
+        case .site(let site): SiteReference.normalizedHost(site.host) != nil
         }
     }
 

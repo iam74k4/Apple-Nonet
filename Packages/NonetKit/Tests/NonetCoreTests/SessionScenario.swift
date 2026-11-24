@@ -18,7 +18,7 @@ enum Pad {
     static let bottomFrame = (x: 0.5, y: 0.04)
     static let leftFrame = (x: 0.03, y: 0.5)
     static let rightFrame = (x: 0.97, y: 0.5)
-    /// 上の縁の帯で触れ始める点と、そこから下へ滑らせて開いた後の点（まだ上の外枠）
+    /// 奥の縁の近くで触れ始める点と、そこから少し下へ動かして開いた点（どちらも上の外枠）
     static let edge = (x: 0.5, y: 0.98)
     static let slid = (x: 0.5, y: 0.92)
 }
@@ -53,7 +53,7 @@ struct SessionScenario {
         send(.open(at: time, configuration: configuration))
     }
 
-    /// 上の縁で触れて下へ滑らせ（time と time + 0.05）、開く。開いた後の指は上の外枠にいる
+    /// 奥の縁の近くで触れて少し動かし（time と time + 0.05）、開く。開いた後の指は上の外枠にいる
     @discardableResult
     mutating func slideIn(_ id: Int = 1, at time: TimeInterval) -> [SessionEffect] {
         touch(id, x: Pad.edge.x, y: Pad.edge.y, at: time)

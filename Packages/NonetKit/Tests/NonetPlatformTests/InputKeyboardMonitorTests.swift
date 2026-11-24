@@ -176,7 +176,7 @@ final class FakeCursor: CursorControlling {
 
     // MARK: ポインタを触れ始めた位置に戻す
 
-    /// 指が上の縁で触れ始めたときの位置を覚え、開いたらそこへ戻してから止める（開く動きでポインタが少し動くため）
+    /// 覚えた位置があれば、開いたらそこへ戻してから止める（ポインタを固定する方式のとき）
     @Test func openingRestoresThePointerToWhereTheTouchBegan() throws {
         monitor.cursorLock = .automatic
         cursor.location = CGPoint(x: 300, y: 200)

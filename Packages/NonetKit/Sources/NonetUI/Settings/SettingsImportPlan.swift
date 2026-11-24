@@ -126,14 +126,14 @@ struct SettingsImportPlan: Identifiable, Equatable {
     /// Mac の中のファイルを開く URL（.command や .app も開ける）と、別のものを動かす URL（ショートカットの実行・ssh・共有フォルダなど）
     static func needsReview(_ action: Action) -> Bool {
         switch action {
-        case .script, .keystroke, .menuItem, .ai, .shortcut:
+        case .script, .keystroke, .menuItem, .ai, .shortcut, .pasteText:
             true
         case .file:
             // Finder で選んだファイルをゴミ箱に入れる・名前を変える・複製する
             true
         case .openURL(let url):
             !opensWebOrMail(url.url)
-        case .launchApp, .placeWindow:
+        case .launchApp, .placeWindow, .screenshots, .media:
             false
         }
     }
@@ -453,7 +453,10 @@ struct SettingsImportPlan: Identifiable, Equatable {
             pressesSubmitKey(keys, keys: translator)
         case .menuItem(let menu):
             menu.keyEquivalent.map { pressesSubmitKey($0, keys: translator) } ?? false
-        case .script, .ai, .openURL, .launchApp, .shortcut, .file, .placeWindow:
+        // 改行を貼ると、ターミナルやチャットでは Return と同じ（コマンドの実行・送信）
+        case .pasteText(let paste):
+            paste.text.contains(where: \.isNewline)
+        case .script, .ai, .openURL, .launchApp, .shortcut, .file, .placeWindow, .screenshots, .media:
             false
         }
     }

@@ -1,6 +1,6 @@
 // 担当: engine
-// 9マスを開く動き（トラックパッドの上の縁から1本指を下へ滑り込ませる）を見分ける純粋なロジック
-// （docs/architecture.md §5「開く」）。NonetController がセッションの外も含めてすべてのフレームを渡し、
+// もう1つの開き方（トラックパッドの上の縁から1本指を下へ滑り込ませる。GlobalSettings.openGesture が edgeSlide か both）を
+// 見分ける純粋なロジック（docs/architecture.md §5「開く」）。NonetController がセッションの外も含めてすべてのフレームを渡し、
 // 見分けたら、開いてよいか（無効・このアプリでは使わない・Nonet のウィンドウ・試用期間など）を確かめてからセッションを始める
 import Foundation
 

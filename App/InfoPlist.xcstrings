@@ -18,6 +18,60 @@
           }
         }
       }
+    },
+    "NSDesktopFolderUsageDescription" : {
+      "comment" : "Privacy - Desktop Folder Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet lists the files on your Desktop so the Recent Screenshots button can show the screenshots saved there."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最近のスクショのマスで、デスクトップに保存されたスクリーンショットを並べるために、デスクトップのファイルの一覧を読みます。"
+          }
+        }
+      }
+    },
+    "NSDocumentsFolderUsageDescription" : {
+      "comment" : "Privacy - Documents Folder Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet lists the files in your Documents folder so the Recent Screenshots button can show the screenshots you save there."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最近のスクショのマスで、スクリーンショットの保存先に選んだ書類フォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。"
+          }
+        }
+      }
+    },
+    "NSDownloadsFolderUsageDescription" : {
+      "comment" : "Privacy - Downloads Folder Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet lists the files in your Downloads folder so the Recent Screenshots button can show the screenshots you save there."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最近のスクショのマスで、スクリーンショットの保存先に選んだダウンロードフォルダの中のスクリーンショットを並べるために、ファイルの一覧を読みます。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

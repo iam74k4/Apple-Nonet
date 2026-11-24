@@ -26,8 +26,6 @@ import NonetCore
         #expect(frame.right == 0.11)
         #expect(frame.bottom == 0.15)
         #expect(frame.top == 0.17)
-        // 開いた瞬間の指（上の縁の帯から entryTravel 動いたところ）は、まだ上の外枠にいる
-        #expect(frame.top >= EdgeSlideRecognizer.entryBandHeight + EdgeSlideRecognizer.entryTravel)
     }
 
     @Test func sanitizedFixesOutOfRangeValues() {

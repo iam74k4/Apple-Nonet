@@ -32,7 +32,7 @@ import Testing
         // 新しく見る指は、ヒステリシス無しで決める
         #expect(grid.zone(x: edge - 0.001, y: 0.5) == .frame)
         #expect(grid.zone(x: edge + 0.001, y: 0.5) == .cell(3))
-        // 上の縁から入ってくる指
+        // 奥の縁の近くの指
         let top = 1 - frame.top
         #expect(grid.zone(x: 0.5, y: top - margin / 2, current: .frame) == .frame)
         #expect(grid.zone(x: 0.5, y: top - margin - 0.001, current: .frame) == .cell(1))

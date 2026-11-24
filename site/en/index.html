@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nonet — Your trackpad, as nine buttons for every app</title>
-<meta name="description" content="Slide a finger down from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. Choose on an overlay of all nine and lift to run. 14-day free trial, one-time purchase, full refund within 30 days.">
+<meta name="description" content="Press firmly anywhere on the trackpad and hold, and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using. Choose on an overlay of all nine and lift to run. 14-day free trial, one-time purchase, full refund within 30 days.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
@@ -15,7 +15,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Nonet">
 <meta property="og:title" content="Nonet — Your trackpad becomes nine buttons">
-<meta property="og:description" content="Slide a finger down from the top edge and your trackpad becomes nine buttons that change with every app. No extra hardware, no shortcuts to memorize.">
+<meta property="og:description" content="Press firmly on the trackpad and it becomes nine buttons that change with every app. No extra hardware, no shortcuts to memorize.">
 <meta property="og:url" content="https://nonet.astlog.dev/en/">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="ja_JP">
@@ -38,7 +38,7 @@
   "name": "Nonet",
   "url": "https://nonet.astlog.dev/en/",
   "inLanguage": "en",
-  "description": "Slide a finger down from the top edge and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using.",
+  "description": "Press firmly anywhere on the trackpad and hold, and your MacBook trackpad becomes a 3×3 grid of buttons that change with the app you are using.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "macOS 14 or later",
   "softwareRequirements": "A multi-touch trackpad (the built-in trackpad of a MacBook or a Magic Trackpad)",
@@ -63,6 +63,9 @@
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3.5l8.5 4.5-8.5 4.5L3.5 8z M3.5 12.5l8.5 4.5 8.5-4.5"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M5 6.5h14 M5 12h14 M5 17.5h9"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6.5 3.5h7.5l4 4v13h-11.5z M14 3.5v4h4"/></symbol>
+  <symbol id="i-shot" viewBox="0 0 24 24"><rect x="3" y="7" width="14" height="11" rx="2"/><path d="M7 4h12a2 2 0 0 1 2 2v9"/></symbol>
+  <symbol id="i-media" viewBox="0 0 24 24"><path d="M4.5 6.5v11l7-5.5z M15 7v10 M19 7v10"/></symbol>
+  <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 4.5V3h6v1.5 M8.5 10h7 M8.5 14h5"/></symbol>
   <symbol id="i-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="3.8" r="2.3"/><circle cx="17.8" cy="6.2" r="2.3"/><circle cx="20.2" cy="12" r="2.3"/><circle cx="17.8" cy="17.8" r="2.3"/><circle cx="12" cy="20.2" r="2.3"/><circle cx="6.2" cy="17.8" r="2.3"/><circle cx="3.8" cy="12" r="2.3"/><circle cx="6.2" cy="6.2" r="2.3"/><circle cx="12" cy="12" r="2.9"/></symbol>
 </svg>
@@ -112,7 +115,7 @@
     <div class="wrap">
       <div class="hero-copy">
         <h1>Your trackpad becomes nine buttons.</h1>
-        <p class="lead">Slide a finger down from the top edge and nine icons open around the pointer.</p>
+        <p class="lead">Press firmly anywhere on the trackpad and hold for a moment, and nine icons open around the pointer.</p>
         <div class="cta">
           <a class="btn" href="thanks.html">Try free for 14 days</a>
           <a class="btn btn-secondary" href="#pricing">$9.99, buy once</a>
@@ -144,28 +147,19 @@
 
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
-      <h2 id="how-title" class="section-title">Slide, then lift</h2>
+      <h2 id="how-title" class="section-title">Press, then lift</h2>
       <ol class="cards">
         <li>
           <div class="shot">
-            <!-- The trackpad, drawn like the figure in the demo video: a white finger with a green rim -->
-            <svg viewBox="0 0 540 540" role="img" aria-label="A finger placed on the top edge of the trackpad, sliding down">
-              <defs>
-                <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
-                  <stop offset="1" stop-color="#ffffff" stop-opacity="0.55"/>
-                </linearGradient>
-                <clipPath id="pad-clip"><rect x="80" y="140" width="380" height="253" rx="24"/></clipPath>
-              </defs>
+            <!-- The trackpad, drawn like the figure in the demo video: a white finger with a green rim, and two rings for the firm press -->
+            <svg viewBox="0 0 540 540" role="img" aria-label="A finger pressing firmly on the trackpad">
               <rect x="80" y="140" width="380" height="253" rx="24" fill="#2f2e34" stroke="#ffffff" stroke-opacity="0.1"/>
-              <rect x="80" y="140" width="380" height="30" fill="#ffffff" fill-opacity="0.08" clip-path="url(#pad-clip)"/>
-              <circle cx="270" cy="155" r="9" fill="#ffffff" fill-opacity="0.35"/>
-              <rect x="262" y="155" width="16" height="118" rx="8" fill="url(#trail)"/>
-              <circle cx="270" cy="282" r="21" fill="#ffffff" stroke="#30d158" stroke-width="5"/>
-              <path d="M252 334l18 18 18-18" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="270" cy="266" r="62" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+              <circle cx="270" cy="266" r="42" fill="none" stroke="#ffffff" stroke-opacity="0.4" stroke-width="4"/>
+              <circle cx="270" cy="266" r="21" fill="#ffffff" stroke="#30d158" stroke-width="5"/>
             </svg>
           </div>
-          <h3><span class="step-num">1</span>Slide down from the top edge</h3>
+          <h3><span class="step-num">1</span>Press firmly and hold</h3>
         </li>
         <li>
           <div class="shot"><img src="../images/hud-xcode.webp" width="540" height="540" loading="lazy" alt="Xcode's nine icons open in a ring around the pointer, with a white disc under Run at the top"></div>
@@ -205,6 +199,9 @@
               <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg></span>Script</li>
               <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg></span>AI</li>
               <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-doc"/></svg></span>File</li>
+              <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-shot"/></svg></span>Screenshots</li>
+              <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-media"/></svg></span>Media</li>
+              <li><span class="plate"><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg></span>Paste text</li>
             </ul>
           </div>
           <h3>Keys, scripts and AI</h3>

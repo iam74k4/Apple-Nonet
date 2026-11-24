@@ -1,5 +1,5 @@
 // 担当: engine（ui-settings が足した確かめ）。「このアプリでは Nonet を使わない」（ProfileMode.off）のアプリが前面のとき、
-// 上の縁から指を滑らせても9マスを開かず、ポインタも止めないか。既定: 前面は Safari
+// 強く押し込んでも9マスを開かず（クリックも預からず）、ポインタも止めないか。既定: 前面は Safari
 import Foundation
 import Testing
 @testable import NonetCore
@@ -24,7 +24,7 @@ import Testing
         #expect(h.controller.lastExecution == nil)
     }
 
-    @Test func slidingInDoesNothingInAnAppWhereNonetIsOff() async throws {
+    @Test func forcePressingDoesNothingInAnAppWhereNonetIsOff() async throws {
         let h = try harness()
         h.start()
         h.run(2)

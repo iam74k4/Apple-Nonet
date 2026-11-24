@@ -197,6 +197,16 @@
         }
       }
     },
+    "%@、残りは新しいページへ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, the rest on a new page"
+          }
+        }
+      }
+    },
     "%@「%@」" : {
       "localizations" : {
         "en" : {
@@ -489,6 +499,16 @@
         }
       }
     },
+    "%lld時の方向" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld o'clock"
+          }
+        }
+      }
+    },
     "%lld番目のマス（%@）" : {
       "localizations" : {
         "en" : {
@@ -501,6 +521,32 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld番目のマス（%2$@）"
+          }
+        }
+      }
+    },
+    "%lld（円に %lld と真ん中）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld (%2$lld in a ring and one in the middle)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld（円に %2$lld と真ん中）"
+          }
+        }
+      }
+    },
+    "%lld（円に並べる）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld (in a ring)"
           }
         }
       }
@@ -566,6 +612,16 @@
         }
       }
     },
+    "Esc で閉じる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esc to close"
+          }
+        }
+      }
+    },
     "Esc を加える" : {
       "localizations" : {
         "en" : {
@@ -606,6 +662,16 @@
         }
       }
     },
+    "Finder で表示" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
     "Finder で選んだファイルを: %@" : {
       "localizations" : {
         "en" : {
@@ -642,6 +708,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Starts Finder's rename, as if you pressed Return. Type the new name and press Return. Works when exactly one file is selected."
+          }
+        }
+      }
+    },
+    "Google で検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Google"
+          }
+        }
+      }
+    },
+    "Google 翻訳" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Translate"
           }
         }
       }
@@ -1076,6 +1162,16 @@
         }
       }
     },
+    "Safari・Chrome・Arc・Edge・Brave・Dia でこのサイトを見ているときは、ブラウザのボタンより先に、このサイトのボタンが開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While you're on this site in Safari, Chrome, Arc, Edge, Brave or Dia, its buttons open before the browser's."
+          }
+        }
+      }
+    },
     "URL" : {
       "localizations" : {
         "en" : {
@@ -1092,6 +1188,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The URL isn't valid."
+          }
+        }
+      }
+    },
+    "URL の最後に {selection} を足す" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add {selection} to the End of the URL"
+          }
+        }
+      }
+    },
+    "Wikipedia で調べる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look Up in Wikipedia"
+          }
+        }
+      }
+    },
+    "YouTube で検索" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search YouTube"
           }
         }
       }
@@ -1181,6 +1307,37 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS requires this permission for apps that work with the keyboard and pointer while you use other apps. Nonet uses it only to:"
+          }
+        }
+      }
+    },
+    "macOS の「強めのクリック」がオフです" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force Click is off in macOS"
+          }
+        }
+      }
+    },
+    "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に5枚並べます。クリックすると画像をコピーし、ドラッグするとそのまま添付できます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows your five most recent screenshots, newest first, from where macOS saves them (the location chosen under Options in ⇧⌘5; the Desktop by default). Click one to copy the image, or drag it to attach it. The first time, macOS asks for permission to read that folder."
+          }
+        }
+      }
+    },
+    "macOS のスクリーンショットの保存先（⇧⌘5 の「オプション」で選んだ場所。既定はデスクトップ）から、最近のものを新しい順に並べます。クリックするとコピーし（収録はファイルとして）、ドラッグするとそのまま添付できます。↑↓←→ で選んで Return でもコピーできます。初めて使うときに、macOS がそのフォルダを読む許可を求めます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows your most recent screenshots, newest first, from where macOS saves them (the location chosen under Options in ⇧⌘5; the Desktop by default). Click one to copy it (recordings are copied as files), or drag it to attach it. You can also choose with the arrow keys and press Return to copy. The first time, macOS asks for permission to read that folder."
           }
         }
       }
@@ -1351,6 +1508,46 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "終了"
+          }
+        }
+      }
+    },
+    "{selection} を、そのとき選んでいるテキストに置き換えて開きます。何も選んでいなければ開きません。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replaces {selection} with the text you have selected when it opens. Nothing opens if no text is selected."
+          }
+        }
+      }
+    },
+    "⇧⌘5 の「オプション」で保存先を選び直してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose where screenshots are saved again under Options in ⇧⌘5."
+          }
+        }
+      }
+    },
+    "⌘V で貼り付けられます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press ⌘V to paste it"
+          }
+        }
+      }
+    },
+    "⌘⌫ でゴミ箱へ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘⌫ to move to Trash"
           }
         }
       }
@@ -1611,12 +1808,12 @@
         }
       }
     },
-    "うまく開かないときは、トラックパッドのいちばん奥の端に指を1本だけ置いて、すぐ下へ滑らせてください。2本指や手のひらでは開きません。" : {
+    "うまく開かないときは、指を1本だけ置いて、2回目のカチッと感じるまで強く押し込み、そのまま少し止めてください。システム設定 › トラックパッド の「強めのクリックと触覚フィードバック」がオフだと開きません。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If it doesn't open, place just one finger on the far edge of the trackpad and slide it straight down. Two fingers or a palm won't open it."
+            "value" : "If it doesn't open, rest just one finger, press firmly until you feel a second click, and hold for a moment. It won't open while Force Click and haptic feedback is off in System Settings › Trackpad."
           }
         }
       }
@@ -1813,6 +2010,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export This Profile…"
+          }
+        }
+      }
+    },
+    "このページには %lld 個のボタンがあるので、%lld にはできません。先にボタンを空けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This page has %1$lld buttons, so it can’t have %2$lld. Clear some buttons first."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "このページには %1$lld 個のボタンがあるので、%2$lld にはできません。先にボタンを空けてください。"
           }
         }
       }
@@ -2071,6 +2284,16 @@
         }
       }
     },
+    "たった今" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        }
+      }
+    },
     "できました。アイコンで指を離すと実行します。" : {
       "localizations" : {
         "en" : {
@@ -2206,12 +2429,12 @@
         }
       }
     },
-    "もう一度上の縁から HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
+    "もう一度強く押し込んで HUD を開き、今度はポインタをアイコンの輪の外まで動かしてから離してください。何も実行せずに閉じます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the HUD from the top edge again. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
+            "value" : "Press firmly again to open the HUD. This time move the pointer outside the ring of icons, then lift your finger. The buttons close without running anything."
           }
         }
       }
@@ -2653,12 +2876,12 @@
         }
       }
     },
-    "オフにすると、トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）が開きません" : {
+    "オフにすると、トラックパッドを強く押し込んでも、9つのアイコン（HUD）が開きません（ふつうのクリックになります）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "When off, sliding down from the top edge of the trackpad doesn't open the nine icons (the HUD)"
+            "value" : "When off, pressing firmly on the trackpad doesn't open the nine icons (the HUD); it's an ordinary click"
           }
         }
       }
@@ -2763,6 +2986,16 @@
         }
       }
     },
+    "キーボードの再生・音量・明るさのキーと同じ働きです。どのアプリが前面でも効き、macOS の音量や明るさの表示が出ます。音量と明るさは1回で2段変えます。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Works like the playback, volume and brightness keys on your keyboard. It works whichever app is in front, and macOS shows its volume or brightness indicator. Volume and brightness change two steps at a time."
+          }
+        }
+      }
+    },
     "キー入力" : {
       "localizations" : {
         "en" : {
@@ -2810,6 +3043,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Click to edit “%@” in Settings. Option-click to run it in the front app."
+          }
+        }
+      }
+    },
+    "クリックでコピー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy"
+          }
+        }
+      }
+    },
+    "クリックでコピー、ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to copy, or drag to attach"
           }
         }
       }
@@ -2948,6 +3201,26 @@
         }
       }
     },
+    "ゴミ箱に入れられませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't move it to the Trash"
+          }
+        }
+      }
+    },
+    "ゴミ箱に入れる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Trash"
+          }
+        }
+      }
+    },
     "ゴミ箱に入れるだけで、完全には削除しません。Finder の「ゴミ箱に入れる」と同じで、ゴミ箱から戻せます。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2969,6 +3242,46 @@
         }
       }
     },
+    "サイトの URL かホスト名" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site URL or host name"
+          }
+        }
+      }
+    },
+    "サイトの URL かホスト名（例: github.com）を入れてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the site's URL or host name (for example, github.com)."
+          }
+        }
+      }
+    },
+    "サイトを追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Site"
+          }
+        }
+      }
+    },
+    "サイトを追加…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Site…"
+          }
+        }
+      }
+    },
     "サードパーティのソフトウェア" : {
       "localizations" : {
         "en" : {
@@ -2985,6 +3298,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turn on Nonet in System Settings › Privacy & Security › Accessibility. If it's already on but doesn't work, remove Nonet from the list with −, then add it again with +. Nonet starts working once you allow it."
+          }
+        }
+      }
+    },
+    "システム設定 › プライバシーとセキュリティ › ファイルとフォルダ で、Nonet にデスクトップなどへのアクセスを許可してください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Nonet to access your Desktop (or wherever you save screenshots) in System Settings › Privacy & Security › Files and Folders."
           }
         }
       }
@@ -3222,6 +3545,26 @@
         }
       }
     },
+    "スクリーンショット" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots"
+          }
+        }
+      }
+    },
+    "スクリーンショット %lld 枚。クリックでコピー、ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots: %lld. Click one to copy it, or drag it to attach it."
+          }
+        }
+      }
+    },
     "スクリーンショットの ⇧⌘4 など、macOS が先に使うキーは記録できません。「やめる」を押して、表記の欄に入力してください" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3239,6 +3582,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keys that macOS uses first, like ⇧⌘4 for screenshots, can't be recorded. Click Cancel and type them as text instead."
+          }
+        }
+      }
+    },
+    "スクリーンショットの保存先が見つかりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't find the screenshot folder"
+          }
+        }
+      }
+    },
+    "スクリーンショットの保存先を読めません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't read the screenshot folder"
+          }
+        }
+      }
+    },
+    "スクリーンショットはまだありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No screenshots yet"
+          }
+        }
+      }
+    },
+    "スクリーンショットをコピーしました" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshot copied"
           }
         }
       }
@@ -3304,6 +3687,16 @@
         }
       }
     },
+    "テキストを貼る" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste Text"
+          }
+        }
+      }
+    },
     "テスト実行は、今 Finder で選んでいるファイルに、実際に働きます。選んでいるファイルを確かめてから実行してください。" : {
       "localizations" : {
         "en" : {
@@ -3355,42 +3748,73 @@
         }
       }
     },
-    "トラックパッドの上の縁から指を滑らせても、9つのアイコン（HUD）は開きません" : {
+    "トラックパッドのどこかに指を1本置いて強く押し込み（2回目のカチッまで）、そのまま少し止めると、ポインタの周りに9つのアイコン（HUD）が開きます。力を抜いて指を置いたまま滑らせ、ポインタを「%@」の上へ動かして、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sliding down from the top edge of the trackpad won't open the nine icons (the HUD)"
+            "value" : "Rest one finger anywhere on the trackpad, press firmly until you feel a second click, and hold for a moment: nine icons (the HUD) open around the pointer. Ease off the press, keep your finger down and slide to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
           }
         }
       }
     },
-    "トラックパッドの上の縁から指を滑らせると、アプリごとに変わる9つのボタンが開きます" : {
+    "トラックパッドのどこかに指を1本置いて強く押し込み（2回目のカチッまで）、そのまま少し止めると、ポインタの周りに9つのアイコン（HUD）が開きます。力を抜いて指を置いたまま滑らせ、ポインタを「%@」の上へ動かして、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Slide a finger down from the top edge of the trackpad to open nine buttons that change with each app"
+            "value" : "Rest one finger anywhere on the trackpad, press firmly until you feel a second click, and hold for a moment: nine icons (the HUD) open around the pointer. Ease off the press, keep your finger down and slide to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
           }
         }
       }
     },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。" : {
+    "トラックパッドのどこかを強く押し込んで少し止めると、アプリごとに変わる9つのボタンが開きます" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears."
+            "value" : "Press firmly anywhere on the trackpad and hold for a moment to open nine buttons that change with each app"
           }
         }
       }
     },
-    "トラックパッドの上の縁に指を置き、そのまま下へ滑らせると、ポインタの周りに9つのアイコン（HUD）が開きます。そのまま指を滑らせてポインタを「%@」の上へ動かし、そこで離してください。アイコンの意味に迷ったら、向けたまま少し止めると名前が出ます。このマスは、縁が一周するまで少し止めてから離してください。" : {
+    "トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとグローバルのページに変わります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Place a finger on the top edge of the trackpad and slide it down: nine icons (the HUD) open around the pointer. Keep sliding to move the pointer onto “%@”, then lift your finger there. If you're unsure what an icon does, keep pointing at it for a moment and its name appears. For this button, hold your finger on it until its outline goes all the way around, then lift."
+            "value" : "Press firmly anywhere on the trackpad and hold for a moment to open the HUD around the pointer. Ease off and slide: lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, or below it for the Global pages."
+          }
+        }
+      }
+    },
+    "トラックパッドのどこかを強く押し込んで少し止めると、ポインタの周りに HUD が開きます。力を抜いて指を滑らせ、アイコンで離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press firmly anywhere on the trackpad and hold for a moment to open the HUD around the pointer. Ease off and slide: lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, below it for Utilities, or above it for the Global pages."
+          }
+        }
+      }
+    },
+    "トラックパッドのどこかを強く押し込んで止めます。押し込んでいる間のクリックは Nonet が預かります" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press firmly anywhere on the trackpad and hold. Nonet holds on to that click while you press."
+          }
+        }
+      }
+    },
+    "トラックパッドの上の縁から指を下へ滑らせます。感圧タッチでないトラックパッドや、強く押すのがつらいときに。クリックは預かりません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide a finger down from the top edge of the trackpad. For trackpads without Force Touch, or if pressing firmly is uncomfortable. Clicks aren't held."
           }
         }
       }
@@ -3406,6 +3830,26 @@
         }
       }
     },
+    "トラックパッドの設定を開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Trackpad Settings"
+          }
+        }
+      }
+    },
+    "トラックパッドを強く押し込んでも、9つのアイコン（HUD）は開きません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressing firmly on the trackpad won't open the nine icons (the HUD)"
+          }
+        }
+      }
+    },
     "トリガーキー" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3413,6 +3857,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trigger key"
+          }
+        }
+      }
+    },
+    "ドラッグで添付" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to attach"
           }
         }
       }
@@ -3530,6 +3984,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't import the file."
+          }
+        }
+      }
+    },
+    "フォルダを開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Folder"
           }
         }
       }
@@ -3847,6 +4311,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buttons"
+          }
+        }
+      }
+    },
+    "ボタン %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Buttons"
+          }
+        }
+      }
+    },
+    "ボタンが入りきらない数は、先にボタンを空けるかページを減らすと選べます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To choose a number too small for this page, clear some buttons or remove a page first"
+          }
+        }
+      }
+    },
+    "ボタンの数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number of Buttons"
+          }
+        }
+      }
+    },
+    "ボタンの数の変更" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Number of Buttons"
+          }
+        }
+      }
+    },
+    "ボタン入り:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With buttons:"
           }
         }
       }
@@ -4565,11 +5079,32 @@
       }
     },
     "上の縁から指を下へ滑らせると、ポインタの周りに HUD が開きます。アイコンで指を離すと実行し、輪の外で離すかキーを押すとやめます。輪のすぐ外の右か左で止めるとページが、下で止めるとユーティリティに、上で止めるとグローバルのページに変わります。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Slide a finger down from the top edge to open the HUD around the pointer. Lift on an icon to run it; lift outside the ring or press any key to cancel. Hold the pointer just outside the ring to the right or left to change pages, below it for Utilities, or above it for the Global pages."
+          }
+        }
+      }
+    },
+    "上の縁から滑らせる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide from the top edge"
+          }
+        }
+      }
+    },
+    "上の縁から滑らせる開き方にする" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the Top-Edge Slide"
           }
         }
       }
@@ -4610,6 +5145,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The details below are used only to look into your question."
+          }
+        }
+      }
+    },
+    "両方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both"
+          }
+        }
+      }
+    },
+    "並べる数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number to show"
           }
         }
       }
@@ -4808,6 +5363,16 @@
         }
       }
     },
+    "保存先のフォルダを読む許可がありません" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nonet isn't allowed to read the screenshot folder"
+          }
+        }
+      }
+    },
     "停止しています" : {
       "localizations" : {
         "en" : {
@@ -4824,6 +5389,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Undo"
+          }
+        }
+      }
+    },
+    "入りきらない %lld 個のボタンを、新しいページ %lld へ移しました。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved %1$lld buttons that didn’t fit to the new page %2$lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "入りきらない %1$lld 個のボタンを、新しいページ %2$lld へ移しました。"
           }
         }
       }
@@ -4845,6 +5426,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shared Buttons"
+          }
+        }
+      }
+    },
+    "再生・音量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback & Volume"
           }
         }
       }
@@ -4999,6 +5590,16 @@
         }
       }
     },
+    "前面のアプリのカーソルの位置に貼り付けます（クリップボードは元に戻します）。{date} は今日の日付（2026-11-23）、{time} は今の時刻（14:05）になります。最後に改行を入れると、チャットでは送信、ターミナルでは実行になるので気を付けてください。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pastes at the cursor in the front app (the clipboard is put back afterwards). {date} becomes today's date (2026-11-23) and {time} the current time (14:05). A line break at the end sends the message in a chat or runs the command in Terminal, so add one only if you mean it."
+          }
+        }
+      }
+    },
     "前面のアプリの名前" : {
       "localizations" : {
         "en" : {
@@ -5035,6 +5636,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Running"
+          }
+        }
+      }
+    },
+    "収録・%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording · %@"
           }
         }
       }
@@ -5461,6 +6072,66 @@
         }
       }
     },
+    "強く押し込む" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Firm press"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.1秒ほどで開きます。止めて待つのがもどかしいときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens about 0.1 seconds after you press firmly. For when holding still feels slow"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.25秒ほど止めると開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens after you press firmly and hold for about 0.25 seconds"
+          }
+        }
+      }
+    },
+    "強く押し込んでから 0.5秒ほど止めると開きます。強めにクリックする癖があって、思わず開いてしまうときに" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens after you press firmly and hold for about 0.5 seconds. For when you tend to click hard and open the buttons by accident"
+          }
+        }
+      }
+    },
+    "強く押し込んでも、上の縁から滑らせても開きます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Either a firm press or a slide from the top edge opens the buttons."
+          }
+        }
+      }
+    },
+    "強く押し込んでも開きません。システム設定 › トラックパッド で「強めのクリックと触覚フィードバック」をオンにしてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressing firmly won't open the buttons. Turn on Force Click and haptic feedback in System Settings › Trackpad."
+          }
+        }
+      }
+    },
     "情報" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5538,6 +6209,16 @@
         }
       }
     },
+    "押すキー" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key to press"
+          }
+        }
+      }
+    },
     "押すメニュー項目" : {
       "localizations" : {
         "en" : {
@@ -5579,12 +6260,32 @@
         }
       }
     },
+    "探しています…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking…"
+          }
+        }
+      }
+    },
     "控えめ" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Low"
+          }
+        }
+      }
+    },
+    "撮ったものが、新しい順にここに並びます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots you take appear here, newest first."
           }
         }
       }
@@ -5652,12 +6353,12 @@
         }
       }
     },
-    "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。" : {
+    "既定のアプリで開きます。obsidian:// のようなアプリ独自の URL も使えます。{selection} と書くと、選んでいるテキストに置き換えます。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opens in the default app. App URLs like obsidian:// work too."
+            "value" : "Opens in the default app. App URLs such as obsidian:// work too. Write {selection} to put in the text you have selected."
           }
         }
       }
@@ -5738,6 +6439,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scroll to the end to check everything before you can import."
+          }
+        }
+      }
+    },
+    "最近のスクショ" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Screenshots"
           }
         }
       }
@@ -6064,6 +6775,16 @@
         }
       }
     },
+    "画面の収録（動画）も並べる" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include screen recordings (videos)"
+          }
+        }
+      }
+    },
     "発行日" : {
       "localizations" : {
         "en" : {
@@ -6156,6 +6877,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "登録者: %1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "真ん中で離すとやめます" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let go in the middle to cancel"
           }
         }
       }
@@ -6263,12 +6994,12 @@
         }
       }
     },
-    "終了すると、もう一度 Nonet を開くまで、トラックパッドの上の縁から HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。" : {
+    "終了すると、もう一度 Nonet を開くまで、トラックパッドを強く押し込んでも HUD が開かなくなります。ウインドウを閉じるだけなら ⌘W を使ってください。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "After you quit, the HUD won't open from the top edge of the trackpad until you open Nonet again. To close just the window, press ⌘W."
+            "value" : "After you quit, pressing firmly on the trackpad won't open the HUD until you open Nonet again. To close just the window, press ⌘W."
           }
         }
       }
@@ -6501,6 +7232,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No results"
+          }
+        }
+      }
+    },
+    "見ていたサイト「%@」を追加" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the site you were viewing, “%@”"
           }
         }
       }
@@ -6913,6 +7654,26 @@
         }
       }
     },
+    "貼るテキスト" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text to paste"
+          }
+        }
+      }
+    },
+    "貼るテキスト:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text to paste:"
+          }
+        }
+      }
+    },
     "購入する" : {
       "localizations" : {
         "en" : {
@@ -7114,6 +7875,16 @@
         }
       }
     },
+    "選んだ言葉で開く" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with Selected Text"
+          }
+        }
+      }
+    },
     "選んでいるメニュー項目のマス（無ければ空いているマス）に入れます" : {
       "localizations" : {
         "en" : {
@@ -7261,6 +8032,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open sensitivity"
+          }
+        }
+      }
+    },
+    "開き方" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open with"
           }
         }
       }

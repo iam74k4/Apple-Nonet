@@ -5,12 +5,25 @@ public enum HapticStrength: String, Codable, CaseIterable, Sendable {
     case off, light, medium, strong
 }
 
-/// 開きやすさ。上の縁からの滑り込みをどれだけ受け付けるか（帯の高さ・時間・動きの量。EdgeSlideRecognizer.Thresholds）
+/// 9マスの開き方
+public enum OpenGesture: String, Codable, CaseIterable, Sendable {
+    /// トラックパッドのどこかを強く押し込んで止める（感圧タッチのトラックパッドと、macOS の強めのクリックが要る）
+    case forcePress
+    /// トラックパッドの上の縁から指を下へ滑らせる（感圧タッチでないトラックパッドや、強く押すのがつらい人向け。クリックを預からない）
+    case edgeSlide
+    /// どちらでも開く
+    case both
+
+    public var usesForcePress: Bool { self != .edgeSlide }
+    public var usesEdgeSlide: Bool { self != .forcePress }
+}
+
+/// 開きやすさ。強く押し込んでから、どれだけ止めると開くか（ForcePress.hold）と、上の縁から滑らせる動きの受け付け方（EdgeSlideRecognizer.Thresholds）
 public enum OpenSensitivity: String, Codable, CaseIterable, Sendable {
-    /// 奥の端のすぐ近くで、すばやく滑らせたときだけ（ふだんのポインタ操作で開いてしまう人向け）
+    /// はっきり止めたときだけ（強く押す癖があって、思わず開いてしまう人向け）
     case low
     case standard
-    /// 縁から少し離れて置いても、ゆっくりでも開く（縁から滑らせても開かないことがある人向け）
+    /// 押し込んだらほぼすぐ（待つのがもどかしい人向け）
     case high
 }
 
@@ -65,6 +78,8 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
     public var hudScale: HUDScale
     /// 開きやすさ。既定は標準
     public var openSensitivity: OpenSensitivity
+    /// 開き方。既定は強く押し込む
+    public var openGesture: OpenGesture
     /// 「ターミナルで実行」のスクリプトを開くアプリ。既定はターミナル
     public var terminalApp: TerminalApp
 
@@ -73,12 +88,14 @@ public struct GlobalSettings: Codable, Equatable, Sendable {
         haptics: HapticStrength = .medium,
         hudScale: HUDScale = .standard,
         openSensitivity: OpenSensitivity = .standard,
+        openGesture: OpenGesture = .forcePress,
         terminalApp: TerminalApp = .terminal
     ) {
         self.isEnabled = isEnabled
         self.haptics = haptics
         self.hudScale = hudScale
         self.openSensitivity = openSensitivity
+        self.openGesture = openGesture
         self.terminalApp = terminalApp
     }
 }
@@ -109,7 +126,7 @@ extension GlobalSettings {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isEnabled, haptics, hudScale, openSensitivity, terminalApp
+        case isEnabled, haptics, hudScale, openSensitivity, openGesture, terminalApp
     }
 
     public init(from decoder: any Decoder) throws {
@@ -120,6 +137,7 @@ extension GlobalSettings {
             haptics: container.decodeLossy(HapticStrength.self, forKey: .haptics, default: defaults.haptics),
             hudScale: container.decodeLossy(HUDScale.self, forKey: .hudScale, default: defaults.hudScale),
             openSensitivity: container.decodeLossy(OpenSensitivity.self, forKey: .openSensitivity, default: defaults.openSensitivity),
+            openGesture: container.decodeLossy(OpenGesture.self, forKey: .openGesture, default: defaults.openGesture),
             terminalApp: container.decodeLossy(TerminalApp.self, forKey: .terminalApp, default: defaults.terminalApp)
         )
     }
@@ -134,6 +152,9 @@ extension GlobalSettings {
         }
         if openSensitivity != .standard {
             try container.encode(openSensitivity, forKey: .openSensitivity)
+        }
+        if openGesture != .forcePress {
+            try container.encode(openGesture, forKey: .openGesture)
         }
         if terminalApp != .terminal {
             try container.encode(terminalApp, forKey: .terminalApp)

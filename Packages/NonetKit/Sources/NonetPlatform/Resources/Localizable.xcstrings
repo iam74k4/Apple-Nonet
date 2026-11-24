@@ -629,6 +629,26 @@
         }
       }
     },
+    "今のクリップボードを保てないため、貼り付けずにコピーしました。⌘V で貼り付けてください" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't keep what's on the clipboard, so the text was copied instead of pasted. Press ⌘V to paste it."
+          }
+        }
+      }
+    },
+    "再生・音量・明るさのキーを送れませんでした" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't send the playback, volume or brightness key"
+          }
+        }
+      }
+    },
     "前面のアプリが変わったため、キーを送りませんでした" : {
       "localizations" : {
         "en" : {

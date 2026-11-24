@@ -88,7 +88,7 @@ import Testing
         h.start()
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
-        // 指の位置は権限が無くても読める。開けないことを知らせるために、上の縁からの滑り込みだけは見る
+        // 指の位置は権限が無くても読める（エンジンには渡さない）
         #expect(h.touchSource.isRunning)
 
         h.advance(NonetController.pollInterval)
@@ -108,14 +108,14 @@ import Testing
         h.touch(on: 2)
         h.permissions.isAccessibilityGranted = false
         h.advance(NonetController.pollInterval)
-        // 許可が無い間も指は読み続ける（開けないことを知らせるため）
+        // 許可が無い間も指は読み続ける（許可されたらすぐ使えるように）
         #expect(h.touchSource.isRunning)
         #expect(h.touchSource.stopCount == 0)
         h.lift()
         h.permissions.isAccessibilityGranted = true
         h.advance(NonetController.pollInterval)
         #expect(h.touchSource.isRunning)
-        // 離したフレームも届いているので、次に置いた指は新しいタッチ（上の縁から開ける）
+        // 離したフレームも届いているので、次に置いた指は新しいタッチ（押し込めば開ける）
         h.open()
         h.choose(2)
         h.closeIfOpen()
@@ -145,7 +145,7 @@ import Testing
 
         #expect(h.controller.status == .needsAccessibility)
         #expect(!h.keyboard.isRunning)
-        // 指は読み続ける（次に上の縁から滑らせたとき、開けない理由を知らせる）
+        // 指は読み続ける（許可されたらすぐ使えるように）
         #expect(h.touchSource.isRunning)
         #expect(!h.hud.isVisible)
         #expect(!h.keyboard.isSuppressingPointer)
@@ -235,7 +235,7 @@ import Testing
     @Test func openingNoticesSecureInputThatBeganSinceTheLastPoll() async throws {
         let h = try ControllerHarness()
         h.start()
-        // パスワード欄に入ってすぐ（次の確かめ直しより前に）上の縁から滑らせる
+        // パスワード欄に入ってすぐ（次の確かめ直しより前に）強く押し込む
         h.permissions.isSecureInputActive = true
         h.advance(NonetController.pollInterval / 4)
         #expect(h.controller.status == .running)
@@ -336,7 +336,7 @@ import Testing
         h.touch(on: 2)
         h.controller.update { $0.settings.isEnabled = false }
         h.controller.update { $0.settings.isEnabled = true }
-        // 止めている間に指は離れたかもしれない。次に置いた指は新しいタッチ（上の縁から開ける）
+        // 止めている間に指は離れたかもしれない。次に置いた指は新しいタッチ（押し込めば開ける）
         h.open()
         h.choose(2)
         h.closeIfOpen()

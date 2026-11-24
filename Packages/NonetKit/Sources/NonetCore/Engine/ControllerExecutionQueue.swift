@@ -113,7 +113,7 @@ enum ControllerExecutionPolicy {
         case .shortcut, .ai: true
         // 大きなファイルの複製は、長く掛かる
         case .file(let file): file.operation == .duplicate
-        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
+        case .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media, .pasteText: false
         }
     }
 
@@ -123,7 +123,7 @@ enum ControllerExecutionPolicy {
         switch action {
         case .script(let script): script.runMode == .background
         case .shortcut, .ai: true
-        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow: false
+        case .file, .keystroke, .launchApp, .openURL, .menuItem, .placeWindow, .screenshots, .media, .pasteText: false
         }
     }
 
@@ -135,9 +135,9 @@ enum ControllerExecutionPolicy {
     /// 前面アプリにキーを送る（テスト実行で、そのアプリが前面にならなかったときは送らない。Nonet の設定ウィンドウに届くため）
     static func sendsInputToFrontmostApp(_ action: Action) -> Bool {
         switch action {
-        case .keystroke: true
+        case .keystroke, .pasteText: true
         case .ai(let ai): ai.output == .replaceSelection
-        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow: false
+        case .script, .shortcut, .launchApp, .openURL, .menuItem, .file, .placeWindow, .screenshots, .media: false
         }
     }
 
@@ -145,8 +145,12 @@ enum ControllerExecutionPolicy {
     /// （戻すと「前面なら隠す」の起動が、そのアプリを隠してしまう）
     static func dependsOnFrontmostApp(_ action: Action) -> Bool {
         switch action {
-        case .launchApp, .openURL: false
-        case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow: true
+        // スクリーンショットのトレイは Nonet のパネルなので、どのアプリが前面でも同じ
+        // 再生・音量・明るさは、どのアプリが前面でも同じ
+        case .launchApp, .screenshots, .media: false
+        // 選んだテキストで開く URL は、前面のアプリの選択を読む
+        case .openURL(let url): url.usesSelection
+        case .keystroke, .script, .shortcut, .menuItem, .ai, .file, .placeWindow, .pasteText: true
         }
     }
 }
