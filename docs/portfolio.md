@@ -62,11 +62,11 @@ https://astlog.dev/apps/item/nonet に公開した（並び順 15。AppMixer と
 - **上下の入れ替えに合わせた撮り直し（2026-11-20。まだ公開していない）**: 下＝ユーティリティ・上＝グローバルに変えた版（1.1.0）に合わせ、売りの機能を1場面に1つずつ見せる台本（Xcode の「実行」→ Zoom の「ミュート」→ 上でグローバルの「左半分」→ 上・右でランチャーの「メール」→ 下でユーティリティの「撮影してコピー」→ 右上の遠い外でやめる）で、日本語（19.1 秒）と英語（19.2 秒）を撮った。販売ページの `site/images/demo.mp4`・`demo-poster.jpg`・`demo-en.mp4`・`demo-en-poster.jpg` と、ページの動画の説明はこのブランチで差し替え済み。配っている 1.0.1 は下でグローバルが開くので、**1.1.0 を出すときに一緒に公開する**（所有者の決定）。そのとき astlog.dev も、`build/astlog/plan.json`（動画の行 id 13 と代替テキスト。前の動画は `build/astlog/previous/` に取ってある）で `astlog-replace.py` を流してから `npm run site:touch`。astlog.dev の「ほかの画像」の id 10（輪の外の HUD）は、横の説明に「下で止めるとグローバルのページ」と書いてあるので、作り直す。AstLog の動画も、Nonet の動画を再生する場面があるので撮り直す
 - **墨の無地の背景と、機能が分かる台本（2026-11-11）**: 所有者が共通の背景を墨の無地（`#222226`。AstLog の墨）に変え、動画は「見て機能が分かる台本」にすると決めた（前の内蔵の台本は「見せる操作の選び方が悪い」「最大化の枠で全画面が紺になるのが変」）。メインの画像・ほかの画像 2〜4・動画をこの背景で作り直し、wrangler で差し替えた（メイン `nonet-af1017a95ebeb5f183f305b7801c01c2.jpg`・動画 `nonet-36ce6a1fef9bead9deefe38a6e202400.mp4`・外枠の絵 `nonet-75989e4c3f0d8e16b004e41947d8011c.jpg`・Zoom の絵 `nonet-f9cc6387c046c5abdf09dc0815a83390.jpg`・ランチャーの絵 `nonet-b72721a8175144088527855356805cd3.jpg`）。動画（22.3 秒・348KB・H.264・1440×900。区間は Xcode 1.3〜5.0 秒・Zoom 1.6〜20.2 秒）は、Xcode（`scripts/demo/xcode.json`: 上の「実行」で離す）と Zoom（`scripts/demo/zoom.json`: 真ん中の「ミュート」→ 輪の下で止めてグローバルの「左半分」→ もう一度グローバルへ移り、輪の右で止めてランチャーの「メール」→ やめる）の2回の収録をつないだもので、代替テキストにもそう書いた。撮り方は上の「いまの手順」。最初に載せた動画（`nonet-62411c9b548a43b2096567635e931529.mp4`）は、収録と書き出しが色を BT.709 として扱い、地が `#2B2B2B` に明るく表示された（画像は `#222126`）。同じ日の夜に、色を sRGB で書く `record-screen.swift`・`vidtool.swift` と、この「いまの手順」で撮り直して差し替えた（前の動画は `archive/` に 90 日）。撮っている間にマウスが動くと、次の場面の HUD がそこで開き、画面の端では実際の Dock が背景より上に出て写った。撮る間はマウスとトラックパッドに触れない。内蔵の台本（`--demo-script`）も、同じ流れを1つのアプリで見せる形に組み直した（載せた動画には使っていない）。同じ夜のレビューで、ページの上でマスの名前が読めない・22 秒のうち 8 秒が何も無い画面・表紙が暗い無地・「やめる」場面で真ん中の「ミュート」が名前つきで光ってから閉じる（選んだように見える）が見つかり、撮り直して差し替えた（動画 `nonet-e759af75961aefffff06cfcb65c91af9.mp4`・17.8 秒・628KB。前の `nonet-36ce6a1fef9bead9deefe38a6e202400.mp4` は `archive/` に 90 日）: 真ん中を2倍に寄せ、場面の間を詰め、HUD が開いたところから始める。「やめる」場面は、開いてすぐ指を上へ戻して輪の上の外で 1 秒止め（アプリの層の上の帯は、切り替える先も案内も無い）、鍵が薄くなったところで離す（`zoom.json` と内蔵の台本の4つ目）
 - **取り組みの内容（Story）**: AppMixer・SaifuLog と同じく空のまま
-- **リンク**: 入れていない。販売ページ（nonet.astlog.dev）を開いたら `Website` を足し、購入画面が開くようになったら `Buy` を足す（[リンクを追加する](#リンクを追加する任意)）
+- **リンク（2026-11-25）**: `Website` / `https://nonet.astlog.dev/` の1本だけを足した（日本語の販売ページ。AstLog の文は日本語なので、英語の `/en/` は足さない）。作品のページと Projects の一覧に出る。押し手（`lead_link`）は 0 のまま。管理画面は使わず、この Mac の wrangler で書いた: 本番 D1 の `item_links` に1行（`item_id` 4・`sort_order` 0）→ `items.updated_at` を進める → AstLog のリポジトリで `npm run site:touch`（`site:version` を進める）。`Download`・`Buy` は発売してから足す（[リンクを追加する](#リンクを追加する任意)）
 
 ## 0. 前提
 
-- **下書きで保存し、公開は後にする。** Website のリンク先 https://nonet.astlog.dev/ は、まだ開いていない。Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする
+- **下書きで保存し、公開は後にする。**（これは 2026-10-31 の下書きのときの前提。Nonet の項目はすでに公開済みで、Website のリンク先 https://nonet.astlog.dev/ は 2026-11-25 に開いているのを確かめて足した。）Website のリンク先は、Cloudflare に販売ページを出してから（`docs/hosting.md`）「公開する」にする
 - 販売ページの仮の値（購入のページの `TODO: Paddle の…`・`support@TODO.invalid` など）が残ったまま AstLog に公開すると、リンクの先で TODO が見える。`scripts/check-site.sh --strict` が通ってから公開する
 - AstLog の Worker が持つのは `astlog.dev` の custom domain だけ（AstLog の `wrangler.toml` の `routes`）。同じ Cloudflare アカウントで `nonet.astlog.dev` を別の Worker（`cloudflare/`）に当てても、AstLog とはぶつからない
 - 手元の AstLog（`/Users/iam74k4/Git/Web-AstLog`）は `develop` で、本番より古い。この文書の欄・上限・画像の決まりは本番の `main`（`cb899fd`）に合わせた（作品の文書の欄・動画・保存後に編集画面へ戻る、は `main` にしか無い）
@@ -155,7 +155,7 @@ Story の4つの欄。どれも「です・ます」で、空行で段落を分�
 
 | ラベル | URL | いつ |
 |---|---|---|
-| `Website` | `https://nonet.astlog.dev/` | いま入れる（公開は販売ページが開いてから） |
+| `Website` | `https://nonet.astlog.dev/` | **2026-11-25 に入れた**（販売ページが開いてから） |
 | `Download` | `https://nonet.astlog.dev/download` | **いまは入れない。** 公証済みの DMG を出したら、Website の次に足す（最新の DMG へ飛ぶ固定の URL） |
 | `Buy` | `https://nonet.astlog.dev/buy.html` | **いまは入れない。** 購入のページ（`site/buy.html`）に Paddle のトークンと価格の ID を入れて公開し、Paddle の購入画面が開くのを確かめてから、Download の次に足す |
 | `Repository` | — | **入れない。** 有料のアプリなので、GitHub のリポジトリ（`iam74k4/Apple-Nonet`）は非公開にした（2026-10-31） |
