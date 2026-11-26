@@ -38,7 +38,7 @@ final class Writer {
             AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height,
             AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: bitrate, AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel, AVVideoMaxKeyFrameIntervalKey: 60],
             // 色: コマは sRGB の値のまま入れ、動画にも「伝達関数は sRGB」と書く。既定（BT.709 の伝達関数）のままだと、
-            // 暗い色が変換されて持ち上がり（#222226 の地が #26252B に見える）、同じ背景の静止画と色がそろわない
+            // 暗い色が変換されて持ち上がり（墨 #222226 の地が #26252B に見えた）、同じ背景の静止画と色がそろわない
             AVVideoColorPropertiesKey: [
                 AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey: Writer.sRGBTransfer,

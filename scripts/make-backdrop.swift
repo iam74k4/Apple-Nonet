@@ -1,14 +1,14 @@
-// 宣伝用の画像とデモ動画に敷く共通の背景（墨の無地とメニューバー）を PNG に書き出す。
+// 宣伝用の画像とデモ動画に敷く共通の背景（真っ黒の無地とメニューバー）を PNG に書き出す。
 // 販売ページ・AstLog の画像（scripts/compose-store-image.swift）とデモ動画（--demo-backdrop）・HUD の写真（--preview-backdrop）は、
 // どれもこの背景の上で作る。実際の画面（壁紙・ほかのアプリのウインドウ）は写さない。
 // ほかのアプリ（AppMixer・NotchPocket など）のデモ動画も同じ背景にそろえる（~/.claude/rules/demo-video.md）。色と寸法は変えない。
 // 変えてよいのは、メニューバーの右に描くアプリ自身のアイコン（statusIcon）だけ。ここが描くのは Nonet のアイコンで、
 // ほかのアプリのアイコン（SF Symbols・画像）を選べる版は skill app-promo-media のフォルダにある（~/.claude/skills/app-promo-media/make-backdrop.swift。色と寸法は同じ）。
 //
-// 地は墨の無地（#222226。AstLog の墨と同じ値）で、グラデーションも飾りも持たない。2026-11-11 に所有者が「シンプルに黒背景」と決めた
-// （その前は #1F1F21 → #0E0E0F の灰のグラデーション。AstLog の夜明けの空に寄せた試作は退けた）。メニューバーの寸法と並びは前のまま。
+// 地は真っ黒の無地（#000000）で、グラデーションも飾りも持たない。2026-11-27 に所有者が「AstLog の色に合うように背景を真っ黒に」と決めた
+// （その前は墨の無地 #222226、さらに前は #1F1F21 → #0E0E0F の灰のグラデーション）。メニューバーの帯も地と同じ黒にし、下の線で分ける。寸法と並びは前のまま。
 //
-// 寸法は 1440×900 の絵を基準にし、幅に合わせて拡大する（上端にそろえる。16:10 より縦長の画面では、下も同じ墨）。
+// 寸法は 1440×900 の絵を基準にし、幅に合わせて拡大する（上端にそろえる。16:10 より縦長の画面では、下も同じ黒）。
 // 使い方: swift scripts/make-backdrop.swift <out.png> [<幅 px> <高さ px>] [--no-status-icon] [--clock <日付の文字>]
 //   --clock: メニューバーの右端の日付（既定「11月7日(土) 9:41」）。英語の画面の動画では「Sat Nov 7 9:41 AM」。位置・字・色は同じ
 //   幅と高さを省くと、いまのメインの画面の大きさ（ピクセル）。デモ動画にはこれを使う。画像の合成（1440×900 の @2x）には 2880 1800
@@ -51,10 +51,10 @@ ctx.scaleBy(x: s, y: s)
 ctx.interpolationQuality = .high
 func rgb(_ hex: Int, _ a: CGFloat = 1) -> CGColor { CGColor(srgbRed: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255, blue: CGFloat(hex & 255) / 255, alpha: a) }
 
-// 地: 墨の無地。基準の 900 より下（16:10 より縦長の画面）まで、絵の全面を同じ色で塗る
-ctx.setFillColor(rgb(0x222226)); ctx.fill(CGRect(x: 0, y: H - CGFloat(size.height) / s, width: W, height: CGFloat(size.height) / s))
-// メニューバー（高さ 34。墨を少し沈めた帯 #1A1A1D。下に白 6% の 1pt の線）
-ctx.setFillColor(rgb(0x1A1A1D)); ctx.fill(CGRect(x: 0, y: H - 34, width: W, height: 34))
+// 地: 真っ黒の無地。基準の 900 より下（16:10 より縦長の画面）まで、絵の全面を同じ色で塗る
+ctx.setFillColor(rgb(0x000000)); ctx.fill(CGRect(x: 0, y: H - CGFloat(size.height) / s, width: W, height: CGFloat(size.height) / s))
+// メニューバー（高さ 34。帯は地と同じ黒 #000000。下に白 6% の 1pt の線で地と分ける）
+ctx.setFillColor(rgb(0x000000)); ctx.fill(CGRect(x: 0, y: H - 34, width: W, height: 34))
 ctx.setFillColor(rgb(0xFFFFFF, 0.06)); ctx.fill(CGRect(x: 0, y: H - 35, width: W, height: 1))
 
 func text(_ string: String, font: CTFont, color: CGColor, rightEdge x: CGFloat, baseline y: CGFloat) {

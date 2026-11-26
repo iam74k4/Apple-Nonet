@@ -6,7 +6,7 @@
 // - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる（内蔵の台本。--demo-script-file <JSON> ならその台本）。
 //   付けなければ実機の指をそのまま使う
 // 画面の隅のトラックパッドの図は、どちらのときも指の位置（TouchFrame）をそのまま示す
-// 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の墨の無地とメニューバー）を敷き、実際の画面を写さない
+// 画面には必ず共通の背景（--demo-backdrop。scripts/make-backdrop.swift の真っ黒の無地とメニューバー）を敷き、実際の画面を写さない
 import AppKit
 import NonetCore
 import NonetUI
@@ -292,7 +292,7 @@ final class DemoSession {
 
     /// 背景と図を出し、撮る範囲を標準出力に書く（screencapture -R の x,y,幅,高さ。左上が原点）。
     /// 背景（--demo-backdrop）は必ず敷く。敷かずに撮ると、ユーザーの画面（壁紙・ほかのウインドウ）が写る。
-    /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（墨の無地とメニューバー）にそろえる
+    /// 背景はどのデモ動画も scripts/make-backdrop.swift の同じもの（真っ黒の無地とメニューバー）にそろえる
     func present() {
         // 主の画面（メニューバーのある画面。左上が撮る範囲の原点）に敷く。scripts/record-screen.swift も主の画面を撮る。
         // NSScreen.main（いま使っている画面）にすると、外付けの画面から始めたときに、背景の無い主の画面を撮ってしまう
