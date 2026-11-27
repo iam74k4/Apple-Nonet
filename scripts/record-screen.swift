@@ -28,7 +28,7 @@ final class FrameWriter: NSObject, SCStreamOutput {
                 AVVideoMaxKeyFrameIntervalKey: 60,
             ],
             // 色: 画面を sRGB で受け取り（下の colorSpaceName）、動画にも「伝達関数は sRGB」と書く。既定のままだと、
-            // 暗い色が持ち上がって色みも抜け（#222226 の背景が #2B2B2B に見える）、同じ背景の静止画と色がそろわない
+            // 暗い色が持ち上がって色みも抜け（墨 #222226 の背景が #2B2B2B に見えた）、同じ背景の静止画と色がそろわない
             AVVideoColorPropertiesKey: [
                 AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey: kCVImageBufferTransferFunction_sRGB as String,
@@ -124,7 +124,8 @@ struct RecordScreen {
             configuration.sourceRect = CGRect(x: x, y: y, width: width, height: height)
             configuration.width = outWidth
             configuration.height = outHeight
-            configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+            // 1 秒 60 コマまで受け取る。30 コマだと、右下の図の指の点が速く動く所で1コマに大きく跳び、カクカクして見えた（2026-11-27）
+            configuration.minimumFrameInterval = CMTime(value: 1, timescale: 60)
             configuration.pixelFormat = kCVPixelFormatType_32BGRA
             configuration.colorSpaceName = CGColorSpace.sRGB
             configuration.showsCursor = false

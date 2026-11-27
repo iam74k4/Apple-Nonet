@@ -11,14 +11,14 @@
     "9つのボタンになる。"
   ],
   "description": [
-    "上の縁から指を滑らせると、ポインタの周りに",
+    "強く押し込んで少し止めると、ポインタの周りに",
     "9つのアイコン。向けて離せば実行。"
   ],
   "bullets": [
     {
-      "symbol": "arrow.down.to.line",
-      "text": "上の縁から滑らせて開く",
-      "tag": "上の縁"
+      "symbol": "hand.tap",
+      "text": "強く押し込んで開く",
+      "tag": "どこでも"
     },
     {
       "symbol": "checkmark.circle",
