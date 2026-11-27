@@ -86,13 +86,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.hud = hud
         self.license = license
         self.controller = controller
-        #if DEBUG
-        // デモの台本の指は、上の縁から滑り込んで開く（強く押し込む操作は台本に無い）。見本の設定の開き方が強く押し込むだけでも
-        // 台本が開くように、上の縁からの開き方を足す（見本の設定に書かれる）
-        if options.demo, options.demoScript, !controller.configuration.settings.openGesture.usesEdgeSlide {
-            controller.update { $0.settings.openGesture = .edgeSlide }
-        }
-        #endif
 
         let checkForUpdates: (() -> Void)? = updater.isAvailable ? { [weak self] in self?.updater.checkForUpdates() } : nil
         let menuBar = MenuBarController(
