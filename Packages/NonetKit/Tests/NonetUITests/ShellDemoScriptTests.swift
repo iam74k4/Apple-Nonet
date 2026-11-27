@@ -190,6 +190,25 @@ struct ShellDemoScriptTests {
         #expect(script.sample(at: 2) == nil)
     }
 
+    @Test("指は、止める点（同じ位置に留まる点）でだけ止まり、通り過ぎる点では止まらずに動き続ける")
+    func passesThroughWaypointsWithoutStopping() throws {
+        // 0.5 秒目まで留まり、1 秒目の点を通り過ぎて、1.5 秒目で止まる
+        let script = try DemoScript(json: Data("[[0, 0.1, 0.5], [0.5, 0.1, 0.5], [1, 0.5, 0.9], [1.5, 0.9, 0.5], [2, 0.9, 0.5], [2]]".utf8))
+        func speed(at time: TimeInterval) throws -> CGFloat {
+            let dt = 1.0 / 240
+            let a = try #require(script.sample(at: time - dt))
+            let b = try #require(script.sample(at: time + dt))
+            return hypot(b.x - a.x, b.y - a.y) / (2 * dt)
+        }
+        // 通り過ぎる点: 前の点から次の点へ向かう平均の速さ（0.8 / 秒）で通る（どの点でも止めていたころは 0 だった）
+        #expect(try abs(speed(at: 1.0) - 0.8) < 0.05)
+        #expect(script.sample(at: 1.0) == CGPoint(x: 0.5, y: 0.9))
+        // 止める点: ゆっくり動き出し、ゆっくり止まる
+        #expect(try speed(at: 0.5 + 1.0 / 240) < 0.1)
+        #expect(try speed(at: 1.5 - 1.0 / 240) < 0.1)
+        #expect(script.sample(at: 1.5) == CGPoint(x: 0.9, y: 0.5))
+    }
+
     @Test("時刻 0 から始まらない台本は、最初の行まで指を離している")
     func nothingBeforeTheFirstRow() throws {
         let script = try DemoScript(json: Data("[[1, 0.5, 0.9], [2, 0.5, 0.5], [2]]".utf8))

@@ -176,10 +176,32 @@ public struct DemoScript: Equatable, Sendable {
         guard let to = end.point else { return start }
         let span = end.time - keys[index].time
         guard span > 0 else { return start }
-        let progress = (time - keys[index].time) / span
-        // ゆっくり動き出して、ゆっくり止まる
-        let eased = progress * progress * (3 - 2 * progress)
-        return CGPoint(x: start.x + (to.x - start.x) * eased, y: start.y + (to.y - start.y) * eased)
+        let s = (time - keys[index].time) / span
+        // 3次のエルミート補間。止める点では速さを 0（ゆっくり動き出して、ゆっくり止まる）、通り過ぎる点では前後の点を結ぶ向きの
+        // 速さを保つ。どの点でも速さを 0 にしていたころは、輪の外を回る道筋の点ごとに指がいったん止まり、カクカクして見えた
+        // （2026-11-27 の所有者の指摘「カーソルの動きが不自然」）。両端とも止める点なら、前と同じ曲線（s² (3 − 2s)）になる
+        let v0 = velocity(at: index)
+        let v1 = velocity(at: index + 1)
+        let h00 = 2 * s * s * s - 3 * s * s + 1
+        let h10 = s * s * s - 2 * s * s + s
+        let h01 = -2 * s * s * s + 3 * s * s
+        let h11 = s * s * s - s * s
+        let x = h00 * start.x + h10 * span * v0.dx + h01 * to.x + h11 * span * v1.dx
+        let y = h00 * start.y + h10 * span * v0.dy + h01 * to.y + h11 * span * v1.dy
+        // 通り過ぎる点のまわりで少し膨らんでも、トラックパッドの外には出さない
+        return CGPoint(x: min(max(x, 0), 1), y: min(max(y, 0), 1))
+    }
+
+    /// i 番目の点を通るときの指の速さ（トラックパッドの幅・高さ / 秒）。指を置いた・離す・同じ位置に留まる点では止めるので 0。
+    /// 前後とも別の位置へ動く途中の点では、前の点から次の点へ向かう平均の速さ（Catmull-Rom）
+    private func velocity(at i: Int) -> CGVector {
+        guard i > 0, i + 1 < keys.count,
+              let point = keys[i].point, let previous = keys[i - 1].point, let next = keys[i + 1].point,
+              previous != point, next != point
+        else { return .zero }
+        let span = keys[i + 1].time - keys[i - 1].time
+        guard span > 0 else { return .zero }
+        return CGVector(dx: (next.x - previous.x) / span, dy: (next.y - previous.y) / span)
     }
 
     /// 台本の指の位置（トラックパッドの 0〜1）を HUD の枠に写すときの倍率。指がトラックパッドの端まで行けば、ポインタが円の外（外枠）に出るように
