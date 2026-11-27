@@ -16,6 +16,10 @@ final class HUDPressProgressController {
     static let size: CGFloat = 46
     private let store = HUDPressProgressStore()
     private var panel: NSPanel?
+    /// パネルの段。ふだんはメニューバーと同じ段。デモ（収録の背景を screenSaver − 1 に敷く）は背景より上にする（HUDWindowController.pressProgressLevel）
+    var level: NSWindow.Level = .statusBar {
+        didSet { panel?.level = level }
+    }
     /// システム設定の「視差効果を減らす」では、満ちていく動きを付けずに輪だけ出す
     var prefersReducedMotion: () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
@@ -50,7 +54,7 @@ final class HUDPressProgressController {
             defer: true
         )
         panel.isFloatingPanel = true
-        panel.level = .statusBar
+        panel.level = level
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false

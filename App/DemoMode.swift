@@ -2,7 +2,8 @@
 // 販売ページ・ポートフォリオ用のデモ動画を撮るための組み立て（DEBUG ビルドだけ。--demo。一覧は App/DebugPreview.swift）。
 // 操作のロジック（EdgeSlideRecognizer・SessionEngine）・NonetController・HUD は本物。差し替えるのは次のものだけ:
 // - 何も実行しない（performer）。実行するはずだった操作の結果は、背景の上の見本の窓で見せる（DemoStage。画面に置く・アプリを開く・キーを送る）
-// - ポインタを抑止せず、アクセシビリティの許可も要らない（keyboard・permissions）。置く枠は主の画面で決める（windowPlacer）
+// - ポインタを抑止せず、アクセシビリティの許可も要らない（keyboard・permissions）。置く枠は主の画面で決める（windowPlacer）。
+//   台本の指が強く押し込んだら、keyboard が本物のイベントタップと同じ順で「押し込んだ・止めた・離した」を送る（強く押し込んで開く）
 // - 前面のアプリを固定する（--demo-app）
 // - --demo-script のとき、実機の指の代わりに台本どおりの指の動きを入れる（内蔵の台本。--demo-script-file <JSON> ならその台本）。
 //   付けなければ実機の指をそのまま使う
@@ -39,6 +40,8 @@ final class DemoTouchSource: TouchSource {
     private var wasTouching = false
     var onFinished: (() -> Void)?
     var onFrame: ((TouchFrame) -> Void)?
+    /// 台本の指を強く押し込んでいるか（120Hz で毎回。DemoKeyboardMonitor.updatePress につなぐ）
+    var onPress: ((_ isPressed: Bool, _ now: TimeInterval) -> Void)?
     /// 表示中の HUD の枠（円を囲む正方形。主画面の左上が原点）。台本の指の位置をこの枠に写してポインタを動かす
     /// （本物はポインタでマスを選ぶため。写し方は DemoScript.pointer(for:in:)）
     var mapFrame: (() -> CGRect?)?
@@ -97,6 +100,10 @@ final class DemoTouchSource: TouchSource {
             wasTouching = false
             deliver(TouchFrame(timestamp: now, points: []))
         }
+        // 押し込みは指のフレームの後に知らせる（本物も、指が触れてからクリックの2段目が届く。開くときは触れている指が要る）
+        let pressed = script.isPressed(at: time)
+        model.isPressed = pressed
+        onPress?(pressed, now)
         // 終わりは、指を離すフレームを送ってから（台本の終わりの時刻まで触れていた指を、触れたままにしない。HUD が開いたまま残る）
         if time >= script.duration {
             timer?.invalidate()
@@ -130,7 +137,38 @@ final class DemoKeyboardMonitor: KeyboardMonitor {
     }
     var onEvent: ((KeyboardEvent) -> Void)?
     var isRunning = false
+    /// 強く押し込んでから開くまで止める秒数。NonetController が開き方の設定から入れる（押し込みで開けない間は nil）
+    var forcePressHold: TimeInterval?
     private var movedFrom: CGPoint?
+    /// 押し込み始めた時刻（押し込んでいない間は nil）と、もう .forcePressed を送ったか
+    private var pressedSince: TimeInterval?
+    private var reportedPress = false
+
+    /// 台本の指の押し込みを、本物のイベントタップ（EventTapKeyboardMonitor）と同じ順の出来事にして送る:
+    /// 押し込んだら .forcePressStarted（ポインタに輪が出る）、forcePressHold だけ止めたら .forcePressed（開く）、その前に離したら .forcePressCancelled
+    func updatePress(_ isPressed: Bool, at now: TimeInterval) {
+        guard let hold = forcePressHold, isPressed else {
+            if pressedSince != nil, !reportedPress, forcePressHold != nil {
+                onEvent?(.forcePressCancelled)
+            }
+            pressedSince = nil
+            return
+        }
+        guard let since = pressedSince else {
+            pressedSince = now
+            reportedPress = false
+            onEvent?(.forcePressStarted(hold: hold))
+            return
+        }
+        if !reportedPress, now - since >= hold {
+            reportedPress = true
+            DemoLog.write("demo: force-press")
+            onEvent?(.forcePressed)
+        }
+    }
+
+    /// 開いたかは見ない（デモはクリックを預からないので、返すものも捨てるものも無い）
+    func finishForcePress(opened: Bool) {}
 
     var pointerLocation: CGPoint? { CGEvent(source: nil)?.location }
 
@@ -380,6 +418,10 @@ final class DemoTrackpadModel {
 
     /// 触れている指と、その少し前までの軌跡（古いものほど薄く描く）
     private(set) var fingers: [CGPoint] = []
+    /// 指を強く押し込んでいる（指を緑で塗り、外に輪を出す）
+    var isPressed = false
+    /// 上の縁の帯（上の縁から滑らせて開く場所）を描く。押し込んで開く台本では描かない（開く場所ではないので）
+    var showsEdgeBand = true
     private(set) var trail: [Mark] = []
     private var counter = 0
     static let trailDuration: TimeInterval = 0.45
@@ -405,13 +447,15 @@ struct DemoTrackpadView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            // マスはポインタで選ぶので、トラックパッドには何も描かない（上の縁の帯だけ: 開く場所）
+            // マスはポインタで選ぶので、トラックパッドには何も描かない（上の縁から滑らせて開くときだけ、開く場所の帯）
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.white.opacity(0.07))
                 RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Color.white.opacity(0.22), lineWidth: 1.5)
-                Rectangle()
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: size.width, height: size.height * 0.09)
+                if model.showsEdgeBand {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: size.width, height: size.height * 0.09)
+                }
                 ForEach(model.trail) { mark in
                     let age = (model.trail.last?.time ?? mark.time) - mark.time
                     let strength = max(0, 1 - age / DemoTrackpadModel.trailDuration)
@@ -420,13 +464,21 @@ struct DemoTrackpadView: View {
                         .frame(width: 22 * (0.5 + 0.5 * strength), height: 22 * (0.5 + 0.5 * strength))
                         .position(position(mark.point, in: size))
                 }
+                // 強く押し込んでいる間は、指を緑で塗り、外に輪を出す（ポインタで操作するアプリの図と同じ: 押している間は緑で塗る）
                 ForEach(Array(model.fingers.enumerated()), id: \.offset) { _, finger in
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 30, height: 30)
-                        .overlay(Circle().strokeBorder(accent, lineWidth: 4))
-                        .shadow(color: accent.opacity(0.6), radius: 10)
-                        .position(position(finger, in: size))
+                    ZStack {
+                        Circle()
+                            .strokeBorder(accent.opacity(model.isPressed ? 0.55 : 0), lineWidth: 3)
+                            .frame(width: model.isPressed ? 52 : 30, height: model.isPressed ? 52 : 30)
+                        Circle()
+                            .fill(model.isPressed ? accent : Color.white)
+                            .frame(width: 30, height: 30)
+                            .overlay(Circle().strokeBorder(accent, lineWidth: 4))
+                            .shadow(color: accent.opacity(0.6), radius: 10)
+                    }
+                    .scaleEffect(model.isPressed ? 0.9 : 1)
+                    .animation(.easeOut(duration: 0.12), value: model.isPressed)
+                    .position(position(finger, in: size))
                 }
             }
         }
@@ -479,7 +531,10 @@ final class DemoSession {
         source.onFinished = { [weak self] in self?.finish() }
         source.mapFrame = { [weak self] in self?.mapFrame?() }
         services.touchSource = source
-        services.keyboard = DemoKeyboardMonitor()
+        let keyboard = DemoKeyboardMonitor()
+        source.onPress = { [weak keyboard] isPressed, now in keyboard?.updatePress(isPressed, at: now) }
+        model.showsEdgeBand = !(script?.pressesToOpen ?? false)
+        services.keyboard = keyboard
         performer.onPerform = { [weak self] action in self?.stage?.perform(action) }
         services.performer = performer
         services.windowPlacer = DemoWindowPlacer()

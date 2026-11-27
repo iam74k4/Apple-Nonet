@@ -1,4 +1,5 @@
-// 担当: ui-shell。デモ動画の台本（DemoScript）を、本物の操作のロジック（EdgeSlideRecognizer・SessionEngine・ControllerPointerSelection）に通して確かめる
+// 担当: ui-shell。デモ動画の台本（DemoScript）を、本物の操作のロジック（押し込んで止める時間 ForcePress.hold・EdgeSlideRecognizer・SessionEngine・
+// ControllerPointerSelection）に通して確かめる
 import CoreGraphics
 import Foundation
 import NonetCore
@@ -18,6 +19,8 @@ struct ShellDemoScriptTests {
     }
 
     /// 台本の指を 120Hz で入れ、開く動きの判定と SessionEngine を NonetController と同じ順でつなぐ。
+    /// 押し込んで ForcePress.hold（開きやすさは標準）だけ止めたら開く（デモの DemoKeyboardMonitor が .forcePressed を送るのと同じ）。
+    /// 上の縁から滑らせる台本は、EdgeSlideRecognizer で開く。
     /// 開いている間は、デモ（App/DemoMode.swift）と同じく、指の位置を HUD の枠に写したポインタでマスを選ぶ
     static func replay(_ script: DemoScript, pageCount: Int = 4) -> Replay {
         var engine = SessionEngine()
@@ -31,6 +34,9 @@ struct ShellDemoScriptTests {
         var result = Replay()
         var nextTick: TimeInterval?
         var wasTouching = false
+        let hold = ForcePress.hold(for: .standard)
+        var pressedSince: TimeInterval?
+        var pressReported = false
 
         func collect(_ effects: [SessionEffect], at time: TimeInterval) {
             for effect in effects {
@@ -74,6 +80,21 @@ struct ShellDemoScriptTests {
                     result.openedAt.append(time)
                     collect(engine.handle(.open(at: time, configuration: configuration)), at: time)
                 }
+            }
+            if script.isPressed(at: time) {
+                if pressedSince == nil {
+                    pressedSince = time
+                    pressReported = false
+                }
+                if !pressReported, let since = pressedSince, time - since >= hold - 1e-9 {
+                    pressReported = true
+                    if !engine.isInSession {
+                        result.openedAt.append(time)
+                        collect(engine.handle(.open(at: time, configuration: configuration)), at: time)
+                    }
+                }
+            } else {
+                pressedSince = nil
             }
             time += 1.0 / 120
         }
@@ -120,16 +141,21 @@ struct ShellDemoScriptTests {
         #expect(result.pagingShownAt.filter { $0 > result.openedAt[3] }.isEmpty)
     }
 
-    @Test("開く動きは、上の縁から1本指で下へ滑らせたもの。どれも触れてから 0.6 秒のうちに開く")
-    func opensQuicklyFromTheTopBand() {
+    @Test("開く動きは、トラックパッドの真ん中を強く押し込んで止めたもの（1.1.0 の既定）。どれも押し込んでから ForcePress.hold で開く")
+    func opensByPressingFirmly() {
         let result = Self.replay(.builtIn)
         let touchStarts = Self.touchStarts(.builtIn)
         #expect(touchStarts == [0.6, 4.0, 8.8, 14.5])
-        #expect(result.openedAt.count == touchStarts.count)
-        for (start, opened) in zip(touchStarts, result.openedAt) {
-            #expect(opened - start < EdgeSlideRecognizer.entryWindow)
-            #expect(opened > start)
+        let pressStarts = DemoScript.builtIn.keys.filter(\.pressed).map(\.time)
+        #expect(result.openedAt.count == pressStarts.count)
+        for (press, opened) in zip(pressStarts, result.openedAt) {
+            #expect(abs(opened - press - ForcePress.hold(for: .standard)) < 0.02)
         }
+        // 押し込むのは真ん中（ポインタの下に開く。開いた瞬間のポインタは円の中心）
+        for key in DemoScript.builtIn.keys where key.pressed {
+            #expect(key.point == CGPoint(x: 0.5, y: 0.5))
+        }
+        #expect(DemoScript.builtIn.pressesToOpen)
     }
 
     @Test("内蔵の台本は、ファイルの台本と同じ検査に通る。位置はトラックパッドの中で、離している間は nil")
@@ -158,7 +184,7 @@ struct ShellDemoScriptTests {
         #expect(xcode.executions == ["0:1"])
         #expect(xcode.ends == [.released])
         // Zoom: 真ん中（ミュート）・上でグローバルへ移って左（左半分）・上でグローバルへ移り右で次のページ（ランチャー）の右上（メール）・
-        // 輪の外を回って下で下のページ（ユーティリティ）へ移り真ん中（撮影してコピー）・帯より遠くで止めて離し、やめる
+        // 下で下のページ（ユーティリティ）へ移り真ん中（撮影してコピー）・帯より遠くで止めて離し、やめる。どの回も押し込んで開く
         let zoom = Self.replay(try Self.recorded("zoom"))
         #expect(zoom.executions == ["0:4", "1:3", "2:2", "3:4"])
         #expect(zoom.haptics.filter { $0 == .layerChange }.count == 3)
@@ -170,6 +196,7 @@ struct ShellDemoScriptTests {
         #expect(zoom.ends == [.released, .released, .released, .released, .cancelled(.liftedInFrame)])
         #expect(!zoom.pagingShownAt.filter { $0 < zoom.openedAt[4] }.isEmpty)
         #expect(zoom.pagingShownAt.filter { $0 > zoom.openedAt[4] }.isEmpty)
+        #expect(xcode.openedAt.count == 1 && zoom.openedAt.count == 5)
     }
 
     @Test("JSON の台本: [秒, x, y] は指を置く行、[秒] は指を離す行。間は滑らかにつなぐ")
@@ -209,6 +236,19 @@ struct ShellDemoScriptTests {
         #expect(script.sample(at: 1.5) == CGPoint(x: 0.9, y: 0.5))
     }
 
+    @Test("JSON の台本: [秒, x, y, 1] は、その時刻から次の行まで強く押し込む。離している間と最初の行より前は押し込んでいない")
+    func readsPresses() throws {
+        let script = try DemoScript(json: Data("[[0], [0.5, 0.5, 0.5], [1, 0.5, 0.5, 1], [1.5, 0.5, 0.5, 0], [2, 0.5, 0.9], [2]]".utf8))
+        #expect(script.pressesToOpen)
+        #expect(!script.isPressed(at: 0.25))
+        #expect(!script.isPressed(at: 0.75))
+        #expect(script.isPressed(at: 1.0))
+        #expect(script.isPressed(at: 1.4))
+        #expect(!script.isPressed(at: 1.5))
+        #expect(!script.isPressed(at: 2.5))
+        #expect(!(try DemoScript(json: Data("[[0, 0.5, 0.5], [1]]".utf8))).pressesToOpen)
+    }
+
     @Test("時刻 0 から始まらない台本は、最初の行まで指を離している")
     func nothingBeforeTheFirstRow() throws {
         let script = try DemoScript(json: Data("[[1, 0.5, 0.9], [2, 0.5, 0.5], [2]]".utf8))
@@ -221,9 +261,10 @@ struct ShellDemoScriptTests {
         ("[]", "行がありません"),
         ("[[0], [1]]", "指を置く行（[秒, x, y]）がありません"),
         ("[[0], [1, 0.5, 0.5]]", "最後の行は [秒] にして、指を離して終える"),
-        ("[[0], [1, 0.5], [2]]", "2 行目: [秒, x, y] か [秒] で書く（数が 2 個あります）"),
-        ("[[0], [1, 0.5, 0.5, 0.5], [2]]", "2 行目: [秒, x, y] か [秒] で書く（数が 4 個あります）"),
-        ("[[0], [], [2]]", "2 行目: [秒, x, y] か [秒] で書く（数が 0 個あります）"),
+        ("[[0], [1, 0.5], [2]]", "2 行目: [秒, x, y]・[秒, x, y, 押し込む印] か [秒] で書く（数が 2 個あります）"),
+        ("[[0], [1, 0.5, 0.5, 0.5], [2]]", "2 行目: 押し込む印（4つ目）は 0 か 1 で書く"),
+        ("[[0], [1, 0.5, 0.5, 1, 0], [2]]", "2 行目: [秒, x, y]・[秒, x, y, 押し込む印] か [秒] で書く（数が 5 個あります）"),
+        ("[[0], [], [2]]", "2 行目: [秒, x, y]・[秒, x, y, 押し込む印] か [秒] で書く（数が 0 個あります）"),
         ("[[-1], [1, 0.5, 0.5], [2]]", "1 行目: 時刻は 0 以上の秒で書く"),
         ("[[0], [2, 0.5, 0.5], [1.5, 0.5, 0.5], [3]]", "3 行目: 時刻（1.5 秒）が前の行（2.0 秒）より戻っています"),
         ("[[0], [1, 1.01, 0.5], [2]]", "2 行目: x と y は 0〜1 で書く（x は左が 0、y は手前が 0）"),

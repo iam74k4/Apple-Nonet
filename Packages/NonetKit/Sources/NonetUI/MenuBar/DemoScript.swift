@@ -3,17 +3,20 @@ import CoreGraphics
 import Foundation
 
 /// デモ動画で見せる指の動き。時刻（秒）と指の位置（x は左が 0、y は手前が 0。TouchPoint と同じ）の並びで、間は滑らかにつなぐ。
-/// 位置が nil の時刻からは、次の時刻まで指を離している。デモはこの位置を HUD の円に写してポインタを動かし
-/// （pointer(for:in:)）、本物と同じくポインタの向きと距離でマスを選ぶ。
+/// 位置が nil の時刻からは、次の時刻まで指を離している。pressed の時刻からは、次の時刻まで指を強く押し込んでいる
+/// （デモは、本物のキーボードモニターと同じく、押し込んで ForcePress.hold だけ止めたら開く出来事を送る）。
+/// デモはこの位置を HUD の円に写してポインタを動かし（pointer(for:in:)）、本物と同じくポインタの向きと距離でマスを選ぶ。
 ///
-/// 内蔵の台本（builtIn）は、1つのアプリ（--demo-app。既定は Xcode）のまま4回開き、1回に1つずつ見せる:
-/// 1. 上の縁から開き、上のマスへ向けて止め、離して実行する
+/// 内蔵の台本（builtIn）は、1つのアプリ（--demo-app。既定は Xcode）のまま4回開き、1回に1つずつ見せる。どの回も、トラックパッドの真ん中を
+/// 強く押し込んで止めて開く（1.1.0 の既定の開き方。2026-11-27 に所有者が「押し込みで撮り直す」と決めた。前は上の縁から滑らせていた）。
+/// 開いた瞬間はポインタが真ん中のマスにあるので、すぐに動き出す（留まると名前の札が出て、そのマスを選んだように見える）。
+/// 真ん中のマスを選ぶには、一度真ん中の外へ出てから戻す（ControllerPointerSelection。開いた瞬間に離せば何もせずに閉じるため）:
+/// 1. 開いて上のマスへ向けて止め、離して実行する
 /// 2. 開いて輪のすぐ上で止め、グローバルのページの層へ移る。左上の外を回って左のマスへ向けて離し、実行する
 /// 3. 開いてもう一度グローバルの層へ移り、輪の右で止めて次のページへ送る。右上のマスへ向けて離し、実行する
-/// 4. 上の縁の右寄りから開いて右上の隅へ出し、帯より遠く（どの側でもない。止めても何も切り替わらない）で止めて（鍵が薄くなる）、離してやめる
+/// 4. 開いて右上の隅へ出し、帯より遠く（どの側でもない。止めても何も切り替わらない）で止めて（鍵が薄くなる）、離してやめる
 ///    （何も実行しない）。アプリの層の上の帯はグローバルの層へ、下の帯は下のページ（ユーティリティ）へ移り、右・左もページがあれば送るので、
-///    やめる場面は帯の外で止める。真ん中のマスを通らない: 前の台本は真ん中まで来てから下へ出ていて、
-///    真ん中の鍵が名前つきで光ってから閉じるので、そのマスを選んだように見えた（2026-11-11 のレビュー）
+///    やめる場面は帯の外で止める
 /// どのマスが何をするかは設定しだい。初回の設定のままなら、Xcode の上は「実行」、グローバルの最初のページは「画面に置く」で
 /// 左は「左半分」、次のページはランチャー（並ぶアプリは Mac しだい）。
 /// グローバルの層で真ん中のマスへは向けない: 「画面に置く」の真ん中は「最大化」で、置く場所を示す枠が画面いっぱいに出て、何の枠か分からなくなる
@@ -26,10 +29,13 @@ public struct DemoScript: Equatable, Sendable {
     public struct Key: Equatable, Sendable {
         public var time: TimeInterval
         public var point: CGPoint?
+        /// この時刻から次の時刻まで、指を強く押し込んでいる（指を置いている行だけ）
+        public var pressed: Bool
 
-        public init(time: TimeInterval, point: CGPoint?) {
+        public init(time: TimeInterval, point: CGPoint?, pressed: Bool = false) {
             self.time = time
             self.point = point
+            self.pressed = pressed
         }
     }
 
@@ -50,18 +56,18 @@ public struct DemoScript: Equatable, Sendable {
     }
 
     public static let builtIn = DemoScript(keys: [
-        // 1. 開いて、上のマスで止めて離す
+        // 1. 真ん中を押し込んで開き、上のマスで止めて離す
         Key(time: 0.0, point: nil),
-        Key(time: 0.6, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 0.85, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 1.2, point: CGPoint(x: 0.5, y: 0.86)),
-        Key(time: 1.5, point: CGPoint(x: 0.5, y: 0.81)),
+        Key(time: 0.6, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 0.75, point: CGPoint(x: 0.5, y: 0.5), pressed: true),
+        Key(time: 1.1, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 1.4, point: CGPoint(x: 0.5, y: 0.81)),
         Key(time: 2.8, point: CGPoint(x: 0.5, y: 0.81)),
         Key(time: 2.8, point: nil),
-        // 2. 輪のすぐ上で止めて、グローバルの層へ。左上を回って左のマスへ行き、離す
-        Key(time: 4.0, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 4.25, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 4.6, point: CGPoint(x: 0.5, y: 0.86)),
+        // 2. 開いて輪のすぐ上で止め、グローバルの層へ。左上を回って左のマスへ行き、離す
+        Key(time: 4.0, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 4.15, point: CGPoint(x: 0.5, y: 0.5), pressed: true),
+        Key(time: 4.5, point: CGPoint(x: 0.5, y: 0.5)),
         Key(time: 5.0, point: CGPoint(x: 0.5, y: 0.95)),
         Key(time: 5.65, point: CGPoint(x: 0.5, y: 0.95)),
         Key(time: 5.9, point: CGPoint(x: 0.12, y: 0.88)),
@@ -70,9 +76,9 @@ public struct DemoScript: Equatable, Sendable {
         Key(time: 7.6, point: CGPoint(x: 0.19, y: 0.5)),
         Key(time: 7.6, point: nil),
         // 3. もう一度グローバルの層へ。輪の右で止めて次のページへ送り、右上のマスで離す
-        Key(time: 8.8, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 9.05, point: CGPoint(x: 0.5, y: 0.975)),
-        Key(time: 9.4, point: CGPoint(x: 0.5, y: 0.86)),
+        Key(time: 8.8, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 8.95, point: CGPoint(x: 0.5, y: 0.5), pressed: true),
+        Key(time: 9.3, point: CGPoint(x: 0.5, y: 0.5)),
         Key(time: 9.8, point: CGPoint(x: 0.5, y: 0.95)),
         Key(time: 10.45, point: CGPoint(x: 0.5, y: 0.95)),
         Key(time: 10.75, point: CGPoint(x: 0.92, y: 0.9)),
@@ -82,12 +88,14 @@ public struct DemoScript: Equatable, Sendable {
         Key(time: 12.15, point: CGPoint(x: 0.719, y: 0.719)),
         Key(time: 13.3, point: CGPoint(x: 0.719, y: 0.719)),
         Key(time: 13.3, point: nil),
-        // 4. 上の縁の右寄りから開き、右上の隅へ出して、帯より遠くで止めて（鍵が薄くなる）離し、やめる（どの側でもないので、止めても何も起きない）。
-        // 開いてから離すまで、ポインタは帯（輪の外 134〜210pt）に入らない。帯を通ると、そこで開くページの矢印と名前が一瞬出て、移るように見える
-        Key(time: 14.5, point: CGPoint(x: 0.9, y: 0.975)),
-        Key(time: 14.75, point: CGPoint(x: 0.9, y: 0.975)),
-        Key(time: 15.1, point: CGPoint(x: 0.96, y: 0.915)),
-        Key(time: 15.45, point: CGPoint(x: 0.97, y: 0.97)),
+        // 4. 開いて右へ出てから右上の隅へ上がり、帯より遠くで止めて（鍵が薄くなる）離し、やめる（どの側でもないので、止めても何も起きない）。
+        // 帯（中心から 134〜210pt）は右の側（アプリの層では右にページが無く、何も出ない）で横切る。上の側で横切ると、グローバルの層の矢印と
+        // 名前が一瞬出て、移るように見える。真ん中から隅へまっすぐ出ると、上と右の境（45°）を通り、どちらになるかが揺れる
+        Key(time: 14.5, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 14.65, point: CGPoint(x: 0.5, y: 0.5), pressed: true),
+        Key(time: 15.0, point: CGPoint(x: 0.5, y: 0.5)),
+        Key(time: 15.3, point: CGPoint(x: 0.97, y: 0.62)),
+        Key(time: 15.55, point: CGPoint(x: 0.97, y: 0.97)),
         Key(time: 16.55, point: CGPoint(x: 0.97, y: 0.97)),
         Key(time: 16.55, point: nil),
         Key(time: 17.5, point: nil),
@@ -96,7 +104,7 @@ public struct DemoScript: Equatable, Sendable {
     // MARK: - ファイルの台本
 
     /// JSON の台本を読む（--demo-script-file。見本は scripts/demo/）。形は [[秒, x, y], [秒], …] で、x・y の無い行は指を離す。
-    /// 読めない・検査（problem(in:)）に落ちたら、理由を投げる
+    /// [秒, x, y, 1] は、その時刻から次の行まで強く押し込む（4つ目は 0 か 1）。読めない・検査（problem(in:)）に落ちたら、理由を投げる
     public init(json data: Data) throws {
         let rows: [[Double]]
         do {
@@ -109,7 +117,12 @@ public struct DemoScript: Equatable, Sendable {
             switch row.count {
             case 1: keys.append(Key(time: row[0], point: nil))
             case 3: keys.append(Key(time: row[0], point: CGPoint(x: row[1], y: row[2])))
-            default: throw Problem("\(index + 1) 行目: [秒, x, y] か [秒] で書く（数が \(row.count) 個あります）")
+            case 4:
+                guard row[3] == 0 || row[3] == 1 else {
+                    throw Problem("\(index + 1) 行目: 押し込む印（4つ目）は 0 か 1 で書く")
+                }
+                keys.append(Key(time: row[0], point: CGPoint(x: row[1], y: row[2]), pressed: row[3] == 1))
+            default: throw Problem("\(index + 1) 行目: [秒, x, y]・[秒, x, y, 押し込む印] か [秒] で書く（数が \(row.count) 個あります）")
             }
         }
         if let problem = Self.problem(in: keys) {
@@ -163,14 +176,28 @@ public struct DemoScript: Equatable, Sendable {
 
     public var duration: TimeInterval { keys.last?.time ?? 0 }
 
-    /// time 秒の指の位置。離している間と、最初の行より前・最後の行から後は nil
-    public func sample(at time: TimeInterval) -> CGPoint? {
-        guard let first = keys.first, time >= first.time, time < duration else { return nil }
-        // 同じ時刻の Key が並ぶとき（指を離す瞬間）は、後ろのものが次の区間の始まり
+    /// 押し込んで開く台本か（デモのトラックパッドの図は、そのとき上の縁の帯を描かない。開く場所ではないので）
+    public var pressesToOpen: Bool { keys.contains(where: \.pressed) }
+
+    /// time 秒に指を強く押し込んでいるか（指を置いていて、いまの区間の始まりの行が pressed）
+    public func isPressed(at time: TimeInterval) -> Bool {
+        guard sample(at: time) != nil else { return false }
+        return keys[segment(at: time)].pressed
+    }
+
+    /// time 秒を含む区間の始まりの行。同じ時刻の Key が並ぶとき（指を離す瞬間）は、後ろのものが次の区間の始まり
+    private func segment(at time: TimeInterval) -> Int {
         var index = 0
         for (i, key) in keys.enumerated() where key.time <= time {
             index = i
         }
+        return index
+    }
+
+    /// time 秒の指の位置。離している間と、最初の行より前・最後の行から後は nil
+    public func sample(at time: TimeInterval) -> CGPoint? {
+        guard let first = keys.first, time >= first.time, time < duration else { return nil }
+        let index = segment(at: time)
         guard index + 1 < keys.count, let start = keys[index].point else { return nil }
         let end = keys[index + 1]
         guard let to = end.point else { return start }

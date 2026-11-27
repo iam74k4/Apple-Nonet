@@ -69,6 +69,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hud = HUDWindowController()
         #if DEBUG
         demo?.mapFrame = { [weak hud] in hud?.mapFrame }
+        if demo != nil {
+            // 押し込んでから開くまでの輪を、収録の背景（screenSaver − 1）より上に出す（HUD と同じ段）
+            hud.pressProgressLevel = .screenSaver
+        }
         #endif
         let license = makeLicenseManager()
         let controller = NonetController(

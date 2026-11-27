@@ -37,6 +37,11 @@ public final class HUDWindowController: HUDPresenting {
     private let placementPreview = HUDPlacementPreviewController()
     /// 強く押し込んでから開くまでの輪（テストで確かめる）
     let pressProgress = HUDPressProgressController()
+    /// 強く押し込んでから開くまでの輪の段（既定はメニューバーと同じ段）。デモは収録の背景より上に出す（背景の下に隠れると、押し込んだ間が映らない）
+    public var pressProgressLevel: NSWindow.Level {
+        get { pressProgress.level }
+        set { pressProgress.level = newValue }
+    }
     /// 「最近のスクショ」のトレイ（テストで中を確かめる）
     let screenshotTray = HUDScreenshotTrayController()
 
